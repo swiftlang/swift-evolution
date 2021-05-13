@@ -6,13 +6,37 @@
 * Status: **Awaiting implementation**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
+## Table of Contents
+
+* [Introduction](#introduction)
+* [Motivation](#motivation)
+* [Proposed solution](#proposed-solution)
+    * [Defining global actors](#defining-global-actors)
+    * [Using global actors on functions and data](#using-global-actors-on-functions-and-data)
+    * [Global actor function types](#global-actor-function-types)
+    * [Closures](#closures)
+    * [Global and static variables](#global-and-static-variables)
+    * [Using global actors on a type](#using-global-actors-on-a-type)
+    * [Global actor inference](#global-actor-inference)
+    * [Global actors and instance actors](#global-actors-and-instance-actors)
+* [Detailed design](#detailed-design)
+* [Source compatibility](#source-compatibility)
+* [Effect on ABI stability](#effect-on-abi-stability)
+* [Effect on API resilience](#effect-on-api-resilience)
+* [Alternatives considered](#alternatives-considered)
+    * [Singleton support](#singleton-support)
+    * [Propose only the main actor](#propose-only-the-main-actor)
+
+
 ## Introduction
 
 [Actors](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md) are a new kind of reference type that protect their instance data from concurrent access. Swift actors achieve this with *actor isolation*, which ensures (at compile time) that all accesses to that instance data go through a synchronization mechanism that serializes execution.
 
-This proposal introduces *global actors*, which extend the notion of actor isolation outside of a single actor type, so that global state (and the functions that access it) can benefit from actor isolation, even if the state and functions are scattered across many different types, functions and modules. Global actors make it possible to safely work with global variables in a concurrent program, as well as modeling other global program constraints such as code that must only execute on the "main thread" or "UI thread". 
+This proposal introduces *global actors*, which extend the notion of actor isolation outside of a single actor type, so that global state (and the functions that access it) can benefit from actor isolation, even if the state and functions are scattered across many different types, functions and modules. Global actors make it possible to safely work with global variables in a concurrent program, as well as modeling other global program constraints such as code that must only execute on the "main thread" or "UI thread".
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Global actors also provide a means to eliminate data races on global and static variables, by introducing a requirement that any mutable global or static variable be annotated with a global actor.
+
+Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/pitch-global-actors/45706)
 
 ## Motivation
 
@@ -40,12 +64,12 @@ func notOnTheMainActor() async {
 
 ### Defining global actors
 
-A global actor is a non-protocol type that has the `@globalActor` attribute and contains a `static let` property named `shared` that provides an actor instance. `MainActor` is one such actor, defined as follows:
+A global actor is a non-protocol type that has the `@globalActor` attribute and contains a `static let` property named `shared` that provides an actor instance. `MainActor` is one such global actor, defined as follows:
 
 ```swift
 @globalActor
-public final actor MainActor {
-  public static let shared = MainActor()
+public struct MainActor {
+  public static let shared = /* unspecified actor type */
 }
 ```
 
@@ -74,13 +98,13 @@ class IconViewController: UIViewController {
 
 Note that the data in this view controller, as well as the method that performs the update of this data, is isolated to the `@MainActor`. That ensures that UI updates for this view controller only occur on the main thread, and any attempts to do otherwise will result in a compiler error.
 
-The sample code actually triggers an update when the `url` property is set. With Swift's concurrency mechanisms, that would look something like this:
+The sample code actually triggers an update when the `url` property is set. With global actors, that would look something like this:
 
 ```swift
 @MainActor var url: URL? {
   didSet {
     // Asynchronously perform an update
-    Task.runDetached { [url] in                // not isolated to any actor
+    asyncDetached { [url] in                   // not isolated to any actor
       guard let url = url else { return }
       let newIcons = self.gatherContents(url)
       await self.updateIcons(newIcons)         // 'await' required so we can hop over to the main actor
@@ -89,35 +113,7 @@ The sample code actually triggers an update when the `url` property is set. With
 }
 ```
 
-### Using global actors on a type
-
-It is common for entire types (and even class hierarchies) to predominantly require execution on the main thread, and for asynchronous work to be a special case. In such cases, the type itself can be annotated with a global actor, and all of the instance methods, properties, and subscripts will implicitly be isolated to that global actor. Any members of the type that do not want to be part of the global actor can opt out, e.g., using the [`nonisolated` modifier][isolation]. For example:
-
-```swift
-@MainActor
-class IconViewController: UIViewController {
-   @objc private dynamic var icons: [[String: Any]] = [] // implicitly @MainActor
-    
-  var url: URL? // implicitly @MainActor
-    
-  private func updateIcons(_ iconArray: [[String: Any]]) { // implicitly @MainActor
-    icons = iconArray
-        
-    // Notify interested view controllers that the content has been obtained.
-    // ...
-  }
-  
-  nonisolated private func gatherContents(url: URL) -> [[String: Any]] {
-    // ...
-  }
-}
-
-class RemoteIconViewController : IconViewController { // implicitly @MainActor
-  func connect() { ... } // implicitly @MainActor
-}
-```
-
-## Global actor function types and closures
+### Global actor function types
 
 A synchronous function type can be qualified to state that the function is only callable on a specific global actor:
 
@@ -127,6 +123,16 @@ var callback: @MainActor (Int) -> Void
 
 Such a function can only be synchronously called from code that is itself isolated to the same global actor.
 
+A reference to a function that is isolated to a global actor will have a function type with a global actor. The references themselves are not subject to actor-isolation checking, because the actor isolation is described by the resulting function type. For example:
+
+```swift
+func functionsAsValues(controller: IconViewController) {
+  let fn = controller.updateIcons // okay, type is @MainActor ([[String: Any]]) -> Void
+  let fn2 = IconViewController.controller.updateIcons // okay, type is (IconViewController) -> (@MainActor ([[String: Any]]) -> Void)
+  fn([]) // error: cannot call main actor-isolated function synchronously from outside the actor
+}
+```
+
 Values may be converted from a function type with no global actor qualifier to a function with a global actor qualifier. For example:
 
 ```swift
@@ -135,9 +141,22 @@ func acceptInt(_: Int) { } // not on any actor
 callback = acceptInt // okay: conversion to @MainActor (Int) -> Void
 ```
 
-The type of a reference to a synchronous function with a global actor is qualified with that global actor. Values of types with global actor qualifiers can be `@sendable` (but do not have to be). 
+The opposite conversion is not permitted for synchronous functions, because doing so would allow the function to be called without being on the global actor:
 
-A closure can be specified to be isolated to a global actor by providing the attribute prior to the `in` in the closure specifier, e.g.,
+```swift
+let fn3: (Int) -> Void = callback // error: removed global actor `MainActor` from function type
+```
+
+However, it is permissible for the global actor qualifier to be removed when the result of the conversion is an `async` function. In this case, the `async` function will first "hop" to the global actor before executing its body:
+
+```swift
+let callbackAsynchly: (Int) async -> Void = callback   // okay: implicitly hops to main actor
+```
+
+A global actor qualifier on a function type is otherwise independent of `@Sendable`, `async`, `throws` and most other function type attributes and modifiers. The only exception is when the function itself is also isolated to an instance actor, which is discussed in the later section on [Global actors and instance actors](#global-actors-and-instance-actors).
+
+### Closures
+A closure can be explicitly specified to be isolated to a global actor by providing the attribute prior to the `in` in the closure specifier, e.g.,
 
 ```swift
 callback = { @MainActor in
@@ -149,11 +168,11 @@ callback = { @MainActor (i) in
 }
 ```
 
-When a global actor is applied to a synchronous closure, the type of the global is qualified with that global actor. When a global actor is applied to an `async` closure, there is no effect on the closure type, but the closure body will execute on the specified global actor.
+When a global actor is applied to a closure, the type of the closure is qualified with that global actor. 
 
 > **Note**: this can be used to replace the common pattern used with Apple's Dispatch library of executing main-thread code via `DispatchQueue.main.async { ... }`. One would instead write:
 > ```swift
-> Task.runDetached { @MainActor in 
+> asyncDetached { @MainActor in 
 >   // ...
 > }
 > ```
@@ -167,6 +186,135 @@ If a closure is used to directly initialize a parameter or other value of a glob
 callback = {
   globalTextSize = $0  // okay: closure is inferred to be isolated to the @MainActor
 }
+```
+
+### Global and static variables
+
+Global and static variables can be annotated with a global actor. Such variables can only be accessed from the same global actor or asynchronously, e.g.,
+
+```swift
+@MainActor var globalCounter = 0
+
+@MainActor func incrementGlobalCounter() {
+  globalCounter += 1   // okay, we are on the main actor
+}
+
+func readCounter() async {
+  print(globalCounter)         // error: cross-actor read requires 'await'
+  print(await globalAcounter)  // okay
+}
+```
+
+As elsewhere, cross-actor references require the types involved to conform to `Sendable`. 
+
+Global and static variables not annotated with a global actor can effectively be accessed from any concurrency context, and as such are prone to data races. To eliminate these data races, we can require that every global or static variable do one of the following:
+
+* Explicitly state that it is part of a global actor, or
+* Be both immutable (introduced via `let`) and non-isolated.
+
+This allows global/static immutable constants to be used freely from any code, while any data that is mutable (or could become mutable in a future version of a library) must be protected by an actor.
+
+### Using global actors on a type
+
+It is common for entire types (and even class hierarchies) to predominantly require execution on the main thread, and for asynchronous work to be a special case. In such cases, the type itself can be annotated with a global actor, and all of the methods, properties, and subscripts will implicitly be isolated to that global actor. Any members of the type that do not want to be part of the global actor can opt out, e.g., using the [`nonisolated` modifier][isolation]. For example:
+
+```swift
+@MainActor
+class IconViewController: UIViewController {
+  @objc private dynamic var icons: [[String: Any]] = [] // implicitly @MainActor
+    
+  var url: URL? // implicitly @MainActor
+  
+  private func updateIcons(_ iconArray: [[String: Any]]) { // implicitly @MainActor
+    icons = iconArray
+        
+    // Notify interested view controllers that the content has been obtained.
+    // ...
+  }
+  
+  nonisolated private func gatherContents(url: URL) -> [[String: Any]] {
+    // ...
+  }
+}
+```
+
+A non-protocol type that is annotated with a global actor implicitly conforms to `Sendable`. Instances of such types are safe to share across concurrency domains because access to their
+state is guarded by the global actor.
+
+A class can only be annotated with a global actor if it has no superclass, the superclass is annotated with the same global actor, or the superclass is `NSObject`. A subclass of a global-actor-annotated class must be isolated to the same global actor.
+
+### Global actor inference
+
+Declarations that are not explicitly annotated with either a global actor or `nonisolated` can infer global actor isolation from several different places:
+
+* Subclasses infer actor isolation from their superclass:
+* 
+  ```swift
+  class RemoteIconViewController: IconViewController { // implicitly @MainActor
+      func connect() { ... } // implicitly @MainActor
+  }
+  ```
+  
+* An overriding declartion infers actor isolation from the declaration it overrides:
+
+  ```swift
+  class A {
+    @MainActor func updateUI() { ... }
+  }
+  
+  class B: A {
+    override func updateUI() { ... } // implicitly @MainActor
+  }
+  ```
+  
+* A non-actor type that conforms to a main-actor-qualified protocol in its primary definition infers actor isolation from that protocol:
+
+  ```swift
+  @MainActor protocol P {
+    func updateUI() { } // implicitly @MainActor
+  }
+  
+  class C: P { } // C is implicitly @MainActor
+  
+  class D { }
+  
+  extension D: P { // D is not implicitly @MainActor
+    func updateUI() { } // okay, but not implicitly @MainActor
+  }
+  ```
+
+* A struct or class containing a wrapped instance property with a global actor-qualified `wrappedValue` infers actor isolation from that property wrapper:
+
+  ```swift
+  @propertyWrapper
+  struct UIUpdating<Wrapped> {
+    @MainActor var wrappedValue: Wrapped
+  }
+  
+  struct CounterView { // infers @MainActor from use of @UIUpdating
+    @UIUpdating var intValue: Int = 0
+  }
+  ```
+
+### Global actors and instance actors
+
+A declaration cannot both be isolated to a global actor and isolated to an instance actor.  If an instance declaration within an actor type is annotated with a global actor, it is isolated to the global actor but *not* its enclosing actor instance:
+
+```swift
+actor Counter {
+  var value = 0
+  
+  @MainActor func updateUI(view: CounterView) async {
+    view.intValue = value  // error: `value` is actor-isolated to `Counter` but we are in a 'MainActor'-isolated context
+    view.intValue = await value // okay to asynchronously read the value
+  }
+}
+```
+
+With the `isolated` parameters described in [SE-0313][isolation], no function type can contain both an `isolated` parameter and also a global actor qualifier:
+
+```swift
+@MainActor func tooManyActors(counter: isolated Counter) { } // error: 'isolated' parameter on a global-actor-qualified function
 ```
 
 ## Detailed design
@@ -183,13 +331,13 @@ Global actor attributes apply to declarations as follows:
 
 * Local variables and constants cannot be marked with a global actor attribute.
 
-* A type declared with a global actor attribute propagates the attribute to all instance methods, instance properties, instance subscripts, and extensions of the type by default. 
+* A type declared with a global actor attribute propagates the attribute to all methods, properties, subscripts, and extensions of the type by default. 
 
 * An extension declared with a global actor attribute propagates the attribute to all the members of the extension by default.
 
-* A protocol declared with a global actor attribute propagates the attribute to its conforming types by default.
+* A protocol declared with a global actor attribute propagates the attribute to any type that conforms to it in the primary type definition by default.
 
-* A protocol requirement declared with a global actor attribute propagates the attribute to its witnesses. A given witness must either have the same global actor attribute or be non-isolated. (This is the same rule observed by all witnesses for actor-isolated requirements).
+* A protocol requirement declared with a global actor attribute requires that a given witness must either have the same global actor attribute or be non-isolated. (This is the same rule observed by all witnesses for actor-isolated requirements).
 
 * A class declared with a global actor attribute propagates the attribute to its subclasses mandatorily.
 
@@ -206,19 +354,13 @@ Global actors are an additive feature that have no impact on existing source cod
 
 ## Effect on ABI stability
 
-A global actor annotation has no effect on the ABI of any declaration to which it is applied.
+A global actor annotation is part of the type of an entity, and is therefore part of its mangled name. Otherwise, a global actor has no effect on the ABI.
 
 ## Effect on API resilience
 
 The `@globalActor` attribute can be added to a type without breaking API.
 
 A global actor attribute (such as `@MainActor`) can neither be added nor removed from an API; either will cause breaking changes for source code that uses the API.
-
-## Future Directions
-
-### Requiring global actors on global data
-
-In the Swift concurrency model developed thus far, mutable global variables and static variables defined in types are accessible from any actor and, therefore, can be accessed in a manner that admits data races. One way to eliminate such data races is to require that every such variable be isolated to some global actor. In doing so, all access each global or static variable is serialized through its global actor, eliminating the possibility of data races.
 
 ## Alternatives considered
 
@@ -239,4 +381,4 @@ This would eliminate the `@globalActor` attribute from the proposal, but would o
 The primary motivation for global actors is the main actor, and the semantics of this feature are tuned to the needs of main-thread execution. We know abstractly that there are other similar use cases, but it's possible that global actors aren't the right match for those use cases. Rather than provide a general feature for global actors now, we could narrow this proposal to `@MainActor` only, then provide global actors (or some other abstraction) at some later point to subsume `@MainActor` and other important use cases.
 
 [customexecs]: https://github.com/rjmccall/swift-evolution/blob/custom-executors/proposals/0000-custom-executors.md
-[isolation]: https://github.com/DougGregor/swift-evolution/blob/actor-isolation-control/proposals/nnnn-actor-isolation-control.md
+[isolation]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md
