@@ -57,7 +57,7 @@ Imagine there's a function which does a large amount of work on the CPU. We want
 
 For example, suppose a high-priority operation needs the function to hurry up and finish. The operation might know to escalate the priority of the first thread, but really it ought to escalate both. At best, it won't escalate the second thread until the first thread starts waiting for it. It's relatively easy to solve this problem narrowly, maybe by letting the function register a second thread that should be escalated. But it'll be an ad-hoc solution that might need to be repeated in every function that wants to use concurrency.
 
-Structured concurrency solves this by asking programmers to organize their use of concurrency into high-level tasks and their child component tasks. These tasks become the primary units of concurrency, rather than lower-level concepts like threads. Structuring concurrency this way allows information to naturally flow up and down the hierarchy of tasks which would otherwise require carefully-written support at every level of abstraction and on every thread transition. This in turn permits many different high-level problems to be addressed with relative ease.
+Structured concurrency solves this by asking programmers to organize their use of concurrency into high-level tasks and their child component tasks. These tasks become the primary units of concurrency, rather than lower-level concepts like threads. Structuring concurrency this way allows information to naturally flow up and down the hierarchy of tasks which would otherwise require carefully-written support at every level of abstraction and on every thread transition. This in turn permits many high-level problems to be addressed with relative ease.
 
 For example:
 
@@ -402,18 +402,20 @@ Sometimes however, these rigid rules end up being too restrictive. We might need
 Swift Concurrency offers two flavors of un-structured tasks:
 
 - *detached tasks*, created using `asyncDetached` 
-  - Which are un-structured, usable from synchronous code, however can only be awaited on by asynchronous code by through a handle to the task that they return.
+  - Which are un-structured and can be created even from synchronous code.
+  - Their results can be awaited on from asynchronous code by awaiting on the task handle that the `asyncDetached` call returns.
   - They completely discard any contextual information of enclosing context or parent-task. This means they will use .unspecified priority, will not carry any task-local values, and will by default execute on the global concurrent executor.
 - *async tasks*, created using `async {}` 
-  - Which are un-structured, usable from synchronous code, however cannot be awaited on. 
+  - Are un-structured and can be created even from synchronous code. 
+  - Their results can be awaited on from asynchronous code by awaiting on the task handle that the `async` call returns.
   - Similar to child-tasks, they do inherit important metadata information, such as priority, task-local values and actor isolation from the context where they are created.
 
 #### Detached tasks
 
-All kinds of tasks that we discussed so far carried at least __some_ , whose lifetime is limited by the scope in which it is created. A *detached task* is one that is independent of any scope and has no parent task. One can create a new detached task with the `detach` function, for example, to start making some dinner:
+All kinds of tasks that we discussed so far carried at least __some_ , whose lifetime is limited by the scope in which it is created. A *detached task* is one that is independent of any scope and has no parent task. One can create a new detached task with the `asyncDetached` function, for example, to start making some dinner:
 
 ```swift
-let dinnerHandle = detach {
+let dinnerHandle = asyncDetached {
   try await makeDinner()
 }
 ```
@@ -424,7 +426,7 @@ A detached task is represented by a task handle (in this case, `Task.Handle<Meal
 let dinner = try await dinnerHandle.get()
 ```
 
-Detached tasks run to completion even if there are no remaining uses of their task handle, so `detach` is suitable for operations for which the program does not need to observe completion. However, the task handle can be used to explicitly cancel the operation, e.g.,
+Detached tasks run to completion even if there are no remaining uses of their task handle, so `asyncDetached` is suitable for operations for which the program does not need to observe completion. However, the task handle can be used to explicitly cancel the operation, e.g.,
 
 ```swift
 dinnerHandle.cancel()
@@ -446,12 +448,12 @@ Detached tasks are important and have their place, but they don't map well to ca
 
 The `asyncDetached {}` operation causes a lot of boilerplate to get the semantics we want:
 
-* Explicit propagation of priority
-* Explicitly requiring that this closure run on the main actor
-* Repeated, required `self.` even though it's not indicating anything useful (the task keeps `self` alive, not some other object)
-* It is not possible to automatically inherit all available task-local values, and one would have to resort to manually re-binding them, or specializing the operation with some boolean flag to `inheritTaskLocalValues: true` which is easy to forget
+* Explicit propagation of priority.
+* Explicitly requiring that this closure run on the main actor.
+* Repeated, required `self.` even though it's not indicating anything useful (the task keeps `self` alive, not some other object).
+* It is not possible to automatically inherit all available task-local values, and one would have to resort to manually re-binding them.
 
-All of these are approximations of what we actually want to have happen. There might be attributes other than priority that a particular OS would want to propagate for async work that continues synchronous work (but that don't make sense in a detached task). The code specifies `@MainActor` explicitly here, but would rather that the actor isolation of this closure be inherited from its context.
+All of these are approximations of what we actually want to have happened. There might be attributes other than priority that a particular OS would want to propagate for async work that continues synchronous work (but that don't make sense in a detached task). The code specifies `@MainActor` explicitly here, but would rather that the actor isolation of this closure be inherited from its context.
 
 Moreover, experience with the Swift Concurrency model has shown that the dominant use case for initiating asynchronous work from synchronous code prefers these semantics. 
 
@@ -471,18 +473,21 @@ We propose to introduce a new `async` function that addresses the above concerns
 
 The `async {}` function will create a new un-structured task, similar to a detached task, however with the following key differences:
 
-- if called from the context of an existing task:
-  - inherit the priority of the current task the _synchronous_ function is executing on
-  - inherit all task-local values by copying them to the new un-structured task
-  - if executed within the scope of a specific global or actor instance function:
-    - inherit the actor's execution context and run the task on it's executor, rather than the global concurrent one,
-    - the closure passed to `async{}` becomes actor-isolated to that actor, allowing access to the actor-isolated state, including mutable properties and non-sendable values.
-- if called from a context that is _not_ running inside a task:
-  - consult the runtime and infer the best possible priority to use (e.g. by asking for current thread priority),
-  - not inherit any task-locals since none can exist outside a task scope,
-  - execute on the global concurrent executor and be nonisolated with regards to any actor, similar like the closure of `asyncDetached`.
+If called from the context of an existing task:
+- inherit the priority of the current task the _synchronous_ function is executing on
+- inherit all task-local values by copying them to the new un-structured task
+- if executed within the scope of a specific actor function:
+  - inherit the actor's execution context and run the task on its executor, rather than the global concurrent one,
+  - the closure passed to `async{}` becomes actor-isolated to that actor, allowing access to the actor-isolated state, including mutable properties and non-sendable values.
 
-The `async{}` function is the preferred way that tasks that need not be awaited on should be created. It is also usable from synchronous contexts and encapsulates all the best-effort doing the right things wrt. task creation that it should be the default tool to reach for by developers "stuck" in an asynchronous function, without the ability to make it `async`.
+If called from a context that is _not_ running inside a task:
+- consult the runtime and infer the best possible priority to use (e.g. by asking for current thread priority),
+- even though there is no Task to inherit task-local values from, check the fallback mechanism for any task-locals stored for the current synchronous context (this is discussed in depth in the SE-Thread Local Values proposal)
+- execute on the global concurrent executor and be `nonisolated` with regard to any actor, similar like the closure of `asyncDetached`.
+
+The `async{}` function is the preferred way that tasks that need not be awaited on should be created. It is also usable from synchronous contexts and encapsulates the typical right things to do with regards to task creation. 
+
+Using the `async{}` function should be preferred most of the time when in need of creating an un-strucutred task, and `asyncDetached{}` should only be used when specifically needed to detach from the enclosing task and actor context.
 
 ## Detailed design
 
@@ -553,47 +558,73 @@ struct UnsafeCurrentTask: Equatable, Hashable {}
 
 #### Task priorities
 
-The priority of a task is used by the executor to help make scheduling decisions. The priorities are listed from highest (most important) to lowest (least important).
+The priority of a task is used by the executor to help make scheduling decisions. 
+
+The priorities are listed from highest (most important) to lowest (least important).
+
+In order to avoid forcing other platforms to use Darwin specific terminology priorities use generic terms such as "high" and "low".
+However, the Darwin specific names exist as aliases and may be used interchangeably.
 
 ```swift
 extension Task {
   /// Describes the priority of a task.
-  enum Priority: Int, Comparable {
-    /// The task is important for user interaction, such as animations, event handling, or
-    /// updating your app's user interface 
-    case userInteractive
-
-    /// The task was initiated by the user and prevents the user from actively using
-    /// your app.
-    case userInitiated
-
-    /// Default priority for tasks. 
-    case `default`
-
-    /// Priority for a utility function that the user does not track actively.
-    case utility
-
-    /// Priority for maintenance or cleanup tasks.
-    case background
-
-    case unspecified
+  struct Priority: Int, Comparable {
+    // Not directly instantiable.
   }
+}
 
+/// General, platform independent priority values.
+/// 
+/// The priorities are ordered from highest to lowest as follows:
+/// - `high`
+/// - `default`
+/// - `low`
+/// - `background`
+extension Task.Priority {
+  static var high: Priority { ... }
+  static var `default`: Priority { ... }
+  static var low: Priority { ... }
+  static var background: Priority { ... }
+}
+
+/// Apple platform specific priority aliases.
+/// 
+/// The priorities are ordered from highest to lowest as follows:
+/// - `userInitiated` (alias for `high` priority)
+/// - `default`
+/// - `utility` (alias for `low` priority)
+/// - `background`
+/// 
+/// The runtime reserves the right to use additional higher or lower priorities than those publicly listed here,
+/// e.g. the main thread in an application might run at an user inaccessible `userInteractive` priority, however
+/// any task spawned from it will automatically become `userInitiated`.
+extension Task.Priority {
+  /// The task was initiated by the user and prevents the user from actively using
+  /// your app.
+  /// 
+  /// Alias for `Task.Priority.high`.
+  static var userInitiated: Priority { ... }
+  
+  /// Priority for a utility function that the user does not track actively.
+  /// 
+  /// Alias for `Task.Priority.low`
+  static var utility: Priority { ... }
+        
+}
+
+extension Task { 
   /// Returns the `current` task's priority.
-  ///
-  /// If no current `Task` is available, returns `Priority.unspecified`.
-  ///
-  /// - SeeAlso: `Task.Priority`
-  /// - SeeAlso: `Task.priority`
+  /// 
+  /// When called from a context with no `Task` available, will return the best 
+  /// approximation of the current thread's priority, e.g. userInitiated for 
+  /// the "main thread" or default if no specific priority can be detected. 
   static var currentPriority: Priority { ... }
 }
 ```
 
 The `priority` operation queries the priority of the task.
 
-Task priorities are set on task creation (e.g., `detach` or `TaskGroup.async`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
-
-The `currentPriority` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `detach` or `TaskGroup.async`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
+The `currentPriority` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `asyncDetached` or `TaskGroup.async`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
 
 #### Task handles
 
@@ -650,14 +681,14 @@ A new, detached task can be created with the `asyncDetached` operation. The resu
 /// Create a new, detached task that produces a value of type `T`.
 @discardableResult
 func asyncDetached<T>(
-  priority: Task.Priority = .unspecified,
+  priority: Task.Priority? = nil,
   operation: @Sendable @escaping () async -> T
 ) -> Task.Handle<T, Never>
 
 /// Create a new, detached task that produces a value of type `T` or throws an error.
 @discardableResult
 func asyncDetached<T>(
-  priority: Task.Priority = .unspecified,
+  priority: Task.Priority? = nil,
   operation: @Sendable @escaping () async throws -> T
 ) -> Task.Handle<T, Error>
 ```
@@ -705,9 +736,7 @@ func async<T>(
 ) -> Task.Handle<T, Error>
 ```
 
-Unlike detaching a task, the `async` function–by design–does not provide a way to get the completed task value out of the returned handle. This is because it is fine-tuned for creating asynchronous work from _synchronous_ contexts, and as such, the return value would not be possible to await on to begin with.
-
-While the `async{}` function is designd to work well in synchronous code, and call into other code from inside the closure. It also returns a `Task.Handle<T, Failure>` in the same style that an `asyncDetached` does. This is because this function is often the right thing to use when one were almost to reach for a detached task, because of it's preservation of the task priority and task-local information.
+Similar to `asyncDetached {}` the `async` function returns a task handle that can be used to `await` on the result of the asynchronous operation. This `await` is not possible to perform from synchronous code though, meaning that this specific pattern only works in asynchronous code. In synchronous code `async {}` can be thought of as a fire-and-forget operation because there is no way to await on its result, however it _is_ possible to call back into the original context from the operation closure passed to `async{}` as was shown in the snippet above, by calling `view.stopSavingSpinner()`.
 
 At the same time though, if reaching to `async{}` inside `async` functions one should take a step back and double check if it wouldn't be better served by creating a child task using a task group or `async let`, because they are much more efficient and enforce the beneficial structured concurrency invariants.
 
@@ -723,7 +752,7 @@ The implementation will also propagate any other important OS-specific informati
 
 ###### Actor context propagation
 
-A closure passed to the `async` function will implictly inherit the actor execution context and isolation of the context in which the closure is formed. For example:
+A closure passed to the `async` function will implicitly inherit the actor execution context and isolation of the context in which the closure is formed. For example:
 
 ```swift
 func notOnActor(_: @Sendable () async -> Void) { }
@@ -892,6 +921,8 @@ extension Task {
 
 The sleep function accepts a plain integer as nanoseconds to sleep for which mirrors known top-level functions performing the same action in the synchronous world. Because use-sites look quite explicit in the way they have to previous this call with an `await` keyword (`await Task.sleep(nanos)`), we prefer to use the well-known `sleep` word rather than introduce new words for this functionality.
 
+> The `sleep` function will gain nicer overloads once the standard library has time and deadline types, then the sleep will be able to be expressed as `await Task.sleep(until: deadline)` or `await Task.sleep(for: .seconds(1))` or similar. This proposal is not introducing those time types, so for now a bare bones sleep function is proposed.
+
 #### Cancellation
 
 It is possible to query for cancellation from within a synchronous task, e.g. while iterating over a loop and wanting to check if we should abort its execution by using the static `Task.isCancelled` property:
@@ -944,7 +975,9 @@ Similarly, a static `currentPriority` property is available to check the priorit
 ```swift
 extension Task { 
   static var currentPriority: Task.Priority { 
-    Task.current?.priority ?? Task.Priority.default
+    withUnsafeCurrentTask { task in 
+      task?.priority ?? Task.Priority.default
+    }
   }
 }
 ```
@@ -1104,8 +1137,8 @@ extension TaskGroup {
   /// The child task will be executing concurrently with the group, and its result 
   /// may be collected by calling `group.next()` or iterating over the group gathering 
   /// all submitted task results from the group.
-  mutating func spawn(
-    priority: Task.Priority = .unspecified,
+  mutating func async(
+    priority: Task.Priority? = nil,
     operation: @Sendable @escaping () async -> ChildTaskResult
   )
 
@@ -1119,27 +1152,27 @@ extension TaskGroup {
   /// all submitted task results from the group.
   /// 
   /// Returns true if the task was spawned successfully, and false otherwise.
-  mutating func spawnUnlessCancelled(
-    priority: Task.Priority = .unspecified,
+  mutating func asyncUnlessCancelled(
+    priority: Task.Priority? = nil,
     operation: @Sendable @escaping () async -> ChildTaskResult
   ) -> Bool
   
 }
 
 extension ThrowingTaskGroup { 
-  mutating func spawn(
-    priority: Task.Priority = .unspecified,
+  mutating func async(
+    priority: Task.Priority? = nil,
     operation: @Sendable @escaping () async throws -> ChildTaskResult
   )
   
-  mutating func spawnUnlessCancelled(
-    priority: Task.Priority = .unspecified,
+  mutating func asyncUnlessCancelled(
+    priority: Task.Priority? = nil,
     operation: @Sendable @escaping () async throws -> ChildTaskResult
   ) -> Bool
 }
 ```
 
-`group.async` spawns a child task in the task group to execute execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with as an argument. Generally, it is recommended to not specify priority manually.
+`group.async` spawns a child task in the task group to execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with as an argument. Generally, it is recommended to not specify priority manually.
 
 The `spawn` operation always succeeds in adding a new child task to the group, even if the task running the group has been cancelled or the group was cancelled explicitly with `group.cancelAll`. In cases where the task group has already
 been cancelled, the new child task will be spawned in the `cancelled` state.
@@ -1436,10 +1469,14 @@ All of the changes described in this document are additive to the language and a
 
 Changes after the second review:
 
+- remove `Priority.unspecified` and use `nil` as unspecified value.
+- introduce platform independent priority names: `high`, `default`, `low`, `background`. The Apple platform specific names remain as aliases and can be used on apple platforms where they make sense. These names have a long history and were even originally used in dispatch itself. We discussed and confirmed with various teams inside Apple that those names work well for the future evolution of the platform.
+- future-proof the `Priority` type by changing it to a `struct` with static computed properties. We do not immediately have any plans to introduce new priorities, but want to allow for such future extension if necessary.
+- remove the ability to spawn new tasks at the `userInitiated` priority. This priority will be used only be the runtime itself, e.g. by the main thread and automatically inherited properly by any other tasks (and downgraded to `userInteractive)
 - `TaskGroup.spawn` and `TaskGroup.spawnUnlessCancelled` have been renamed to `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` which are to be their final names. This aligns the naming with the renamed `async let` and new `async{}` function as the word signifying creation of a task that will inherit context of its parent (if available).
 - remove `Task.current` and the general ability to get hold of a `Task` instance. This change unlocks important
 - remove the non-static properties `Task.priority` and `Task.isCancelled`, the static ones should be used instead. The properties remain on `UnsafeCurrentTask`.
-- merge the `async { }` proposal ([pitched here](https://forums.swift.org/t/initiating-asynchronous-work-from-synchronous-code/47714)) into this proposal, such that we have all ways to create tasks in this proposal to review at-once
+- merge the `async { }` proposal ([pitched here](https://forums.swift.org/t/initiating-asynchronous-work-from-synchronous-code/47714)) into this proposal, such that we have always to create tasks in this proposal to review at-once
 - make `async{}` return a `Task.Handle<Never, Never>`, such that it may be used to cancel the created task
 - speculatively rename `detach` to `asyncDetached` as it is similar, but less favored to use that API
 - re-order parameters of `withTaskCancellationHandler` from `handler, operation` to `(operation, onCancel handler)` which seems to be a more common pattern for such APIs where the "main closure" (the operation) comes first
@@ -1514,9 +1551,9 @@ The task handles produced by `runChild` should never escape the scope in which t
 
 ## Future directions
 
-### `async let` or `spawn` to spawn child tasks within a scope
+### `async let` to spawn child tasks within a scope
 
-Although our design deemphasizes futures for structured tasks, for the reasons
+Although our design de-emphasizes futures for structured tasks, for the reasons
 delineated above, we acknowledge that it will be common to want to pass
 heterogeneous values up from child tasks to their parent. This is possible
 within the existing task group APIs, though not ideal. Take our
@@ -1574,7 +1611,7 @@ This would provide a lightweight syntax for a very common dataflow pattern
 between child tasks and parents within a task group. This idea is explored in
 its own proposal.
 
-Alternatively, we may want to express this as `spawn` in similar manner to how `detach { ... }` works for detached tasks, spawn could be the equivalent for child tasks. It would have the same semantics as `async let`, so it is mostly a spelling discussion -- it may be beneficial to express `spawn`, `detach` and perhaps future non-waiting operations like `send` in a similar style, rather than specializing `async let` declarations. In general however a specialized form of creating child tasks within a scope will be definitely explored in the near future.
+Alternatively, we may want to express this as `spawn` in similar manner to how `asyncDetached { ... }` works for detached tasks, spawn could be the equivalent for child tasks. It would have the same semantics as `async let`, so it is mostly a spelling discussion -- it may be beneficial to express `spawn`, `detach` and perhaps future non-waiting operations like `send` in a similar style, rather than specializing `async let` declarations. In general however a specialized form of creating child tasks within a scope will be definitely explored in the near future.
 
 ### `@Sendable` closure checking for task groups
 
