@@ -26,7 +26,7 @@
 * [Alternatives considered](#alternatives-considered)
     * [Singleton support](#singleton-support)
     * [Propose only the main actor](#propose-only-the-main-actor)
-
+* [Revision history](#revision-history)
 
 ## Introduction
 
@@ -380,5 +380,17 @@ This would eliminate the `@globalActor` attribute from the proposal, but would o
 
 The primary motivation for global actors is the main actor, and the semantics of this feature are tuned to the needs of main-thread execution. We know abstractly that there are other similar use cases, but it's possible that global actors aren't the right match for those use cases. Rather than provide a general feature for global actors now, we could narrow this proposal to `@MainActor` only, then provide global actors (or some other abstraction) at some later point to subsume `@MainActor` and other important use cases.
 
+## Revision history
+
+* Changes in the second pitch:
+    * Clarify that the types of global-actor-qualified functions are global-actor-qualified.
+    * State that global-actor-qualified types are Sendable
+    * Expand on the implicit conversion rules for function types
+    * Require global and static variables to be immutable & non-isolated or global-actor-qualified.
+    * Describe the relationship between global actors and instance actors
+    * Update inference rules for global actors
+
+
 [customexecs]: https://github.com/rjmccall/swift-evolution/blob/custom-executors/proposals/0000-custom-executors.md
 [isolation]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md
+
