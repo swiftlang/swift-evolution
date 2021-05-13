@@ -17,7 +17,8 @@ Swift-evolution threads:
 * [Pitch #1](https://forums.swift.org/t/concurrency-structured-concurrency/41622),
 * [Pitch #2](https://forums.swift.org/t/pitch-2-structured-concurrency/43452),
 * [Pitch #3](https://forums.swift.org/t/pitch-3-structured-concurrency/44496),
-* [Review #1](https://forums.swift.org/t/se-0304-structured-concurrency/45314).
+* [Review #1](https://forums.swift.org/t/se-0304-structured-concurrency/45314),
+* [Review #2](https://forums.swift.org/t/se-0304-2nd-review-structured-concurrency/47217).
 
 ## Motivation
 
@@ -177,13 +178,13 @@ func makeDinner() async -> Meal {
   
   // Create a task group to scope the lifetime of our three child tasks
   await withTaskGroup(of: CookingStep.self) { group in
-    group.spawn {
+    group.async {
       try await .vegetables(chopVegetables())
     }
-    group.spawn {
+    group.async {
       await .meat(marinateMeat())
     }
-    group.spawn {
+    group.async {
       await .oven(preheatOven(temperature: 350))
     }
                                              
@@ -211,7 +212,7 @@ Note that it would be illegal to say:
 var veggies: [Vegetable]?
 
 await withTaskGroup(of: Void.self) { group in
-  group.spawn {
+  group.async {
     // error: mutation of captured var 'veggies' in concurrently-executing code
     veggies = try await chopVegetables()
   }
@@ -287,7 +288,7 @@ func chopVegetables() async throws -> [Vegetable] {
     
     // Create a new child task for each vegetable that needs to be chopped.
     for v in rawVeggies {
-      group.spawn { 
+      group.async { 
         try await v.chopped()
       }
     }
@@ -307,28 +308,6 @@ As in the first example, if the closure passed to `withTaskGroup` exited without
 the error to the parent.
 
 By contrast with future-based task APIs, there is no way in which a reference to the child task can escape the scope in which the child task is created. This ensures that the structure of structured concurrency is maintained. It both makes it easier to reason about the concurrent tasks that are executing within a given scope, and also unlocks numerous optimization opportunities for the compiler and runtime.
-
-### Detached tasks
-
-Thus far, every task we have created is a child task, whose lifetime is limited by the scope in which it is created. A *detached task* is one that is independent of any scope and has no parent task. One can create a new detached task with the `detach` function, for example, to start making some dinner:
-
-```swift
-let dinnerHandle = detach {
-  try await makeDinner()
-}
-```
-
-A detached task is represented by a task handle (in this case, `Task.Handle<Meal, Error>`) referencing the newly-launched task. Task handles can be used to await the result of the task, e.g.,
-
-```swift
-let dinner = try await dinnerHandle.get()
-```
-
-Detached tasks run to completion even if there are no remaining uses of their task handle, so `detach` is suitable for operations for which the program does not need to observe completion. However, the task handle can be used to explicitly cancel the operation, e.g.,
-
-```swift
-dinnerHandle.cancel()
-```
 
 ### Asynchronous programs
 
@@ -378,10 +357,10 @@ func chopVegetables() async throws -> [Vegetable] {
   return try await withThrowingTaskGroup(of: Vegetable.self) { group in
     var veggies: [Vegetable] = []
 
-    group.spawn {
+    group.async {
       try await chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()
     }
-    group.spawn {
+    group.async {
       try await chop(Onion()) // (2)
     }
 
@@ -414,11 +393,118 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
 
 Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline). The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
-### Access from synchronous functions
+### Un-structured tasks
 
-As already shown in the above examples, it is possible to call functions that inspect the "current task" in order to check if it was e.g. cancelled. However, those functions are on purpose not `async` and _can_ be called from synchronous functions as well.
+So far all types of tasks we discussed were child-tasks and respected the primary rule of structured concurrency: that a *child task* cannot live longer than *parent task* (or scope) in which it was created. This is both true for task groups as well as the `async let` proposal which is being reviewed in parallel.
 
-This is possible because of the existence of the `withUnsafeCurrentTask` API:
+Sometimes however, these rigid rules end up being too restrictive. We might need to really "detach" from the context of the currently executing task, for example in order to fire-and-forget some operation. Un-structured tasks are not able to utilize some of the optimization techniques wrt. allocation and metadata propagation as child-tasks are, however they remain a very important building block especially for more free-form usages and integration with legacy APIs.
+
+Swift Concurrency offers two flavors of un-structured tasks:
+
+- *detached tasks*, created using `asyncDetached` 
+  - Which are un-structured, usable from synchronous code, however can only be awaited on by asynchronous code by through a handle to the task that they return.
+  - They completely discard any contextual information of enclosing context or parent-task. This means they will use .unspecified priority, will not carry any task-local values, and will by default execute on the global concurrent executor.
+- *async tasks*, created using `async {}` 
+  - Which are un-structured, usable from synchronous code, however cannot be awaited on. 
+  - Similar to child-tasks, they do inherit important metadata information, such as priority, task-local values and actor isolation from the context where they are created.
+
+#### Detached tasks
+
+All kinds of tasks that we discussed so far carried at least __some_ , whose lifetime is limited by the scope in which it is created. A *detached task* is one that is independent of any scope and has no parent task. One can create a new detached task with the `detach` function, for example, to start making some dinner:
+
+```swift
+let dinnerHandle = detach {
+  try await makeDinner()
+}
+```
+
+A detached task is represented by a task handle (in this case, `Task.Handle<Meal, Error>`) referencing the newly-launched task. Task handles can be used to await the result of the task, e.g.,
+
+```swift
+let dinner = try await dinnerHandle.get()
+```
+
+Detached tasks run to completion even if there are no remaining uses of their task handle, so `detach` is suitable for operations for which the program does not need to observe completion. However, the task handle can be used to explicitly cancel the operation, e.g.,
+
+```swift
+dinnerHandle.cancel()
+```
+
+#### Starting `async{}` tasks from synchronous functions
+
+Detached tasks are important and have their place, but they don't map well to cases where the natural "flow" of control is from the synchronous function into async code, e.g., when reacting to an event triggered in a UI:
+
+```swift
+@MainActor func saveResults() {
+  view.startSavingSpinner()                            // executes on the main actor, immediately
+  detach(priority: .userInitiated) { @MainActor in     // task on the main actor
+    await self.ioActor.save()                          // hop to ioActor to save
+    self.view.stopSavingSpinner()                      // back on main actor to update UI
+  }
+}
+```
+
+The `asyncDetached {}` operation causes a lot of boilerplate to get the semantics we want:
+
+* Explicit propagation of priority
+* Explicitly requiring that this closure run on the main actor
+* Repeated, required `self.` even though it's not indicating anything useful (the task keeps `self` alive, not some other object)
+* It is not possible to automatically inherit all available task-local values, and one would have to resort to manually re-binding them, or specializing the operation with some boolean flag to `inheritTaskLocalValues: true` which is easy to forget
+
+All of these are approximations of what we actually want to have happen. There might be attributes other than priority that a particular OS would want to propagate for async work that continues synchronous work (but that don't make sense in a detached task). The code specifies `@MainActor` explicitly here, but would rather that the actor isolation of this closure be inherited from its context.
+
+Moreover, experience with the Swift Concurrency model has shown that the dominant use case for initiating asynchronous work from synchronous code prefers these semantics. 
+
+Fully-detached tasks are necessary, but should not be the default tool that developers reach for when in need of calling asynchronous functions from a synchronous context.
+
+We propose to introduce a new `async` function that addresses the above concerns and should be used when continuing the work of a synchronous function as async. It propagates both the priority and actor from where it is invoked into the closure, and suppresses the need for `self.`. Our example above will be rewritten as:
+
+```swift
+@MainActor func saveResults() {
+  view.startSavingSpinner()                       // executes on the main actor, immediately
+  async { 
+    await ioActor.save()                          // hop to ioActor to save
+    view.stopSavingSpinner()                      // back on main actor to update UI
+  }
+}
+```
+
+The `async {}` function will create a new un-structured task, similar to a detached task, however with the following key differences:
+
+- if called from the context of an existing task:
+  - inherit the priority of the current task the _synchronous_ function is executing on
+  - inherit all task-local values by copying them to the new un-structured task
+  - if executed within the scope of a specific global or actor instance function:
+    - inherit the actor's execution context and run the task on it's executor, rather than the global concurrent one,
+    - the closure passed to `async{}` becomes actor-isolated to that actor, allowing access to the actor-isolated state, including mutable properties and non-sendable values.
+- if called from a context that is _not_ running inside a task:
+  - consult the runtime and infer the best possible priority to use (e.g. by asking for current thread priority),
+  - not inherit any task-locals since none can exist outside a task scope,
+  - execute on the global concurrent executor and be nonisolated with regards to any actor, similar like the closure of `asyncDetached`.
+
+The `async{}` function is the preferred way that tasks that need not be awaited on should be created. It is also usable from synchronous contexts and encapsulates all the best-effort doing the right things wrt. task creation that it should be the default tool to reach for by developers "stuck" in an asynchronous function, without the ability to make it `async`.
+
+## Detailed design
+
+### Task API
+
+Much of the proposed implementation of structured concurrency is in the APIs for creating, querying, and managing APIs described here. 
+
+#### The `Task` namespace
+
+The `Task` type is used as a namespace for types and operations related to task management. 
+
+```swift
+struct Task { ... }
+```
+
+While it is a struct, it is _not_ intended to obtain an use instances of a `Task` in user-code, because it could lead to storing tasks past their structured concurrency defined lifetimes which would either be unsafe, or prevent optimizations the compiler and runtime can perform to task creation. 
+
+Generally the `Task` namespace is used by static functions defined on it, which allow the context sensitive querying of the satate of the "current task". The specific functions will be explained one-by-one in the following sections.
+
+#### `UnsafeCurrentTask` type
+
+The `UnsafeCurrentTask` offers non-static functions which may be used to interact with the running task itself. The unsafe task object must never be escaped or accessed from another task, and thus the API to obtain it takes the familiar scoped `with...` form of `withUnsafeCurrentTask`:
 
 ```swift
 func withUnsafeCurrentTask<T>(
@@ -428,61 +514,13 @@ func withUnsafeCurrentTask<T>(
 
 The `withUnsafeCurrentTask` passes the current task into the operation or `nil` if the function is called from a context in which a Task is not available. In practice this means that nowhere in the call chain until this invocation, was any asynchronous function involved. If there is an asynchronous function in the call chain until the invocation of `unsafeCurrent`, that task will be returned.
 
-This API is the callable-from-synchronous contexts version of `Task.current` which is an asynchronous function and therefore always has a `Task` available that it can return:
-
-```swift
-extension Task { 
-  static var current: Task? { get }
-}
-```
-
 The `UnsafeCurrentTask` is purposefully named unsafe as it *may* expose APIs which can *only* be invoked safely from within task itself, and would exhibit undefined behavior if used from another task. It is therefore unsafe to store and "use later" an `UnsafeCurrentTask`. Examples of such unsafe API are interacting with task local values on a task object, which must be equal to the "current" task to be performed safely. This is by design, and offers the runtime optimization opportunities for the normal, and safe, access patterns to task storage.
 
-`Task` defines APIs which are *always safe* to invoke, regardless if from the same task or from another task. Such safe APIs include `isCancelled`, `priority`.
+Invoking some of its APIs from other tasks/threads will result in undefined behavior.
 
-It is possible to get a `Task` out of an `UnsafeCurrentTask`.
+Accessing this API performs a thread-local lookup of a specific thread-local variable that is maintained by the Swift Concurrency runtime.
 
-## Detailed design
-
-### Task API
-
-Much of the proposed implementation of structured concurrency is in the APIs for creating, querying, and managing APIs described here. 
-
-#### `Task` type
-
-The `Task` type is used as a namespace for types and operations related to task management. 
-
-```swift
-struct Task: Equatable, Hashable { ... }
-```
-
-The task representing the asynchronous execution context a function is running in can be obtained by using the `current` static function, like this:
-
-```swift
-func foo() async { 
-  guard let task: Task = Task.current else { ... }
-  // Task.current guaranteed to be non-nil since called from async function
-}
-
-func bar() { 
-  guard let task: Task = Task.current else { return }
-  // Task.current MAY be nil, if the callchain until bar() did not include an asynchronous function
-}
-```
-
-An asynchronous function _always_ executes within a task, and as such is guaranteed to always return a non-nil task when queried with `Task.current`. The task object obtained this way is safe access by other tasks/threads. The APIs surfaced on it are specifically designed to also be safe, and relatively cheap, to be called from other tasks.
-
-The current task is also available in *synchronous* functions which were called from an asynchronous context. In other words, if a synchronous functions' call stack contains at least one asynchronous function, that function is able to obtain that task instance. This means that refactoring code into small synchronous functions, called from asynchronous code, is safe and still able to respect e.g. cancellation and priority information.
-
-Tasks are `Equatable` and `Hashable`, this can be used to store and compare them, and can be used e.g. to answer questions such as "is this the same task I was called from before" etc. Keep in mind though, that tasks should not be held onto unnecessarily.
-
-#### `UnsafeCurrentTask` type
-
-It is also possible to obtain a reference to the current "unsafe" task. 
-
-The `UnsafeCurrentTask` is unsafe because it offers APIs which must not be invoked from any other task than the task it represents. In other words, it must not be stored, or accessed from other tasks/threads. Invoking some of its APIs from other contexts will result in undefined behavior.
-
-Accessing using this API performs a thread-local lookup of a specific thread-local variable that is maintained by the Swift concurrency runtime.
+The `withUnsafeCurrentTask` function may be invoked from synchronous (as well as asynchronous) code:
 
 ```swift
 func synchronous() {
@@ -494,9 +532,16 @@ func synchronous() {
     }
   }
 }
+
+func async() async {
+  // the following is safe, because withUnsafeCurrentTask is invoked from an 'async' function
+  withUnsafeCurrentTask { maybeUnsafeCurrentTask in 
+    let task: UnsafeCurrentTask = maybeUnsafeCurrentTask! // always ok
+  }
+}
 ```
 
-Unlike the `current` function, the `withUnsafeCurrentTask` function returns an _optional_ `UnsafeCurrentTask`, this is because such synchronous function may be invoked from a task (i.e. from within asynchronous Swift code) or outside of it (e.g. some Task unaware API, like a raw pthread thread calling into Swift code).
+The `withUnsafeCurrentTask` function returns an _optional_ `UnsafeCurrentTask`, this is because such synchronous function may be invoked from a task (i.e. from within asynchronous Swift code) or outside of it (e.g. some Task unaware API, like a raw pthread thread calling into Swift code).
 
 The `UnsafeCurrentTask` is also `Equatable` and `Hashable`, whose identity is based on the internal task object which is the same as the one used by `Task`.
 
@@ -530,21 +575,25 @@ extension Task {
 
     /// Priority for maintenance or cleanup tasks.
     case background
+
+    case unspecified
   }
-  
-  /// Determine the priority of the currently-executing task.
+
+  /// Returns the `current` task's priority.
+  ///
+  /// If no current `Task` is available, returns `Priority.unspecified`.
+  ///
+  /// - SeeAlso: `Task.Priority`
+  /// - SeeAlso: `Task.priority`
   static var currentPriority: Priority { ... }
-  
-  /// Determine the priority of the currently-executing task.
-  var priority: Priority { ... }
 }
 ```
 
 The `priority` operation queries the priority of the task.
 
-Task priorities are set on task creation (e.g., `detach` or `TaskGroup.spawn`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
+Task priorities are set on task creation (e.g., `detach` or `TaskGroup.async`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
 
-The `currentPriority` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `detach` or `TaskGroup.spawn`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
+The `currentPriority` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `detach` or `TaskGroup.async`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
 
 #### Task handles
 
@@ -591,32 +640,23 @@ extension Task.Handle {
 
 As noted elsewhere, cancellation is cooperative: the task will note that it has been cancelled and can choose to return earlier (either via a normal return or a thrown error, as appropriate). `isCancelled` can be used to determine whether a particular task was ever cancelled.
 
-It is possible to obtain a task that the handle refers to by using `handle.task`:
+#### Un-structured tasks
 
-```swift
-extension Task.Handle { 
-  /// Returns the task object the handle is referring to.
-  var task: Task { get }
-}
-```
+##### Detached tasks
 
-Getting the handle's task allows us to check if the work we're about to wait on perhaps was already cancelled (by calling `handle.isCancelled`), or query at what priority the task is executing.
-
-#### Detached tasks
-
-A new, detached task can be created with the `detach` operation. The resulting task is represented by a `Task.Handle`.
+A new, detached task can be created with the `asyncDetached` operation. The resulting task is represented by a `Task.Handle`.
 
 ```swift
 /// Create a new, detached task that produces a value of type `T`.
 @discardableResult
-func detach<T>(
+func asyncDetached<T>(
   priority: Task.Priority = .unspecified,
   operation: @Sendable @escaping () async -> T
 ) -> Task.Handle<T, Never>
 
 /// Create a new, detached task that produces a value of type `T` or throws an error.
 @discardableResult
-func detach<T>(
+func asyncDetached<T>(
   priority: Task.Priority = .unspecified,
   operation: @Sendable @escaping () async throws -> T
 ) -> Task.Handle<T, Error>
@@ -625,26 +665,131 @@ func detach<T>(
 Detached tasks will typically be created using a closure, e.g.,
 
 ```swift
-let dinnerHandle: Task.Handle<Meal, Error> = detach {
-  try await makeDinner()
-}
+let dinnerHandle: Task.Handle<Meal, Error> = 
+  asyncDetached {
+    try await makeDinner()
+  }
 
 try await eat(mealHandle: dinnerHandle)
 ```
 
-By default, the new task will be initially scheduled on the default global
-concurrent executor. Once custom executors are introduced in another proposal,
-these will be able to take an executor parameter to determine on which executor 
-to schedule the new task instead.
+By default, the new task will be initially scheduled on the default global concurrent executor. Once custom executors are introduced in another proposal, these will be able to take an executor parameter to determine on which executor to schedule the new task instead.
+
+##### Creating tasks in synchronous contexts using  `async {}`
+
+As discussed in the proposed solution section of the proposal, detached tasks are useful, but sacrifice a lot in the process of detaching from the enclosing context.
+
+We propose to introduce a new `async` function that addresses the above concerns and should be used when continuing the work of a synchronous function as async. It propagates both the priority and actor from where it is invoked into the closure, and suppresses the need for `self.`. Our example above will be rewritten as:
+
+```swift
+@MainActor func saveResults() { // synchronous function, inside the MainActor
+  view.startSavingSpinner()     // executes on the main actor, immediately
+  async { 
+    await ioActor.save()        // hop to ioActor to save
+    view.stopSavingSpinner()    // back on main actor to update UI
+  }
+}
+```
+
+The declaration of the `async` function is as follows:
+
+```swift
+@discardableResult
+func async<T>(
+  operation: @Sendable @escaping () async -> T
+) -> Task.Handle<T, Never>
+
+@discardableResult
+func async<T>(
+  operation: @Sendable @escaping () async throws -> T
+) -> Task.Handle<T, Error>
+```
+
+Unlike detaching a task, the `async` function–by design–does not provide a way to get the completed task value out of the returned handle. This is because it is fine-tuned for creating asynchronous work from _synchronous_ contexts, and as such, the return value would not be possible to await on to begin with.
+
+While the `async{}` function is designd to work well in synchronous code, and call into other code from inside the closure. It also returns a `Task.Handle<T, Failure>` in the same style that an `asyncDetached` does. This is because this function is often the right thing to use when one were almost to reach for a detached task, because of it's preservation of the task priority and task-local information.
+
+At the same time though, if reaching to `async{}` inside `async` functions one should take a step back and double check if it wouldn't be better served by creating a child task using a task group or `async let`, because they are much more efficient and enforce the beneficial structured concurrency invariants.
+
+###### Priority propagation
+
+The `async` operation propagates priority from the point where it is called to the detached task that it creates:
+
+1. If the synchronous code is running on behalf of a task (i.e., `withUnsafeCurrentTask` provides a non-`nil` task), use the priority of that task;
+2. If the synchronous code is running on behalf of the main thread, use `.userInitiated`; otherwise
+3. Query the system to determine the priority of the currently-executing thread and use that.
+
+The implementation will also propagate any other important OS-specific information from the synchronous code into the asynchronous task.
+
+###### Actor context propagation
+
+A closure passed to the `async` function will implictly inherit the actor execution context and isolation of the context in which the closure is formed. For example:
+
+```swift
+func notOnActor(_: @Sendable () async -> Void) { }
+
+actor A {
+  func f() {
+    notOnActor {
+      await g() // must call g asynchronously, because it's a @Sendable closure
+    }
+    async {
+      g() // okay to call g synchronously, even though it's @Sendable
+    }
+  }
+  
+  func g() { }
+}
+```
+
+In a sense, `async` counteracts the normal influence of `@Sendable` on a closure within an actor. Specifically, [SE-0306](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md#closures) states that `@Sendable` closure are not actor-isolated:
+
+> Actors prevent this data race by specifying that a `@Sendable` closure is always non-isolated. 
+
+Such semantics, where the closure is both `@Sendable` and actor-isolated, are only possible because the closure is also `async`. Effectively, when the closure is called, it will immediately "hop" over to the actor's context so that it runs within the actor.
+
+###### Implicit "self" in `async {}` closures
+
+Closures passed to `async` are not required to explicitly acknowledge capture of `self` with `self.`.
+
+```swift
+func acceptEscaping(_: @escaping () -> Void) { }
+
+class C {
+  var counter: Int = 0
+  
+  func f() {
+    acceptEscaping {
+      counter = counter + 1   // error: must use "self." because the closure escapes
+    }
+    async {
+      counter = counter + 1   // okay: implicit "self" is allowed here
+    }
+  }
+}
+```
+
+The intent behind requiring `self.` when capturing `self` in an escaping closure is to warn the developer about potential reference cycles. The closure passed to `async` is executed immediately, and the only reference to `self` is what occurs in the body. Therefore, the explicit `self.` isn't communicating useful information and should not be required.
+
+> **Note**: A similar rationale could be applied to `asyncDetached` and `TaskGroup.async`. They could also benefit from this change.
+
 
 #### Cancellation
 
-A task can check whether it has been cancelled with the `Task.isCancelled` operation, and act accordingly. For tasks that would prefer to immediately exit with a thrown error on cancellation, the task API provides a common error type, `CancellationError`, to communicate that the task was cancelled. The `Task.checkCancellation()` will throw `CancellationError` when the task has been cancelled, and is provided as a convenience.
+A task can check whether it has been cancelled with the `Task.isCancelled` operation, and act accordingly. 
+
+For tasks that would prefer to immediately exit with a thrown error on cancellation, the task API provides a common error type, `Task.CancellationError`, to communicate that the task was cancelled. The `Task.checkCancellation()` will throw `Task.CancellationError` when the task has been cancelled, and is provided as a convenience.
 
 ```swift
-extension Task { 
+extension Task {
+  
   /// Returns `true` if the task is cancelled, and should stop executing.
-  var isCancelled: Bool
+  ///
+  /// If no current `Task` is available, returns `false`, as outside of a task
+  /// context no task cancellation may be observed.
+  ///
+  /// - SeeAlso: `checkCancellation()`
+  static var isCancelled: Bool
 
   /// The default cancellation thrown when a task is cancelled.
   ///
@@ -655,7 +800,10 @@ extension Task {
     init() {}
   }
 
-  static func checkCancellation() throws
+  /// Returns `true` if the task is cancelled, and should stop executing.
+  ///
+  /// - SeeAlso: `checkCancellation()`
+  static static func checkCancellation() throws
 }
 ```
 
@@ -677,12 +825,12 @@ For tasks that want to react immediately to cancellation (rather than, say, wait
 ///
 /// This function returns instantly and will never suspend.
 func withTaskCancellationHandler<T>(
-  handler: @Sendable () -> Void,
   operation: () async throws -> T
+  onCancel handler: @Sendable () -> Void,
 ) async rethrows -> T
 ```
 
-This function does not, by itself, spawn a new task, but rather executes the `operation` immediately, and once the `operation` returns the `withTaskCancellationHandler` returns as well (similarily with throwing behaviors).
+This function does not, by itself, spawn a new task, but rather executes the `operation` immediately, and once the `operation` returns the `withTaskCancellationHandler` returns as well (similarly with throwing behaviors).
 
 Note that the `handler` runs `@Sendable` with the rest of the task, because it
 is executed immediately when the task is cancelled, which can happen at any
@@ -706,8 +854,6 @@ func download(url: URL) async throws -> Data? {
   var urlSessionTask: URLSessionTask?
 
   return try withTaskCancellationHandler {
-    urlSessionTask?.cancel() // runs immediately when cancelled
-  } operation: {
     return try await withUnsafeThrowingContinuation { continuation in
       urlSessionTask = URLSession.shared.dataTask(with: url) { data, _, error in
         if let error = error {
@@ -719,13 +865,15 @@ func download(url: URL) async throws -> Data? {
       }
       urlSessionTask?.resume()
     }
+  }, onCancel: {
+    urlSessionTask?.cancel() // runs immediately when cancelled
   }
 }
 ```
 
 #### Voluntary Suspension
 
-For long running operations, say performing many computations in a tight loop
+For long-running operations, say performing many computations in a tight loop
 without natural suspend points, it might be beneficial to occasionally check in if the task should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use case, `Task` includes a `yield()` operation, which is a way to explicitly suspend the current task and give other tasks a chance to run for a while. 
 
 ```swift
@@ -734,7 +882,15 @@ extension Task {
 }
 ```
 
+We also offer an asynchronous sleep function, which accepts the number of nanoseconds to suspend for:
 
+```swift
+extension Task {
+  public static func sleep(_ duration: UInt64) async { ... }
+}
+```
+
+The sleep function accepts a plain integer as nanoseconds to sleep for which mirrors known top-level functions performing the same action in the synchronous world. Because use-sites look quite explicit in the way they have to previous this call with an `await` keyword (`await Task.sleep(nanos)`), we prefer to use the well-known `sleep` word rather than introduce new words for this functionality.
 
 #### Cancellation
 
@@ -770,7 +926,9 @@ The `isCancelled` property is implemented as:
 ```swift
 extension Task {
   static var isCancelled: Bool { 
-    Task.current?.isCancelled ?? false
+    withUnsafeCurrentTask { task in 
+      task?.isCancelled ?? false  
+    }
   }
 }
 ```
@@ -801,7 +959,7 @@ Task groups are created using `withTaskGroup` in any asynchronous context, provi
 /// Starts a new task group which provides a scope in which a dynamic number of
 /// tasks may be spawned.
 ///
-/// Tasks added to the group by `group.spawn()` will automatically be awaited on
+/// Tasks added to the group by `group.async()` will automatically be awaited on
 /// when the scope exits. If the group exits by throwing, all added tasks will
 /// be cancelled and their results discarded.
 ///
@@ -854,7 +1012,7 @@ func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 /// Starts a new throwing task group which provides a scope in which a dynamic 
 /// number of tasks may be spawned.
 ///
-/// Tasks added to the group by `group.spawn()` will automatically be awaited on
+/// Tasks added to the group by `group.async()` will automatically be awaited on
 /// when the scope exits. If the group exits by throwing, all added tasks will
 /// be cancelled and their results discarded.
 ///
@@ -879,7 +1037,7 @@ func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 ///     }
 ///
 /// ### Thrown errors
-/// When tasks are added to the group using the `group.spawn` function, they may
+/// When tasks are added to the group using the `group.async` function, they may
 /// immediately begin executing. Even if their results are not collected explicitly
 /// and such task throws, and was not yet cancelled, it may result in the `withTaskGroup`
 /// throwing.
@@ -923,7 +1081,7 @@ struct TaskGroup<ChildTaskResult: Sendable> {
 
 The result of `withTaskGroup` is the result produced by the `body` function. The `withThrowingTaskGroup` version of the function allows for the task group to throw, and if that happens all tasks it contained are implicitly cancelled (and awaited on) before rethrowing the error.
 
-> Note: Sadly it is not presently possible to implement this throwing/non-throwing functionality with a single function. The complex relationship of throwing `group.spawn` with a throwing `next` as well as corresponding throwing/non-throwing `AsyncSequence` conformances make it impossible to implement all in one function/type today.
+> Note: Sadly it is not presently possible to implement this throwing/non-throwing functionality with a single function. The complex relationship of throwing `group.async` with a throwing `next` as well as corresponding throwing/non-throwing `AsyncSequence` conformances make it impossible to implement all in one function/type today.
 
 Note also that the `withThrowingTaskGroup` uses a `ThrowingTaskGroup<ChildTaskResult, Error>`, however specifying the type of that error is not possible. This is because this Failure parameter on the `ThrowingTaskGroup` in only used as future-proof API in case Swift were to gain typed throwing at some point in time. This design makes no promises nor does it assume typed throws are actually going to happen though.
 
@@ -981,7 +1139,7 @@ extension ThrowingTaskGroup {
 }
 ```
 
-`group.spawn` spawns a child task in the task group to execute execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with as an argument. Generally, it is recommended to not specify priority manually.
+`group.async` spawns a child task in the task group to execute execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with as an argument. Generally, it is recommended to not specify priority manually.
 
 The `spawn` operation always succeeds in adding a new child task to the group, even if the task running the group has been cancelled or the group was cancelled explicitly with `group.cancelAll`. In cases where the task group has already
 been cancelled, the new child task will be spawned in the `cancelled` state.
@@ -990,7 +1148,7 @@ the task was successfully spawned. This allows for simple implementation of grou
 
 Cancelling a specific task group child task does _not_ cancel the entire group or any of its siblings.
 
-> Previously the `group.spawn` operation was designed to be a suspension point, which was intended to be a simple form of back-pressure where the group could decide to not allow more than N tasks to be running concurrently. This has not been fully designed nor implemented though, so currently has been moved to a future direction.
+> Previously the `group.async` operation was designed to be a suspension point, which was intended to be a simple form of back-pressure where the group could decide to not allow more than N tasks to be running concurrently. This has not been fully designed nor implemented though, so currently has been moved to a future direction.
 
 
 ##### Querying tasks in the group
@@ -999,21 +1157,129 @@ The `next()` operation allows one to gather the results from the tasks that have
 
 ```swift
 extension TaskGroup: AsyncSequence {
-  /// Wait for a task to complete and return the result it returned (or throw if the task
-  /// exited with a thrown error), or else return `nil` when there are no tasks left in
-  /// the group.
-  mutating func next() async -> ChildTaskResult? { ... } 
 
-  /// Query whether the task group has any remaining tasks.
+  /// Wait for the a child task that was added to the group to complete,
+  /// and return (or rethrow) the value it completed with. If no tasks are
+  /// pending in the task group this function returns `nil`, allowing the
+  /// following convenient expressions to be written for awaiting for one
+  /// or all tasks to complete:
+  ///
+  /// Await on a single completion:
+  ///
+  ///     if let first = try await group.next() {
+  ///        return first
+  ///     }
+  ///
+  /// Wait and collect all group child task completions:
+  ///
+  ///     while let first = try await group.next() {
+  ///        collected += value
+  ///     }
+  ///     return collected
+  ///
+  /// Awaiting on an empty group results in the immediate return of a `nil`
+  /// value, without the group task having to suspend.
+  ///
+  /// It is also possible to use `for await` to collect results of a task groups:
+  ///
+  ///     for await try value in group {
+  ///         collected += value
+  ///     }
+  ///
+  /// ### Thread-safety
+  /// Please note that the `group` object MUST NOT escape into another task.
+  /// The `group.next()` MUST be awaited from the task that had originally
+  /// created the group. It is not allowed to escape the group reference.
+  ///
+  /// Note also that this is generally prevented by Swift's type-system,
+  /// as the `add` operation is `mutating`, and those may not be performed
+  /// from concurrent execution contexts, such as child tasks.
+  ///
+  /// ### Ordering
+  /// Order of values returned by next() is *completion order*, and not
+  /// submission order. I.e. if tasks are added to the group one after another:
+  ///
+  ///     group.async { 1 }
+  ///     group.async { 2 }
+  ///
+  ///     print(await group.next())
+  ///     /// Prints "1" OR "2"
+  ///
+  /// ### Errors
+  /// If an operation added to the group throws, that error will be rethrown
+  /// by the next() call corresponding to that operation's completion.
+  ///
+  /// It is possible to directly rethrow such error out of a `withTaskGroup` body
+  /// function's body, causing all remaining tasks to be implicitly cancelled.
+  mutating func next() async -> ChildTaskResult? { ... }
+
+  /// Query whether the group has any remaining tasks.
+  ///
+  /// Task groups are always empty upon entry to the `withTaskGroup` body, and
+  /// become empty again when `withTaskGroup` returns (either by awaiting on all
+  /// pending tasks or cancelling them).
+  ///
+  /// - Returns: `true` if the group has no pending tasks, `false` otherwise.
   var isEmpty: Bool { ... } 
 }
 ```
 
 ```swift
 extension ThrowingTaskGroup: AsyncSequence {
-  /// Wait for a task to complete and return the result it returned (or throw if the task
-  /// exited with a thrown error), or else return `nil` when there are no tasks left in
-  /// the group.
+
+  /// Wait for the a child task that was added to the group to complete,
+  /// and return (or rethrow) the value it completed with. If no tasks are
+  /// pending in the task group this function returns `nil`, allowing the
+  /// following convenient expressions to be written for awaiting for one
+  /// or all tasks to complete:
+  ///
+  /// Await on a single completion:
+  ///
+  ///     if let first = try await group.next() {
+  ///        return first
+  ///     }
+  ///
+  /// Wait and collect all group child task completions:
+  ///
+  ///     while let first = try await group.next() {
+  ///        collected += value
+  ///     }
+  ///     return collected
+  ///
+  /// Awaiting on an empty group results in the immediate return of a `nil`
+  /// value, without the group task having to suspend.
+  ///
+  /// It is also possible to use `for await` to collect results of a task groups:
+  ///
+  ///     for await try value in group {
+  ///         collected += value
+  ///     }
+  ///
+  /// ### Thread-safety
+  /// Please note that the `group` object MUST NOT escape into another task.
+  /// The `group.next()` MUST be awaited from the task that had originally
+  /// created the group. It is not allowed to escape the group reference.
+  ///
+  /// Note also that this is generally prevented by Swift's type-system,
+  /// as the `add` operation is `mutating`, and those may not be performed
+  /// from concurrent execution contexts, such as child tasks.
+  ///
+  /// ### Ordering
+  /// Order of values returned by next() is *completion order*, and not
+  /// submission order. I.e. if tasks are added to the group one after another:
+  ///
+  ///     group.async { 1 }
+  ///     group.async { 2 }
+  ///
+  ///     print(await group.next())
+  ///     /// Prints "1" OR "2"
+  ///
+  /// ### Errors
+  /// If an operation added to the group throws, that error will be rethrown
+  /// by the next() call corresponding to that operation's completion.
+  ///
+  /// It is possible to directly rethrow such error out of a `withTaskGroup` body
+  /// function's body, causing all remaining tasks to be implicitly cancelled.
   mutating func next() async throws -> ChildTaskResult? { ... } 
 
   /// Wait for a task to complete and return the result or thrown error packaged in
@@ -1063,7 +1329,7 @@ func gather(first m: Int, of work: [Work]) async throws -> [WorkResult] {
   
   return withTaskGroup(of: WorkResult.self) { group in 
     for w in work { 
-      group.spawn { await w.doIt() } // spawn child tasks to perform the work
+      group.async { await w.doIt() } // spawn child tasks to perform the work
     }  
     
     var results: [WorkResult] = []
@@ -1091,14 +1357,28 @@ property.
 
 ```swift
 extension TaskGroup {
-  /// Cancel all the remaining tasks in the task group.
-  /// Any results, including errors thrown, are discarded.
+  /// Cancel all the remaining tasks in the group.
   ///
-  /// Note that this is non-`mutating` so that it is safe to invoke
-  /// from child tasks that immutably capture the group value.
-  func cancelAll() { ... } 
+  /// A cancelled group will not will NOT accept new tasks being added into it.
+  ///
+  /// Any results, including errors thrown by tasks affected by this
+  /// cancellation, are silently discarded.
+  ///
+  /// This function may be called even from within child (or any other) tasks,
+  /// and will reliably cause the group to become cancelled.
+  ///
+  /// - SeeAlso: `Task.isCancelled`
+  /// - SeeAlso: `TaskGroup.isCancelled`
+  func cancelAll() { ... }
 
-  /// Returns true if the group has been cancelled.
+  /// Returns `true` if the group was cancelled, e.g. by `cancelAll`.
+  ///
+  /// If the task currently running this group was cancelled, the group will
+  /// also be implicitly cancelled, which will be reflected in the return
+  /// value of this function as well.
+  ///
+  /// - Returns: `true` if the group (or its parent task) was cancelled,
+  ///            `false` otherwise.
   var isCancelled: Bool { get }
 }
 ```
@@ -1112,11 +1392,11 @@ func chopVegetables() async throws -> [Vegetable] {
   try await withThrowingTaskGroup(of: Vegetable.self) { group in
     print(group.isCancelled) // prints false
 
-    group.spawn {
+    group.async {
       group.cancelAll() // Cancel all work in the group
       throw UnfortunateAccidentWithKnifeError()
     }
-    group.spawn {
+    group.async {
       return try await chop(Onion())
     }
 
@@ -1126,7 +1406,7 @@ func chopVegetables() async throws -> [Vegetable] {
       }
     } catch {
       print(group.isCancelled) // prints true now
-      let added = group.spawnUnlessCancelled {
+      let added = group.asyncUnlessCancelled {
         try await chop(SweetPotato())
       }
       print(added) // prints false, no child was added to the cancelled group
@@ -1153,6 +1433,16 @@ All of the changes described in this document are additive to the language and a
 ## Revision history
 
 ### Review changes
+
+Changes after the second review:
+
+- `TaskGroup.spawn` and `TaskGroup.spawnUnlessCancelled` have been renamed to `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` which are to be their final names. This aligns the naming with the renamed `async let` and new `async{}` function as the word signifying creation of a task that will inherit context of its parent (if available).
+- remove `Task.current` and the general ability to get hold of a `Task` instance. This change unlocks important
+- remove the non-static properties `Task.priority` and `Task.isCancelled`, the static ones should be used instead. The properties remain on `UnsafeCurrentTask`.
+- merge the `async { }` proposal ([pitched here](https://forums.swift.org/t/initiating-asynchronous-work-from-synchronous-code/47714)) into this proposal, such that we have all ways to create tasks in this proposal to review at-once
+- make `async{}` return a `Task.Handle<Never, Never>`, such that it may be used to cancel the created task
+- speculatively rename `detach` to `asyncDetached` as it is similar, but less favored to use that API
+- re-order parameters of `withTaskCancellationHandler` from `handler, operation` to `(operation, onCancel handler)` which seems to be a more common pattern for such APIs where the "main closure" (the operation) comes first
 
 Changes after first review:
 
