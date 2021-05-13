@@ -13,7 +13,6 @@
 * [Proposed design](#proposed-design)
    * [Actor-isolated parameters](#actor-isolated-parameters)
    * [Non-isolated declarations](#non-isolated-declarations)
-   * [Closure isolation](#closure-isolation)
    * [Protocol conformances](#protocol-conformances)
    * [Pre-async asynchronous protocols](#pre-async-asynchronous-protocols)
    * [Multiple isolated parameters](#multiple-isolated-parameters)
@@ -24,6 +23,7 @@
    * [Isolated protocol conformances](#isolated-protocol-conformances)
 * [Alternatives Considered](#alternatives-considered)
    * [Isolated or sync actor types](#isolated-or-sync-actor-types)
+* [Revision history](#revision-history)
    
 ## Introduction
 
@@ -121,48 +121,6 @@ extension BankAccount {
   }
 }  
 ```
-
-### Closure isolation control
-
-As described in the [actors proposal][actors], closures formed within an actor-isolated function are actor-isolated so long as they are not `@Sendable`:
-
-```swift
-func acceptNonSendable(_ operation: () async -> Void) { ... }
-func acceptSendable(_ operation: @Sendable () async -> Void) { ... }
-
-
-actor A {
-  func f() { }
-  
-  func g() {
-    acceptNonSendable {
-      f() // synchronous call is okay, closure is actor-isolated to the captured "self"
-    }
-    
-    acceptSendable {
-      await f() // must call f() asynchronously because @Sendable closure is non-isolated
-    }
-  }
-}
-```
-
-We can provide control in both directions: a closure can be explicitly non-isolated using the syntax `{ nonisolated in ... }`, or can specify that it is isolated to a given `isolated` parameter by capturing that parameter as `isolated`:
-
-```swift
-extension A {
-  func h() {
-    acceptNonSendable { nonisolated in
-      await f() // call must be asynchronous, because closure is non-isolated
-    }
-    
-    acceptSendable { [isolated self] async in
-      f() // synchronous call to f() is okay, because closure is explicitly isolated to `self`
-    }
-  }
-}
-```
-
-Note that a `@Sendable` closure can only be actor-isolated if it is also `async`. Such closures are like `async` functions on the actor itself, and will switch to the actor at the beginning of the closure body to ensure that are running on the actor, then execute the rest of the body.
 
 ### Protocol conformances
 
@@ -371,5 +329,9 @@ At a high level, isolated parameters and isolated conformances are similar to pa
     
     However, `@sync` types don't behave this way with respect to `Sendable`. A non-`@sync` actor type conforms to `Sendable` (it's safe to share it across concurrency domains), but its corresponding `@sync` subtype does *not* conform to `Sendable`. This is why in the prior example's call to `acceptSendable`, the implicit conversion from `@sync MyActor` to `MyActor` is required.
 
+## Revision history
+
+* Changes in the accepted version of this proposal:
+  * Removed `isolated` captures.
 
 [actors]: https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md
