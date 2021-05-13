@@ -15,7 +15,9 @@ results up to their parent, using lightweight syntax similar to `let` bindings.
 
 Discussion threads:
 
-- TODO
+- [Structured Concurrency: Pitch #1](https://forums.swift.org/t/concurrency-structured-concurrency/41622)
+- [Structured Concurrency: Pitch #2](https://forums.swift.org/t/pitch-2-structured-concurrency/43452)
+- (split out into it's own proposal)
 
 ## Motivation
 
