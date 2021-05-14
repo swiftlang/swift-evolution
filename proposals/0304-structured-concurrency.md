@@ -745,7 +745,7 @@ At the same time though, if reaching to `async{}` inside `async` functions one s
 The `async` operation propagates priority from the point where it is called to the detached task that it creates:
 
 1. If the synchronous code is running on behalf of a task (i.e., `withUnsafeCurrentTask` provides a non-`nil` task), use the priority of that task;
-2. If the synchronous code is running on behalf of the main thread, use `.userInitiated`; otherwise
+2. If the synchronous code is running on behalf of the "UI" thread, use `.userInitiated`; otherwise
 3. Query the system to determine the priority of the currently-executing thread and use that.
 
 The implementation will also propagate any other important OS-specific information from the synchronous code into the asynchronous task.
@@ -1472,7 +1472,7 @@ Changes after the second review:
 - remove `Priority.unspecified` and use `nil` as unspecified value.
 - introduce platform independent priority names: `high`, `default`, `low`, `background`. The Apple platform specific names remain as aliases and can be used on apple platforms where they make sense. These names have a long history and were even originally used in dispatch itself. We discussed and confirmed with various teams inside Apple that those names work well for the future evolution of the platform.
 - future-proof the `Priority` type by changing it to a `struct` with static computed properties. We do not immediately have any plans to introduce new priorities, but want to allow for such future extension if necessary.
-- remove the ability to spawn new tasks at the `userInitiated` priority. This priority will be used only be the runtime itself, e.g. by the main thread and automatically inherited properly by any other tasks (and downgraded to `userInteractive)
+- remove the ability to spawn new tasks at the `userInteractive` priority. This priority will be used only be the runtime itself, e.g. by the main thread and automatically inherited properly by any other tasks (and downgraded to `userInitiated`)
 - `TaskGroup.spawn` and `TaskGroup.spawnUnlessCancelled` have been renamed to `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` which are to be their final names. This aligns the naming with the renamed `async let` and new `async{}` function as the word signifying creation of a task that will inherit context of its parent (if available).
 - remove `Task.current` and the general ability to get hold of a `Task` instance. This change unlocks important
 - remove the non-static properties `Task.priority` and `Task.isCancelled`, the static ones should be used instead. The properties remain on `UnsafeCurrentTask`.
