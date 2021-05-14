@@ -821,11 +821,12 @@ Subsequent review discussion determined that the conceptual cost of actor inheri
 
 ### Cross-actor lets
 
-This proposal allows synchronous access to `let` properties on an actor instance from anywhere:
+This proposal allows synchronous access to `let` properties on an actor instance from anywhere within the same module as the actor is defined:
 
 ```swift
-actor BankAccount {
-  let accountNumber: Int
+// in module BankActors
+public actor BankAccount {
+  public let accountNumber: Int
 }
 
 func print(account: BankAccount) {
@@ -833,39 +834,61 @@ func print(account: BankAccount) {
 }  
 ```
 
-We could instead require `let` properties to be accessed asynchronously from outside the actor, making the `print(account:)` function above an error unless it is changed to `await` access to the account number. This would be more consistent with other instance members of actors, which always require asynchronous access from outside the actor. It also allows one to evolve a `let` into a `var`, e.g.,
+Outside of the module, access must be asynchronous:
 
 ```swift
-actor BankAccount {
-  private(set) var accountNumber: Int  // under current rules, refactoring 'let' to 'var' breaks clients synchronously accessing data
+import BankActors
+
+func otherPrint(account: BankAccount) async {
+  print(account.accountNumber)         // error: cannot synchronously access immutable 'let' outside the actor's module
+  print(await account.accountNumber)   // okay to asynchronously access
 }
 ```
 
-On the other hand, requiring all access to `let` instances to be asynchronous goes against the notion that immutable `let` properties are safe for concurrency specifically because they are immutable. For example, one can safely access a local `let` from a concurrently-executing closure, but not a `var`:
+The requirement for asynchronous access from outside of the module preserves a longstanding freedom for library implementors, which allows a public `let` to be refactored into a `var` without breaking any clients. It is consistent with Swift's policy of maximizing the freedom for library implementors to alter the implementation without breaking clients. Without requiring asynchronous access from other modules, the `otherPrint(account:)` function above were permitted to reference `accountNumber` synchronously. If the author of `BankActors` then changed the account number into a `var`, it would break existing client code:
 
 ```swift
-func test() {
-  let total = 100
-  var counter = 0
+public actor BankAccount {
+  public var accountNumber: Int     // version 2 makes this mutable, but would break clients if synchronous access to 'let's were allowed outside the module
+}
+```
+
+There are a number of other language features that take this same approach of reducing boilerplate and simplifying the language within a module, then requiring the use of additional language features when an entity is used from outside the module. For example:
+
+* Access control defaults to `internal`, so you can use a declaration across your whole module but have to explicitly opt in to making it available outside your module (e.g., via `public`). In other words, you can ignore access control until the point where you need to make something `public` for use from another module.
+* The implicit memberwise initializer of a struct is `internal`. You need to write a `public` initializer yourself to commit to allowing that struct to be initialized with exactly that set of parameters.
+* Inheritance from a class is permitted by default when the superclass is in the same module. To inherit from a superclass defined in a different module, that superclass must be explicitly marked `open`. You can ignore `open` until you want to guarantee this ability to clients outside of the module.
+* Overriding a declaration in a class is permitted by default when the overridden declaration is in the same module. To override from a declaration in a different module, that overrides declaration must be explicitly marked `open`.
+
+SE-0313 "[Improved control over actor isolation][isolationcontrol]" provides an explicit way to give clients the freedom to synchronously access immutable actor state via the `nonisolated` keyword, e.g.,
+
+```swift
+// in module BankActors
+public actor BankAccount {
+  public nonisolated let accountNumber: Int  // can be accessed synchronously from any module due to the explicit 'nonisolated'
+}
+```
+
+The original accepted version of this proposal required *all* access to immutable actor storage be asynchronous, and left any synchronous access to explicit `nonisolated` annotations as spelled out in [SE-0313][isolationcontrol]. However, experience with that model showed that it had a number of problems that affected teachability of the model:
+
+* Developers were almost immediately confronted with the need to use `nonisolated` when writing actor code. This goes against the principle of [progressive disclosure](https://www.interaction-design.org/literature/topics/progressive-disclosure) that Swift tries to follow for advanced features. Aside from `nonisolated let`, uses of `nonisolated` are fairly rare.
+* Immutable state is a key tool for writing safe concurrency code. A `let` of `Sendable` type is conceptually safe to reference from concurrency code, and works in other contexts (e.g., local variables). Making some immutable state concurrency-safe while other state is not complicates the story about data-race-safe concurrent programming. Here's an example of the existing restrictions around `@Sendable`, which were defined in [SE-0302][se302]:
+
+  ```swift
+  func test() {
+    let total = 100
+    var counter = 0
   
-  detach {
-    print(total) // okay
-    print(counter) // error, cannot reference a `var` from a @Sendable closure
+    asyncDetached {
+      print(total) // okay to reference immutable state
+      print(counter) // error, cannot reference a `var` from a @Sendable closure
+    }
+    
+    counter += 1
   }
-}
-```
+  ```
 
-The change to require asynchronous access to `let` properties from outside the actor would not make it impossible to provide synchronous access. Rather, it would become part of the proposal on [controlling actor isolation][isolationcontrol], such that one would need to mark `let` declarations as `nonisolated`:
-
-```swift
-actor BankAccount {
-  nonisolated let accountNumber: Int
-}
-
-func print(account: BankAccount) {
-  print(account.accountNumber) // okay: synchronous access to an actor's let property marked as 'nonisolated'
-}  
-```
+By allowing synchronous access to actor `let`s within a module, we provide a smoother learning curve for actor isolation and embrace (rather than subvert) the longstanding and pervasive idea that immutable data is safe for concurrency, while still addressing the concerns from the second review that unrestricted synchronous access to actor `let`s is implicitly committing a library author to never make that state mutable. It follows existing precedent in the Swift language of making in-module interactions simpler than interactions across modules.
 
 ## Revision history
 
@@ -922,4 +945,4 @@ func print(account: BankAccount) {
 [sc]: https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md
 [se302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
 [customexecs]: https://github.com/rjmccall/swift-evolution/blob/custom-executors/proposals/0000-custom-executors.md
-[isolationcontrol]: https://github.com/DougGregor/swift-evolution/blob/actor-isolation-control/proposals/nnnn-actor-isolation-control.md
+[isolationcontrol]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md
