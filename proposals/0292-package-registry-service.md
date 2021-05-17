@@ -5,11 +5,14 @@
            [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active Review (March 25 - April 5 2021)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift-package-manager#3023](https://github.com/apple/swift-package-manager/pull/3023)
-* Review: [Review](https://forums.swift.org/t/se-0292-package-registry-service/)
+* Review: 
+  [1](https://forums.swift.org/t/se-0292-package-registry-service/)
+  [2](https://forums.swift.org/t/se-0292-2nd-review-package-registry-service/)
 * Previous Revision:
   [1](https://github.com/apple/swift-evolution/blob/b48527526b5748a60b0b23846d5880e9cc2c4711/proposals/0292-package-registry-service.md)
+  [2](https://github.com/apple/swift-evolution/blob/53bd6d3813c40ebd07701727c8cfb6fedd751e2a/proposals/0292-package-registry-service.md)
 
 ## Introduction
 
