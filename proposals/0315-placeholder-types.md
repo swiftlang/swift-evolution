@@ -1,9 +1,9 @@
 # Placeholder types
 
-* Proposal: [SE-NNNN](NNNN-placeholder-types.md)
+* Proposal: [SE-0315](0315-placeholder-types.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Joe Groff](
+* Status: **Scheduled for review** (June 21...July 6, 2021)
 * Implementation: [apple/swift#36740](https://github.com/apple/swift/pull/36740)
 
 ## Introduction
