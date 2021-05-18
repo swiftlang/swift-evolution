@@ -13,17 +13,17 @@
 * [Proposed design](#proposed-design)
    * [Actor-isolated parameters](#actor-isolated-parameters)
    * [Non-isolated declarations](#non-isolated-declarations)
-   * [Closure isolation](#closure-isolation)
    * [Protocol conformances](#protocol-conformances)
    * [Pre-async asynchronous protocols](#pre-async-asynchronous-protocols)
-   * [Multiple isolated parameters](#multiple-isolated-parameters)
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
 * [Effect on API resilience](#effect-on-api-resilience)
 * [Future Directions](#future-directions)
+   * [Multiple isolated parameters](#multiple-isolated-parameters)
    * [Isolated protocol conformances](#isolated-protocol-conformances)
 * [Alternatives Considered](#alternatives-considered)
    * [Isolated or sync actor types](#isolated-or-sync-actor-types)
+* [Revision history](#revision-history)
    
 ## Introduction
 
@@ -88,6 +88,20 @@ This makes instance methods on actor types less special, because now they are ex
 let fn = BankAccount.deposit(amount:)   // type of fn is (isolated BankAccount) -> (Double) -> Void
 ```
 
+A given function cannot have multiple `isolated` parameters:
+
+```swift
+func f(a: isolated BankAccount, b: isolated BankAccount) {  // error: multiple isolated parameters in function `f(a:b:)`.
+  // ...
+}
+
+extension BankAccount {
+  func quickTransfer(amount: Double, to other: isolated BankAccount) {  // error: multiple isolated parameters in function 'quickTransfer(amount:to:)'
+    // ...
+  }
+}
+```
+
 ### Non-isolated declarations
 
 Instance declarations on an actor type implicitly have an `isolated self`. However, one can disable this implicit behavior using the `nonisolated` keyword:
@@ -121,48 +135,6 @@ extension BankAccount {
   }
 }  
 ```
-
-### Closure isolation control
-
-As described in the [actors proposal][actors], closures formed within an actor-isolated function are actor-isolated so long as they are not `@Sendable`:
-
-```swift
-func acceptNonSendable(_ operation: () async -> Void) { ... }
-func acceptSendable(_ operation: @Sendable () async -> Void) { ... }
-
-
-actor A {
-  func f() { }
-  
-  func g() {
-    acceptNonSendable {
-      f() // synchronous call is okay, closure is actor-isolated to the captured "self"
-    }
-    
-    acceptSendable {
-      await f() // must call f() asynchronously because @Sendable closure is non-isolated
-    }
-  }
-}
-```
-
-We can provide control in both directions: a closure can be explicitly non-isolated using the syntax `{ nonisolated in ... }`, or can specify that it is isolated to a given `isolated` parameter by capturing that parameter as `isolated`:
-
-```swift
-extension A {
-  func h() {
-    acceptNonSendable { nonisolated in
-      await f() // call must be asynchronous, because closure is non-isolated
-    }
-    
-    acceptSendable { [isolated self] async in
-      f() // synchronous call to f() is okay, because closure is explicitly isolated to `self`
-    }
-  }
-}
-```
-
-Note that a `@Sendable` closure can only be actor-isolated if it is also `async`. Such closures are like `async` functions on the actor itself, and will switch to the actor at the beginning of the closure body to ensure that are running on the actor, then execute the rest of the body.
 
 ### Protocol conformances
 
@@ -227,9 +199,23 @@ extension MyActorServer : OldServer {
 
 This allows actors to more smoothly integrate into existing code bases, without having to first adopt `async` throughout.
 
+## Source compatibility
+
+This proposal is additive, extending the grammar in a space where new contextual keywords are commonly introduced (declaration modifiers), so it will not affect source compatibility.
+
+## Effect on ABI stability
+
+This is purely additive to the ABI. Function parameters can be marked `isolated`, which will be captured as part of the function type. However, this (like other modifiers on a function parameter) is an additive change that won't affect existing ABI.
+
+## Effect on API resilience
+
+Nearly all changes in actor isolation are breaking changes, because the actor isolation rules require consistency between a declaration. Therefore, a parameter cannot be changed between `isolated` and non-`isolated` (either directly, or indirectly via `nonisolated`) without breaking the API.
+
+## Future Directions
+
 ### Multiple `isolated` parameters
 
-It is possible for a given function to have more than one isolated parameter:
+This proposal prohibits a function declaration that has more than one `isolated` parameter. We could lift this restriction in the future, to allow code such as:
 
 ```swift
 func f(a: isolated BankAccount, b: isolated BankAccount) { 
@@ -252,20 +238,6 @@ extension BankAccount {
 ```
 
 There are unsafe mechanisms (e.g., unsafe casting of pointer types) that could be used to pass two different actors that are both isolated. The [custom executors proposal](https://forums.swift.org/t/support-custom-executors-in-swift-concurrency/44425) provides control over the concurrency domains in which actors execute, which could be used to dynamically ensure that two actors execute in the same concurrency domain. That proposal could be modified or extended to guarantee *statically* that some set of actors share a concurrency domain to make functions with more than one `isolated` parameter more useful in the future.
-
-## Source compatibility
-
-This proposal is additive, extending the grammar in a space where new contextual keywords are commonly introduced (declaration modifiers), so it will not affect source compatibility.
-
-## Effect on ABI stability
-
-This is purely additive to the ABI. Function parameters can be marked `isolated`, which will be captured as part of the function type. However, this (like other modifiers on a function parameter) is an additive change that won't affect existing ABI.
-
-## Effect on API resilience
-
-Nearly all changes in actor isolation are breaking changes, because the actor isolation rules require consistency between a declaration. Therefore, a parameter cannot be changed between `isolated` and non-`isolated` (either directly, or indirectly via `nonisolated`) without breaking the API.
-
-## Future Directions
 
 ### Isolated protocol conformances
 
@@ -333,7 +305,7 @@ At a high level, isolated parameters and isolated conformances are similar to pa
       func g() {
         f(self) // T = @sync MyActor
 
-        Task.runDetached {
+        asyncDetached {
           f(self) // T = MyActor
         }
       }
@@ -371,5 +343,10 @@ At a high level, isolated parameters and isolated conformances are similar to pa
     
     However, `@sync` types don't behave this way with respect to `Sendable`. A non-`@sync` actor type conforms to `Sendable` (it's safe to share it across concurrency domains), but its corresponding `@sync` subtype does *not* conform to `Sendable`. This is why in the prior example's call to `acceptSendable`, the implicit conversion from `@sync MyActor` to `MyActor` is required.
 
+## Revision history
+
+* Changes in the accepted version of this proposal:
+  * Removed `isolated` captures.
+  * Prohibit multiple `isolated` parameters.
 
 [actors]: https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md
