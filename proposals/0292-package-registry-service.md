@@ -771,42 +771,30 @@ can both provide similar non-repudiation guarantees.
 
 ### Information disclosure
 
-A user may inadvertently reveal the existence of a private registry
-or expose hardcoded credentials
-by checking in their project's `.swiftpm/config` directory.
+A user may inadvertently expose credentials
+by checking in their project's configuration files.
+An attacker could scrape public code repositories for configuration files
+and attempt to reuse credentials to impersonate the user.
 
-An attacker could scrape public code repositories for `.swiftpm/config` files
-and attempt to reuse those credentials to impersonate the user.
+The risk of leaking credentials can be mitigated by
+storing them in a `.netrc` file located outside the project directory
+(typically in the user's home directory).
+However,
+a user may run `swift package` subcommands with the `--netrc-file` option
+to configure the location of their project's `.netrc` file.
+To mitigate the risk of a user inadvertently
+adding a local `.netrc` file to version control,
+Swift Package Manager could add an entry to the `.gitignore` file template
+for new projects created with `swift package init`.
 
-```json
-{
-  "registries": {
-      "[default]": {
-        "url": "https://<USERNAME>:<TOKEN>@swift.pkg.github.com/<OWNER>/"
-      }
-  },
-  "version": 1
-}
-
-```
-
-This kind of attack can be mitigated on an individual basis
-by adding `.swiftpm/config` to a project's `.gitignore` file
-or storing credentials in a `.netrc` file.
-The risk could be mitigated for all users
-if Swift Package Manager included a `.gitignore` file
-in its new project template.
 Code hosting providers can also help minimize this risk
 by [detecting secrets][secret scanning]
 that are committed to public repositories.
 
 Credentials may also be unintentionally disclosed
 by Swift Package Manager or other tools in logging statements.
-Care should be taken to redact the user info component of URLs
-when displaying feedback to the user
-(for example,
-the URL `https://<USERNAME>:<TOKEN>@swift.pkg.github.com`
-is logged as `https://***@swift.pkg.github.com`).
+Care should be taken to redact usernames and passwords
+when displaying feedback to the user.
 
 ### Denial of service
 
@@ -816,9 +804,24 @@ that declare one or more custom registries
 and launch a denial-of-service attack
 in an attempt to reduce the availability of those resources.
 
+```json
+{
+  "registries": {
+      "[default]": {
+        "url": "https://private.example.com"
+      }
+  },
+  "version": 1
+}
+
+```
+
 The likelihood of this attack is generally low
 but could be used in a targeted way
 against resources known to be important or expensive to distribute.
+
+This kind of attack can be mitigated on an individual basis
+by adding `.swiftpm/config` to a project's `.gitignore` file.
 
 ### Escalation of privilege
 
