@@ -443,6 +443,8 @@ SYNOPSIS
 OPTIONS:
   --global    Apply settings to all projects for this user
   --scope     Associate the registry with a given scope
+  --login     Specify a user name for the remote machine
+  --password  Supply a password for the remote machine
 ```
 
 Running the `package-registry set` subcommand
@@ -590,6 +592,57 @@ in descending order of precedence:
 * Any existing lock file (`./Package.resolved`)
 * Any local configuration (`./.swiftpm/config/registries.json`)
 * Any global configuration file (`~/.swiftpm/config/registries.json`)
+
+#### Specifying credentials for a custom registry
+
+Some servers may require a username and password.
+The user can provide credentials when setting a custom registry
+by passing the `--login` and `--password` options.
+
+When credentials are provided,
+the corresponding object in the `registries.json` file
+includes a `login` key with the passed value.
+If the project's `.netrc` file has an existing entry
+for a given machine and login,
+it's updated with the new password;
+otherwise, a new entry is added.
+If no `.netrc` file exists,
+a new one is created and populated with the new entry.
+
+```terminal
+$ swift package-registry set https://internal.example.com/ \
+    --login jappleseed --password alpine
+
+$ cat .netrc
+machine internal.example.com
+login jappleseed
+password alpine
+
+$ cat .swiftpm/config/registries.json
+
+{
+  "registries": {
+    "[default]": {
+      "url": "https://internal.example.com"
+      "login": "jappleseed"
+    }
+  },
+  "version": 1
+}
+```
+
+If the user passes the `--login` and `--password` options
+to the `set` subcommand along with the `--global` option,
+the user-level `.netrc` file is updated instead.
+When Swift Package Manager connects to a custom registry,
+it first consults the project's `.netrc` file, if one exists.
+If no entry is found for the custom registry,
+Swift Package Manager then consults the user-level `.netrc` file, if one exists.
+
+If the provided credentials are missing or invalid,
+Swift Package Manager commands like
+`swift package resolve` and `swift package update`
+fail with an error.
 
 ### Changes to config subcommand
 
