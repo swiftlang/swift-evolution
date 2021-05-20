@@ -77,7 +77,7 @@ actor BankAccount {
 }
 ```
 
-Like other Swift types, actors can have initializers, methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
+Like other Swift types, actors can have initializers, methods, properties, and subscripts. They cannot be extended, however can conform to protocols, be generic, and be used with generics.
 
 The primary difference is that actors protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their instance members can be used, collectively called *actor isolation*.   
 
