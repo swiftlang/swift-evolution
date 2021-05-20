@@ -299,7 +299,7 @@ Swift Package Manager compares the integrity checksum provided by the server
 against any existing checksum for that release in the `Package.resolved` file
 as well as the integrity checksum reported by the `compute-checksum` subcommand:
 
-```terminal
+```console
 $ swift package compute-checksum LinkedList-1.2.0.zip
 1feec3d8d144814e99e694cd1d785928878d8d6892c4e59d12569e179252c535
 ```
@@ -332,7 +332,7 @@ a package's contents may have changed at some point.
 Swift Package Manager will refuse to download dependencies
 if there's a mismatch in integrity checksums.
 
-```terminal
+```console
 $ swift build
 error: checksum of downloaded source archive of dependency 'mona.LinkedList' (c2b934fe66e55747d912f1cfd03150883c4f037370c40ca2ad4203805db79457) does not match checksum specified by the manifest (ed008d5af44c1d0ea0e3668033cae9b695235f18b1a99240b7cf0f3d9559a30d)
 ```
@@ -366,7 +366,7 @@ in the root directory of a package
 to generate a source archive for the current working tree.
 For example:
 
-```terminal
+```console
 $ tree -a -L 1
 LinkedList
 ├── .git
@@ -392,7 +392,7 @@ the name of the package with a `.zip` extension
 (for example, "LinkedList.zip").
 You can override this behavior with the `--output` option:
 
-```terminal
+```console
 $ git checkout 1.2.0
 $ swift package archive-source --output="LinkedList-1.2.0.zip"
 # Created LinkedList-1.2.0.zip
@@ -403,7 +403,7 @@ The `archive-source` subcommand has the equivalent behavior of
 Therefore, the following command produces
 equivalent output to the previous example:
 
-```terminal
+```console
 $ git archive --format zip --output LinkedList-1.2.0.zip 1.2.0
 ```
 
@@ -460,7 +460,7 @@ a build server that doesn't allow external network connections
 may configure a registry URL to resolve dependencies
 using an internal registry service.
 
-```terminal
+```console
 $ swift package-registry set https://internal.example.com/
 $ cat .swiftpm/config/registries.json
 ```
@@ -482,7 +482,7 @@ Swift Package Manager commands like
 `swift package resolve` and `swift package update`
 fail with an error.
 
-```terminal
+```console
 $ swift package resolve
 error: cannot resolve dependency 'mona.LinkedList' without a configured registry
 ```
@@ -497,7 +497,7 @@ a user might resolve all packages with the package scope `example`
 (such as `example.PriorityQueue`)
 to a private registry.
 
-```terminal
+```console
 $ swift package-registry set https://internal.example.com/ --scope example
 $ cat .swiftpm/config/registries.json
 ```
@@ -609,7 +609,7 @@ otherwise, a new entry is added.
 If no `.netrc` file exists,
 a new one is created and populated with the new entry.
 
-```terminal
+```console
 $ swift package-registry set https://internal.example.com/ \
     --login jappleseed --password alpine
 
@@ -651,7 +651,7 @@ fail with an error.
 A user can currently specify an alternate location for a package
 by setting a [dependency mirror][SE-0219] for that package's URL.
 
-```terminal
+```console
 $ swift package config set-mirror \
     --original-url https:///github.com/mona/linkedlist \
     --mirror-url https:///github.com/octocorp/swiftlinkedlist
@@ -765,7 +765,7 @@ Although the impact of such an attack is potentially high,
 the risk is largely mitigated by the use of cryptographic checksums
 to verify the integrity of downloaded source archives.
 
-```terminal
+```console
 $ echo "$(swift package compute-checksum LinkedList-1.2.0.zip) *LinkedList-1.2.0.zip" | \
     shasum -a 256 -c -
 LinkedList-1.2.0.zip: OK
@@ -802,7 +802,7 @@ If the history of a project is available
 and the commit used to generate the source archive is signed with [GPG],
 the cryptographic signature may be used to verify the authenticity.
 
-```terminal
+```console
 $ git rev-parse HEAD
 b7c37c81f164e5dce0f64e3d75c79a48fb1fe00b3
 
@@ -1099,7 +1099,7 @@ let package = Package(
 could be extended to add dependencies using scoped identifiers
 in addition to URLs.
 
-```terminal
+```console
 $ swift package add-dependency mona.LinkedList
 # Installed LinkedList 1.2.0
 ```
@@ -1114,7 +1114,7 @@ Swift Package Manager could add tooling
 to help package maintainers adopt registry-supported identifiers
 in their projects.
 
-```terminal
+```console
 $ swift package-registry migrate
 ```
 
@@ -1148,7 +1148,7 @@ Swift Package Manager could communicate this information to users
 when installing or updating dependencies
 or as part of a new `swift package audit` subcommand.
 
-```terminal
+```console
 $ swift package audit
 ┌───────────────┬────────────────────────────────────────────────┐
 │ High          │ Regular Expression Denial of Service           │
@@ -1172,7 +1172,7 @@ The package registry API could be extended to add a search endpoint
 to allow users to search for packages by name, keywords, or other criteria.
 This endpoint could be used by clients like Swift Package Manager.
 
-```terminal
+```console
 $ swift package search LinkedList
 LinkedList (github.com/mona/LinkedList) - One thing links to another.
 
