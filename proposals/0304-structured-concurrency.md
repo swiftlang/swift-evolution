@@ -21,7 +21,7 @@
    * [Task groups and child tasks](#task-groups-and-child-tasks)
    * [Asynchronous programs](#asynchronous-programs)
    * [Cancellation](#cancellation)
-   * [Un-structured tasks](#un-structured-tasks)
+   * [Unstructured tasks](#unstructured-tasks)
       * [Context inheritance](#context-inheritance)
       * [Detached tasks](#detached-tasks)
 * [Detailed design](#detailed-design)
