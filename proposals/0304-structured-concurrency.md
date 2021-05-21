@@ -13,7 +13,7 @@
 * [Structured concurrency](#structured-concurrency-1)
    * [Tasks](#tasks)
    * [Child tasks](#child-tasks)
-   * [Partial tasks](#partial-tasks)
+   * [Jobs](#jobs)
    * [Executors](#executors)
    * [Task priorities](#task-priorities)
    * [Priority Escalation](#priority-escalation)
@@ -441,13 +441,13 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
 
 Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline). The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
-### Un-structured tasks
+### Unstructured tasks
 
 So far all types of tasks we discussed were child-tasks and respected the primary rule of structured concurrency: that a *child task* cannot live longer than *parent task* (or scope) in which it was created. This is both true for task groups as well as the `async let` proposal which is being reviewed in parallel.
 
-Sometimes however, these rigid rules end up being too restrictive. We might need to create new tasks whose lifetime is not bound to the creating task, for example in order to fire-and-forget some operation or to initiate asynchronous work from synchronous code. Un-structured tasks are not able to utilize some of the optimization techniques wrt. allocation and metadata propagation as child-tasks are, however they remain a very important building block especially for more free-form usages and integration with legacy APIs.
+Sometimes however, these rigid rules end up being too restrictive. We might need to create new tasks whose lifetime is not bound to the creating task, for example in order to fire-and-forget some operation or to initiate asynchronous work from synchronous code. Unstructured tasks are not able to utilize some of the optimization techniques wrt. allocation and metadata propagation as child-tasks are, however they remain a very important building block especially for more free-form usages and integration with legacy APIs.
 
-All un-structured tasks are represented by a task handle, which can be used to retrieve the value (or thrown error) produced by the task, cancel the task, or perform queries of the task's status. A new task can be created with the `Task { ... }` initializer. For example:
+All unstructured tasks are represented by a task handle, which can be used to retrieve the value (or thrown error) produced by the task, cancel the task, or perform queries of the task's status. A new task can be created with the `Task { ... }` initializer. For example:
 
 ```swift
 let dinnerHandle = Task {
@@ -469,12 +469,12 @@ dinnerHandle.cancel()
 
 #### Context inheritance
 
-Un-structured tasks created with the `Task` initializer inherit important metadata information from the context in which it is created, including priority, task-local values, and actor isolation. 
+Unstructured tasks created with the `Task` initializer inherit important metadata information from the context in which it is created, including priority, task-local values, and actor isolation. 
 
 If called from the context of an existing task:
 
 - inherit the priority of the current task the _synchronous_ function is executing on
-- inherit all task-local values by copying them to the new un-structured task
+- inherit all task-local values by copying them to the new unstructured task
 - if executed within the scope of a specific actor function:
   - inherit the actor's execution context and run the task on its executor, rather than the global concurrent one,
   - the closure passed to `Task {}` becomes actor-isolated to that actor, allowing access to the actor-isolated state, including mutable properties and non-sendable values.
@@ -487,7 +487,7 @@ If called from a context that is _not_ running inside a task:
 
 #### Detached tasks
 
-A *detached task* is an un-structured task that is independent of the context in which it is created, meaning that it does not inherit priority, task-local values, or the actor context. A new detached task can be created with the  `Task.detached` function:
+A *detached task* is an unstructured task that is independent of the context in which it is created, meaning that it does not inherit priority, task-local values, or the actor context. A new detached task can be created with the  `Task.detached` function:
 
 ```swift
 let dinnerHandle = Task.detached {
@@ -673,7 +673,7 @@ The `priority` operation queries the priority of the task.
 
 The `currentPriority` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `Task.detached` or `TaskGroup.async`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
 
-#### Un-structured tasks
+#### Unstructured tasks
 
 Unstructured tasks can be created using the `Task` initializer:
 
@@ -699,7 +699,7 @@ The initializers are marked with `@discardableResult` because the task itself wi
 
 By default, the new task will be initially scheduled on the default global concurrent executor. Once custom executors are introduced in another proposal, these will be able to take an executor parameter to determine on which executor to schedule the new task instead.
 
-###### Priority propagation
+##### Priority propagation
 
 The `Task` initializer propagates priority from the point where it is called to the detached task that it creates:
 
@@ -709,7 +709,7 @@ The `Task` initializer propagates priority from the point where it is called to 
 
 The implementation will also propagate any other important OS-specific information from the synchronous code into the asynchronous task.
 
-###### Actor context propagation
+##### Actor context propagation
 
 A closure passed to the `Task` initializer will implicitly inherit the actor execution context and isolation of the context in which the closure is formed. For example:
 
@@ -736,7 +736,7 @@ In a sense, the `Task` initializer counteracts the normal influence of `@Sendabl
 
 Such semantics, where the closure is both `@Sendable` and actor-isolated, are only possible because the closure is also `async`. Effectively, when the closure is called, it will immediately "hop" over to the actor's context so that it runs within the actor.
 
-###### Implicit "self" in `async {}` closures
+##### Implicit "self"
 
 Closures passed to the `Task` initializer are not required to explicitly acknowledge capture of `self` with `self.`.
 
