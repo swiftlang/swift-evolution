@@ -482,7 +482,7 @@ If called from the context of an existing task:
 If called from a context that is _not_ running inside a task:
 
 - consult the runtime and infer the best possible priority to use (e.g. by asking for current thread priority),
-- even though there is no `Task` to inherit task-local values from, check the fallback mechanism for any task-locals stored for the current synchronous context (this is discussed in depth in the SE-Thread Local Values proposal)
+- even though there is no `Task` to inherit task-local values from, check the fallback mechanism for any task-locals stored for the current synchronous context (this is discussed in depth in the [SE-0311](0311-task-locals.md) proposal)
 - execute on the global concurrent executor and be non-isolated with regard to any actor.
 
 #### Detached tasks
@@ -603,7 +603,7 @@ The `UnsafeCurrentTask` is also `Equatable` and `Hashable`, whose identity is ba
 struct UnsafeCurrentTask: Equatable, Hashable {} 
 ```
 
-`UnsafeCurrentTask` has all the same query operations as `Task` (i.e. `isCancelled`, `priority`, ...) which are equally safe to invoke on the unsafe task as on a normal task, however it may define more APIs in the future that are more fragile and must only ever be invoked while executing on the same task (e.g. access to [Task Local Values](https://github.com/apple/swift-evolution/pull/1245) which are defined in a separate proposal).
+`UnsafeCurrentTask` has all the same query operations as `Task` (i.e. `isCancelled`, `priority`, ...) which are equally safe to invoke on the unsafe task as on a normal task, however it may define more APIs in the future that are more fragile and must only ever be invoked while executing on the same task (e.g. access to [Task-Local Values](0311-task-locals.md) which are defined in a separate proposal).
 
 #### Task priorities
 
