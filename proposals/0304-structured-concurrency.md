@@ -279,7 +279,7 @@ later proposal.
 
 The `withTaskGroup` API gives us access to a task group, and governs the
 lifetime of the *child tasks* we subsequently add to the group using its
-`add` method. By the time `withTaskGroup` finishes executing, we know that all of
+`async()` method. By the time `withTaskGroup` finishes executing, we know that all of
 the subtasks have completed.  A child task does not persist beyond the scope in
 which it was created. By the time the scope exits, the child task must either
 have completed, or it will be implicitly awaited. When the scope exits via a
