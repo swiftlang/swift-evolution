@@ -164,17 +164,17 @@ Of course, a function’s task may itself be a child of another task, and its pa
 
 In this proposal, the way to create child tasks is only within a `TaskGroup`, however there will be a follow-up proposal that enables creation of child tasks in any asynchronous context.
 
-### Partial tasks
+### Jobs
 
-The execution of a task can be seen as a succession of periods where the task was running, each of which ends at a suspension point or — finally — at the completion of the task.  These periods are called partial tasks.  Partial tasks are the basic units of schedulable work in the system.  They are also the primitive through which asynchronous functions interact with the underlying synchronous world.  For the most part, programmers should not have to work directly with partial tasks unless they are implementing a custom executor.
+The execution of a task can be seen as a succession of periods where the task was running, each of which ends at a suspension point or — finally — at the completion of the task.  These periods are called jobs.  Jobs are the basic units of schedulable work in the system.  They are also the primitive through which asynchronous functions interact with the underlying synchronous world.  For the most part, programmers should not have to work directly with jobs unless they are implementing a custom executor.
 
 ### Executors
 
-An executor is a service which accepts the submission of partial tasks and arranges for some thread to run them. The system assumes that executors are reliable and will never fail to run a partial task. 
+An executor is a service which accepts the submission of jobs and arranges for some thread to run them. The system assumes that executors are reliable and will never fail to run a job. 
 
 An asynchronous function that is currently running always knows the executor that it's running on.  This allows the function to avoid unnecessarily suspending when making a call to the same executor, and it allows the function to resume executing on the same executor it started on.
 
-An executor is called *exclusive* if the partial tasks submitted to it will never be run concurrently.  (Specifically, the partial tasks must be totally ordered by the happens-before relationship: given any two tasks that were submitted and run, the end of one must happen-before the beginning of the other.) Executors are not required to run partial tasks in the order they were submitted; in fact, they should generally honor task priority over submission order.
+An executor is called *exclusive* if the jobs submitted to it will never be run concurrently.  (Specifically, the jobs must be totally ordered by the happens-before relationship: given any two jobs that were submitted and run, the end of one must happen-before the beginning of the other.) Executors are not required to run jobs in the order they were submitted; in fact, they should generally honor task priority over submission order.
 
 Swift provides a default executor implementation, but both actor classes and global actors (described in separate proposals) can suppress this and provide their own implementation.
 
