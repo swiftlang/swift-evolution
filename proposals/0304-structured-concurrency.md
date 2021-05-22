@@ -322,7 +322,7 @@ potential concurrency; depending on how many vegetables we can get from
 with the rest. We also don't need to necessarily gather the chopped vegetables
 in any specific order, and can collect the results as they become ready.
 
-To create a dynamic number of child tasks and gather their results, we still introduce a new task group via `withTaskGroup`, specifying a `resultType`
+To create a dynamic number of child tasks and gather their results, we still introduce a new task group via `withTaskGroup`, specifying a `ChildTaskResult.Type`
 for the child tasks, and using the group's `next` method to collect those
 results as they become ready:
 
@@ -1083,7 +1083,7 @@ By default, the task group will schedule child tasks added to the group on the d
 
 ##### Spawning TaskGroup child tasks
 
-Within the `body` function, tasks may be added dynamically with the spawn operation. Each task produces a value of the same type (the `ResultType` generic parameter):
+Within the `body` function, tasks may be added dynamically with the spawn operation. Each task produces a value of the same type (the `ChildTaskResult` generic parameter):
 
 ```swift
 extension TaskGroup {
