@@ -212,7 +212,7 @@ To illustrate task groups, let's start by showing how we can introduce some
 real concurrency to our `makeDinner` example:
 
 ```swift
-func makeDinner() async -> Meal {
+func makeDinner() async throws -> Meal {
   // Prepare some variables to receive results from our concurrent child tasks
   var veggies: [Vegetable]?
   var meat: Meat?
@@ -225,18 +225,18 @@ func makeDinner() async -> Meal {
   }
   
   // Create a task group to scope the lifetime of our three child tasks
-  await withTaskGroup(of: CookingStep.self) { group in
+  try await withThrowingTaskGroup(of: CookingStep.self) { group in
     group.async {
-      try await .vegetables(chopVegetables())
+      try await .veggies(chopVegetables())
     }
     group.async {
       await .meat(marinateMeat())
     }
     group.async {
-      await .oven(preheatOven(temperature: 350))
+      try await .oven(preheatOven(temperature: 350))
     }
                                              
-    for await finishedStep in group {
+    for try await finishedStep in group {
       switch finishedStep {
         case .veggies(let v): veggies = v
         case .meat(let m): meat = m
@@ -259,7 +259,7 @@ Note that it would be illegal to say:
 ```swift
 var veggies: [Vegetable]?
 
-await withTaskGroup(of: Void.self) { group in
+try await withThrowingTaskGroup(of: Void.self) { group in
   group.async {
     // error: mutation of captured var 'veggies' in concurrently-executing code
     veggies = try await chopVegetables()
@@ -330,7 +330,7 @@ results as they become ready:
 /// Concurrently chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
   // Create a task group where each child task produces a Vegetable.
-  try await withTaskGroup(of: Vegetable.self) { group in 
+  try await withThrowingTaskGroup(of: Vegetable.self) { group in 
     var rawVeggies: [Vegetable] = gatherRawVeggies()
     var choppedVeggies: [Vegetable] = []
     
