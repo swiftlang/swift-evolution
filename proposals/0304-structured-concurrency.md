@@ -364,8 +364,8 @@ A program can use `@main` with a `main()` function that is `async`:
 ```swift
 @main
 struct Eat {
-  static func main() async {
-    let meal = try! await makeDinner()
+  static func main() async throws {
+    let meal = try await makeDinner()
     print(meal)
   }
 }
