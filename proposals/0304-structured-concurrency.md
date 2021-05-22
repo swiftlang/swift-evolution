@@ -56,7 +56,7 @@
 
 ## Introduction
 
-[`async`/`await`](https://github.com/apple/swift-evolution/blob/main/proposals/0296-async-await.md) is a language mechanism for writing natural, efficient asynchronous code. Asynchronous functions (introduced with `async`) can give up the thread on which they are executing at any given suspension point (marked with `await`), which is necessary for building highly-concurrent systems.
+[`async`/`await`](0296-async-await.md) is a language mechanism for writing natural, efficient asynchronous code. Asynchronous functions (introduced with `async`) can give up the thread on which they are executing at any given suspension point (marked with `await`), which is necessary for building highly-concurrent systems.
 
 However, the `async`/`await` proposal does not introduce concurrency *per se*: ignoring the suspension points within an asynchronous function, it will execute in essentially the same manner as a synchronous function. This proposal introduces support for [structured concurrency](https://en.wikipedia.org/wiki/Structured_concurrency) in Swift, enabling concurrent execution of asynchronous code with a model that is ergonomic, predictable, and admits efficient implementation.
 
@@ -730,7 +730,7 @@ actor A {
 }
 ```
 
-In a sense, the `Task` initializer counteracts the normal influence of `@Sendable` on a closure within an actor. Specifically, [SE-0306](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md#closures) states that `@Sendable` closure are not actor-isolated:
+In a sense, the `Task` initializer counteracts the normal influence of `@Sendable` on a closure within an actor. Specifically, [SE-0306](0306-actors.md#closures) states that `@Sendable` closure are not actor-isolated:
 
 > Actors prevent this data race by specifying that a `@Sendable` closure is always non-isolated. 
 
@@ -1293,7 +1293,7 @@ while let result = try await group.next() {
 }
 ```
 
-`TaskGroup` also conforms to the [`AsyncSequence` protocol](https://github.com/apple/swift-evolution/blob/main/proposals/0298-asyncsequence.md), allowing the child tasks' results to be iterated in a `for await` loop:
+`TaskGroup` also conforms to the [`AsyncSequence` protocol](0298-asyncsequence.md), allowing the child tasks' results to be iterated in a `for await` loop:
 
 ```swift
 for await result in group { // non-throwing TaskGroup
@@ -1467,7 +1467,7 @@ Changes after first review:
   * Factored `with*Continuation` into [its own proposal](https://github.com/apple/swift-evolution/pull/1244).
   * Factored `async let` into [its own proposal](https://github.com/DougGregor/swift-evolution/pull/50).
   * `Task` becomes a `struct` with instance functions, introduction of `Task.current`, `Task.unsafeCurrent` and the `UnsafeCurrentTask` APIs
-  * `Task.Group` now conforms to [the `AsyncSequence` protocol](https://github.com/apple/swift-evolution/blob/main/proposals/0298-asyncsequence.md).
+  * `Task.Group` now conforms to [the `AsyncSequence` protocol](0298-asyncsequence.md).
   * `runDetached` and `Task.Group.add` now accept [executor](https://github.com/apple/swift-evolution/pull/1257) arguments to specify where the newly-spawned tasks are initially scheduled.
 * Changes in the second pitch:
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
