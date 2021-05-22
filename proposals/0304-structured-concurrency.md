@@ -443,7 +443,7 @@ Note also that no information is passed to the task about why it was cancelled. 
 
 ### Unstructured tasks
 
-So far all types of tasks we discussed were child-tasks and respected the primary rule of structured concurrency: that a *child task* cannot live longer than *parent task* (or scope) in which it was created. This is both true for task groups as well as the `async let` proposal which is being reviewed in parallel.
+So far all types of tasks we discussed were child-tasks and respected the primary rule of structured concurrency: that a *child task* cannot live longer than the *parent task* (or scope) in which it was created. This is both true for task groups as well as the `async let` proposal which is being reviewed in parallel.
 
 Sometimes however, these rigid rules end up being too restrictive. We might need to create new tasks whose lifetime is not bound to the creating task, for example in order to fire-and-forget some operation or to initiate asynchronous work from synchronous code. Unstructured tasks are not able to utilize some of the optimization techniques wrt. allocation and metadata propagation as child-tasks are, however they remain a very important building block especially for more free-form usages and integration with legacy APIs.
 
@@ -501,11 +501,11 @@ The `Task.detached` operation produces a new task instance (in this case, `Task<
 
 ### Task API
 
-Much of the proposed implementation of structured concurrency is in the APIs for creating, querying, and managing APIs described here. 
+Much of the proposed implementation of structured concurrency is in the APIs for creating, querying, and managing tasks.
 
 #### The `Task` type
 
-The `Task` type describes a task and can be used to query or cancel that task. It also used as a namespace for operations on the currently-executing task. 
+The `Task` type describes a task and can be used to query or cancel that task. It's also used as a namespace for operations on the currently-executing task. 
 
 ```swift
 struct Task<Success: Sendable, Failure: Error>: Equatable, Hashable, Sendable { ... }
@@ -533,7 +533,7 @@ extension Task where Failure == Never {
 }
 ```
 
-The `value` property is the primary consumer interface to a task instance: it produces the result returned by the task or (if the task exits via a thrown error) throws the error produced by the task. For example:
+The `value` property is the primary consumer interface to a task instance: it returns the result produced by the task or (if the task exits via a thrown error) throws the error produced by the task. For example:
 
 ```swift
 func eat(mealHandle: Task<Meal, Error>) async throws {
@@ -568,7 +568,7 @@ func withUnsafeCurrentTask<T>(
 
 The `withUnsafeCurrentTask` passes the current task into the operation or `nil` if the function is called from a context in which a Task is not available. In practice this means that nowhere in the call chain until this invocation, was any asynchronous function involved. If there is an asynchronous function in the call chain until the invocation of `unsafeCurrent`, that task will be returned.
 
-The `UnsafeCurrentTask` is purposefully named unsafe as it *may* expose APIs which can *only* be invoked safely from within task itself, and would exhibit undefined behavior if used from another task. It is therefore unsafe to store and "use later" an `UnsafeCurrentTask`. Examples of such unsafe API are interacting with task local values on a task object, which must be equal to the "current" task to be performed safely. This is by design, and offers the runtime optimization opportunities for the normal, and safe, access patterns to task storage.
+The `UnsafeCurrentTask` is purposefully named unsafe as it *may* expose APIs which can *only* be invoked safely from within task itself, and would exhibit undefined behavior if used from another task. It is therefore unsafe to store and "use later" an `UnsafeCurrentTask`. Examples of such unsafe API are interacting with task-local values on a task object, which must be equal to the "current" task to be performed safely. This is by design, and offers the runtime optimization opportunities for the normal, and safe, access patterns to task storage.
 
 Invoking some of its APIs from other tasks/threads will result in undefined behavior.
 
@@ -587,7 +587,7 @@ func synchronous() {
   }
 }
 
-func async() async {
+func asynchronous() async {
   // the following is safe, because withUnsafeCurrentTask is invoked from an 'async' function
   withUnsafeCurrentTask { maybeUnsafeCurrentTask in 
     let task: UnsafeCurrentTask = maybeUnsafeCurrentTask! // always ok
@@ -730,7 +730,7 @@ actor A {
 }
 ```
 
-In a sense, the `Task` initializer counteracts the normal influence of `@Sendable` on a closure within an actor. Specifically, [SE-0306](0306-actors.md#closures) states that `@Sendable` closure are not actor-isolated:
+In a sense, the `Task` initializer counteracts the normal influence of `@Sendable` on a closure within an actor. Specifically, [SE-0306](0306-actors.md#closures) states that `@Sendable` closures are not actor-isolated:
 
 > Actors prevent this data race by specifying that a `@Sendable` closure is always non-isolated. 
 
@@ -785,7 +785,7 @@ extension Task where Failure == Error {
 }
 ```
 
-Detached tasks will typically be created using a closure, e.g.,
+Detached tasks will typically be created using a trailing closure, e.g.,
 
 ```swift
 let dinnerHandle: Task<Meal, Error> = Task.detached {
@@ -848,7 +848,7 @@ extension Task where Success == Never, Failure == Never {
   /// Returns `true` if the task is cancelled, and should stop executing.
   ///
   /// - SeeAlso: `checkCancellation()`
-  static static func checkCancellation() throws
+  static func checkCancellation() throws
 }
 ```
 
