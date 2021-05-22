@@ -686,7 +686,7 @@ extension Task where Failure == Never {
    )
 }
 
-extension Task {
+extension Task where Failure == Error {
   @discardableResult
   init(
     priority: TaskPriority? = nil,
@@ -802,7 +802,7 @@ The `isCancelled` property determines whether the given task has been cancelled:
 ```swift
 extension Task {
   /// Returns `true` if the task is cancelled, and should stop executing.
-  var isCancelled: Bool
+  var isCancelled: Bool { get }
 }
 ```
 
