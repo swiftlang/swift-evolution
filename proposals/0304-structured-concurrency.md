@@ -770,7 +770,7 @@ extension Task where Failure == Never {
   /// Create a new, detached task that produces a value of type `Success`.
   @discardableResult
   static func detached(
-    priority: Task.Priority? = nil,
+    priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> Success
   ) -> Task<Success, Never>
 }
@@ -779,7 +779,7 @@ extension Task where Failure == Error {
   /// Create a new, detached task that produces a value of type `Success` or throws an error.
   @discardableResult
   static func detached(
-    priority: Task.Priority? = nil,
+    priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> Success
   ) -> Task<Success, Failure>
 }
@@ -1093,7 +1093,7 @@ extension TaskGroup {
   /// may be collected by calling `group.next()` or iterating over the group gathering 
   /// all submitted task results from the group.
   mutating func async(
-    priority: Task.Priority? = nil,
+    priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> ChildTaskResult
   )
 
@@ -1108,7 +1108,7 @@ extension TaskGroup {
   /// 
   /// Returns true if the task was spawned successfully, and false otherwise.
   mutating func asyncUnlessCancelled(
-    priority: Task.Priority? = nil,
+    priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> ChildTaskResult
   ) -> Bool
   
@@ -1116,12 +1116,12 @@ extension TaskGroup {
 
 extension ThrowingTaskGroup { 
   mutating func async(
-    priority: Task.Priority? = nil,
+    priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> ChildTaskResult
   )
   
   mutating func asyncUnlessCancelled(
-    priority: Task.Priority? = nil,
+    priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> ChildTaskResult
   ) -> Bool
 }
