@@ -734,7 +734,7 @@ class OddOddySync {
 
   func isOdd(_ n: Int) -> Bool {
     if n == 0 { return true }
-    return evan.isEven(num - 1)
+    return evan.isEven(n - 1)
   }
 }
 
@@ -743,7 +743,7 @@ class EvenEvanSync {
 
   func isEven(_ n: Int) -> Bool {
     if n == 0 { return false }
-    return oddy.isOdd(num - 1)
+    return oddy.isOdd(n - 1)
   }
 }
 ```
@@ -757,7 +757,7 @@ actor OddOddy {
 
   func isOdd(_ n: Int) async -> Bool {
     if n == 0 { return true }
-    return await evan.isEven(num - 1)
+    return await evan.isEven(n - 1)
   }
 }
 
@@ -767,7 +767,7 @@ actor EvenEvan {
 
   func isEven(_ n: Int) async -> Bool {
     if n == 0 { return false }
-    return await oddy.isOdd(num - 1)
+    return await oddy.isOdd(n - 1)
   }
 }
 ```
