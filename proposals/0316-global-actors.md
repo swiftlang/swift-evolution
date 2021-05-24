@@ -1,9 +1,9 @@
 # Global actors
 
-* Proposal: [SE-NNNN](NNNN-global-actors.md)
+* Proposal: [SE-0316](0316-global-actors.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Scheduled for Review** (May 24...June 7, 2021)
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
@@ -30,7 +30,7 @@
 
 ## Introduction
 
-[Actors](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md) are a new kind of reference type that protect their instance data from concurrent access. Swift actors achieve this with *actor isolation*, which ensures (at compile time) that all accesses to that instance data go through a synchronization mechanism that serializes execution.
+[Actors](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/0306-actors.md) are a new kind of reference type that protect their instance data from concurrent access. Swift actors achieve this with *actor isolation*, which ensures (at compile time) that all accesses to that instance data go through a synchronization mechanism that serializes execution.
 
 This proposal introduces *global actors*, which extend the notion of actor isolation outside of a single actor type, so that global state (and the functions that access it) can benefit from actor isolation, even if the state and functions are scattered across many different types, functions and modules. Global actors make it possible to safely work with global variables in a concurrent program, as well as modeling other global program constraints such as code that must only execute on the "main thread" or "UI thread".
 
