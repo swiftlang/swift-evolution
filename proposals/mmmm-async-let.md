@@ -116,7 +116,7 @@ func makeDinner() async throws -> Meal {
 
 The child task begins running as soon as the `async let` is encountered. By default, child tasks use the global, width-limited,  concurrent executor, in the same manner as task group child-tasks do. It is a future direction to allow customizing which executor these should be executing on. On normal completion, the child task will initialize the variables in the `async let`.
 
-The right-hand side of a `async let` expression can be thought of as an implicit `@Sendable closure`, similar to how the `detach { ... }` API works, however the resulting task is a *child task* of the currently executing task. Because of this, and the need to suspend to await the results of such expression, `async let` declarations may only occur within an asynchronous context, i.e. an `async` function or closure.
+The right-hand side of a `async let` expression can be thought of as an implicit `@Sendable closure`, similar to how the `Task.detached { ... }` API works, however the resulting task is a *child task* of the currently executing task. Because of this, and the need to suspend to await the results of such expression, `async let` declarations may only occur within an asynchronous context, i.e. an `async` function or closure.
 
 For single statement expressions in the `async let` initializer, the `await` and `try` keywords may be omitted. The effects they represent carry through to the introduced constant and will have to be used when waiting on the constant. In the example shown above, the veggies are declared as `async let veggies = chopVegetables()`, and even through `chopVegetables` is `async` and `throws`, the `await` and `try` keywords do not have to be used on that line of code. Once waiting on the value of that `async let` constant, the compiler will enforce that the expression where the `veggies` appear must be covered by both `await` and some form of `try`.
 
@@ -306,7 +306,7 @@ func go() async {
 
 Assuming the execution times of `fast()` and `slow()` are as the comments next to them explain, the `go()` function will _always_ take at least 3 seconds to execute. Or to state the rule more generally, any structured invocation will take as much time to return as the longest of its child tasks takes to complete.
 
-As we return from the `go()` function without ever having awaited on the `f` or `s` values, both of them will be implicitly cancelled and awaited on before returning from the function `go()`. This is the very nature of structured concurrency, and avoiding this can _only_ be done by creating non-child tasks, e.g. by using `detach` or other future APIs which would allow creation of non-child tasks.
+As we return from the `go()` function without ever having awaited on the `f` or `s` values, both of them will be implicitly cancelled and awaited on before returning from the function `go()`. This is the very nature of structured concurrency, and avoiding this can _only_ be done by creating non-child tasks, e.g. by using `Task.detached` or other future APIs which would allow creation of non-child tasks.
 
 If we instead awaited on one of the values, e.g. the fast one (`f`) the emitted code would not need to implicitly cancel or await it, as this was already taken care of explicitly:
 
@@ -505,7 +505,7 @@ Cancellation of the parent task means that the context in which the `async let` 
 We can observe this in the following example:
 
 ```swift
-let handle = detach { 
+let handle = Task.detached { 
   // don't write such spin loops in real code (!!!)
   while !Task.isCancelled {
     // keep spinning
@@ -521,7 +521,7 @@ let handle = detach {
 handle.cancel() 
 ```
 
-The example uses APIs defined in the Structured Concurrency proposal: `detach` to obtain a handle for the detached task which we can cancel explicitly. This allows us to easily illustrate that a `async let` entered within a task that _already is cancelled_ still spawns the child task, yet the spawned task will be immediately cancelled - as witnessed by the `true` returned into the `childTaskCancelled` variable.
+The example uses APIs defined in the Structured Concurrency proposal: `Task.detached` to obtain a handle for the detached task which we can cancel explicitly. This allows us to easily illustrate that a `async let` entered within a task that _already is cancelled_ still spawns the child task, yet the spawned task will be immediately cancelled - as witnessed by the `true` returned into the `childTaskCancelled` variable.
 
 This works well with the co-operative nature of task cancellation in Swift's concurrency story. Tasks which are able and willing to participate in cancellation handling, need to check for its status using `Task.isCancelled` or `try Task.checkCancellation()` where appropriate.
 
@@ -592,7 +592,7 @@ func race(left: () async -> Int, right: () async -> Int) async -> Int {
 
 It is worth comparing `async let` declarations with the one other API proposed so far that is able to start asynchronous tasks: `Task {}`, and `Task.detached {}`, proposed in [SE-0304: Structured Concurrency](0304-structured-concurrency.md).
 
-First off, `detach` most of the time should not be used at all, because it does _not_ propagate task priority, task-local values or the execution context of the caller. Not only that but a detached task is inherently not _structured_ and thus may out-live its defining scope.
+First off, `Task.detached` most of the time should not be used at all, because it does _not_ propagate task priority, task-local values or the execution context of the caller. Not only that but a detached task is inherently not _structured_ and thus may out-live its defining scope.
 
 This immediately shows how `async let` and the general concept of child-tasks are superior to detached tasks. They automatically propagate all necessary information about scheduling and metadata necessary for execution tracing. And they can be allocated more efficiently than detached tasks.
 
