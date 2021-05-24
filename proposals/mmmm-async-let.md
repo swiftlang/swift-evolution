@@ -15,7 +15,11 @@ results up to their parent, using lightweight syntax similar to `let` bindings.
 
 Discussion threads:
 
-- TODO
+- Originally pitched as part of Structured Concurrency:
+  - [Pitch #1](https://forums.swift.org/t/concurrency-structured-concurrency/41622),
+  - [Pitch #2](https://forums.swift.org/t/pitch-2-structured-concurrency/43452).
+- and later separated into its own proposal:
+  - [Pitch #3](https://forums.swift.org/t/pitch-3-async-let/48336).
 
 ## Motivation
 
@@ -584,22 +588,22 @@ func race(left: () async -> Int, right: () async -> Int) async -> Int {
 }
 ```
 
-#### Comparing with Task.Handle, and (not proposed) futures
+#### Comparing with Task, and (not proposed) futures
 
-It is worth comparing `async let` declarations with the one other API proposed so far that is able to start asynchronous tasks: `detach` and the `Task.Handle` that it returns.
+It is worth comparing `async let` declarations with the one other API proposed so far that is able to start asynchronous tasks: `Task {}`, and `Task.detached {}`, proposed in [SE-0304: Structured Concurrency](0304-structured-concurrency.md).
 
 First off, `detach` most of the time should not be used at all, because it does _not_ propagate task priority, task-local values or the execution context of the caller. Not only that but a detached task is inherently not _structured_ and thus may out-live its defining scope.
 
 This immediately shows how `async let` and the general concept of child-tasks are superior to detached tasks. They automatically propagate all necessary information about scheduling and metadata necessary for execution tracing. And they can be allocated more efficiently than detached tasks.
 
-So while in theory one can think of `async let` as introducing a (hidden) `Task.Handle` or future, which is created at the point of declaration of the `async let` and whose value is retrieved at the `await` in practice, this comparison fails to notice the primary strength of async lets: structured concurrency child-tasks.
+So while in theory one can think of `async let` as introducing a (hidden) `Task` or future, which is created at the point of declaration of the `async let` and whose value is retrieved at the `await` in practice, this comparison fails to notice the primary strength of async lets: structured concurrency child-tasks.
 
 Child tasks in the proposed structured-concurrency model are (intentionally) more restricted than general-purpose futures. Unlike in a typical futures' implementation, a child task does not persist beyond the scope in which it was created. By the time the scope exits, the child task must either have completed, or it will be implicitly awaited. When the scope exits via a thrown error, the child task will be implicitly cancelled before it is awaited. These limitations intentionally preserve the same properties of structured concurrency that explicit task groups provide.
 
-It is also on purpose, and unlike Task.Handles and futures that it is not possible to pass a "still being computed" value to another function. With handles or futures one is quite used to "pass the handle" to another function like this:
+It is also on purpose, and unlike Tasks and futures that it is not possible to pass a "still being computed" value to another function. With handles or futures one is quite used to "pass the handle" to another function like this:
 
 ```swift
-func take(h: Task.Handle<String, Error>) async -> String {
+func take(h: Task<String, Error>) async -> String {
   return await h.get()
 }
 ```
@@ -715,7 +719,7 @@ The details of the API remain to be seen, but the general ability to specify an 
 
 ### Explicit futures
 
-As discussed in the [structured concurrency proposal](0304-structured-concurrency.md#prominent-futures), we choose not to expose futures or `Task.Handle`s for child tasks in task groups, because doing so either can undermine the hierarchy of tasks, by escaping from their parent task group and being awaited on indefinitely later, or would result in there being two kinds of future, one of which dynamically asserts that it's only used within the task's scope. `async let` allows for future-like data flow from child tasks to parent, without the need for general-purpose futures to be exposed.
+As discussed in the [structured concurrency proposal](0304-structured-concurrency.md#prominent-futures), we choose not to expose futures or `Task`s for child tasks in task groups, because doing so either can undermine the hierarchy of tasks, by escaping from their parent task group and being awaited on indefinitely later, or would result in there being two kinds of future, one of which dynamically asserts that it's only used within the task's scope. `async let` allows for future-like data flow from child tasks to parent, without the need for general-purpose futures to be exposed.
 
 ### "Don't spawn tasks when in cancelled parent"
 
