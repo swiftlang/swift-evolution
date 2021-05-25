@@ -66,7 +66,8 @@ Swift-evolution threads:
 * [Pitch #2](https://forums.swift.org/t/pitch-2-structured-concurrency/43452),
 * [Pitch #3](https://forums.swift.org/t/pitch-3-structured-concurrency/44496),
 * [Review #1](https://forums.swift.org/t/se-0304-structured-concurrency/45314),
-* [Review #2](https://forums.swift.org/t/se-0304-2nd-review-structured-concurrency/47217).
+* [Review #2](https://forums.swift.org/t/se-0304-2nd-review-structured-concurrency/47217),
+* [Review #3](https://forums.swift.org/t/se-0304-3rd-review-structured-concurrency/48847).
 
 ## Motivation
 
