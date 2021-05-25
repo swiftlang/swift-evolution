@@ -266,8 +266,29 @@ Declarations that are not explicitly annotated with either a global actor or `no
     override func updateUI() { ... } // implicitly @MainActor
   }
   ```
+
+* A witness that is not inside an actor type infers actor isolation from a protocol requirement that is satisfies, so long as the protocol conformance is stated within the same type definition or extension as the witness:
+
+  ```swift
+  protocol P {
+    @MainActor func f()
+  }
   
-* A non-actor type that conforms to a main-actor-qualified protocol in its primary definition infers actor isolation from that protocol:
+  struct X { }
+  
+  extension X: P {
+    func f() { } // implicitly @MainActor
+  }
+  
+  struct Y: P { }
+  
+  extension Y {
+    func f() { } // okay, not implicitly @MainActor because it's in a separate extension
+                 // from the conformance to P
+  }
+  ```
+
+* A non-actor type that conforms to a global-actor-qualified protocol within the same source file as its primary definition infers actor isolation from that protocol:
 
   ```swift
   @MainActor protocol P {
@@ -276,10 +297,12 @@ Declarations that are not explicitly annotated with either a global actor or `no
   
   class C: P { } // C is implicitly @MainActor
   
+  // source file D.swift
   class D { }
   
+  // different source file D-extensions.swift
   extension D: P { // D is not implicitly @MainActor
-    func updateUI() { } // okay, but not implicitly @MainActor
+    func updateUI() { } // okay, implicitly @MainActor
   }
   ```
 
@@ -382,6 +405,9 @@ The primary motivation for global actors is the main actor, and the semantics of
 
 ## Revision history
 
+* Changes in the first review:
+    * Add inference of a global actor for a witness to a global-actor-qualified requirement.
+    * Extended inference of global actor-ness from protocols to conforming types to any extension within the same source file as the primary type definition.
 * Changes in the second pitch:
     * Clarify that the types of global-actor-qualified functions are global-actor-qualified.
     * State that global-actor-qualified types are Sendable
