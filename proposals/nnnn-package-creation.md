@@ -168,7 +168,7 @@ Creating module.modulemap
 
 ## User defined directory structure templates
 
-By default, `swift package create` uses the following directory structure:
+By default, `swift package init` uses the following directory structure:
 
 ```
 .
@@ -183,159 +183,186 @@ By default, `swift package create` uses the following directory structure:
 
 To support use cases in which individuals or corporates prefer a different directory structure that they can use consistently in their projects, the proposal includes a new configuration option named “templates”.
 
-Templates are defined by adding a configuration file to SwiftPM’s configuration directory `~/.swiftpm/configuration/templates/new-package/<template-name>.json`
+Templates are defined by adding a Swift package directory to SwiftPM’s configuration directory, e.g. `~/.swiftpm/configuration/templates/new-package/<template-name>`
 
-The template is a JSON file that guides SwiftPM on the directory structure when creating the new package. The configuration includes the following options: 
+The template is a Swift package directory file that SwiftPM copies and performs transformations on to create the new package. SwiftPM performs the following steps when creating a package from a template:
 
-```json
-{
-  "directories": {
-    "sources": "<path>" // location for sources
-    "tests": "<path>" // location for tests, can be null for no tests
-    "nestedModule": true/false // add a subdirectory for a module 
-  }
-  "type": "executable" | "library | ..." // the default package type
-  "dependencies": [...] // array of default depedencies to include in Package.swift
-}
-```
+1. Copy the template directory to the target location.
+2. Substitute string placeholders with values that are derived from the new package request or context.
+3. Strip git information from the template location. 
 
-Selecting a template to use while creating the new packages is done using the `--template` option, for example:
 
-Given the template located in `~/.swiftpm/configuration/templates/new-package/my-template.json` with the following content: 
-
-```json
-{
-  "directories": {
-    "sources": "./src"
-    "tests": "./test",
-    "nestedModule": false
-  }
-  "type": "executable"
-  "dependencies": [...]
-}
-```
-
-Running the following command:
+For example, given the `test` template in `~/.swiftpm/configuration/templates/new-package/test` with the directory structure :
 
 ```
-$ swift package create MyApp --template my-template
+.
+├── .git
+├── .gitignore
+├── Package.swift
+├── README.md
+    └── src
+        └── MyApp.swift
 ```
 
-Will create an executable package with the the following directory structure:
+The following `Package.swift`:
+
+```
+import PackageDescription
+
+let package = Package(
+    name: "___NAME___",
+    dependencies: [        
+        .package(url: "https://github.com/apple/swift-nio.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "1.0.0"),        
+    ],
+    targets: [
+        .executableTarget(
+            name: "___NAME_AS_C99___",
+            sources: "src",
+            dependencies: [
+              .product(name: "NIO", pacakge: "swift-nio"),
+              .product(name: "`Crypto`", pacakge: "swift-crypto")
+            ]
+        ),
+    ]
+)
+```
+
+And the following `README.md`:
+
+```
+### ___NAME___
+
+This is the ___NAME___ package!
+
+```
+
+Running `swift package init --template test --name HelloWorld`
+
+Will result with the following directory structure:
 
 ```
 .
 ├── Package.swift
-├── src
-│   └── MyApp.swift
-└── test
-    └──MyAppTests.swift
+├── .gitignore
+├── README.md
+    └── src
+        └── MyApp.swift
 ```
 
-
-**Example 2**
-
-```json
-{
-  "directories": {
-    "sources": "./src"
-    "tests": null,
-    "nestedModule": false
-  }
-  "type": "executable"
-  "dependencies": [...]
-}
-```
-
-Will create the following directory structure: 
+The following `Package.swift`:
 
 ```
-.
-├── Package.swift
-├── src
-    └── <Module>.swift
+import PackageDescription
+
+let package = Package(
+    name: "HelloWorld",
+    dependencies: [        
+        .package(url: "https://github.com/apple/swift-nio.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "1.0.0"),        
+    ],
+    targets: [
+        .executableTarget(
+            name: "HelloWorld",
+            sources: "src",
+            dependencies: [
+              .product(name: "NIO", pacakge: "swift-nio"),
+              .product(name: "Crypto", pacakge: "swift-crypto")
+            ]
+        ),
+    ]
+)
 ```
 
+And the following `README.md`:
 
-**Example 3**
+```
+### HelloWorld
 
-```json
-{
-  "directories": {
-    "sources": "./src"
-    "tests": null,
-    "nestedModule": false
-  }
-  "type": "executable"
-  "dependencies": [
-     { url: "https://github.com/apple/swift-nio.git", version: "1.0.0" },
-    { url: "https://github.com/apple/swift-crypto.git", version: "1.0.0" },
-  ]
-}
+This is the HelloWorld package!
+
+
 ```
 
-Will create the following `Package.swift`:
+The name of the current working directory will be used if `--name` is omitted
 
-```swift
+```
+MyApp % swift package init --template test
+
+```
+
+```
 import PackageDescription
 
 let package = Package(
     name: "MyApp",
     dependencies: [        
         .package(url: "https://github.com/apple/swift-nio.git", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "1.0.0"),        
     ],
     targets: [
         .executableTarget(
             name: "MyApp",
             sources: "src",
-            dependencies: []),
+            dependencies: [
+              .product(name: "NIO", pacakge: "swift-nio"),
+              .product(name: "Crypto", pacakge: "swift-crypto")
+            ]
+        ),
     ]
 )
 ```
 
-Note that target’s sources location maps to the directories/sources location specified in the template, this is a behavior `swift package create` will need to apply if/when they template defines a custom sources location.
+## **Substitutions** 
+
+While transforming the template directory into a package, SwiftPM performs string substitutions on several provided data elements:
+
+1. `___NAME___`: The name provided by the user using the `--name` flag
+2. `___NAME_AS_C99___`: The name provided by the user using the `--name` flag, transformed to be C99 compliant 
+
+
+Future iterations of this feature, will include additional metadata fields that can be used in this context.
 
 
 **Defining the default template**
 
 To customize the default template (i.e. when `swift package create` is invoked with the explicit `--template `argument), user should define a template named “default”, i.e.:
 
- `~/.swiftpm/configuration/templates/new-package/default.json`
+ `~/.swiftpm/configuration/templates/new-package/default`
 
 
-**Impact on SwiftPM**
+**Adding and updating templates**
 
-To support the template system, SwiftPM will define a new struct 
+Templates are designed to be shared as git repositories. The following commands will be added to SwiftPM to facilitate adding and updating templates:
 
-```swift
-struct PackageTemplate {
-  let sourcesDirectory: RelativePath
-  let testsDirectory: RelativePath?
-  let createSubDirectoryForModule: Bool
-  let packageType: PackageType
-  let dependencies: [PackageDependency]
-}
-```
+`swift package add-template <url> [--name <name>]`
 
-This struct will be used to guide the creation / initialization of the package, instead of the hard coded structure used today (e.g. by `InitPackage` in the case of `swift package init)`
+Performs a `git clone` of provided URL into  `~/.swiftpm/configuration/templates/new-package/,` making the template available to use immediately. The `--name` optional option can be used to set a different name from the one automatically given via the git clone operation. 
+
+`swift package update-template <name>`
+
+Performs a `git update` on the template found at  `~/.swiftpm/configuration/templates/new-package/<name>,` making the udpated template available to use immediately.
+
+
+**Other impact on SwiftPM**
 
 When processing `swift package create` or `swift package init`, SwiftPM will do the following
 
-1. If a template is specified with `—template` option: try to load the template and decode it into `PackageTemplate` above, exiting with an error if such template was not found or ran into parsing error.
-2. When no template is specified with `—template` option:
-    1. Check if a default template is defined in `~/.swiftpm/configuration/templates/new-package/default.json. `If one is defined, use it as described in #1 above
-    2. If no default template is defined, construct a default `PackageTemplate` based on the `--type` flag if one is passed or the default type when such is not passed.
+1. If a template is specified with `—template` option: try to load the template and use it as described above, exiting with an error if such template was not found or ran into parsing errors.
+2. When no template is specified with `--template` option:
+    1. Check if a default template is defined in `~/.swiftpm/configuration/templates/new-package/default. `If one is defined, use it as described in #1 above
+    2. If no default template is defined, construct a default `PackageTemplate` based on the `--type` option when provided or the default type when such is not.
+
 
 
 ## Changes to `swift package init`
 
  `swift package init` will be slightly updated to reflect it’s renewed focus on transforming sources to packages:
 
-1. `swift package init` will no longer add a `README.md`, and .`gitignore` files, reducing its impact on the existing sources directory.
-2. When `swift package init` is used in an empty directory, it will create a new package as it does today but emit a diagnostics message encouraging the user to use `swift package create` in the future, to help transition to the more appropriate command.
-3. `swift package init` will accept the new `--template` option and apply it ad described above.
 
+1.  `swift package init` will no longer add a `README.md`, and .`gitignore` files, reducing its impact on the existing sources directory.
+2. When `swift package init` is used in an empty directory, it will create a new package as it does today but emit a diagnostics message encouraging the user to use `swift package create` in the future, to help transition to the more appropriate command.
+3. `swift package init` will accept the new `--template` option and apply it as described above.
 
 # Security
 
@@ -349,10 +376,10 @@ No impact.
 
 # Alternatives considered
 
-The main alternative is to modify the behavior of `swift package init` such that it better caters to the creation of new packages from scratch. The advantage of this alternative is that it maintains the API surface area. The disadvantages are that any changes to make it better for package creation are likely to make it confusing for transforming existing sources to package. More importantly, changes to the existing command may cause impact on users that have automation tied to the current behavior. 
+The main alternative is to modify the behavior of `swift package init` such that it better caters to the creation of new packages from scratch. The advantage of this alternative is that it maintains the  API surface area. The disadvantages are that any changes to make it better for package creation are likely to make it confusing for transforming existing sources to package. More importantly, changes to the existing command may cause impact on users that have automation tied to the current behavior. 
 
-For templates, the main alternative is to have the template be a full package directory that is copied instead of a configuration driven. The advantage of such alternative is that it would allow more flexibility in what the template may include, with the disadvantage is that it is more complex to implement given that it would require a mechanism for dealing with the variation across the different package types.
+For templates, the main alternative is to use a JSON file that describes how the package should be constructed. This would hone in the implementation as it is more finite what can be done with a JSON file. This was not selected in order to provide a better user experience, and greater flexibility with respect to including other files in a template.
 
 # Future Iterations
 
-In order to provide greater flexibility than what JSON can provide, a future version of SwiftPM could allow packages to be created in a procedural manner. SwiftPM could introduce new APIs that provide a toolbox of functionality for creating and configuration various aspects of packages, and could invoke Swift scripts that create new packages using those APIs. Such scripts could make decisions about what content to create based on input options or other external conditions. These APIs would also function when creating a Swift package from scratch, and or transforming existing sources into a Swift Package.
+In order to provide greater flexibility than what copying a Swift package directory can provide, a future version of SwiftPM could allow packages to be created in a procedural manner. SwiftPM could introduce new APIs that provide a toolbox of functionality for creating and configuration various aspects of packages, and could invoke Swift scripts that create new packages using those APIs. Such scripts could make decisions about what content to create based on input options or other external conditions. These APIs would also function when creating a Swift package from scratch, and or transforming existing sources into a Swift Package.
