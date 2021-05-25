@@ -9,7 +9,6 @@
 
 In order to clearly separate the roles of transforming an existing directory of source files into a Swift package, from creating a new package from scratch we propose adding a new command `swift package create`. `swift package init` will continue to exist as is, but will be updated to focus on the former, while the new `swift package create` will focus on the latter. 
 
-
 # Motivation
 
 Currently `swift package init` handle two distinct use cases:
@@ -27,7 +26,7 @@ We feel that separating the two concerns into separate commands, will allow Swif
 
 To create a new package using `swift package init` users perform the following steps:
 
-```
+```console
 $ mkdir MyLib
 $ cd MyLib
 $ swift package init
@@ -35,7 +34,7 @@ $ swift package init
 
 Resulting in the following structure:
 
-```
+```console
 .
 ├── Package.swift
 ├── README.md
@@ -58,14 +57,14 @@ By default, `swift package init` will set the package type to a library , which 
 
 To transform an existing directory of sources into a package using `swift package init` users perform the following steps:
 
-```
+```console
 $ cd MySources
 $ swift package init
 ```
 
 Resulting in the following structure:
 
-```
+```console
 .
 ├── Package.swift
 ├── README.md
@@ -108,13 +107,13 @@ Both commands will gain the capability to use a templating system such that the 
 
 Following, is the behavior of the new command:
 
-```
+```console
 $ swift package create MyApp
 ```
 
 Will create a new package with the following directory structure:
 
-```
+```console
 .
 ├── Package.swift
 ├── Sources
@@ -127,7 +126,7 @@ Will create a new package with the following directory structure:
 
 Note that `swift package create` makes an executable package by default, which is important for new users trying to get their first Swift program up and running. Such users can immediately run the new package:
 
-```
+```console
 $ cd MyApp
 $ swift run ## or omit cd, and use swift run --package-path MyExe
 [3/3] Linking MyApp
@@ -145,7 +144,7 @@ $ swift package create MyLib --type library
 
 Will create a library package with the the following directory structure
 
-```
+```console
 .
 ├── Package.swift
 ├── Sources
@@ -158,19 +157,24 @@ Will create a library package with the the following directory structure
 
 Or, an example of creating a `system-module` package.
 
-```
+```console
 $ swift package create SysMod --type system-module
-Creating system-module package: SysMod
-Creating Package.swift
-Creating module.modulemap
+```
+
+Will create a library package with the the following directory structure
+
+```console
+.
+├── Package.swift
+└── module.modulemap
 ```
 
 
-## User defined directory structure templates
+## User defined templates
 
 By default, `swift package init` uses the following directory structure:
 
-```
+```console
 .
 ├── Package.swift
 ├── Sources
@@ -192,9 +196,9 @@ The template is a Swift package directory file that SwiftPM copies and performs 
 3. Strip git information from the template location. 
 
 
-For example, given the `test` template in `~/.swiftpm/configuration/templates/new-package/test` with the directory structure :
+For example, given the `test` template in `~/.swiftpm/configuration/templates/new-package/test` with the directory structure:
 
-```
+```console
 .
 ├── .git
 ├── .gitignore
@@ -206,7 +210,7 @@ For example, given the `test` template in `~/.swiftpm/configuration/templates/ne
 
 The following `Package.swift`:
 
-```
+```swift
 import PackageDescription
 
 let package = Package(
@@ -230,18 +234,17 @@ let package = Package(
 
 And the following `README.md`:
 
-```
+```markdown
 ### ___NAME___
 
 This is the ___NAME___ package!
-
 ```
 
 Running `swift package init --template test --name HelloWorld`
 
 Will result with the following directory structure:
 
-```
+```console
 .
 ├── Package.swift
 ├── .gitignore
@@ -252,7 +255,7 @@ Will result with the following directory structure:
 
 The following `Package.swift`:
 
-```
+```swift
 import PackageDescription
 
 let package = Package(
@@ -276,22 +279,20 @@ let package = Package(
 
 And the following `README.md`:
 
-```
+```markdown
 ### HelloWorld
 
 This is the HelloWorld package!
-
-
 ```
 
 The name of the current working directory will be used if `--name` is omitted
 
-```
+```console
 MyApp % swift package init --template test
 
 ```
 
-```
+```swift
 import PackageDescription
 
 let package = Package(
@@ -313,7 +314,7 @@ let package = Package(
 )
 ```
 
-## **Substitutions** 
+### Substitutions
 
 While transforming the template directory into a package, SwiftPM performs string substitutions on several provided data elements:
 
@@ -324,14 +325,12 @@ While transforming the template directory into a package, SwiftPM performs strin
 Future iterations of this feature, will include additional metadata fields that can be used in this context.
 
 
-**Defining the default template**
+### Defining the default template
 
-To customize the default template (i.e. when `swift package create` is invoked with the explicit `--template `argument), user should define a template named “default”, i.e.:
-
- `~/.swiftpm/configuration/templates/new-package/default`
+To customize the default template (i.e. when `swift package create` is invoked with the explicit `--template `argument), user should define a template named “default”, i.e. `~/.swiftpm/configuration/templates/new-package/default`
 
 
-**Adding and updating templates**
+### Adding and updating templates
 
 Templates are designed to be shared as git repositories. The following commands will be added to SwiftPM to facilitate adding and updating templates:
 
@@ -344,7 +343,7 @@ Performs a `git clone` of provided URL into  `~/.swiftpm/configuration/templates
 Performs a `git update` on the template found at  `~/.swiftpm/configuration/templates/new-package/<name>,` making the udpated template available to use immediately.
 
 
-**Other impact on SwiftPM**
+## Impact on SwiftPM
 
 When processing `swift package create` or `swift package init`, SwiftPM will do the following
 
@@ -353,14 +352,11 @@ When processing `swift package create` or `swift package init`, SwiftPM will do 
     1. Check if a default template is defined in `~/.swiftpm/configuration/templates/new-package/default. `If one is defined, use it as described in #1 above
     2. If no default template is defined, construct a default `PackageTemplate` based on the `--type` option when provided or the default type when such is not.
 
-
-
 ## Changes to `swift package init`
 
  `swift package init` will be slightly updated to reflect it’s renewed focus on transforming sources to packages:
 
-
-1.  `swift package init` will no longer add a `README.md`, and .`gitignore` files, reducing its impact on the existing sources directory.
+1. `swift package init` will no longer add a `README.md`, and .`gitignore` files by default, reducing its impact on the existing sources directory.
 2. When `swift package init` is used in an empty directory, it will create a new package as it does today but emit a diagnostics message encouraging the user to use `swift package create` in the future, to help transition to the more appropriate command.
 3. `swift package init` will accept the new `--template` option and apply it as described above.
 
@@ -368,17 +364,15 @@ When processing `swift package create` or `swift package init`, SwiftPM will do 
 
 No impact.
 
-
 # Impact on existing packages
 
 No impact.
-
 
 # Alternatives considered
 
 The main alternative is to modify the behavior of `swift package init` such that it better caters to the creation of new packages from scratch. The advantage of this alternative is that it maintains the  API surface area. The disadvantages are that any changes to make it better for package creation are likely to make it confusing for transforming existing sources to package. More importantly, changes to the existing command may cause impact on users that have automation tied to the current behavior. 
 
-For templates, the main alternative is to use a JSON file that describes how the package should be constructed. This would hone in the implementation as it is more finite what can be done with a JSON file. This was not selected in order to provide a better user experience, and greater flexibility with respect to including other files in a template.
+For templates, the main alternative is to use a JSON file that describes how the package should be constructed. This would hone in the implementation as it defines a finite set of capabilities driven by configuraiton. This was not selected in order to provide a better user experience, and greater flexibility with respect to including other files in a template.
 
 # Future Iterations
 
