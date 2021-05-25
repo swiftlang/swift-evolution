@@ -176,7 +176,7 @@ An asynchronous function that is currently running always knows the executor tha
 
 An executor is called *exclusive* if the jobs submitted to it will never be run concurrently.  (Specifically, the jobs must be totally ordered by the happens-before relationship: given any two jobs that were submitted and run, the end of one must happen-before the beginning of the other.) Executors are not required to run jobs in the order they were submitted; in fact, they should generally honor task priority over submission order.
 
-Swift provides a default executor implementation, but both [actors](0306-actors.md) and global actors (described in separate proposals) can suppress this and provide their own implementation.
+Swift provides a default executor implementation, but both [actors](0306-actors.md) and [global actors](0316-global-actors.md) (described in separate proposals) can suppress this and provide their own implementation.
 
 Generally end-users need not interact with executors directly, but rather use them implicitly by invoking functions which happen to use executors to perform the invoked asynchronous functions.
 
