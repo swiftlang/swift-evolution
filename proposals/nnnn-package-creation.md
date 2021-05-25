@@ -5,9 +5,11 @@
 * Review Manager: TBD
 * Status: Awaiting implementation
 
+
 # Introduction
 
 In order to clearly separate the roles of transforming an existing directory of source files into a Swift package, from creating a new package from scratch we propose adding a new command `swift package create`. `swift package init` will continue to exist as is, but will be updated to focus on the former, while the new `swift package create` will focus on the latter. 
+
 
 # Motivation
 
@@ -19,6 +21,7 @@ Currently `swift package init` handle two distinct use cases:
 This one-size-fits-all approach can be confusing and counter-productive, especially for users that are focused on the second use case. It assumes prior knowledge about the command behavior, and specifically about the need to create an empty directory upfront and naming the package after the directory name.
 
 We feel that separating the two concerns into separate commands, will allow SwiftPM to have better default behavior which is more aligned with the users expectations.
+
 
 ## Current Behavior
 
@@ -204,8 +207,8 @@ For example, given the `test` template in `~/.swiftpm/configuration/templates/ne
 ├── .gitignore
 ├── Package.swift
 ├── README.md
-    └── src
-        └── MyApp.swift
+└── src
+    └── MyApp.swift
 ```
 
 The following `Package.swift`:
@@ -249,8 +252,8 @@ Will result with the following directory structure:
 ├── Package.swift
 ├── .gitignore
 ├── README.md
-    └── src
-        └── MyApp.swift
+└── src
+    └── MyApp.swift
 ```
 
 The following `Package.swift`:
@@ -287,32 +290,6 @@ This is the HelloWorld package!
 
 The name of the current working directory will be used if `--name` is omitted
 
-```console
-MyApp % swift package init --template test
-
-```
-
-```swift
-import PackageDescription
-
-let package = Package(
-    name: "MyApp",
-    dependencies: [        
-        .package(url: "https://github.com/apple/swift-nio.git", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "1.0.0"),        
-    ],
-    targets: [
-        .executableTarget(
-            name: "MyApp",
-            sources: "src",
-            dependencies: [
-              .product(name: "NIO", pacakge: "swift-nio"),
-              .product(name: "Crypto", pacakge: "swift-crypto")
-            ]
-        ),
-    ]
-)
-```
 
 ### Substitutions
 
@@ -320,7 +297,6 @@ While transforming the template directory into a package, SwiftPM performs strin
 
 1. `___NAME___`: The name provided by the user using the `--name` flag
 2. `___NAME_AS_C99___`: The name provided by the user using the `--name` flag, transformed to be C99 compliant 
-
 
 Future iterations of this feature, will include additional metadata fields that can be used in this context.
 
@@ -352,6 +328,7 @@ When processing `swift package create` or `swift package init`, SwiftPM will do 
     1. Check if a default template is defined in `~/.swiftpm/configuration/templates/new-package/default. `If one is defined, use it as described in #1 above
     2. If no default template is defined, construct a default `PackageTemplate` based on the `--type` option when provided or the default type when such is not.
 
+
 ## Changes to `swift package init`
 
  `swift package init` will be slightly updated to reflect it’s renewed focus on transforming sources to packages:
@@ -360,13 +337,16 @@ When processing `swift package create` or `swift package init`, SwiftPM will do 
 2. When `swift package init` is used in an empty directory, it will create a new package as it does today but emit a diagnostics message encouraging the user to use `swift package create` in the future, to help transition to the more appropriate command.
 3. `swift package init` will accept the new `--template` option and apply it as described above.
 
+
 # Security
 
 No impact.
 
+
 # Impact on existing packages
 
 No impact.
+
 
 # Alternatives considered
 
