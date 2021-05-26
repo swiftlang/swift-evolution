@@ -64,16 +64,16 @@ func notOnTheMainActor() async {
 
 ### Defining global actors
 
-A global actor is a non-protocol type that has the `@globalActor` attribute and contains a `static let` property named `shared` that provides an actor instance. `MainActor` is one such global actor, defined as follows:
+A global actor is an actor type that has the `@globalActor` attribute and contains a `static let` property named `shared` that provides an instance of the actor. `MainActor` is one such global actor, defined as follows:
 
 ```swift
 @globalActor
-public struct MainActor {
-  public static let shared = /* unspecified actor type */
+public actor MainActor {
+  public static let shared = MainActor(/* arguments to initialize shared actor instance...*/)
 }
 ```
 
-The type of `shared` must be an actor type. The shared instance is a globally-unique actor instance that becomes synonymous with the global actor type. 
+The type of `shared` must be of the enclosing actor type. The shared instance is a globally-unique actor instance that becomes synonymous with the global actor type. 
 
 > **Note**: integrating the main actor with the system's main thread requires support for [custom executors][customexecs], which is the subject of another proposal. For systems that use the Apple's [Dispatch](https://developer.apple.com/documentation/DISPATCH) library as the underlying concurrency implementation, the main actor uses a custom executor that wraps the [main dispatch queue](https://developer.apple.com/documentation/dispatch/dispatchqueue/1781006-main). However, the notion is a general one, and can be adapted to other concurrency runtime implementations.
 
