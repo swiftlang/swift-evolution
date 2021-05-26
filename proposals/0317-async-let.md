@@ -404,96 +404,6 @@ func work() async throws -> Int { // throws is enforced due to 'try await'
 
 Alternatively, we could have handled the error of `work` by wrapping it in a `do/catch`.
 
-#### Discussion: Should it be required to always `await` any `async let` declaration?
-
-The current proposal pitches that one should be able to omit awaiting on declared `async let`s, like this:
-
-```swift
-func hello(guest name: String) async -> String {
-  async let registered = register(name: name, delayInSeconds: 3)
-  // ... 
-  return "Hello \(name)!"
-  // implicitly cancels the 'registered' child-task
-  // implicitly awaits the 'registered' child-task
-}
-```
-
-Under the current proposal, this function will execute the `registered` task, and before it returns the "Hello …!" it will cancel the still ongoing task `registered`, and await on it. If the task `registered` were to throw an error, that error would be discarded! This may be surprising.
-
-Especially error handling may become tricky and hard to locate why a piece of code is misbehaving, because the `async let` declaration actually has _hidden_ the fact that `register` actually was a throwing function that performed validation if the name is allowed to be greeted or not!
-
-The argument for the current semantics goes that since we did not await the task, we did not care about its result, or even failure to produce a result. 
-
-It could be argued however, that given a more complex function, with many branches in the code, we _do_ want to always await on child-tasks that may produce errors on every code path because those are important, even if not result producing values! Even in our simple `hello` function above we did actually want to ensure we waited on the registered, what we actually wanted to write is:
-
-```swift
-func hello(guest name: String) async -> String {
-  async let registered = register(name: name, delayInSeconds: 3)
-  // ... 
-  
-  _ = try await registered
-  // registration didn't throw, let's greet the guest!
-  
-  return "Hello \(name)!"
-}
-```
-
-For values and functions like the one above, where the value was _never_ used in the entire body of the function, the existing "*value was not used*" warnings should be able to help developers spot the issue. 
-
-However, in functions with more complex control flow, we wonder if this allowing to elide awaits is a good notion to follow or not. For example, the following snippet showcases a situation where the programmer made a mistake and forgot to `try await` on the `registered` result in one of the branches before returning:
-
-```swift
-func hello(guest name: String) async -> String {
-  async let registered = register(name: name, delayInSeconds: 3)
-  // ... 
- 
-  if isFriday { 
-    print("It's Friday!")
-  } else {
-    _ = try await registered
-    // registration didn't throw, let's greet the guest!  
-    print("Any other day of the week.")
-  }
- 
-  return "Hello \(name)!"
-}
-```
-
-By just looking at this code, it is not clear if the programmer _intentionally_ did not await on the registration on the `isFriday` branch, or if it is a real mistake, and the check must always throw. In other words, is this a place where everyone is let in on Fridays, but on other days only registered members are allowed on? :thinking: The code does not help us understand the real intent, and we would have to resort to code comments.
-
-It might be better if it were _enforced_ by the compiler to _always_ (unless throwing or returning) to have to await on all `async let` declarations. E.g. in the example above, we could detect that there exist branches on which the registered was not awaited on, and signal this as an error to the programmer, who would have to:
-
-- either fill in the appropriate `try await registered` inside the `isFriday` branch, or
-- move the `async let registered` declaration into the `else` branch — we indeed only perform this check on non-Fridays.
-
-This rule might be too cumbersome for some code though, so perhaps this warrants a future extension where it is possible to require `@exhaustiveAsyncLetWaiting` on function level, to enforce that async lets are awaited on all code paths.
-
-We could also step-back and double down on the correctness and require always waiting on all declared `async let` declared values at least once on all code paths. This has a potential to cause an effect of multiple awaits at the end of functions: 
-
-```swift
-func work() async throws {
-  async let one = doTheWork()
-  async let two = doTheWork()
-  async let three = doTheWork()
-  await one, two, tree
-}
-```
-
-but then again, perhaps this is showcasing an issue with the functions' construction? It would also help with diagnosing accidentally omitted throws, because if any of such omitted throws were forced to be awaited on, we would notice it:
-
-```swift
-func work() async throws {
-  async let one = doTheWork()
-  async let two = doTheWork()
-  async let three = boom()
-  try await one, two, tree // ah, right three could have thrown
-}
-```
-
-We would like to get a shared understanding of the tradeoffs leaving the "allow not awaiting" rule as the default has, and if the community is aware of the dangers it implies.
-
-Another potential idea here would be to allow omitting `await` inside the initializer of a `async let` if it is a single function call, however _do_ require the `try` keyword nevertheless. This at least would signal some caution to programmers as they would have to remember that the task they spawned may have interesting error information to report.
-
 ### Cancellation and `async let` child tasks
 
 Cancellation propagates recursively through the task hierarchy from parent to child tasks.
@@ -724,6 +634,54 @@ As discussed in the [structured concurrency proposal](0304-structured-concurrenc
 ### "Don't spawn tasks when in cancelled parent"
 
 It would be very confusing to have `async let` tasks automatically "not run" if the parent task were cancelled. Such semantics are offered by task groups via the `group.asyncUnlessCancelled` API, however would be quite difficult to express using plain `let` declarations, as effectively all such declarations would have to become implicitly throwing, which would sacrifice their general usability. We are convinced that following through with the co-operative cancellation strategy works well for `async let` tasks, because it composes well with how all asynchronous functions should be handling cancellation to begin with: only when they want to, in appropriate places within their execution, and deciding by themselves if they prefer to throw a `Task.CancellationError` or rather return a partial result when cancellation occurs.
+
+### Always forcing to `await` an `async let` on any execution path
+
+In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This was subsequently relaxed to allow never awaiting an `async let` at all, and implicitly awaiting them at the end of the scope in which the `async let` was declared in.
+
+The current proposal states that one should be able to omit awaiting on declared `async let`s, like this:
+
+```swift
+func hello(guest name: String) async -> String {
+  async let registered = register(name: name, delayInSeconds: 3)
+  // ... 
+  return "Hello \(name)!"
+  // implicitly cancels the 'registered' child-task
+  // implicitly awaits the 'registered' child-task
+}
+```
+
+Under the current proposal, this function will execute the `registered` task, and before it returns the "Hello …!" it will cancel the still ongoing task `registered`, and await on it. If the task `registered` were to throw an error, that error would be discarded! This may be surprising.
+
+One rule which was considered and proposed in early versions of this proposal, that any `async let` must _always_ and _on every code path_ be awaited on. This rule looks nice for simple code, like the above one, resulting in simple to understand errors:
+
+```swift
+func hello(guest name: String) async -> String {
+  async let registered = register(name: name, delayInSeconds: 3) // error: `registered` was not awaited on
+  // ... 
+  return "Hello \(name)!"
+}
+```
+
+It does not scale well to more realistic functions that include multiple branches and more complicated control flow:
+
+```swift
+func maybeHello(guest name: String, greetLoudly: Bool) async -> String { 
+  async let registered = register(name: name, delayInSeconds: 3)
+  
+  if greetLoudly { 
+    try await registered
+    return "Hello \(name)!"
+  } else {
+    try await registered // omitting this would cause "was not awaited on" errors
+    return "Hello \(name)."
+  }
+}
+```
+
+As witnessed by this example, the seemingly simple rule of "always await on every code-path" results in very verbose code making the feature harder to understand and use.
+
+It does however force the `try await` if the initializer is throwing, making it easier to understand that a task may be throwing. We think this may be a valuable observation and aspect of this design which could feed into future iterations of the feature.
 
 ## Revision history
 
