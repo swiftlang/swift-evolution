@@ -10,7 +10,7 @@
 
 When Swift's type inference is unable to work out the type of a particular expression, it requires the programmer to provide the necessary type context explicitly. However, all mechanisms for doing this require the user to write out the entire type signature, even if only one portion of that type is actually needed by the compiler. E.g.,
 
-```
+```swift
 let losslessStringConverter = Double.init as (String) -> Double?
 
 losslessStringConverter("42") //-> 42.0
@@ -19,7 +19,7 @@ losslessStringConverter("##") //-> nil
 
 In the above example, we only really need to clarify the *argument* type—there's only one `Double.init` overload that accepts a `String`. This proposal allows the user to provide type hints which use *placeholder types* in such circumstances, so that the initialization of `stringTransform` could be written as:
 
-```
+```swift
 let losslessStringConverter = Double.init as (String) -> _?
 ```
 
