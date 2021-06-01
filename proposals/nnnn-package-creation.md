@@ -3,8 +3,8 @@
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/main/proposal-templates/NNNN-filename.md)
 * Authors: [Miguel Perez](https://github.com/miggs597/)
 * Review Manager: TBD
-* Status: Awaiting implementation
-
+* Status: Waiting for Review
+* Implementation: https://github.com/apple/swift-package-manager/pull/3514/
 
 # Introduction
 
