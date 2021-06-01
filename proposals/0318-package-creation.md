@@ -1,9 +1,9 @@
 # Package Creation
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/main/proposal-templates/NNNN-filename.md)
+* Proposal: [SE-0318](https://github.com/apple/swift-evolution/blob/main/proposal-templates/0318-package-creation.md)
 * Authors: [Miguel Perez](https://github.com/miggs597/)
-* Review Manager: TBD
-* Status: Waiting for Review
+* Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Scheduled for review (Jun 8 - June 15 2021)**
 * Implementation: https://github.com/apple/swift-package-manager/pull/3514/
 
 # Introduction
