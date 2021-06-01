@@ -164,7 +164,7 @@ callback = { @MainActor in
 }
 
 callback = { @MainActor (i) in 
-  print($i)
+  print(i)
 }
 ```
 
