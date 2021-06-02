@@ -255,7 +255,7 @@ Declarations that are not explicitly annotated with either a global actor or `no
   }
   ```
   
-* An overriding declartion infers actor isolation from the declaration it overrides:
+* An overriding declaration infers actor isolation from the declaration it overrides:
 
   ```swift
   class A {
