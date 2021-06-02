@@ -9,7 +9,7 @@
 * Implementation: [apple/swift#36430](https://github.com/apple/swift/pull/36430),
                   [apple/swift#36670](https://github.com/apple/swift/pull/36670),
                   [apple/swift#37225](https://github.com/apple/swift/pull/37225)
-* Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Available in [recent `main` snapshots](https://swift.org/download/#snapshots).
 
 ## Introduction
 
@@ -145,7 +145,7 @@ At corresponding access-sites of these properties, the expression will be treate
 
 ```swift
 extension BankAccount {
-  func meetsTransactionLimit(_ limit: Amount) -> Bool {
+  func meetsTransactionLimit(_ limit: Amount) async -> Bool {
     return try! await self.lastTransaction.amount < limit
     //                    ^~~~~~~~~~~~~~~~
     //                    this access is async & throws
@@ -329,8 +329,69 @@ So, a non-trivial restructuring of the type system, or significant extensions to
 
 ## Alternatives considered
 
+In this section, alternative designs for this proposal are discussed.
+
 <!-- Describe alternative approaches to addressing the same problem, and
 why you chose this approach instead. -->
+
+#### Effects Specifiers Positions
+
+There are a number of places where the effects specifiers be placed:
+
+```
+<A> var prop: Type <B> {
+  <C> get <D> { }
+}
+```
+
+Where `<X>` refers to "position X" in the example. Consider each of these positions:
+
+* **Position A** is primarily used by access modifiers like `private(set)` or declaration modifiers like `override`. The more effect-like `mutating`/`nonmutating` is only allowed in Position C, which precedes the accessor declaration, just like a method within a struct. This position was not chosen because phrases like `override async throws var prop` or `async throws override var prop` do not read particularly well.
+* **Position B** does not make much sense, because effects are only carried as part of a function type, not other types. So, it would be very confusing, leading people to think `Int async throws` is a type, when that is not. Introducing a new kind of punctuation here was ruled out because there are alteratives to this position.
+* **Position C** is not bad; it's only occupied by `mutating`/`nonmutating`, but placing effects specifiers here is not consistent with the positioning for functions, which is *after* the subject. Since Position D is available, it makes more sense to use that instead of Position C.
+* **Position D** is the one ultimately chosen for this proposal. It is an unused place in the grammar, places the effects on the accessor and not the variable or its type. Plus, it is consistent with where effects go on a function declaration, after the subject: `get throws` and `get async throws`, where get is the subject. Another benefit is that it is away from the variable, so it prevents confusion between the accessor's effects and the effects of a function being returned:
+
+```swift
+var predicate: (Int) async throws -> Bool {
+  get throws { /* ... */ }
+}
+```
+
+The access of `predicate` may throw, but if it doesn't, it results in a function that is async throws.
+
+There was also a desire to take advantage of the implicit-getter shorthand for the above:
+
+```swift
+var predicate: (Int) async throws -> Bool { /* ... */ }
+```
+
+but there is no good place for effects specifiers here. Because this syntax is a short-hand / syntactic sugar, which necessarily has to trade some of its flexibility for conciseness. So, it was decided that it's OK to not allow effectful properties to be declared using this short-hand. The full syntax for computed properties explicitlys defines its accessors, and thus can declare effects on them.
+
+##### Subscripts
+The major difference for subscripts is the method-like header syntax and support for the implicit-getter short-hand, which combined make it look like a method:
+
+```
+class C {
+  subscript(_ : InType) <E> -> RetType { /* ... */ }
+}
+```
+
+**Position E** in the above is a tempting place for effects specifiers for a subscript, but subscripts are not methods. They cannot be accessed a first-class function value with `c.subscript`, nor called with `c.subscript(0)`; they use an indexing syntax `c[0]`. Methods cannot be assigned to, but subscript index expressions can be. Thus, they are closer to properties that can accept an argument.
+
+Much like the short-hand for get-only properties, trying to find a position for effects specifiers on the short-hand form of get-only subscripts (whether its Position E or otherwise) will trap this feature in a corner if writable subscripts can support effects in the future. Why? Position E is a logically valid spot in the full-syntax *and* the short-hand syntax. Creating an inconsistency between the two would be bad. Then, using Position E + the full syntax creates an opportunity for confusion in situations like this:
+
+```swift
+subscript(_ i : Int) throws -> Bool {
+  get async { }
+  set { }
+}
+```
+
+Here, the only logical interpretation is that `set` is throws and `get` is async throws. The programmer needs to look in multiple places to add up the effects in their head when trying to determine what effects are allowed in an accessor. This may not seem so bad in this short example, but consider having to skip over a large `get` accessor definition to learn about *all* of the effects the set accessor is allowed to have for this subscript, when you do *not* need to do that for a computed property.
+
+So, Position D was chosen as the one true place where you can look to see whether there are effects for that type of accessor, both for subscripts and computed properties.
+
+#### Miscellany
 
 The `rethrows` specifier is excluded from this proposal because one cannot pass a closure (or any other explicit value) during a property `get` operation.
 
