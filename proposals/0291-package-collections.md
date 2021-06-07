@@ -280,8 +280,6 @@ The following conditions are checked and enforced during signature generation an
 - The certificate must not be revoked. The certificate authority must support OCSP, which means the certificate must have the "Certificate Authority Information Access" extension that includes OCSP as a method, specifying the responder's URL.
 - The certificate chain is valid and root certificate must be trusted.
 
-Non-expired, non-revoked Apple Distribution certificates from [developer.apple.com](https://developer.apple.com) satisfy all of the criteria above.
-
 ##### Trusted root certificates
 
 On Apple platforms, all root certificates that come preinstalled with the OS are automatically trusted. Users may specify additional certificates to trust by placing them in the `~/.swiftpm/config/trust-root-certs` directory. 
