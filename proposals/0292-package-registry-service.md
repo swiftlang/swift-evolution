@@ -988,28 +988,6 @@ of authenticity and non-repudiation beyond what's possible with checksums alone.
 Defining a standard interface for package registries
 lays the groundwork for several useful features.
 
-### Package dependency URL normalization
-
-As described in ["Package name collision resolution"](#package-name-collision-resolution)
-Swift Package Manager cannot build a project
-if two or more packages in the project
-are located by URLs with the same (case-insensitive) last path component.
-Swift Package Manager may improve support URL-based dependencies
-by normalizing package URLs to mitigate insignificant variations.
-For example,
-a package with an ["scp-style" URL][scp-url] like
-`git@github.com:mona/LinkedList.git`
-may be determined to be equivalent to a package with an HTTPS scheme like
-`https:///github.com/mona/LinkedList`.
-
-### Local offline cache
-
-Swift Package Manager could implement an [offline cache]
-that would allow it to work without network access.
-While this is technically possible today,
-a package registry makes for a simpler and more secure implementation
-than would otherwise be possible with Git repositories alone.
-
 ### Package publishing
 
 A package registry is responsible for determining
@@ -1072,6 +1050,28 @@ about how to respond to out-of-band removal requests.
 We plan to consider these questions
 as part of the future extension to the specification
 described in the previous section.
+
+### Package dependency URL normalization
+
+As described in ["Package name collision resolution"](#package-name-collision-resolution)
+Swift Package Manager cannot build a project
+if two or more packages in the project
+are located by URLs with the same (case-insensitive) last path component.
+Swift Package Manager may improve support URL-based dependencies
+by normalizing package URLs to mitigate insignificant variations.
+For example,
+a package with an ["scp-style" URL][scp-url] like
+`git@github.com:mona/LinkedList.git`
+may be determined to be equivalent to a package with an HTTPS scheme like
+`https:///github.com/mona/LinkedList`.
+
+### Local offline cache
+
+Swift Package Manager could implement an [offline cache]
+that would allow it to work without network access.
+While this is technically possible today,
+a package registry makes for a simpler and more secure implementation
+than would otherwise be possible with Git repositories alone.
 
 ### Binary framework distribution
 
