@@ -1045,7 +1045,7 @@ reproducibility, quality assurance, and software traceability.
 
 We intend to work with industry stakeholders
 to develop standards for publishing Swift packages
-in an optional extension to the registry specification.
+in an extension to the registry specification.
 
 ### Package removal
 
@@ -1065,7 +1065,7 @@ a registry is free to exercise its own discretion
 about how to respond to out-of-band removal requests.
 
 We plan to consider these questions
-as part of the future, optional extension to the specification
+as part of the future extension to the specification
 described in the previous section.
 
 ### Binary framework distribution
