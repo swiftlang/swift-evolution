@@ -7,7 +7,7 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active Review (June 1...June 8, 2021)**
 * Implementation: [apple/swift-package-manager#3023](https://github.com/apple/swift-package-manager/pull/3023)
-* Review: 
+* Review:
   [1](https://forums.swift.org/t/se-0292-package-registry-service/)
   [2](https://forums.swift.org/t/se-0292-2nd-review-package-registry-service/)
   [3](https://forums.swift.org/t/se-0292-3rd-review-package-registry-service/)
@@ -121,7 +121,7 @@ and downloading the source archive for a release:
 | `GET`  | `/{scope}/{name}/{version}.zip`                           | Download source archive for a package release   |
 | `GET`  | `/identifiers{?url}`                                      | Lookup package identifiers registered for a URL |
 
-A formal specification for the package registry interface is provided 
+A formal specification for the package registry interface is provided
 [alongside this proposal](https://github.com/apple/swift-package-manager/blob/main/Documentation/RegistryDraft.md).
 In addition,
 an OpenAPI (v3) document
