@@ -1049,17 +1049,22 @@ in an extension to the registry specification.
 
 ### Package removal
 
-There are several reasons why a package release may be removed, including:
+Removing a package from a registry
+can break other packages that depend on it,
+as demonstrated by the ["left-pad" incident][left-pad] in March 2016.
+We believe package registries can and should
+provide strong durability guarantees
+to ensure the health of the ecosystem.
+
+At the same time,
+there are valid reasons why a package release may be removed:
 
 * The package maintainer publishing a release by mistake
 * A security researcher disclosing a vulnerability for a release
 * The registry being compelled by law enforcement to remove a release
 
-However, removing a package release has the potential to
-break any packages that depend on it.
-
-It's unclear whether or to what extent such policies should be
-informed by registry specification itself.
+It's unclear whether and to what extent package deletion policies
+should be informed by the registry specification itself.
 For now,
 a registry is free to exercise its own discretion
 about how to respond to out-of-band removal requests.
@@ -1199,6 +1204,7 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [ICANN]: https://www.icann.org
 [JFrog Artifactory]: https://jfrog.com/artifactory/
 [JSON-LD]: https://w3c.github.io/json-ld-syntax/ "JSON-LD 1.1: A JSON-based Serialization for Linked Data"
+[left-pad]: https://qz.com/646467/how-one-programmer-broke-the-internet-by-deleting-a-tiny-piece-of-code/ "How one programmer broke the internet by deleting a tiny piece of code"
 [Maven]: https://maven.apache.org
 [npm]: https://www.npmjs.com "The npm Registry"
 [offline cache]: https://yarnpkg.com/features/offline-cache "Offline Cache | Yarn - Package Manager"
