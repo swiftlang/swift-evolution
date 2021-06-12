@@ -943,6 +943,6 @@ By allowing synchronous access to actor `let`s within a module, we provide a smo
 
 
 [sc]: https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md
-[se302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
+[se302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-sendable-and-sendable-closures.md
 [customexecs]: https://github.com/rjmccall/swift-evolution/blob/custom-executors/proposals/0000-custom-executors.md
 [isolationcontrol]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md

@@ -1,6 +1,6 @@
 # `Sendable` and `@Sendable` closures
 
-* Proposal: [SE-0302](0302-concurrent-value-and-concurrent-closures.md)
+* Proposal: [SE-0302](0302-sendable-and-sendable-closures.md)
 * Authors: [Chris Lattner](https://github.com/lattner), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted**
