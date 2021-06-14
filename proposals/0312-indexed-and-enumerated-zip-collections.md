@@ -162,11 +162,6 @@ This proposal does not affect ABI stability.
 #### Don’t add `LazyCollectionProtocol` conformance for `EnumeratedSequence` for the sake of source compatibility.
 We consider it a bug that `enumerated()` currently does not propagate laziness in a lazy chain.
 
-#### Only conform `Zip2Sequence` and `EnumeratedSequence` to `BidirectionalCollection` when the base collections conform to `RandomAccessCollection`.
-Traversing an `EnumeratedSequence` backwards requires computing the `count` of the collection upfront in order to determine the correct offsets, which is an O(count) operation when the base collection does not conform to `RandomAccessCollection`. This is a one-time cost incurred when `c.index(before: c.endIndex)` is called, and does not affect the overall time complexity of an entire backwards traversal. Besides, `index(before:)` does not have any performance requirements that need to be adhered to.
-
-Similarly, `Zip2Sequence` requires finding the index of the longer of the two collections that corresponds to the end index of the shorter collection, when doing a backwards traversal. As with `EnumeratedSequence`, this adds a one-time O(n) cost that does not violate any performance requirements.
-
 #### Keep `EnumeratedSequence` the way it is and add an `enumerated()` overload to `Collection` that returns a `Zip2Sequence<Range<Int>, Self>`.
 This is tempting because `enumerated()` is little more than `zip(0..., self)`, but this would cause an unacceptable amount of source breakage due to the lack of `offset` and `element` tuple labels that `EnumeratedSequence` provides.
 
@@ -221,3 +216,117 @@ _ = zipped.count
 ```
 In this case, the `_hasFastCount` entry in the witness table of the `Collection` conformance of `reversedNumbers` would contain the default implementation defined in the extension on `Collection` (returning `false`) rather than the one on `RandomAccessCollection` (returning `true`), due to `ReversedCollection`’s conditional conformance to `RandomAccessCollection`. As a result, `self._sequence1._hasFastCount` inside `zipped.count` would evaluate to `false`, incorrectly triggering the code path meant for non-random-access collection.
 A separate `Zip2RandomAccessCollection` type does not have this problem because the underlying collections are statically known to be random-access, and therefore `Swift.min(self._sequence1.count, self._sequence2.count)` suffices.
+
+#### Only conform `Zip2Sequence` and `EnumeratedSequence` to `BidirectionalCollection` when the base collections conform to `RandomAccessCollection` rather than `BidirectionalCollection`.
+`EnumeratedSequence` is simpler, the trade-off will be presented in terms of that type, but all of the below applies to both types equally.
+ 
+Here’s what the `Collection` conformance could look like:
+ 
+```swift
+extension EnumeratedSequence: Collection where Base: Collection {
+    struct Index {
+        let base: Base.Index
+        let offset: Int
+    }
+    var startIndex: Index {
+        Index(base: _base.startIndex, offset: 0)
+    }
+    var endIndex: Index {
+        Index(base: _base.endIndex, offset: 0)
+    }
+    func index(after index: Index) -> Index {
+        Index(base: _base.index(after: index.base), offset: index.offset + 1)
+    }
+    subscript(index: Index) -> (offset: Int, element: Base.Element) {
+        (index.offset, _base[index.base])
+    }
+}
+
+extension EnumeratedSequence.Index: Comparable {
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        return lhs.base == rhs.base
+    }
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        return lhs.base < rhs.base
+    }
+}
+```
+
+Here’s what the `Bidirectional` conformance could look like. The question is: should `Base` be required to conform to `BidirectionalCollection` or `RandomAccessCollection`?
+ 
+```swift
+extension EnumeratedSequence: BidirectionalCollection where Base: ??? {
+    func index(before index: Index) -> Index {
+        let currentOffset = index.base == _base.endIndex ? _base.count : index.offset
+        return Index(base: _base.index(before: index.base), offset: currentOffset - 1)
+    }
+}
+```
+
+Notice that calling `index(before:)` with the end index requires computing the `count` of the base collection. This is an O(1) operation if the base collection is `RandomAccessCollection`, but O(n) if it's `BidirectionalCollection`.
+
+##### Option 1: `where Base: BidirectionalCollection`
+
+A direct consequence of `index(before:)` being O(n) when passed the end index is that some operations like `last` are also O(n):
+
+```swift
+extension BidirectionalCollection {
+    var last: Element? {
+        isEmpty ? nil : self[index(before: endIndex)]
+    }
+}
+
+// A bidirectional collection that is not random-access.
+let evenNumbers = (0 ... 1_000_000).lazy.filter { $0.isMultiple(of: 2) }
+let enumerated = evenNumbers.enumerated()
+
+// This is still O(1), ...
+let endIndex = enumerated.endIndex
+
+// ...but this is O(n).
+let lastElement = enumerated.last!
+print(lastElement) // (offset: 500000, element: 1000000)
+```
+
+However, since this performance pitfall only applies to the end index, iterating over a reversed enumerated collection stays O(n):
+
+```swift
+// A bidirectional collection that is not random-access.
+let evenNumbers = (0 ... 1_000_000).lazy.filter { $0.isMultiple(of: 2) }
+
+// Reaching the last element is O(n), and reaching every other element is another combined O(n).
+for (offset, element) in evenNumbers.enumerated().reversed() {
+    // ...
+}
+```
+
+In other words, this could make some operations unexpectedly O(n), but it’s not likely to make operations unexpectedly O(n²).
+
+##### Option 2: `where Base: RandomAccessCollection`
+
+If `EnumeratedSequence`’s conditional conformance to `BidirectionalCollection` is restricted to when `Base: RandomAccessCollection`, then operations like `last` and `last(where:)` will only be available when they’re guaranteed to be O(1):
+
+```swift
+// A bidirectional collection that is not random-access.
+let str = "Hello"
+
+let lastElement = str.enumerated().last! // error: value of type 'EnumeratedSequence<String>' has no member 'last'
+```
+
+That said, some algorithms that can benefit from bidirectionality such as `reversed()` and `suffix(_:)` are also available on regular collections, but with a less efficient implementation. That means that the code would still compile if the enumerated sequence is not bidirectional, it would just perform worse — the most general version of `reversed()` on `Sequence` allocates an array and adds every element to that array before reversing it:
+
+```swift
+// A bidirectional collection that is not random-access.
+let str = "Hello"
+
+// This no longer conforms to `BidirectionalCollection`.
+let enumerated = str.enumerated()
+
+// As a result, this now returns a `[(offset: Int, element: Character)]` instead
+// of a more efficient `ReversedCollection<EnumeratedSequence<String>>`.
+let reversedElements = enumerated.reversed()
+```
+
+The base collection needs to be traversed twice either way, but the defensive approach of giving the `BidirectionalCollection` conformance a stricter bound ultimately results in an extra allocation.
+
+Taking all of this into account, we've gone with option 1 for the sake of giving collections access to more algorithms and more efficient overloads of some algorithms. Conforming these collections to `BidirectionalCollection` when the base collection conforms to the same protocol is less surprising. We don’t think the possible performance pitfalls pose a large enough risk in practice to negate these benefits.
