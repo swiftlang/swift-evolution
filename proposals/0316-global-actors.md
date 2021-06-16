@@ -21,6 +21,8 @@
     * [Global actor inference](#global-actor-inference)
     * [Global actors and instance actors](#global-actors-and-instance-actors)
 * [Detailed design](#detailed-design)
+    * [`GlobalActor` protocol][#globalactor-protocol]
+    * [Closure attributes](#closure-attributes)
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
 * [Effect on API resilience](#effect-on-api-resilience)
@@ -416,6 +418,16 @@ public protocol GlobalActor {
 }
 ```
 
+### Closure attributes
+
+The global actor for a closure is one of a number of potentially-allowable attributes on a closure. The attributes precede the capture-list in the grammar:
+
+```
+closure-expression → { closure-signature opt statements opt }
+closure-signature → attributes[opt] capture-list[opt] closure-parameter-clause async[opt] throws[opt] function-result[opt] in
+closure-signature → attributes[opt] capture-list in
+closure-signature → attributes in
+```
 
 ## Source compatibility
 
@@ -465,6 +477,7 @@ The primary motivation for global actors is the main actor, and the semantics of
 * Changes for the second review:
     * Added the `GlobalActor` protocol, to which all global actors implictly conform.
     * Remove the requirement that all global and static variables be annotated with a global actor.
+    * Added a grammar for closure attributes.
 * Changes for the first review:
     * Add inference of a global actor for a witness to a global-actor-qualified requirement.
     * Extended inference of global actor-ness from protocols to conforming types to any extension within the same source file as the primary type definition.
