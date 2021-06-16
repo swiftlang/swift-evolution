@@ -64,7 +64,7 @@ func notOnTheMainActor() async {
 
 ### Defining global actors
 
-A global actor is an actor type that has the `@globalActor` attribute and contains a `static let` property named `shared` that provides an instance of the actor. `MainActor` is one such global actor, defined as follows:
+A global actor is an actor type that has the `@globalActor` attribute and contains a `static let` property named `shared` that provides an instance of the actor. The `shared` requirement is described by the `GlobalActor` protocol, to which all global actor types implicitly conform. `MainActor` is one such global actor, defined as follows:
 
 ```swift
 @globalActor
@@ -79,7 +79,7 @@ The type of `shared` must be of the enclosing actor type. The shared instance is
 
 ### Using global actors on functions and data
 
-As illustrated in our first example, both functions and data can be attributed with a global actor type to isolate them to that global actor. Note that global actors are not restricted to global functions or data as in the first example. One can mark members of types as belonging to a global actor as well. For example, in a view controller for a graphical UI, we would expect to receive notification of user interactions on the main thread, and must update the UI on the main thread. Therefore want both the methods called on notification and also the data they use to be on the main actor. Here's an small part of a view controller from some [AppKit sample code](https://developer.apple.com/documentation/appkit/cocoa_bindings/navigating_hierarchical_data_using_outline_and_split_views):
+As illustrated in our first example, both functions and data can be attributed with a global actor type to isolate them to that global actor. Note that global actors are not restricted to global functions or data as in the first example. One can mark members of types and protocols as belonging to a global actor as well. For example, in a view controller for a graphical UI, we would expect to receive notification of user interactions on the main thread, and must update the UI on the main thread. Therefore want both the methods called on notification and also the data they use to be on the main actor. Here's an small part of a view controller from some [AppKit sample code](https://developer.apple.com/documentation/appkit/cocoa_bindings/navigating_hierarchical_data_using_outline_and_split_views):
 
 ```swift
 class IconViewController: UIViewController {
@@ -112,6 +112,24 @@ The sample code actually triggers an update when the `url` property is set. With
   }
 }
 ```
+
+### Global actor-constrained generic parameters
+
+A generic parameter that is constrained to `GlobalActor` can be used as a global actor. For example:
+
+```swift
+@T
+class X<T: GlobalActor> {
+  func f() { ... } // constrained to the global actor T
+}
+
+@MainActor func g(x: X<MainActor>, y: X<OtherGlobalActor>) async {
+  x.f() // okay, on the main actor
+  await y.f() // okay, but requires asynchronous call because y.f() is on OtherGlobalActor
+}
+```
+
+All `@globalActor` types implicitly conform to the `GlobalActor` protocol. A type that is not marked as `@globalActor` may not conform to the `GlobalActor` protocol. The conformance of a `@globalActor` type to the `GlobalActor` protocol must occur in the same source file as the type definition, and the conformance itself cannot be conditional.
 
 ### Global actor function types
 
@@ -370,6 +388,36 @@ Global actor attributes apply to declarations as follows:
 
 * A `deinit` cannot have a global actor attribute and is never a target for propagation.
 
+### `GlobalActor` protocol
+
+The `GlobalActor` protocol is defined as follows:
+
+```swift
+/// A type that represents a globally-unique actor that can be used to isolate
+/// various declarations anywhere in the program.
+///
+/// A type that conforms to the `GlobalActor` protocol and is marked with the
+/// the `@globalActor` attribute can be used as a custom attribute. Such types
+/// are called global actor types, and can be applied to any declaration to
+/// specify that such types are isolated to that global actor type. When using
+/// such a declaration from another actor (or from nonisolated code),
+/// synchronization is performed through the \c shared actor instance to ensure
+/// mutually-exclusive access to the declaration.
+public protocol GlobalActor {
+  /// The type of the shared actor instance that will be used to provide
+  /// mutually-exclusive access to declarations annotated with the given global
+  /// actor type.
+  associatedtype ActorType: Actor
+
+  /// The shared actor instance that will be used to provide mutually-exclusive
+  /// access to declarations annotated with the given global actor type.
+  ///
+  /// The value of this property must always evaluate to the same actor
+  /// instance.
+  static var shared: ActorType { get }
+}
+```
+
 
 ## Source compatibility
 
@@ -405,7 +453,9 @@ The primary motivation for global actors is the main actor, and the semantics of
 
 ## Revision history
 
-* Changes in the first review:
+* Changes for the second review:
+    * Added the `GlobalActor` protocol, to which all global actors implictly conform.
+* Changes for the first review:
     * Add inference of a global actor for a witness to a global-actor-qualified requirement.
     * Extended inference of global actor-ness from protocols to conforming types to any extension within the same source file as the primary type definition.
 * Changes in the second pitch:
