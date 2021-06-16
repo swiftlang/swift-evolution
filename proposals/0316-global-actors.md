@@ -12,6 +12,7 @@
 * [Motivation](#motivation)
 * [Proposed solution](#proposed-solution)
     * [Defining global actors](#defining-global-actors)
+    * [The main actor](#the-main-actor)
     * [Using global actors on functions and data](#using-global-actors-on-functions-and-data)
     * [Global actor-constrained generic parameters](#global-actor-constrained-generic-parameters)
     * [Global actor function types](#global-actor-function-types)
@@ -69,18 +70,31 @@ func notOnTheMainActor() async {
 
 ### Defining global actors
 
-A global actor is an actor type that has the `@globalActor` attribute and contains a `static let` property named `shared` that provides an instance of the actor. The `shared` requirement is described by the `GlobalActor` protocol, to which all global actor types implicitly conform. `MainActor` is one such global actor, defined as follows:
+A global actor is a type that has the `@globalActor` attribute and contains a `static` property named `shared` that provides a shared instance of an actor. For example:
+
+```swift
+@globalActor
+public struct SomeGlobalActor {
+  public static let shared = SomeGlobalActor()
+}
+```
+
+The global actor type need not itself be an actor type; it is essentially just a marker type that provides access to the actual shared actor instance via `shared`. The shared instance is a globally-unique actor instance that becomes synonymous with the global actor type, and will be used for synchronizing access to any code or data that is annotated with the global actor.
+
+Global actors implicitly conform to the `GlobalActor` protocol, which describes the `shared` requirement.
+
+### The main actor
+
+The *main actor* is a global actor that describes the main thread:
 
 ```swift
 @globalActor
 public actor MainActor {
-  public static let shared = MainActor(/* arguments to initialize shared actor instance...*/)
+  public static let shared = MainActor(...)
 }
 ```
 
-The type of `shared` must be of the enclosing actor type. The shared instance is a globally-unique actor instance that becomes synonymous with the global actor type. 
-
-> **Note**: integrating the main actor with the system's main thread requires support for [custom executors][customexecs], which is the subject of another proposal. For systems that use the Apple's [Dispatch](https://developer.apple.com/documentation/DISPATCH) library as the underlying concurrency implementation, the main actor uses a custom executor that wraps the [main dispatch queue](https://developer.apple.com/documentation/dispatch/dispatchqueue/1781006-main). However, the notion is a general one, and can be adapted to other concurrency runtime implementations.
+> **Note**: integrating the main actor with the system's main thread requires support for [custom executors][customexecs], which is the subject of another proposal, as well as specific integration with the system's notion of the main thread. For systems that use the Apple's [Dispatch](https://developer.apple.com/documentation/DISPATCH) library as the underlying concurrency implementation, the main actor uses a custom executor that wraps the [main dispatch queue](https://developer.apple.com/documentation/dispatch/dispatchqueue/1781006-main). It also determines when code is dynamically executing on the main actor to avoid an extra "hop" when performing an asynchronous call to a `@MainActor` function.
 
 ### Using global actors on functions and data
 
@@ -478,6 +492,7 @@ The primary motivation for global actors is the main actor, and the semantics of
     * Added the `GlobalActor` protocol, to which all global actors implictly conform.
     * Remove the requirement that all global and static variables be annotated with a global actor.
     * Added a grammar for closure attributes.
+    * Clarified the interaction between the main actor and the main thread. Make the main actor a little less "special" in the initial presentation.
 * Changes for the first review:
     * Add inference of a global actor for a witness to a global-actor-qualified requirement.
     * Extended inference of global actor-ness from protocols to conforming types to any extension within the same source file as the primary type definition.
