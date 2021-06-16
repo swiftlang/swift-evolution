@@ -123,7 +123,7 @@ The sample code actually triggers an update when the `url` property is set. With
 @MainActor var url: URL? {
   didSet {
     // Asynchronously perform an update
-    asyncDetached { [url] in                   // not isolated to any actor
+    Task.detached { [url] in                   // not isolated to any actor
       guard let url = url else { return }
       let newIcons = self.gatherContents(url)
       await self.updateIcons(newIcons)         // 'await' required so we can hop over to the main actor
@@ -193,6 +193,7 @@ let callbackAsynchly: (Int) async -> Void = callback   // okay: implicitly hops 
 A global actor qualifier on a function type is otherwise independent of `@Sendable`, `async`, `throws` and most other function type attributes and modifiers. The only exception is when the function itself is also isolated to an instance actor, which is discussed in the later section on [Global actors and instance actors](#global-actors-and-instance-actors).
 
 ### Closures
+
 A closure can be explicitly specified to be isolated to a global actor by providing the attribute prior to the `in` in the closure specifier, e.g.,
 
 ```swift
@@ -209,7 +210,7 @@ When a global actor is applied to a closure, the type of the closure is qualifie
 
 > **Note**: this can be used to replace the common pattern used with Apple's Dispatch library of executing main-thread code via `DispatchQueue.main.async { ... }`. One would instead write:
 > ```swift
-> asyncDetached { @MainActor in 
+> Task.detached { @MainActor in
 >   // ...
 > }
 > ```
@@ -220,8 +221,9 @@ If a closure is used to directly initialize a parameter or other value of a glob
 ```swift
 @MainActor var globalTextSize: Int
 
-callback = {
-  globalTextSize = $0  // okay: closure is inferred to be isolated to the @MainActor
+var callback: @MainActor (Int) -> Void
+callback = { // closure is inferred to be @MainActor due to the type of 'callback'
+  globalTextSize = $0  // okay: closure is on @MainActor
 }
 ```
 
