@@ -3,7 +3,7 @@
 * Proposal: [SE-0318](0318-package-creation.md)
 * Author: [Miguel Perez](https://github.com/miggs597)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Scheduled for review (June 8 - June 15 2021)**
+* Status: **Active review (June 15 - June 29 2021)**
 * Implementation: [apple/swift-package-manager#3514](https://github.com/apple/swift-package-manager/pull/3514)
 
 # Introduction
