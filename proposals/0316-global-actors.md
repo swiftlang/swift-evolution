@@ -13,6 +13,7 @@
 * [Proposed solution](#proposed-solution)
     * [Defining global actors](#defining-global-actors)
     * [Using global actors on functions and data](#using-global-actors-on-functions-and-data)
+    * [Global actor-constrained generic parameters](#global-actor-constrained-generic-parameters)
     * [Global actor function types](#global-actor-function-types)
     * [Closures](#closures)
     * [Global and static variables](#global-and-static-variables)
@@ -23,6 +24,8 @@
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
 * [Effect on API resilience](#effect-on-api-resilience)
+* [Future directions](#future-directions)
+    * [Restricting global and static variables](#restricting-global-and-static-variables)
 * [Alternatives considered](#alternatives-considered)
     * [Singleton support](#singleton-support)
     * [Propose only the main actor](#propose-only-the-main-actor)
@@ -34,7 +37,7 @@
 
 This proposal introduces *global actors*, which extend the notion of actor isolation outside of a single actor type, so that global state (and the functions that access it) can benefit from actor isolation, even if the state and functions are scattered across many different types, functions and modules. Global actors make it possible to safely work with global variables in a concurrent program, as well as modeling other global program constraints such as code that must only execute on the "main thread" or "UI thread".
 
-Global actors also provide a means to eliminate data races on global and static variables, by introducing a requirement that any mutable global or static variable be annotated with a global actor.
+Global actors also provide a means to eliminate data races on global and static variables, allowing access to such variables to be synchronized via a global actor.
 
 Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/pitch-global-actors/45706)
 
@@ -225,12 +228,7 @@ func readCounter() async {
 
 As elsewhere, cross-actor references require the types involved to conform to `Sendable`. 
 
-Global and static variables not annotated with a global actor can effectively be accessed from any concurrency context, and as such are prone to data races. To eliminate these data races, we can require that every global or static variable do one of the following:
-
-* Explicitly state that it is part of a global actor, or
-* Be both immutable (introduced via `let`) and non-isolated.
-
-This allows global/static immutable constants to be used freely from any code, while any data that is mutable (or could become mutable in a future version of a library) must be protected by an actor.
+Global and static variables not annotated with a global actor can effectively be accessed from any concurrency context, and as such are prone to data races. Global actors provide one way to address such data races. The section on [future directions](#future-directions) considers whether to use global actors as a way to address data races for global and static variables comprehensively.
 
 ### Using global actors on a type
 
@@ -433,6 +431,17 @@ The `@globalActor` attribute can be added to a type without breaking API.
 
 A global actor attribute (such as `@MainActor`) can neither be added nor removed from an API; either will cause breaking changes for source code that uses the API.
 
+## Future directions
+
+### Restricting global and static variables
+
+A global actor annotation on a global or static variable synchronizes all access to that variable through that global actor. We could require that *all* mutable global and static variables be annotated with a global actor, thereby eliminating those as a source of data races. Specifically, we can require that every global or static variable do one of the following:
+
+* Explicitly state that it is part of a global actor, or
+* Be immutable (introduced via `let`), non-isolated, and of `Sendable` type.
+
+This allows global/static immutable constants to be used freely from any code, while any data that is mutable (or could become mutable in a future version of a library) must be protected by an actor. However, it comes with significant source breakage: every global variable that exists today would require annotation. Therefore, we aren't proposing to introduce this requirement, and instead leave the general data-race safety of global and static variables to a later proposal.
+
 ## Alternatives considered
 
 ### Singleton support
@@ -455,6 +464,7 @@ The primary motivation for global actors is the main actor, and the semantics of
 
 * Changes for the second review:
     * Added the `GlobalActor` protocol, to which all global actors implictly conform.
+    * Remove the requirement that all global and static variables be annotated with a global actor.
 * Changes for the first review:
     * Add inference of a global actor for a witness to a global-actor-qualified requirement.
     * Extended inference of global actor-ness from protocols to conforming types to any extension within the same source file as the primary type definition.
