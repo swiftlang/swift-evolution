@@ -5,6 +5,9 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active review (June 15 - June 29 2021)**
 * Implementation: [apple/swift-package-manager#3514](https://github.com/apple/swift-package-manager/pull/3514)
+* Discussion:
+  [Pitch](https://forums.swift.org/t/pitch-new-command-for-package-creation-and-package-templates/47874/18), 
+  [Review](https://forums.swift.org/t/se-0318-package-creation/)
 
 # Introduction
 
