@@ -234,7 +234,7 @@ let package = Package(
             sources: "src",
             dependencies: [
               .product(name: "NIO", pacakge: "swift-nio"),
-              .product(name: "`Crypto`", pacakge: "swift-crypto")
+              .product(name: "Crypto", pacakge: "swift-crypto")
             ]
         ),
     ]
@@ -249,7 +249,7 @@ And the following `README.md`:
 This is the ___NAME___ package!
 ```
 
-Running `swift package init --template test --name HelloWorld`
+Running `swift package create HelloWorld --template test`
 
 Will result with the following directory structure:
 
@@ -295,7 +295,7 @@ And the following `README.md`:
 This is the HelloWorld package!
 ```
 
-When the `--name` option is omitted, the name of the target directory will be used as the package name.
+When running `swift package init` with the `--name` option omitted, the name of the target directory will be used as the package name.
 
 ### Substitutions
 
@@ -309,7 +309,7 @@ Future iterations of this feature will include additional metadata fields that c
 
 ### Defining the default template
 
-To customize the default template (i.e. when `swift package create` is invoked with the explicit `--template `argument), user define a template named “default”, i.e. `~/.swiftpm/configuration/templates/new-package/default`
+To customize the default template (i.e. when `swift package create` or `swift package init` is invoked without the explicit `--template `argument), users may define a template named “default”, i.e. `~/.swiftpm/configuration/templates/new-package/default`
 
 
 ### Adding and updating templates
