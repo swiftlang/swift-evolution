@@ -12,7 +12,9 @@
 * [Motivation](#motivation)
 * [Proposed solution](#proposed-solution)
     * [Defining global actors](#defining-global-actors)
+    * [The main actor](#the-main-actor)
     * [Using global actors on functions and data](#using-global-actors-on-functions-and-data)
+    * [Global actor-constrained generic parameters](#global-actor-constrained-generic-parameters)
     * [Global actor function types](#global-actor-function-types)
     * [Closures](#closures)
     * [Global and static variables](#global-and-static-variables)
@@ -20,9 +22,13 @@
     * [Global actor inference](#global-actor-inference)
     * [Global actors and instance actors](#global-actors-and-instance-actors)
 * [Detailed design](#detailed-design)
+    * [`GlobalActor` protocol][#globalactor-protocol]
+    * [Closure attributes](#closure-attributes)
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
 * [Effect on API resilience](#effect-on-api-resilience)
+* [Future directions](#future-directions)
+    * [Restricting global and static variables](#restricting-global-and-static-variables)
 * [Alternatives considered](#alternatives-considered)
     * [Singleton support](#singleton-support)
     * [Propose only the main actor](#propose-only-the-main-actor)
@@ -34,7 +40,7 @@
 
 This proposal introduces *global actors*, which extend the notion of actor isolation outside of a single actor type, so that global state (and the functions that access it) can benefit from actor isolation, even if the state and functions are scattered across many different types, functions and modules. Global actors make it possible to safely work with global variables in a concurrent program, as well as modeling other global program constraints such as code that must only execute on the "main thread" or "UI thread".
 
-Global actors also provide a means to eliminate data races on global and static variables, by introducing a requirement that any mutable global or static variable be annotated with a global actor.
+Global actors also provide a means to eliminate data races on global and static variables, allowing access to such variables to be synchronized via a global actor.
 
 Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/pitch-global-actors/45706)
 
@@ -64,22 +70,35 @@ func notOnTheMainActor() async {
 
 ### Defining global actors
 
-A global actor is an actor type that has the `@globalActor` attribute and contains a `static let` property named `shared` that provides an instance of the actor. `MainActor` is one such global actor, defined as follows:
+A global actor is a type that has the `@globalActor` attribute and contains a `static` property named `shared` that provides a shared instance of an actor. For example:
+
+```swift
+@globalActor
+public struct SomeGlobalActor {
+  public static let shared = SomeGlobalActor()
+}
+```
+
+The global actor type need not itself be an actor type; it is essentially just a marker type that provides access to the actual shared actor instance via `shared`. The shared instance is a globally-unique actor instance that becomes synonymous with the global actor type, and will be used for synchronizing access to any code or data that is annotated with the global actor.
+
+Global actors implicitly conform to the `GlobalActor` protocol, which describes the `shared` requirement.
+
+### The main actor
+
+The *main actor* is a global actor that describes the main thread:
 
 ```swift
 @globalActor
 public actor MainActor {
-  public static let shared = MainActor(/* arguments to initialize shared actor instance...*/)
+  public static let shared = MainActor(...)
 }
 ```
 
-The type of `shared` must be of the enclosing actor type. The shared instance is a globally-unique actor instance that becomes synonymous with the global actor type. 
-
-> **Note**: integrating the main actor with the system's main thread requires support for [custom executors][customexecs], which is the subject of another proposal. For systems that use the Apple's [Dispatch](https://developer.apple.com/documentation/DISPATCH) library as the underlying concurrency implementation, the main actor uses a custom executor that wraps the [main dispatch queue](https://developer.apple.com/documentation/dispatch/dispatchqueue/1781006-main). However, the notion is a general one, and can be adapted to other concurrency runtime implementations.
+> **Note**: integrating the main actor with the system's main thread requires support for [custom executors][customexecs], which is the subject of another proposal, as well as specific integration with the system's notion of the main thread. For systems that use the Apple's [Dispatch](https://developer.apple.com/documentation/DISPATCH) library as the underlying concurrency implementation, the main actor uses a custom executor that wraps the [main dispatch queue](https://developer.apple.com/documentation/dispatch/dispatchqueue/1781006-main). It also determines when code is dynamically executing on the main actor to avoid an extra "hop" when performing an asynchronous call to a `@MainActor` function.
 
 ### Using global actors on functions and data
 
-As illustrated in our first example, both functions and data can be attributed with a global actor type to isolate them to that global actor. Note that global actors are not restricted to global functions or data as in the first example. One can mark members of types as belonging to a global actor as well. For example, in a view controller for a graphical UI, we would expect to receive notification of user interactions on the main thread, and must update the UI on the main thread. Therefore want both the methods called on notification and also the data they use to be on the main actor. Here's an small part of a view controller from some [AppKit sample code](https://developer.apple.com/documentation/appkit/cocoa_bindings/navigating_hierarchical_data_using_outline_and_split_views):
+As illustrated in our first example, both functions and data can be attributed with a global actor type to isolate them to that global actor. Note that global actors are not restricted to global functions or data as in the first example. One can mark members of types and protocols as belonging to a global actor as well. For example, in a view controller for a graphical UI, we would expect to receive notification of user interactions on the main thread, and must update the UI on the main thread. Therefore want both the methods called on notification and also the data they use to be on the main actor. Here's an small part of a view controller from some [AppKit sample code](https://developer.apple.com/documentation/appkit/cocoa_bindings/navigating_hierarchical_data_using_outline_and_split_views):
 
 ```swift
 class IconViewController: UIViewController {
@@ -104,7 +123,7 @@ The sample code actually triggers an update when the `url` property is set. With
 @MainActor var url: URL? {
   didSet {
     // Asynchronously perform an update
-    asyncDetached { [url] in                   // not isolated to any actor
+    Task.detached { [url] in                   // not isolated to any actor
       guard let url = url else { return }
       let newIcons = self.gatherContents(url)
       await self.updateIcons(newIcons)         // 'await' required so we can hop over to the main actor
@@ -112,6 +131,24 @@ The sample code actually triggers an update when the `url` property is set. With
   }
 }
 ```
+
+### Global actor-constrained generic parameters
+
+A generic parameter that is constrained to `GlobalActor` can be used as a global actor. For example:
+
+```swift
+@T
+class X<T: GlobalActor> {
+  func f() { ... } // constrained to the global actor T
+}
+
+@MainActor func g(x: X<MainActor>, y: X<OtherGlobalActor>) async {
+  x.f() // okay, on the main actor
+  await y.f() // okay, but requires asynchronous call because y.f() is on OtherGlobalActor
+}
+```
+
+All `@globalActor` types implicitly conform to the `GlobalActor` protocol. A type that is not marked as `@globalActor` may not conform to the `GlobalActor` protocol. The conformance of a `@globalActor` type to the `GlobalActor` protocol must occur in the same source file as the type definition, and the conformance itself cannot be conditional.
 
 ### Global actor function types
 
@@ -156,6 +193,7 @@ let callbackAsynchly: (Int) async -> Void = callback   // okay: implicitly hops 
 A global actor qualifier on a function type is otherwise independent of `@Sendable`, `async`, `throws` and most other function type attributes and modifiers. The only exception is when the function itself is also isolated to an instance actor, which is discussed in the later section on [Global actors and instance actors](#global-actors-and-instance-actors).
 
 ### Closures
+
 A closure can be explicitly specified to be isolated to a global actor by providing the attribute prior to the `in` in the closure specifier, e.g.,
 
 ```swift
@@ -172,7 +210,7 @@ When a global actor is applied to a closure, the type of the closure is qualifie
 
 > **Note**: this can be used to replace the common pattern used with Apple's Dispatch library of executing main-thread code via `DispatchQueue.main.async { ... }`. One would instead write:
 > ```swift
-> asyncDetached { @MainActor in 
+> Task.detached { @MainActor in
 >   // ...
 > }
 > ```
@@ -183,8 +221,9 @@ If a closure is used to directly initialize a parameter or other value of a glob
 ```swift
 @MainActor var globalTextSize: Int
 
-callback = {
-  globalTextSize = $0  // okay: closure is inferred to be isolated to the @MainActor
+var callback: @MainActor (Int) -> Void
+callback = { // closure is inferred to be @MainActor due to the type of 'callback'
+  globalTextSize = $0  // okay: closure is on @MainActor
 }
 ```
 
@@ -207,12 +246,7 @@ func readCounter() async {
 
 As elsewhere, cross-actor references require the types involved to conform to `Sendable`. 
 
-Global and static variables not annotated with a global actor can effectively be accessed from any concurrency context, and as such are prone to data races. To eliminate these data races, we can require that every global or static variable do one of the following:
-
-* Explicitly state that it is part of a global actor, or
-* Be both immutable (introduced via `let`) and non-isolated.
-
-This allows global/static immutable constants to be used freely from any code, while any data that is mutable (or could become mutable in a future version of a library) must be protected by an actor.
+Global and static variables not annotated with a global actor can effectively be accessed from any concurrency context, and as such are prone to data races. Global actors provide one way to address such data races. The section on [future directions](#future-directions) considers whether to use global actors as a way to address data races for global and static variables comprehensively.
 
 ### Using global actors on a type
 
@@ -370,6 +404,46 @@ Global actor attributes apply to declarations as follows:
 
 * A `deinit` cannot have a global actor attribute and is never a target for propagation.
 
+### `GlobalActor` protocol
+
+The `GlobalActor` protocol is defined as follows:
+
+```swift
+/// A type that represents a globally-unique actor that can be used to isolate
+/// various declarations anywhere in the program.
+///
+/// A type that conforms to the `GlobalActor` protocol and is marked with the
+/// the `@globalActor` attribute can be used as a custom attribute. Such types
+/// are called global actor types, and can be applied to any declaration to
+/// specify that such types are isolated to that global actor type. When using
+/// such a declaration from another actor (or from nonisolated code),
+/// synchronization is performed through the \c shared actor instance to ensure
+/// mutually-exclusive access to the declaration.
+public protocol GlobalActor {
+  /// The type of the shared actor instance that will be used to provide
+  /// mutually-exclusive access to declarations annotated with the given global
+  /// actor type.
+  associatedtype ActorType: Actor
+
+  /// The shared actor instance that will be used to provide mutually-exclusive
+  /// access to declarations annotated with the given global actor type.
+  ///
+  /// The value of this property must always evaluate to the same actor
+  /// instance.
+  static var shared: ActorType { get }
+}
+```
+
+### Closure attributes
+
+The global actor for a closure is one of a number of potentially-allowable attributes on a closure. The attributes precede the capture-list in the grammar:
+
+```
+closure-expression → { closure-signature opt statements opt }
+closure-signature → attributes[opt] capture-list[opt] closure-parameter-clause async[opt] throws[opt] function-result[opt] in
+closure-signature → attributes[opt] capture-list in
+closure-signature → attributes in
+```
 
 ## Source compatibility
 
@@ -384,6 +458,17 @@ A global actor annotation is part of the type of an entity, and is therefore par
 The `@globalActor` attribute can be added to a type without breaking API.
 
 A global actor attribute (such as `@MainActor`) can neither be added nor removed from an API; either will cause breaking changes for source code that uses the API.
+
+## Future directions
+
+### Restricting global and static variables
+
+A global actor annotation on a global or static variable synchronizes all access to that variable through that global actor. We could require that *all* mutable global and static variables be annotated with a global actor, thereby eliminating those as a source of data races. Specifically, we can require that every global or static variable do one of the following:
+
+* Explicitly state that it is part of a global actor, or
+* Be immutable (introduced via `let`), non-isolated, and of `Sendable` type.
+
+This allows global/static immutable constants to be used freely from any code, while any data that is mutable (or could become mutable in a future version of a library) must be protected by an actor. However, it comes with significant source breakage: every global variable that exists today would require annotation. Therefore, we aren't proposing to introduce this requirement, and instead leave the general data-race safety of global and static variables to a later proposal.
 
 ## Alternatives considered
 
@@ -405,7 +490,12 @@ The primary motivation for global actors is the main actor, and the semantics of
 
 ## Revision history
 
-* Changes in the first review:
+* Changes for the second review:
+    * Added the `GlobalActor` protocol, to which all global actors implictly conform.
+    * Remove the requirement that all global and static variables be annotated with a global actor.
+    * Added a grammar for closure attributes.
+    * Clarified the interaction between the main actor and the main thread. Make the main actor a little less "special" in the initial presentation.
+* Changes for the first review:
     * Add inference of a global actor for a witness to a global-actor-qualified requirement.
     * Extended inference of global actor-ness from protocols to conforming types to any extension within the same source file as the primary type definition.
 * Changes in the second pitch:
