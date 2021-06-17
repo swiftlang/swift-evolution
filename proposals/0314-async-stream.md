@@ -3,12 +3,13 @@
 * Proposal: [SE-0314](0314-async-stream.md)
 * Authors: [Philippe Hausler](https://github.com/phausler), [Tony Parker](https://github.com/parkera), [Ben D. Jones](https://github.com/bendjones), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (May 11 - May 25, 2021)**
+* Status: **Scheduled for review (June 21...June 28, 2021)**
+* Review: ([first review](https://forums.swift.org/t/se-0314-asyncstream-and-asyncthrowingstream/48198), [revision announcement](https://forums.swift.org/t/returned-for-revision-se-0314-asyncstream-and-asyncthrowingstream/49718))
 * Implementation: [apple/swift#36921](https://github.com/apple/swift/pull/36921)
 
 #### Change Log
 
-**v1.1**
+Changes for the second review:
 * added `YieldResult` to express the action of yielding’s impact, either something is enqueued, dropped or the continuation is already terminated
 * added `init(unfolding: @escaping () async -> Element?)` to offer an initializer for unfolding to handle back-pressure based APIs.
 * made `AsyncThrowingStream` generic on Failure but the initializers only afford for creation `where Failure == Error`
