@@ -6,6 +6,15 @@
 * Status: **Active Review (May 11 - May 25, 2021)**
 * Implementation: [apple/swift#36921](https://github.com/apple/swift/pull/36921)
 
+#### Change Log
+
+**v1.1**
+* added `YieldResult` to express the action of yielding’s impact, either something is enqueued, dropped or the continuation is already terminated
+* added `init(unfolding: @escaping () async -> Element?)` to offer an initializer for unfolding to handle back-pressure based APIs.
+* made `AsyncThrowingStream` generic on Failure but the initializers only afford for creation `where Failure == Error`
+* removed the example of `DispatchSource` signals since the other `DispatchSource` types might be actively harmful to use in *any* async context
+* initialization now takes a buffering policy to both restrict the buffer size as well as configure how elements are dropped
+
 ## Introduction
 
 The continuation types added in [SE-0300](https://github.com/apple/swift-evolution/blob/main/proposals/0300-continuation.md) act as adaptors for synchronous code that signals completion by calling a delegate method or callback function. For code that instead yields multiple values over time, this proposal adds new types to support implementing an `AsyncSequence` interface.
@@ -42,15 +51,26 @@ func getInt() async -> Int {
 
 This provides a great experience for APIs that asynchronously produce a single result, but some operations produce many values over time instead. Rather than being adapted to an `async` function, the appropriate solution for these operations is to create an `AsyncSequence` .
 
-Repeating asynchronous operations typically separate the consumption of values from their location of use, either within a callback function or a delegate method. For example, when creating a [ `DispatchSourceSignal` ](https://developer.apple.com/documentation/dispatch/dispatchsourcesignal), the values are processed in the source’s event handler closure:
+Repeating asynchronous operations typically separate the consumption of values from their location of use, either within a callback function or a delegate method. Given an existing API that offers an interface as the following:
 
 ```swift
-let source = DispatchSource.makeSignalSource(signal: SIGINT)
-source.setEventHandler {
-    // do something with source.data
+class QuakeMonitor {
+  var quakeHandler: (Quake) -> Void
+  func startMonitoring()
+  func stopMonitoring()
 }
-source.resume()
+```
 
+The usage of this pattern would work similarly to this:
+
+```swift
+let monitor = QuakeMonitor()
+monitor.quakeHandler { quake in
+  // ...
+}
+monitor.startMonitoring() // start sending quakes to the handler
+...
+monitor.stopMonitoring() // cancel the quakes being sent to the handler
 ```
 
 The same is true for delegates that are informative only, and need no feedback or exclusivity of execution to be valid. As one example, the AppKit [ `NSSpeechRecognizerDelegate` ](https://developer.apple.com/documentation/appkit/nsspeechrecognizerdelegate) is called whenever the system recognizes a spoken command:
@@ -83,29 +103,34 @@ The two `AsyncStream` types each include a nested `Continuation` type; these out
 
 When you create an `AsyncStream` instance, you specify the element type and pass a closure that operates on the series’s `Continuation` . You can yield values to this continuation type *multiple* times, and the series buffers any yielded elements until they are consumed via iteration.
 
-The `DispatchSourceSignal` above can be given an `AsyncStream` interface this way:
+The `QuakeMonitor` above can be given an `AsyncStream` interface this way:
 
 ```swift
-extension DispatchSource {
-    static func signals(_ signal: Int32) -> AsyncStream<UInt> {
-        AsyncStream { continuation in
-            let source = DispatchSource.makeSignalSource(signal: signal)
-            source.setEventHandler {
-                continuation.yield(source.data)
-            }
-            source.resume()
-        }
+extension QuakeMonitor {
+  static var quakes: AsyncStream<Quake> {
+    AsyncStream { continuation in
+      let monitor = QuakeMonitor()
+      monitor.quakeHandler { quake in
+        continuation.yield(quake)
+      }
+      monitor.onTermination = { _ in 
+        monitor.stopMonitoring
+      }
+      monitor.startMonitoring()
     }
+  }
 }
 
 // elsewhere...
 
-for await signal in DispatchSource.signals(SIGINT).prefix(while: { ... }) {
+for await quake in QuakeMonitor.quakes {
     // ...
 }
 ```
 
-As each value is passed to the `DispatchSourceSignal` ’s event handler closure, the call to `continuation.yield(_:)` stores the value for access by a consumer of the sequence. With this implementation, signal events are buffered as they come in, and only consumed when an iterator requests a value.
+As each value is passed to the `QuakeMonitor` ’s event handler closure, the call to `continuation.yield(_:)` stores the value for access by a consumer of the sequence. With this implementation, quake events are buffered as they come in, and only consumed when an iterator requests a value.
+
+Alternatively if a source is just an async function (one that represents a backpressure) an AsyncStream can be constructed by unfolding a producing function and a cancellation handler. This affords the case in which that unfolded function can leave the specification adherence of AsyncSequence to AsyncStream. In short the `init(unfolding:onCancel:)` initializer handles the terminal cases as well as the cancellation. 
 
 ### Creating an `AsyncThrowingStream`
 
@@ -116,14 +141,14 @@ func buyVegetables(
   shoppingList: [String],
 
   // a) invoked once for each vegetable in the shopping list
-  onGotVegetable: (Vegetable) → Void,
+  onGotVegetable: (Vegetable) -> Void,
 
   // b) invoked once all available veggies have been retrieved
-  onAllVegetablesFound: () → Void,
+  onAllVegetablesFound: () -> Void,
 
   // c) invoked if a non-vegetable food item is encountered
   // in the shopping list
-  onNonVegetable: (Error) → Void
+  onNonVegetable: (Error) -> Void
 )
 
 // Returns a stream of veggies
@@ -181,7 +206,7 @@ The full API of `AsyncStream` , `AsyncThrowingStream` , and their nested `Contin
 ///     let digits = AsyncStream(Int.self) { continuation in
 ///       detach {
 ///         for digit in 0..<10 {
-///           continuation.resume(yielding: digit)
+///           continuation.yield(digit)
 ///         }
 ///         continuation.finish()
 ///       }
@@ -193,9 +218,49 @@ The full API of `AsyncStream` , `AsyncThrowingStream` , and their nested `Contin
 ///
 public struct AsyncStream<Element> {
   public struct Continuation: Sendable {
+    /// Indication of the type of termination informed to 
+    /// `onTermination`. 
     public enum Termination {
+      
+      /// The stream was finished via the `finish` method
       case finished
+      
+      /// The stream was cancelled
       case cancelled
+    }
+    
+    /// A result of yielding values.
+    public enum YieldResult {
+    
+      /// When a value is successfully enqueued, either buffered
+      /// or immediately consumed to resume a pending call to next
+      /// and a count of remaining slots available in the buffer at
+      /// the point in time of yielding. Note: transacting upon the
+      /// remaining count is only valid when then calls to yield are
+      /// mutually exclusive.
+      case enqueued(remaining: Int)
+      
+      /// Yielding resulted in not buffering an element because the 
+      /// buffer was full. The element is the dropped value.
+      case dropped(Element)
+      
+      /// Indication that the continuation was yielded when the 
+      /// stream was already in a terminal state: either by cancel or
+      /// by finishing.
+      case terminated
+    }
+    
+    /// A strategy that handles exhaustion of a buffer’s capacity.
+    public enum BufferingPolicy {
+      case unbounded
+
+      /// When the buffer is full, discard the newly received element.
+      /// This enforces keeping the specified amount of oldest values.
+      case bufferingOldest(Int)
+      
+      /// When the buffer is full, discard the oldest element in the buffer.
+      /// This enforces keeping the specified amount of newest values.
+      case bufferingNewest(Int)
     }
     
     /// Resume the task awaiting the next iteration point by having it return
@@ -206,7 +271,15 @@ public struct AsyncStream<Element> {
     ///
     /// This can be called more than once and returns to the caller immediately
     /// without blocking for any awaiting consumption from the iteration.
-    public func yield(_ value: Element)
+    ///
+    /// The `yield(_:)` function returns the state of any value yielded to the
+    /// continuation. This can be one of three states: `enqueued`, `dropped` or
+    /// `terminated`. Each of the states respectively represents if the value
+    /// was either buffered or resumed to active iteration, dropped because
+    /// the limit of the buffer was reached, or dropped because the AsyncStream
+    /// was at a terminal state either from being finished or cancelled.
+    @discardableResult
+    public func yield(_ value: Element) -> YieldResult
 
     /// Resume the task awaiting the next iteration point by having it return
     /// nil. This signifies the end of the iteration.
@@ -231,8 +304,9 @@ public struct AsyncStream<Element> {
   /// Construct an AsyncStream buffering given an Element type.
   ///
   /// - Parameter elementType: The type the AsyncStream will produce.
-  /// - Parameter maxBufferedElements: The maximum number of elements to
-  ///   hold in the buffer. A value of 0 results in no buffering.
+  /// - Parameter bufferingPolicy: The policy in which to buffer elements.
+  /// This controls the amount that can potentially be stored in the buffer
+  /// and the mechanism in which to drop values. 
   /// - Parameter build: The work associated with yielding values to the 
   ///   AsyncStream.
   ///
@@ -247,8 +321,20 @@ public struct AsyncStream<Element> {
   /// concurrent contexts could result in out of order delivery.
   public init(
     _ elementType: Element.Type = Element.self,
-    maxBufferedElements limit: Int = .max,
+    bufferingPolicy limit: Continuation.BufferingPolicy = .unbounded,
     _ build: (Continuation) -> Void
+  ) {
+  
+  /// Construct an AsyncStream by unfolding the application of a function.
+  ///
+  /// - Parameter produce: The function to call when calculating the next value.
+  /// - Parameter onCancel: A closure to call when the AsyncStream is cancelled.
+  ///
+  /// Construction with this initializer handles the rules of AsyncSequence in
+  /// that after a nil is produced subsequent calls must produce nil.
+  public init(
+    unfolding produce: @escaping () async -> Element?, 
+    onCancel: (@Sendable () -> Void)? = nil
   )
 }
 
@@ -260,11 +346,11 @@ extension AsyncStream: AsyncSequence {
   /// concurrently and contends with another call to next is a programmer error
   /// and will fatalError.
   public struct Iterator: AsyncIteratorProtocol {
-    public mutating func next() async → Element?
+    public mutating func next() async -> Element?
   }
 
   /// Construct an iterator.
-  public func makeAsyncIterator() → Iterator
+  public func makeAsyncIterator() -> Iterator
 }
 
 extension AsyncStream.Continuation {
@@ -275,29 +361,38 @@ extension AsyncStream.Continuation {
   /// - Parameter result: A result to yield from the continuation.
   ///
   /// This can be called more than once and returns to the caller immediately
-  /// without blocking for any awaiting consuption from the iteration.
+  /// without blocking for any awaiting consumption from the iteration.
+  @discardableResult
   public func yield(
     with result: Result<Element, Never>
-  )
+  ) -> YieldResult
 
   /// Resume the task awaiting the next iteration point by having it return
   /// normally from its suspension point or buffer the value if no awaiting
   /// next iteration is active where the `Element` is `Void`.
   ///
   /// This can be called more than once and returns to the caller immediately
-  /// without blocking for any awaiting consuption from the iteration.
-  public func yield() where Element == Void
+  /// without blocking for any awaiting consumption from the iteration.
+  @discardableResult
+  public func yield() -> YieldResult where Element == Void
 }
 
-public struct AsyncThrowingStream<Element> {
+public struct AsyncThrowingStream<Element, Failure: Error> {
   public struct Continuation: Sendable {
     public enum Termination {
-      case finished(Error?)
+      case finished(Failure?)
       case cancelled
     }
     
+    public enum YieldResult {
+      case enqueued
+      case dropped
+      case terminated
+    }
+    
     /// * See AsyncStream.Continuation.yield(_:) *
-    public func yield(_ value: Element)
+    @discardableResult
+    public func yield(_ value: Element) -> YieldResult
 
     /// Resume the task awaiting the next iteration point with a terminal state.
     /// If error is nil, this is a completion with out error. If error is not 
@@ -309,7 +404,7 @@ public struct AsyncThrowingStream<Element> {
     /// Calling this function more than once is idempotent. All values received
     /// from the iterator after it is finished and after the buffer is exhausted 
     /// are nil.
-    public func finish(throwing error: Error? = nil)
+    public func finish(throwing error: Failure? = nil)
 
     /// * See AsyncStream.Continuation.onTermination *
     public var onTermination: (@Sendable (Termination) -> Void)? { get nonmutating set }
@@ -320,6 +415,18 @@ public struct AsyncThrowingStream<Element> {
     _ elementType: Element.Type,
     maxBufferedElements limit: Int = .max,
     _ build: (Continuation) -> Void
+  ) where Failure == Error
+  
+  /// Construct an AsyncStream by unfolding the application of a function.
+  ///
+  /// - Parameter produce: The function to call when calculating the next value.
+  /// - Parameter onCancel: A closure to call when the AsyncStream is cancelled.
+  ///
+  /// Construction with this initializer handles the rules of AsyncSequence in
+  /// that after a nil is produced subsequent calls must produce nil.
+  public init(
+    unfolding produce: @escaping () async throws -> Element?, 
+    onCancel: (@Sendable () -> Void)? = nil
   )
 }
 
@@ -339,21 +446,33 @@ extension AsyncThrowingStream.Continuation {
   /// - Parameter result: A result to yield from the continuation.
   ///
   /// This can be called more than once and returns to the caller immediately
-  /// without blocking for any awaiting consuption from the iteration.
-  public func yield<Failure: Error>(
+  /// without blocking for any awaiting consumption from the iteration.
+  @discardableResult
+  public func yield(
     with result: Result<Element, Failure>
-  )
+  ) -> YieldResult
 
   /// * See AsyncStream.yield() *
-  public func yield() where Element == Void
+  @discardableResult
+  public func yield() -> YieldResult where Element == Void
 }
 ```
+
+### Yielding Values
+
+In some cases it is meaningful to manage the potential emissions in accordance with what the state of yielding values to the continuation might do. There are three potential states of yielding a value, it may be enqueued to the buffer (or even immediately resumed to an active iterator), dropped because the limit of the buffer has been reached, or dropped because the `AsyncStream` or `AsyncThrowingStream` have been terminated (either by finish or cancel). This is a meaningful return value in some cases but generally this is not always a meaningful/useful state. In the cases that it is meaningful; consumers may want to emit an error when the buffer has reached its limit. Or consumers may want to concatenate the value to the next emitted value. 
+
+The yield function of the `Continuation` type for both `AsyncStream` and `AsyncThrowingStream` returns the state in which that yield transacted - it can return that the value was enqueued with a remaining count of slots available at the time of the yield for the backing buffer, or if the buffer is full it will return the element that was dropped, or if the stream was already terminal it returns an indication of that terminal state.
 
 ### Buffering Values
 
 By default, every element yielded to an `AsyncStream` ’s continuation is buffered until consumed by iteration. This matches the expectation for most of the APIs we anticipate being adapted via `AsyncStream` — with a stream of notifications, database records, or other similar types, the caller needs to receive every single one.
 
 If the caller specifies a different value *n* for `maxBufferedElements` , then the most recent *n* elements are buffered until consumed by iteration. If the caller specifies `0` , the stream switches to a dropping behavior, dropping the value if nothing is `await` ing the iterator’s `next` .
+
+### Backpressure
+
+`AsyncStream` and `AsyncThrowingStream` both are types intended to interface systems in which back pressure is not present to the `AsyncSequence` interface which is a back pressure based system. `AsyncSequence` via it's iterator is back pressure based via the `next` method on the iterator. Each call to next is an asynchronous call that represents an applied demand of 1. This means that systems in which back pressure is not present; like callbacks that are called more than once, or some "informative" style delegates there must be some intermediary to offer behavior of either buffering, dropping or blocking. These three options are the only available mechanisms to stride that gap between the back pressure world and the non back pressure world. `AsyncStream` does not aim to resolve the blocking scenario (any callbacks that require that type of functionality are probably ill suited for async/await anyhow). The buffering and dropping scenarios can be represented with just buffering since the dropping scenario is just a buffer of 0 items.
 
 ### Finishing the Stream
 
