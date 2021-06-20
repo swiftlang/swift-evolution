@@ -22,7 +22,7 @@
     * [Global actor inference](#global-actor-inference)
     * [Global actors and instance actors](#global-actors-and-instance-actors)
 * [Detailed design](#detailed-design)
-    * [`GlobalActor` protocol][#globalactor-protocol]
+    * [`GlobalActor` protocol](#globalactor-protocol)
     * [Closure attributes](#closure-attributes)
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
