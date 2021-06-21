@@ -22,7 +22,7 @@
     * [Global actor inference](#global-actor-inference)
     * [Global actors and instance actors](#global-actors-and-instance-actors)
 * [Detailed design](#detailed-design)
-    * [`GlobalActor` protocol][#globalactor-protocol]
+    * [`GlobalActor` protocol](#globalactor-protocol)
     * [Closure attributes](#closure-attributes)
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
@@ -378,7 +378,7 @@ With the `isolated` parameters described in [SE-0313][isolation], no function ty
 
 Global actor attributes apply to declarations as follows:
 
-* A declaration cannot have multiple have global actor attributes.  The rules below say that, in some cases, a global actor attribute is propagated from one declaration to another.  If the rules say that an attribute “propagates by default”, then no propagation is performed if the destination declaration has an explicit global actor attribute.  If the rules say that attribute “propagates mandatorily”, then it is an error if the destination declaration has an explicit global actor attribute that does not identify the same actor.  Regardless, it is an error if global actor attributes that do not identify the same actor are propagated to the same declaration.
+* A declaration cannot have multiple global actor attributes.  The rules below say that, in some cases, a global actor attribute is propagated from one declaration to another.  If the rules say that an attribute “propagates by default”, then no propagation is performed if the destination declaration has an explicit global actor attribute.  If the rules say that attribute “propagates mandatorily”, then it is an error if the destination declaration has an explicit global actor attribute that does not identify the same actor.  Regardless, it is an error if global actor attributes that do not identify the same actor are propagated to the same declaration.
 
 * A function declared with a global actor attribute becomes isolated to the given global actor.
 
