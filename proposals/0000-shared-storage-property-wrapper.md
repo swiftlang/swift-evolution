@@ -9,21 +9,22 @@ Property Wrappers are responsible for wrapping common getting and setting boiler
 ```swift
 @propertyWrapper
 struct Clamped<Value: Comparable> {
-    private var value: Value
-    let range: ClosedRange<Value>
-    
-    init(wrappedValue: Value, _ range: ClosedRange<Value>) {
-        self.value = range.clamping(wrappedValue)
-        self.range = range
-    }
-    
-    var wrappedValue: Value {
-        get { value }
-        set { value = range.clamping(newValue) }
-    }
+  private var value: Value
+  let range: ClosedRange<Value>
+  
+  init(wrappedValue: Value, _ range: ClosedRange<Value>) {
+    self.value = range.clamping(wrappedValue) 
+    self.range = range
+  }
+  
+  var wrappedValue: Value {
+    get { value }
+    set { value = range.clamping(newValue) }
+  }
+}
 
 struct Hud {
-    @Clamped(0...100) var value = 100
+  @Clamped(0...100) var value = 100
 }
 
 // the `range` property is constant and has the same value
@@ -43,11 +44,11 @@ We propose introducing a storage that is shared per property wrapper instance. T
 ```swift
 @propertyWrapper
 struct Wrapper<Value> {
-	shared let storage: SharedStorage
-	var wrappedValue: Value { ... }
-	
-	// a plain struct, with properties that will be shared across wrappers
-	struct SharedStorage { ... }
+  shared let storage: SharedStorage
+  var wrappedValue: Value { ... }
+  
+  // a plain struct, with properties that will be shared across wrappers
+  struct SharedStorage { ... }
 }
 ```
 
@@ -59,29 +60,29 @@ In the next example, the `RangeStorage` struct will be used for the `Clamped` wr
 
 ```swift
 struct RangeStorage<Value: Comparable> {
-	let range: ClosedRange<Value>
-	init(_ range: ClosedRange<Value>) { 
-	  self.range = range
-	} 
-
-	func clamp(_ value: Value) -> Value {}
+  let range: ClosedRange<Value>
+  init(_ range: ClosedRange<Value>) { 
+    self.range = range
+  } 
+  
+  func clamp(_ value: Value) -> Value {}
 }
 
 @propertyWrapper
 struct Clamped<Value: Comparable> {
-	shared let storage: RangeStorage<Value>
-	private var value: Value
-
-	init(wrappedValue: Value, shared: RangeStorage<Value>) {
-		self.value = shared.clamp(wrappedValue)
-	}
- 
+  shared let storage: RangeStorage<Value>
+  private var value: Value
+  
+  init(wrappedValue: Value, shared: RangeStorage<Value>) {
+    self.value = shared.clamp(wrappedValue)
+  }
+  
   var wrappedValue: Value {
     get { value }
-	  set {
-			// `storage` is available like any other property
-			value = storage.clamp(newValue) 
-		}
+    set {
+      // `storage` is available like any other property
+      value = storage.clamp(newValue) 
+    }
   }
 }  
 ```
@@ -90,8 +91,8 @@ And at the point of use, the compiler will make sure `RangeStorage` is initializ
 
 ```swift
 struct Hud {
-	@Clamped(.init(0...14)) var bar = 5
-	@Clamped(.init(1...9)) var foo = 1
+  @Clamped(.init(0...14)) var bar = 5
+  @Clamped(.init(1...9)) var foo = 1
 }
 
 var hud1 = Hud()
@@ -100,11 +101,11 @@ var hud2 = Hud()
 // desugars to
 
 struct Hud {
-	shared let bar$shared = RangeStorage(0...14)
-	shared let foo$shared = RangeStorage(1...9)
-
-	var bar = Clamped(wrappedValue: 5, shared: bar$shared)
-	var foo = Clamped(wrappedValue: 1, shared: foo$shared)
+  shared let bar$shared = RangeStorage(0...14)
+  shared let foo$shared = RangeStorage(1...9)
+  
+  var bar = Clamped(wrappedValue: 5, shared: bar$shared)
+  var foo = Clamped(wrappedValue: 1, shared: foo$shared)
 }
 
 // both Hud's get access to the same $shared properties.
@@ -120,14 +121,14 @@ Inside the wrapper's initializer, assigning the shared value to the `shared` pro
 shared let storage: RangeStorage<Value>
 
 init(wrappedValue: Value, shared: RangeStorage<Value>) {
-		self.value = shared.clamp(wrappedValue)
+  self.value = shared.clamp(wrappedValue)
 
-		// referencing `storage` inside the initializer is not okay since 
-		// it might not have been initialized yet?
-	}
+  // referencing `storage` inside the initializer is not okay since 
+  // it might not have been initialized yet?
+}
 ```
 
-On the call site, we can drop the label for the shared argument if there aren't other arguments to be passed (except wrappedValue and projectedValue). 
+At the call site, we can drop the label for the shared argument if there aren't other arguments to be passed (except wrappedValue and projectedValue). 
 
 ```swift
 // without the label
@@ -145,7 +146,7 @@ Property wrapper authors may also enable passing the values that will be used to
 ```swift
 
 struct RangeStorage<Value> {
-	init(_ range: ClosedRange<Value>) { ... } 
+  init(_ range: ClosedRange<Value>) { ... } 
 }
 
 /// ...
@@ -161,18 +162,18 @@ The initialization of the storage value itself follows the same principles as st
 
 ```swift
 struct RangeStorage {
-	init(_ range: String) { ... } 
+  init(_ range: String) { ... } 
 }
 
 struct Container { 
-	@Clampped(1...7) var weekday = 3
+  @Clampped(1...7) var weekday = 3
 }
 
 // not okay
 struct ContainerB {
-	var minDay: Int
-	var maxDay: Int
-	@Clampped(minDay...maxDayw3) var weekday = 3
+  var minDay: Int
+  var maxDay: Int
+  @Clampped(minDay...maxDay3) var weekday = 3
 }
 ```
 
@@ -180,15 +181,15 @@ As mentioned before, the compiler will enforce that the shared property initiali
 
 ```swift
 // okay
-init(wrappedValue: Value, shared storage: RangeStorage) { // special attribute
-	self.wrappedValue = wrappedValue
-	self.storage = shared
+init(wrappedValue: Value, shared storage: RangeStorage) {
+  self.wrappedValue = wrappedValue
+  self.storage = shared
 }
 
 // not okay
 init(wrappedValue: Value, range: ClosedRange<Value) {
-	self.wrappedValue = wrappedValue
-	self.storage = RangeStorage(range)
+  self.wrappedValue = wrappedValue
+  self.storage = RangeStorage(range)
 }
 ```
 
@@ -198,14 +199,14 @@ Property wrappers can be initialized in multiple ways (through a `wrappedValue` 
 @propertyWrapper
 struct Wrapper<Value> {
   var wrappedValue: Value
-	var projectedValue: Wrapper
-	shared let storage: SomeStorage
-
+  var projectedValue: Wrapper
+  shared let storage: SomeStorage
+  
   init(wrappedValue: Value, shared storage: SomeStorage) { // }
-
-	init(projectedValue: Wrapper, shared storage: SomeStorage) { //	}
- 
-	init(shared storage: SomeStorage = SomeStorage()) { // }
+  
+  init(projectedValue: Wrapper, shared storage: SomeStorage) { //	}
+  
+  init(shared storage: SomeStorage = SomeStorage()) { // }
 }
 
 // ...
@@ -218,8 +219,8 @@ It's important that the initialization of the shared storage is resolved and sto
 ```swift
 @propertyWrapper 
 struct Wrapper {
-	// ...
-	shared let storage = SomeStorage() // * error
+  // ...
+  shared let storage = SomeStorage() // * error
 }
 ```
 
@@ -227,12 +228,12 @@ Since the goal of this feature is to allow instances of the type containing a pr
 
 ```swift
 class Container {
-	@Wrapper var someProperty: String 
-
-// this is instances of `Container` could have different `storage` values 
-	init(value: String, shared storage: SomeStorage) {
-		self._someProperty = Wrapper(wrappedValue: value, shared: storage)  // error
-	}
+  @Wrapper var someProperty: String 
+  
+  // this way instances of `Container` could have different `storage` values 
+  init(value: String, shared storage: SomeStorage) {
+    self._someProperty = Wrapper(wrappedValue: value, shared: storage)  // error
+  }
 }
 ```
 
@@ -242,13 +243,13 @@ The shared property is accessible anywhere in the `Wrapper` scope, like any othe
 
 ```swift
 class Container { 
-	// shared let someProperty$shared = SomeStorage("hi") 
-	@Wrapper(SomeStorage("hi")) var someProperty = ""
-
-	func accessStorage() {
-		print(someProperty$shared) // not allowed
-		print(_someProperty.storage) // okay
-	}
+  // shared let someProperty$shared = SomeStorage("hi") 
+  @Wrapper(SomeStorage("hi")) var someProperty = ""
+  
+  func accessStorage() {
+    print(someProperty$shared) // not allowed
+    print(_someProperty.storage) // okay
+  }
 }
 ```
 
@@ -258,7 +259,7 @@ There are a few important aspects about the lifecycle of the shared storage. Abo
 
 ```swift
 class Container { 
-	@Wrapper(SomeStorage()) var someProperty = ""
+  @Wrapper(SomeStorage()) var someProperty = ""
 }
 
 let firstContainer = Container() // `shared let someProperty$shared` initialized
@@ -281,20 +282,20 @@ Implementing this feature also unlocks the possibility for API-level wrappers to
 struct Layout {} 
 
 struct SharedStorage { 
-	let layout: Layout
-
-	static func italic() -> Layout {}
+  let layout: Layout
+  
+  static func italic() -> Layout {}
 } 
 
 @propertyWrapper
 struct Style {
-	shared let storage: SharedStorage
-	var wrappedValue: UIView 
-	var projectedValue: Style { self }
-
-	init(wrappedValue: UIView) {}
-
-	init(projectedValue: Style, shared: SharedStorage) { // }  
+  shared let storage: SharedStorage
+  var wrappedValue: UIView 
+  var projectedValue: Style { self }
+  
+  init(wrappedValue: UIView) {}
+  
+  init(projectedValue: Style, shared: SharedStorage) { // }  
 }
 
 // come up with another example
@@ -344,19 +345,19 @@ Consider a type that exposes a property with a property wrapper to its public AP
 ```swift
 @propertyWrapper
 public struct Wrapper<Value> {
-	var wrappedValue: Value { ... }
-	var projectedValue: Wrapper { ... } 
+  var wrappedValue: Value { ... }
+  var projectedValue: Wrapper { ... } 
 }
 
 public struct Container {
-	@Wrapper public var someValue: String
+  @Wrapper public var someValue: String
 }
 
 // -------
 // the generated interface
 public struct Container {
-	public var someValue: String 
-	public var $someValue: Wrapper 
+  public var someValue: String 
+  public var $someValue: Wrapper 
 }
 
 @propertyWrapper
@@ -376,36 +377,36 @@ Instead of introducing a new attribute, we could store the generated storage pro
 ```swift
 @propertyWrapper(shared: Storage)
 struct Clamped {
-		private var value: Value
-
-		var wrappedValue: Value { fatalError("use the subscript!") }
-    
-    // wrappedValue would be accessed through a subscript
-    subscript(shared storage: Storage) -> Value {
-        get { value }
-        set { value = storage.range.clamping(newValue) }
-    }
-
-    struct Storage {
-        let range: ClosedRange<Value>
-				init(range: ClosedRange<Value>) { // ... } 
-    }
+  private var value: Value
+  
+  var wrappedValue: Value { fatalError("use the subscript!") }
+  
+  // wrappedValue would be accessed through a subscript
+  subscript(shared storage: Storage) -> Value {
+    get { value }
+    set { value = storage.range.clamping(newValue) }
+  }
+  
+  struct Storage {
+    let range: ClosedRange<Value>
+    init(range: ClosedRange<Value>) { // ... } 
+  }
 } 
 
 // .... using it
 
 struct Hud {
-    @Clamped(range: 0...100) var value = 100
+  @Clamped(range: 0...100) var value = 100
 }
 
 // Desugared version:
 struct Hud {
-		private var _value: Clamped<Int> = .init(wrappedValue: 100)
-		private static let _value$shared: Clamped<Int>.Storage = .init(range: 0...100)
-		var value: Int {
-			get { _value[shared: Hud._value$shared] }
-			set { _value[shared: Hud._value$shared] = newValue }
-		}
+  private var _value: Clamped<Int> = .init(wrappedValue: 100)
+  private static let _value$shared: Clamped<Int>.Storage = .init(range: 0...100)
+  var value: Int {
+    get { _value[shared: Hud._value$shared] }
+    set { _value[shared: Hud._value$shared] = newValue }
+  }
 }
 ```
 
