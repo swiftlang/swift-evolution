@@ -499,6 +499,29 @@ This also presents a problem for code evolution, because developers of existing 
 
 Instead, we propose an overload-resolution rule to select the appropriate function based on the context of the call. Given a call, overload resolution prefers non-`async` functions within a synchronous context (because such contexts cannot contain a call to an `async` function).  Furthermore, overload resolution prefers `async` functions within an asynchronous context (because such contexts should avoid stepping out of the asynchronous model into blocking APIs). When overload resolution selects an `async` function, that call is still subject to the rule that it must occur within an `await` expression.
 
+The overload-resolution rule depends on the synchronous or asynchronous context, in which the compiler selects one and only one overload. The selection of the async overload requires an `await` expression, as all introductions of a potential suspension point:
+
+```swift
+func f() async {
+  // In an asynchronous context, the async overload is preferred:
+  await doSomething()
+  // Compiler error: Expression is 'async' but is not marked with 'await'
+  doSomething()
+}
+```
+
+In non-`async` functions, and closures without any `await` expression, the compiler selects the non-`async` overload:
+
+```
+func f() async {
+  let f2 = {
+    // In a synchronous context, the non-async overload is preferred:
+    doSomething()
+  }
+  f2()
+}
+```
+
 
 ### Autoclosures
 
