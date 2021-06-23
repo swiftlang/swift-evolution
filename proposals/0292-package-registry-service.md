@@ -122,7 +122,7 @@ and downloading the source archive for a release:
 | `GET`  | `/identifiers{?url}`                                      | Lookup package identifiers registered for a URL |
 
 A formal specification for the package registry interface is provided
-[alongside this proposal](https://github.com/apple/swift-package-manager/blob/main/Documentation/RegistryDraft.md).
+[alongside this proposal](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md).
 In addition,
 an OpenAPI (v3) document
 and a reference implementation written in Swift
