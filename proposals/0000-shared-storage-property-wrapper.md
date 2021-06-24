@@ -39,7 +39,7 @@ Another motivation for this feature is mentioned in the [Static property-wrapper
 
 ## Proposed solution
 
-We propose introducing a storage that is shared per property wrapper instance. The storage is immutable, initialized once, and stored outside of the instance scope. It's a tool for property wrapper authors to optimize their wrapper abstractions and avoid repeated unnecessary storage.
+We propose introducing storage that is shared per property wrapper instance. The storage is immutable, initialized once, and stored outside of the instance scope. It's a tool for property wrapper authors to optimize their wrapper abstractions and avoid repeated unnecessary storage.
 
 ```swift
 @propertyWrapper
@@ -55,7 +55,7 @@ struct Clamped<Value: Comparable> {
 
 ## Detailed design
 
-The storage is declared using the new `shared` property attribute inside a Property Wrapper declaration. This property will be initialized and stored globally by the compiler, while remaining accessible to the property wrapper instance like any other private property defined in the wrapper type. 
+The storage is declared using the new `shared` property attribute inside a Property Wrapper declaration. This property will be initialized and stored globally by the compiler while remaining accessible to the property wrapper instance like any other private property defined in the wrapper type. 
 
 In the next example, the `RangeStorage` struct will be used for the `Clamped` wrapper. 
 
@@ -88,7 +88,7 @@ struct Clamped<Value: Comparable> {
 }  
 ```
 
-And at the point of use, the compiler will make sure `RangeStorage` is initialized once for each wrapper application, and stored at a scope outside of the instances. Later on, when multiple instances of `Hud` are initialized, they'll all be given access to the same `$shared` properties. Suggestions on how to name the `$shared` property would be much appreciated. 🙂
+And at the point of use, the compiler will make sure `RangeStorage` is initialized once for each wrapper application and stored at a scope outside of the instances. Later on, when multiple instances of `Hud` are initialized, they'll all be given access to the same `$shared` properties. Suggestions on how to name the `$shared` property would be much appreciated. 🙂
 
 ```swift
 struct Hud {
@@ -116,7 +116,7 @@ var hud2 = Hud()
 
 ### Initialization
 
-Inside the wrapper's initializer, assigning the shared value to the `shared` property is handled by the compiler, so there's not need to explicitly do it. 
+Inside the wrapper's initializer, assigning the shared value to the `shared` property is handled by the compiler, so there's no need to explicitly do it. 
 
 ```swift
 shared let storage: RangeStorage<Value>
@@ -126,7 +126,7 @@ init(wrappedValue: Value, @shared: RangeStorage<Value>) {
 }
 ```
 
-The initialization of the storage value itself follows the same principles as static variables: it can't instance variables or methods that depend on `self` being initialized. Though literals and other type variables can be used. 
+The initialization of the storage value itself follows the same principles as static variables: it can't use instance variables or methods that depend on `self` being initialized. Though literals and other type variables can be used. 
 
 ```swift
 struct RangeStorage {
@@ -134,14 +134,14 @@ struct RangeStorage {
 }
 
 struct Container { 
-  @Clampped(@shared: RangeStorage(1...7)) var weekday = 3
+  @Clamped(@shared: RangeStorage(1...7)) var weekday = 3
 }
 
 // not okay
 struct ContainerB {
   var minDay: Int
   var maxDay: Int
-  @Clampped(@shared: RangeStorage(minDay...maxDay)) var weekday = 3
+  @Clamped(@shared: RangeStorage(minDay...maxDay)) var weekday = 3
 }
 ```
 
@@ -166,7 +166,7 @@ struct Wrapper<Value> {
 @Wrapper(@shared: SomeStorage()) var value = ""
 ```
 
-It's important that the initialization of the shared storage is resolved and stored at the call site. So providing a default value on the initializer argument is allowed but initializing it inside the wrapper declaration is not. 
+The initialization of the shared storage must be resolved and stored at the call site. So providing a default value on the initializer argument is allowed but initializing it inside the wrapper declaration is not. 
 
 ```swift
 @propertyWrapper 
@@ -207,7 +207,7 @@ class Container {
 
 ### Lifecycle
 
-There are a few important aspects about the lifecycle of the shared storage. About its initialization, it happens only once. And then it's reused for subsequent instances that need it. 
+There are a few important aspects of the lifecycle of the shared storage. About its initialization, it happens only once. And then it's reused for subsequent instances that need it. 
 
 ```swift
 class Container { 
@@ -263,7 +263,7 @@ Take for example the following composition chain, where one of the wrappers has 
 @WithShared(@shared: .init()) @Without var foo: Bool = false
 ```
 
-The composition chain will be resolved by nesting the inner wrapper into the outer wrapper type and initializing the shared property as needed. The same logic applies for the reversed order of application ( `@Without @WithShared var foo`).
+The composition chain will be resolved by nesting the inner wrapper into the outer wrapper type and initializing the shared property as needed. The same logic applies to the reversed order of application ( `@Without @WithShared var foo`).
 
 ```swift
 shared let foo$shared = Shared()
@@ -365,6 +365,4 @@ Readability is one of the main disadvantages of this approach, as it would requi
 
 ### Related Work
 
-The Future Directions sections on both SE-0258 and SE-0293, and the threads discussing this feature, especially this [post](https://www.notion.so/Copy-of-Shared-storage-for-Property-Wrappers-GSoC-Proposal-c6ac301b7e6a401e960a5e2a06adf962), were essential to this proposal.
-
-## Future directions
+The Future Directions sections on both SE-0258 and SE-0293, and the threads discussing this feature, especially this [thread](https://forums.swift.org/t/future-directions-of-property-wrappers/27934/11), were essential to this proposal.
