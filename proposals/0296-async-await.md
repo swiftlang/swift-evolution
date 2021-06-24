@@ -512,7 +512,7 @@ func f() async {
 
 In non-`async` functions, and closures without any `await` expression, the compiler selects the non-`async` overload:
 
-```
+```swift
 func f() async {
   let f2 = {
     // In a synchronous context, the non-async overload is preferred:
