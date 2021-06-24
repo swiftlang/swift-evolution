@@ -173,23 +173,7 @@ struct Container {
 struct ContainerB {
   var minDay: Int
   var maxDay: Int
-  @Clampped(minDay...maxDay3) var weekday = 3
-}
-```
-
-As mentioned before, the compiler will enforce that the shared property initialization only happens once. For that reason, the `shared` property is required to be initialized from a `shared` parameter. 
-
-```swift
-// okay
-init(wrappedValue: Value, shared storage: RangeStorage) {
-  self.wrappedValue = wrappedValue
-  self.storage = shared
-}
-
-// not okay
-init(wrappedValue: Value, range: ClosedRange<Value) {
-  self.wrappedValue = wrappedValue
-  self.storage = RangeStorage(range)
+  @Clampped(minDay...maxDay) var weekday = 3
 }
 ```
 
