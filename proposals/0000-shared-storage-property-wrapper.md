@@ -73,7 +73,7 @@ struct Clamped<Value: Comparable> {
   shared let storage: RangeStorage<Value>
   private var value: Value
   
-  init(wrappedValue: Value, shared: RangeStorage<Value>) {
+  init(wrappedValue: Value, @shared: RangeStorage<Value>) {
     self.value = shared.clamp(wrappedValue)
   }
   
@@ -115,16 +115,13 @@ var hud2 = Hud()
 
 ### Initialization
 
-Inside the wrapper's initializer, assigning the shared value to the `shared` property is handled by the compiler, so there's not need to explicitly do it. If the initializer itself needs access to storage properties, it should be done through the `shared` parameter. 
+Inside the wrapper's initializer, assigning the shared value to the `shared` property is handled by the compiler, so there's not need to explicitly do it. 
 
 ```swift
 shared let storage: RangeStorage<Value>
 
-init(wrappedValue: Value, shared: RangeStorage<Value>) {
+init(wrappedValue: Value, @shared: RangeStorage<Value>) {
   self.value = shared.clamp(wrappedValue)
-
-  // referencing `storage` inside the initializer is not okay since 
-  // it might not have been initialized yet?
 }
 ```
 
@@ -135,27 +132,10 @@ At the call site, we can drop the label for the shared argument if there aren't 
 @Clamped(RangeStorage(1...7)) var weekday: Int = 7
 
 // with a third parameter on the initializer... 
-init(wrappedValue: Value, shared: RangeStorage<Value>, defaultValue: Value) { }
+init(wrappedValue: Value, @shared: RangeStorage<Value>, defaultValue: Value) { }
 
 // ... we bring back the label
-@Clamped(shared: RangeStorage(1...7), defaultValue: 1) var weekday: Int = 7
-```
-
-Property wrapper authors may also enable passing the values that will be used to initialize the storage instance directly. That can be accomplished by adding a `@shared` attribute on the initializer. 
-
-```swift
-
-struct RangeStorage<Value> {
-  init(_ range: ClosedRange<Value>) { ... } 
-}
-
-/// ...
-// using `@shared` instead of `shared`...
-init(wrappedValue: Value, @shared: RangeStorage<Value>) {}
-
-// ...
-// call site
-@Clamped(1...7) var weekday: Int = 3
+@Clamped(@shared: RangeStorage(1...7), defaultValue: 1) var weekday: Int = 7
 ```
 
 The initialization of the storage value itself follows the same principles as static variables: it can't instance variables or methods that depend on `self` being initialized. Though literals and other type variables can be used. 
@@ -186,11 +166,11 @@ struct Wrapper<Value> {
   var projectedValue: Wrapper
   shared let storage: SomeStorage
   
-  init(wrappedValue: Value, shared storage: SomeStorage) { // }
+  init(wrappedValue: Value, @shared: SomeStorage) { // }
   
-  init(projectedValue: Wrapper, shared storage: SomeStorage) { //	}
+  init(projectedValue: Wrapper, @shared: SomeStorage) { //	}
   
-  init(shared storage: SomeStorage = SomeStorage()) { // }
+  init(@shared: SomeStorage = SomeStorage()) { // }
 }
 
 // ...
@@ -215,7 +195,7 @@ class Container {
   @Wrapper var someProperty: String 
   
   // this way instances of `Container` could have different `storage` values 
-  init(value: String, shared storage: SomeStorage) {
+  init(value: String, @shared storage: SomeStorage) {
     self._someProperty = Wrapper(wrappedValue: value, shared: storage)  // error
   }
 }
@@ -279,10 +259,9 @@ struct Style {
   
   init(wrappedValue: UIView) {}
   
-  init(projectedValue: Style, shared: SharedStorage) { // }  
+  init(projectedValue: Style, @shared: SharedStorage) { // }  
 }
 
-// come up with another example
 func emphasized(@Style(.italic()) label: UILabel) {}
 ```
 
