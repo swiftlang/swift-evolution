@@ -43,12 +43,13 @@ We propose introducing a storage that is shared per property wrapper instance. T
 
 ```swift
 @propertyWrapper
-struct Wrapper<Value> {
-  shared let storage: SharedStorage
+struct Clamped<Value: Comparable> {
+  shared let storage: RangeStorage<Value>
+  
   var wrappedValue: Value { ... }
   
   // a plain struct, with properties that will be shared across wrappers
-  struct SharedStorage { ... }
+  struct RangeStorage<Value: Comparable> { ... }
 }
 ```
 
@@ -91,8 +92,8 @@ And at the point of use, the compiler will make sure `RangeStorage` is initializ
 
 ```swift
 struct Hud {
-  @Clamped(.init(0...14)) var bar = 5
-  @Clamped(.init(1...9)) var foo = 1
+  @Clamped(@shared: RangeStorage(0...14)) var bar = 5
+  @Clamped(@shared: RangeStorage(1...9)) var foo = 1
 }
 
 var hud1 = Hud()
@@ -101,11 +102,11 @@ var hud2 = Hud()
 // desugars to
 
 struct Hud {
-  shared let bar$shared = RangeStorage(0...14)
-  shared let foo$shared = RangeStorage(1...9)
+  static let bar$shared = RangeStorage(0...14)
+  static let foo$shared = RangeStorage(1...9)
   
-  var bar = Clamped(wrappedValue: 5, shared: bar$shared)
-  var foo = Clamped(wrappedValue: 1, shared: foo$shared)
+  var bar = Clamped(wrappedValue: 5, @shared: bar$shared)
+  var foo = Clamped(wrappedValue: 1, @shared: foo$shared)
 }
 
 // both Hud's get access to the same $shared properties.
@@ -125,19 +126,6 @@ init(wrappedValue: Value, @shared: RangeStorage<Value>) {
 }
 ```
 
-At the call site, we can drop the label for the shared argument if there aren't other arguments to be passed (except wrappedValue and projectedValue). 
-
-```swift
-// without the label
-@Clamped(RangeStorage(1...7)) var weekday: Int = 7
-
-// with a third parameter on the initializer... 
-init(wrappedValue: Value, @shared: RangeStorage<Value>, defaultValue: Value) { }
-
-// ... we bring back the label
-@Clamped(@shared: RangeStorage(1...7), defaultValue: 1) var weekday: Int = 7
-```
-
 The initialization of the storage value itself follows the same principles as static variables: it can't instance variables or methods that depend on `self` being initialized. Though literals and other type variables can be used. 
 
 ```swift
@@ -146,14 +134,14 @@ struct RangeStorage {
 }
 
 struct Container { 
-  @Clampped(1...7) var weekday = 3
+  @Clampped(@shared: RangeStorage(1...7)) var weekday = 3
 }
 
 // not okay
 struct ContainerB {
   var minDay: Int
   var maxDay: Int
-  @Clampped(minDay...maxDay) var weekday = 3
+  @Clampped(@shared: RangeStorage(minDay...maxDay)) var weekday = 3
 }
 ```
 
@@ -175,7 +163,7 @@ struct Wrapper<Value> {
 
 // ...
 
-@Wrapper(SomeStorage()) var value = ""
+@Wrapper(@shared: SomeStorage()) var value = ""
 ```
 
 It's important that the initialization of the shared storage is resolved and stored at the call site. So providing a default value on the initializer argument is allowed but initializing it inside the wrapper declaration is not. 
@@ -208,7 +196,7 @@ The shared property is accessible anywhere in the `Wrapper` scope, like any othe
 ```swift
 class Container { 
   // shared let someProperty$shared = SomeStorage("hi") 
-  @Wrapper(SomeStorage("hi")) var someProperty = ""
+  @Wrapper(@shared: SomeStorage("hi")) var someProperty = ""
   
   func accessStorage() {
     print(someProperty$shared) // not allowed
@@ -223,7 +211,7 @@ There are a few important aspects about the lifecycle of the shared storage. Abo
 
 ```swift
 class Container { 
-  @Wrapper(SomeStorage()) var someProperty = ""
+  @Wrapper(@shared: SomeStorage()) var someProperty = ""
 }
 
 let firstContainer = Container() // `shared let someProperty$shared` initialized
@@ -262,7 +250,7 @@ struct Style {
   init(projectedValue: Style, @shared: SharedStorage) { // }  
 }
 
-func emphasized(@Style(.italic()) label: UILabel) {}
+func emphasized(@Style(@shared: .italic()) label: UILabel) {}
 ```
 
 ### Composition of Property Wrappers
@@ -272,7 +260,7 @@ When a property declares multiple property wrappers, they get composed and their
 Take for example the following composition chain, where one of the wrappers has shared storage and the other does not. 
 
 ```swift
-@WithShared(.init()) @Without var foo: Bool = false
+@WithShared(@shared: .init()) @Without var foo: Bool = false
 ```
 
 The composition chain will be resolved by nesting the inner wrapper into the outer wrapper type and initializing the shared property as needed. The same logic applies for the reversed order of application ( `@Without @WithShared var foo`).
@@ -285,7 +273,7 @@ var foo: WithShared<Without<Bool>> = WithShared(wrappedValue: Without(wrappedVal
 In the case of a property with multiple applications of the same wrapper with shared storage, the composition chain would be resolved in the same way. Each wrapper gets its own shared storage property regardless. 
 
 ```swift
-@WithShared(.init()) @WithShared(.init()) var foo: Bool = false 
+@WithShared(@shared: .init()) @WithShared(@shared: .init()) var foo: Bool = false 
 ```
 
 ```swift
