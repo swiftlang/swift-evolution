@@ -55,7 +55,7 @@ struct Clamped<Value: Comparable> {
 
 ## Detailed design
 
-The storage is declared using the new `shared` property attribute inside a Property Wrapper declaration. This property will be initialized and stored globally by the compiler while remaining accessible to the property wrapper instance like any other private property defined in the wrapper type. 
+The storage is declared using the new `@shared` declaration attribute inside a Property Wrapper declaration. This property will be initialized and stored globally by the compiler while remaining accessible to the property wrapper instance like any other private property defined in the wrapper type. 
 
 In the next example, the `RangeStorage` struct will be used for the `Clamped` wrapper. 
 
