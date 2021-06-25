@@ -7,7 +7,7 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active Review (June 1...June 8, 2021)**
 * Implementation: [apple/swift-package-manager#3023](https://github.com/apple/swift-package-manager/pull/3023)
-* Review: 
+* Review:
   [1](https://forums.swift.org/t/se-0292-package-registry-service/)
   [2](https://forums.swift.org/t/se-0292-2nd-review-package-registry-service/)
   [3](https://forums.swift.org/t/se-0292-3rd-review-package-registry-service/)
@@ -121,8 +121,8 @@ and downloading the source archive for a release:
 | `GET`  | `/{scope}/{name}/{version}.zip`                           | Download source archive for a package release   |
 | `GET`  | `/identifiers{?url}`                                      | Lookup package identifiers registered for a URL |
 
-A formal specification for the package registry interface is provided 
-[alongside this proposal](https://github.com/apple/swift-package-manager/blob/main/Documentation/RegistryDraft.md).
+A formal specification for the package registry interface is provided
+[alongside this proposal](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md).
 In addition,
 an OpenAPI (v3) document
 and a reference implementation written in Swift
@@ -988,28 +988,6 @@ of authenticity and non-repudiation beyond what's possible with checksums alone.
 Defining a standard interface for package registries
 lays the groundwork for several useful features.
 
-### Package dependency URL normalization
-
-As described in ["Package name collision resolution"](#package-name-collision-resolution)
-Swift Package Manager cannot build a project
-if two or more packages in the project
-are located by URLs with the same (case-insensitive) last path component.
-Swift Package Manager may improve support URL-based dependencies
-by normalizing package URLs to mitigate insignificant variations.
-For example,
-a package with an ["scp-style" URL][scp-url] like
-`git@github.com:mona/LinkedList.git`
-may be determined to be equivalent to a package with an HTTPS scheme like
-`https:///github.com/mona/LinkedList`.
-
-### Local offline cache
-
-Swift Package Manager could implement an [offline cache]
-that would allow it to work without network access.
-While this is technically possible today,
-a package registry makes for a simpler and more secure implementation
-than would otherwise be possible with Git repositories alone.
-
 ### Package publishing
 
 A package registry is responsible for determining
@@ -1045,28 +1023,55 @@ reproducibility, quality assurance, and software traceability.
 
 We intend to work with industry stakeholders
 to develop standards for publishing Swift packages
-in an optional extension to the registry specification.
+in an extension to the registry specification.
 
 ### Package removal
 
-There are several reasons why a package release may be removed, including:
+Removing a package from a registry
+can break other packages that depend on it,
+as demonstrated by the ["left-pad" incident][left-pad] in March 2016.
+We believe package registries can and should
+provide strong durability guarantees
+to ensure the health of the ecosystem.
+
+At the same time,
+there are valid reasons why a package release may be removed:
 
 * The package maintainer publishing a release by mistake
 * A security researcher disclosing a vulnerability for a release
 * The registry being compelled by law enforcement to remove a release
 
-However, removing a package release has the potential to
-break any packages that depend on it.
-
-It's unclear whether or to what extent such policies should be
-informed by registry specification itself.
+It's unclear whether and to what extent package deletion policies
+should be informed by the registry specification itself.
 For now,
 a registry is free to exercise its own discretion
 about how to respond to out-of-band removal requests.
 
 We plan to consider these questions
-as part of the future, optional extension to the specification
+as part of the future extension to the specification
 described in the previous section.
+
+### Package dependency URL normalization
+
+As described in ["Package name collision resolution"](#package-name-collision-resolution)
+Swift Package Manager cannot build a project
+if two or more packages in the project
+are located by URLs with the same (case-insensitive) last path component.
+Swift Package Manager may improve support URL-based dependencies
+by normalizing package URLs to mitigate insignificant variations.
+For example,
+a package with an ["scp-style" URL][scp-url] like
+`git@github.com:mona/LinkedList.git`
+may be determined to be equivalent to a package with an HTTPS scheme like
+`https:///github.com/mona/LinkedList`.
+
+### Local offline cache
+
+Swift Package Manager could implement an [offline cache]
+that would allow it to work without network access.
+While this is technically possible today,
+a package registry makes for a simpler and more secure implementation
+than would otherwise be possible with Git repositories alone.
 
 ### Binary framework distribution
 
@@ -1199,6 +1204,7 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [ICANN]: https://www.icann.org
 [JFrog Artifactory]: https://jfrog.com/artifactory/
 [JSON-LD]: https://w3c.github.io/json-ld-syntax/ "JSON-LD 1.1: A JSON-based Serialization for Linked Data"
+[left-pad]: https://qz.com/646467/how-one-programmer-broke-the-internet-by-deleting-a-tiny-piece-of-code/ "How one programmer broke the internet by deleting a tiny piece of code"
 [Maven]: https://maven.apache.org
 [npm]: https://www.npmjs.com "The npm Registry"
 [offline cache]: https://yarnpkg.com/features/offline-cache "Offline Cache | Yarn - Package Manager"
