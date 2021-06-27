@@ -137,6 +137,16 @@ extension BankAccount {
 }  
 ```
 
+The types involved in a non-isolated declaration must all be `Sendable`, because a non-isolated declaration can be used from any actor or concurrently-executing code. For example, one could not return a non-`Sendable` class from a `nonisolated` function:
+
+```swift
+class SomeClass { } // not Sendable
+
+extension BankAccount {
+  nonisolated func f() -> SomeClass? { nil } // error: `nonisolated` declaration returns non-Sendable type `SomeClass?`
+}
+```
+
 ### Protocol conformances
 
 The actors proposal describes the rule that an actor-isolated function cannot satisfy a protocol requirement that is neither actor-isolated nor asynchronous, because doing so would allow synchronous access to actor state. However, non-isolated functions don't have access to actor state, so they are free to satisfy synchronous protocol requirements of any kind. For example, we can make `BankAccount` conform to `Hashable` by basing the hashing on the account number:
