@@ -75,7 +75,9 @@ A global actor is a type that has the `@globalActor` attribute and contains a `s
 ```swift
 @globalActor
 public struct SomeGlobalActor {
-  public static let shared = SomeGlobalActor()
+  public actor MyActor { }
+
+  public static let shared = MyActor()
 }
 ```
 
@@ -101,7 +103,7 @@ public actor MainActor {
 As illustrated in our first example, both functions and data can be attributed with a global actor type to isolate them to that global actor. Note that global actors are not restricted to global functions or data as in the first example. One can mark members of types and protocols as belonging to a global actor as well. For example, in a view controller for a graphical UI, we would expect to receive notification of user interactions on the main thread, and must update the UI on the main thread. Therefore want both the methods called on notification and also the data they use to be on the main actor. Here's an small part of a view controller from some [AppKit sample code](https://developer.apple.com/documentation/appkit/cocoa_bindings/navigating_hierarchical_data_using_outline_and_split_views):
 
 ```swift
-class IconViewController: UIViewController {
+class IconViewController: NSViewController {
   @MainActor @objc private dynamic var icons: [[String: Any]] = []
     
   @MainActor var url: URL?
@@ -190,6 +192,14 @@ However, it is permissible for the global actor qualifier to be removed when the
 let callbackAsynchly: (Int) async -> Void = callback   // okay: implicitly hops to main actor
 ```
 
+This can be thought of as syntactic sugar for the following:
+
+```swift
+let callbackAsynchly: (Int) async -> Void = {
+  await callback() // `await` is required because callback is `@MainActor`
+}
+```
+
 A global actor qualifier on a function type is otherwise independent of `@Sendable`, `async`, `throws` and most other function type attributes and modifiers. The only exception is when the function itself is also isolated to an instance actor, which is discussed in the later section on [Global actors and instance actors](#global-actors-and-instance-actors).
 
 ### Closures
@@ -254,7 +264,7 @@ It is common for entire types (and even class hierarchies) to predominantly requ
 
 ```swift
 @MainActor
-class IconViewController: UIViewController {
+class IconViewController: NSViewController {
   @objc private dynamic var icons: [[String: Any]] = [] // implicitly @MainActor
     
   var url: URL? // implicitly @MainActor
@@ -458,6 +468,21 @@ A global actor annotation is part of the type of an entity, and is therefore par
 The `@globalActor` attribute can be added to a type without breaking API.
 
 A global actor attribute (such as `@MainActor`) can neither be added nor removed from an API; either will cause breaking changes for source code that uses the API.
+
+## Effect on runtime and standard library
+
+This proposal introduces a new kind of function type, a global-actor-qualified function type, which requires updates to the Swift runtime, metadata, name mangling scheme, and dynamic-casting machinery. For example, consider the following code:
+
+```swift
+@MainActor func f(_ potentialCallback: Any) {
+  let Callback = @MainActor () -> Void
+  if let callback = potentialCallback as? Callback {
+    callback()
+  }
+}
+```
+
+The dynamic cast to a global-actor-qualified function type requires changes to the Swift runtime to represent global-actor-qualified function types and model dynamic casts of unknown values to them. Similar changes for global-actor-qualified function types are required for name mangling, which also has runtime impact.
 
 ## Future directions
 
