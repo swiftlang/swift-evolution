@@ -4,8 +4,7 @@
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.5)**
-* Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
-* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0296-async-await/43318)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0296-async-await/43318), [Amendment to allow overloading on `async`](https://forums.swift.org/t/accepted-amendment-to-se-0296-allow-overloads-that-differ-only-in-async/50117)
 
 ## Table of Contents
 
@@ -742,6 +741,7 @@ This approach has a number of downsides vs. the proposed approach here:
 * Post-review changes:
    * Replaced `await try` with `try await`.
    * Added syntactic-sugar alternative design.
+   * Amended the proposal to allow [overloading on `async`](https://github.com/apple/swift-evolution/pull/1392).
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
