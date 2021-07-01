@@ -75,13 +75,16 @@ A global actor is a type that has the `@globalActor` attribute and contains a `s
 ```swift
 @globalActor
 public struct SomeGlobalActor {
-  public static let shared = SomeGlobalActor()
+  public actor MyActor { }
+
+  public static let shared = MyActor()
 }
 ```
 
-The global actor type need not itself be an actor type; it is essentially just a marker type that provides access to the actual shared actor instance via `shared`. The shared instance is a globally-unique actor instance that becomes synonymous with the global actor type, and will be used for synchronizing access to any code or data that is annotated with the global actor.
+A global actor type can be a struct, enum, actor, or `final` class. It is essentially just a marker type that provides access to the actual shared actor instance via `shared`. The shared instance is a globally-unique actor instance that becomes synonymous with the global actor type, and will be used for synchronizing access to any code or data that is annotated with the global actor.
 
-Global actors implicitly conform to the `GlobalActor` protocol, which describes the `shared` requirement.
+Global actors implicitly conform to the `GlobalActor` protocol, which describes the `shared` requirement. The conformance of a `@globalActor` type to the `GlobalActor` protocol must occur in the same source file as the type definition, and the conformance itself cannot be conditional.
+
 
 ### The main actor
 
@@ -101,7 +104,7 @@ public actor MainActor {
 As illustrated in our first example, both functions and data can be attributed with a global actor type to isolate them to that global actor. Note that global actors are not restricted to global functions or data as in the first example. One can mark members of types and protocols as belonging to a global actor as well. For example, in a view controller for a graphical UI, we would expect to receive notification of user interactions on the main thread, and must update the UI on the main thread. Therefore want both the methods called on notification and also the data they use to be on the main actor. Here's an small part of a view controller from some [AppKit sample code](https://developer.apple.com/documentation/appkit/cocoa_bindings/navigating_hierarchical_data_using_outline_and_split_views):
 
 ```swift
-class IconViewController: UIViewController {
+class IconViewController: NSViewController {
   @MainActor @objc private dynamic var icons: [[String: Any]] = []
     
   @MainActor var url: URL?
@@ -131,24 +134,6 @@ The sample code actually triggers an update when the `url` property is set. With
   }
 }
 ```
-
-### Global actor-constrained generic parameters
-
-A generic parameter that is constrained to `GlobalActor` can be used as a global actor. For example:
-
-```swift
-@T
-class X<T: GlobalActor> {
-  func f() { ... } // constrained to the global actor T
-}
-
-@MainActor func g(x: X<MainActor>, y: X<OtherGlobalActor>) async {
-  x.f() // okay, on the main actor
-  await y.f() // okay, but requires asynchronous call because y.f() is on OtherGlobalActor
-}
-```
-
-All `@globalActor` types implicitly conform to the `GlobalActor` protocol. A type that is not marked as `@globalActor` may not conform to the `GlobalActor` protocol. The conformance of a `@globalActor` type to the `GlobalActor` protocol must occur in the same source file as the type definition, and the conformance itself cannot be conditional.
 
 ### Global actor function types
 
@@ -188,6 +173,14 @@ However, it is permissible for the global actor qualifier to be removed when the
 
 ```swift
 let callbackAsynchly: (Int) async -> Void = callback   // okay: implicitly hops to main actor
+```
+
+This can be thought of as syntactic sugar for the following:
+
+```swift
+let callbackAsynchly: (Int) async -> Void = {
+  await callback() // `await` is required because callback is `@MainActor`
+}
 ```
 
 A global actor qualifier on a function type is otherwise independent of `@Sendable`, `async`, `throws` and most other function type attributes and modifiers. The only exception is when the function itself is also isolated to an instance actor, which is discussed in the later section on [Global actors and instance actors](#global-actors-and-instance-actors).
@@ -254,7 +247,7 @@ It is common for entire types (and even class hierarchies) to predominantly requ
 
 ```swift
 @MainActor
-class IconViewController: UIViewController {
+class IconViewController: NSViewController {
   @objc private dynamic var icons: [[String: Any]] = [] // implicitly @MainActor
     
   var url: URL? // implicitly @MainActor
@@ -459,6 +452,21 @@ The `@globalActor` attribute can be added to a type without breaking API.
 
 A global actor attribute (such as `@MainActor`) can neither be added nor removed from an API; either will cause breaking changes for source code that uses the API.
 
+## Effect on runtime and standard library
+
+This proposal introduces a new kind of function type, a global-actor-qualified function type, which requires updates to the Swift runtime, metadata, name mangling scheme, and dynamic-casting machinery. For example, consider the following code:
+
+```swift
+@MainActor func f(_ potentialCallback: Any) {
+  let Callback = @MainActor () -> Void
+  if let callback = potentialCallback as? Callback {
+    callback()
+  }
+}
+```
+
+The dynamic cast to a global-actor-qualified function type requires changes to the Swift runtime to represent global-actor-qualified function types and model dynamic casts of unknown values to them. Similar changes for global-actor-qualified function types are required for name mangling, which also has runtime impact.
+
 ## Future directions
 
 ### Restricting global and static variables
@@ -469,6 +477,31 @@ A global actor annotation on a global or static variable synchronizes all access
 * Be immutable (introduced via `let`), non-isolated, and of `Sendable` type.
 
 This allows global/static immutable constants to be used freely from any code, while any data that is mutable (or could become mutable in a future version of a library) must be protected by an actor. However, it comes with significant source breakage: every global variable that exists today would require annotation. Therefore, we aren't proposing to introduce this requirement, and instead leave the general data-race safety of global and static variables to a later proposal.
+
+### Global actor-constrained generic parameters
+
+A generic parameter that is constrained to `GlobalActor` could potentially be used as a global actor. For example:
+
+```swift
+@T
+class X<T: GlobalActor> {
+  func f() { ... } // constrained to the global actor T
+}
+
+@MainActor func g(x: X<MainActor>, y: X<OtherGlobalActor>) async {
+  x.f() // okay, on the main actor
+  await y.f() // okay, but requires asynchronous call because y.f() is on OtherGlobalActor
+}
+```
+
+There are some complications here: without marking the generic parameter `T` with the `@globalActor` attribute, it wouldn't be clear what kind of custom attribute `T` is. Therefore, this might need to be expressed as, e.g.,
+
+```swift
+@T
+class X<@globalActor T> { ... }
+```
+
+which would imply the requirement `T: GlobalActor`. However, doing this would require Swift to also support attributes on generic parameters, which currently don't exist. This is a promising direction for a follow-on proposal.
 
 ## Alternatives considered
 
@@ -490,6 +523,9 @@ The primary motivation for global actors is the main actor, and the semantics of
 
 ## Revision history
 
+* Changes to the accepted version:
+  * Move global actor-constrained generic parameters to "future directions"
+  * Classes that are global actors must be `final`.
 * Changes for the second review:
     * Added the `GlobalActor` protocol, to which all global actors implictly conform.
     * Remove the requirement that all global and static variables be annotated with a global actor.
