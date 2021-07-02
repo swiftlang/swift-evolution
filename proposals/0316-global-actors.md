@@ -4,6 +4,7 @@
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 5.5)**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0316-global-actors/50116)
 
 ## Table of Contents
 
@@ -13,7 +14,6 @@
     * [Defining global actors](#defining-global-actors)
     * [The main actor](#the-main-actor)
     * [Using global actors on functions and data](#using-global-actors-on-functions-and-data)
-    * [Global actor-constrained generic parameters](#global-actor-constrained-generic-parameters)
     * [Global actor function types](#global-actor-function-types)
     * [Closures](#closures)
     * [Global and static variables](#global-and-static-variables)
@@ -26,8 +26,10 @@
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
 * [Effect on API resilience](#effect-on-api-resilience)
+* [Effect on runtime and standard library](#effect-on-runtime-and-standard-library)
 * [Future directions](#future-directions)
     * [Restricting global and static variables](#restricting-global-and-static-variables)
+    * [Global actor-constrained generic parameters](#global-actor-constrained-generic-parameters)
 * [Alternatives considered](#alternatives-considered)
     * [Singleton support](#singleton-support)
     * [Propose only the main actor](#propose-only-the-main-actor)
@@ -35,13 +37,13 @@
 
 ## Introduction
 
-[Actors](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/0306-actors.md) are a new kind of reference type that protect their instance data from concurrent access. Swift actors achieve this with *actor isolation*, which ensures (at compile time) that all accesses to that instance data go through a synchronization mechanism that serializes execution.
+[Actors](0306-actors.md) are a new kind of reference type that protect their instance data from concurrent access. Swift actors achieve this with *actor isolation*, which ensures (at compile time) that all accesses to that instance data go through a synchronization mechanism that serializes execution.
 
 This proposal introduces *global actors*, which extend the notion of actor isolation outside of a single actor type, so that global state (and the functions that access it) can benefit from actor isolation, even if the state and functions are scattered across many different types, functions and modules. Global actors make it possible to safely work with global variables in a concurrent program, as well as modeling other global program constraints such as code that must only execute on the "main thread" or "UI thread".
 
 Global actors also provide a means to eliminate data races on global and static variables, allowing access to such variables to be synchronized via a global actor.
 
-Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/pitch-global-actors/45706)
+Swift-evolution threads: [Pitch #1](https://forums.swift.org/t/pitch-global-actors/45706), [Pitch #2](https://forums.swift.org/t/pitch-2-global-actors/48332)
 
 ## Motivation
 
@@ -51,7 +53,7 @@ A primary motivator of global actors is to apply the actor model to the state an
 
 ## Proposed solution
 
-A global actor is a globally-unique actor identified by a type. That type becomes a custom attribute (similar to [property wrapper types](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md) or [result builder types](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md)). Any declaration can state that it is actor-isolated to that particular global actor by naming the global actor type as an attribute, at which point all of the normal actor-isolation restrictions come into play: the declaration can only be synchronously accessed from another declaration on the same global actor, but can be asynchronously accessed from elsewhere. For example, this proposal introduces `MainActor` as a global actor describing the main thread. It can be used to require that certain functions only execute on the main thread:
+A global actor is a globally-unique actor identified by a type. That type becomes a custom attribute (similar to [property wrapper types](0258-property-wrappers.md) or [result builder types](0289-result-builders.md)). Any declaration can state that it is actor-isolated to that particular global actor by naming the global actor type as an attribute, at which point all of the normal actor-isolation restrictions come into play: the declaration can only be synchronously accessed from another declaration on the same global actor, but can be asynchronously accessed from elsewhere. For example, this proposal introduces `MainActor` as a global actor describing the main thread. It can be used to require that certain functions only execute on the main thread:
 
 ```swift
 @MainActor var globalTextSize: Int
@@ -232,7 +234,7 @@ Global and static variables can be annotated with a global actor. Such variables
 
 func readCounter() async {
   print(globalCounter)         // error: cross-actor read requires 'await'
-  print(await globalAcounter)  // okay
+  print(await globalCounter)   // okay
 }
 ```
 
@@ -526,7 +528,7 @@ The primary motivation for global actors is the main actor, and the semantics of
   * Move global actor-constrained generic parameters to "future directions"
   * Classes that are global actors must be `final`.
 * Changes for the second review:
-    * Added the `GlobalActor` protocol, to which all global actors implictly conform.
+    * Added the `GlobalActor` protocol, to which all global actors implicitly conform.
     * Remove the requirement that all global and static variables be annotated with a global actor.
     * Added a grammar for closure attributes.
     * Clarified the interaction between the main actor and the main thread. Make the main actor a little less "special" in the initial presentation.
