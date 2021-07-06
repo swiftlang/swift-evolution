@@ -1,9 +1,9 @@
 # Conform Never to Identifiable
 
-* Proposal: [SE-NNNN](NNNN-never-identifiable.md)
+* Proposal: [SE-0319](NNNN-never-identifiable.md)
 * Authors: [Kyle Macomber](https://github.com/kylemacomber)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Active review (July 6 - July 13 2021)**
 * Implementation: [apple/swift#38103](https://github.com/apple/swift/pull/38103)
 
 ## Introduction
