@@ -1,6 +1,6 @@
 # Conform Never to Identifiable
 
-* Proposal: [SE-0319](NNNN-never-identifiable.md)
+* Proposal: [SE-0319](0319-never-identifiable.md)
 * Authors: [Kyle Macomber](https://github.com/kylemacomber)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active review (July 6 - July 13 2021)**
