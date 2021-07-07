@@ -34,19 +34,19 @@ Fortunately, Swift provides several ways for the user to provide type informatio
 * Variable type annotations:
 
 ```swift
-let losslessStringConverter: (String) -> Double = Double.init
+let losslessStringConverter: (String) -> Double? = Double.init
 ```
 
 * Type coercion via `as` (seen above):
 
 ```swift
-let losslessStringConverter = Double.init as (String) -> Double
+let losslessStringConverter = Double.init as (String) -> Double?
 ```
 
 * Passing type parameters explicitly (e.g., `JSONDecoder` ):
 
 ```swift
-let dict = JSONDecoder().decode([String: Int].self, from: data)
+let dict = try JSONDecoder().decode([String: Int].self, from: data)
 ```
 
 The downside of all of these approaches is that they require the user to write out the *entire* type, even when the compiler only needs guidance on some sub-component of that type. This can become particularly problematic in cases where a complex type that would normally be inferred has to be written out explicitly because some *unrelated* portion of the type signature is required. E.g.,
@@ -137,7 +137,7 @@ let publisher: AnyPublisher<Int, _> = Just(makeValue()).setFailureType(to: Error
 
 Now, the type checker has all the information it needs to resolve the reference to `makeValue` : the ultimately resulting `AnyPublisher` must have `Output == Int` , so the result of `setFailureType(to:)` must have `Output == Int` , so the instance of `Just` must have `Output == Int` , so the argument to `Just.init` must have type `Int` , so `makeValue` must refer to the `Int` -returning overload!
 
-Note: it is not permitted to specify a type that is _just_ a placeholder—see the relevant subsection in **Future directions** for a dicussion of the considerations. This means that, for example, the following would fail to compile:
+Note: it is not permitted to specify a type that is _just_ a placeholder—see the relevant subsection in **Future directions** for a discussion of the considerations. This means that, for example, the following would fail to compile:
 
 ```swift
 let percent: _ = 100.0 // error: placeholders are not allowed as top-level types
@@ -151,7 +151,7 @@ In some cases, placeholders may be expected to conform to certain protocols. E.g
 let dict: [_: String] = [0: "zero", 1: "one", 2: "two"]
 ```
 
-When examining the storage type for `dict` , the compiler will expect the placeholder key type to conform to `Hashable` . Conservatively, placeholder types are assumed to satisfy all necessary constraints, deferring the verification of these constraints until the checking of the intialization expression.
+When examining the storage type for `dict` , the compiler will expect the placeholder key type to conform to `Hashable` . Conservatively, placeholder types are assumed to satisfy all necessary constraints, deferring the verification of these constraints until the checking of the initialization expression.
 
 ### Generic parameter inference
 
@@ -206,31 +206,31 @@ extension Bar {
     func frobnicate() -> Bar {
         return Bar(t: 42, u: 42)
     }
-    func frobnicate2() -> Bar<_, _> {
+    func frobnicate2() -> Bar<_, _> { // error
         return Bar(t: 42, u: 42)
     }
     func frobnicate3() -> Bar {
         return Bar<_, _>(t: 42, u: 42)
     }
-    func frobnicate4() -> Bar<_, _> {
+    func frobnicate4() -> Bar<_, _> { // error
         return Bar<_, _>(t: 42, u: 42)
     }
-    func frobnicate5() -> Bar<_, U> {
+    func frobnicate5() -> Bar<_, U> { // error
         return Bar(t: 42, u: 42)
     }
     func frobnicate6() -> Bar {
         return Bar<_, U>(t: 42, u: 42)
     }
-    func frobnicate7() -> Bar<_, _> {
+    func frobnicate7() -> Bar<_, _> { // error
         return Bar<_, U>(t: 42, u: 42)
     }
-    func frobnicate8() -> Bar<_, U> {
+    func frobnicate8() -> Bar<_, U> { // error
         return Bar<_, _>(t: 42, u: 42)
     }
 }
 ```
 
-Under this proposal, only `frobnicate`, `frobnicate3` and `frobnicate6` would compile without error (`frobnicate1`, of course, compiles without this proposal as well), since all others have placeholders appearing in at least one position in the function signature.
+Under this proposal, only `frobnicate`, `frobnicate3` and `frobnicate6` would compile without error (`frobnicate`, of course, compiles without this proposal as well), since all others have placeholders appearing in at least one position in the function signature.
 
 ### Dynamic casts
 
@@ -326,7 +326,7 @@ An earlier draft of this proposal allowed for the use of placeholders as top-lev
 let x: _ = 0.0 // type of x is inferred as Double
 ```
 
-Compared to other uses of this feature, top-level placeholders are clearly of more limited utility. In type annotations (as above), they merely serve as a slightly more explicit way to indicate "this type is inferred," and they are similarly unhelpful in `as` casts. There is *some* use for top-level placeholders in type expression position, particularly when passing a metatype value as a parameter. For instance, Combine's `setFailureType(to:)` operator could be used with a top-level placeholder to make conversions between failure types more lightweight wen necessary:
+Compared to other uses of this feature, top-level placeholders are clearly of more limited utility. In type annotations (as above), they merely serve as a slightly more explicit way to indicate "this type is inferred," and they are similarly unhelpful in `as` casts. There is *some* use for top-level placeholders in type expression position, particularly when passing a metatype value as a parameter. For instance, Combine's `setFailureType(to:)` operator could be used with a top-level placeholder to make conversions between failure types more lightweight when necessary:
 
 ```swift
 let p: AnyPublisher<Int, Error> = Just<Int>().setFailureType(to: _.self).eraseToAnyPublisher()
@@ -335,7 +335,7 @@ let p: AnyPublisher<Int, Error> = Just<Int>().setFailureType(to: _.self).eraseTo
 However, as Xiaodi Wu points out, allowing placeholders in these positions would have the effect of permitting clients to leave out type names in circumstances where library authors intended the type information to be provided explicitly, such as when using `KeyedDecodingContainer.decode(_:forKey:)`. It is not obviously desirable for users to be able to write, e.g.:
 
 ```swift
-self.someProp = container.decode(_.self, forKey: .someProp)
+self.someProp = try container.decode(_.self, forKey: .someProp)
 ```
 
 Due to the additional considerations here, the author has opted to leave top-level placeholders as a future direction, which could potentially be considered once there is more real-world usage of placeholder types that could inform the benefits and drawbacks.
