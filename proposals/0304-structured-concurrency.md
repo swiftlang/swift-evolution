@@ -930,11 +930,12 @@ We also offer an asynchronous sleep function, which accepts the number of nanose
 
 ```swift
 extension Task where Success == Never, Failure == Never {
-  public static func sleep(nanoseconds duration: UInt64) async { ... }
+  public static func sleep(nanoseconds duration: UInt64) async throws { ... }
 }
 ```
 
-The sleep function accepts a plain integer as nanoseconds to sleep for which mirrors known top-level functions performing the same action in the synchronous world. Because use-sites look quite explicit in the way they have to prefix this call with an `await` keyword (`await Task.sleep(nanoseconds: nanos)`), we prefer to use the well-known `sleep` word rather than introduce new words for this functionality.
+The sleep function accepts a plain integer as nanoseconds to sleep for which mirrors known top-level functions performing the same action in the synchronous world. It will throw `CancellationError` if the task is cancelled
+while it sleeps.
 
 > The `sleep` function will gain nicer overloads once the standard library has time and deadline types, then the sleep will be able to be expressed as `await Task.sleep(until: deadline)` or `await Task.sleep(for: .seconds(1))` or similar. This proposal is not introducing those time types, so for now a bare bones sleep function is proposed.
 
@@ -1440,6 +1441,7 @@ All of the changes described in this document are additive to the language and a
 
 Changes after the third review:
 - renamed `Task.sleep(_:)` to `Task.sleep(nanoseconds:)`. This makes it clear that the wait is in nanoseconds, and leaves API space open for a `sleep(_:)` based on a better duration type in the future.
+- made `Task.sleep(nanoseconds:)` throwing; it will throw `CancellationError` if the sleeping task was cancelled.
 - renamed `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. The fundamental behavior here is that we're adding a task to the group. `add` by itself does not suffice, because we aren't adding a value (accessible via `next()`), we are adding a task whose value will be accessible via `next()`. It also parallels the use of `Task { ... }` to create top-level tasks.
 - renamed `TaskPriority.default` to `TaskPriority.medium`, because `nil` passed in to a `TaskPriority?` parameter is effectively the default for most APIs.
 - added `TaskGroup.waitForAll` and `ThrowingTaskGroup.waitForAll`.
