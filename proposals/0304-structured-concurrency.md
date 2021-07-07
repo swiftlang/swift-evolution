@@ -918,11 +918,11 @@ func download(url: URL) async throws -> Data? {
 #### Voluntary Suspension
 
 For long-running operations, say performing many computations in a tight loop
-without natural suspend points, it might be beneficial to occasionally check in if the task should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use case, `Task` includes a `yield()` operation, which is a way to explicitly suspend the current task and give other tasks a chance to run for a while. 
+without natural suspend points, it might be beneficial to occasionally check in if the task should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use case, `Task` includes a `suspend()` operation, which is a way to explicitly suspend the current task and give other tasks a chance to run for a while. 
 
 ```swift
 extension Task where Success == Never, Failure == Never {
-  static func yield() async { ... }
+  static func suspend() async { ... }
 }
 ```
 
@@ -1439,10 +1439,11 @@ All of the changes described in this document are additive to the language and a
 ### Review changes
 
 Changes after the third review:
-- rename `Task.sleep` to `Task.sleep(nanoseconds:)`.
-- rename `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. The fundamental behavior here is that we're adding a task to the group. `add` by itself does not suffice, because we aren't adding a value (accessible via `next()`), we are adding a task whose value will be accessible via `next()`. It also parallels the use of `Task { ... }` to create top-level tasks.
-- rename `TaskPriority.default` to `TaskPriority.medium`, because `nil` passed in to a `TaskPriority?` parameter is effectively the default for most APIs.
+- renamed `Task.sleep(_:)` to `Task.sleep(nanoseconds:)`. This makes it clear that the wait is in nanoseconds, and leaves API space open for a `sleep(_:)` based on a better duration type in the future.
+- renamed `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. The fundamental behavior here is that we're adding a task to the group. `add` by itself does not suffice, because we aren't adding a value (accessible via `next()`), we are adding a task whose value will be accessible via `next()`. It also parallels the use of `Task { ... }` to create top-level tasks.
+- renamed `TaskPriority.default` to `TaskPriority.medium`, because `nil` passed in to a `TaskPriority?` parameter is effectively the default for most APIs.
 - added `TaskGroup.waitForAll` and `ThrowingTaskGroup.waitForAll`.
+- renamed `Task.yield()` to `Task.suspend()`, which more accurately represents what this operation action does, and leaves the name "yield" for future work on generators.
 
 Changes after the second review:
 
