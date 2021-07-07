@@ -1169,7 +1169,7 @@ extension TaskGroup: AsyncSequence {
   ///
   /// It is also possible to use `for await` to collect results of a task groups:
   ///
-  ///     for await try value in group {
+  ///     for await value in group {
   ///         collected += value
   ///     }
   ///
@@ -1199,6 +1199,14 @@ extension TaskGroup: AsyncSequence {
   /// It is possible to directly rethrow such error out of a `withTaskGroup` body
   /// function's body, causing all remaining tasks to be implicitly cancelled.
   mutating func next() async -> ChildTaskResult? { ... }
+
+  /// Wait for all of the child tasks to complete.
+  ///
+  /// This operation is the equivalent of
+  ///
+  ///     for await _ in self { }
+  ///
+  mutating func waitForAll() async { ... }
 
   /// Query whether the group has any remaining tasks.
   ///
@@ -1272,6 +1280,15 @@ extension ThrowingTaskGroup: AsyncSequence {
   /// Wait for a task to complete and return the result or thrown error packaged in
   /// a `Result` instance. Returns `nil` only when there are no tasks left in the group.
   mutating func nextResult() async -> Result<ChildTaskResult, Error>?
+
+  /// Wait for all of the child tasks to complete, or throws an error if any of the
+  /// child tasks throws.
+  ///
+  /// This operation is the equivalent of
+  ///
+  ///     for try await _ in self { }
+  ///
+  mutating func waitForAll() async throws { ... }
 
   /// Query whether the task group has any remaining tasks.
   var isEmpty: Bool { ... } 
@@ -1425,6 +1442,7 @@ Changes after the third review:
 - rename `Task.sleep` to `Task.sleep(nanoseconds:)`.
 - rename `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. The fundamental behavior here is that we're adding a task to the group. `add` by itself does not suffice, because we aren't adding a value (accessible via `next()`), we are adding a task whose value will be accessible via `next()`. It also parallels the use of `Task { ... }` to create top-level tasks.
 - rename `TaskPriority.default` to `TaskPriority.medium`, because `nil` passed in to a `TaskPriority?` parameter is effectively the default for most APIs.
+- added `TaskGroup.waitForAll` and `ThrowingTaskGroup.waitForAll`.
 
 Changes after the second review:
 
