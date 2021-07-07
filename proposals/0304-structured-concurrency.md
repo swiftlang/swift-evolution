@@ -932,11 +932,11 @@ We also offer an asynchronous sleep function, which accepts the number of nanose
 
 ```swift
 extension Task where Success == Never, Failure == Never {
-  public static func sleep(_ duration: UInt64) async { ... }
+  public static func sleep(nanoseconds duration: UInt64) async { ... }
 }
 ```
 
-The sleep function accepts a plain integer as nanoseconds to sleep for which mirrors known top-level functions performing the same action in the synchronous world. Because use-sites look quite explicit in the way they have to prefix this call with an `await` keyword (`await Task.sleep(nanos)`), we prefer to use the well-known `sleep` word rather than introduce new words for this functionality.
+The sleep function accepts a plain integer as nanoseconds to sleep for which mirrors known top-level functions performing the same action in the synchronous world. Because use-sites look quite explicit in the way they have to prefix this call with an `await` keyword (`await Task.sleep(nanoseconds: nanos)`), we prefer to use the well-known `sleep` word rather than introduce new words for this functionality.
 
 > The `sleep` function will gain nicer overloads once the standard library has time and deadline types, then the sleep will be able to be expressed as `await Task.sleep(until: deadline)` or `await Task.sleep(for: .seconds(1))` or similar. This proposal is not introducing those time types, so for now a bare bones sleep function is proposed.
 
@@ -1425,6 +1425,7 @@ All of the changes described in this document are additive to the language and a
 
 Changes after the second review:
 
+- rename `Task.sleep` to `Task.sleep(nanoseconds:)`.
 - remove `Priority.unspecified` and use `nil` as unspecified value.
 - introduce platform independent priority names: `high`, `default`, `low`, `background`. The Apple platform specific names remain as aliases and can be used on apple platforms where they make sense. These names have a long history and were even originally used in dispatch itself. We discussed and confirmed with various teams inside Apple that those names work well for the future evolution of the platform.
 - future-proof the `TaskPriority` type by changing it to a `RawRepresentable` `struct` with static computed properties. We do not immediately have any plans to introduce new priorities, but want to allow for such future extension if necessary.
