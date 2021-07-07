@@ -625,12 +625,12 @@ struct TaskPriority: UInt8, Comparable, Sendable {
 /// 
 /// The priorities are ordered from highest to lowest as follows:
 /// - `high`
-/// - `default`
+/// - `medium`
 /// - `low`
 /// - `background`
 extension TaskPriority {
   static var high: TaskPriority { ... }
-  static var `default`: TaskPriority { ... }
+  static var medium: TaskPriority { ... }
   static var low: TaskPriority { ... }
   static var background: TaskPriority { ... }
 }
@@ -639,7 +639,6 @@ extension TaskPriority {
 /// 
 /// The priorities are ordered from highest to lowest as follows:
 /// - `userInitiated` (alias for `high` priority)
-/// - `default`
 /// - `utility` (alias for `low` priority)
 /// - `background`
 /// 
@@ -657,7 +656,6 @@ extension TaskPriority {
   /// 
   /// Alias for `TaskPriority.low`
   static var utility: TaskPriority { ... }
-        
 }
 
 extension Task where Success == Never, Failure == Never { 
@@ -1426,6 +1424,7 @@ All of the changes described in this document are additive to the language and a
 Changes after the third review:
 - rename `Task.sleep` to `Task.sleep(nanoseconds:)`.
 - rename `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. The fundamental behavior here is that we're adding a task to the group. `add` by itself does not suffice, because we aren't adding a value (accessible via `next()`), we are adding a task whose value will be accessible via `next()`. It also parallels the use of `Task { ... }` to create top-level tasks.
+- rename `TaskPriority.default` to `TaskPriority.medium`, because `nil` passed in to a `TaskPriority?` parameter is effectively the default for most APIs.
 
 Changes after the second review:
 
