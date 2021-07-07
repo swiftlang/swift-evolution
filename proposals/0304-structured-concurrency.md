@@ -1423,14 +1423,17 @@ All of the changes described in this document are additive to the language and a
 
 ### Review changes
 
+Changes after the third review:
+- rename `Task.sleep` to `Task.sleep(nanoseconds:)`.
+- rename `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. The fundamental behavior here is that we're adding a task to the group. `add` by itself does not suffice, because we aren't adding a value (accessible via `next()`), we are adding a task whose value will be accessible via `next()`. It also parallels the use of `Task { ... }` to create top-level tasks.
+
 Changes after the second review:
 
-- rename `Task.sleep` to `Task.sleep(nanoseconds:)`.
 - remove `Priority.unspecified` and use `nil` as unspecified value.
 - introduce platform independent priority names: `high`, `default`, `low`, `background`. The Apple platform specific names remain as aliases and can be used on apple platforms where they make sense. These names have a long history and were even originally used in dispatch itself. We discussed and confirmed with various teams inside Apple that those names work well for the future evolution of the platform.
 - future-proof the `TaskPriority` type by changing it to a `RawRepresentable` `struct` with static computed properties. We do not immediately have any plans to introduce new priorities, but want to allow for such future extension if necessary.
 - remove the ability to create new tasks at the `userInteractive` priority. This priority will be used only be the runtime itself, e.g. by the main thread and automatically inherited properly by any other tasks (and downgraded to `userInitiated`)
-- `TaskGroup.spawn` and `TaskGroup.spawnUnlessCancelled` have been renamed to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. This emphasizes that one is adding a new task into the task group and is more consistent with top-level task initialization.
+- `TaskGroup.spawn` and `TaskGroup.spawnUnlessCancelled` have been renamed to `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled`.
 - remove `Task.current` and the general ability to get hold of a child task instance. This change unlocks important optimizations in the compiler and runtime
 - collapse `Task.Handle<Success, Failure>` into `Task<Success, Failure>`. This is the most-used type in the Task API and should have the shortest name.
 - merge the `async { }` proposal ([pitched here](https://forums.swift.org/t/initiating-asynchronous-work-from-synchronous-code/47714)) into this proposal, such that we have always to create tasks in this proposal to review at-once, and make it the task instance initializer `Task { ... }`
