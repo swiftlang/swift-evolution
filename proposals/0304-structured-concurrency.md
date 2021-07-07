@@ -979,7 +979,7 @@ Task groups are created using `withTaskGroup` in any asynchronous context, provi
 /// child tasks (or the group) cannot react to cancellation by throwing a 
 /// `CancellationError`, however they may interrupt their work and e.g. return 
 /// some best-effort approximation of their work. 
-///created
+///
 /// If throwing is a good option for the kinds of tasks created by the group,
 /// consider using the `withThrowingTaskGroup` function instead.
 ///
