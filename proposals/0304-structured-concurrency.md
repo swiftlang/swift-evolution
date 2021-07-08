@@ -934,8 +934,7 @@ extension Task where Success == Never, Failure == Never {
 }
 ```
 
-The sleep function accepts a plain integer as nanoseconds to sleep for which mirrors known top-level functions performing the same action in the synchronous world. It will throw `CancellationError` if the task is cancelled
-while it sleeps.
+The sleep function accepts a plain integer as nanoseconds to sleep for, which mirrors known top-level functions performing the same action in the synchronous world. It will throw `CancellationError` if the task is cancelled while it sleeps, without waiting for the full sleep duration.
 
 > The `sleep` function will gain nicer overloads once the standard library has time and deadline types, then the sleep will be able to be expressed as `await Task.sleep(until: deadline)` or `await Task.sleep(for: .seconds(1))` or similar. This proposal is not introducing those time types, so for now a bare bones sleep function is proposed.
 
