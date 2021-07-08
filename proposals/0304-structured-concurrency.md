@@ -869,8 +869,8 @@ For tasks that want to react immediately to cancellation (rather than, say, wait
 ///
 /// This function returns instantly and will never suspend.
 func withTaskCancellationHandler<T>(
-  operation: () async throws -> T
-  onCancel handler: @Sendable () -> Void,
+  operation: () async throws -> T,
+  onCancel handler: @Sendable () -> Void
 ) async rethrows -> T
 ```
 
@@ -909,7 +909,7 @@ func download(url: URL) async throws -> Data? {
       }
       urlSessionTask?.resume()
     }
-  }, onCancel: {
+  } onCancel: {
     urlSessionTask?.cancel() // runs immediately when cancelled
   }
 }
