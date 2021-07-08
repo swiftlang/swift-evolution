@@ -601,10 +601,14 @@ The `withUnsafeCurrentTask` function returns an _optional_ `UnsafeCurrentTask`, 
 The `UnsafeCurrentTask` is also `Equatable` and `Hashable`, whose identity is based on the internal task object which is the same as the one used by `Task`.
 
 ```swift
-struct UnsafeCurrentTask: Equatable, Hashable {} 
+struct UnsafeCurrentTask: Equatable, Hashable {
+  public var isCancelled: Bool { get }
+  public var priority: TaskPriority { get }
+  public func cancel()
+} 
 ```
 
-`UnsafeCurrentTask` has all the same query operations as `Task` (i.e. `isCancelled`, `priority`, ...) which are equally safe to invoke on the unsafe task as on a normal task, however it may define more APIs in the future that are more fragile and must only ever be invoked while executing on the same task (e.g. access to [Task-Local Values](0311-task-locals.md) which are defined in a separate proposal).
+`UnsafeCurrentTask` has all the same query operations as `Task` (i.e. `isCancelled`, `priority`, ...) and the ability to cancel (`cancel()`), which are equally safe to invoke on the unsafe task as on a normal task, however it may define more APIs in the future that are more fragile and must only ever be invoked while executing on the same task (e.g. access to [Task-Local Values](0311-task-locals.md) which are defined in a separate proposal).
 
 #### Task priorities
 
@@ -1438,7 +1442,12 @@ All of the changes described in this document are additive to the language and a
 
 ### Review changes
 
+Changes after the fourth review:
+
+* added `UnsafeCurrentTask.cancel()` to cancel the task.
+
 Changes after the third review:
+
 - renamed `Task.sleep(_:)` to `Task.sleep(nanoseconds:)`. This makes it clear that the wait is in nanoseconds, and leaves API space open for a `sleep(_:)` based on a better duration type in the future.
 - made `Task.sleep(nanoseconds:)` throwing; it will throw `CancellationError` if the sleeping task was cancelled.
 - renamed `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. The fundamental behavior here is that we're adding a task to the group. `add` by itself does not suffice, because we aren't adding a value (accessible via `next()`), we are adding a task whose value will be accessible via `next()`. It also parallels the use of `Task { ... }` to create top-level tasks.
