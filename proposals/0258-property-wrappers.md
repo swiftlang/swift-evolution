@@ -557,7 +557,7 @@ final class ThreadSpecific<T> {
 
 ### User defaults
 
-Property wrappers can be used to provide typed properties into for
+Property wrappers can be used to provide typed properties for
 string-keyed data, such as [user defaults](https://developer.apple.com/documentation/foundation/userdefaults) (example courtesy of Harlan Haskins),
 encapsulating the mechanism for extracting that data in the wrapper type.
 For example:
@@ -830,7 +830,7 @@ Note that this design means that property wrapper composition is not commutative
 @Copying @DelayedMutable var path2: UIBezierPath   // error: _path2 has ill-formed type Copying<DelayedMutable<UIBezierPath>>
 ```
 
-In this case, the type checker prevents the second ordering, because `DelayedMutable` does not conform to the `NSCopying` protocol. This won't always be the case: some semantically-bad compositions won't necessarily by caught by the type system. Alternatives to this approach to composition are presented in "Alternatives considered." 
+In this case, the type checker prevents the second ordering, because `DelayedMutable` does not conform to the `NSCopying` protocol. This won't always be the case: some semantically-bad compositions won't necessarily be caught by the type system. Alternatives to this approach to composition are presented in "Alternatives considered." 
 
 ## Detailed design
 
@@ -857,12 +857,12 @@ type is the wrapper type. That stored property can be initialized
 in one of three ways:
 
 1. Via a value of the original property's type (e.g., `Int` in `@Lazy var
-   foo: Int`, using the the property wrapper type's
+   foo: Int`, using the property wrapper type's
    `init(wrappedValue:)` initializer. That initializer must have a single
    parameter of the same type as the `wrappedValue` property (or
    be an `@autoclosure` thereof) and have the same access level as the 
    property wrapper type itself. When `init(wrappedValue:)` is present,
-   is is always used for the initial value provided on the property
+   is always used for the initial value provided on the property
    declaration. For example:
 
    ```swift
@@ -961,7 +961,7 @@ In any case, the first wrapper type is constrained to be a specialization of the
 @Lazy<Int> var bar: Double  // error: Lazy<Int>.wrappedValue is of type Int, not Double
 ```
 
-The deduction can also provide a type for the original property (if a type annotation was omitted) or deduce generic arguments that have omitted from the type annotation. For example:
+The deduction can also provide a type for the original property (if a type annotation was omitted) or deduce generic arguments that have been omitted from the type annotation. For example:
 
 ```swift
 @propertyWrapper
@@ -1254,7 +1254,7 @@ struct AB<Value> {
 }
 ```
 
-The main benefit of this approach is its predictability: the author of `AB` decides how to best achieve the composition of `A` and `B`, names it appropriately, and provides the right API and documentation of its semantics. On the other hand, having to manually write out each of the compositions is a lot of boilerplate, particularly for a feature whose main selling point is the elimination of boilerplate. It is also unfortunate to have to invent names for each composition---when I try the compose `A` and `B` via `@A @B`, how do I know to go look for the manually-composed property wrapper type `AB`? Or maybe that should be `BA`?
+The main benefit of this approach is its predictability: the author of `AB` decides how to best achieve the composition of `A` and `B`, names it appropriately, and provides the right API and documentation of its semantics. On the other hand, having to manually write out each of the compositions is a lot of boilerplate, particularly for a feature whose main selling point is the elimination of boilerplate. It is also unfortunate to have to invent names for each composition---when I try to compose `A` and `B` via `@A @B`, how do I know to go look for the manually-composed property wrapper type `AB`? Or maybe that should be `BA`?
 
 ### Composition via nested type lookup
 One proposed approach to composition addresses only the last issue above directly, treating the attribute-composition syntax `@A @B` as  a lookup of the nested type `B` inside `A` to find the wrapper type:
@@ -1276,7 +1276,7 @@ This approach addresses the syntax for composition while maintaining control ove
   
 ### Composition without nesting
 
-There has been a desire to effect composition of property wrappers without having to wrap one property wrapper type in the other. For example, to have `@A @B` apply the policies of both `A` and `B` without producing a nested type like `A<B<Int>>`. This would make potentially make composition more commutative, at least from the type system perspective. However, this approach does not fit with the "wrapper" approach taken by property wrappers. In a declaration
+There has been a desire to effect composition of property wrappers without having to wrap one property wrapper type in the other. For example, to have `@A @B` apply the policies of both `A` and `B` without producing a nested type like `A<B<Int>>`. This would potentially make composition more commutative, at least from the type system perspective. However, this approach does not fit with the "wrapper" approach taken by property wrappers. In a declaration
 
 ```swift
 @A @B var x: Int
@@ -1304,10 +1304,10 @@ because we'd need to cope with `mutating get` as well as `set` and
 `nonmutating set`. Moreover, protocols don't support optional
 requirements, like `init(wrappedValue:)` (which also has two
 forms: one accepting a `Value` and one accepting an `@autoclosure ()
--> Value`) and `init()`. To cover all of these cases, we would need a
+-> Value`) and `init()`. To cover all of these cases, we would need
 several related-but-subtly-different protocols.
 
-The second issue that, even if there were a single `PropertyWrapper`
+The second issue is that, even if there were a single `PropertyWrapper`
 protocol, we don't know of any useful generic algorithms or data
 structures that seem to be implemented in terms of only
 `PropertyWrapper`.
@@ -1527,7 +1527,7 @@ var wrappedValue: Value {
 }
 ```
 
-The same model could be extended to static properties of types (passing the metatype instance for the enclosing `self`) as well as global and local properties (no enclsoing `self`), although we would also need to extend key path support to static, global, and local properties to do so.
+The same model could be extended to static properties of types (passing the metatype instance for the enclosing `self`) as well as global and local properties (no enclosing `self`), although we would also need to extend key path support to static, global, and local properties to do so.
  
 ### Delegating to an existing property
 
