@@ -3,8 +3,9 @@
 * Proposal: [SE-0319](0319-never-identifiable.md)
 * Authors: [Kyle Macomber](https://github.com/kylemacomber)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (July 6 - July 13 2021)**
+* Status: **Accepted**
 * Implementation: [apple/swift#38103](https://github.com/apple/swift/pull/38103)
+* Review: [Forum discussion](https://forums.swift.org/t/se-0319-never-as-identifiable/)
 
 ## Introduction
 
