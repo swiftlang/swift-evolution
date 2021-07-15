@@ -1,11 +1,12 @@
 # Conform Never to Identifiable
 
 * Proposal: [SE-0319](0319-never-identifiable.md)
-* Authors: [Kyle Macomber](https://github.com/kylemacomber)
+* Author: [Kyle Macomber](https://github.com/kylemacomber)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.5)**
 * Implementation: [apple/swift#38103](https://github.com/apple/swift/pull/38103)
-* Review: [Forum discussion](https://forums.swift.org/t/se-0319-never-as-identifiable/)
+* Review: [Forum discussion](https://forums.swift.org/t/se-0319-never-as-identifiable/50246)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0319-never-as-identifiable/50473)
 
 ## Introduction
 
