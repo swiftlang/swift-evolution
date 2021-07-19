@@ -832,7 +832,28 @@ async let veggies = chopVegetables()
 await veggies
 ```
 
+### Braces around the `async let` initializer
 
+The expression on the right-hand side of an `async let` declaration is executed in a separate, child task that is running concurrently with the function that initiates the `async let`. It has been suggested that the task should be called out more explicitly by adding a separate set of braces around the expression, e.g.,
+
+```swift
+async let veggies = { try await chopVegetables() }
+```
+
+The problem with requiring braces is that it breaks the equivalence between the type of the entity being declared (`veggies` is of type `[Vegetable]`) and the value it is initialized with (which now appears to be `@Sendable () async throws -> [Vegetable]`). This equivalence holds throughout nearly all of the language; the only real exception is the `if let` syntax, which which strips a level of optionality and is often considered a design mistake in Swift. For `async let`, requiring the braces would become particularly awkward if one were defining a value of closure type:
+
+```swift
+async let closure = { { try await getClosure() } }
+```
+
+Requiring braces on the right-hand side of `async let` would be a departure from Swift's existing precedent with `let` declarations. In the cases where one is defining a longer child task, it is reasonable to create and immediately call a closure, which is common practice with `lazy` variables:
+
+```swift
+async let image: Image = {
+  let data = try await download(url: url)
+  return try await Image(from: data)
+}()
+```
 
 ## Revision history
 
@@ -840,6 +861,7 @@ After the first review:
 
 * Expanded the discussion of implicit suspension points in Alternatives Considered with a more comprehensive design sketch for making all suspension points explicit.
 * Added discussion of the use of property wrappers instead of `async let` to Alternatives Considered.
+* Added discussion about requiring braces around an `async let` initializer expression to Alternatives Considered.
 
 After initial pitch (as part of Structured Concurrency):
 
