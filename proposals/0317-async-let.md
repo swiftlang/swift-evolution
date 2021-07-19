@@ -22,6 +22,10 @@ Discussion threads:
   - [Pitch #3](https://forums.swift.org/t/pitch-3-async-let/48336).
 - Separate discussion on [scoped suspension points](https://forums.swift.org/t/async-let-and-scoped-suspension-points/49846).
 
+[TOC]
+
+
+
 ## Motivation
 
 In [SE-0304: Structured Concurrency](0304-structured-concurrency.md) we introduced the concept of tasks and task groups, which can be used to spawn multiple concurrently executing child-tasks and collect their results before exiting out of the task group.
