@@ -20,7 +20,7 @@ Discussion threads:
   - [Pitch #2](https://forums.swift.org/t/pitch-2-structured-concurrency/43452).
 - and later separated into its own proposal:
   - [Pitch #3](https://forums.swift.org/t/pitch-3-async-let/48336).
-- Separate discussion on [scoped suspension points](https://forums.swift.org/t/async-let-and-scoped-suspension-points/49846)
+- Separate discussion on [scoped suspension points](https://forums.swift.org/t/async-let-and-scoped-suspension-points/49846).
 
 ## Motivation
 
@@ -780,11 +780,66 @@ The rules above attempt to limit the places in which the new `await` syntaxes ar
 
 We feel that the complexity of the solution for marking all suspension points, which includes both the grammar expansion for marking control-flow edges and the flow-sensitive analysis to only require the additional `await` marking when necessary, exceeds the benefits of adding it. Instead, we feel that the presence of `async let` in a block with complicated control flow is sufficient to imply the presence of additional suspension points.
 
+### Property wrappers instead of `async let`
+
+The combination of [property wrappers](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and [effectful properties](https://github.com/apple/swift-evolution/blob/main/proposals/0310-effectful-readonly-properties.md) implies that one could approximate the behavior of `async let` with a property wrapper, e.g.,
+
+```swift
+@AsyncLet var veggies = try await chopVegetables()
+```
+
+One problem with this approach is that property wrappers cannot provide the semantics of structured concurrency. This becomes more apparent when trying to implement such a property wrapper:
+
+```swift
+@propertyWrapper
+class AsyncLet<Wrapped: Sendable> {
+  var task: Task<Wrapped, Error>
+  
+  init(wrappedValue fn: @autoclosure(escaping) @Sendable () async throws -> Wrapped) {
+    self.task = Task.detached {  // have to produce a detached task; cannot create a child task
+      try await fn()
+    }
+  }
+  
+  var wrappedValue: Wrapped {
+    get async throws {
+      try await task.value
+    }
+  }
+  
+  deinit {
+    // we can cancel the task...
+    task.cancel()
+    
+    // ... but we cannot wait for it to complete, because deinits cannot be async
+  }
+}
+```
+
+A property-wrapper approach is forced to create unstructured concurrency to capture the task, which is then subject to escaping (e.g.,  the synthesized backing storage property `_veggies`). Once we have unstructured concurrency, there is no way to get the structure back: the deinitializer cannot wait on completion of the task, so the task would keep running after the `@AsyncLet` property has been destroyed. The lack of structure also affects the compiler's ability to reason about (and therefore optimize) the use of this feature: as a structured concurrency primitive, `async let` can be optimized by the compiler to (e.g.) share storage of its async stack frames with its parent async task, eliminating spurious allocations, and provide more optimal access patterns for the resulting value. To address the semantic and performance issues with using property wrappers, an `@AsyncLet` property wrapper would effectively be hard-coded syntax in the compiler that is property-wrapper-like, but not actually a property wrapper.
+
+One thing that is lost with the property-wrapper approach that the definition of a property such as
+
+```swift
+@AsyncLet var veggies = try await chopVegetables()
+```
+
+loses the `async` keyword. With `async let`, the names introduced are clearly `async` and therefore must be `await`'ed when they are used, as with other `async` entities in the language:
+
+```swift
+async let veggies = chopVegetables()
+...
+await veggies
+```
+
+
+
 ## Revision history
 
 After the first review:
 
 * Expanded the discussion of implicit suspension points in Alternatives Considered with a more comprehensive design sketch for making all suspension points explicit.
+* Added discussion of the use of property wrappers instead of `async let` to Alternatives Considered.
 
 After initial pitch (as part of Structured Concurrency):
 
