@@ -157,18 +157,14 @@ A valid package scope matches the following regular expression pattern:
 ```
 
 A package's *name* uniquely identifies a package in a scope.
-The maximum length of a package name is 128 characters.
+The maximum length of a package name is 100 characters.
 A valid package name matches the following regular expression pattern:
 
 ```regexp
-\A\p{XID_Start}\p{XID_Continue}{0,127}\z
+\A[a-zA-Z\d_.-]{1,100}\z
 ```
 
-> For more information,
-> see [Unicode Identifier and Pattern Syntax][UAX31].
-
-Package names are compared using
-[Normalization Form Compatible Composition (NFKC)][UAX15]
+Package scopes and names are compared using
 with locale-independent case folding.
 
 #### New `PackageDescription` API
@@ -403,12 +399,16 @@ $ swift package archive-source --output="LinkedList-1.2.0.zip"
 ```
 
 The `archive-source` subcommand has the equivalent behavior of
-[`git-archive(1)`] using the `zip` format at its default compression level.
+[`git-archive(1)`] using the `zip` format at its default compression level,
+with entries prefixed by the basename of the generated archive's filename.
 Therefore, the following command produces
 equivalent output to the previous example:
 
 ```console
-$ git archive --format zip --output LinkedList-1.2.0.zip 1.2.0
+$ git archive --format zip \
+              --prefix LinkedList-1.2.0
+              --output LinkedList-1.2.0.zip \
+              1.2.0
 ```
 
 If desired, this behavior could be changed in future tool versions.
@@ -1242,10 +1242,6 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [TOFU]: https://en.wikipedia.org/wiki/Trust_on_first_use "Trust on First Use"
 [transparent log]: https://research.swtch.com/tlog
 [typosquatting]: https://en.wikipedia.org/wiki/Typosquatting
-[UAX15]: http://www.unicode.org/reports/tr15/ "Unicode Technical Report #15: Unicode Normalization Forms"
-[UAX18]: http://www.unicode.org/reports/tr18/ "Unicode Technical Report #18: Unicode Regular Expressions"
-[UAX31]: http://www.unicode.org/reports/tr31/ "Unicode Technical Report #31: Unicode Identifier and Pattern Syntax"
-[UAX36]: http://www.unicode.org/reports/tr36/ "Unicode Technical Report #36: Unicode Security Considerations"
 [UTI]: https://en.wikipedia.org/wiki/Uniform_Type_Identifier
 [version-specific-manifest-selection]: https://github.com/apple/swift-package-manager/blob/main/Documentation/Usage.md#version-specific-manifest-selection "Swift Package Manager - Version-specific Manifest Selection"
 [version-specific-tag-selection]: https://github.com/apple/swift-package-manager/blob/main/Documentation/Usage.md#version-specific-tag-selection "Swift Package Manager - Version-specific Tag Selection"
