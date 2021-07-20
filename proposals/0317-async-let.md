@@ -649,7 +649,7 @@ func runLoop() async {
   for e in list {
     async let a = f(e)
     guard <condition> else {
-      break // cancels and implicitly awaits the task that produces a
+      break // cancels and implicitly awaits the task that produces "a"
     }
     ... await a ...
   }
@@ -663,7 +663,7 @@ or a function where the implicit await occurs due to an error being both thrown 
 func runException() async {
   do {
     async let a = f()
-    try mayFail() // cancels and implicitly awaits the task that produces a
+    try mayFail() // cancels and implicitly awaits the task that produces "a"
     ... await a ...
   } catch {
     ...
@@ -671,7 +671,7 @@ func runException() async {
 }
 ```
 
-In the second example, the `do` block will exit when `mayFail()` throws an error, at which point the child task that computes `a` will need to be cancelled and awaited. However, there is no place to write `await a` to make that suspension point implicit. Therefore, requiring every potential suspension point due to an `async let` to be explicitly marked will require an extension to the Swift grammar.
+In the second example, the `do` block will exit when `mayFail()` throws an error, at which point the child task that computes `a` will need to be cancelled and awaited. However, there is no place to write `await a` to make that suspension point explicit. Therefore, requiring every potential suspension point due to an `async let` to be explicitly marked will require an extension to the Swift grammar.
 
 The most promising approach to marking all `async let` suspension points explicitly involves marking the control-flow edges that can result in a potential suspension point with `await`. For the first example, this means using `await break`:
 
@@ -680,7 +680,7 @@ func runLoop() async {
   for e in list {
     async let a = f(e)
     guard <condition> else {
-      await break   // awaits the child task that produces the value a
+      await break   // awaits the child task that produces the value "a"
     }
     ... await a ...
   }
@@ -749,7 +749,7 @@ func runSwitchCase() async {
 }
 ```
 
-The above is a significant expansion of the grammar: introducing the `await` keyword in front of `break`, `continue`, `throw`, and `fallthrough`; requiring `await` on certain throwing expressions; and adding the freestanding `await`statement. It would also need to be coupled with rules that only require the new `await` when it is semantically meaningful. For example, the additional `await` shouldn't be required if all of the `async let` child tasks have already been explicitly awaited in some other manner, e.g.,
+The above is a significant expansion of the grammar: introducing the `await` keyword in front of `break`, `continue`, `throw`, and `fallthrough`; requiring `await` on certain throwing expressions; and adding the freestanding `await` statement. It would also need to be coupled with rules that only require the new `await` when it is semantically meaningful. For example, the additional `await` shouldn't be required if all of the `async let` child tasks have already been explicitly awaited in some other manner, e.g.,
 
 ```swift
 func runIfFallthroughOkay() async {
@@ -850,7 +850,7 @@ The problem with requiring braces is that it breaks the equivalence between the 
 async let closure = { { try await getClosure() } }
 ```
 
-Requiring braces on the right-hand side of `async let` would be a departure from Swift's existing precedent with `let` declarations. In the cases where one is defining a longer child task, it is reasonable to create and immediately call a closure, which is common practice with `lazy` variables:
+Requiring braces on the right-hand side of `async let` would be a departure from Swift's existing precedent with `let` declarations. In the cases where one is defining a syntactically larger child task, it is reasonable to create and immediately call a closure, which is common practice with `lazy` variables:
 
 ```swift
 async let image: Image = {
