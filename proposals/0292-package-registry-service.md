@@ -788,6 +788,17 @@ A registry can further improve on this model by implementing a
 or another comparable, tamper-proof system
 for authenticating package contents.
 
+Distribution of packages through Zip files
+introduces new potential attack vectors.
+For example,
+an attacker could maliciously tamper with a generated source archive
+in an attempt to exploit
+a known vulnerability like [Zip Slip],
+or a common software weakness like susceptibility to a [Zip bomb].
+Swift Package Manager should take care to
+identify and protect against these kinds of attacks 
+in its implementation of source archive decompression.
+
 ### Repudiation
 
 A compromised host could serve a malicious package with a valid checksum
@@ -1247,3 +1258,5 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [version-specific-tag-selection]: https://github.com/apple/swift-package-manager/blob/main/Documentation/Usage.md#version-specific-tag-selection "Swift Package Manager - Version-specific Tag Selection"
 [XCFramework]: https://developer.apple.com/videos/play/wwdc2019/416/ "WWDC 2019 Session 416: Binary Frameworks in Swift"
 [xss]: https://en.wikipedia.org/wiki/Cross-site_scripting
+[Zip bomb]: https://en.wikipedia.org/wiki/Zip_bomb "Zip bomb"
+[Zip Slip]: https://snyk.io/research/zip-slip-vulnerability "Zip Slip Vulnerability"
