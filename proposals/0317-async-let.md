@@ -642,7 +642,23 @@ It would be very confusing to have `async let` tasks automatically "not run" if 
 
 ### Requiring an `await`on any execution path that waits for an `async let`
 
-In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This rule turned out to be too simplistic, because it doesn't account for the places in which implicit suspension points actually occur. For example, consider a function with an `async let` in a loop:
+In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This rule turned out to be too simplistic, because it isn't generally possible to annotate all of the control-flow edges that would result in waiting for a child task the complete. The most problematic case involves a control-flow edge due to a thrown exception, e.g.,
+
+```swift
+func runException() async {
+  do {
+    async let a = f()
+    try mayFail() // no way to "await a" only along the thrown-error edge; it is an implicit suspension point
+    ... await a ...
+  } catch {
+    ...
+  }
+}
+```
+
+When `mayFail()` returns normally, we'll later `await a` so that `async let` will be associated with an explicit suspension point. However, when `mayFail()` throws an error, control flow jumps to the `catch` block and must wait for the child task that produces `a` to complete. This latter suspension point is implicit, and there is no direct way to make it explicit that doesn't also involve moving the definition of `a` outside of the `do...catch` block. 
+
+There are other places where there are control-flow edges that will implicitly await the child tasks for `async let`s in scope, e.g., a function with an `async let` in a loop:
 
 ```swift
 func runLoop() async {
@@ -657,23 +673,7 @@ func runLoop() async {
 }
 ```
 
-or a function where the implicit await occurs due to an error being both thrown and caught:
-
-```swift
-func runException() async {
-  do {
-    async let a = f()
-    try mayFail() // cancels and implicitly awaits the task that produces "a"
-    ... await a ...
-  } catch {
-    ...
-  }
-}
-```
-
-In the second example, the `do` block will exit when `mayFail()` throws an error, at which point the child task that computes `a` will need to be cancelled and awaited. However, there is no place to write `await a` to make that suspension point explicit. Therefore, requiring every potential suspension point due to an `async let` to be explicitly marked will require an extension to the Swift grammar.
-
-The most promising approach to marking all `async let` suspension points explicitly involves marking the control-flow edges that can result in a potential suspension point with `await`. For the first example, this means using `await break`:
+The most promising approach to marking all `async let` suspension points explicitly involves marking the control-flow edges that can result in a potential suspension point with `await`. For the most recent example, this means using `await break`:
 
 ```swift
 func runLoop() async {
@@ -688,7 +688,7 @@ func runLoop() async {
 }
 ```
 
-One would similarly need an `await continue`. For the second example, this means marking the call to `mayFail()` with an `await`, because the potentially-throwing call creates a control-flow edge out of the scope:
+One would similarly need an `await continue`. For the first example, this means marking the call to `mayFail()` with an `await`, because the potentially-throwing call creates a control-flow edge out of the scope:
 
 ```swift
 func runException() async {
@@ -701,6 +701,8 @@ func runException() async {
   }
 }
 ```
+
+It is somewhat ambiguous what `try await` means in this case, because `mayFail()` may or may not be `async` at all. If it is, then `await` does double-duty covering both the potential suspension points for the call to `mayFail()` as well as the potential suspension point when waiting for the child task along the thrown-error control-flow-edge.
 
 Similarly, one would need `await throw` for cases where a directly-thrown expression would imply a suspension point to wait for an `async let` child task to complete:
 
@@ -749,7 +751,7 @@ func runSwitchCase() async {
 }
 ```
 
-The above is a significant expansion of the grammar: introducing the `await` keyword in front of `break`, `continue`, `throw`, and `fallthrough`; requiring `await` on certain throwing expressions; and adding the freestanding `await` statement. It would also need to be coupled with rules that only require the new `await` when it is semantically meaningful. For example, the additional `await` shouldn't be required if all of the `async let` child tasks have already been explicitly awaited in some other manner, e.g.,
+The above is a significant expansion of the grammar: introducing the `await` keyword in front of `break`, `continue`, `throw`, and `fallthrough`; requiring `await` on certain throwing expressions that don't otherwise involve `async` operations; and adding the freestanding `await` statement. It would also need to be coupled with rules that only require the new `await` when it is semantically meaningful. For example, the additional `await` shouldn't be required if all of the `async let` child tasks have already been explicitly awaited in some other manner, e.g.,
 
 ```swift
 func runIfFallthroughOkay() async {
