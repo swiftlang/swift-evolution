@@ -3,7 +3,7 @@
 * Proposal: [SE-0313](0313-actor-isolation-control.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 5.5)**
 * Previous revision: [1](https://github.com/apple/swift-evolution/blob/ca2e3b43be77b7f20303e1c5cba98f22ebb0fcb0/proposals/0313-actor-isolation-control.md)
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
@@ -25,7 +25,7 @@
 * [Alternatives Considered](#alternatives-considered)
    * [Isolated or sync actor types](#isolated-or-sync-actor-types)
 * [Revision history](#revision-history)
-   
+  
 ## Introduction
 
 The [Swift actors proposal][actors] introduces the notion of *actor-isolated* declarations, which are declarations that can safely access an actor's isolated state. In that proposal, all instance methods, instance properties, and instance subscripts on an actor type are actor-isolated, and they can synchronously use those declarations on `self`. This proposal generalizes the notion of actor isolation to allow better control, including the ability to have actor-isolated declarations that aren't part of an actor type (e.g., they can be non-member functions) and have non-isolated declarations that are instance members of an actor type (e.g., because they are based on immutable, non-isolated actor state). This allows better abstraction of the use of actors, additional actor operations that are otherwise not expressible safely in the system, and enables some conformances to existing, synchronous protocols.
@@ -311,7 +311,7 @@ At a high level, isolated parameters and isolated conformances are similar to pa
 
     ```swift
     func f<T>(_: T) { }
-  
+    
     actor MyActor {
       func g() {
         f(self) // T = @sync MyActor
@@ -329,7 +329,7 @@ At a high level, isolated parameters and isolated conformances are similar to pa
     ```swift
     func acceptActor(_: MyActor) { }
     func acceptSendable<T: Sendable>(_: T) { }
-  
+    
     extension MyActor {
       func h() {
         acceptActor(h)  // okay, requires conversion of @sync MyActor to MyActor
