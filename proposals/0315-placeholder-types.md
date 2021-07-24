@@ -1,4 +1,4 @@
-# Placeholder types
+# [Placeholder types](./0315-placeholder-types.md)
 
 * Proposal: [SE-0315](0315-placeholder-types.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
@@ -11,7 +11,7 @@
 When Swift's type inference is unable to work out the type of a particular expression, it requires the programmer to provide the necessary type context explicitly. However, all mechanisms for doing this require the user to write out the entire type signature, even if only one portion of that type is actually needed by the compiler. E.g.,
 
 ```swift
-let losslessStringConverter = Double.init as (String) -> Double?
+let losslessStringConverter = Double.init as (String) -> Double? //argc
 
 losslessStringConverter("42") //-> 42.0
 losslessStringConverter("##") //-> nil
