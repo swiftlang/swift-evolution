@@ -164,8 +164,7 @@ A valid package name matches the following regular expression pattern:
 \A[a-zA-Z\d_.-]{1,100}\z
 ```
 
-Package scopes and names are compared using
-with locale-independent case folding.
+Package scopes and names are compared using locale-independent case folding.
 
 #### New `PackageDescription` API
 
