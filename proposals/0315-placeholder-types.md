@@ -3,7 +3,7 @@
 * Proposal: [SE-0315](0315-placeholder-types.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (June 21...July 6, 2021)**
+* Status: **Accepted**
 * Implementation: [apple/swift#36740](https://github.com/apple/swift/pull/36740)
 
 ## Introduction
