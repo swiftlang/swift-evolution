@@ -3,8 +3,7 @@
 * Proposal: [SE-0317](0317-async-let.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (May 24 – June 3 2021)**
-* Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Status: **Implemented (Swift 5.5)**
 
 ## Introduction
 
@@ -20,6 +19,11 @@ Discussion threads:
   - [Pitch #2](https://forums.swift.org/t/pitch-2-structured-concurrency/43452).
 - and later separated into its own proposal:
   - [Pitch #3](https://forums.swift.org/t/pitch-3-async-let/48336).
+- Separate discussion on [scoped suspension points](https://forums.swift.org/t/async-let-and-scoped-suspension-points/49846).
+
+[TOC]
+
+
 
 ## Motivation
 
@@ -635,55 +639,234 @@ As discussed in the [structured concurrency proposal](0304-structured-concurrenc
 
 It would be very confusing to have `async let` tasks automatically "not run" if the parent task were cancelled. Such semantics are offered by task groups via the `group.asyncUnlessCancelled` API, however would be quite difficult to express using plain `let` declarations, as effectively all such declarations would have to become implicitly throwing, which would sacrifice their general usability. We are convinced that following through with the co-operative cancellation strategy works well for `async let` tasks, because it composes well with how all asynchronous functions should be handling cancellation to begin with: only when they want to, in appropriate places within their execution, and deciding by themselves if they prefer to throw a `Task.CancellationError` or rather return a partial result when cancellation occurs.
 
-### Always forcing to `await` an `async let` on any execution path
+### Requiring an `await`on any execution path that waits for an `async let`
 
-In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This was subsequently relaxed to allow never awaiting an `async let` at all, and implicitly awaiting them at the end of the scope in which the `async let` was declared in.
-
-The current proposal states that one should be able to omit awaiting on declared `async let`s, like this:
+In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This rule turned out to be too simplistic, because it isn't generally possible to annotate all of the control-flow edges that would result in waiting for a child task the complete. The most problematic case involves a control-flow edge due to a thrown exception, e.g.,
 
 ```swift
-func hello(guest name: String) async -> String {
-  async let registered = register(name: name, delayInSeconds: 3)
-  // ... 
-  return "Hello \(name)!"
-  // implicitly cancels the 'registered' child-task
-  // implicitly awaits the 'registered' child-task
-}
-```
-
-Under the current proposal, this function will execute the `registered` task, and before it returns the "Hello …!" it will cancel the still ongoing task `registered`, and await on it. If the task `registered` were to throw an error, that error would be discarded! This may be surprising.
-
-One rule which was considered and proposed in early versions of this proposal, that any `async let` must _always_ and _on every code path_ be awaited on. This rule looks nice for simple code, like the above one, resulting in simple to understand errors:
-
-```swift
-func hello(guest name: String) async -> String {
-  async let registered = register(name: name, delayInSeconds: 3) // error: `registered` was not awaited on
-  // ... 
-  return "Hello \(name)!"
-}
-```
-
-It does not scale well to more realistic functions that include multiple branches and more complicated control flow:
-
-```swift
-func maybeHello(guest name: String, greetLoudly: Bool) async -> String { 
-  async let registered = register(name: name, delayInSeconds: 3)
-  
-  if greetLoudly { 
-    try await registered
-    return "Hello \(name)!"
-  } else {
-    try await registered // omitting this would cause "was not awaited on" errors
-    return "Hello \(name)."
+func runException() async {
+  do {
+    async let a = f()
+    try mayFail() // no way to "await a" only along the thrown-error edge; it is an implicit suspension point
+    ... await a ...
+  } catch {
+    ...
   }
 }
 ```
 
-As witnessed by this example, the seemingly simple rule of "always await on every code-path" results in very verbose code making the feature harder to understand and use.
+When `mayFail()` returns normally, we'll later `await a` so that `async let` will be associated with an explicit suspension point. However, when `mayFail()` throws an error, control flow jumps to the `catch` block and must wait for the child task that produces `a` to complete. This latter suspension point is implicit, and there is no direct way to make it explicit that doesn't also involve moving the definition of `a` outside of the `do...catch` block. 
 
-It does however force the `try await` if the initializer is throwing, making it easier to understand that a task may be throwing. We think this may be a valuable observation and aspect of this design which could feed into future iterations of the feature.
+There are other places where there are control-flow edges that will implicitly await the child tasks for `async let`s in scope, e.g., a function with an `async let` in a loop:
+
+```swift
+func runLoop() async {
+  for e in list {
+    async let a = f(e)
+    guard <condition> else {
+      break // cancels and implicitly awaits the task that produces "a"
+    }
+    ... await a ...
+  }
+  foo()
+}
+```
+
+The most promising approach to marking all `async let` suspension points explicitly involves marking the control-flow edges that can result in a potential suspension point with `await`. For the most recent example, this means using `await break`:
+
+```swift
+func runLoop() async {
+  for e in list {
+    async let a = f(e)
+    guard <condition> else {
+      await break   // awaits the child task that produces the value "a"
+    }
+    ... await a ...
+  }
+  foo()
+}
+```
+
+One would similarly need an `await continue`. For the first example, this means marking the call to `mayFail()` with an `await`, because the potentially-throwing call creates a control-flow edge out of the scope:
+
+```swift
+func runException() async {
+  do {
+    async let a = f()
+    try await mayFail() // awaits the child task that produces a; mayFail() itself may not even be "async"
+    ... await a ...
+  } catch {
+    ...
+  }
+}
+```
+
+It is somewhat ambiguous what `try await` means in this case, because `mayFail()` may or may not be `async` at all. If it is, then `await` does double-duty covering both the potential suspension points for the call to `mayFail()` as well as the potential suspension point when waiting for the child task along the thrown-error control-flow-edge.
+
+Similarly, one would need `await throw` for cases where a directly-thrown expression would imply a suspension point to wait for an `async let` child task to complete:
+
+```swift
+func runThrow() async {
+  do {
+    async let a = f()
+    if <condition> {
+      await throw SomeError() // awaits the child task that produces a
+    }
+    ... await a ...
+  } catch {
+    ...
+  }
+}
+```
+
+However, not all control-flow edges involving implicit `async let` suspension points have a specific keyword to which we can attach `await`, because some come from fall-through to subsequent code. For such cases, one could have a standalone `await` statement marking that fall through:
+
+```swift
+func runIfFallthrough() async {
+  if <condition> {
+    async let a = f()
+    ... code ...
+    // falling out of this block must await the child task that produces a, so require a freestanding "await"
+    await
+  }
+  ... more code ...
+}
+```
+
+The same would be required in, e.g., the cases of a `switch` statement that introduce an `async let`:
+
+```swift
+func runSwitchCase() async {
+  switch <expression> {
+  case .a:
+    async let a = f()
+    // falling out of this block must await the child task that produces a, so require a freestanding "await"
+    await
+
+  default:
+    ... code ...
+  }
+  ... code ...
+}
+```
+
+The above is a significant expansion of the grammar: introducing the `await` keyword in front of `break`, `continue`, `throw`, and `fallthrough`; requiring `await` on certain throwing expressions that don't otherwise involve `async` operations; and adding the freestanding `await` statement. It would also need to be coupled with rules that only require the new `await` when it is semantically meaningful. For example, the additional `await` shouldn't be required if all of the `async let` child tasks have already been explicitly awaited in some other manner, e.g.,
+
+```swift
+func runIfFallthroughOkay() async {
+  if <condition> {
+    async let a = f()
+    ... code ...
+    if <other condition> {
+      ... await a ...
+    } else {
+      ... await a ...
+    }
+    // no need for "await" here because we've already waited for "a" along all paths
+  }
+  ... more code ...
+}
+```
+
+Additionally, every `async` function is already called with an `await`, which covers any suspension points that occur when the function exits. Therefore, a control-flow edge that exits the function should not require any additional `await` for any `async let` child tasks that are awaited. For this reason, there is no `await return`. It also means that other control-flow edges that exit the function need not be annotated. For example:
+
+```swift
+func runThrowsOkay() async {
+  async let a = f()
+  if <condition> {
+    throw SomeError() // no need for "await" because this edge exits the function
+  } 
+
+  // no need for "await" at the end because we are exiting the function
+}
+```
+
+The rules above attempt to limit the places in which the new `await` syntaxes are required to only those where they are semantically meaningful, i.e., those places where the `async let` child tasks will not already have had their completion explicitly awaited. The rules are complicated enough that we would not expect programmers to be able to correctly write `await` in all of the places where it is required. Rather, the Swift compiler would need to provide error messags with Fix-Its to indicate the places where additional `await` annotations are required, and those `await`s will remain as an artifact for the reader.
+
+We feel that the complexity of the solution for marking all suspension points, which includes both the grammar expansion for marking control-flow edges and the flow-sensitive analysis to only require the additional `await` marking when necessary, exceeds the benefits of adding it. Instead, we feel that the presence of `async let` in a block with complicated control flow is sufficient to imply the presence of additional suspension points.
+
+### Property wrappers instead of `async let`
+
+The combination of [property wrappers](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and [effectful properties](https://github.com/apple/swift-evolution/blob/main/proposals/0310-effectful-readonly-properties.md) implies that one could approximate the behavior of `async let` with a property wrapper, e.g.,
+
+```swift
+@AsyncLet var veggies = try await chopVegetables()
+```
+
+One problem with this approach is that property wrappers cannot provide the semantics of structured concurrency. This becomes more apparent when trying to implement such a property wrapper:
+
+```swift
+@propertyWrapper
+class AsyncLet<Wrapped: Sendable> {
+  var task: Task<Wrapped, Error>
+  
+  init(wrappedValue fn: @autoclosure(escaping) @Sendable () async throws -> Wrapped) {
+    self.task = Task.detached {  // have to produce a detached task; cannot create a child task
+      try await fn()
+    }
+  }
+  
+  var wrappedValue: Wrapped {
+    get async throws {
+      try await task.value
+    }
+  }
+  
+  deinit {
+    // we can cancel the task...
+    task.cancel()
+    
+    // ... but we cannot wait for it to complete, because deinits cannot be async
+  }
+}
+```
+
+A property-wrapper approach is forced to create unstructured concurrency to capture the task, which is then subject to escaping (e.g.,  the synthesized backing storage property `_veggies`). Once we have unstructured concurrency, there is no way to get the structure back: the deinitializer cannot wait on completion of the task, so the task would keep running after the `@AsyncLet` property has been destroyed. The lack of structure also affects the compiler's ability to reason about (and therefore optimize) the use of this feature: as a structured concurrency primitive, `async let` can be optimized by the compiler to (e.g.) share storage of its async stack frames with its parent async task, eliminating spurious allocations, and provide more optimal access patterns for the resulting value. To address the semantic and performance issues with using property wrappers, an `@AsyncLet` property wrapper would effectively be hard-coded syntax in the compiler that is property-wrapper-like, but not actually a property wrapper.
+
+One thing that is lost with the property-wrapper approach that the definition of a property such as
+
+```swift
+@AsyncLet var veggies = try await chopVegetables()
+```
+
+loses the `async` keyword. With `async let`, the names introduced are clearly `async` and therefore must be `await`'ed when they are used, as with other `async` entities in the language:
+
+```swift
+async let veggies = chopVegetables()
+...
+await veggies
+```
+
+### Braces around the `async let` initializer
+
+The expression on the right-hand side of an `async let` declaration is executed in a separate, child task that is running concurrently with the function that initiates the `async let`. It has been suggested that the task should be called out more explicitly by adding a separate set of braces around the expression, e.g.,
+
+```swift
+async let veggies = { try await chopVegetables() }
+```
+
+The problem with requiring braces is that it breaks the equivalence between the type of the entity being declared (`veggies` is of type `[Vegetable]`) and the value it is initialized with (which now appears to be `@Sendable () async throws -> [Vegetable]`). This equivalence holds throughout nearly all of the language; the only real exception is the `if let` syntax, which which strips a level of optionality and is often considered a design mistake in Swift. For `async let`, requiring the braces would become particularly awkward if one were defining a value of closure type:
+
+```swift
+async let closure = { { try await getClosure() } }
+```
+
+Requiring braces on the right-hand side of `async let` would be a departure from Swift's existing precedent with `let` declarations. In the cases where one is defining a syntactically larger child task, it is reasonable to create and immediately call a closure, which is common practice with `lazy` variables:
+
+```swift
+async let image: Image = {
+  let data = try await download(url: url)
+  return try await Image(from: data)
+}()
+```
 
 ## Revision history
+
+After the first review:
+
+* Expanded the discussion of implicit suspension points in Alternatives Considered with a more comprehensive design sketch for making all suspension points explicit.
+* Added discussion of the use of property wrappers instead of `async let` to Alternatives Considered.
+* Added discussion about requiring braces around an `async let` initializer expression to Alternatives Considered.
 
 After initial pitch (as part of Structured Concurrency):
 

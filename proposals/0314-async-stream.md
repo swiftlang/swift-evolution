@@ -3,8 +3,8 @@
 * Proposal: [SE-0314](0314-async-stream.md)
 * Authors: [Philippe Hausler](https://github.com/phausler), [Tony Parker](https://github.com/parkera), [Ben D. Jones](https://github.com/bendjones), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (June 21...June 28, 2021)**
-* Review: ([first review](https://forums.swift.org/t/se-0314-asyncstream-and-asyncthrowingstream/48198), [revision announcement](https://forums.swift.org/t/returned-for-revision-se-0314-asyncstream-and-asyncthrowingstream/49718))
+* Status: **Implemented (Swift 5.5)**
+* Review: ([first review](https://forums.swift.org/t/se-0314-asyncstream-and-asyncthrowingstream/48198), [revision announcement](https://forums.swift.org/t/returned-for-revision-se-0314-asyncstream-and-asyncthrowingstream/49718), [second review](https://forums.swift.org/t/se-0314-second-review-asyncstream-and-asyncthrowingstream/49803), [acceptance announcement](https://forums.swift.org/t/accepted-se-0314-asyncstream-and-asyncthrowingstream/50699))
 * Implementation: [apple/swift#36921](https://github.com/apple/swift/pull/36921)
 
 #### Change Log

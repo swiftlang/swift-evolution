@@ -3,7 +3,7 @@
 * Proposal: [SE-0304](0304-structured-concurrency.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (May 24 - June 3 2021)**
+* Status: **Active Review (July 7 - 14 2021)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of contents
@@ -38,7 +38,7 @@
       * [Cancellation handlers](#cancellation-handlers)
       * [Voluntary Suspension](#voluntary-suspension)
       * [Task Groups](#task-groups)
-         * [Spawning TaskGroup child tasks](#spawning-taskgroup-child-tasks)
+         * [Creating TaskGroup child tasks](#creating-taskgroup-child-tasks)
          * [Querying tasks in the group](#querying-tasks-in-the-group)
          * [Task group cancellation](#task-group-cancellation)
 * [Source compatibility](#source-compatibility)
@@ -50,9 +50,9 @@
 * [Alternatives Considered](#alternatives-considered)
    * [Prominent futures](#prominent-futures)
 * [Future directions](#future-directions)
-   * [async let to spawn child tasks within a scope](#async-let-to-spawn-child-tasks-within-a-scope)
+   * [async let to create child tasks within a scope](#async-let-to-create-child-tasks-within-a-scope)
    * [@Sendable closure checking for task groups](#sendable-closure-checking-for-task-groups)
-   * [Suspending await group.spawn](#suspending-await-groupspawn)
+   * [Suspending await group.addTask](#suspending-await-groupaddtask)
 
 ## Introduction
 
@@ -159,7 +159,7 @@ At a lower level, the task allows the implementation to optimize the allocation 
 
 ### Child tasks
 
-An asynchronous function can create a child task.  Child tasks inherit some of the structure of their parent task, including its priority, but can run concurrently with it.  However, this concurrency is bounded: a function that creates a child task must wait for it to end before returning.  This structure means that functions can locally reason about all the work currently being done for the current task, anticipate the effects of cancelling the current task, and so on.  It also makes spawning the child task substantially more efficient.
+An asynchronous function can create a child task.  Child tasks inherit some of the structure of their parent task, including its priority, but can run concurrently with it.  However, this concurrency is bounded: a function that creates a child task must wait for it to end before returning.  This structure means that functions can locally reason about all the work currently being done for the current task, anticipate the effects of cancelling the current task, and so on.  It also makes creating the child task substantially more efficient.
 
 Of course, a function’s task may itself be a child of another task, and its parent may have other children; a function cannot reason locally about these.  But the features of this design that apply to an entire task tree, such as cancellation, only apply “downwards” and don’t automatically propagate upwards in the task hierarchy, and so the child tree still can be statically reasoned about.  If child tasks did not have bounded duration and so could arbitrarily outlast their parents, the behavior of tasks under these features would not be easily comprehensible. 
 
@@ -227,13 +227,13 @@ func makeDinner() async throws -> Meal {
   
   // Create a task group to scope the lifetime of our three child tasks
   try await withThrowingTaskGroup(of: CookingStep.self) { group in
-    group.async {
+    group.addTask {
       try await .veggies(chopVegetables())
     }
-    group.async {
+    group.addTask {
       await .meat(marinateMeat())
     }
-    group.async {
+    group.addTask {
       try await .oven(preheatOven(temperature: 350))
     }
                                              
@@ -261,7 +261,7 @@ Note that it would be illegal to say:
 var veggies: [Vegetable]?
 
 try await withThrowingTaskGroup(of: Void.self) { group in
-  group.async {
+  group.addTask {
     // error: mutation of captured var 'veggies' in concurrently-executing code
     veggies = try await chopVegetables()
   }
@@ -280,7 +280,7 @@ later proposal.
 
 The `withTaskGroup` API gives us access to a task group, and governs the
 lifetime of the *child tasks* we subsequently add to the group using its
-`async()` method. By the time `withTaskGroup` finishes executing, we know that all of
+`addTask()` method. By the time `withTaskGroup` finishes executing, we know that all of
 the subtasks have completed.  A child task does not persist beyond the scope in
 which it was created. By the time the scope exits, the child task must either
 have completed, or it will be implicitly awaited. When the scope exits via a
@@ -337,7 +337,7 @@ func chopVegetables() async throws -> [Vegetable] {
     
     // Create a new child task for each vegetable that needs to be chopped.
     for v in rawVeggies {
-      group.async { 
+      group.addTask { 
         try await v.chopped()
       }
     }
@@ -406,10 +406,10 @@ func chopVegetables() async throws -> [Vegetable] {
   return try await withThrowingTaskGroup(of: Vegetable.self) { group in
     var veggies: [Vegetable] = []
 
-    group.async {
+    group.addTask {
       try await chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()
     }
-    group.async {
+    group.addTask {
       try await chop(Onion()) // (2)
     }
 
@@ -422,7 +422,7 @@ func chopVegetables() async throws -> [Vegetable] {
 }
 ```
 
-On line *(1)*, we start a new child task to chop a carrot. Suppose that this call to the `chop` function throws an error. Because this is asynchronous, that error is not immediately observed in `chopVegetables`, and we proceed to start a second child task to chop an onion *(2)*. On line *(3)*, we await the `next` completed task, which could be either of the child tasks we spawned, but for the sake of discussion we'll say happens to be the `chop(Carrot())` child task from *(1)*. This causes us to throw the error that was thrown from `chop`. Since we do not handle this error, we exit the scope without having yet awaited the onion-chopping task. This causes that task to be automatically cancelled. Because cancellation is cooperative, and because structured concurrency does not allow child tasks to outlast their parent context, control does not actually return until the onion-chopping task actually completes; any value it returns or throws will be discarded.
+On line *(1)*, we start a new child task to chop a carrot. Suppose that this call to the `chop` function throws an error. Because this is asynchronous, that error is not immediately observed in `chopVegetables`, and we proceed to start a second child task to chop an onion *(2)*. On line *(3)*, we await the `next` completed task, which could be either of the child tasks we created, but for the sake of discussion we'll say happens to be the `chop(Carrot())` child task from *(1)*. This causes us to throw the error that was thrown from `chop`. Since we do not handle this error, we exit the scope without having yet awaited the onion-chopping task. This causes that task to be automatically cancelled. Because cancellation is cooperative, and because structured concurrency does not allow child tasks to outlast their parent context, control does not actually return until the onion-chopping task actually completes; any value it returns or throws will be discarded.
 
 As we mentioned before, the effect of cancellation on a task is synchronous and cooperative. Functions which do a lot of synchronous computation may wish to check explicitly for cancellation. They can do so by inspecting the task's cancelled status:
 
@@ -444,7 +444,7 @@ Note also that no information is passed to the task about why it was cancelled. 
 
 ### Unstructured tasks
 
-So far all types of tasks we discussed were child-tasks and respected the primary rule of structured concurrency: that a *child task* cannot live longer than the *parent task* (or scope) in which it was created. This is both true for task groups as well as the `async let` proposal which is being reviewed in parallel.
+So far all types of tasks we discussed were child-tasks and respected the primary rule of structured concurrency: that a *child task* cannot live longer than the *parent task* (or scope) in which it was created. This is both true for task groups as well as [SE-0317 `async let`](https://github.com/apple/swift-evolution/blob/main/proposals/0317-async-let.md).
 
 Sometimes however, these rigid rules end up being too restrictive. We might need to create new tasks whose lifetime is not bound to the creating task, for example in order to fire-and-forget some operation or to initiate asynchronous work from synchronous code. Unstructured tasks are not able to utilize some of the optimization techniques wrt. allocation and metadata propagation as child-tasks are, however they remain a very important building block especially for more free-form usages and integration with legacy APIs.
 
@@ -601,10 +601,14 @@ The `withUnsafeCurrentTask` function returns an _optional_ `UnsafeCurrentTask`, 
 The `UnsafeCurrentTask` is also `Equatable` and `Hashable`, whose identity is based on the internal task object which is the same as the one used by `Task`.
 
 ```swift
-struct UnsafeCurrentTask: Equatable, Hashable {} 
+struct UnsafeCurrentTask: Equatable, Hashable {
+  public var isCancelled: Bool { get }
+  public var priority: TaskPriority { get }
+  public func cancel()
+} 
 ```
 
-`UnsafeCurrentTask` has all the same query operations as `Task` (i.e. `isCancelled`, `priority`, ...) which are equally safe to invoke on the unsafe task as on a normal task, however it may define more APIs in the future that are more fragile and must only ever be invoked while executing on the same task (e.g. access to [Task-Local Values](0311-task-locals.md) which are defined in a separate proposal).
+`UnsafeCurrentTask` has all the same query operations as `Task` (i.e. `isCancelled`, `priority`, ...) and the ability to cancel (`cancel()`), which are equally safe to invoke on the unsafe task as on a normal task, however it may define more APIs in the future that are more fragile and must only ever be invoked while executing on the same task (e.g. access to [Task-Local Values](0311-task-locals.md) which are defined in a separate proposal).
 
 #### Task priorities
 
@@ -625,12 +629,12 @@ struct TaskPriority: UInt8, Comparable, Sendable {
 /// 
 /// The priorities are ordered from highest to lowest as follows:
 /// - `high`
-/// - `default`
+/// - `medium`
 /// - `low`
 /// - `background`
 extension TaskPriority {
   static var high: TaskPriority { ... }
-  static var `default`: TaskPriority { ... }
+  static var medium: TaskPriority { ... }
   static var low: TaskPriority { ... }
   static var background: TaskPriority { ... }
 }
@@ -639,13 +643,12 @@ extension TaskPriority {
 /// 
 /// The priorities are ordered from highest to lowest as follows:
 /// - `userInitiated` (alias for `high` priority)
-/// - `default`
 /// - `utility` (alias for `low` priority)
 /// - `background`
 /// 
 /// The runtime reserves the right to use additional higher or lower priorities than those publicly listed here,
 /// e.g. the main thread in an application might run at an user inaccessible `userInteractive` priority, however
-/// any task spawned from it will automatically become `userInitiated`.
+/// any task created from it will automatically become `userInitiated`.
 extension TaskPriority {
   /// The task was initiated by the user and prevents the user from actively using
   /// your app.
@@ -657,7 +660,6 @@ extension TaskPriority {
   /// 
   /// Alias for `TaskPriority.low`
   static var utility: TaskPriority { ... }
-        
 }
 
 extension Task where Success == Never, Failure == Never { 
@@ -672,7 +674,7 @@ extension Task where Success == Never, Failure == Never {
 
 The `priority` operation queries the priority of the task.
 
-The `currentPriority` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `Task.detached` or `TaskGroup.async`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
+The `currentPriority` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `Task.detached` or `TaskGroup.addTask`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
 
 #### Unstructured tasks
 
@@ -758,9 +760,9 @@ class C {
 }
 ```
 
-The intent behind requiring `self.` when capturing `self` in an escaping closure is to warn the developer about potential reference cycles. The closure passed to `async` is executed immediately, and the only reference to `self` is what occurs in the body. Therefore, the explicit `self.` isn't communicating useful information and should not be required.
+The intent behind requiring `self.` when capturing `self` in an escaping closure is to warn the developer about potential reference cycles. The closure passed to `Task` is executed immediately, and the only reference to `self` is what occurs in the body. Therefore, the explicit `self.` isn't communicating useful information and should not be required.
 
-> **Note**: The same applies to the closure passed to `Task.detached` and `TaskGroup.async`.
+> **Note**: The same applies to the closure passed to `Task.detached` and `TaskGroup.addTask`.
 
 ##### Detached tasks
 
@@ -871,12 +873,12 @@ For tasks that want to react immediately to cancellation (rather than, say, wait
 ///
 /// This function returns instantly and will never suspend.
 func withTaskCancellationHandler<T>(
-  operation: () async throws -> T
-  onCancel handler: @Sendable () -> Void,
+  operation: () async throws -> T,
+  onCancel handler: @Sendable () -> Void
 ) async rethrows -> T
 ```
 
-This function does not, by itself, spawn a new task, but rather executes the `operation` immediately, and once the `operation` returns the `withTaskCancellationHandler` returns as well (similarly with throwing behaviors).
+This function does not, by itself, create a new task, but rather executes the `operation` immediately, and once the `operation` returns the `withTaskCancellationHandler` returns as well (similarly with throwing behaviors).
 
 Note that the `handler` runs `@Sendable` with the rest of the task, because it
 is executed immediately when the task is cancelled, which can happen at any
@@ -911,7 +913,7 @@ func download(url: URL) async throws -> Data? {
       }
       urlSessionTask?.resume()
     }
-  }, onCancel: {
+  } onCancel: {
     urlSessionTask?.cancel() // runs immediately when cancelled
   }
 }
@@ -920,11 +922,11 @@ func download(url: URL) async throws -> Data? {
 #### Voluntary Suspension
 
 For long-running operations, say performing many computations in a tight loop
-without natural suspend points, it might be beneficial to occasionally check in if the task should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use case, `Task` includes a `yield()` operation, which is a way to explicitly suspend the current task and give other tasks a chance to run for a while. 
+without natural suspend points, it might be beneficial to occasionally check in if the task should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use case, `Task` includes a `suspend()` operation, which is a way to explicitly suspend the current task and give other tasks a chance to run for a while. 
 
 ```swift
 extension Task where Success == Never, Failure == Never {
-  static func yield() async { ... }
+  static func suspend() async { ... }
 }
 ```
 
@@ -932,11 +934,11 @@ We also offer an asynchronous sleep function, which accepts the number of nanose
 
 ```swift
 extension Task where Success == Never, Failure == Never {
-  public static func sleep(_ duration: UInt64) async { ... }
+  public static func sleep(nanoseconds duration: UInt64) async throws { ... }
 }
 ```
 
-The sleep function accepts a plain integer as nanoseconds to sleep for which mirrors known top-level functions performing the same action in the synchronous world. Because use-sites look quite explicit in the way they have to prefix this call with an `await` keyword (`await Task.sleep(nanos)`), we prefer to use the well-known `sleep` word rather than introduce new words for this functionality.
+The sleep function accepts a plain integer as nanoseconds to sleep for, which mirrors known top-level functions performing the same action in the synchronous world. It will throw `CancellationError` if the task is cancelled while it sleeps, without waiting for the full sleep duration.
 
 > The `sleep` function will gain nicer overloads once the standard library has time and deadline types, then the sleep will be able to be expressed as `await Task.sleep(until: deadline)` or `await Task.sleep(for: .seconds(1))` or similar. This proposal is not introducing those time types, so for now a bare bones sleep function is proposed.
 
@@ -946,14 +948,14 @@ Task groups are created using `withTaskGroup` in any asynchronous context, provi
 
 ```swift
 /// Starts a new task group which provides a scope in which a dynamic number of
-/// tasks may be spawned.
+/// tasks may be created.
 ///
-/// Tasks added to the group by `group.async()` will automatically be awaited on
+/// Tasks added to the group by `group.addTask()` will automatically be awaited on
 /// when the scope exits. If the group exits by throwing, all added tasks will
 /// be cancelled and their results discarded.
 ///
 /// ### Implicit awaiting
-/// When the group returns it will implicitly await for all spawned tasks to
+/// When the group returns it will implicitly await for all child tasks to
 /// complete. The tasks are only cancelled if `cancelAll()` was invoked before
 /// returning, the groups' task was cancelled, or the group body has thrown.
 ///
@@ -974,14 +976,14 @@ Task groups are created using `withTaskGroup` in any asynchronous context, provi
 ///
 /// ### Cancellation
 /// If the task that the group is running in is cancelled, the group becomes 
-/// cancelled and all child tasks spawned in the group are cancelled as well.
+/// cancelled and all child tasks created in the group are cancelled as well.
 /// 
 /// Since the `withTaskGroup` provided group is specifically non-throwing,
 /// child tasks (or the group) cannot react to cancellation by throwing a 
 /// `CancellationError`, however they may interrupt their work and e.g. return 
 /// some best-effort approximation of their work. 
 ///
-/// If throwing is a good option for the kinds of tasks spawned by the group,
+/// If throwing is a good option for the kinds of tasks created by the group,
 /// consider using the `withThrowingTaskGroup` function instead.
 ///
 /// Postcondition:
@@ -999,14 +1001,14 @@ func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 
 
 /// Starts a new throwing task group which provides a scope in which a dynamic 
-/// number of tasks may be spawned.
+/// number of tasks may be created.
 ///
-/// Tasks added to the group by `group.async()` will automatically be awaited on
+/// Tasks added to the group by `group.addTask()` will automatically be awaited on
 /// when the scope exits. If the group exits by throwing, all added tasks will
 /// be cancelled and their results discarded.
 ///
 /// ### Implicit awaiting
-/// When the group returns it will implicitly await for all spawned tasks to
+/// When the group returns it will implicitly await for all created tasks to
 /// complete. The tasks are only cancelled if `cancelAll()` was invoked before
 /// returning, the groups' task was cancelled, or the group body has thrown.
 ///
@@ -1026,14 +1028,14 @@ func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 ///     }
 ///
 /// ### Thrown errors
-/// When tasks are added to the group using the `group.async` function, they may
+/// When tasks are added to the group using the `group.addTask` function, they may
 /// immediately begin executing. Even if their results are not collected explicitly
 /// and such task throws, and was not yet cancelled, it may result in the `withTaskGroup`
 /// throwing.
 ///
 /// ### Cancellation
 /// If the task that the group is running in is cancelled, the group becomes 
-/// cancelled and all child tasks spawned in the group are cancelled as well.
+/// cancelled and all child tasks created in the group are cancelled as well.
 /// 
 /// If an error is thrown out of the task group, all of its remaining tasks
 /// will be cancelled and the `withTaskGroup` call will rethrow that error.
@@ -1070,7 +1072,7 @@ struct TaskGroup<ChildTaskResult: Sendable> {
 
 The result of `withTaskGroup` is the result produced by the `body` function. The `withThrowingTaskGroup` version of the function allows for the task group to throw, and if that happens all tasks it contained are implicitly cancelled (and awaited on) before rethrowing the error.
 
-> Note: Sadly it is not presently possible to implement this throwing/non-throwing functionality with a single function. The complex relationship of throwing `group.async` with a throwing `next` as well as corresponding throwing/non-throwing `AsyncSequence` conformances make it impossible to implement all in one function/type today.
+> Note: Sadly it is not presently possible to implement this throwing/non-throwing functionality with a single function. The complex relationship of throwing `group.addTask` with a throwing `next` as well as corresponding throwing/non-throwing `AsyncSequence` conformances make it impossible to implement all in one function/type today.
 
 Note also that the `withThrowingTaskGroup` uses a `ThrowingTaskGroup<ChildTaskResult, Error>`, however specifying the type of that error is not possible. This is because this Failure parameter on the `ThrowingTaskGroup` in only used as future-proof API in case Swift were to gain typed throwing at some point in time. This design makes no promises nor does it assume typed throws are actually going to happen though.
 
@@ -1080,69 +1082,69 @@ This waiting can be performed either:
 - by the code within the task group itself (e.g., using `next()` repeatedly until it returns `nil`, described below), or
 - implicitly in the task group itself when returning from the `body`.
 
-By default, the task group will schedule child tasks added to the group on the default global concurrent executor. In the future is is likely that it will be possible to customize the executor tasks are started on with an optional executor parameter to `spawn`, e.g. like `startingChildTasksOn:`.
+By default, the task group will schedule child tasks added to the group on the default global concurrent executor. In the future is is likely that it will be possible to customize the executor tasks are started on with an optional executor parameter to `addTask`.
 
-##### Spawning TaskGroup child tasks
+##### Creating TaskGroup child tasks
 
-Within the `body` function, tasks may be added dynamically with the spawn operation. Each task produces a value of the same type (the `ChildTaskResult` generic parameter):
+Within the `body` function, tasks may be added dynamically with the `addTask` operation. Each task produces a value of the same type (the `ChildTaskResult` generic parameter):
 
 ```swift
 extension TaskGroup {
-  /// Unconditionally spawn a child task in the group.
+  /// Unconditionally create a child task in the group.
   /// 
   /// The child task will be executing concurrently with the group, and its result 
   /// may be collected by calling `group.next()` or iterating over the group gathering 
   /// all submitted task results from the group.
-  mutating func async(
+  mutating func addTask(
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> ChildTaskResult
   )
 
-  /// Attempts to spawn a child task in the group, unless the group is already cancelled.
+  /// Attempts to create a child task in the group, unless the group is already cancelled.
   /// 
-  /// A spawn will be rejected by the group if the task it is running in was already cancelled,
-  /// or if the group was explicitly cancelled by invoking `group.cancelAll()`.
+  /// If the task that initiates the call to `addTaskUnlessCancelled`  was already cancelled,
+  /// or if the group was explicitly cancelled by invoking `group.cancelAll()`, no child
+  /// task will be created.
   /// 
   /// The child task will be executing concurrently with the group, and its result 
   /// may be collected by calling `group.next()` or iterating over the group gathering 
   /// all submitted task results from the group.
   /// 
-  /// Returns true if the task was spawned successfully, and false otherwise.
-  mutating func asyncUnlessCancelled(
+  /// Returns true if the task was created successfully, and false otherwise.
+  mutating func addTaskUnlessCancelled(
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> ChildTaskResult
   ) -> Bool
-  
 }
 
 extension ThrowingTaskGroup { 
-  mutating func async(
+  mutating func addTask(
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> ChildTaskResult
   )
   
-  mutating func asyncUnlessCancelled(
+  mutating func addTaskUnlessCancelled(
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> ChildTaskResult
   ) -> Bool
 }
 ```
 
-`group.async` spawns a child task in the task group to execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with as an argument. Generally, it is recommended to not specify priority manually.
+`group.addTask` creates a child task in the task group to execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with as an argument. Generally, it is recommended to not specify priority manually.
 
-The `spawn` operation always succeeds in adding a new child task to the group, even if the task running the group has been cancelled or the group was cancelled explicitly with `group.cancelAll`. In cases where the task group has already
-been cancelled, the new child task will be spawned in the `cancelled` state.
-To avoid this, the `spawnUnlessCancelled` function checks if a group is cancelled before attempting to spawn the task, and returns a `Bool` that is true if
-the task was successfully spawned. This allows for simple implementation of groups which should "keep spawning tasks until cancelled".
+The `addTask` operation always succeeds in adding a new child task to the group, even if the task running the group has been cancelled or the group was cancelled explicitly with `group.cancelAll`. In cases where the task group has already
+been cancelled, the new child task will be created in the `cancelled` state.
+To avoid this, the `saddTaskUnlessCancelled` function checks if a group is cancelled before attempting to create the task, and returns a `Bool` that is true if
+the task was successfully created. This allows for simple implementation of groups which should "keep creating tasks until cancelled".
 
 Cancelling a specific task group child task does _not_ cancel the entire group or any of its siblings.
 
-> Previously the `group.async` operation was designed to be a suspension point, which was intended to be a simple form of back-pressure where the group could decide to not allow more than N tasks to be running concurrently. This has not been fully designed nor implemented though, so currently has been moved to a future direction.
+> Previously the `group.addTask` operation was designed to be a suspension point, which was intended to be a simple form of back-pressure where the group could decide to not allow more than N tasks to be running concurrently. This has not been fully designed nor implemented though, so currently has been moved to a future direction.
 
 
 ##### Querying tasks in the group
 
-The `next()` operation allows one to gather the results from the tasks that have been spawned in the group. It produces the result from one of the tasks in the group, whether it is the normal result or a thrown error. 
+The `next()` operation allows one to gather the results from the tasks that have been created in the group. It produces the result from one of the tasks in the group, whether it is the normal result or a thrown error. 
 
 ```swift
 extension TaskGroup: AsyncSequence {
@@ -1171,7 +1173,7 @@ extension TaskGroup: AsyncSequence {
   ///
   /// It is also possible to use `for await` to collect results of a task groups:
   ///
-  ///     for await try value in group {
+  ///     for await value in group {
   ///         collected += value
   ///     }
   ///
@@ -1188,8 +1190,8 @@ extension TaskGroup: AsyncSequence {
   /// Order of values returned by next() is *completion order*, and not
   /// submission order. I.e. if tasks are added to the group one after another:
   ///
-  ///     group.async { 1 }
-  ///     group.async { 2 }
+  ///     group.addTask { 1 }
+  ///     group.addTask { 2 }
   ///
   ///     print(await group.next())
   ///     /// Prints "1" OR "2"
@@ -1201,6 +1203,14 @@ extension TaskGroup: AsyncSequence {
   /// It is possible to directly rethrow such error out of a `withTaskGroup` body
   /// function's body, causing all remaining tasks to be implicitly cancelled.
   mutating func next() async -> ChildTaskResult? { ... }
+
+  /// Wait for all of the child tasks to complete.
+  ///
+  /// This operation is the equivalent of
+  ///
+  ///     for await _ in self { }
+  ///
+  mutating func waitForAll() async { ... }
 
   /// Query whether the group has any remaining tasks.
   ///
@@ -1257,8 +1267,8 @@ extension ThrowingTaskGroup: AsyncSequence {
   /// Order of values returned by next() is *completion order*, and not
   /// submission order. I.e. if tasks are added to the group one after another:
   ///
-  ///     group.async { 1 }
-  ///     group.async { 2 }
+  ///     group.addTask { 1 }
+  ///     group.addTask { 2 }
   ///
   ///     print(await group.next())
   ///     /// Prints "1" OR "2"
@@ -1274,6 +1284,15 @@ extension ThrowingTaskGroup: AsyncSequence {
   /// Wait for a task to complete and return the result or thrown error packaged in
   /// a `Result` instance. Returns `nil` only when there are no tasks left in the group.
   mutating func nextResult() async -> Result<ChildTaskResult, Error>?
+
+  /// Wait for all of the child tasks to complete, or throws an error if any of the
+  /// child tasks throws.
+  ///
+  /// This operation is the equivalent of
+  ///
+  ///     for try await _ in self { }
+  ///
+  mutating func waitForAll() async throws { ... }
 
   /// Query whether the task group has any remaining tasks.
   var isEmpty: Bool { ... } 
@@ -1318,7 +1337,7 @@ func gather(first m: Int, of work: [Work]) async throws -> [WorkResult] {
   
   return withTaskGroup(of: WorkResult.self) { group in 
     for w in work { 
-      group.async { await w.doIt() } // spawn child tasks to perform the work
+      group.addTask { await w.doIt() } // create child tasks to perform the work
     }  
     
     var results: [WorkResult] = []
@@ -1335,7 +1354,7 @@ func gather(first m: Int, of work: [Work]) async throws -> [WorkResult] {
 
 ##### Task group cancellation
 
-There are several ways in which a task group can be cancelled. In all cases, all of the tasks in the group are cancelled, and any new tasks spawned in the group will start out cancelled. The three ways in which a task group can be cancelled are:
+There are several ways in which a task group can be cancelled. In all cases, all of the tasks in the group are cancelled, and any new tasks created in the group will start out cancelled. The three ways in which a task group can be cancelled are:
 
 1. When an error is thrown out of the `body` of `withTaskGroup`,
 2. When the task in which the task group itself was created is cancelled, or
@@ -1381,11 +1400,11 @@ func chopVegetables() async throws -> [Vegetable] {
   try await withThrowingTaskGroup(of: Vegetable.self) { group in
     print(group.isCancelled) // prints false
 
-    group.async {
+    group.addTask {
       group.cancelAll() // Cancel all work in the group
       throw UnfortunateAccidentWithKnifeError()
     }
-    group.async {
+    group.addTask {
       return try await chop(Onion())
     }
 
@@ -1395,7 +1414,7 @@ func chopVegetables() async throws -> [Vegetable] {
       }
     } catch {
       print(group.isCancelled) // prints true now
-      let added = group.asyncUnlessCancelled {
+      let added = group.addTaskUnlessCancelled {
         try await chop(SweetPotato())
       }
       print(added) // prints false, no child was added to the cancelled group
@@ -1423,13 +1442,26 @@ All of the changes described in this document are additive to the language and a
 
 ### Review changes
 
+Changes after the fourth review:
+
+* added `UnsafeCurrentTask.cancel()` to cancel the task.
+
+Changes after the third review:
+
+- renamed `Task.sleep(_:)` to `Task.sleep(nanoseconds:)`. This makes it clear that the wait is in nanoseconds, and leaves API space open for a `sleep(_:)` based on a better duration type in the future.
+- made `Task.sleep(nanoseconds:)` throwing; it will throw `CancellationError` if the sleeping task was cancelled.
+- renamed `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` to `TaskGroup.addTask` and `TaskGroup.addTaskUnlessCancelled`. The fundamental behavior here is that we're adding a task to the group. `add` by itself does not suffice, because we aren't adding a value (accessible via `next()`), we are adding a task whose value will be accessible via `next()`. It also parallels the use of `Task { ... }` to create top-level tasks.
+- renamed `TaskPriority.default` to `TaskPriority.medium`, because `nil` passed in to a `TaskPriority?` parameter is effectively the default for most APIs.
+- added `TaskGroup.waitForAll` and `ThrowingTaskGroup.waitForAll`.
+- renamed `Task.yield()` to `Task.suspend()`, which more accurately represents what this operation action does, and leaves the name "yield" for future work on generators.
+
 Changes after the second review:
 
 - remove `Priority.unspecified` and use `nil` as unspecified value.
 - introduce platform independent priority names: `high`, `default`, `low`, `background`. The Apple platform specific names remain as aliases and can be used on apple platforms where they make sense. These names have a long history and were even originally used in dispatch itself. We discussed and confirmed with various teams inside Apple that those names work well for the future evolution of the platform.
 - future-proof the `TaskPriority` type by changing it to a `RawRepresentable` `struct` with static computed properties. We do not immediately have any plans to introduce new priorities, but want to allow for such future extension if necessary.
-- remove the ability to spawn new tasks at the `userInteractive` priority. This priority will be used only be the runtime itself, e.g. by the main thread and automatically inherited properly by any other tasks (and downgraded to `userInitiated`)
-- `TaskGroup.spawn` and `TaskGroup.spawnUnlessCancelled` have been renamed to `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled` which are to be their final names. This aligns the naming with the renamed `async let` as the word signifying creation of a child task
+- remove the ability to create new tasks at the `userInteractive` priority. This priority will be used only be the runtime itself, e.g. by the main thread and automatically inherited properly by any other tasks (and downgraded to `userInitiated`)
+- `TaskGroup.spawn` and `TaskGroup.spawnUnlessCancelled` have been renamed to `TaskGroup.async` and `TaskGroup.asyncUnlessCancelled`.
 - remove `Task.current` and the general ability to get hold of a child task instance. This change unlocks important optimizations in the compiler and runtime
 - collapse `Task.Handle<Success, Failure>` into `Task<Success, Failure>`. This is the most-used type in the Task API and should have the shortest name.
 - merge the `async { }` proposal ([pitched here](https://forums.swift.org/t/initiating-asynchronous-work-from-synchronous-code/47714)) into this proposal, such that we have always to create tasks in this proposal to review at-once, and make it the task instance initializer `Task { ... }`
@@ -1489,7 +1521,7 @@ Changes after first review:
 
 The design of task groups intentionally avoids exposing any task handles (futures) for child tasks. This ensures that the structure of structured concurrency, where all child tasks complete before their parent task, is maintained. That helps various properties such as priorities, deadlines, and cancellation to propagate in a meaningful way down the task tree.
 
-However, an alternative design would bring futures to the forefront. One could introduce an `runChild` counterpart to `spawnDetached` that creates a new child task (of the current task), and then retrieve the result of that child task using the provided `Task`. To ensure that child tasks complete before the scope exits, we would require some kind of scoping mechanism that provides similar behavior to task groups. For example, the `makeDinner` example would be something like:
+However, an alternative design would bring futures to the forefront. One could introduce a new `runChild` operation that creates a new child task (of the current task), and then retrieve the result of that child task using the provided `Task`. To ensure that child tasks complete before the scope exits, we would require some kind of scoping mechanism that provides similar behavior to task groups. For example, the `makeDinner` example would be something like:
 
 ```swift
 func makeDinner() async throws -> Meal {
@@ -1508,50 +1540,20 @@ The task handles produced by `runChild` should never escape the scope in which t
 
 ## Future directions
 
-### `async let` to spawn child tasks within a scope
+### `async let` to create child tasks within a scope
 
 Although our design de-emphasizes futures for structured tasks, for the reasons
 delineated above, we acknowledge that it will be common to want to pass
 heterogeneous values up from child tasks to their parent. This is possible
-within the existing task group APIs, though not ideal. Take our
-first `makeDinner` example:
+within the existing task group APIs, though not ideal, as illustrated by the 
+original `makeDinner` example.
 
-```swift
-func makeDinner() async throws -> Meal {
-  var veggies: [Vegetable]?
-  var meat: Meat?
-  var oven: Oven?
+[SE-0317 `async let`](0317-async-let.md) provides syntactic sugar for the
+creation of heterogenous child tasks, capturing their values in local
+variables that use [effectful properties](0310-effectful-readonly-properties.md)
+to wait for the result of the child task's completion. For example, this allows
+the `makeDinner` example to be written as:
 
-  // Create a task group to scope the lifetime of our three child tasks
-  try await withTaskGroup(of: Void.self) { group in
-    group.spawn {
-      veggies = try await chgroup.spawn  }
-    group.spawn {
-      meat = await marinateMeat()
-    }
-    group.spawn {
-      oven = await preheatOven(temperature: 350)
-    }
-  }
-
-  let dish = Dish(ingredients: [veggies!, meat!])
-  return try await oven!.cook(dish, duration: .hours(3))
-}
-```
-
-Although this works, it imposes a fair amount of boilerplate, and it relies
-on programmer discipline to be correct in a way that we generally try to avoid
-in Swift. Refactorings of this code could lead to one of the optional variables
-no longer getting populated with a value, leading to a crash on unwrap,
-or one of the variables potentially getting written accidentally by two
-different child tasks, leading to potential race conditions, without any
-help from the compiler.
-
-We believe that this pattern is common enough to deserve a targeted solution.
-Because child tasks are scoped in a manner very similar to local variables,
-we could provide a binding syntax to represent the result of a child task, and 
-then treat accesses of that binding as an operation that requires `await`-ing
-and/or `try`-ing the result of the child task:
 
 ```swift
 func makeDinner() async throws -> Meal {
@@ -1564,11 +1566,8 @@ func makeDinner() async throws -> Meal {
 }
 ```
 
-This would provide a lightweight syntax for a very common dataflow pattern
-between child tasks and parents within a task group. This idea is explored in
-its own proposal.
-
-Alternatively, we may want to express this as `spawn` in similar manner to how `asyncDetached { ... }` works for detached tasks, spawn could be the equivalent for child tasks. It would have the same semantics as `async let`, so it is mostly a spelling discussion -- it may be beneficial to express `spawn`, `detach` and perhaps future non-waiting operations like `send` in a similar style, rather than specializing `async let` declarations. In general however a specialized form of creating child tasks within a scope will be definitely explored in the near future.
+This provides a lightweight syntax for a very common dataflow pattern
+between child tasks and parents within a task group.
 
 ### `@Sendable` closure checking for task groups
 
@@ -1580,14 +1579,14 @@ var numApplesProcessed = 0
 var numBananasProcessed = 0
 withTaskGroup { group in
   // One child task handles apples:
-  group.spawn {
+  group.addTask {
     for apple in apples {
       await processApple(apple)
       numApplesProcessed += 1
     }
   }
   // And one child task handles bananas:
-  group.spawn {
+  group.addTask {
     for banana in bananas {
       await processBanana(banana)
       numBananasProcessed += 1
@@ -1604,10 +1603,10 @@ natural coding style in these situations, it would be useful if the analysis
 understood the special behavior of task groups and allowed for mutation in
 captures when it's safe in cases like this.
 
-### Suspending `await group.spawn`
+### Suspending `await group.addTask`
 
-Initially the `group.spawn` was designed with the idea of being an asynchronous function which might suspend if the group determined that it is "too full" and should apply this naive form of back-pressure to the task spawning more tasks into the group.
+Initially the `group.addTask` operation was designed with the idea of being an asynchronous function which might suspend if the group determined that it is "too full" and should apply this naive form of back-pressure to the task creating more tasks into the group.
 
 This was not implemented nor is it clear how efficient and meaningful this form of back-pressure really would be. A naive version of these semantics is possible to implement by balancing pending and completed task counts in the group by plain variables, so removing this implementation doe not prevent developers form implementing such "width limited" operations per se.
 
-The way to back-pressure submissions should also be considered in terms of how it relates to async let and general spawn mechanisms, not only groups. We have not figured out this completely, and rather than introduce an not-implemented API which may or may not have the right shape, for now we decided to punt on this feature until we know precisely if and how to apply this style of back-pressure on spawning tasks throughout the system.
+The way to back-pressure submissions should also be considered in terms of how it relates to async let and general task creation mechanisms, not only groups. We have not figured out this completely, and rather than introduce an not-implemented API which may or may not have the right shape, for now we decided to punt on this feature until we know precisely if and how to apply this style of back-pressure on creating tasks throughout the system.

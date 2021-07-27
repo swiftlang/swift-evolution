@@ -1,10 +1,12 @@
-# Placeholder types
+# Type placeholders (formerly, "Placeholder types")
 
 * Proposal: [SE-0315](0315-placeholder-types.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (June 21...July 6, 2021)**
+* Status: **Accepted**
 * Implementation: [apple/swift#36740](https://github.com/apple/swift/pull/36740)
+
+Note: this feature was originally discussed and accepted under the "placeholder types" title. The official terminology for this feature is "type placeholders," so the terminology in this proposal has been updated accordingly.
 
 ## Introduction
 
@@ -17,7 +19,7 @@ losslessStringConverter("42") //-> 42.0
 losslessStringConverter("##") //-> nil
 ```
 
-In the above example, we only really need to clarify the *argument* type—there's only one `Double.init` overload that accepts a `String`. This proposal allows the user to provide type hints which use *placeholder types* in such circumstances, so that the initialization of `stringTransform` could be written as:
+In the above example, we only really need to clarify the *argument* type—there's only one `Double.init` overload that accepts a `String`. This proposal allows the user to provide type hints which use *type placeholders* in such circumstances, so that the initialization of `stringTransform` could be written as:
 
 ```swift
 let losslessStringConverter = Double.init as (String) -> _?
@@ -34,19 +36,19 @@ Fortunately, Swift provides several ways for the user to provide type informatio
 * Variable type annotations:
 
 ```swift
-let losslessStringConverter: (String) -> Double = Double.init
+let losslessStringConverter: (String) -> Double? = Double.init
 ```
 
 * Type coercion via `as` (seen above):
 
 ```swift
-let losslessStringConverter = Double.init as (String) -> Double
+let losslessStringConverter = Double.init as (String) -> Double?
 ```
 
 * Passing type parameters explicitly (e.g., `JSONDecoder` ):
 
 ```swift
-let dict = JSONDecoder().decode([String: Int].self, from: data)
+let dict = try JSONDecoder().decode([String: Int].self, from: data)
 ```
 
 The downside of all of these approaches is that they require the user to write out the *entire* type, even when the compiler only needs guidance on some sub-component of that type. This can become particularly problematic in cases where a complex type that would normally be inferred has to be written out explicitly because some *unrelated* portion of the type signature is required. E.g.,
@@ -79,7 +81,7 @@ The resulting expression is more difficult to write *and* read. If `Left` were t
 
 ## Proposed solution
 
-Allow users to write types with designated *placeholder types* (spelled " `_` ") which indicate that the corresponding type should be filled in during type checking. For the above `publisherOrValue` example, this would look like:
+Allow users to write types with designated *type placeholders* (spelled " `_` ") which indicate that the corresponding type should be filled in during type checking. For the above `publisherOrValue` example, this would look like:
 
 ```swift
 let publisherOrValue = Either<_, Int>(left: makePublisher())
@@ -91,7 +93,7 @@ Because the generic argument to the `Left` parameter can be inferred from the re
 
 ### Grammar
 
-This proposal introduces the concept of a user-specified "placeholder type," which, in terms of the grammar, can be written anywhere a type can be written. In particular, the following productions will be introduced:
+This proposal introduces the concept of a user-specified "type placeholder," which, in terms of the grammar, can be written anywhere a type can be written. In particular, the following productions will be introduced:
 
 ```swift
 type → placeholder-type
@@ -103,14 +105,14 @@ Examples of types containing placeholders are:
 ```swift
 Array<_> // array with placeholder element type
 [Int: _] // dictionary with placeholder value type
-(_) -> Int // function type accepting a single placeholder type argument and returning 'Int'
+(_) -> Int // function type accepting a single type placeholder argument and returning 'Int'
 (_, Double) // tuple type of placeholder and 'Double'
-_? // optional wrapping a placeholder type
+_? // optional wrapping a type placeholder
 ```
 
 ### Type inference
 
-When the type checker encounters a type containing a placeholder type, it will fill in all of the non-placeholder context exactly as before. Placeholder types will be treated as providing no context for that portion of the type, requiring the rest of the expression to be solvable given the partial context. Effectively, placeholder types act as user-specified anonymous type variables that the type checker will attempt to solve using other contextual information.
+When the type checker encounters a type containing a type placeholder, it will fill in all of the non-placeholder context exactly as before. Type placeholders will be treated as providing no context for that portion of the type, requiring the rest of the expression to be solvable given the partial context. Effectively, type placeholders act as user-specified anonymous type variables that the type checker will attempt to solve using other contextual information.
 
 Let's examine a concrete example:
 
@@ -129,7 +131,7 @@ As written, this code is invalid. The compiler complains about the "ambiguous us
 let publisher: AnyPublisher<Int, Error> = Just(makeValue()).setFailureType(to: Error.self).eraseToAnyPublisher()
 ```
 
-Really, though, this is overkill. The generic argument to `AnyPublisher` 's `Failure` parameter is clearly `Error` , since the result of `setFailureType(to:)` has no ambiguity. Thus, we can substitute in a placeholder type for the `Failure` parameter, and still successfully typecheck this expression:
+Really, though, this is overkill. The generic argument to `AnyPublisher` 's `Failure` parameter is clearly `Error` , since the result of `setFailureType(to:)` has no ambiguity. Thus, we can substitute in a type placeholder for the `Failure` parameter, and still successfully typecheck this expression:
 
 ```swift
 let publisher: AnyPublisher<Int, _> = Just(makeValue()).setFailureType(to: Error.self).eraseToAnyPublisher()
@@ -137,7 +139,7 @@ let publisher: AnyPublisher<Int, _> = Just(makeValue()).setFailureType(to: Error
 
 Now, the type checker has all the information it needs to resolve the reference to `makeValue` : the ultimately resulting `AnyPublisher` must have `Output == Int` , so the result of `setFailureType(to:)` must have `Output == Int` , so the instance of `Just` must have `Output == Int` , so the argument to `Just.init` must have type `Int` , so `makeValue` must refer to the `Int` -returning overload!
 
-Note: it is not permitted to specify a type that is _just_ a placeholder—see the relevant subsection in **Future directions** for a dicussion of the considerations. This means that, for example, the following would fail to compile:
+Note: it is not permitted to specify a type that is _just_ a placeholder—see the relevant subsection in **Future directions** for a discussion of the considerations. This means that, for example, the following would fail to compile:
 
 ```swift
 let percent: _ = 100.0 // error: placeholders are not allowed as top-level types
@@ -151,7 +153,7 @@ In some cases, placeholders may be expected to conform to certain protocols. E.g
 let dict: [_: String] = [0: "zero", 1: "one", 2: "two"]
 ```
 
-When examining the storage type for `dict` , the compiler will expect the placeholder key type to conform to `Hashable` . Conservatively, placeholder types are assumed to satisfy all necessary constraints, deferring the verification of these constraints until the checking of the intialization expression.
+When examining the storage type for `dict` , the compiler will expect the key type placeholder to conform to `Hashable` . Conservatively, type placeholders are assumed to satisfy all necessary constraints, deferring the verification of these constraints until the checking of the initialization expression.
 
 ### Generic parameter inference
 
@@ -163,17 +165,17 @@ import Combine
 let publisher = Just(0) // Just<Int> is inferred!
 ```
 
-With placeholder types, writing the bare name of a generic type (in most cases, see note below) becomes equivalent to writing the generic signature with placeholder types for the generic arguments. E.g., the initialization of `publisher` above is the same as:
+With type placeholders, writing the bare name of a generic type (in most cases, see note below) becomes equivalent to writing the generic signature with type placeholders for the generic arguments. E.g., the initialization of `publisher` above is the same as:
 
 ```swift
 let publisher = Just<_>(0)
 ```
 
-Note: there is an existing rule that *inside the body* of a generic type `S<T1, ..., Tn>` , the bare name `S` is equivalent to `S<T1, ..., Tn>` . This proposal does not augment this rule nor attempt to express this rule in terms of placeholder types.
+Note: there is an existing rule that *inside the body* of a generic type `S<T1, ..., Tn>` , the bare name `S` is equivalent to `S<T1, ..., Tn>` . This proposal does not augment this rule nor attempt to express this rule in terms of type placeholders.
 
 ### Function signatures
 
-As is the case today, function signatures under this proposal are required to have their argument and return types fully specified. Generic parameters cannot be inferred and placeholder types are not permitted to appear within the signature, even if the type could ostensibly be inferred from e.g., a protocol requirement or default argument expression.
+As is the case today, function signatures under this proposal are required to have their argument and return types fully specified. Generic parameters cannot be inferred and type placeholders are not permitted to appear within the signature, even if the type could ostensibly be inferred from e.g., a protocol requirement or default argument expression.
 
 Thus, it is an error under this proposal to write something like:
 
@@ -206,43 +208,43 @@ extension Bar {
     func frobnicate() -> Bar {
         return Bar(t: 42, u: 42)
     }
-    func frobnicate2() -> Bar<_, _> {
+    func frobnicate2() -> Bar<_, _> { // error
         return Bar(t: 42, u: 42)
     }
     func frobnicate3() -> Bar {
         return Bar<_, _>(t: 42, u: 42)
     }
-    func frobnicate4() -> Bar<_, _> {
+    func frobnicate4() -> Bar<_, _> { // error
         return Bar<_, _>(t: 42, u: 42)
     }
-    func frobnicate5() -> Bar<_, U> {
+    func frobnicate5() -> Bar<_, U> { // error
         return Bar(t: 42, u: 42)
     }
     func frobnicate6() -> Bar {
         return Bar<_, U>(t: 42, u: 42)
     }
-    func frobnicate7() -> Bar<_, _> {
+    func frobnicate7() -> Bar<_, _> { // error
         return Bar<_, U>(t: 42, u: 42)
     }
-    func frobnicate8() -> Bar<_, U> {
+    func frobnicate8() -> Bar<_, U> { // error
         return Bar<_, _>(t: 42, u: 42)
     }
 }
 ```
 
-Under this proposal, only `frobnicate`, `frobnicate3` and `frobnicate6` would compile without error (`frobnicate1`, of course, compiles without this proposal as well), since all others have placeholders appearing in at least one position in the function signature.
+Under this proposal, only `frobnicate`, `frobnicate3` and `frobnicate6` would compile without error (`frobnicate`, of course, compiles without this proposal as well), since all others have placeholders appearing in at least one position in the function signature.
 
 ### Dynamic casts
 
 In dynamic casts, unlike `as` coercions, there is no inherent relationship between the casted expression and the cast type. This is why we can write things like `0 as? String` or `[""] is Double` (albeit, with warnings that the casts will always fail).
 
-While this proposal does not *explicitly* disallow placeholder types in `is`, `as?`, and `as!` casts, it provides for no additional inference rules for matching the type of the casted expression to the cast type, meaning that in most cases placeholder types will fail to type check if used in these positions (e.g., `0 as? [_]`).
+While this proposal does not *explicitly* disallow type placeholders in `is`, `as?`, and `as!` casts, it provides for no additional inference rules for matching the type of the casted expression to the cast type, meaning that in most cases type placeholders will fail to type check if used in these positions (e.g., `0 as? [_]`).
 
 This also applies to `is` and `as` patterns (e.g., `case let y as [_]`).
 
 ## Source compatibility
 
-This is an additive change with no effect on source compatibility. Certain invalid code which previously produced errors like "'_' can only appear in a pattern or on the left side of an assignment" may now produce errors which complain about placeholder types.
+This is an additive change with no effect on source compatibility. Certain invalid code which previously produced errors like "'_' can only appear in a pattern or on the left side of an assignment" may now produce errors which complain about type placeholders.
 
 ## Effect on ABI stability
 
@@ -250,13 +252,13 @@ This feature does not have any effect on the ABI.
 
 ## Effect on API resilience
 
-Placeholder types are not exposed as API. In a compiled interface, placeholder types (except for those within the bodies of `@inlinable` functions or default argument expressions) are replaced by whatever type the type checker fills in for the placeholder. While the introduction or removal of a placeholder *on its own* is not necessarily an API or ABI break, authors should be careful that the introduction/removal of the additional type context does not ultimately change the inferred type of the variable.
+Type placeholders are not exposed as API. In a compiled interface, type placeholders (except for those within the bodies of `@inlinable` functions or default argument expressions) are replaced by whatever type the type checker fills in for the type placeholder. While the introduction or removal of a type placeholder *on its own* is not necessarily an API or ABI break, authors should be careful that the introduction/removal of the additional type context does not ultimately change the inferred type of the variable.
 
 ## Alternatives considered
 
 ### Alternative spellings
 
-Several potential spellings of the placeholder type were suggested, with most users preferring either " `_` " or " `?` ". The question mark version was rejected primarily for the fact that the existing usage of `?` in the type grammar for optionals would be confusing and or ambiguous if it were overloaded to also stand for a placeholder type.
+Several potential spellings of the type placeholder were suggested, with most users preferring either " `_` " or " `?` ". The question mark version was rejected primarily for the fact that the existing usage of `?` in the type grammar for optionals would be confusing and or ambiguous if it were overloaded to also stand for a type placeholder.
 
 Some users also worried that the underscore spelling would preclude the same spelling from being used for automatically type-erased containers, e.g.,
 
@@ -266,7 +268,7 @@ anyArray = ["string"]
 let stringArray = anyArray as? Array<String>
 ```
 
-This objection to the `_` is compelling, but it was noted during discussion that usage of an explicit existential marker keyword (a la `any Array<_>` ) could allow the usage of an underscore for both placeholder types and erased types.
+This objection to the `_` is compelling, but it was noted during discussion that usage of an explicit existential marker keyword (a la `any Array<_>` ) could allow the usage of an underscore for both type placeholders and erased types.
 
 At the pitch phase, the author remains open to alternative spellings for this feature. In particular, the " `any Array<_>` " resolution does not address circumstances where an author may want to both erase some components of a type but allow inference to fill in others.
 
@@ -282,7 +284,7 @@ let publisher: _<Int, _> = Just(makeValue()).setFailureType(to: Error.self).eras
 
 Since the type of the generic `AnyPublisher` base is fully determined from the result type of `eraseToAnyPublisher()` .
 
-Similarly, placeholder types could be used in type member positions to denote some type that is nested within another:
+Similarly, type placeholders could be used in type member positions to denote some type that is nested within another:
 
 ```swift
 struct S {
@@ -297,11 +299,11 @@ func test(val: S) {
 }
 ```
 
-The author is skeptical that either of these extensions of placeholder types ultimately results in clearer code, and so opts to defer consideration of such a feature until there is further discussion about potential uses/tradeoffs.
+The author is skeptical that either of these extensions of type placeholders ultimately results in clearer code, and so opts to defer consideration of such a feature until there is further discussion about potential uses/tradeoffs.
 
-### Attributed placeholder types
+### Attributed type placeholders
 
-Placeholder types could be used to apply an attribute when the rest of the type can be inferred from context, e.g.:
+Type placeholders could be used to apply an attribute when the rest of the type can be inferred from context, e.g.:
 
 ```swift
 let x: @convention(c) _ = { 0 }
@@ -316,9 +318,9 @@ let x: @convention(c) F = { 0 }
 
 are already illegal.
 
-Since there is more subtle design work to be done here, and because the use cases for this extension of placeholder types are comparatively narrow, the author opts to leave this as a future direction.
+Since there is more subtle design work to be done here, and because the use cases for this extension of type placeholders are comparatively narrow, the author opts to leave this as a future direction.
 
-### Top-level placeholder types
+### Top-level type placeholders
 
 An earlier draft of this proposal allowed for the use of placeholders as top-level types, so that one could write
 
@@ -326,7 +328,7 @@ An earlier draft of this proposal allowed for the use of placeholders as top-lev
 let x: _ = 0.0 // type of x is inferred as Double
 ```
 
-Compared to other uses of this feature, top-level placeholders are clearly of more limited utility. In type annotations (as above), they merely serve as a slightly more explicit way to indicate "this type is inferred," and they are similarly unhelpful in `as` casts. There is *some* use for top-level placeholders in type expression position, particularly when passing a metatype value as a parameter. For instance, Combine's `setFailureType(to:)` operator could be used with a top-level placeholder to make conversions between failure types more lightweight wen necessary:
+Compared to other uses of this feature, top-level placeholders are clearly of more limited utility. In type annotations (as above), they merely serve as a slightly more explicit way to indicate "this type is inferred," and they are similarly unhelpful in `as` casts. There is *some* use for top-level placeholders in type expression position, particularly when passing a metatype value as a parameter. For instance, Combine's `setFailureType(to:)` operator could be used with a top-level placeholder to make conversions between failure types more lightweight when necessary:
 
 ```swift
 let p: AnyPublisher<Int, Error> = Just<Int>().setFailureType(to: _.self).eraseToAnyPublisher()
@@ -335,10 +337,10 @@ let p: AnyPublisher<Int, Error> = Just<Int>().setFailureType(to: _.self).eraseTo
 However, as Xiaodi Wu points out, allowing placeholders in these positions would have the effect of permitting clients to leave out type names in circumstances where library authors intended the type information to be provided explicitly, such as when using `KeyedDecodingContainer.decode(_:forKey:)`. It is not obviously desirable for users to be able to write, e.g.:
 
 ```swift
-self.someProp = container.decode(_.self, forKey: .someProp)
+self.someProp = try container.decode(_.self, forKey: .someProp)
 ```
 
-Due to the additional considerations here, the author has opted to leave top-level placeholders as a future direction, which could potentially be considered once there is more real-world usage of placeholder types that could inform the benefits and drawbacks.
+Due to the additional considerations here, the author has opted to leave top-level placeholders as a future direction, which could potentially be considered once there is more real-world usage of type placeholders that could inform the benefits and drawbacks.
 
 ## Acknowledgments
 
