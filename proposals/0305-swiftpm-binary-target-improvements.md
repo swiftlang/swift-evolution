@@ -3,7 +3,7 @@
 * Proposal: [SE-0305](0305-swiftpm-binary-target-improvements.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.6)**
 * Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0305-package-manager-binary-target-improvements/47742) 
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md)
 * Forum Discussion: [SE-0305: Package Manager Binary Target Improvements](https://forums.swift.org/t/se-0305-package-manager-binary-target-improvements/45589)
