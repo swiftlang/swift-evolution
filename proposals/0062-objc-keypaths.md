@@ -4,14 +4,14 @@
 * Author: [David Hart](https://github.com/hartbit)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000101.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0062-referencing-objective-c-key-paths/2198)
 * Bug: [SR-1237](https://bugs.swift.org/browse/SR-1237)
 
 ## Introduction
 
 In Objective-C and Swift, key-paths used by KVC and KVO are represented as string literals (e.g., `"friend.address.streetName"`). This proposal seeks to improve the safety and resilience to modification of code using key-paths by introducing a compiler-checked expression.
 
-[SE Draft](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011845.html), [Review thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014435.html)
+[SE Draft](https://forums.swift.org/t/draft-obejctive-c-keypaths/1688), [Review thread](https://forums.swift.org/t/review-se-0062-referencing-objective-c-key-paths/2086)
 
 ## Motivation
 

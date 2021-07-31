@@ -3,10 +3,10 @@
 * Proposal: [SE-0291](0291-package-collections.md)
 * Authors: [Boris Bügling](https://github.com/neonichu), [Yim Lee](https://github.com/yim-lee), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.5)**
 * Implementation: [apple/swift-package-manager#3030](https://github.com/apple/swift-package-manager/pull/3030)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7c45e22557a0ef726dea9787f0fae9dac3ed7856/proposals/0291-package-collections.md)
-* Review: [Review](https://forums.swift.org/t/se-0291-package-collections), [Review 2](https://forums.swift.org/t/se-0291-2nd-review-package-collections), [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0291-package-collections)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7c45e22557a0ef726dea9787f0fae9dac3ed7856/proposals/0291-package-collections.md), [2](https://github.com/apple/swift-evolution/blob/3e56b936a2398b7bd57c09dc39a845336d2543fe/proposals/0291-package-collections.md)
+* Review: [Review](https://forums.swift.org/t/se-0291-package-collections), [Review 2](https://forums.swift.org/t/se-0291-2nd-review-package-collections), [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0291-package-collections), [Amendment](https://forums.swift.org/t/amendment-se-0291-package-collection-signing/), [Amendment Acceptance](https://forums.swift.org/t/accepted-se-0291-amendment-package-collection-signing/45126)
 
 ## Introduction
 
@@ -247,6 +247,83 @@ Package collections must adhere to a specific JSON format for SwiftPM to be able
 
 Since the data format is unstable, users should avoid generating package collections on their own. This proposal includes providing the necessary [tooling](https://github.com/apple/swift-package-collection-generator) for package collection generations.
 
+### Package collection signing
+
+Package collections can be signed to establish authenticity and protect their integrity. Doing this is optional and users will not be blocked from adding unsigned package collections.  
+
+There will be [tooling](https://github.com/apple/swift-package-collection-generator) to help publishers sign their package collections. To generate a signature one must provide:
+- The package collection file to be signed
+- A code signing certificate
+- The certificate's private key
+- The certificate's chain in its entirety
+
+The signature will include the certificate's public key and chain so that they can be used for verification later.
+
+A signed package collection will have an extra `signature` object:
+
+```
+{
+  // Package collection JSON
+  ...,
+  "signature": {
+    ...
+  }
+}
+```
+
+#### Requirements on signing certificate
+
+The following conditions are checked and enforced during signature generation and verification:
+- The timestamp at which signing/verification is done must fall within the signing certificate's validity period.
+- The certificate's "Extended Key Usage" extension must include "Code Signing".
+- The certificate must use either 256-bit EC (recommended) or 2048-bit RSA key.
+- The certificate must not be revoked. The certificate authority must support OCSP, which means the certificate must have the "Certificate Authority Information Access" extension that includes OCSP as a method, specifying the responder's URL.
+- The certificate chain is valid and root certificate must be trusted.
+
+##### Trusted root certificates
+
+On Apple platforms, all root certificates that come preinstalled with the OS are automatically trusted. Users may specify additional certificates to trust by placing them in the `~/.swiftpm/config/trust-root-certs` directory. 
+
+On non-Apple platforms, there are no trusted root certificates by default. Only those found in `~/.swiftpm/config/trust-root-certs` are trusted.
+
+#### Add a signed package collection
+
+When adding a signed package collection, SwiftPM will check that:
+- The file content (excluding `signature`) is what was used to generate the signature. In other words, this checks to see if the collection has been altered since it was signed.
+- The signing certificate meets all of the [requirements](#requirements-on-signing-certificate).
+
+SwiftPM will not import a collection if any of these checks fails.
+
+User may opt to skip the signature check on a collection by passing the `--skip-signature-check` flag during `add`:
+
+```bash
+$ swift package-collection add https://www.example.com/packages.json --skip-signature-check
+```
+
+Since there are no trusted root certificates by default on non-Apple platforms, the signature check will always fail. SwiftPM will detect this and instruct user to either set up the `~/.swiftpm/config/trust-root-certs` directory or use `--skip-signature-check`.
+
+#### Add an unsigned package collection
+
+When adding an unsigned package collection, user must confirm their trust by passing the `--trust-unsigned` flag:
+
+```bash
+$ swift package-collection add https://www.example.com/unsigned-packages.json --trust-unsigned
+```
+
+The `--skip-signature-check` flag has no effects on unsigned collections.
+
+#### Security risks
+
+Signed package collections as currently designed are susceptible to the following attack vectors:
+
+- **Signature stripping**: This involves attackers removing signature from a signed collection, causing it to be downloaded as an unsigned collection and bypassing signature check. In this case, publishers should make it known that the collection is signed, and users should abort the `add` operation when the "unsigned" warning shows up on a supposedly signed collection.
+- **Signature replacement**: Attackers may modify a collection then re-sign it using a different certificate, and SwiftPM will accept it as long as the signature is valid.
+
+To defend against these attacks, SwiftPM will offer a way for collection publishers to:
+1. Require signature check on their collections - this defends against "signature stripping".
+2. Restrict what certificate can be used for signing - this defends against "signature replacement".
+
+The process will involve submitting a pull request to modify SwiftPM certificate pinning configuration.
 
 ## Future direction
 

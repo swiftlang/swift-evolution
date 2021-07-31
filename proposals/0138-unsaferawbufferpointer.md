@@ -4,7 +4,7 @@
 * Author: [Andrew Trick](https://github.com/atrick)
 * Review manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Implemented (Swift 3.0.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160919/027167.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0138-unsaferawbufferpointer/4063)
 
 Contents:
 - [Introduction](#introduction)
@@ -42,12 +42,8 @@ changing the type the represents a view into raw bytes to
 [UnsafeRawPointer Migration Guide](https://swift.org/migration-guide/se-0107-migrate.html).
 
 Swift-evolution threads:
-- [Week #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160808/thread.html#26173)
-- [Week #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160815/thread.html#26254)
-- [Week #3](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/thread.html#26553)
-- [Week #4 (1)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160829/thread.html#26812)
-- [Week #4 (2)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160829/thread.html#26844)
-- [Week #5](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160905/thread.html#26947)
+- [Pitch](https://forums.swift.org/t/late-pitch-unsafebytes-proposal/3762)
+- [Review thread 1](https://forums.swift.org/t/se-0138-unsafebytes/3926), [Review thread 2](https://forums.swift.org/t/review-se-0138-unsafebytes/3917)
 
 ## Motivation
 

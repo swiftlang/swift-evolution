@@ -4,14 +4,14 @@
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000098.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0048-generic-type-aliases/2192)
 
 
 ## Introduction
 
 This proposal aims to add generic typealiases to Swift.
 
-Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012289.html)
+Swift-evolution thread: [here](https://forums.swift.org/t/proposal-generic-type-aliases/1740)
 
 ## Motivation
 

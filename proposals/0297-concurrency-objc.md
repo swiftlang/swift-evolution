@@ -3,8 +3,8 @@
 * Proposal: [SE-0297](0297-concurrency-objc.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted With Modifications** 
-* [Acceptance Post](https://forums.swift.org/t/accepted-with-modifications-se-0297-concurrency-interoperability-with-objective-c/43306)
+* Status: **Implemented (Swift 5.5)**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0297-concurrency-interoperability-with-objective-c/43306)
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
@@ -261,12 +261,12 @@ The transformation of Objective-C completion-handler-based APIs to async Swift A
   * `__attribute__((swift_async(none)))`. Disables the translation to `async`.  
   * `__attribute__((swift_async(not_swift_private, C)))`. Specifies that the method should be translated into an `async` method, using the parameter at index `C` as the completion handler parameter. The first (non-`self`) parameter has index 1.
   * `__attribute__((swift_async(swift_private, C)))`. Specifies that the method should be translated into an `async` method that is "Swift private" (only for use when wrapping), using the parameter at index `C` as the completion handler parameter. The first (non-`self`) parameter has index 1.
-* `__attribute__((swift_attr("swift attribute")))`. A general-purpose Objective-C attribute to allow one to provide Swift attributes directly. In the context of concurrency, this allows Objective-C APIs to be annotated with a global actor (e.g., `@UIActor`).
+* `__attribute__((swift_attr("swift attribute")))`. A general-purpose Objective-C attribute to allow one to provide Swift attributes directly. In the context of concurrency, this allows Objective-C APIs to be annotated with a global actor (e.g., `@MainActor`).
 * `__attribute__((swift_async_name("method(param1:param2:)")))`. Specifies the Swift name that should be used for the `async` translation of the API. The name should not include an argument label for the completion handler parameter.
 * `__attribute__((swift_async_error(...)))`. An attribute to control how passing an `NSError *` into the completion handle maps into the method being `async throws`. It has several possible parameters:
   * `__attribute__((swift_async_error(none)))`: Do not import as `throws`. The `NSError *` parameter will be considered a normal parameter.
-  * `__attribute__((swift_async_error(zero_argument(N)))`: Import as `throws`. When the Nth argument to the completion handler is passed the integral value zero (including `false`), the async method will throw the error. The Nth argument is removed from the result type of the translated `async` method. The first argument is `0`.
-  * `__attribute__((swift_async_error(nonzero_argument(N)))`: Import as `throws`. When the Nth argument to the completion handler is passed a non-zero integral value (including `true`), the async method will throw the error. The Nth argument is removed from the result type of the translated `async` method.
+  * `__attribute__((swift_async_error(zero_argument, N)))`: Import as `throws`. When the Nth parameter to the completion handler is passed the integral value zero (including `false`), the async method will throw the error. The Nth parameter is removed from the result type of the translated `async` method. The first parameter is numbered `1`.
+  * `__attribute__((swift_async_error(nonzero_argument, N)))`: Import as `throws`. When the Nth parameter to the completion handler is passed a non-zero integral value (including `true`), the async method will throw the error. The Nth parameter is removed from the result type of the translated `async` method.  The first parameter is numbered `1`.
 
 
 ## Source compatibility

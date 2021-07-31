@@ -4,14 +4,14 @@
 * Authors: [David Hart](https://github.com/hartbit), [Robert Widmann](https://github.com/CodaFi), [Pyry Jahkola](https://github.com/pyrtsa)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000161.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0081-move-where-clause-to-end-of-declaration/2685)
 * Bug: [SR-1561](https://bugs.swift.org/browse/SR-1561)
 
 ## Introduction
 
 This proposal suggests moving the `where` clause to the end of the declaration syntax, but before the body, for readability reasons. It has been discussed at length on the following swift-evolution thread:
 
-[\[Pitch\] Moving where Clauses Out Of Parameter Lists](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014309.html)
+[\[Pitch\] Moving where Clauses Out Of Parameter Lists](https://forums.swift.org/t/pitch-moving-where-clauses-out-of-parameter-lists/2076)
 
 ## Motivation
 

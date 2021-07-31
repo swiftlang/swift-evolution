@@ -4,7 +4,7 @@
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
 * Review manager: Daniel Dunbar
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-November/000298.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/review-se-0146-package-manager-product-definitions/4540/2)
 * Bug: [SR-3606](https://bugs.swift.org/browse/SR-3606)
 
 ## Introduction

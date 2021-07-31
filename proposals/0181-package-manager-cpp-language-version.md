@@ -4,7 +4,7 @@
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170717/038142.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0181-package-manager-c-c-language-standard-support/6353)
 * Implementation: [apple/swift-package-manager#1264](https://github.com/apple/swift-package-manager/pull/1264)
 
 ## Introduction

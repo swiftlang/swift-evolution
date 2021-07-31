@@ -4,16 +4,16 @@
 * Author: [Matthew Johnson](https://github.com/anandabits)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000220.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0115-rename-literal-syntax-protocols/3358)
 * Bug: [SR-2054](https://bugs.swift.org/browse/SR-2054)
 
 ## Introduction
 
 This proposal renames the `*LiteralConvertible` protocols to `ExpressibleBy*Literal`.  
 
-Swift-evolution thread: [Literal Syntax Protocols](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021865.html)
+Swift-evolution thread: [Literal Syntax Protocols](https://forums.swift.org/t/proposal-draft-literal-syntax-protocols/3109)
 
-An earlier thread that resulted in this proposal: [Revisiting SE-0041 Names](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021714.html)
+An earlier thread that resulted in this proposal: [Revisiting SE-0041 Names](https://forums.swift.org/t/revisiting-se-0041-names/3084)
 
 ## Motivation
 

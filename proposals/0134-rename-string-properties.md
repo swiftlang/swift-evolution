@@ -4,7 +4,7 @@
 * Authors: [Xiaodi Wu](https://github.com/xwu), [Erica Sadun](https://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000266.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0134-rename-two-utf8-related-properties-on-string/3576)
 * Implementation: [apple/swift#3816](https://github.com/apple/swift/pull/3816)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/aea8b836d21051076663c5692ec1d09bb3222527/proposals/0134-rename-string-properties.md)
 
@@ -12,7 +12,7 @@
 
 This proposal removes `nulTerminatedUTF8` and renames `nulTerminatedUTF8CString` to enhance clarity and reduce mismatch between user expectations and the Swift programming language.
 
-Swift-evolution thread: [Discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025378.html)
+Swift-evolution thread: [Discussion thread](https://forums.swift.org/t/draft-fix-a-typo-in-two-string-methods/3524)
 
 ## Motivation
 

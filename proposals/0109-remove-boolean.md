@@ -4,7 +4,7 @@
 * Authors: [Anton Zhilin](https://github.com/Anton3), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](http://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024270.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0109-remove-the-boolean-protoco/3380)
 * Implementation: [apple/swift@76cf339](https://github.com/apple/swift/commit/76cf339694a41293dbbec9672b6df87a864087f2),
                   [apple/swift@af30ae3](https://github.com/apple/swift/commit/af30ae32226813ec14c2bef80cb090d3e6c586fb)
 
@@ -29,7 +29,7 @@ consistently in APIs that take Boolean parameters: almost everything takes
 `Bool` concretely.  This means that its supposed abstraction isn't useful.  The
 only significant users are the unary `!`, and binary `&&` and `||` operators.
 
-[Discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021983.html)
+[Discussion thread](https://forums.swift.org/t/proposal-remove-boolean/3124)
 
 ## Proposal
 

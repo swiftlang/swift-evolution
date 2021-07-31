@@ -4,7 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3.0.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160912/027060.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0139-bridge-numeric-types-to-nsnumber-and-cocoa-structs-to-nsvalue/4004)
 
 ## Introduction
 
@@ -13,7 +13,7 @@ into Objective-C object contexts. We should extend this bridging behavior
 to all Swift numeric types. We should also bridge common Cocoa structs such as
 `NSRange` by boxing them into `NSValue` objects.
 
-Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/026560.html)
+Swift-evolution thread: [here](https://forums.swift.org/t/proposal-draft-bridge-numeric-types-to-nsnumber-and-cocoa-structs-to-nsvalue/3841)
 
 ## Motivation
 

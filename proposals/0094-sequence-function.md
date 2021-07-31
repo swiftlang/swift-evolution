@@ -4,7 +4,7 @@
 * Authors: [Lily Ballard](https://github.com/lilyball), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000170.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0094-add-sequence-initial-next-and-sequence-state-next-to-the-stdlib/2775)
 * Bug: [SR-1622](https://bugs.swift.org/browse/SR-1622)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7d220a152a681e28761493c7d9781dd867a04cf7/proposals/0094-sequence-function.md)
 * Previous Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
@@ -17,10 +17,9 @@ applications of a closure to an initial value or a mutable state.
 
 Swift-evolution thread: 
 
-[Discussion thread topic for SE-0045](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011923.html)
+[Discussion thread topic for SE-0045](https://forums.swift.org/t/proposal-add-scan-takewhile-dropwhile-and-iterate-to-the-stdlib/806/6)
 
-
-[Initial Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006193.html)
+[Initial Discussion](https://forums.swift.org/t/proposal-add-scan-takewhile-dropwhile-and-iterate-to-the-stdlib/806/15)
 
 ## Motivation
 

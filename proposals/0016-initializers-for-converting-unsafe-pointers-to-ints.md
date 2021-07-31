@@ -4,7 +4,7 @@
 * Author: [Michael Buckley](https://github.com/MichaelBuckley)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000083.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0016-adding-initializers-to-int-and-uint-to-convert-from-unsafepointer-and-unsafemutablepointer/2005)
 * Bug: [SR-1115](https://bugs.swift.org/browse/SR-1115)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ae2d7c24fff7cbdff754d9a4339e4fb02df5c690/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
@@ -16,7 +16,7 @@ allow users to call C functions with `intptr_t` and `uintptr_t` parameters, and 
 allow users to perform more advanced pointer arithmetic than is allowed by
 `UnsafePointer`s.
 
-[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001213.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013119.html)
+[Swift Evolution Discussion](https://forums.swift.org/t/proposal-add-initializers-for-converting-unsafepointers-to-int-and-unit/331), [Review](https://forums.swift.org/t/review-se-0016-adding-initializers-to-int-and-uint-to-convert-from-unsafepointer-and-unsafemutablepointer/1899)
 
 ## Motivation
 

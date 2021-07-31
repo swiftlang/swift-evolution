@@ -4,7 +4,7 @@
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011097.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0038-package-manager-c-language-target-support/1569)
 * Bug: [SR-821](https://bugs.swift.org/browse/SR-821)
 
 
@@ -16,7 +16,7 @@ languages). This proposal is limited in scope to only supporting targets
 consisting entirely of C languages; there is no provision for supporting targets
 which include both C and Swift sources.
 
-[Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010470.html)
+[Swift Evolution Review Thread](https://forums.swift.org/t/review-se-0038-package-manager-c-language-target-support/1462)
 
 ## Motivation
 

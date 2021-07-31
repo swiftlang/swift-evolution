@@ -4,15 +4,15 @@
 * Author: [David Hart](https://github.com/hartbit)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000102.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0064-referencing-the-objective-c-selector-of-property-getters-and-setters/2199)
 * Bug: [SR-1239](https://bugs.swift.org/browse/SR-1239)
 
 ## Introduction
 
 Proposal [SE-0022](0022-objc-selectors.md) was accepted and implemented to provide a `#selector` expression to reference Objective-C method selectors. Unfortunately, it does not allow referencing the getter and setter methods of properties. This proposal seeks to provide a design to reference those methods for the Swift 3.0 timeframe.
 
-* [Original swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010791.html)
-* [Follow-up swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/010960.html)
+* [Original swift-evolution thread](https://forums.swift.org/t/argument-of-selector-cannot-refer-to-a-property/1517)
+* [Follow-up swift-evolution thread](https://forums.swift.org/t/discussion-referencing-the-objective-c-selector-of-property-getters-and-setters/1556)
 
 ## Motivation
 

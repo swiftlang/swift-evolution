@@ -4,7 +4,7 @@
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000060.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0039-modernizing-playground-literals/1746)
 * Bug: [SR-917](https://bugs.swift.org/browse/SR-917)
 
 ## Introduction
@@ -15,9 +15,9 @@ These literals are built using a simple square bracket syntax that, in the curre
 conflicts with collection literals.
 This proposal redesigns playground literals to follow the precedent of #available and #selector.
 
-*Discussion took place on the Swift Evolution mailing list in the [\[Discussion\] Modernizing Playground Literals](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010301.html) thread. Thanks to [Chris Lattner](https://github.com/lattner) for suggesting this enhancement.*
+*Discussion took place on the Swift Evolution mailing list in the [\[Discussion\] Modernizing Playground Literals](https://forums.swift.org/t/discussion-modernizing-playground-literals/1443) thread. Thanks to [Chris Lattner](https://github.com/lattner) for suggesting this enhancement.*
 
-[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012025.html)
+[Review](https://forums.swift.org/t/review-se-0039-modernizing-playground-literals/1707)
 
 ## Motivation
 

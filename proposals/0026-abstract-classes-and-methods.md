@@ -4,7 +4,7 @@
 * Author: David Scrève
 * Review Manager: [Joe Groff](https://github.com/jckarter/)
 * Status: **Deferred**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000056.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/deferred-se-0026-abstract-classes-and-methods/1705)
 
 ## Introduction
 
@@ -14,7 +14,7 @@ they cannot have attributes as classes have.
 A partial class combines the behavior of a class with the requirement of implementing methods
 in inherited class like protocols.
 
-[Swift-Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005728.html) 
+[Swift-Evolution Discussion](https://forums.swift.org/t/proposal-draff-abstract-classes-and-methods/965)
 
 ## Motivation
 

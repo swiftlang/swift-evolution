@@ -4,7 +4,7 @@
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000124.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0070-make-optional-requirements-objective-c-only/2426)
 * Bug: [SR-1395](https://bugs.swift.org/browse/SR-1395)
 
 ## Introduction
@@ -21,11 +21,11 @@ feature.
 
 Swift-evolution threads:
 
-* [Is there an underlying reason why optional protocol requirements need @objc?](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011854.html)
-* [\[Proposal\] Make optional protocol methods first class citizens](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013770.html)
-* [\[Idea\] How to eliminate 'optional' protocol requirements](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014471.html)
-* [\[Proposal draft\] Make Optional Requirements Objective-C-only](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015552.html)
-* [\[Review\] SE-0070: Make Optional Requirements Objective-C only](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015681.html)
+* [Is there an underlying reason why optional protocol requirements need @objc?](https://forums.swift.org/t/is-there-an-underlying-reason-why-optional-protocol-requirements-need-objc/1681)
+* [\[Proposal\] Make optional protocol methods first class citizens](https://forums.swift.org/t/proposal-make-optional-protocol-methods-first-class-citizens/1990)
+* [\[Idea\] How to eliminate 'optional' protocol requirements](https://forums.swift.org/t/idea-how-to-eliminate-optional-protocol-requirements/2095)
+* [\[Proposal draft\] Make Optional Requirements Objective-C-only](https://forums.swift.org/t/proposal-draft-make-optional-requirements-objective-c-only/2310)
+* [\[Review\] SE-0070: Make Optional Requirements Objective-C only](https://forums.swift.org/t/review-se-0070-make-optional-requirements-objective-c-only/2343)
 
 ## Motivation
 
@@ -169,7 +169,7 @@ example, Objective-C protocols could be annotated with attributes that
 say what the default implementation for each optional requirement is
 (to be used only in Swift), but such a massive auditing effort is
 impractical. There is a related notion of [caller-site default
-implementations](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014471.html)
+implementations](https://forums.swift.org/t/idea-how-to-eliminate-optional-protocol-requirements/2095)
 that was not well-received due to its complexity.
 
 Initially, this proposal introduce a new keyword

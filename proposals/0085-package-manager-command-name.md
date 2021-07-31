@@ -4,7 +4,7 @@
 * Authors: [Rick Ballard](https://github.com/rballard), [Daniel Dunbar](http://github.com/ddunbar)
 * Review Manager: [Daniel Dunbar](http://github.com/ddunbar)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017728.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/review-se-0085-package-manager-command-names/2530/6)
 * Implementation: [apple/swift-package-manager#364](https://github.com/apple/swift-package-manager/pull/364)
 
 ## Note
@@ -20,9 +20,7 @@ and `swift test`, we will introduce a new `swift package` command with multiple
 subcommands. `swift build` and `swift test` will remain as top-level commands due to
 their frequency of use.
 
-[Swift Build Review Thread](https://lists.swift.org/pipermail/swift-build-dev/Week-of-Mon-20160509/000438.html)
-
-[Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/016931.html)
+[Swift Evolution Review Thread](https://forums.swift.org/t/review-se-0085-package-manager-command-names/2530)
 
 ## Motivation
 

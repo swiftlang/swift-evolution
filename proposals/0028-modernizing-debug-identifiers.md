@@ -4,14 +4,14 @@
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 2.2)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-February/000030.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0028-modernizing-swifts-debugging-identifiers-line-etc/1303)
 * Bug: [SR-669](https://bugs.swift.org/browse/SR-669)
 
 ## Introduction
 
 This proposal aims to eliminate Swift's use of "[screaming snake case](https://en.wikipedia.org/wiki/Snake_case)" like `__FILE__` and `__FUNCTION__` and replacing identifier instances with common [octothorpe-prefixed](https://en.wiktionary.org/wiki/octothorpe) lowercase `#identifier` representations.
 
-*The Swift-Evolution discussion of this topic took place in the "[Review] SE-0022: Referencing the Objective-C selector of a method" thread and then in its own "[\[Proposal\] Eliminating Swift's Screaming Snake Case Identifiers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007347.html)" thread*
+*The Swift-Evolution discussion of this topic took place in the "[Review] SE-0022: Referencing the Objective-C selector of a method" thread and then in its own "[\[Proposal\] Eliminating Swift's Screaming Snake Case Identifiers](https://forums.swift.org/t/proposal-eliminating-swifts-screaming-snake-case-identifiers/1165)" thread*
 
 ## Motivation
 

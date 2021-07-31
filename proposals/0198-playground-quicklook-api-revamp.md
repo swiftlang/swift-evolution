@@ -7,15 +7,6 @@
 * Review thread: [SE-0198 review](https://forums.swift.org/t/se-0198-playground-quicklook-api-revamp/9448/16)
 * Status: **Implemented (Swift 4.1)**
 
-<!--
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
-
 ## Introduction ##
 
 The standard library currently includes API which allows a type to customize its
@@ -47,7 +38,7 @@ alternate object or value (as an `Any`) which would serve as their
 description. The PlaygroundLogger framework, also part of
 swift-xcode-playground-support, will be updated to understand this protocol.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180108/042639.html)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/proposal-revamp-the-playground-quicklook-apis/7392)
 
 ## Motivation ##
 

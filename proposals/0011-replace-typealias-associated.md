@@ -4,7 +4,7 @@
 * Author: [Loïc Lecrenier](https://github.com/loiclec)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 2.2)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-January/000014.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0011-replace-typealias-keyword-with-associatedtype-for-associated-type-declarations/990)
 * Bug: [SR-511](https://bugs.swift.org/browse/SR-511)
 
 
@@ -21,7 +21,7 @@ confusion surrounding the use of associated types.
 
 The proposed new keyword is `associatedtype`.
 
-[Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/005123.html)
+[Review Thread](https://forums.swift.org/t/review-replace-typealias-keyword-with-associatedtype-for-associated-type-declarations/880)
 
 ## Motivation
 
@@ -105,5 +105,5 @@ could be easily automated without any risk of breaking existing code.
 
 ## Mailing List
 
-- [Original](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151130/000470.html)
-- [Alternative Keywords](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003551.html)
+- [Original](https://forums.swift.org/t/introduce-associated-type-keyword/201)
+- [Alternative Keywords](https://forums.swift.org/t/se-0011-re-considering-the-replacement-keyword-for-typealias/669)

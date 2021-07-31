@@ -4,7 +4,7 @@
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000221.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0114-updating-buffer-value-names-to-header-names/3359)
 * Implementation: [apple/swift#3374](https://github.com/apple/swift/pull/3374)
 
 ## Introduction
@@ -13,7 +13,7 @@ This proposal updates parameters and generic type parameters from `value` names 
 
 All user-facing Swift APIs must go through Swift Evolution. While this is a trivial API change with an existing implementation, this formal proposal provides a paper trail as is normal and usual for this process.
 
-[Swift Evolution Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022551.html)
+[Swift Evolution Thread](https://forums.swift.org/t/request-for-quickie-proposal-and-review/3175)
 
 [Patch](https://github.com/apple/swift/commit/eb7311de065df7ea332cdde8782cb44f9f4a5121)
 

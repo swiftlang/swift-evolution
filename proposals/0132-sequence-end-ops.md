@@ -1,10 +1,10 @@
 # Rationalizing Sequence end-operation names
 
 * Proposal: [SE-0132](0132-sequence-end-ops.md)
-* Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave Abrahams](https://github.com/dabrahams)
+* Authors: [Becca Royal-Gordon](https://github.com/beccadax), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000267.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/deferred-se-0132-rationalizing-sequence-end-operation-names/3577)
 
 ## Introduction
 
@@ -14,7 +14,7 @@ inconsistent naming which can make it difficult to find inverses or
 remember what the standard library offers. We propose that we standardize 
 these names so they follow consistent, predictable patterns.
 
-Swift-evolution thread: [[Draft] Rationalizing Sequence end-operation names](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021872.html)
+Swift-evolution thread: [[Draft] Rationalizing Sequence end-operation names](https://forums.swift.org/t/draft-rationalizing-sequence-end-operation-names/3103)
 
 ### Scope
 

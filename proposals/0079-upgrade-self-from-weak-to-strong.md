@@ -139,7 +139,7 @@ guard let `self` = self else {
 }
 ```
 
-Apple’s Chris Lattner has stated that “[this is a compiler bug](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007425.html)”.
+Apple’s Chris Lattner has stated that “[this is a compiler bug](https://forums.swift.org/t/allowing-guard-let-self-self-else-for-weakly-captured-self-in-a-closure/931/12)”.
 
 Therefore, we should not rely on this “feature” to work in the future, because the bug will (presumably) be fixed eventually.
 
@@ -151,12 +151,12 @@ Although the alternate proposal received a favorable response from the Swift Evo
 
 ## Citations
 
-Variations on this proposal were discussed earlier in the following [swift-evolution](https://lists.swift.org/mailman/listinfo/swift-evolution) threads:
+Variations on this proposal were discussed earlier in the following [swift-evolution](https://forums.swift.org/c/evolution/18) threads:
 
-- [Wanted: syntactic sugar for [weak self] callbacks](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160201/008713.html)
-- [Allowing `guard let self = self else { … }` for weakly captured self in a closure.](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160201/009023.html)
-- [[Draft Proposal] A simplified notation for avoiding the weak/strong dance with closure capture lists](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160201/009241.html)
-- [[Proposal Update 1] A simplified notation for avoiding the weak/strong dance with closure capture lists](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009972.html)
-- [[Proposal] Allow upgrading weak self to strong self by assignment](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010691.html)
-- [[Proposal] Allow using optional binding to upgrade self from a weak to strong reference](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010759.html)
-- [[Last Call] Allow using optional binding to upgrade self from a weak to strong reference](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/010904.html)
+- [Wanted: syntactic sugar for [weak self] callbacks](https://forums.swift.org/t/wanted-syntactic-sugar-for-weak-self-callbacks/1274)
+- [Allowing `guard let self = self else { … }` for weakly captured self in a closure.](https://forums.swift.org/t/allowing-guard-let-self-self-else-for-weakly-captured-self-in-a-closure/931)
+- [[Draft Proposal] A simplified notation for avoiding the weak/strong dance with closure capture lists](https://forums.swift.org/t/draft-proposal-a-simplified-notation-for-avoiding-the-weak-strong-dance-with-closure-capture-lists/1332)
+- [[Proposal Update 1] A simplified notation for avoiding the weak/strong dance with closure capture lists](https://forums.swift.org/t/proposal-update-1-a-simplified-notation-for-avoiding-the-weak-strong-dance-with-closure-capture-lists/1415)
+- [[Proposal] Allow upgrading weak self to strong self by assignment](https://forums.swift.org/t/proposal-allow-upgrading-weak-self-to-strong-self-by-assignment/1496)
+- [[Proposal] Allow using optional binding to upgrade self from a weak to strong reference](https://forums.swift.org/t/proposal-allow-using-optional-binding-to-upgrade-self-from-a-weak-to-strong-reference/1509)
+- [[Last Call] Allow using optional binding to upgrade self from a weak to strong reference](https://forums.swift.org/t/last-call-allow-using-optional-binding-to-upgrade-self-from-a-weak-to-strong-reference/1542)

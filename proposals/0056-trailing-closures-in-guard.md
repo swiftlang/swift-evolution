@@ -4,11 +4,11 @@
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000108.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0056-allow-trailing-closures-in-guard-conditions/2279)
 
 ## Introduction and Motivation
 
-Swift-evolution thread: ["Allow trailing closures in 'guard' conditions"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013141.html)
+Swift-evolution thread: ["Allow trailing closures in 'guard' conditions"](https://forums.swift.org/t/proposal-allow-trailing-closures-in-guard-conditions/1909)
 
 The three statements `if`, `while`, and `guard` form a family that all take a
 rich form of conditions that can include one or more boolean conditions,
@@ -58,7 +58,7 @@ guard let object = someSequence.findElement { $0.passesTest() } else {
 ## Detailed design
 
 The compiler change to do this is extremely straight-forward, the patch is
-[available here](https://lists.swift.org/pipermail/swift-evolution/attachments/20160322/50c40166/attachment.obj).
+[available here](https://forums.swift.org/uploads/short-url/pjcocZclSJ5owrodpA9tk4F1bmO.enc).
 
 ## Impact on existing code
 
@@ -90,7 +90,7 @@ There are four primary alternatives:
    in the Swift 2 timeframe.  I feel that it has stood the test of time well
    since then.
 
- * *Change the syntax of `if` and `while`*: Brent Royal-Gordon points out that
+ * *Change the syntax of `if` and `while`*: Becca Royal-Gordon points out that
    we could change `if` and `while` to use a keyword after their condition as
    well, e.g.:
 

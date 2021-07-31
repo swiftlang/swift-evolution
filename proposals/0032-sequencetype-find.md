@@ -4,7 +4,7 @@
 * Author: [Lily Ballard](https://github.com/lilyball)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000134.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0032-add-find-method-to-sequence/2462)
 * Bug: [SR-1519](https://bugs.swift.org/browse/SR-1519)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0032-sequencetype-find.md)
 
@@ -15,9 +15,9 @@ found element.
 
 Discussion on swift-evolution started with a proposal with title **Add find method to SequenceType**
 
-Swift-evolution thread: [Proposal: Add function SequenceType.find()](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004814.html)
+Swift-evolution thread: [Proposal: Add function SequenceType.find()](https://forums.swift.org/t/proposal-add-function-sequencetype-find/825)
 
-[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/016035.html)
+[Review](https://forums.swift.org/t/review-se-0032-add-find-method-to-sequencetype/2381)
 
 ## Motivation
 

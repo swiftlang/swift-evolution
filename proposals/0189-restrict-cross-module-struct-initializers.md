@@ -5,18 +5,9 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12834](https://github.com/apple/swift/pull/12834)
-* Pre-review discussion: [Restrict Cross-module Struct Initializers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040261.html)
-* [Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171120/041478.html)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171127/041801.html)
-
-<!--
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
+* Pre-review discussion: [Restrict Cross-module Struct Initializers](https://forums.swift.org/t/pitch-restrict-cross-module-struct-initializers/6780)
+* [Swift Evolution Review Thread](https://forums.swift.org/t/review-se-0189-restrict-cross-module-struct-initializers/7066)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0189-restrict-cross-module-struct-initializers/7164)
 
 ## Introduction
 

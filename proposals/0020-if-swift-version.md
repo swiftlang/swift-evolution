@@ -12,8 +12,8 @@ This proposal aims to add a new build configuration option to Swift
 2.2: `#if swift`.
 
 Swift-evolution threads:
-- [Swift 2.2: #if swift language version](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003385.html)
-- [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006398.html)
+- [Swift 2.2: #if swift language version](https://forums.swift.org/t/proposal-swift-2-2-if-swift-language-version/640)
+- [Review](https://forums.swift.org/t/review-se-0020-swift-language-version-build-configuration/1034)
 
 ## Motivation
 

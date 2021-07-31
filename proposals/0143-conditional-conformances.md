@@ -4,7 +4,7 @@
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 4.2)**
-* Decision Notes: [Review extended](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028745.html), [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161114/028888.html)
+* Decision Notes: [Review extended](https://forums.swift.org/t/review-se-0143-conditional-conformances/4130/10), [Rationale](https://forums.swift.org/t/accepted-se-0143-conditional-conformances/4537)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/91725ee83fa34c81942a634dcdfa9d2441fbd853/proposals/0143-conditional-conformances.md)
 
 ## Introduction
@@ -27,7 +27,7 @@ manifesto](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#
 because it's something that fits naturally into the generics model and
 is expected to have a high impact on the Swift standard library.
 
-Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160926/027300.html)
+Swift-evolution thread: [here](https://forums.swift.org/t/proposal-draft-conditional-conformances/4110)
 
 ## Motivation
 

@@ -4,7 +4,7 @@
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-build-dev/Week-of-Mon-20160725/000572.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0129-package-manager-test-naming-conventions/3574)
 
 ## Introduction
 

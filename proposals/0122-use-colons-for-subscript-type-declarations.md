@@ -4,7 +4,7 @@
 * Author: [James Froggatt](https://github.com/MutatingFunk)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000258.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0122-use-colons-for-subscript-declarations/3545)
 
 ## Introduction
 
@@ -19,7 +19,7 @@ subscript(externalName internalName: ParamType) -> ElementType {
 
 The initial keyword `subscript` is followed by a parameter list, followed by an arrow to the accessed type. This proposal is to replace the arrow with a colon, to match accessor declarations elsewhere in the language.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023883.html)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/change-subscripts-to-use-colons/3346)
 
 ## Motivation
 

@@ -6,17 +6,9 @@
 * Status: **Implemented (Swift 5)**
 * Implementation: [apple/swift#14945](https://github.com/apple/swift/pull/14945)
 * Previous revision: [1](https://github.com/apple/swift-evolution/blob/a773d07ff4beab8b7855adf0ac56d1e13bb7b44c/proposals/0192-non-exhaustive-enums.md), [2 (informal)](https://github.com/jrose-apple/swift-evolution/blob/57dfa2408fe210ed1d5a1251f331045b988ee2f0/proposals/0192-non-exhaustive-enums.md), [3](https://github.com/apple/swift-evolution/blob/af284b519443d3d985f77cc366005ea908e2af59/proposals/0192-non-exhaustive-enums.md)
-* Pre-review discussion: [Enums and Source Compatibility](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170807/038663.html), with additional [orphaned thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170911/039787.html)
-* Review discussion: [Review author summarizes some feedback from review discussion and proposes alternatives](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180101/042480.html), [full discussion thread](https://forums.swift.org/t/se-0192-non-exhaustive-enums/7291/337), plus [Handling unknown cases in enums](https://forums.swift.org/t/handling-unknown-cases-in-enums-re-se-0192/7388/)
+* Pre-review discussion: [Enums and Source Compatibility](https://forums.swift.org/t/enums-and-source-compatibility/6460), with additional [orphaned thread](https://forums.swift.org/t/enums-and-source-compatibility/6651)
+* Review discussion: [Review author summarizes some feedback from review discussion and proposes alternatives](https://forums.swift.org/t/se-0192-non-exhaustive-enums/7291/26), [full discussion thread](https://forums.swift.org/t/se-0192-non-exhaustive-enums/7291/337), plus [Handling unknown cases in enums](https://forums.swift.org/t/handling-unknown-cases-in-enums-re-se-0192/7388/)
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0192-non-exhaustive-enums-review-2/11043/62)
-
-<!--
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
 
 ## Introduction
 
@@ -468,7 +460,7 @@ I didn't have a strong preference for any particular choice as long as it *isn't
 
 Note that "nonextensible" does have one problem: Apple already uses [`NS_TYPED_EXTENSIBLE_ENUM `][NS_TYPED_EXTENSIBLE_ENUM] to refer to enum-like sets of constants (usually strings) that *clients* can add "cases" to. That's not the same meaning as the exhaustiveness discussed in this proposal.
 
-During the first review for this proposal, Brent Royal-Gordon suggested "frozen", which was met with general approval or at least no major objections.
+During the first review for this proposal, Becca Royal-Gordon suggested "frozen", which was met with general approval or at least no major objections.
 
   [NS_TYPED_EXTENSIBLE_ENUM]: https://developer.apple.com/library/content/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithCAPIs.html#//apple_ref/doc/uid/TP40014216-CH8-ID206
 
@@ -538,7 +530,7 @@ unknown:
 
 ### Testing invalid cases
 
-Another issue with non-frozen enums is that clients cannot properly test what happens when a new case is introduced, almost by definition. Brent Royal-Gordon came up with the idea to have a new type annotation that would allow the creation of an invalid enum value. Since this is only something to use for testing, the initial version of the idea used `@testable` as the spelling for the annotation. The tests could then use a special expression, `#invalid`, to pass this invalid value to a function with a `@testable` enum parameter.
+Another issue with non-frozen enums is that clients cannot properly test what happens when a new case is introduced, almost by definition. Becca Royal-Gordon came up with the idea to have a new type annotation that would allow the creation of an invalid enum value. Since this is only something to use for testing, the initial version of the idea used `@testable` as the spelling for the annotation. The tests could then use a special expression, `#invalid`, to pass this invalid value to a function with a `@testable` enum parameter.
 
 However, this would only work in cases where the action to be taken does not actually depend on the enum value. If it needs to be passed to the original library that owns the enum, or used with an API that is not does not have this annotation, the code still cannot be tested properly.
 

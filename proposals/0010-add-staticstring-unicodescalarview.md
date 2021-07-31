@@ -4,14 +4,14 @@
 * Author: [Lily Ballard](https://github.com/lilyball)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-February/000045.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0010-add-staticstring-unicodescalarview/1530)
 
 ## Introduction
 
 There is no way to create a substring of a `StaticString` that is still typed
 as `StaticString`. There should be.
 
-[Swift Evolution Discussion Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151130/000535.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005609.html)
+[Swift Evolution Discussion Thread](https://forums.swift.org/t/proposal-add-staticstring-unicodescalarview/199), [Review](https://forums.swift.org/t/review-se-0010-add-staticstring-unicodescalarview/942)
 
 ## Motivation
 

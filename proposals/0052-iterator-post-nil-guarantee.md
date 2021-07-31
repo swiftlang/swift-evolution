@@ -4,7 +4,7 @@
 * Author: [Patrick Pijnappel](https://github.com/PatrickPijnappel)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000135.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0052-change-iteratortype-post-nil-guarantee/2463)
 * Implementation: [apple/swift#1702](https://github.com/apple/swift/pull/1702)
 
 ## Introduction
@@ -19,7 +19,7 @@ are likely unaware of the precondition, expecting all iterators to return
 code will usually run fine, until someone does in fact pass in an iterator not
 repeating `nil` (it's a silent corner case).
 
-Swift-evolution thread: [\[Proposal\] Change guarantee for GeneratorType.next() to always return nil past end](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011699.html)
+Swift-evolution thread: [\[Proposal\] Change guarantee for GeneratorType.next() to always return nil past end](https://forums.swift.org/t/proposal-change-guarantee-for-generatortype-next-to-always-return-nil-past-end/1673)
 
 ## Motivation
 

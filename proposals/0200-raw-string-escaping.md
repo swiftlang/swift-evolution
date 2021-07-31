@@ -1,7 +1,7 @@
 # Enhancing String Literals Delimiters to Support Raw Text
 
 * Proposal: [SE-0200](0200-raw-string-escaping.md)
-* Authors: [John Holdsworth](https://github.com/johnno1962), [Brent Royal-Gordon](https://github.com/brentdax), [Erica Sadun](https://github.com/erica)
+* Authors: [John Holdsworth](https://github.com/johnno1962), [Becca Royal-Gordon](https://github.com/beccadax), [Erica Sadun](https://github.com/erica)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/102b2f2770f0dab29f254a254063847388647a4a/proposals/0200-raw-string-escaping.md)
 * Status: **Implemented (Swift 5)**

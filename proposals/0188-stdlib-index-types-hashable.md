@@ -10,7 +10,7 @@
 
 Key-path expressions can now include subscripts to reference individual positions in collections and other subscriptable types, but only when the subscript parameters are `Hashable`. To provide maximum utility, the standard library index types should all have `Hashable` conformance added.
 
-Swift-evolution "thread:" [[draft] Make Standard Library Index Types Hashable](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171030/040908.html)
+Swift-evolution "thread:" [[draft] Make Standard Library Index Types Hashable](https://forums.swift.org/t/draft-make-standard-library-index-types-hashable/6946)
 
 ## Motivation
 

@@ -4,7 +4,7 @@
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160801/025955.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0135-package-manager-support-for-differentiating-packages-by-swift-version/3687)
 
 ## Introduction
 

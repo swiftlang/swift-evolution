@@ -4,13 +4,13 @@
 * Authors: [Grant Paul](https://github.com/grp), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000171.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0084-allow-trailing-commas-in-parameter-lists-and-tuples/2777)
 
 ## Introduction
 
 Swift permits trailing commas after the last element in array or dictionary literal. This proposal extends that to parameters and tuples.
 
-Original swift-evolution discussion: [Allow trailing commas in argument lists](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012112.html)
+Original swift-evolution discussion: [Allow trailing commas in argument lists](https://forums.swift.org/t/draft-allow-trailing-commas-in-argument-lists/1729)
 
 
 ## Motivation
@@ -79,13 +79,13 @@ Allowing cut and paste or commenting of entire parameter lines means simple chan
 
 > "Having used, more or less continuously for my 20 years as a professional programmer, both a language that allows trailing commas and one that does not, I come down pretty strongly on the side of allowing trailing commas (for all the reasons already stated in this thread). If it means requiring a newline after the last comma to make some people feel better about it, so be it."  - John Siracusa
 
-> "I was skeptical of this until a week or two ago, when I had some code where I ended up commenting out certain parameters. Removing the now-trailing commas was an inconvenience. So, +1 from me." - Brent Royal-Gordon
+> "I was skeptical of this until a week or two ago, when I had some code where I ended up commenting out certain parameters. Removing the now-trailing commas was an inconvenience. So, +1 from me." - Becca Royal-Gordon
 
 > "We should be consistent in either accepting or rejecting trailing commas everywhere we have comma-delimited syntax. I'm in favor of accepting it, since it's popular in languages where it's supported to enable a minimal-diff style, so that changes to code don't impact neighboring lines for purely syntactic reasons.
 >
 > If you add an argument to a function, without trailing comma support, a comma has to be added to dirty the previous line In response to observations that tuples and function arguments are somehow different from collection literals because they generally have fixed arity, I'll note that we have a very prominent variadic function in the standard library, "print", and that adding or removing values to a "print" is a very common and natural thing to do
 >
-> We've generally shied away from legislating style; see our rationale behind not requiring `self.` ([example](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005478.html)) In languages where trailing commas are pervasively allowed, such as Perl, Python, Ruby, and modern Javascript, I haven't seen any indication that this is a major problem. Less blood has definitely been shed over it than over bracing style and other style wars." - Joe Groff
+> We've generally shied away from legislating style; see our rationale behind not requiring `self.` ([example](https://forums.swift.org/t/rejected-se-0009-require-self-for-accessing-instance-members/930)) In languages where trailing commas are pervasively allowed, such as Perl, Python, Ruby, and modern Javascript, I haven't seen any indication that this is a major problem. Less blood has definitely been shed over it than over bracing style and other style wars." - Joe Groff
 
 ## Impact on Existing Code
 

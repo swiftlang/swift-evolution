@@ -4,14 +4,14 @@
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000148.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0074-implementation-of-binary-search-functions/2576)
 
 ## Introduction
 
 Swift does not offer any way to efficiently search sorted collections.
 This proposal seeks to add a few different functions that implement the binary search algorithm.
 
-- Swift-evolution thread: [\[Proposal\] Add Binary Search functions to SequenceType](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012680.html)
+- Swift-evolution thread: [\[Proposal\] Add Binary Search functions to SequenceType](https://forums.swift.org/t/proposal-add-binary-search-functions-to-sequencetype/1827)
 - JIRA: [Swift/SR-368](https://bugs.swift.org/browse/SR-368)
 
 ## Motivation
@@ -280,4 +280,4 @@ The authors considered a few alternatives to the current proposal:
 
 ## Rationale
 
-On [May 11, 2016](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000148.html), the core team decided to **Reject** this proposal.  The feedback on the proposal was generally positive about the concept of adding binary search functionality, but  negative about the proposal as written, with feedback that it was adding too much complexity to the API.
+On [May 11, 2016](https://forums.swift.org/t/rejected-se-0074-implementation-of-binary-search-functions/2576), the core team decided to **Reject** this proposal.  The feedback on the proposal was generally positive about the concept of adding binary search functionality, but  negative about the proposal as written, with feedback that it was adding too much complexity to the API.

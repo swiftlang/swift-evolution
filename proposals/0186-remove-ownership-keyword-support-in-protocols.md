@@ -5,15 +5,15 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#11744](https://github.com/apple/swift/pull/11744)
-* [Review thread on swift-evolution](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170918/039863.html)
+* [Review thread on swift-evolution](https://forums.swift.org/t/se-0186-remove-ownership-keyword-support-in-protocols/6678)
 * Bug: [SR-479](https://bugs.swift.org/browse/SR-479)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170925/040012.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0186-remove-ownership-keyword-support-in-protocols/6736)
 
 ## Introduction
 
 This proposal removes support for the keywords `weak` and `unowned` for property declarations in a protocol.
 
-Swift-evolution thread: [Ownership on protocol property requirements](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170501/036495.html) thread.
+Swift-evolution thread: [Ownership on protocol property requirements](https://forums.swift.org/t/ownership-on-protocol-property-requirements/5872) thread.
 
 ## Motivation
 

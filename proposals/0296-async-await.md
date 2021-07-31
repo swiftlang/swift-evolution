@@ -3,12 +3,10 @@
 * Proposal: [SE-0296](0296-async-await.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
-* Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
-* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0296-async-await/43318)
+* Status: **Implemented (Swift 5.5)**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0296-async-await/43318), [Amendment to allow overloading on `async`](https://forums.swift.org/t/accepted-amendment-to-se-0296-allow-overloads-that-differ-only-in-async/50117)
 
-Table of Contents
-=================
+## Table of Contents
 
    * [Async/await](#asyncawait)
       * [Introduction](#introduction)
@@ -472,7 +470,17 @@ These two functions have different names and signatures, even though they share 
 doSomething() // problem: can call either, unmodified Swift rules prefer the `async` version
 ```
 
-Swift's overloading rules prefer to call a function with fewer default arguments, so the addition of the `async` function would break existing code that called the original `doSomething(completionHandler:)` with no completion handler. This would get an error along the lines of:
+A similar problem exists for APIs that evolve into providing both a synchronous and an asynchronous version of the same function, with the same signature. Such pairs allow APIs to provide a new asynchronous function which better fits in the Swift asynchronous landscape, without breaking backward compatibility. New asynchronous functions can support, for example, cancellation (covered in the [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) proposal).
+
+```swift
+// Existing synchronous API
+func doSomethingElse() { ... }
+
+// New and enhanced asynchronous API
+func doSomethingElse() async { ... }
+```
+
+In the first case, Swift's overloading rules prefer to call a function with fewer default arguments, so the addition of the `async` function would break existing code that called the original `doSomething(completionHandler:)` with no completion handler. This would get an error along the lines of:
 
 ```
 error: `async` function cannot be called from non-asynchronous context
@@ -480,16 +488,39 @@ error: `async` function cannot be called from non-asynchronous context
 
 This presents problems for code evolution, because developers of existing asynchronous libraries would have to either have a hard compatiblity break (e.g, to a new major version) or would need have different names for all of the new `async` versions. The latter would likely result in a scheme such as [C#'s pervasive `Async` suffix](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/async/task-asynchronous-programming-model).
 
+The second case, where both functions have the same signature and only differ in `async`, is normally rejected by existing Swift's overloading rules. Those do not allow two functions to differ only in their *effects*, and one can not define two functions that only differ in `throws`, for example.
+
+```
+// error: redeclaration of function `doSomethingElse()`.
+```
+
+This also presents a problem for code evolution, because developers of existing libraries just could not preserve their existing synchronous APIs, and support new asynchronous features.
+
 Instead, we propose an overload-resolution rule to select the appropriate function based on the context of the call. Given a call, overload resolution prefers non-`async` functions within a synchronous context (because such contexts cannot contain a call to an `async` function).  Furthermore, overload resolution prefers `async` functions within an asynchronous context (because such contexts should avoid stepping out of the asynchronous model into blocking APIs). When overload resolution selects an `async` function, that call is still subject to the rule that it must occur within an `await` expression.
 
-Note that we follow the design of `throws` in disallowing overloads that differ *only* in `async`:
+The overload-resolution rule depends on the synchronous or asynchronous context, in which the compiler selects one and only one overload. The selection of the async overload requires an `await` expression, as all introductions of a potential suspension point:
 
 ```swift
-func doSomething() -> String { /* ... */ }       // synchronous, blocking
-func doSomething() async -> String { /* ... */ } // asynchronous
-
-// error: redeclaration of function `doSomething()`.
+func f() async {
+  // In an asynchronous context, the async overload is preferred:
+  await doSomething()
+  // Compiler error: Expression is 'async' but is not marked with 'await'
+  doSomething()
+}
 ```
+
+In non-`async` functions, and closures without any `await` expression, the compiler selects the non-`async` overload:
+
+```swift
+func f() async {
+  let f2 = {
+    // In a synchronous context, the non-async overload is preferred:
+    doSomething()
+  }
+  f2()
+}
+```
+
 
 ### Autoclosures
 
@@ -658,11 +689,11 @@ let dataResource  = try await loadWebResource("dataprofile.txt")
 We chose not to make `await` imply `try` because they are expressing different kinds of concerns: `await` is about a potential suspension point, where other code might execute in between when you make the call and it when it returns, while `try` is about control flow out of the block.
 
 One other motivation that has come up for making `await` imply `try` is related to task cancellation. If task cancellation were modeled as a thrown error, and every potential suspension point implicitly checked whether the task was cancelled, then every potential suspension point could throw: in such cases `await` might as well imply `try` because every `await` can potentially exit with an error.
-Task cancellation is covered in the [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) proposal, and does *not* model cancellation solely as a thrown error nor does it introduce implicit cancellation checks at each potential suspension point.
+Task cancellation is covered in the [Structured Concurrency](https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md) proposal, and does *not* model cancellation solely as a thrown error nor does it introduce implicit cancellation checks at each potential suspension point.
 
 ### Launching async tasks
 
-Because only `async` code can call other `async` code, this proposal provides no way to initiate asynchronous code. This is intentional: all asynchronous code runs within the context of a "task", a notion which is defined in the [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) proposal. That proposal provides the ability to define asynchronous entry points to the program via `@main`, e.g.,
+Because only `async` code can call other `async` code, this proposal provides no way to initiate asynchronous code. This is intentional: all asynchronous code runs within the context of a "task", a notion which is defined in the [Structured Concurrency](https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md) proposal. That proposal provides the ability to define asynchronous entry points to the program via `@main`, e.g.,
 
 ```swift
 @main
@@ -710,6 +741,7 @@ This approach has a number of downsides vs. the proposed approach here:
 * Post-review changes:
    * Replaced `await try` with `try await`.
    * Added syntactic-sugar alternative design.
+   * Amended the proposal to allow [overloading on `async`](https://github.com/apple/swift-evolution/pull/1392).
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
@@ -726,9 +758,9 @@ This approach has a number of downsides vs. the proposed approach here:
 
 In addition to this proposal, there are a number of related proposals covering different aspects of the Swift Concurrency model:
 
-* [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md): Describes the interaction with Objective-C, especially the relationship between asynchronous Objective-C methods that accept completion handlers and `@objc async` Swift methods.
-* [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md): Describes the task structure used by asynchronous calls, the creation of both child tasks and detached tasks, cancellation, prioritization, and other task-management APIs.
-* [Actors](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md): Describes the actor model, which provides state isolation for concurrent programs
+* [Concurrency Interoperability with Objective-C](https://github.com/apple/swift-evolution/blob/main/proposals/0297-concurrency-objc.md): Describes the interaction with Objective-C, especially the relationship between asynchronous Objective-C methods that accept completion handlers and `@objc async` Swift methods.
+* [Structured Concurrency](https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md): Describes the task structure used by asynchronous calls, the creation of both child tasks and detached tasks, cancellation, prioritization, and other task-management APIs.
+* [Actors](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md): Describes the actor model, which provides state isolation for concurrent programs
 
 ## Acknowledgments
 
