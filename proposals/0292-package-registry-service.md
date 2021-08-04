@@ -533,7 +533,7 @@ to complement the `package-registry set` subcommand.
 
 ```manpage
 SYNOPSIS
-	swift package-registry unset <url> [options]
+	swift package-registry unset [options]
 OPTIONS:
   --global    Apply settings to all projects for this user
   --scope     Removes the registry's association to a given scope
