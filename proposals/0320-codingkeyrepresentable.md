@@ -3,7 +3,7 @@
 * Proposal: [SE-0320](0320-codingkeyrepresentable.md)
 * Authors: [Morten Bek Ditlevsen](https://github.com/mortenbekditlevsen)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Awaiting review**
+* Status: **Active review (Aug 4 - Aug 18 2021)**
 
 *During the review process, add the following fields as needed:*
 
