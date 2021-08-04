@@ -1,15 +1,10 @@
 # Allow coding of non `String` / `Int` keyed `Dictionary` into a `KeyedContainer`
 
 * Proposal: [SE-0320](0320-codingkeyrepresentable.md)
-* Authors: [Morten Bek Ditlevsen](https://github.com/mortenbekditlevsen)
+* Author: [Morten Bek Ditlevsen](https://github.com/mortenbekditlevsen)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (Aug 4 - Aug 18 2021)**
-
-*During the review process, add the following fields as needed:*
-
+* Status: **Active review (August 4 - 18, 2021)**
 * Implementation: [apple/swift#34458](https://github.com/apple/swift/pull/34458)
-* Decision Notes: 
-  * [Pitch](https://forums.swift.org/t/pitch-allow-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/44593)
 
 ## Introduction
 
