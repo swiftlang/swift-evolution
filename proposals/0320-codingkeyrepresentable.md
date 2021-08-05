@@ -282,7 +282,7 @@ I personally find this equally as expressive, and I think that not requiring the
 
 Following a suggestion from @itaiferber, I have previously tried to provide a solution to this issue — not in general, but instead solving it by providing a `DictionaryKeyEncodingStrategy` for `JSONEncoder` : [#26257](https://github.com/apple/swift/pull/26257)
 
-The idea there was to be able to express an opt-in to the new behavior directly in the `JSONEncoder` and `JSONDecoder` types by venting a new encoding/decoding 'strategy' configuration. I have since changed my personal opinion about this and I believe that the problem should not just be fixed for specific `Encoder` / `Decoder` pairs, but rather for all.
+The idea there was to be able to express an opt-in to the new behavior directly in the `JSONEncoder` and `JSONDecoder` types by vending a new encoding/decoding 'strategy' configuration. I have since changed my personal opinion about this and I believe that the problem should not just be fixed for specific `Encoder` / `Decoder` pairs, but rather for all.
 
 The implementation of this was not very pretty, involving casts and iterations over the dictionaries to be encoded/decoded.
 
