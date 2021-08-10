@@ -67,7 +67,7 @@ struct _AnyCodingKey: CodingKey {
     }
 }
 
-struct ID: Hashable, CodingKeyConvertible {
+struct ID: Hashable, CodingKeyRepresentable {
     static let knownID1 = ID(stringValue: "<some-identifier-1>")
     static let knownID2 = ID(stringValue: "<some-identifier-2>")
     
@@ -151,7 +151,7 @@ In the conditional `Decodable` conformance on `Dictionary`, we can similarly han
 
 No direct impact, since adoption of this protocol is additive.
 
-However, special care must be taken in *adopting* the protocol, since adoption on any type `T` which has previously been encoded as a dictionary key can introduce backwards incompatibility with archives. It is always safe to adopt `CodingKeyConvertible` on new types, or types newly-conforming to `Codable`.
+However, special care must be taken in *adopting* the protocol, since adoption on any type `T` which has previously been encoded as a dictionary key can introduce backwards incompatibility with archives. It is always safe to adopt `CodingKeyRepresentable` on new types, or types newly-conforming to `Codable`.
 
 ## Other Considerations
 
