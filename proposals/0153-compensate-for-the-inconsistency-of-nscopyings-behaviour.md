@@ -3,7 +3,7 @@
 * Proposal: [SE-0153](0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md)
 * Author: [Torin Kwok](https://github.com/TorinKwok)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Accepted (2017-03-01)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0153-compensate-for-the-inconsistency-of-nscopying-s-behaviour/5341)
 * Bug: [SR-4538](https://bugs.swift.org/browse/SR-4538)
 
