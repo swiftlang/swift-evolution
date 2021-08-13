@@ -621,7 +621,8 @@ However, the Darwin specific names exist as aliases and may be used interchangea
 
 ```swift
 /// Describes the priority of a task.
-struct TaskPriority: UInt8, Comparable, Sendable {
+struct TaskPriority: Codable, Comparable, RawRepresentable, Sendable {
+  var rawValue: UInt8 { get set }
   init(rawValue: UInt8)
 }
 
