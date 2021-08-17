@@ -278,9 +278,8 @@ enum Command: Codable {
     case load = "lade"
   }
 
-  enum StoreCodingKeys: String, CodingKey {
+  enum LoadCodingKeys: String, CodingKey {
     case key = "schluessel"
-    case _1  = "wert"
   }
 }
 ```
