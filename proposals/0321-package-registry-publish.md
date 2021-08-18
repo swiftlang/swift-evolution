@@ -1,6 +1,6 @@
 # Package Registry Service - Publish Endpoint
 
-* Proposal: [SE-0321](NNNN-package-registry-publish.md)
+* Proposal: [SE-0321](0321-package-registry-publish.md)
 * Authors: [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
