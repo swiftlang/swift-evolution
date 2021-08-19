@@ -3,8 +3,9 @@
 * Proposal: [SE-0315](0315-placeholder-types.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Accepted (2021-07-26)**
 * Implementation: [apple/swift#36740](https://github.com/apple/swift/pull/36740)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0315-placeholder-types/50671)
 
 Note: this feature was originally discussed and accepted under the "placeholder types" title. The official terminology for this feature is "type placeholders," so the terminology in this proposal has been updated accordingly.
 

@@ -3,9 +3,10 @@
 * Proposal: [SE-0274](0274-magic-file.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax), [Dave DeLong](https://github.com/davedelong)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
-* Original review: [Returned for revision](https://forums.swift.org/t/se-0274-concise-magic-file-names/32373/50) 
-* Status: **Accepted**
+* Status: **Accepted (2020-02-26)**
 * Implementation: Prototype in master behind `-Xfrontend -enable-experimental-concise-pound-file`; revisions in [apple/swift#29412](https://github.com/apple/swift/pull/29412)
+* Decision Notes: [Review #1](https://forums.swift.org/t/se-0274-concise-magic-file-names/32373/50), [Review #2](https://forums.swift.org/t/re-review-se-0274-concise-magic-file-names/33171/11), [Additional Commentary](https://forums.swift.org/t/revisiting-the-source-compatibility-impact-of-se-0274-concise-magic-file-names/37720)
+* Next Proposal: [SE-0285](0285-ease-pound-file-transition.md)
 
 ## Introduction
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0155][]
 * Authors: [Daniel Duan][], [Joe Groff][]
 * Review Manager: [John McCall][]
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale][]
 * Previous Revision: [1][Revision 1], [Originally Accepted Proposal][], [Expired Proposal][]
 * Bugs: [SR-4691](https://bugs.swift.org/browse/SR-4691), [SR-12206](https://bugs.swift.org/browse/SR-12206), [SR-12229](https://bugs.swift.org/browse/SR-12229)

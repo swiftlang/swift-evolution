@@ -109,14 +109,16 @@ A given proposal can be in one of several states:
   release](README.md). Deferred proposals will be reconsidered when
   scoping the next major Swift release.
 * **Rejected**: The proposal has been considered and rejected.
-* **Accepted**: The proposal has been accepted and is either awaiting
+* **Accepted (YYYY-MM-DD)**:
+  The proposal has been accepted (on the specified date) and is either awaiting
   implementation or is actively being implemented.
-* **Accepted with revisions**: The proposal has been accepted,
+* **Accepted with revisions (YYYY-MM-DD)**:
+  The proposal has been accepted (on the specified date),
   contingent upon the inclusion of one or more revisions.
 * **Previewing**: The proposal has been accepted and is available for preview
   in the [Standard Library Preview package][preview-package].
-* **Implemented (Swift VERSION)**: The proposal has been implemented.
-  Append the version number in parentheses—for example: Implemented (Swift 2.2).
+* **Implemented (Swift Next)**:
+  The proposal has been implemented (for the specified version of Swift).
   If the proposal's implementation spans multiple version numbers,
   write the version number for which the implementation will be complete.
 
