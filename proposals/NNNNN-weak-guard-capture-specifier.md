@@ -60,17 +60,19 @@ Both `weak` captures and `unowned` captures can be used to prevent retain cycles
 
 For these reasons, `weak` captures are (in general) used significantly more often than `unowned` captures. Searching public Swift code on GitHub, for example, gives [325k examples](https://github.com/search?l=Swift&q=%22weak+self%22&type=Code) of `weak self` captures, compared to only [80k examples](https://github.com/search?l=Swift&o=desc&q=%22unowned+self%22&s=indexed&type=Code) of `unowned self` captures. That is, 80% of non-strong `self` captures use `weak`.
 
+### Closures using `weak` captures often only perform work if the captured objects still exist
+
+In action handling and event notification closures, there is often no work to perform if `self` (or other captured objects) no longer exist. Because of this, a large number of these closures simply do nothing if the captured objects no longer exists. For example, in a [survey](https://forums.swift.org/t/guard-capture-specifier-for-closure-capture-lists/50805/69) of public Swift code, it was found that **90% or more** of surveyed `weak self` closures only execute if `self` still exists.
+
+The most common ways to do this are to `guard` on the captured variables, or simply never unwrap the captured variables (and always access them as optionals). Both of these approaches have their downsides:
+
+ - Closure syntax is lightweight, but the `guard` statement for a corresponding `weak` capture is relatively heavy. For example, in the example above the `guard` statement is more code (by symbol count) than the rest of the closure body combined. When used frequently, as the "default" pattern for `weak` captures, this can be become "noise" / "boilerplate" that hampers readability.
+ 
+ - To avoid adding a `guard` statement, authors may instead choose to not unwrap the captured variables and instead always access them through their optional value (e.g. `self?.dismiss()`). This can have poor ergonomics, and also poses a subtle safety issue -- since the closure body operating on the object never unwraps the captured object (and thus never holds a strong reference), the object could potentially be deallocated _while_ the closure body is executing. This can unexpectedly lead to the closure only being partially executed, which could put the application in an invalid state.
+
 ### `weak` captures don't support implicit `self`
  
 As of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), strong and `unowned` captures of `self` enable implicit `self` within the body of escaping closures. This is not straightforward to support for `weak` closures in the general case, and was [intentionally excluded](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md#weak-captures-of-self) from SE-0269.
-
-### `weak` captures are typically paired with a `guard`
-
-In action handling and event notification closures, there is typically no work to perform if `self` (or other captured objects) no longer exist. Because of this, a large number of these closures simply `guard` that the weakly captured object still exists, and otherwise do nothing (or perform other control flow with equivalent semantics).
-
-For example, in a [survey](https://forums.swift.org/t/guard-capture-specifier-for-closure-capture-lists/50805/69) of public Swift code, it was found that **90% or more** of surveyed `weak self` closures only execute if `self` still exists.
-
-Closure syntax is lightweight, but the `guard` statement for a corresponding `weak` capture is relatively heavy. For example, in the example above the `guard` statement is more code (by symbol count) than the rest of the closure body combined. When used frequently, as the "default" pattern for `weak` captures, this can be become "noise" / "boilerplate" that hampers readability.
 
 ### The status quo encourages ignoring potential errors
 
@@ -198,4 +200,4 @@ In a [survey](https://forums.swift.org/t/guard-capture-specifier-for-closure-cap
 
 ## Acknowledgments
 
-Thanks to everyone who participated in the pitch process for this proposal! Special thanks to Nathan Lawrence, Jordan Rose, and Eric Horacek, whose valuable feedback was directly incorporated into the final semantics and naming of this feature.
+Thanks to everyone who participated in the pitch process for this proposal! Special thanks to Nathan Lawrence, Eric Horacek, Jordan Rose, and David Smith, whose valuable feedback was directly incorporated into final version of this proposal.
