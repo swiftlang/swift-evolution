@@ -189,10 +189,12 @@ struct S {
 
 The authors elect to exclude such a construction from this proposal. The suggested syntax above tries to do many things at once:
 1. Declare a property named `property`.
-2. Declare the type `Int` for that property.
-3. Declare a wrapper/storage type `Wrapper` for that property.
+2. Declare a wrapper/storage type `Wrapper` for that property.
+3. Declare the type of the projected value.
 4. Declare that the property should be initialized via `init(projectedValue:)`.
 5. Declare the projected value to be passed to `init(projectedValue:)`.
+
+Notably, this syntax does not provide an easy place to indicate the type of `property` itself. The reader may be able to infer it based on the type of the wrapper or the projected value, but this could require inspection of the type declaration.
 
 
 While it is possible that the syntax here could be massaged into something that made a bit more sense, there are enough open questions that the authors would rather see this form receive further, separate consideration.
