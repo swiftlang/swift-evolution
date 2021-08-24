@@ -144,7 +144,7 @@ To ease the transition to the new memberwise initializer, we propose the followi
 
 - In a future language version (Swift 7?), only the new memberwise initializer will be synthesized. Any attempt to use the old initializer is an error.
   - If the new initializer would not be callable, an error is emitted.
-
+The flags `-warn-wrapper-init` and `-force-wrapper-init` may be used to opt into the Swift 6 or Swift 7 behavior with regards to the synthesized memberwise initializer.
 ### Projected value initialization
 
 This aspect of the proposal is completely additive and will be source-compatible.
