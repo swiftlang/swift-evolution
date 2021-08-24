@@ -1,4 +1,4 @@
-# Feature Name
+# Refining property-wrapper-related initialization
 
 * Proposal: [SE-NNNN](NNNN-refining-property-wrapper-related-initialization.md)
 * Authors: [Amritpan Kaur](https://github.com/amritpan), [Filip Sakel](https://github.com/filip-sakel), [Frederick Kellison-Linn](https://github.com/jumhyn)
@@ -7,98 +7,198 @@
 
 ## Introduction
 
-A short description of what the feature is. Try to keep it to a
-single-paragraph "elevator pitch" so the reader understands what
-problem this proposal is addressing.
-
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+*TBC*
 
 ## Motivation
 
-Describe the problems that this proposal seeks to address. If the
-problem is that some common pattern is currently hard to express, show
-how one can currently get a similar effect and describe its
-drawbacks. If it's completely new functionality that cannot be
-emulated, motivate why this new functionality would help Swift
-developers create better Swift code.
+Property wrappers were initially adopted in  [SE-0258](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and expanded to function parameters and closures in  [SE-0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md). This two-phase adoption of property wrappers throughout the language has left property wrappers considered as a whole with some inconsistencies and complexity that is no longer necessary.
+
+Today, the rules for how wrapped properties are represented in the synthesized memberwise initializer for structs are poorly documented and quite complex. To summarize the points from [this thread](https://forums.swift.org/t/does-the-new-swift-5-5-init-projectedvalue-functionality-not-work-with-synthesized-memberwise-initializers/51232/7), the rules are:
+- If a property wrapper defines an `init(wrappedValue:)` initializer, the memberwise initializer will use the `wrappedValue` type (i.e. `MyView(value: Int)`).
+  - Exception: if the property wrapper is default initialized, the memberwise initializer uses the property wrapper type, even if the property wrapper also has an `init(wrappedValue:)` unless the wrapped property is initialized in-line with `=`.
+- If there's no `init(wrappedValue:)` initializer, the memberwise initializer will use the property wrapper's type itself (i.e. `MyView(value: Binding<Int>)`).
+- If `init(wrappedValue:)` takes extra arguments without default values, the memberwise initializer uses the property wrapper type unless the wrapped property is initialized in-line with `=`.
+
+The result is that the author of a type with wrapped properties cannot easily determine or control what the signature of their memberwise initializer will look like—it relies on subtle interactions between the property wrapper type, the declaration of the wrapped property, and how that property is initialized.
+
+Furthermore, the current ruleset can implicitly expose the private storage of the property wrapper via the (implicitly `internal`) synthesized initializer. This behavior may be undesirable, and for a given wrapper there may be no way for a user to avoid it other than giving up on the synthesized initializer altogether and defining their own.
+
+Now that property wrappers are supported in function signatures, it's not entirely clear why the memberwise initializer is synthesized the way it is. Were we designing the synthesized initializer today, we likely wouldn't have such a complex set of rules since we have a way to directly represent wrappers in parameter lists.
+
+SE-0293 also added a new way of initializing property wrapper storage from a projected value using a new special initializer, `init(projectedValue:)`. However, while the new `$`-initialization syntax works for function arguments and closure parameters, global, type, and local properties have no such equivalent.
+
+Thus, the current state of affairs is ripe for refinement. Property wrappers have matured to a point where we can easily simplify certain special cases, and extend the general functionality to support a consistent model for property wrappers everywhere.
 
 ## Proposed Solution
 
-Describe your solution to the problem. Provide examples and describe
-how they work. Show how your solution is better than current
-workarounds: is it cleaner, safer, or more efficient?
+We propose two additions to the feature set of property wrappers in order to improve consistency with the model adopted in SE-0293. 
+First, we propose an update to the rules of the synthesized memberwise initializer for types with wrapped properties such that wrapper attributes are mapped directly into the initializer 
+For example, a type such as this one from TSPL:
+
+```swift
+struct MixedRectangle {
+    @SmallNumber var height: Int = 1
+    @SmallNumber(maximum: 9) var width: Int = 2
+}
+```
+
+would recieve a synthesized memberwise initializer that looks like:
+
+```swift
+init(@SmallNumber height: Int = 1, @SmallNumber(maximum: 9) width: Int = 2) {
+  ...
+}
+```
+
+Second, we propose allowing property wrapper storage for global, type, and local wrapped properties to be initialized via the `init(projectedValue:)` system (as discussed in the future directions of SE-0293). E.g.:
+
+```swift
+@Wrapper
+var property: Int
+
+$property = someProjectedValue
+```
 
 ## Detailed Design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+### Synthesized memberwise initializer and property wrappers
+
+We propose a new algorithm for generating the synthesized memberwise initializer as it relates to wrapped properties. Rather than trying to decide whether to expose the storage type or the wrapped type in the initializer, a property declared in a type `MyType` as:
+
+```swift
+@Wrapper(arg: value)
+var property: X = initialValue
+```
+
+will always be represented in the synthesized memberwise initializer signature as:
+
+```swift
+init(..., @Wrapper(arg: value) property: X = initialValue, ...)
+```
+
+(where the argument list after `Wrapper` and the `initialValue` may or may not be present).
+
+Note that the rules for property wrappers in parameter lists all apply as normal. Most importantly:
+- If the property declaration _does_ provide arguments to the wrapper attribute, `Wrapper` will always be an implementation detail property wrapper.
+- If `Wrapper` provides an `init(projectedValue:)`, then the synthesized memberwise initializer will be callable via the `$` syntax, e.g.,
+    ```swift
+    let _ = MyType(..., $property: ProjectedValue(), ...)
+    ```
+    
+Refer to SE-0293 for a detailed discussion of how the property wrapper transformation proceeds for wrapped arguments.
+    
+If the specific initializers declared by the `Wrapper` type would result in an un-callable synthesized initializer (for example, because `Wrapper` provides no appropriate `init(wrappedValue:)` or `init(projectedValue:)`), an error will be emitted and the user will have to adjust their property declaration or define a custom initializer (see [**Source Compatibility**](#source-compatibility) below for more information).
+
+### Projected value initialization
+
+We propose extending the `$` syntax for argument labels and closure parameters to allow the initialization of *any* property wrapper storage from a projected value (provided that the wrapper type supplies an `init(projectedValue:)`).
+
+Specifically, at a point in the program where a wrapped property's storage is uninitialized, we allow assignment of the form:
+```swift
+$property = someProjectedValue
+```
+
+which will be transformed to:
+
+```swift
+_property = .init(projectedValue: someProjectedValue)
+```
+
+Anywhere the storage has been initialized, `$property` retains its usual meaning and will refer to the `projectedValue` property of the wrapper.
+
+Note that `$property` may be assigned in this manner even in more complex expressions such as:
+
+```swift
+(someOtherProperty, $property) = (initialValue, someProjectedValue)
+```
+
+This transformation takes place even if `_property.projectedValue` does not provide a setter, since we are formally assigning `_property`, not the projected value. 
 
 ## Source Compatibility
 
-Relative to the Swift 3 evolution process, the source compatibility
-requirements for Swift 4 are *much* more stringent: we should only
-break source compatibility if the Swift 3 constructs were actively
-harmful in some way, the volume of affected Swift 3 code is relatively
-small, and we can provide source compatibility (in Swift 3
-compatibility mode) and migration.
+### Staging in the new memberwise initializer
 
-Will existing correct Swift 3 or Swift 4 applications stop compiling
-due to this change? Will applications still compile but produce
-different behavior than they used to? If "yes" to either of these, is
-it possible for the Swift 4 compiler to accept the old syntax in its
-Swift 3 compatibility mode? Is it possible to automatically migrate
-from the old syntax to the new syntax? Can Swift applications be
-written in a common subset that works both with Swift 3 and Swift 4 to
-aid in migration?
+Changing the algorithm which generates the memberwise initializer is a source-breaking change, and therefore must be introduced in a new language version. As a concrete example, this proposal will change initialization syntax for SwiftUI views which use `@Binding` and rely on the synthesized initializer:
+
+```swift
+struct MyView: View {
+    @Binding
+    var x: Int
+
+    var body: some View {
+        Text("\(x)")
+    }
+}
+
+MyView(x: $someInt) // old init
+MyView($x: $someInt) // new init
+```
+
+To ease the transition to the new memberwise initializer, we propose the following plan:
+- In the Swift 5 language mode, both the old and the new memberwise initializer will be synthesized. 
+  - In otherwise ambiguous cases, the old initializer is unconditionally preferred over the new one during overload resolution. 
+  - The old initializer will not be suggested in code completion or appear in the "sanitized" swiftinterface.
+- In the Swift 6 language mode, both the old and the new memberwise initializer will be synthesized. 
+  - In otherwise ambiguous cases, the _new_ initializer is unconditionally preferred over the old one during overload resolution. 
+  - The old initializer will not be suggested in code completion or appear in the "sanitized" swiftinterface, and uses of the old initializer will warn about its impending removal.
+  - If the new initializer would not be callable, a warning is emitted.
+
+- In a future language version (Swift 7?), only the new memberwise initializer will be synthesized. Any attempt to use the old initializer is an error.
+  - If the new initializer would not be callable, an error is emitted.
+
+### Projected value initialization
+
+This aspect of the proposal is completely additive and will be source-compatible.
 
 ## Effect on ABI Stability
 
-Does the proposal change the ABI of existing language features? The
-ABI comprises all aspects of the code generation model and interaction
-with the Swift runtime, including such things as calling conventions,
-the layout of data types, and the behavior of dynamic features in the
-language (reflection, dynamic dispatch, dynamic casting via `as?`,
-etc.). Purely syntactic changes rarely change existing ABI. Additive
-features may extend the ABI but, unless they extend some fundamental
-runtime behavior (such as the aforementioned dynamic features), they
-won't change the existing ABI.
-
-Features that don't change the existing ABI are considered out of
-scope for [Swift 4 stage 1](README.md). However, additive features
-that would reshape the standard library in a way that changes its ABI,
-such as [where clauses for associated
-types](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md),
-can be in scope. If this proposal could be used to improve the
-standard library in ways that would affect its ABI, describe them
-here.
+This feature and the features it depends on are either entirely non-public or implemented entirely in terms of frontend transformations and do not have an impact on ABI.
 
 ## Effect on API Resilience
 
-API resilience describes the changes one can make to a public API
-without breaking its ABI. Does this proposal introduce features that
-would become part of a public API? If so, what kinds of changes can be
-made without breaking ABI? Can this feature be added/removed without
-breaking ABI? For more information about the resilience model, see the
-[library evolution
-document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
-in the Swift repository.
+Because the synthesized memberwise initializer is always non-`public`, this proposal does not introduce any functionality that would affect API resilience.
 
 ## Alternatives Considered
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
+*TBC*
 
 ## Future Directions
 
-(Not in template) Describe ways in which this feature could be extended in the future.
+### Inline projected value initialization
+
+The `$`-initialization syntax could be extended to allow for its use in the declaration of the wrapped property itself, e.g.:
+
+```swift
+struct S {
+  @Wrapper
+  var $property: Int = someProjectedValue
+}
+```
+
+would expand to:
+
+```swift
+struct S {
+  private var _property: Wrapper = .init(projectedValue: someProjectedValue)
+    
+  var property: Int {
+    get { _property.wrappedValue }
+    set { _property.wrappedValue = newValue }
+  }
+}
+```
+
+The authors elect to exclude such a construction from this proposal. The suggested syntax above tries to do many things at once:
+1. Declare a property named `property`.
+2. Declare the type `Int` for that property.
+3. Declare a wrapper/storage type `Wrapper` for that property.
+4. Declare that the property should be initialized via `init(projectedValue:)`.
+5. Declare the projected value to be passed to `init(projectedValue:)`.
+
+Notably, with the syntax above, the type of `$property` and the initial value expression do _not_ necessarily agree with the `Int` type annotation.
+
+While it is possible that the syntax here could be massaged into something that made a bit more sense, there are enough open questions that the authors would rather see this form receive further, separate consideration.
 
 ## Acknowledgments
 
-If significant changes or improvements suggested by members of the 
-community were incorporated into the proposal as it developed, take a
-moment here to thank them for their contributions. Swift evolution is a 
-collaborative process, and everyone's input should receive recognition!
+*TBC*
