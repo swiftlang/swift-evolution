@@ -7,7 +7,7 @@
 
 ## Introduction
 
-[SE 0258](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md) introduced property wrappers; due to their complexity, though, there were some inconsistencies. Function-like declarations were unsupported until [SE 0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md#detailed-design). These initial inconsistencies combined with the limited-scope 0293 features fragmented property-wrapper-related initialization. Namely, memberwise initializers use complex, poorly documented rules and projection initialization is reserved solely for function parameters.
+[SE 0258](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md) introduced property wrappers and [SE 0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md#detailed-design) expanded them with function-like declarations. Today, property wrapper initialization exhibits inconsistencies due to its growing versatility. Specifically, memberwise initializers use complex, poorly documented rules and projection initialization remains limited. This proposal will simplify synthesized memberwise initialization for types with wrapped properties and extend projection value initialization to include global, type, and local wrapped properties.
 
 ## Motivation
 
