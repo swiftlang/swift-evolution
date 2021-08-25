@@ -19,6 +19,53 @@ Today, the rules for how wrapped properties are represented in the synthesized m
 - If there's no `init(wrappedValue:)` initializer, the memberwise initializer will use the property wrapper's type itself (i.e. `MyView(value: Binding<Int>)`).
 - If `init(wrappedValue:)` takes extra arguments without default values, the memberwise initializer uses the property wrapper type unless the wrapped property is initialized in-line with `=`.
 
+Examples:
+
+```swift
+@propertyWrapper
+struct WrapperWithDefaultInit<T> {
+  init() { fatalError() }
+
+  init(wrappedValue: T) {
+    self.wrappedValue = wrappedValue
+  }
+
+  let wrappedValue: T
+}
+
+@propertyWrapper
+struct WrapperWithArgs<T> {
+  init(wrappedValue: T, extraArg: Bool) {
+    self.wrappedValue = wrappedValue
+  }
+
+  let wrappedValue: T
+}
+
+@propertyWrapper
+struct WrapperWithDefaultArgs<T> {
+  init(wrappedValue: T, extraArg: Bool = true) {
+    self.wrappedValue = wrappedValue
+  }
+
+  let wrappedValue: T
+}
+
+struct S {
+  @WrapperWithDefaultInit var value1: Int
+  @WrapperWithDefaultInit var value2: Int = 7
+  @WrapperWithArgs var value3: Int
+  @WrapperWithArgs(extraArg: true) var value4: Int = 17
+  @WrapperWithDefaultArgs var value5: Int
+}
+
+let s = S(value1: WrapperWithDefaultInit(wrappedValue: 1),
+          value2: 2,
+          value3: WrapperWithArgs(wrappedValue: 3, extraArg: true),
+          value4: 4,
+          value5: 5)
+```
+
 The result is that the author of a type with wrapped properties cannot easily determine or control what the signature of their memberwise initializer will look like; instead, it relies on subtle interactions between the property wrapper type, the declaration of the wrapped property, and how that property is initialized.
 
 Furthermore, the current ruleset can implicitly expose the private storage of the property wrapper via the (implicitly `internal`) synthesized initializer. This behavior may be undesirable, and for a given wrapper there may be no way for a user to avoid it other than giving up on the synthesized initializer altogether and defining their own.
