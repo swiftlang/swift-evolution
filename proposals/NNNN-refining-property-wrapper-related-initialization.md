@@ -75,7 +75,7 @@ struct MixedRectangle {
 }
 ```
 
-would recieve a synthesized memberwise initializer that looks like:
+would receive a synthesized memberwise initializer that looks like:
 
 ```swift
 init(@SmallNumber height: Int = 1, @SmallNumber(maximum: 9) width: Int = 2) {
@@ -83,7 +83,7 @@ init(@SmallNumber height: Int = 1, @SmallNumber(maximum: 9) width: Int = 2) {
 }
 ```
 
-Second, we propose allowing property wrapper storage for global, type, and local wrapped properties to be initialized via the `init(projectedValue:)` system (as discussed in the future directions of SE-0293). E.g.:
+Second, we propose allowing property wrapper storage for global, type, and local wrapped properties to be initialized via the `init(projectedValue:)` system (as discussed in the [future directions of SE-0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md#generalized-property-wrapper-initialization-from-a-projection)). E.g.:
 
 ```swift
 @Wrapper
@@ -162,7 +162,7 @@ struct MyView: View {
     }
 }
 
-MyView(x: .constant(5))  // ❌old init
+MyView(x: .constant(5))  // ❌ old init
 MyView($x: .constant(5)) // ✅ new init
 ```
 
