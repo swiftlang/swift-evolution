@@ -7,7 +7,7 @@
 
 ## Introduction
 
-[SE 0258](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md) introduced property wrappers; due to their complexity, though, there were some inconsistencies. Function-like declarations were unsupported until [SE 0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md#detailed-design). These initial inconsistencies combined with the limited-scope 0293 features fragmented property-wrapper-related initialization. Namely, memberwise initializers use complex, poorly documented rules and projection initialization is reserved solely for function parameters.
+[SE 0258](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md) introduced property wrappers and [SE 0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md#detailed-design) expanded them with function-like declarations. Today, property wrapper initialization exhibits inconsistencies due to its growing versatility. Specifically, memberwise initializers use complex, poorly documented rules and projection initialization remains limited. This proposal will simplify synthesized memberwise initialization for types with wrapped properties and extend projection value initialization to include global, type, and local wrapped properties.
 
 ## Motivation
 
@@ -18,6 +18,39 @@ Today, the rules for how wrapped properties are represented in the synthesized m
   - Exception: if the property wrapper is default initialized, the memberwise initializer uses the property wrapper type, even if the property wrapper also has an `init(wrappedValue:)` unless the wrapped property is initialized in-line with `=`.
 - If there's no `init(wrappedValue:)` initializer, the memberwise initializer will use the property wrapper's type itself (i.e. `MyView(value: Binding<Int>)`).
 - If `init(wrappedValue:)` takes extra arguments without default values, the memberwise initializer uses the property wrapper type unless the wrapped property is initialized in-line with `=`.
+
+Examples:
+
+```swift
+@propertyWrapper
+struct Wrapper {
+    let wrappedValue: Int
+    
+    init(wrappedValue: Int = 5) {
+        self.wrappedValue = wrappedValue
+    }
+}
+
+@propertyWrapper
+struct ArgumentWrapper {
+    let wrappedValue: Int
+    let arg: Int
+}
+
+struct Client {
+    @Wrapper var a
+    @Wrapper var b = 2
+    @ArgumentWrapper var c: Int
+    @ArgumentWrapper(arg: 0) var d = 17
+}
+
+let client = Client(
+    a: Wrapper(wrappedValue: 1),
+    b: 2,
+    c: ArgumentWrapper(wrappedValue: 3, arg: 0),
+    d: 4
+)
+```
 
 The result is that the author of a type with wrapped properties cannot easily determine or control what the signature of their memberwise initializer will look like; instead, it relies on subtle interactions between the property wrapper type, the declaration of the wrapped property, and how that property is initialized.
 
@@ -42,7 +75,7 @@ struct MixedRectangle {
 }
 ```
 
-would recieve a synthesized memberwise initializer that looks like:
+would receive a synthesized memberwise initializer that looks like:
 
 ```swift
 init(@SmallNumber height: Int = 1, @SmallNumber(maximum: 9) width: Int = 2) {
@@ -50,7 +83,7 @@ init(@SmallNumber height: Int = 1, @SmallNumber(maximum: 9) width: Int = 2) {
 }
 ```
 
-Second, we propose allowing property wrapper storage for global, type, and local wrapped properties to be initialized via the `init(projectedValue:)` system (as discussed in the future directions of SE-0293). E.g.:
+Second, we propose allowing property wrapper storage for global, type, and local wrapped properties to be initialized via the `init(projectedValue:)` system (as discussed in the [future directions of SE-0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md#generalized-property-wrapper-initialization-from-a-projection)). E.g.:
 
 ```swift
 @Wrapper
@@ -129,7 +162,7 @@ struct MyView: View {
     }
 }
 
-MyView(x: .constant(5))  // ❌old init
+MyView(x: .constant(5))  // ❌ old init
 MyView($x: .constant(5)) // ✅ new init
 ```
 
