@@ -23,47 +23,33 @@ Examples:
 
 ```swift
 @propertyWrapper
-struct WrapperWithDefaultInit<T> {
-  init() { fatalError() }
-
-  init(wrappedValue: T) {
-    self.wrappedValue = wrappedValue
-  }
-
-  let wrappedValue: T
+struct Wrapper {
+    let wrappedValue: Int
+    
+    init(wrappedValue: Int = 5) {
+        self.wrappedValue = wrappedValue
+    }
 }
 
 @propertyWrapper
-struct WrapperWithArgs<T> {
-  init(wrappedValue: T, extraArg: Bool) {
-    self.wrappedValue = wrappedValue
-  }
-
-  let wrappedValue: T
+struct ArgumentWrapper {
+    let wrappedValue: Int
+    let arg: Int
 }
 
-@propertyWrapper
-struct WrapperWithDefaultArgs<T> {
-  init(wrappedValue: T, extraArg: Bool = true) {
-    self.wrappedValue = wrappedValue
-  }
-
-  let wrappedValue: T
+struct Client {
+    @Wrapper var a
+    @Wrapper var b = 2
+    @ArgumentWrapper var c: Int
+    @ArgumentWrapper(arg: 0) var d = 17
 }
 
-struct S {
-  @WrapperWithDefaultInit var value1: Int
-  @WrapperWithDefaultInit var value2: Int = 7
-  @WrapperWithArgs var value3: Int
-  @WrapperWithArgs(extraArg: true) var value4: Int = 17
-  @WrapperWithDefaultArgs var value5: Int
-}
-
-let s = S(value1: WrapperWithDefaultInit(wrappedValue: 1),
-          value2: 2,
-          value3: WrapperWithArgs(wrappedValue: 3, extraArg: true),
-          value4: 4,
-          value5: 5)
+let client = Client(
+    a: Wrapper(wrappedValue: 1),
+    b: 2,
+    c: ArgumentWrapper(wrappedValue: 3, arg: 0),
+    d: 4
+)
 ```
 
 The result is that the author of a type with wrapped properties cannot easily determine or control what the signature of their memberwise initializer will look like; instead, it relies on subtle interactions between the property wrapper type, the declaration of the wrapped property, and how that property is initialized.
