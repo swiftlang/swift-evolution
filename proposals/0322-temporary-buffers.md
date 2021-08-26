@@ -1,9 +1,9 @@
 # Temporary uninitialized buffers
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0322](0322-temporary-buffers.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Scheduled for review (Sep 7...Sep 20, 2021)**
 * Implementation: [apple/swift#37666](https://github.com/apple/swift/pull/37666)
 
 ## Introduction
