@@ -67,7 +67,7 @@ try taco_t.consume(count: tacoCount, filledWith: ...)
 
 extension taco_t {
   public static func consume(count: Int, filledWith fillings: taco_fillings_t) throws {
-    withUnsafeUninitializedMutableBufferPointer(to: taco_t.self, capacity: count) { buffer in
+    try withUnsafeUninitializedMutableBufferPointer(to: taco_t.self, capacity: count) { buffer in
       withUnsafePointer(to: fillings) { fillings in
         taco_init(buffer.baseAddress!, buffer.count, fillings)
       }
@@ -220,7 +220,7 @@ If the alignment and size are known at compile-time, the compiler can convert a 
 
 The proposed functions do _not_ guarantee that their buffers will be stack-allocated. This omission is intentional: guaranteed stack-allocation would make this feature equivalent to C99's variable-length arrays—a feature that is extremely easy to misuse and which is the cause of many [real-world security vulnerabilities](https://duckduckgo.com/?q=cve+variable-length+array). Instead, the proposed functions should stack-promote aggressively, but heap-allocate (just as `UnsafeMutableBufferPointer.allocate(capacity:)` does today) when passed overly large sizes.
 
-This fallback heuristic is an implementation detail and may be architecture- or system-dependent. A common C approach is to say "anything larger than _n_ bytes uses `calloc()`. The Standard Library could refine this approach by checking information available to it at runtime, e.g. the current thread's available stack space. Because the Standard Library would own this heuristic, all adopters would benefit from it and, subject to a recompile, from any enhancements made in future Swift revisions.
+This fallback heuristic is an implementation detail and may be architecture- or system-dependent. A common C approach is to say "anything larger than _n_ bytes uses `calloc()`". The Standard Library could refine this approach by checking information available to it at runtime, e.g. the current thread's available stack space. Because the Standard Library would own this heuristic, all adopters would benefit from it and, subject to a recompile, from any enhancements made in future Swift revisions.
 
 ## Source compatibility
 
