@@ -11,7 +11,7 @@
 
 ## Motivation
 
-Property wrappers were initially adopted in  [SE-0258](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and expanded to function parameters and closures in  [SE-0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md). This two-phase adoption of property wrappers throughout the language has left property wrappers considered as a whole with some inconsistencies and complexity that is no longer necessary.
+Property wrappers were initially adopted in  [SE 0258](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and expanded to function parameters and closures in  [SE 0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md). This two-phase adoption of property wrappers throughout the language has left property wrappers considered as a whole with some inconsistencies and complexity that is no longer necessary.
 
 Today, the rules for how wrapped properties are represented in the synthesized memberwise initializer for structs are poorly documented and quite complex. To summarize the points from [this thread](https://forums.swift.org/t/does-the-new-swift-5-5-init-projectedvalue-functionality-not-work-with-synthesized-memberwise-initializers/51232/7), the rules are:
 - If a property wrapper defines an `init(wrappedValue:)` initializer, the memberwise initializer will use the `wrappedValue` type (i.e. `MyView(value: Int)`).
@@ -58,13 +58,13 @@ Furthermore, the current ruleset can implicitly expose the private storage of th
 
 Now that property wrappers are supported in function signatures, it's not entirely clear why the memberwise initializer is synthesized the way it is. Were we to design the synthesized initializer today, we likely wouldn't have such a complex set of rules since we have a way to directly represent wrappers in parameter lists.
 
-SE-0293 also added a new way of initializing property wrapper storage from a projected value using a new special initializer, `init(projectedValue:)`. However, while the new `$`-initialization syntax works for function arguments and closure parameters, global, type, and local properties have no such equivalent.
+SE 0293 also added a new way of initializing property wrapper storage from a projected value using a new special initializer, `init(projectedValue:)`. However, while the new `$`-initialization syntax works for function arguments and closure parameters, global, type, and local properties have no such equivalent.
 
 Thus, the current state of affairs is ripe for refinement. Property wrappers have matured to a point where we can easily simplify certain special cases, and extend the general functionality to support a consistent model for property wrappers everywhere.
 
 ## Proposed Solution
 
-We propose two additions to the feature set of property wrappers that will improve consistency with the SE-0293 model.
+We propose two additions to the feature set of property wrappers that will improve consistency with the SE 0293 model.
 First, we propose an update to the rules of the synthesized memberwise initializer for types with wrapped properties such that wrapper attributes are mapped directly into the initializer 
 For example, a type such as this one from [TSPL](https://docs.swift.org/swift-book/LanguageGuide/Properties.html#ID617):
 
@@ -83,7 +83,7 @@ init(@SmallNumber height: Int = 1, @SmallNumber(maximum: 9) width: Int = 2) {
 }
 ```
 
-Second, we propose allowing property wrapper storage for global, type, and local wrapped properties to be initialized via the `init(projectedValue:)` system (as discussed in the [future directions of SE-0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md#generalized-property-wrapper-initialization-from-a-projection)). E.g.:
+Second, we propose allowing property wrapper storage for global, type, and local wrapped properties to be initialized via the `init(projectedValue:)` system (as discussed in the [future directions of SE 0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md#generalized-property-wrapper-initialization-from-a-projection)). E.g.:
 
 ```swift
 @Wrapper
