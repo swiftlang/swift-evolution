@@ -226,6 +226,38 @@ Notably, this syntax does not provide an easy place to indicate the type of `pro
 
 While it is possible that the syntax here could be massaged into something that made a bit more sense, there are enough open questions that the authors would rather see this form receive further, separate consideration.
 
+### Accept the Backing Storage in Parameters
+
+[SE 0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md) settled on parameters accepting either the wrapped or projected value. If neither was supported, the resulting declaration would be uncallable. That can be limiting, though, especially for memberwise initializers:
+
+```swift
+@propertyWrapper struct BackingStorageOnly {
+  let wrappedValue = 0
+}
+
+struct Client {
+  // ℹ️ `@BackingStorageOnly` doesn't declare an `init(wrappedValue:)` or `init(projectedValue:)` initializer.
+  @BackingStorageOnly var property: Int 
+  
+  // ❌ Invoking uncallable memberwise initializer.
+  static let `default` = Client()
+}
+```
+
+The rationale was that the _private_ backing storage must not be exposed to function clients. This is a valid concern, but doesn't preclude a `private`, backing-storage-accepting function that follows these rules:
+
+* A wrapper with neither an `init(wrappedValue:)` or `init(projectedValue:)` special initializer is considered **private API level**;
+* A function-like declaration with at least one private-API wrapper must be `private`; and
+* Private-API-wrapped parameters have underscore-prefixed names and accept their backing-storage type.
+
+```swift
+struct Client {
+  // ...
+  
+  static let `default` = Client(_property: BackingStorageOnly())
+}
+```
+
 ## Acknowledgments
 
 *TBC*
