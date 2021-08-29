@@ -136,15 +136,9 @@ which will be transformed to:
 _property = .init(projectedValue: someProjectedValue)
 ```
 
-Anywhere the storage has been initialized, `$property` retains its usual meaning and will refer to the `projectedValue` property of the wrapper.
+Anywhere the storage has been initialized, `$property` retains its usual meaning and will refer to the `projectedValue` property of the wrapper. This transformation takes place even if `_property.projectedValue` does not provide a setter, since we are formally assigning `_property`, not the projected value.
 
-Note that `$property` may be assigned in this manner even in more complex expressions such as:
-
-```swift
-(someOtherProperty, $property) = (initialValue, someProjectedValue)
-```
-
-This transformation takes place even if `_property.projectedValue` does not provide a setter, since we are formally assigning `_property`, not the projected value. 
+> Note that `$property` may be assigned in this manner even in more complex expressions such as `(someOtherProperty, $property) = (initialValue, someProjectedValue)` 
 
 ## Source Compatibility
 
