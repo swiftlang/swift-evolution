@@ -455,7 +455,7 @@ OPTIONS:
 
 Running the `package-registry set` subcommand
 in the root directory of a package
-creates or updates the `.swiftpm/config/registries.json` file
+creates or updates the `.swiftpm/configuration/registries.json` file
 with a new top-level `registries` key
 that's associated with an object containing the specified registry URLs.
 The default, unscoped registry is associated with the key `[default]`.
@@ -468,7 +468,7 @@ using an internal registry service.
 
 ```console
 $ swift package-registry set https://internal.example.com/
-$ cat .swiftpm/config/registries.json
+$ cat .swiftpm/configuration/registries.json
 ```
 
 ```json
@@ -505,7 +505,7 @@ to a private registry.
 
 ```console
 $ swift package-registry set https://internal.example.com/ --scope example
-$ cat .swiftpm/config/registries.json
+$ cat .swiftpm/configuration/registries.json
 ```
 
 ```json
@@ -541,7 +541,7 @@ OPTIONS:
 
 Running the `package-registry unset` subcommand
 in the root directory of a package
-updates the `.swiftpm/config/registries.json` file
+updates the `.swiftpm/configuration/registries.json` file
 to remove the `default` entry in the top-level `registries` key, if present.
 If a `--scope` option is passed,
 only the entry for the specified scope is removed, if present.
@@ -550,7 +550,7 @@ only the entry for the specified scope is removed, if present.
 
 The user can pass the `--global` option to the `set` or `unset` subcommands
 to update the user-level configuration file located at
-`~/.swiftpm/config/registries.json`.
+`~/.swiftpm/configuration/registries.json`.
 
 Any default or scoped registries configured locally in a project directory
 override any values configured globally for the user.
@@ -558,7 +558,7 @@ For example,
 consider the following global and local registry configuration files:
 
 ```jsonc
-// Global configuration (~/.swiftpm/config/registries.json)
+// Global configuration (~/.swiftpm/configuration/registries.json)
 {
   "registries": {
     "[default]": {
@@ -571,7 +571,7 @@ consider the following global and local registry configuration files:
   "version": 1
 }
 
-// Local configuration (.swiftpm/config/registries.json)
+// Local configuration (.swiftpm/configuration/registries.json)
 {
   "registries": {
     "foo": {
@@ -596,8 +596,8 @@ in descending order of precedence:
 
 * The package manifest in the current directory (`./Package.swift`)
 * Any existing lock file (`./Package.resolved`)
-* Any local configuration (`./.swiftpm/config/registries.json`)
-* Any global configuration file (`~/.swiftpm/config/registries.json`)
+* Any local configuration (`./.swiftpm/configuration/registries.json`)
+* Any global configuration file (`~/.swiftpm/configuration/registries.json`)
 
 #### Specifying credentials for a custom registry
 
@@ -624,7 +624,7 @@ machine internal.example.com
 login jappleseed
 password alpine
 
-$ cat .swiftpm/config/registries.json
+$ cat .swiftpm/configuration/registries.json
 
 {
   "registries": {
@@ -666,7 +666,7 @@ $ swift package config set-mirror \
 This proposal updates the `swift package config set-mirror` subcommand
 to accept a `--package-identifier` option in place of an `--original-url`.
 Running this subcommand with a `--package-identifier` option
-creates or updates the `.swiftpm/config/mirrors.json` file,
+creates or updates the `.swiftpm/configuration/mirrors.json` file,
 modifying the array associated with the top-level `object` key
 to add a new entry or update an existing entry
 for the specified package identifier,
@@ -869,7 +869,7 @@ when displaying feedback to the user.
 ### Denial of service
 
 An attacker could scrape public code repositories
-for `.swiftpm/config/registries.json` files
+for `.swiftpm/configuration/registries.json` files
 that declare one or more custom registries
 and launch a denial-of-service attack
 in an attempt to reduce the availability of those resources.
@@ -891,7 +891,7 @@ but could be used in a targeted way
 against resources known to be important or expensive to distribute.
 
 This kind of attack can be mitigated on an individual basis
-by adding `.swiftpm/config` to a project's `.gitignore` file.
+by adding `.swiftpm/configuration` to a project's `.gitignore` file.
 
 ### Escalation of privilege
 
