@@ -1595,7 +1595,7 @@ It would be very natural, and has been considered and ensured that it will be po
 - clustering and messaging protocols for distributed actor systems, e.g. like [Erlang/OTP](https://www.google.com/search?q=erlang) or [Akka Cluster](https://doc.akka.io/docs/akka/current/typed/cluster-concepts.html).
 - [inter-process communication](https://en.wikipedia.org/wiki/Inter-process_communication) protocols, e.g. XPC on Apple platforms or shared-memory.
 - various other RPC-style protocols, e.g. the standard [XML RPC](http://xmlrpc.com), [JSON RPC](https://www.jsonrpc.org/specification) or custom protocols with similar semantics.
-- it should also be possible to communicate with WASM and "Swift in the Browser" using distributed actors and an apropriate websocket transport.
+- it should also be possible to communicate with Wasm and "Swift in the Browser" using distributed actors and an apropriate websocket transport.
 
 ## Background
 
