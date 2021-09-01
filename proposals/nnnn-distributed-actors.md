@@ -455,7 +455,7 @@ protocol GreeterProtocol {
   func greet(name: String) async throws // ok
 }
 
-distributed actor  { 
+distributed actor Greeter: GreeterProtocol { 
   distributed func greet(name: String) async throws { ... } // ok (String is codable, async + throws)
 }
 ```
@@ -529,6 +529,7 @@ If no user-defined designated initializer is provided, a default initializer is 
 distributed actor DA {
   // synthesized: init(transport: ActorTransport) { ... }
 }
+```
 
 #### Remote Resolution
 
@@ -556,7 +557,6 @@ A distributed actor's static resolve function, and the related `ActorTransport.r
 
 #### Deinitialization
 
-```suggestion
 Local distributed actors also implicitly *resign* their identity to the transport once they are deinitialized. Specifically, the transport's `resignIdentity` function is called after all user code, including user-defined `defer` statements, have executed.
 
 ```swift
