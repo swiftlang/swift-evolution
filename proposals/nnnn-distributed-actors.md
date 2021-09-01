@@ -208,7 +208,7 @@ func example2(a: Player, b: Player) async throws {
 
 In addition to conforming to `Sendable`, a distributed function's parameters and its return type are all required to conform to the [`Codable` protocol](https://developer.apple.com/documentation/swift/codable). A codable value supports serialization and deserialization, which is nessecary in order to maintain location transparency. For example, servicing a method call on a distributed actor instance can involve sending the arguments to another process and awaiting a response.
 
-Like a regular actor method, an expression that calls a distributed function is  treated as `async` from outside of the actor's isoalation. But for a distributed actor, such calls are _also_ treated as `throws` when outside of the actor's isolation, because a request to call a distributed method is not guaranteed to recieve a response. The underlying process that hosts the distributed actor instance may be on another machine that crashed, or a connection may be lost, etc. To help make this clear, consider the following example, which contains only the nessecary `try` and `await` expressions:
+Like a regular actor method, an expression that calls a distributed function is  treated as `async` from outside of the actor's isoalation. But for a distributed actor, such calls are _also_ treated as `throws` when outside of the actor's isolation, because a request to call a distributed method is not guaranteed to recieve a response. The underlying process that hosts the distributed actor instance may be on another machine that crashed, or a connection may be lost, etc. To help make this clear, consider the following example, which contains only the necessary `try` and `await` expressions:
 
 ```swift
 distributed actor Greeter {
@@ -383,7 +383,7 @@ For clarity, a number of details about this proposal were omitted from the Propo
 The design of distributed actors intentionally does not provide facilities to easily determine whether an instance is local or remote. The programmer should not _need_ to think about where the instance is located, because Swift will make it work in either case. There are numerous benefits to embracing location transparency:
 
 - The programmer can write a complex distributed systems algorithm and test it locally. Running that program on a cluster becomes merely a configuration and deployment change, without any additional source code changes.
-- Distributed actors to be used with multiple transports without changing the actor's implementation.
+- Distributed actors can be used with multiple transports without changing the actor's implementation.
 - Actor instances can be balanced between nodes once capacity of a cluster changes, or be passivated when not in use, etc. There are many more advanced patterns for allocating instances, such as the "virtual actor" style as popularized by Orleans or Akka's cluster sharding.
 
 One of the key restrictions that enable location transparency is the requirement that we pass arguments into the distributed actor that conform to `Codable`, so that they *can* be sent to another process if needed. But, there are some situations where the programmer _knows_ a particular instance is local to the process, so this restriction becomes bothersome.
@@ -408,7 +408,7 @@ func withLocalDistributedActor<Act, T>(
 /// 
 /// Invokes the 'else' closure if the actor instance was remote.
 func withLocalDistributedActor<Act, T>(
-  _ actor: Act
+  _ actor: Act,
   _ body: (isolated Act) async throws -> T,
   else whenRemote (Act) async throws -> T
 ) async rethrows -> T where Act: DistributedActor
@@ -549,7 +549,7 @@ distributed actor DA {
 }
 ```
 
-It is important to notice that, when the transport determines that the identity is not local, the static `resolve` only performs a memory allocation for a "proxy" representing a remote instance - no memory has to be allocated for stored properties of such remote actor, because they will never be accessed, making remote references extremelly memory efficient (!). Thus, resolving an actor does not neccessarily perform an inter-process action, even if the identity is for a remote instance. Inter-process actions are only guaranteed when calling a distributed method on a remote instance. Nevertheless, a resolve action may throw an error if the transport decides that it cannot resolve the passed in identity, e.g., because it is for a different transport.
+It is important to notice that, when the transport determines that the identity is not local, the static `resolve` only performs a memory allocation for a "proxy" representing a remote instance - no memory has to be allocated for stored properties of such remote actor, because they will never be accessed, making remote references extremely memory efficient (!). Thus, resolving an actor does not necessarily perform an inter-process action, even if the identity is for a remote instance. Inter-process actions are only guaranteed when calling a distributed method on a remote instance. Nevertheless, a resolve action may throw an error if the transport decides that it cannot resolve the passed in identity, e.g., because it is for a different transport.
 
 In addition, it is up to the transport to determine whether an identity is local or not. This is how concepts like *virtual actors* may be implemented. While discussing the semantics of virtual actors is out of scope for this proposal, the ability to possibly support them in the future is important.
 
@@ -573,7 +573,7 @@ Transports are generally expected to *not* hold strong references to actors they
 
 ### Actor Transports
 
-Swift users are need to provide their own implementation of an `ActorTransport`, in order to use distributed actors. It is expected that most users will use an existing library that implements the desired kind of transport infrastructure. But, users are free to implement their own `ActorTransport` according to the following protocol:
+Swift users will need to provide their own implementation of an `ActorTransport`, in order to use distributed actors. It is expected that most users will use an existing library that implements the desired kind of transport infrastructure. But, users are free to implement their own `ActorTransport` according to the following protocol:
 
 ```swift
 protocol ActorTransport: Sendable {
@@ -615,7 +615,7 @@ A distributed actor depends on its transport for all of its message handling. Ou
 
 ##### Outbound messages
 
-Outbound messaging is what ocurs when a distributed function is invoked on a _remote_ instance of a distributed actor, for example like this:
+Outbound messaging is what occurs when a distributed function is invoked on a _remote_ instance of a distributed actor, for example like this:
 
 ```swift
 let greeter = Greeter.resolve(remoteID, using: transport)
@@ -630,7 +630,7 @@ This function by itself is only a stub, and will crash unless it is replaced wit
 // specific transport source generated (until we have the ability to avoid source-gen here)
 extension Greeter { 
   // TODO: introduce `distributed` specific annotation, e.g. @remoteReplacement(for:greet(_:))
-  @_dynamicReplacement(for :_remote_greet(_:))
+  @_dynamicReplacement(for: _remote_greet(_:))
   nonisolated func _cluster_greet(_ greeting: String) async throws -> String { 
     // Step 1: Form a message
     let message: _Message = _Message.greet(greeting)
@@ -887,7 +887,7 @@ As discussed, identities are crucial to locate and resolve an opaque identity in
 
 However, how do we communicate an identity of one actor from one node to another if to identify _any distributed actor_ actor we need to know their identity to begin with? This immediately ends up in a "catch-22" situation, where in order to share an identity with another actor, we need to know _that_ actor's identity, but we can't know it, since we were not able to communicate with it yet!
 
-Luckily, this situation is not uncommon and has established solutions that generally speaking are forms of _service discovery_. Swift already offers a general purpose service discovery library with [swift-service-discovery](https://github.com/apple/swift-service-discovery), however it's focus is very generic and all about services, which means that for a given well-known service name e.g. "HelloCluster", we're able to lookup which _nodes_ are part of it, and therefore we should attempt connecting to them. Implementations of service discovery could be using DNS, specific key-value stores, or kubernetes APIs to locate pods within a cluster. 
+Luckily, this situation is not uncommon and has established solutions that generally speaking are forms of _service discovery_. Swift already offers a general purpose service discovery library with [swift-service-discovery](https://github.com/apple/swift-service-discovery), however its focus is very generic and all about services, which means that for a given well-known service name e.g. "HelloCluster", we're able to lookup which _nodes_ are part of it, and therefore we should attempt connecting to them. Implementations of service discovery could be using DNS, specific key-value stores, or kubernetes APIs to locate pods within a cluster. 
 
 This is great, and solves the issue of locating _nodes_ of a cluster, however we also need to be able to locate specific _distributed actors_, that e.g. implement some specific protocol. For example, we would like to, regardless of their location locate all `Greeter` actors in our distributed actor system. We can use the well-known type name Greeter as key in the lookup, or we could additionally qualify it with some identifier for example only to find those `Greeter` actors which use the language `pl` (for Polish).
 
@@ -953,7 +953,7 @@ One of the verbose bits of this API is that a distributed actor must be created 
 
 The `spawn` word is often used in various actor runtimes, however we intend actors and distributed actors in Swift to feel as natural as any other day-to-day Swift code.
 
-Introducing a new keyword to specifically create objects (in some ways similar to `new` which does not exist in Swift, but does in other languages), goes against tne nature of Swift and the current Actor proposal. Actors do not currently need to be prefixed with any special keywords when creating them. I.e. a local actor is simply created by constructing it: `Greeter()` rather than `spawn Greeter()` or similar.
+Introducing a new keyword to specifically create objects (in some ways similar to `new` which does not exist in Swift, but does in other languages), goes against the nature of Swift and the current Actor proposal. Actors do not currently need to be prefixed with any special keywords when creating them. I.e. a local actor is simply created by constructing it: `Greeter()` rather than `spawn Greeter()` or similar.
 
 In theory, we could require that a distributed actor must be spawned by `spawn(transport) Greeter()` and we would be able to hook up all internals of the distributed actor this way. Local actors could be spawned using `spawn Greeter()`. This is not something we are interested in forcing, with actors already being created using normal initializers.
 
