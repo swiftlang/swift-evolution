@@ -340,6 +340,7 @@ distributed actor Counter {
     return count
   }
 }
+```
 
 For the RPC example, some process must first locally create an instance of the distributed actor `Counter`. This is done by calling`Counter.init(transport:)` and passing the specific transport we want it to accessed through:
 
