@@ -430,7 +430,10 @@ struct FileListIterator: IteratorProtocol {
 
 /// Provides information about a single file in a FileList.
 protocol FileInfo {
+    /// The absolute path in the local file system.
     var path: Path { get }
+
+    /// The role of the file in SwiftPM.
     var type: FileType { get }
 }
 
