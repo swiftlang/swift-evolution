@@ -602,7 +602,7 @@ protocol ActorTransport: Sendable {
 
 At a high-level, a transport has two major responsibilities:
 
-- **Lifecycle management:** creating and resolving actor identifies, which are used by the Swift runtime to construct distributed actor instances.
+- **Lifecycle management:** creating and resolving actor identities, which are used by the Swift runtime to construct distributed actor instances.
 - **Messaging:** perform all message dispatch and handling on behalf of a distributed actor it manages.
 
 Distributed actor lifecycle was already discussed in the previous section, so now let us focus on how messaging is implemented by a transport.
@@ -928,7 +928,7 @@ try await anyGreeter.greet("Caplin, the Capybara")
 
 Notice that this pattern, by design, requires actors to opt-into being discoverable. This is important for a number of reasons, most importantly for security we would not want to allow any node in the system to resolve _arbitrary_ actor references by guessing their types and names. Instead, only distributed actors which opt into this discovery mechanism participate in it.
 
-It is still possible to _explicitly_ share an actor reference or identity throught messaging though. If security demands it, we can provide ways to ban specific actors from being shared in this way as well though.
+It is still possible to _explicitly_ share an actor reference or identity through messaging though. If security demands it, we can provide ways to ban specific actors from being shared in this way as well though.
 
 ## Alternatives Considered
 
@@ -939,7 +939,7 @@ This section summarizes various points in the design space for this proposal tha
 
 While this may be a highly subjective and sensitive topic, we want to tackle the question up-front, so why are distributed actors better than "just" some RPC library?
 
-The answer lies in the language integration and the mental model developers can work with when working with distributed actors. Swift already embraces actors for its local concurrency programming, and they will be omni-present and become a familiar and useful tool for developers. It is also important to notice that any aync function may be technically performing work over network, and it is up to developers to manage such calls in order to not overwhelm the network etc. With distributed actors, such calls are more _visible_ because IDEs have the necessary information to e.g. underline or otherwise hightlight that a function is likely to hit the network and one may need to consider it's latency more, than if it was just a local call. IDEs and linters can even use this statically available information to write hints such as "hey, you're doing this distributed actor call in a tight loop - are you sure you want to do that?"
+The answer lies in the language integration and the mental model developers can work with when working with distributed actors. Swift already embraces actors for its local concurrency programming, and they will be omni-present and become a familiar and useful tool for developers. It is also important to notice that any async function may be technically performing work over network, and it is up to developers to manage such calls in order to not overwhelm the network etc. With distributed actors, such calls are more _visible_ because IDEs have the necessary information to e.g. underline or otherwise hightlight that a function is likely to hit the network and one may need to consider it's latency more, than if it was just a local call. IDEs and linters can even use this statically available information to write hints such as "hey, you're doing this distributed actor call in a tight loop - are you sure you want to do that?"
 
 Distributed actors, unlike "raw" RPC frameworks, help developers to think about their distributed applications in terms of a network of collaborating actors, rather than having to think and carefully manage every single serialization call and network connection management between many connected peers - which we envision to be more and more important in the future of device and server programming et al. You may also refer to the [Swift Concurrency Manifesto; Part 4: Improving system architecture](https://gist.github.com/lattner/31ed37682ef1576b16bca1432ea9f782#part-4-improving-system-architecture) section on some other ideas on the topic.
 
@@ -1217,7 +1217,7 @@ extension Greeter {
 
 Second, for outgoing messages still, we need to replace the remote function. This is currently done using the direct dynamic replacement API, however as we mature this piece of the proposal this may either get its own attribute, or become unnecessary. 
 
-The dynamic replacement function must be `nonisoalted` because the actor is operating on is always _remote_ and therefore has no state, and access to its properties (other than the transport and id) must be prevented, because they don't exist. Thankfully the `nonisolated` attribute achieves exactly that, bu making the function effectively be semantically "outside" the actor.
+The dynamic replacement function must be `nonisolated` because the actor is operating on is always _remote_ and therefore has no state, and access to its properties (other than the transport and id) must be prevented, because they don't exist. Thankfully the `nonisolated` attribute achieves exactly that, but making the function effectively be semantically "outside" the actor.
 
 ```swift
 extension Greeter { 
