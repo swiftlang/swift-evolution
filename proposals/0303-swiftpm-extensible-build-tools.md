@@ -208,22 +208,32 @@ The initial proposed `PackagePlugin` API is the following:
 /// access to the package directory.
 ///
 /// The input to a package plugin is provided by SwiftPM when it is invoked,
-/// and can be accessed through the `targetBuildContext` global. The plugin
-/// defines commands to run during the build using the `commandConstructor`
-/// global, and can emit diagnostics using the `diagnosticsEmitter` global.
+/// and can be accessed through the `context` parameter. The plugin defines
+/// commands to run during the build by constructing and returning them from
+/// the main plugin function.
 ///
+/// The `Plugin` protocol defines the functionality common to all types of
+/// plugins, and there is a specific protocol for each of the defined plugin
+/// capabilities (only the `BuildToolPlugin` is presently defined, but the
+/// intent to is allow additional capabilities in the future).
+///
+/// Each plugin defines a type that conforms to the protocol corresponding
+/// to the capability it provides, and annotates that type with `@main`.
+/// It then implements the corresponding methods, which will be called to
+/// perform the functionality of the plugin.
 
-/// The target build context provides information about the target to which
-/// the plugin is being applied, as well as contextual information such as
-/// the paths of the directories to which commands should be configured to
-/// write their outputs. This information should be used when generating the
-/// commands to be run during the build.
-let targetBuildContext: TargetBuildContext
-
-/// The command constructor lets the plugin create commands that will run
-/// during the build, including their full command lines. All paths should
-/// be based on the ones passed to the plugin in the target build context.
-let commandConstructor: CommandConstructor
+/// Defines functionality common to all plugins.
+protocol Plugin {
+    /// Instantiates the plugin. This happens once per invocation of the
+    /// plugin; there is no facility for keeping in-memory state from one
+    /// invocation to the next. Most plugins do not need to implement the
+    /// initializer.
+    ///
+    /// If a future version of SwiftPM allows the usage of a plugin to
+    /// also provide configuration parameters for that plugin, then a new
+    /// initializer that accepts that configuration could be added here.
+    init()
+}
 
 /// The diagnostics emitter lets the plugin emit errors, warnings, and remarks
 /// for issues discovered by the plugin. Note that diagnostics from the plugin
@@ -233,6 +243,18 @@ let commandConstructor: CommandConstructor
 /// tool.
 let diagnosticsEmitter: DiagnosticsEmitter
 
+/// Defines functionality for all plugins having a `buildTool` capability.
+protocol BuildToolPlugin: Plugin {
+    /// Invoked by SwiftPM to create build commands for a particular target.
+    /// The context parameter contains information about the package and its
+    /// dependencies, as well as other environmental inputs.
+    ///
+    /// This function should create and return build commands or prebuild
+    /// commands, configured based on the information in the context.
+    func createBuildCommands(
+        context: TargetBuildContext
+    ) throws -> [Command]
+}
 
 /// Provides information about the target being built, as well as contextual
 /// information such as the paths of the directories to which commands should
