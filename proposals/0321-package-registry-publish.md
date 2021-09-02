@@ -4,7 +4,7 @@
 * Authors: [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (August 17 - 31, 2021)**
+* Status: **Accepted**
 * Implementation: [apple/swift-package-manager#3671](https://github.com/apple/swift-package-manager/pull/3671)
 
 <!--
