@@ -235,14 +235,6 @@ protocol Plugin {
     init()
 }
 
-/// The diagnostics emitter lets the plugin emit errors, warnings, and remarks
-/// for issues discovered by the plugin. Note that diagnostics from the plugin
-/// itself are relatively rare, and relate to such things as missing tools or
-/// problems constructing the build command. Diagnostics from the build tools
-/// themselves are processed in the same way as any other output from a build
-/// tool.
-let diagnosticsEmitter: DiagnosticsEmitter
-
 /// Defines functionality for all plugins having a `buildTool` capability.
 protocol BuildToolPlugin: Plugin {
     /// Invoked by SwiftPM to create build commands for a particular target.
@@ -420,10 +412,10 @@ enum Command {
 /// Emits errors, warnings, and remarks to be shown as a result of running
 /// the plugin. If any errors are emitted, the plugin is considered to have
 /// have failed, which will be reported to users during the build.
-protocol DiagnosticsEmitter {
-    func emit(error message: String, file: Path? = nil, line: Int? = nil)
-    func emit(warning message: String, file: Path? = nil, line: Int? = nil)
-    func emit(remark message: String, file: Path? = nil, line: Int? = nil)
+struct Diagnostics {
+    static func error(_ message: String, file: Path? = nil, line: Int? = nil)
+    static func warning(_ warning message: String, file: Path? = nil, line: Int? = nil)
+    static func remark(_ message: String, file: Path? = nil, line: Int? = nil)
 }
 
 /// Provides information about a list of files. The order is not defined
