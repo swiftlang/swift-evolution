@@ -628,12 +628,12 @@ SwiftGen
        └ ...
 ```
 
-In this case, `plugin.swift` is the Swift script that implements the package plugin target. The plugin is treated as a Swift executable, so it can consist of either a single Swift source file having any name, or multiple Swift source files of which one is named `main.swift`.
+In this case, `plugin.swift` is the Swift script that implements the package plugin target. The plugin is treated as a Swift executable, and can consist of one or more Swift source files, once of which contains a type attributed with `@main`.
 
 The package manifest would have a `plugin` target in addition to the existing target that provides the `swiftgen` command line tool itself:
 
 ```swift
-// swift-tools-version: 999.0
+// swift-tools-version: 5.6
 import PackageDescription
 
 let package = Package(
@@ -663,34 +663,39 @@ The package plugin script might look like this:
 ```swift
 import PackagePlugin
 
-// This example configures `swiftgen` to take inputs from a `swiftgen.yml` file.
-let swiftGenConfigFile = targetBuildContext.packageDirectory.appending("swiftgen.yml")
+@main struct SwiftGenPlugin: BuildToolPlugin {
+    /// This plugin's implementation returns a single `prebuild` command to run `swiftgen`.
+    func createBuildCommands(context: TargetBuildContext) throws -> [Command] {
+        // This example configures `swiftgen` to take inputs from a `swiftgen.yml` file
+        let swiftGenConfigFile = context.packageDirectory.appending("swiftgen.yml")
+        
+        // This example configures the command to write to a "GeneratedSources" directory.
+        let genSourcesDir = context.pluginWorkDirectory.appending("GeneratedSources")
 
-// This example configures the command to write to a "GeneratedSources" directory.
-let genSourcesDir = targetBuildContext.pluginWorkDirectory.appending("GeneratedSources")
-
-// Create a command to run `swiftgen` as a prebuild command. It will be run before
-// every build and generates source files into an output directory provided by the
-// build context.
-commandConstructor.addPrebuildCommand(
-    displayName: "Running SwiftGen",
-    executable: try targetBuildContext.tool(named: "swiftgen"),
-    arguments: [
-        "config", "run",
-        "--config", "\(swiftGenConfigFile)"
-    ],
-    environment: [
-        "PROJECT_DIR": "\(targetBuildContext.packageDirectory)",
-        "TARGET_NAME": "\(targetBuildContext.targetName)",
-        "DERIVED_SOURCES_DIR": "\(genSourcesDir)",
-    ],
-    outputFilesDirectory: genSourcesDir
-)
+        // Return a command to run `swiftgen` as a prebuild command. It will be run before
+        // every build and generates source files into an output directory provided by the
+        // build context. This example sets some environment variables that `swiftgen.yml`
+        // bases its output paths on.
+        return [.prebuildCommand(
+            displayName: "Running SwiftGen",
+            executable: try context.tool(named: "swiftgen").path,
+            arguments: [
+                "config", "run",
+                "--config", "\(swiftGenConfigFile)"
+            ],
+            environment: [
+                "PROJECT_DIR": "\(context.packageDirectory)",
+                "TARGET_NAME": "\(context.targetName)",
+                "DERIVED_SOURCES_DIR": "\(genSourcesDir)",
+            ],
+            outputFilesDirectory: genSourcesDir)]
+    }
+}
 ```
 
 An alternate use of `swiftgen` could instead invoke it once for each input file, passing it output files whose names are derived from the names of the input files. This might, however, make per-file configuration somewhat more difficult.
 
-There is a trade-off here between implementing a prebuild command or a regular build command. Future improvements to SwiftPM's build system — and to those of any IDEs that support Swift packages — could let it support commands whose outputs aren't known until it is run.
+There is a trade-off here between implementing a prebuild command or a regular build command. Future improvements to SwiftPM's build system — and to those of any IDEs that support Swift packages — could let it support commands whose outputs aren't known until it is run. That would allow the use of regular build commands to generate output files whose names aren't know until the command is known.
 
 Possibly, the `swiftgen` tool itself could also be modified to provide a simplified way to invoke it, to take advantage of SwiftPM's new ability to dynamically provide the names of the input files in the target.
 
@@ -718,7 +723,7 @@ The `messages.proto` source file needs to be processed using the `protoc` compil
 The package manifest has a dependency on the `SwiftProtobuf` package, and references the hypothetical new `SwiftProtobuf` plugin defined in it:
 
 ```swift
-// swift-tools-version: 999.0
+// swift-tools-version: 5.6
 import PackageDescription
 
 let package = Package(
@@ -766,7 +771,7 @@ SwiftProtobuf
 The package manifest is:
 
 ```swift
-// swift-tools-version: 999.0
+// swift-tools-version: 5.6
 import PackageDescription
 
 let package = Package(
@@ -809,64 +814,77 @@ The package plugin script might look like:
 import PackagePlugin
 import Foundation
 
-// In this case we generate an invocation of `protoc` for each input file, passing
-// it the path of the `protoc-gen-swift` generator tool.
-let protocTool = try targetBuildContext.tool(named: "protoc")
-let protocGenSwiftTool = try targetBuildContext.tool(named: "protoc-gen-swift")
+@main struct MyPlugin: BuildToolPlugin {
+    /// This plugin's implementation returns multiple build commands, each of which
+    /// calls `protoc`.
+    func createBuildCommands(context: TargetBuildContext) throws -> [Command] {
+        // In this case we generate an invocation of `protoc` for each input file,
+        // passing it the path of the `protoc-gen-swift` generator tool.
+        let protocTool = try context.tool(named: "protoc")
+        let protocGenSwiftTool = try context.tool(named: "protoc-gen-swift")
+        
+        // Construct the search paths for the .proto files, which can include any
+        // of the targets in the dependency closure. Here we assume that the public
+        // ones are in a `protos` directory, but this can be made arbitrarily complex.
+        var protoSearchPaths = context.dependencies.map { target in
+            target.targetDirectory.appending("protos")
+        }
+        
+        // This example configures the commands to write to a "GeneratedSources"
+        // directory.
+        let genSourcesDir = context.pluginWorkDirectory.appending("GeneratedSources")
+        
+        // This example uses a different directory for other files generated by
+        // the plugin.
+        let otherFilesDir = context.pluginWorkDirectory.appending("OtherFiles")
+        
+        // Add the search path to the system proto files. This sample implementation
+        // assumes that they are located relative to the `protoc` compiler provided
+        // by the binary target, but real implementation could be more sophisticated.
+        protoSearchPaths.append(protocTool.path.removingLastComponent().appending("system-protos"))
+        
+        // Create a module mappings file. This is something that the Swift source
+        // generator `protoc` plug-in we are using requires. The details are not
+        // important for this proposal, except that it needs to be able to be con-
+        // structed from the information in the context given to the plugin, and
+        // to be written out to the intermediates directory.
+        let moduleMappingsFile = otherFilesDir.appending("module-mappings")
+        let outputString = ". . . module mappings file . . ."
+        let outputData = outputString.data(using: .utf8)
+        FileManager.default.createFile(atPath: moduleMappingsFile.string, contents: outputData)
+        
+        // Iterate over the .proto input files, creating a command for each.
+        let inputFiles = context.inputFiles.filter { $0.path.extension == "proto" }
+        return inputFiles.map { inputFile in            
+            // The name of the output file is based on the name of the input file,
+            // in a way that's determined by the protoc source generator plug-in
+            // we're using.
+            let outputName = inputFile.path.stem + ".swift"
+            let outputPath = genSourcesDir.appending(outputName)
+            
+            // Specifying the input and output paths lets the build system know
+            // when to invoke the command.
+            let inputFiles = [inputFile.path]
+            let outputFiles = [outputPath]
 
-// Construct the search paths for the .proto files, which can include any of the
-// targets in the dependency closure. Here we assume that the public ones are in
-// a "protos" directory, but this can be made arbitrarily complex.
-var protoSearchPaths = targetBuildContext.dependencies.map { target in
-    target.targetDirectory.appending("protos")
-}
+            // Construct the command arguments.
+            var commandArgs = [
+                "--plugin=protoc-gen-swift=\(protocGenSwiftTool.path)",
+                "--swift_out=\(genSourcesDir)",
+                "--swift_opt=ProtoPathModuleMappings=\(moduleMappingsFile)"
+            ]
+            commandArgs.append(contentsOf: protoSearchPaths.flatMap { ["-I", "\($0)"] })
+            commandArgs.append("\(inputFile.path)")
 
-// This example configures the commands to write to a "GeneratedSources" directory.
-let genSourcesDir = targetBuildContext.pluginWorkDirectory.appending("GeneratedSources")
-
-// This example uses a different directory for other files generated by the plugin.
-let otherFilesDir = targetBuildContext.pluginWorkDirectory.appending("OtherFiles")
-
-// Add the search path to the system proto files. This sample implementation assumes
-// that they are located relative to the `protoc` compiler provided by the binary
-// target, but real implementation could be more sophisticated.
-protoSearchPaths.append(protocPath.removingLastComponent().appending("system-protos"))
-
-// Create a module mappings file. This is something that the Swift source generator
-// `protoc` plug-in we are using requires. The details are not important for this
-// proposal, except that it needs to be able to be constructed from the information
-// in the target build context, and written out to the intermediates directory.
-let moduleMappingsFile = otherFilesDir.appending("module-mappings")
-. . .
-// (code to generate the module mappings file)
-. . .
-let outputData = outputString.data(using: .utf8)
-FileManager.default.createFile(atPath: moduleMappingsFile, contents: outputData)
-
-// Iterate over the .proto input files.
-for inputFile in targetBuildContext.inputFiles.filter { $0.path.extension == "proto" } {
-    // Construct the `protoc` arguments.
-    var arguments = [
-        "--plugin=protoc-gen-swift=\(protoGenSwiftPath)",
-        "--swift_out=\(genSourcesDir)",
-        "--swift_opt=ProtoPathModuleMappings=\(moduleMappingFile)"
-    ]
-    arguments.append(contentsOf: protoSearchPaths.flatMap { ["-I", $0] })
-    arguments.append(inputFile.path)
-    
-    // The name of the output file is based on the name of the input file, in a way
-    // that's determined by the protoc source generator plug-in we're using.
-    let outputName = inputFile.path.stem + ".swift"
-    let outputPath = genSourcesDir.appending(outputName)
-    
-    // Construct the command. Specifying the input and output paths lets the build
-    // system know when to invoke the command.
-    commandConstructor.addBuildCommand(
-        displayName: "Generating \(outputName) from \(inputFile.path.lastComponent())",
-        executable: protocTool.path,
-        arguments: arguments,
-        inputFiles: [inputFile.path],
-        outputFiles: [outputPath])
+            // Append a command containing the information we generated.
+            return .buildCommand(
+                displayName: "Generating \(outputName) from \(inputFile.path.stem)",
+                executable: protocTool.path,
+                arguments: commandArgs,
+                inputFiles: inputFiles,
+                outputFiles: outputFiles)
+        }
+    }
 }
 ```
 
@@ -879,7 +897,7 @@ A third important use case is source generators that analyze Swift files and gen
 One could imagine a source generation tool called `GenSwifty` generating some additional “sugar” for existing definitions in a swift target. It would be configured like this by end users:
 
 ```swift
-// swift-tools-version: 999.0
+// swift-tools-version: 5.6
 import PackageDescription
 
 let package = Package(
@@ -901,7 +919,7 @@ let package = Package(
 The package manifest of the `gen-swifty` package would be as follows:
 
 ```swift
-// swift-tools-version: 999.0
+// swift-tools-version: 5.6
 import PackageDescription
 
 let package = Package(
@@ -944,7 +962,7 @@ MyPackage
 The manifest is:
 
 ```swift
-// swift-tools-version: 999.0
+// swift-tools-version: 5.6
 import PackageDescription
 
 let package = Package(
