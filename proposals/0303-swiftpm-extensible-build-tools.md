@@ -461,7 +461,7 @@ protocol Path: ExpressibleByStringLiteral, CustomStringConvertible {
     public var `extension`: String? { get }
     
     /// The path except for the last path component.
-    public func removingLastComponent() -> Path { get }
+    public func removingLastComponent() -> Path
     /// The result of appending one or more path components.
     public func appending(_ other: [String]) -> Path
     /// The result of appending one or more path components.
