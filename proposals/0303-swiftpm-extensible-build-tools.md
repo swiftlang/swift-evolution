@@ -342,10 +342,10 @@ protocol TargetBuildContext {
     }
 }
 
-/// Constructs commands to run during the build, including command lines,
+/// A command to run during the build, including executable, command lines,
 /// environment variables, initial working directory, etc. All paths should
 /// be based on the ones passed to the plugin in the target build context.
-protocol CommandConstructor {
+enum Command {
     
     /// Creates a command to run during the build. The executable should be a
     /// tool returned by `TargetBuildContext.tool(named:)`, and any paths in
@@ -358,7 +358,7 @@ protocol CommandConstructor {
     ///
     /// This is the preferred kind of command to create when the outputs that
     /// will be generated are known ahead of time.
-    func addBuildCommand(
+    static func buildCommand(
         /// An arbitrary string to show in build logs and other status areas.
         displayName: String,
         /// The executable to be invoked; should be a tool looked up using
@@ -378,7 +378,7 @@ protocol CommandConstructor {
         /// Output files that should be processed further, according to the
         /// rules defined by the build system.
         outputFiles: [Path] = []
-    )
+    ) -> Command
 
     /// Creates a command to run before the build. The executable should be a
     /// tool returned by `TargetBuildContext.tool(named:)`, and any paths in
@@ -397,7 +397,7 @@ protocol CommandConstructor {
     /// which the command will write its output files. Any files that are in
     /// that directory after the prebuild command finishes will be interpreted
     /// according to same build rules as for sources.
-    func addPrebuildCommand(
+    static func prebuildCommand(
         /// An arbitrary string to show in build logs and other status areas.
         displayName: String,
         /// The executable to be invoked; should be a tool looked up using
@@ -414,7 +414,7 @@ protocol CommandConstructor {
         /// A directory into which the command can write output files that
         /// should be processed further.
         outputFilesDirectory: Path
-    )
+    ) -> Command
 }
 
 /// Emits errors, warnings, and remarks to be shown as a result of running
