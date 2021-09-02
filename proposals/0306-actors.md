@@ -588,10 +588,10 @@ actor MyServer : Server {
 
 ### Partial applications
 
-Partial applications of isolated functions are only permitted when the expression is a direct argument whose corresponding parameter is non-escaping and non-Sendable. For example:
+Partial applications of isolated functions are only permitted when the expression is a direct argument whose corresponding parameter is non-Sendable. For example:
 
 ```swift
-func runLater<T>(_ operation: @escaping () -> T) -> T { ... }
+func runLater<T>(_ operation: @Sendable @escaping () -> T) -> T { ... }
 
 actor A {
   func f(_: Int) -> Double { ... }
@@ -600,7 +600,7 @@ actor A {
   func useAF(array: [Int]) {
     array.map(self.f)                     // okay
     detach(operation: self.g)             // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
-    runLater(self.g)                      // error: self.g has escaping function type () -> Double
+    runLater(self.g)                      // error: cannot convert value of non-sendable function type () -> Double to sendable function type
   }
 }
 ```
