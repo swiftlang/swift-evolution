@@ -3,9 +3,12 @@
 * Proposal: [SE-0320](0320-codingkeyrepresentable.md)
 * Author: [Morten Bek Ditlevsen](https://github.com/mortenbekditlevsen)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (August 4 - 18, 2021)**
+* Status: **Active review (September 1 - 13, 2021)**
 * Implementation: [apple/swift#34458](https://github.com/apple/swift/pull/34458)
-
+* Review:
+  [1](https://forums.swift.org/t/se-0320-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/)
+  [2](https://forums.swift.org/t/se-0320-2nd-review-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/)
+  
 ## Introduction
 
 The current conformance of Swift's `Dictionary` to the `Codable` protocols has a somewhat-surprising limitation in that dictionaries whose key type is not `String` or `Int` (values directly representable in `CodingKey` types) encode not as `KeyedContainer`s but as `UnkeyedContainer`s. This behavior has caused much confusion for users and I would like to offer a way to improve the situation.
