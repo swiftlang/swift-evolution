@@ -258,6 +258,8 @@ struct Client {
 }
 ```
 
+One issue with introducing a new API significance characterizations that combines API and implementation detail is how it will be inferred. This is not a straightforward decision, because API-level inference depends solely on the primary wrapper type declaration; `init(wrappedValue:)` is recognized as a special wrapper init even in extensions.
+
 ## Acknowledgments
 
 *TBC*
