@@ -13,13 +13,7 @@
 
 Property wrappers were initially adopted in  [SE 0258](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and expanded to function parameters and closures in  [SE 0293](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md). This two-phase adoption of property wrappers throughout the language has left property wrappers considered as a whole with some inconsistencies and complexity that is no longer necessary.
 
-Today, the rules for how wrapped properties are represented in the synthesized memberwise initializer for structs are poorly documented and quite complex. To summarize the points from [this thread](https://forums.swift.org/t/does-the-new-swift-5-5-init-projectedvalue-functionality-not-work-with-synthesized-memberwise-initializers/51232/7), the rules are:
-- If a property wrapper defines an `init(wrappedValue:)` initializer, the memberwise initializer will use the `wrappedValue` type (i.e. `MyView(value: Int)`).
-  - Exception: if the property wrapper is default initialized, the memberwise initializer uses the property wrapper type, even if the property wrapper also has an `init(wrappedValue:)` unless the wrapped property is initialized in-line with `=`.
-- If there's no `init(wrappedValue:)` initializer, the memberwise initializer will use the property wrapper's type itself (i.e. `MyView(value: Binding<Int>)`).
-- If `init(wrappedValue:)` takes extra arguments without default values, the memberwise initializer uses the property wrapper type unless the wrapped property is initialized in-line with `=`.
-
-Examples:
+Today, the rules for how wrapped properties are represented in the synthesized memberwise initializer for structs are poorly documented and quite complex. Here's an example to illustrate some of the points from [this thread](https://forums.swift.org/t/does-the-new-swift-5-5-init-projectedvalue-functionality-not-work-with-synthesized-memberwise-initializers/51232/7):
 
 ```swift
 @propertyWrapper
@@ -45,9 +39,13 @@ struct Client {
 }
 
 let client = Client(
+    // Backing storage, because @Wrapper is default initialized.
     a: Wrapper(wrappedValue: 1),
+    // Wrapped value, because we've provided a default value in Client.
     b: 2,
+    // Our wrapper has uninitialized arguments, so we pass a wrapper instance.
     c: ArgumentWrapper(wrappedValue: 3, arg: 0),
+    // We've provided the arguments and default value in Client.
     d: 4
 )
 ```
