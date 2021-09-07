@@ -3,7 +3,7 @@
 * Proposal: [SE-0304](0304-structured-concurrency.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (July 7 - 14 2021)**
+* Status: **Implemented (Swift 5.5)** [Acceptance post](https://forums.swift.org/t/accepted-with-modifications-se-0304-structured-concurrency/51850)
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of contents
