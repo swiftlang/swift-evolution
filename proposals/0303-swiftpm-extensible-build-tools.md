@@ -10,6 +10,7 @@
   * [First review](https://forums.swift.org/t/se-0303-package-manager-extensible-build-tools/)
   * [Second review](https://forums.swift.org/t/se-0303-2nd-review-package-manager-extensible-build-tools/)
 * Amendment Pitch and Discussion: [Pitch: Amend SE-0303 Plugin API to Use `@main` for Plugin Entry Point](https://forums.swift.org/t/pitch-amend-se-0303-plugin-api-to-use-main-for-plugin-entry-point/51250)
+* Amendment Implementation: https://github.com/apple/swift-package-manager/pull/3712
 * Previous Revisions:
   * [First revision](https://github.com/apple/swift-evolution/blob/878e496eb799fa407ad704d89fb401952fe8fd02/proposals/0303-swiftpm-extensible-build-tools.md) 
   * [Second revision](https://github.com/apple/swift-evolution/blob/38731efc140a53553aff923a6616a1dee28c973a/proposals/0303-swiftpm-extensible-build-tools.md)
