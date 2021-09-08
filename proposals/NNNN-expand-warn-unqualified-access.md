@@ -52,7 +52,7 @@ For example, if a module named `ExampleKit` includes a top-level class called
 `Store`, it could be declared with `@warn_unqualified_access` to make it clear
 what this class is part of and meant for.
 
-```
+```swift
 @warn_unqualified_access class Store { ... }
 
 let accepted = ExampleKit.Store()
@@ -113,17 +113,17 @@ enumeration with the same name as the declaring module.
 
 For example, in a module named `ExampleKit`:
 
-```
+```swift
 enum ExampleKit {
   class Store { ... }
 }
 ```
 
-Such enumerations add no additional information to the type identifier, and
-can cause compatibility issues if the module is later renamed. They also make
-it difficult to distinguish between module identifiers and the enumeration,
-which can become a source of frustration if an enumeration in an unrelated
-module shares its name.
+Such enumerations add no useful information to the type identifier, and can
+cause compatibility issues if the module is later renamed. They also make it
+difficult to distinguish between module identifiers and the enumeration, which
+can become a source of frustration if an enumeration in an unrelated module
+shares its name.
 
 ### Name prefixes
 
@@ -132,7 +132,7 @@ fairly common in Swift.
 
 For example, in a module named `ExampleKit`:
 
-```
+```swift
 class ExampleKitStore { ... }
 ```
 
