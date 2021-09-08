@@ -14,6 +14,23 @@ use.
 
 ## Motivation
 
+The immediate objective of this proposal is replacing patterns such as
+enclosing every would-be global declaration in a caseless enumeration with the
+same name as the module, or using Objective-C style prefixes in Swift-only
+code. These patterns exist for two reasons: namespace pollution and concerns
+over clarity at the point of use in other modules.
+
+The highest-level namespace in Swift consists of modules, followed by the
+slightly-misleadingly-named "global" namespace, followed by nested
+declarations.
+
+`@warn_unqualified_access` was created to eliminate confusing or ambiguous
+namespace behavior, namely implicit references to the declaration with the most
+immediate scope: `Swift.Sequence.min()` being chosen over `Swift.min(_:_:)` is
+a common example.
+
+It is a natural extension of that functionality and purpose to eliminate
+potentially confusing behavior across modules as well.
 `@warn_unqualified_access` is a useful tool for discouraging ambiguity between
 functions with the same name. It does this by requiring the preceding qualifier
 (that is, the parent namespace) of the declaration to be explicitly referenced,
@@ -23,9 +40,7 @@ For reasons that are unclear (due to the attribute predating Swift Evolution
 entirely), `@warn_unqualified_access` cannot be applied to non-function
 declarations. That’s a shame, as they can suffer from a similar issue. The
 danger isn’t quite as pronounced without the potential for overloading, but
-it is still important. Many programmers emulate the behavior by declaring a
-global caseless enumeration with the same name as the module, but I don’t see
-why that should remain necessary.
+it is still important. This limitation should be removed as well.
 
 ## Proposed solution
 
