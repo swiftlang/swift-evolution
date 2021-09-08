@@ -63,10 +63,6 @@ let warned = Store() // Use of 'Store' treated as a reference to class in module
 ## Detailed design
 
 `@warn_unqualified_access` should be applicable to the following declarations.
-  * `import`
-    * Everything added to the top-level namespace through an import declaration
-    should implicitly have `@warn_unqualified_access` applied. This could be
-	superseded by more specific import declarations.
   * `let`
   * `var`
   * `typealias`
@@ -84,6 +80,7 @@ let warned = Store() // Use of 'Store' treated as a reference to class in module
     * This should not be inherited by subclasses.
   * `protocol`
     * This should not be inherited by inheriting protocols.
+  * `actor`
 
 ## Source compatibility
 
