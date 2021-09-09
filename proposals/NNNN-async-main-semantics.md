@@ -4,8 +4,7 @@
 * Authors: [Evan Wilde](https://github.com/etcwilde)
 * Review Manager: TBD
 * Status: **Awaiting Implementation**
-* Pitch: https://forums.swift.org/t/pitch-revisit-the-semantics-of-async-main/51254
-* Implementation: https://github.com/apple/swift/pull/38604
+* Implementation: [apple/swift#38604](https://github.com/apple/swift/pull/38604)
 
 ## Introduction
 
@@ -14,11 +13,13 @@ perform operations before other parts of the program are run.
 Objective-C, C++, and C have initializers that are run before the main
 entrypoint runs and can interact with Swift's concurrency systems in ways that
 are hard to reason about.
-In the Swift concurrency model, The developer-written asynchronous main
+In the Swift concurrency model, the developer-written asynchronous main
 function is wrapped in a task and enqueued on the main queue when the main
 entrypoint is run.
 If an initializer inserts a task on the main queue, that task may be executed
 before the main function, so setup is performed after initializer tasks are run.
+
+Swift-evolution thread: [Pitch: Revisit the semantics of async main](https://forums.swift.org/t/pitch-revisit-the-semantics-of-async-main/51254)
 
 ## Motivation
 
@@ -186,7 +187,7 @@ func @main(_ argc: Int32, _ argv: UnsafeMutablePointer<Optional<UnsafeMutablePoi
 
 There are no changes to the source representation of the asynchronous main
 function. It will still be written with the same syntax as what is proposed in
-[Structured Concurrency](0304-structued-concurrency.md).
+[Structured Concurrency](0304-structured-concurrency.md).
 
 Enforcing that the main function be run on the MainActor will result in new
 error messages on code that previously compiled when the main function was
@@ -255,7 +256,7 @@ In order to implement this design, we need to provide an analog to the event
 loop type, providing a function to run asynchronous code inside of. The problem
 with providing this type is that it is available from everywhere, not just the
 main function, which would enable programmers to call asynchronous code from a
-synchronous function, the model for which model for which hasn't been designed
+synchronous function, the model for which hasn't been designed
 yet.
 
 Additionally, this design results in the programmer writing two main functions,
