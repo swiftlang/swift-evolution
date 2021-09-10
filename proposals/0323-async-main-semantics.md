@@ -1,9 +1,9 @@
 # Asynchronous Main Semantics
 
-* Proposal: [SE-NNNN](NNNN-async-main-semantics.md)
+* Proposal: [SE-0323](0323-async-main-semantics.md)
 * Authors: [Evan Wilde](https://github.com/etcwilde)
-* Review Manager: TBD
-* Status: **Awaiting Implementation**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor/)
+* Status: **Awaiting review (September 13...27, 2021)**
 * Implementation: [apple/swift#38604](https://github.com/apple/swift/pull/38604)
 
 ## Introduction
