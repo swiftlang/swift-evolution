@@ -50,7 +50,7 @@ let client = Client(
 )
 ```
 
-It is evident that the author of a type with wrapped properties cannot easily determine or alter the signature of their synthesized initializer. This syntheis depends on subtle interactions between the property-wrapper type, the declaration of the wrapped property, and how that property is initialized.
+It is evident that the author of a type with wrapped properties cannot easily determine or alter the signature of their synthesized initializer. This synthesis depends on subtle interactions between the property-wrapper type, the declaration of the wrapped property, and how that property is initialized.
 
 Furthermore, the current ruleset can implicitly leak the private storage of the property wrapper via the (implicitly `internal`) synthesized initializer. This not only takes away control from wrapper authors, but may also cause users to abandon their synthesized initializer altogether.
 
@@ -61,7 +61,7 @@ To sum up, the current state of affairs is ripe for refinement. Property wrapper
 ## Proposed Solution
 
 We propose two additions to the feature set of property wrappers that will improve consistency with the SE 0293 model.
-First, we propose an update to the rules of the synthesized memberwise initializer for types with wrapped properties such that wrapper attributes are mapped directly into the initializer 
+First, we propose an update to the rules of the synthesized memberwise initializer for types with wrapped properties such that wrapper attributes are mapped directly into the initializer. 
 For example, a type such as this one from [TSPL](https://docs.swift.org/swift-book/LanguageGuide/Properties.html#ID617):
 
 ```swift
