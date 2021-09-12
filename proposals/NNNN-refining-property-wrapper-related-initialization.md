@@ -50,15 +50,13 @@ let client = Client(
 )
 ```
 
-The result is that the author of a type with wrapped properties cannot easily determine or control what the signature of their memberwise initializer will look like; instead, it relies on subtle interactions between the property wrapper type, the declaration of the wrapped property, and how that property is initialized.
+It is evident that the author of a type with wrapped properties cannot easily determine or alter the signature of their synthesized initializer. This syntheis depends on subtle interactions between the property-wrapper type, the declaration of the wrapped property, and how that property is initialized.
 
-Furthermore, the current ruleset can implicitly expose the private storage of the property wrapper via the (implicitly `internal`) synthesized initializer. This behavior may be undesirable, and for a given wrapper there may be no way for a user to avoid it other than giving up on the synthesized initializer altogether and defining their own.
+Furthermore, the current ruleset can implicitly leak the private storage of the property wrapper via the (implicitly `internal`) synthesized initializer. This not only takes away control from wrapper authors, but may also cause users to abandon their synthesized initializer altogether.
 
-Now that property wrappers are supported in function signatures, it's not entirely clear why the memberwise initializer is synthesized the way it is. Were we to design the synthesized initializer today, we likely wouldn't have such a complex set of rules since we have a way to directly represent wrappers in parameter lists.
+SE 0293 also added a new way of initializing property wrapper storage from a projected value using a new special initializer, `init(projectedValue:)`. While the new `$`-initialization syntax works for function arguments and closure parameters, global, type, and local properties have no such equivalent.
 
-SE 0293 also added a new way of initializing property wrapper storage from a projected value using a new special initializer, `init(projectedValue:)`. However, while the new `$`-initialization syntax works for function arguments and closure parameters, global, type, and local properties have no such equivalent.
-
-Thus, the current state of affairs is ripe for refinement. Property wrappers have matured to a point where we can easily simplify certain special cases, and extend the general functionality to support a consistent model for property wrappers everywhere.
+To sum up, the current state of affairs is ripe for refinement. Property wrappers have matured to a point where we can easily simplify certain special cases, and extend the general functionality to support a consistent model for property wrappers everywhere.
 
 ## Proposed Solution
 
