@@ -4,7 +4,7 @@
 * Authors: [Andrew Trick](https://github.com/atrick), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Implementation: [apple/swift#37956](https://github.com/apple/swift/pull/37956)
-* Status: **Scheduled for review (September 13, 2021...September 24, 2021)**
+* Status: **Active review (September 13, 2021...September 24, 2021)**
 * Bugs: [SR-10246](https://bugs.swift.org/browse/SR-10246)
 
 ## Introduction
