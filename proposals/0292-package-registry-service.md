@@ -12,9 +12,11 @@
   [1](https://forums.swift.org/t/se-0292-package-registry-service/)
   [2](https://forums.swift.org/t/se-0292-2nd-review-package-registry-service/)
   [3](https://forums.swift.org/t/se-0292-3rd-review-package-registry-service/)
+  [Amendment](https://forums.swift.org/t/amendment-se-0292-package-registry-service/)
 * Previous Revision:
   [1](https://github.com/apple/swift-evolution/blob/b48527526b5748a60b0b23846d5880e9cc2c4711/proposals/0292-package-registry-service.md)
   [2](https://github.com/apple/swift-evolution/blob/53bd6d3813c40ebd07701727c8cfb6fedd751e2a/proposals/0292-package-registry-service.md)
+  [3](https://github.com/apple/swift-evolution/blob/971d1f43bce718a45227432782a312cc5de99870/proposals/0292-package-registry-service.md)
 
 ## Introduction
 
@@ -158,19 +160,17 @@ A valid package scope matches the following regular expression pattern:
 ```
 
 A package's *name* uniquely identifies a package in a scope.
-The maximum length of a package name is 128 characters.
-A valid package name matches the following regular expression pattern:
+A package name consists of alphanumeric characters, underscores, and hyphens.
+Hyphens and underscores may not occur at the beginning or end,
+nor consecutively within a name.
+The maximum length of a package name is 100 characters.
+A valid package scope matches the following regular expression pattern:
 
 ```regexp
-\A\p{XID_Start}\p{XID_Continue}{0,127}\z
+\A[a-zA-Z0-9](?:[a-zA-Z0-9]|[-_](?=[a-zA-Z0-9])){0,99}\z
 ```
 
-> For more information,
-> see [Unicode Identifier and Pattern Syntax][UAX31].
-
-Package names are compared using
-[Normalization Form Compatible Composition (NFKC)][UAX15]
-with locale-independent case folding.
+Package scopes and names are compared using locale-independent case folding.
 
 #### New `PackageDescription` API
 
@@ -404,12 +404,16 @@ $ swift package archive-source --output="LinkedList-1.2.0.zip"
 ```
 
 The `archive-source` subcommand has the equivalent behavior of
-[`git-archive(1)`] using the `zip` format at its default compression level.
+[`git-archive(1)`] using the `zip` format at its default compression level,
+with entries prefixed by the basename of the generated archive's filename.
 Therefore, the following command produces
 equivalent output to the previous example:
 
 ```console
-$ git archive --format zip --output LinkedList-1.2.0.zip 1.2.0
+$ git archive --format zip \
+              --prefix LinkedList-1.2.0
+              --output LinkedList-1.2.0.zip \
+              1.2.0
 ```
 
 If desired, this behavior could be changed in future tool versions.
@@ -454,7 +458,7 @@ OPTIONS:
 
 Running the `package-registry set` subcommand
 in the root directory of a package
-creates or updates the `.swiftpm/config/registries.json` file
+creates or updates the `.swiftpm/configuration/registries.json` file
 with a new top-level `registries` key
 that's associated with an object containing the specified registry URLs.
 The default, unscoped registry is associated with the key `[default]`.
@@ -467,7 +471,7 @@ using an internal registry service.
 
 ```console
 $ swift package-registry set https://internal.example.com/
-$ cat .swiftpm/config/registries.json
+$ cat .swiftpm/configuration/registries.json
 ```
 
 ```json
@@ -504,7 +508,7 @@ to a private registry.
 
 ```console
 $ swift package-registry set https://internal.example.com/ --scope example
-$ cat .swiftpm/config/registries.json
+$ cat .swiftpm/configuration/registries.json
 ```
 
 ```json
@@ -532,7 +536,7 @@ to complement the `package-registry set` subcommand.
 
 ```manpage
 SYNOPSIS
-	swift package-registry unset <url> [options]
+	swift package-registry unset [options]
 OPTIONS:
   --global    Apply settings to all projects for this user
   --scope     Removes the registry's association to a given scope
@@ -540,7 +544,7 @@ OPTIONS:
 
 Running the `package-registry unset` subcommand
 in the root directory of a package
-updates the `.swiftpm/config/registries.json` file
+updates the `.swiftpm/configuration/registries.json` file
 to remove the `default` entry in the top-level `registries` key, if present.
 If a `--scope` option is passed,
 only the entry for the specified scope is removed, if present.
@@ -549,7 +553,7 @@ only the entry for the specified scope is removed, if present.
 
 The user can pass the `--global` option to the `set` or `unset` subcommands
 to update the user-level configuration file located at
-`~/.swiftpm/config/registries.json`.
+`~/.swiftpm/configuration/registries.json`.
 
 Any default or scoped registries configured locally in a project directory
 override any values configured globally for the user.
@@ -557,7 +561,7 @@ For example,
 consider the following global and local registry configuration files:
 
 ```jsonc
-// Global configuration (~/.swiftpm/config/registries.json)
+// Global configuration (~/.swiftpm/configuration/registries.json)
 {
   "registries": {
     "[default]": {
@@ -570,7 +574,7 @@ consider the following global and local registry configuration files:
   "version": 1
 }
 
-// Local configuration (.swiftpm/config/registries.json)
+// Local configuration (.swiftpm/configuration/registries.json)
 {
   "registries": {
     "foo": {
@@ -595,8 +599,8 @@ in descending order of precedence:
 
 * The package manifest in the current directory (`./Package.swift`)
 * Any existing lock file (`./Package.resolved`)
-* Any local configuration (`./.swiftpm/config/registries.json`)
-* Any global configuration file (`~/.swiftpm/config/registries.json`)
+* Any local configuration (`./.swiftpm/configuration/registries.json`)
+* Any global configuration file (`~/.swiftpm/configuration/registries.json`)
 
 #### Specifying credentials for a custom registry
 
@@ -623,7 +627,7 @@ machine internal.example.com
 login jappleseed
 password alpine
 
-$ cat .swiftpm/config/registries.json
+$ cat .swiftpm/configuration/registries.json
 
 {
   "registries": {
@@ -665,7 +669,7 @@ $ swift package config set-mirror \
 This proposal updates the `swift package config set-mirror` subcommand
 to accept a `--package-identifier` option in place of an `--original-url`.
 Running this subcommand with a `--package-identifier` option
-creates or updates the `.swiftpm/config/mirrors.json` file,
+creates or updates the `.swiftpm/configuration/mirrors.json` file,
 modifying the array associated with the top-level `object` key
 to add a new entry or update an existing entry
 for the specified package identifier,
@@ -789,6 +793,17 @@ A registry can further improve on this model by implementing a
 or another comparable, tamper-proof system
 for authenticating package contents.
 
+Distribution of packages through Zip files
+introduces new potential attack vectors.
+For example,
+an attacker could maliciously tamper with a generated source archive
+in an attempt to exploit
+a known vulnerability like [Zip Slip],
+or a common software weakness like susceptibility to a [Zip bomb].
+Swift Package Manager should take care to
+identify and protect against these kinds of attacks 
+in its implementation of source archive decompression.
+
 ### Repudiation
 
 A compromised host could serve a malicious package with a valid checksum
@@ -857,7 +872,7 @@ when displaying feedback to the user.
 ### Denial of service
 
 An attacker could scrape public code repositories
-for `.swiftpm/config/registries.json` files
+for `.swiftpm/configuration/registries.json` files
 that declare one or more custom registries
 and launch a denial-of-service attack
 in an attempt to reduce the availability of those resources.
@@ -879,7 +894,7 @@ but could be used in a targeted way
 against resources known to be important or expensive to distribute.
 
 This kind of attack can be mitigated on an individual basis
-by adding `.swiftpm/config` to a project's `.gitignore` file.
+by adding `.swiftpm/configuration` to a project's `.gitignore` file.
 
 ### Escalation of privilege
 
@@ -1243,12 +1258,10 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [TOFU]: https://en.wikipedia.org/wiki/Trust_on_first_use "Trust on First Use"
 [transparent log]: https://research.swtch.com/tlog
 [typosquatting]: https://en.wikipedia.org/wiki/Typosquatting
-[UAX15]: http://www.unicode.org/reports/tr15/ "Unicode Technical Report #15: Unicode Normalization Forms"
-[UAX18]: http://www.unicode.org/reports/tr18/ "Unicode Technical Report #18: Unicode Regular Expressions"
-[UAX31]: http://www.unicode.org/reports/tr31/ "Unicode Technical Report #31: Unicode Identifier and Pattern Syntax"
-[UAX36]: http://www.unicode.org/reports/tr36/ "Unicode Technical Report #36: Unicode Security Considerations"
 [UTI]: https://en.wikipedia.org/wiki/Uniform_Type_Identifier
 [version-specific-manifest-selection]: https://github.com/apple/swift-package-manager/blob/main/Documentation/Usage.md#version-specific-manifest-selection "Swift Package Manager - Version-specific Manifest Selection"
 [version-specific-tag-selection]: https://github.com/apple/swift-package-manager/blob/main/Documentation/Usage.md#version-specific-tag-selection "Swift Package Manager - Version-specific Tag Selection"
 [XCFramework]: https://developer.apple.com/videos/play/wwdc2019/416/ "WWDC 2019 Session 416: Binary Frameworks in Swift"
 [xss]: https://en.wikipedia.org/wiki/Cross-site_scripting
+[Zip bomb]: https://en.wikipedia.org/wiki/Zip_bomb "Zip bomb"
+[Zip Slip]: https://snyk.io/research/zip-slip-vulnerability "Zip Slip Vulnerability"
