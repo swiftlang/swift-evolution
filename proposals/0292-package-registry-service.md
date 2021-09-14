@@ -11,9 +11,11 @@
   [1](https://forums.swift.org/t/se-0292-package-registry-service/)
   [2](https://forums.swift.org/t/se-0292-2nd-review-package-registry-service/)
   [3](https://forums.swift.org/t/se-0292-3rd-review-package-registry-service/)
+  [Amendment](https://forums.swift.org/t/amendment-se-0292-package-registry-service/)
 * Previous Revision:
   [1](https://github.com/apple/swift-evolution/blob/b48527526b5748a60b0b23846d5880e9cc2c4711/proposals/0292-package-registry-service.md)
   [2](https://github.com/apple/swift-evolution/blob/53bd6d3813c40ebd07701727c8cfb6fedd751e2a/proposals/0292-package-registry-service.md)
+  [3](https://github.com/apple/swift-evolution/blob/971d1f43bce718a45227432782a312cc5de99870/proposals/0292-package-registry-service.md)
 
 ## Introduction
 
