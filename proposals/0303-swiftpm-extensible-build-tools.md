@@ -251,7 +251,7 @@ protocol BuildToolPlugin: Plugin {
     /// commands, configured based on the information in the context.
     func createBuildCommands(
         context: TargetBuildContext
-    ) throws -> [Command]
+    ) async throws -> [Command]
 }
 
 /// Provides information about the target being built, as well as contextual
