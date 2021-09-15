@@ -3,11 +3,12 @@
 * Proposal: [SE-0320](0320-codingkeyrepresentable.md)
 * Author: [Morten Bek Ditlevsen](https://github.com/mortenbekditlevsen)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Acceoted**
+* Status: **Accepted (2021-09-14)**
 * Implementation: [apple/swift#34458](https://github.com/apple/swift/pull/34458)
-* Review:
-  [1](https://forums.swift.org/t/se-0320-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/)
-  [2](https://forums.swift.org/t/se-0320-2nd-review-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/)
+* Decision Notes:
+  [Review #1](https://forums.swift.org/t/se-0320-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/50903),
+  [Review #2](https://forums.swift.org/t/se-0320-2nd-review-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/51710),
+  [Rationale](https://forums.swift.org/t/accepted-se-0320-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/52057)
   
 ## Introduction
 
@@ -59,12 +60,12 @@ struct _AnyCodingKey: CodingKey {
     let stringValue: String
     let intValue: Int?
     
-    init?(stringValue: String) {
+    init(stringValue: String) {
         self.stringValue = stringValue
         self.intValue = Int(stringValue)
     }
     
-    init?(intValue: Int) {
+    init(intValue: Int) {
         self.stringValue = "\(intValue)"
         self.intValue = intValue
     }
@@ -80,7 +81,7 @@ struct ID: Hashable, CodingKeyRepresentable {
         return _AnyCodingKey(stringValue: stringValue)
     }
     
-    init?(codingKey: CodingKey) {
+    init?<T: CodingKey>(codingKey: T) {
         stringValue = codingKey.stringValue
     }
     
