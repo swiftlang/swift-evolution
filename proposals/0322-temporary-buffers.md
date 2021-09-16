@@ -67,7 +67,7 @@ try taco_t.consume(count: tacoCount, filledWith: ...)
 
 extension taco_t {
   public static func consume(count: Int, filledWith fillings: taco_fillings_t) throws {
-    try withUnsafeUninitializedMutableBufferPointer(to: taco_t.self, capacity: count) { buffer in
+    try withUnsafeTemporaryAllocation(of: taco_t.self, capacity: count) { buffer in
       withUnsafePointer(to: fillings) { fillings in
         taco_init(buffer.baseAddress!, buffer.count, fillings)
       }
@@ -115,7 +115,7 @@ A new free function would be introduced in the Standard Library:
 /// When `body` is called, the contents of the buffer pointer passed to it are
 /// in an unspecified, uninitialized state. `body` is responsible for
 /// initializing the buffer pointer before it is used _and_ for deinitializing
-/// it before returning. `body` does not need to deallocate the buffer pointer.
+/// it before returning, but deallocation is automatic.
 ///
 /// The implementation may allocate a larger buffer pointer than is strictly
 /// necessary to contain `capacity` values of type `type`. The behavior of a
@@ -124,15 +124,14 @@ A new free function would be introduced in the Standard Library:
 /// The buffer pointer passed to `body` (as well as any pointers to elements in
 /// the buffer) must not escape—it will be deallocated when `body` returns and
 /// cannot be used afterward.
-@_transparent
-public func withUnsafeUninitializedMutableBufferPointer<T, R>(
-  to type: T.Type,
+public func withUnsafeTemporaryAllocation<T, R>(
+  of type: T.Type,
   capacity: Int,
   _ body: (UnsafeMutableBufferPointer<T>) throws -> R
 ) rethrows -> R
 ```
 
-We could optionally provide additional free functions for dealing with a raw buffer or a pointer to a single value. All of the proposed functions can be layered atop each other, so only one underlying implementation is ultimately needed:
+Two additional free functions, composed atop that one, would also be introduced for dealing with a raw buffer or a pointer to a single value:
 
 ```swift
 /// Provides scoped access to a raw buffer pointer with the specified byte count
@@ -157,7 +156,7 @@ We could optionally provide additional free functions for dealing with a raw buf
 /// When `body` is called, the contents of the buffer pointer passed to it are
 /// in an unspecified, uninitialized state. `body` is responsible for
 /// initializing the buffer pointer before it is used _and_ for deinitializing
-/// it before returning. `body` does not need to deallocate the buffer pointer.
+/// it before returning, but deallocation is automatic.
 ///
 /// The implementation may allocate a larger buffer pointer than is strictly
 /// necessary to contain `byteCount` bytes. The behavior of a program that
@@ -166,8 +165,7 @@ We could optionally provide additional free functions for dealing with a raw buf
 /// The buffer pointer passed to `body` (as well as any pointers to elements in
 /// the buffer) must not escape—it will be deallocated when `body` returns and
 /// cannot be used afterward.
-@_transparent
-public func withUnsafeUninitializedMutableRawBufferPointer<R>(
+public func withUnsafeTemporaryAllocation<R>(
   byteCount: Int,
   alignment: Int,
   _ body: (UnsafeMutableRawBufferPointer) throws -> R
@@ -190,37 +188,42 @@ public func withUnsafeUninitializedMutableRawBufferPointer<R>(
 ///
 /// When `body` is called, the contents of the pointer passed to it are in an
 /// unspecified, uninitialized state. `body` is responsible for initializing the
-/// pointer before it is used _and_ for deinitializing it before returning.
-/// `body` does not need to deallocate the pointer.
+/// pointer before it is used _and_ for deinitializing it before returning, but
+/// deallocation is automatic.
 ///
 /// The pointer passed to `body` must not escape—it will be deallocated when
 /// `body` returns and cannot be used afterward.
-@_transparent
-public func withUnsafeUninitializedMutablePointer<T, R>(
-  to type: T.Type,
+public func withUnsafeTemporaryAllocation<T, R>(
+  of type: T.Type,
   _ body: (UnsafeMutablePointer<T>) throws -> R
 ) rethrows -> R
 ```
 
-Note the functions are marked `@_transparent` to ensure they are emitted into the calling frame. This is consistent with the annotations on most other pointer manipulation functions.
+Note the functions will be marked with attributes that ensure they are emitted into the calling frame. This is consistent with the annotations on most other pointer manipulation functions.
 
-### New builtin
+### New builtins
 
-The proposed functions will need to invoke a new builtin function equivalent to C's `alloca()`, which I have named `Builtin.stackAlloc()`. Its effective declaration is:
+The proposed functions will need to invoke a new builtin function equivalent to C's `alloca()`, which I have named `Builtin.stackAlloc()`. A second builtin, `Builtin.stackDealloc()`, must then be invoked after the call to the body closure returns or throws in order to clean up the stack.
 
-```swift
-extension Builtin {
-  func stackAlloc(_ byteCount: Builtin.Word, _ alignment: Builtin.Word) -> Builtin.RawPointer?
-}
-```
-
-If the alignment and size are known at compile-time, the compiler can convert a call to `stackAlloc()` into a single LLVM `alloca` instruction. If either needs to be computed at runtime, a dynamic stack allocation can instead be emitted by the compiler.
+If the alignment and size are known at compile-time, the compiler can convert a call to `stackAlloc()` into a single LLVM `alloca` instruction, which can then ultimately be lowered to a single CPU instruction adjusting the stack pointer. If either argument needs to be computed at runtime, a dynamic stack allocation can instead be emitted by the compiler.
 
 ### Location of allocated buffers
 
 The proposed functions do _not_ guarantee that their buffers will be stack-allocated. This omission is intentional: guaranteed stack-allocation would make this feature equivalent to C99's variable-length arrays—a feature that is extremely easy to misuse and which is the cause of many [real-world security vulnerabilities](https://duckduckgo.com/?q=cve+variable-length+array). Instead, the proposed functions should stack-promote aggressively, but heap-allocate (just as `UnsafeMutableBufferPointer.allocate(capacity:)` does today) when passed overly large sizes.
 
-This fallback heuristic is an implementation detail and may be architecture- or system-dependent. A common C approach is to say "anything larger than _n_ bytes uses `calloc()`". The Standard Library could refine this approach by checking information available to it at runtime, e.g. the current thread's available stack space. Because the Standard Library would own this heuristic, all adopters would benefit from it and, subject to a recompile, from any enhancements made in future Swift revisions.
+A common C approach is to say "anything larger than _n_ bytes uses `calloc()`", where _n_ is some moderately-sized constant. For allocations smaller than _n_, the compiler will simply allocate on the stack. This is as safe as the common Swift expression `let x = T()`, where `T` is a type whose size is smaller than _n_.
+
+### Runtime support for more complex heuristics
+
+For allocations **larger than** _n_, the compiler will emit a conditionalized call to a new Standard Library function `_swift_stdlib_isStackAllocationSafe()`. This function will be able to quickly determine if the desired allocation can fit in the available stack space. If it approves, the allocation will be performed on the stack. Otherwise, it will be performed on the heap.
+
+This function will be a no-op on platforms where the current stack cannot be queried (i.e. there is no platform API to do so) or cannot be queried efficiently (i.e. doing so is more expensive than allocating to the heap.) Because the Standard Library owns this function, enhancements can be made in future Swift revisions that improve the heuristic without requiring callers to recompile.
+
+The body of this function is an implementation detail of the Swift Standard Library and is **not** part of this proposal. A possible implementation might ask the operating system for details about the current thread's stack (e.g. by calling `GetCurrentThreadStackLimits()` on Windows or `pthread_getattr_np()` on Linux.)
+
+### Custom heuristics
+
+Several contributors to the pitch and review threads asked about providing their own heuristic for stack- vs. heap-allocation. It is unlikely that a caller will have sufficient additional information about the state of the program such that it can make better decisions about stack promotion than the compiler and/or Standard Library. An additional argument to the proposed functions that forces stack allocation is too visible a solution. Instead, callers that really do need larger stack allocations can pass `-stack-alloc-limit n` to the compiler frontend in order to specify a larger limit than the default for stack promotion.
 
 ## Source compatibility
 
@@ -245,17 +248,13 @@ In the pitch thread for this proposal, a number of alternatives were discussed:
 
 ### Naming the functions something different
 
-* One commenter suggested making the proposed functions static members of `UnsafeMutableBufferPointer` (etc.) instead of free functions. I don't feel strongly here, but the Standard Library has precedent for producing transient resources via free function, e.g. `withUnsafePointer(to:)` and `withUnsafeThrowingContinuation(_:)`. I am not immediately aware of counter-examples in the Standard Library.
-* Several commenters proposed less verbose names: `withEphemeral(...)`, `withUnsafeLocalStorage(...)`, and `withUnsafeUninitializedBuffer(...)` were all suggested. I don't have strong opinions here and will defer to reviewers' wisdom here.
+* Several commenters suggested making the proposed functions static members of `UnsafeMutableBufferPointer` (etc.) instead of free functions. The Standard Library has precedent for producing transient resources via free function, e.g. `withUnsafePointer(to:)` and `withUnsafeThrowingContinuation(_:)`. I am not immediately aware of counter-examples in the Standard Library.
+* My initial proposal used longer names for each function, but review found they were too wordy. Several commenters proposed alternative names: `withEphemeral(...)`, `withUnsafeLocalStorage(...)`, and `withUnsafeUninitializedBuffer(...)` were all suggested, among others.
 
 ### Exposing some subset of the three proposed functions
 
-* One commenter wanted to expose _only_ `withUnsafeUninitializedMutableRawBufferPointer(byteCount:alignment:_:)` in order to add friction and reduce the risk that someone would adopt the function without understanding its behaviour. Since most adopters would immediately need to call `bindMemory(to:)` to get a typed buffer, my suspicion is that developers would quickly learn to do so anyway.
-* Another commenter did not want to expose `withUnsafeUninitializedMutablePointer(to:_)` on the premise that it is trivial to get an `UnsafeMutablePointer` out of an `UnsafeMutableBufferPointer` with a `count` of `1`. It is indeed easy to do so, however the two types have different sets of member functions and I'm not sure that the added friction _improves_ adopting code. On the other hand, if anyone needs a _single_ stack-allocated value, they can use `Optional` today to get one.
-
-### Letting the caller specify a size limit for stack promotion
-
-* It is unlikely that the caller will have sufficient additional information about the state of the program such that it can make better decisions about stack promotion than the compiler and/or Standard Library.
+* One commenter wanted to expose _only_ `withUnsafeTemporaryAllocation(byteCount:alignment:_:)` in order to add friction and reduce the risk that someone would adopt the function without understanding its behaviour. Since most adopters would immediately need to call `bindMemory(to:)` to get a typed buffer, my suspicion is that developers would quickly learn to do so anyway.
+* Another commenter did not want to expose `withUnsafeTemporaryAllocation(of:_)` on the premise that it is trivial to get an `UnsafeMutablePointer` out of an `UnsafeMutableBufferPointer` with a `count` of `1`. It is indeed easy to do so, however the two types have different sets of member functions and I'm not sure that the added friction _improves_ adopting code. On the other hand, if anyone needs a _single_ stack-allocated value, they can use `Optional` today to get one.
 
 ### Exposing this functionality as a type rather than as a scoped function
 
@@ -279,7 +278,7 @@ In the pitch thread for this proposal, a number of alternatives were discussed:
     The proposed functions can be used for this purpose:
 
     ```swift
-    let value = withUnsafeUninitializedMutablePointer(to: T.self) { ptr in
+    let value = withUnsafeTemporaryAllocation(of: T.self) { ptr in
       ...
       return ptr.move()
     }
@@ -293,6 +292,27 @@ In the pitch thread for this proposal, a number of alternatives were discussed:
 * As discussed previously, in order to provide a high-level "safe" interface, the language needs some amount of lower-level unsafety. `Data` cannot be implemented without `UnsafeRawPointer` (or equivalent,) nor `Array<T>` without `UnsafeMutableBufferPointer<T>`, nor `CheckedContinuation<T, E>` without `UnsafeContinuation<T, E>`.
 * The need for unsafe interfaces is not limited to the Standard Library: developers working at every layer of the software stack can benefit from careful use of unsafe interfaces like the proposed functions.
 * Creating a dialect of Swift that bans unsafe interfaces entirely is an interesting idea and is worth discussing in more detail, but it is beyond the scope of this proposal.
+
+### Using a different stack-promotion heuristic
+
+* The original proposal used only a trivial "allocation ≤ _n_" heuristic for stack allocations. A number of reviewers wanted stronger guarantees around stack promotion. By adding the Standard Library function `_swift_stdlib_isStackAllocationSafe()`, we give the language a hook it can use to implement more complex heuristics.
+* Some reviewers wanted the proposed functions to yield an optional buffer and `nil` on stack allocation failure. The Swift standard library currently considers allocation to be a non-failable operation: if an allocation actually fails, the library terminates the program rather than yielding a `nil` pointer. Since the proposed functions are intended to be used in scenarios where callers are currently already using `UnsafeMutableBufferPointer.allocate(capacity:)`, a fallback path that uses that function does not represent a performance regression.
+* Some reviewers wanted the proposed functions to _always_ stack-allocate and _never_ heap-allocate. Putting aside inputs that require heap allocation (e.g. `alignment` not known at compile-time, so the correct LLVM `alloca` instructions cannot be generated), such a function would be inherently _dangerous_ rather than simply unsafe. Consider this seemingly-harmless program:
+
+    ```swift
+    print("How many tacos do you want?")
+    guard let n = readLine().flatMap(Int.init(_:)) else {
+      printUsageAndExit()
+    }
+    
+    withUnsafeTemporaryAllocation(of: taco_t, capacity: n) { buffer
+      taco_init(buffer.baseAddress!, buffer.count, fillings)
+    }
+    
+    ...
+    ```
+    
+    If the user specifies a very large number of tacos (an understandable choice), this function will smash the stack. While this function is marked "unsafe", Swift still strives to be a safe language, and such a sharp edge on the proposed functions is unacceptable.
 
 ## Acknowledgments
 
