@@ -797,7 +797,7 @@ One problem with this approach is that property wrappers cannot provide the sema
 
 ```swift
 @propertyWrapper
-final class AsyncLet<Wrapped: Sendable> {
+class AsyncLet<Wrapped: Sendable> {
   var task: Task<Wrapped, Error>
   
   init(wrappedValue fn: @Sendable @escaping @autoclosure () async throws -> Wrapped) {
