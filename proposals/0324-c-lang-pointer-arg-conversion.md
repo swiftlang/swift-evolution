@@ -97,7 +97,7 @@ The problematic cases that are documented in bug reports and forum posts are jus
 
 For imported C functions, allow implicit pointer conversion between pointer types that are allowed to alias according to C language rules:
 
-1. An raw or typed unsafe pointer, `Unsafe[Mutable]RawPointer` or
+1. A raw or typed unsafe pointer, `Unsafe[Mutable]RawPointer` or
    `Unsafe[Mutable]Pointer<T1>`, will be convertible to a typed
    pointer, `Unsafe[Mutable]Pointer<T2>`, whenever `T2` is
    `[U]Int8`. This allows conversion to any pointer type declared in C
