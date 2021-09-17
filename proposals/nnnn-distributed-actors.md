@@ -208,7 +208,7 @@ func example2(a: Player, b: Player) async throws {
 
 In addition to conforming to `Sendable`, a distributed function's parameters and its return type are all required to conform to the [`Codable` protocol](https://developer.apple.com/documentation/swift/codable). A codable value supports serialization and deserialization, which is nessecary in order to maintain location transparency. For example, servicing a method call on a distributed actor instance can involve sending the arguments to another process and awaiting a response.
 
-Like a regular actor method, an expression that calls a distributed function is  treated as `async` from outside of the actor's isoalation. But for a distributed actor, such calls are _also_ treated as `throws` when outside of the actor's isolation, because a request to call a distributed method is not guaranteed to recieve a response. The underlying process that hosts the distributed actor instance may be on another machine that crashed, or a connection may be lost, etc. To help make this clear, consider the following example, which contains only the necessary `try` and `await` expressions:
+Like a regular actor method, an expression that calls a distributed function is  treated as `async` from outside of the actor's isolation. But for a distributed actor, such calls are _also_ treated as `throws` when outside of the actor's isolation, because a request to call a distributed method is not guaranteed to receive a response. The underlying process that hosts the distributed actor instance may be on another machine that crashed, or a connection may be lost, etc. To help make this clear, consider the following example, which contains only the necessary `try` and `await` expressions:
 
 ```swift
 distributed actor Greeter {
@@ -355,10 +355,10 @@ let counter = Counter(transport: transport)
 ```
 
 
-Once we have either obtained the specific identity on a remote node, we can resolve it to get a reference to the remote actor, like this:
+Once we have obtained the specific identity on a remote node, we can resolve it to get a reference to the remote actor, like this:
 
 ```swift
-let id: AnyActorIdentity = try FishyTransport(host: "example.com", port: 1337, logLevel: nil)
+let id: AnyActorIdentity = ...
   // Optional: instead of a fixed identity, get dynamic identity via service discovery, e.g.:
   //      await discovery.getAny("Counter", AnyActorIdentity.self)
 
@@ -494,7 +494,7 @@ It is difficult to imagine any other witnesses for these protocols, because any 
 
 #### Distributed Methods
 
-Distributed methods are declared by writing the `distributed` keyword in the place of a declaration modifier, under the `actor-isolation-modifier` production rule as specified by [the grammar in TSPL](https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#grammar_declaration-modifiers). Only methods can use `distributed` as a declaration modifier, and no order is specified this modifier.
+Distributed methods are declared by writing the `distributed` keyword in the place of a declaration modifier, under the `actor-isolation-modifier` production rule as specified by [the grammar in TSPL](https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#grammar_declaration-modifiers). Only methods can use `distributed` as a declaration modifier, and no order is specified for this modifier.
 A `distributed actor` type, extensions of such a type, and `DistributedActor` inherting protocols are the only places where distributed method declarations are allowed. This is because, in order to implement a distributed method, a transport and identity must be associated with the values carrying the method. Distributed methods can synchronously refer to any of the state isolated to the distributed actor instance.
 
 As a consequence of the request-response nature of distributed methods, `inout` parameters are not supported. While subscripts are similar to methods, they are not allowed for a distributed actor. A subscript's usefulness is strongly limited by both their lack of support for being `distributed` (e.g., could only support read-only subscripts, because no coroutine-style accessors) and their lightweight syntax can lead to the same problems as properties.
@@ -533,7 +533,7 @@ distributed actor DA {
 
 #### Remote Resolution
 
-There is no representation of a remote initializer for a distributed actor, because a remote instance has *conceptually* already been initialized. Thanks to location transparency, a remote instance is not even guaranteed to exist until it is actually needed. This is an important implementation detail that enables efficient implementations of distributed systems. To make this more concrete, consider a simplified version of the static `resolve` function that is synthesized for all distribtued actors:
+There is no representation of a remote initializer for a distributed actor, because a remote instance has *conceptually* already been initialized. Thanks to location transparency, a remote instance is not even guaranteed to exist until it is actually needed. This is an important implementation detail that enables efficient implementations of distributed systems. To make this more concrete, consider a simplified version of the static `resolve` function that is synthesized for all distributed actors:
 
 ```swift
 distributed actor DA {  
@@ -921,6 +921,7 @@ guard let anyGreeter =
   try await Receptionist.resolve(transport)
     .lookup(Greeter.self).first else {
   print("No Greeter discovered!")
+  return
 }
 
 try await anyGreeter.greet("Caplin, the Capybara")
@@ -1052,9 +1053,9 @@ Needless to say, what we are able to achieve API wise and also because who the t
 
 ## Acknowledgments & Prior Art
 
-We would like to acknowlage the prior art in the space of distributed actor systems which have inspired our design and thinking over the years. Most notably we would like to thank the Akka and Orleans projects, each showing independent innovation in their respective ecosystems and implementation approaches. 
+We would like to acknowledge the prior art in the space of distributed actor systems which have inspired our design and thinking over the years. Most notably we would like to thank the Akka and Orleans projects, each showing independent innovation in their respective ecosystems and implementation approaches. 
 
-We would also like to acknowlage the Erlang BEAM runtime and Elixir language for a more modern take built upon the on the same foundations. In some ways, Swift's distributed actors are not much unlike the gen_server style processes available on those platforms. While we operate in very different runtime environments and need to take different tradeoffs at times, both have been an inspiration and very useful resource when comparing to the more Akka or Orleans style actor designs.
+We would also like to acknowledge the Erlang BEAM runtime and Elixir language for a more modern take built upon the on the same foundations. In some ways, Swift's distributed actors are not much unlike the gen_server style processes available on those platforms. While we operate in very different runtime environments and need to take different tradeoffs at times, both have been an inspiration and very useful resource when comparing to the more Akka or Orleans style actor designs.
 
 ## Source compatibility
 
