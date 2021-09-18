@@ -800,7 +800,7 @@ One problem with this approach is that property wrappers cannot provide the sema
 class AsyncLet<Wrapped: Sendable> {
   var task: Task<Wrapped, Error>
   
-  init(wrappedValue fn: @autoclosure(escaping) @Sendable () async throws -> Wrapped) {
+  init(wrappedValue fn: @Sendable @escaping @autoclosure () async throws -> Wrapped) {
     self.task = Task.detached {  // have to produce a detached task; cannot create a child task
       try await fn()
     }

@@ -3,9 +3,13 @@
 * Proposal: [SE-0320](0320-codingkeyrepresentable.md)
 * Author: [Morten Bek Ditlevsen](https://github.com/mortenbekditlevsen)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (August 4 - 18, 2021)**
+* Status: **Accepted (2021-09-14)**
 * Implementation: [apple/swift#34458](https://github.com/apple/swift/pull/34458)
-
+* Decision Notes:
+  [Review #1](https://forums.swift.org/t/se-0320-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/50903),
+  [Review #2](https://forums.swift.org/t/se-0320-2nd-review-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/51710),
+  [Rationale](https://forums.swift.org/t/accepted-se-0320-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/52057)
+  
 ## Introduction
 
 The current conformance of Swift's `Dictionary` to the `Codable` protocols has a somewhat-surprising limitation in that dictionaries whose key type is not `String` or `Int` (values directly representable in `CodingKey` types) encode not as `KeyedContainer`s but as `UnkeyedContainer`s. This behavior has caused much confusion for users and I would like to offer a way to improve the situation.
@@ -56,12 +60,12 @@ struct _AnyCodingKey: CodingKey {
     let stringValue: String
     let intValue: Int?
     
-    init?(stringValue: String) {
+    init(stringValue: String) {
         self.stringValue = stringValue
         self.intValue = Int(stringValue)
     }
     
-    init?(intValue: Int) {
+    init(intValue: Int) {
         self.stringValue = "\(intValue)"
         self.intValue = intValue
     }
@@ -77,7 +81,7 @@ struct ID: Hashable, CodingKeyRepresentable {
         return _AnyCodingKey(stringValue: stringValue)
     }
     
-    init?(codingKey: CodingKey) {
+    init?<T: CodingKey>(codingKey: T) {
         stringValue = codingKey.stringValue
     }
     
@@ -104,25 +108,37 @@ try String(data: encoder.encode(data), encoding: .utf8)
 
 ## Detailed Design
 
+### Adding `CodingKeyRepresentable`
+
 The proposed solution adds a new protocol, `CodingKeyRepresentable`:
 
 ```swift
-/// Indicates that the conforming type can provide a `CodingKey` to be used when
-/// encoding into a keyed container.
+/// A type that can be converted to and from a `CodingKey` value.
+///
+/// With a `CodingKeyRepresentable` type, you can switch back and forth between a
+/// custom type and a `CodingKey` type without losing the value of
+/// the original `CodingKeyRepresentable` type.
+///
+/// Conforming a type to `CodingKeyRepresentable` lets you opt-in to encoding and
+/// decoding `Dictionary` values keyed by the conforming type to and from a keyed
+/// container - rather than an unkeyed container of alternating key-value pairs.
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public protocol CodingKeyRepresentable {
     var codingKey: CodingKey { get }
-    init?(codingKey: CodingKey)
+    init?<T: CodingKey>(codingKey: T)
 }
 ```
+
+### Handle `CodingKeyRepresentable` conforming types for `Dictionary` encoding
 
 In the conditional `Encodable` conformance on `Dictionary`, the following extra case can handle such conforming types:
 
 ```swift
-    } else if let _ = Key.self as? CodingKeyRepresentable.Type {
+    } else if #available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *), Key.self is CodingKeyRepresentable.Type {
       // Since the keys are CodingKeyRepresentable, we can use the `codingKey`
       // to create `_DictionaryCodingKey` instances.
       var container = encoder.container(keyedBy: _DictionaryCodingKey.self)
-      for (key, value) in self.dict {
+      for (key, value) in self {
         let codingKey = (key as! CodingKeyRepresentable).codingKey
         let dictionaryCodingKey = _DictionaryCodingKey(codingKey: codingKey)
         try container.encode(value, forKey: dictionaryCodingKey)
@@ -132,20 +148,129 @@ In the conditional `Encodable` conformance on `Dictionary`, the following extra 
 
 ```
 
+### Handle `CodingKeyRepresentable` conforming types for `Dictionary` decoding
+
 In the conditional `Decodable` conformance on `Dictionary`, we can similarly handle conforming types:
 
 ```swift
-    } else if let codingKeyRepresentableType = Key.self as? CodingKeyRepresentable.Type {
+    } else if #available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *), let codingKeyRepresentableType = Key.self as? CodingKeyRepresentable.Type {
       // The keys are CodingKeyRepresentable, so we should be able to expect a keyed container.
       let container = try decoder.container(keyedBy: _DictionaryCodingKey.self)
-      for key in container.allKeys {
-        let value = try container.decode(Value.self, forKey: key)
-        let k = codingKeyRepresentableType.init(codingKey: key)
-        self.dict[k as! Key] = value
+      for dictionaryCodingKey in container.allKeys {
+        guard let key: Key = codingKeyRepresentableType.init(
+          codingKey: dictionaryCodingKey
+        ) as? Key else {
+          throw DecodingError.dataCorruptedError(
+            forKey: dictionaryCodingKey,
+            in: container,
+            debugDescription: "Could not convert key to type \(Key.self)"
+          )
+        }
+        let value: Value = try container.decode(
+          Value.self,
+          forKey: dictionaryCodingKey
+        )
+        self[key] = value
       }
     } else {
       // We should have encoded as an array of alternating key-value pairs.
 ```
+
+### Add `CodingKeyRepresentable` conformance to `String` and `Int`
+
+In order to allow the natural use of `String` and `Int` when `CodingKeyRepresentable` is used as a generic constraint, `Int` and `String` will be made to conform to `CodingKeyRepresentable`.
+
+```swift
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+extension Int: CodingKeyRepresentable {
+  public var codingKey: CodingKey {
+    _DictionaryCodingKey(intValue: self)
+  }
+  public init?<T: CodingKey>(codingKey: T) {
+    if let intValue = codingKey.intValue {
+      self = intValue
+    } else {
+      return nil
+    }
+  }
+}
+
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+extension String: CodingKeyRepresentable {
+  public var codingKey: CodingKey {
+    _DictionaryCodingKey(stringValue: self)
+  }
+  public init?<T: CodingKey>(codingKey: T) {
+    self = codingKey.stringValue
+  }
+}
+```
+
+### Provide a default implementation to `CodingKeyRepresentable` for `RawRepresentable` types where the raw value is `String` or `Int`
+
+In many use cases for this proposal, the types that are made to conform to `CodingKeyRepresentable` are already conforming to `RawRepresentable` (with `String` and `Int` raw values). In order to remove friction in these cases, `RawRepresentable` will have a default conformance to `CodingKeyRepresentable` when the raw value is `String` or `Int`:
+
+```swift
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+extension RawRepresentable where Self: CodingKeyRepresentable, RawValue == String {
+  public var codingKey: CodingKey {
+    _DictionaryCodingKey(stringValue: rawValue)
+  }
+  public init?<T: CodingKey>(codingKey: T) {
+    self.init(rawValue: codingKey.stringValue)
+  }
+}
+
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+extension RawRepresentable where Self: CodingKeyRepresentable, RawValue == Int {
+  public var codingKey: CodingKey {
+    _DictionaryCodingKey(intValue: rawValue)
+  }
+  public init?<T: CodingKey>(codingKey: T) {
+    if let intValue = codingKey.intValue {
+      self.init(rawValue: intValue)
+    } else {
+      return nil
+    }
+  }
+}
+```
+
+An example of the point of use for the default conformance. Assume that you have a type: `StringWrapper` that already conforms to `RawRepresentable` where `RawValue == String`:
+
+```swift
+extension StringWrapper: CodingKeyRepresentable {}
+```
+No boiler plate required. 
+
+### Change internal type `_DictionaryCodingKey` to have non-failable initializers
+
+In the code above it may be noticed that the internal `_DictionaryCodingKey` type has been changed to have non-failable initializers: 
+
+```swift
+/// A wrapper for dictionary keys which are Strings or Ints.
+internal struct _DictionaryCodingKey: CodingKey {
+  internal let stringValue: String
+  internal let intValue: Int?
+
+  internal init(stringValue: String) {
+    self.stringValue = stringValue
+    self.intValue = Int(stringValue)
+  }
+
+  internal init(intValue: Int) {
+    self.stringValue = "\(intValue)"
+    self.intValue = intValue
+  }
+
+  fileprivate init(codingKey: CodingKey) {
+    self.stringValue = codingKey.stringValue
+    self.intValue = codingKey.intValue
+  }
+}
+```
+
+This change is made to reflect the fact that initialization does in fact never fail, and it reduces the amount of unwrapping that would otherwise be needed elsewhere in the internal use of the type.
 
 ## Impact on Existing Code
 
@@ -310,3 +435,17 @@ A few drawbacks to the property wrapper solution were given during the pitch pha
 
 ## Acknowledgements
 Many thanks to [Itai Ferber](https://github.com/itaiferber) for providing input and feedback, for revising the pitch and for helping me shape the overall direction.
+
+Also many thanks to everyone providing feedback on the pitch and the first proposal review.
+
+## Revision history
+
+### Review changes
+
+Changes after the first review:
+
+* added conformance for `String` and `Int` to `CodingKeyRepresentable`.
+* changed the initializer of `CodingKeyRepresentable` to be generic
+* added default implementations for the conformance for `RawRepresentable` (with `String` and `Int` raw values). 
+* made the initializers of the internal `_DictionaryCodingKey` non-failable.
+

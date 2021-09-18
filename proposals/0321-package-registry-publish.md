@@ -4,17 +4,9 @@
 * Authors: [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (August 17 - 31, 2021)**
+* Status: **Accepted (2021-09-01)**
 * Implementation: [apple/swift-package-manager#3671](https://github.com/apple/swift-package-manager/pull/3671)
-
-<!--
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
-* -->
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0321-package-registry-service-publish-endpoint/51660)
 
 ## Introduction
 
