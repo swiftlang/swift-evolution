@@ -162,7 +162,7 @@ answer in your review:
 
 More information about the Swift evolution process is available at
 
-> <https://github.com/apple/swift-evolution/blob/master/process.md>
+> <https://github.com/apple/swift-evolution/blob/main/process.md>
 
 Thank you,
 
