@@ -558,8 +558,14 @@ SIL is a normalized representation that is specifically designed to support such
 
 The removal of `convenience` to distinguish delegating initializers *will* create an ABI break.
 Currently, the addition or removal of `convenience` on an actor initializer is an ABI-breaking change, as it is with classes, because the emitted symbols and/or name mangling will change.
-This would create an ABI incompatibility when upgrading to Swift 6.
+
+If we were to disallow `nonisolated`, non-delegating initializers, we could enforce the rule that `nonisolated` means that it must delegate.
+But, such semantics would not align with global-actor isolation, which is conceptually the same as `nonisolated` with respect to an initializer: not being isolated to `self`.
+In addition, any Swift 5.5 code with `nonisolated` or equivalent on an actor initializer would become ABI and source incompatible with Swift 6.
+
 Thus, is not ultimately worthwhile to try to eliminate `convenience`, since it does provide some benefit: marking initializers that _must_ delegate.
+While a `nonisolated` synchronous initializer is mostly useless, the compiler can simple tell programmers to remove the `nonisolated`, because it is meaningless in that case.
+Note that `nonisolated` _does_ provide utility for an `async` initializer, since it means that no implicit executor synchronization is performed, while allowing other `async` calls to happen within the initializer.
 
 
 
