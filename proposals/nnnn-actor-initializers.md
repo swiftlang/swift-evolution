@@ -219,7 +219,7 @@ class NetworkSessionManager {
     print("end of method")
   }
 
-  deinit() {
+  deinit {
     self.closeSessions() // ❌ error: self is not isolated to the MainActor.
     _ = self.sessions // ❌ error: self is not isolated to the MainActor.
   }
@@ -395,7 +395,7 @@ actor A {
 }
 ```
 
-An easy way to remember the rules around actor initializers is, unless if the initializer is just `async`, with no other actor isolation changes, then there is no escaping-use restriction.
+An easy way to remember the rules around actor initializers is, if the initializer is just `async`, with no other actor isolation changes, then there is no escaping-use restriction.
 Thus, if any one of the following apply to an initializer, it must obey the escaping-use restriction to maintain data-race safety for `self`:
 
 1. not `async`
