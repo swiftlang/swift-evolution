@@ -512,18 +512,68 @@ All user-defined designated initializers of a distributed actor can be collectiv
 
 ```swift
 distributed actor DA {
+  // SIMPLIFIED PSEUDO-CODE
   init(..., transport: ActorTransport) {
     // Step 1: Try to set-up the transport and identity.
     self._transport = transport
-    self._id = AnyActorIdentity(transport.assignIdentity(Self.self))
+    self._id = transport.assignIdentity(Self.self)
     
     // Step 2: User code is executed, which may fail, access the identity, etc.
     
     // Step 3: The initializer did not fail; notify the transport.
     transport.actorReady(self)
   }
+  
+  deinit {
+    transport.resignIdentity(self.id)
+    // ...
+  }
 }
 ```
+
+The exact semantics of when `actorReady` and `resignIdentity` are invoked are very specific and defined as follows:
+
+The `actorReady` call is made when the actor is _fully initialized_ (see also SE-NNNN: Actor Initializers and Deinitializers). This is because at this point the `self` reference can be leaked, and could be used to even send it to some distributed actor. We want to ensure that the transport is always able to use "ready" actors, i.e. a "not-ready" actor's self cannot be leaked as it would cause similar issues to leaking a not fully initialized reference.
+
+In order to _become_ fully initialized, the distributed actor does _first_ call `self._id = transport.assignIdentity(Self.self)`. In face of failable initializers, this means that an initializer may assign the identity, and then _throw_ before ever becoming fully initialized. A similar situation already exists with classes, where a class that throws from its init before it is fully initialized, _does not_ cause its deinit to be called. The following example showcases the exact invocation semantics, where commented out code is representative of what semantics are synthesized:
+
+```swift
+distributed actor FailableInit { 
+  let number: Int
+  
+  init(..., transport: ActorTransport) throws { 
+    // let _id = transport.assignIdentity(Self.self)
+    // self._id = _id
+    // self._transport = transport
+
+    // do {
+         throw Boom() // if we were to throw here
+         self.number = 1
+    // } catch { 
+    //   transport.resignIdentity(self._id) // we resign the allocated identity
+    //   throw error // and re-throw
+    //   // deinit WILL NOT RUN
+    // }
+    
+    // ~~~ actor became fully-initialized ~~~
+    // transport.actorReady(self)
+    print("fully initialized, yay! \(self)") // can refer to and escape self from here
+    
+    throw Boom() // if we'd throw here, deinit WOULD run, and resignIdentity would be called
+  }
+  
+  deinit { 
+    // self.transport.resignIdentity(self.id)
+    print("I'm deinitializing, yay")
+  }
+}
+```
+
+Because such throw would happen between the `assignIdentity` and `actorReady` call, _and_ the actor's deinit will not run (similar as classes).
+
+The `resignIdentity` call, has two situations in which it may be called: 
+
+- As first thing in the actor's `deinit`.
 
 If no user-defined designated initializer is provided, a default initializer is synthesized that requires a named parameter `transport` of type `ActorTransport`, i.e., `init(transport:)`. The access level of the synthesized init is the same as the distributed actor declaration (i.e. for an internal distributed actor, the init is internal, and public for a public one). As with other nominal types, this initializer is only synthesized by the compiler if all stored properties can be default-initialized.
 
