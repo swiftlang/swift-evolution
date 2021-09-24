@@ -235,6 +235,8 @@ func outside(greeter: Greeter) async throws {
 
 Errors thrown by the underlying transport due to connection or messaging problems must conform to the `ActorTransportError` protocol. A distributed function can also be explicitly marked as `throws`, as shown above, but the underlying transport is responsible for determining how to forward any thrown errors, since errors thrown by a distributed function do _not_ have to be `Codable`.
 
+Distributed functions cannot take `isolated` parameters. A distributed function must execute on the distributed actor, and isolating it to some _other_ actor is not really possible. The only situation in which this could happen is with a distributed actor (since it fulfills the `Codable` requirement), but such distributed actor reference may have been _remote_, in which case we cannot isolate a function to it.
+
 One benefit of explicitly marking distributed functions with the `distributed` keyword that it makes clear to the programmer (and tools, such as IDEs) where networking costs are to be expected when using a distributed actor. This is an improvement over today's world, where any function might ultimately perform network calls, and we are not able to easily notice them, for example, in the middle of a tight loop.
 
 #### Initialization
