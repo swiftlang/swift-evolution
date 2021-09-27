@@ -201,9 +201,9 @@ Assuming that the operations on this type don't introduce some kind of behind-th
 extension Generic: Sendable where T: Sendable, T.A: Sendable { }
 ```
 
-When `T` is `Sendable`, the conditional conformance of `Optional` to `Sendable` will be used to make `T?` `Sendable`. Similarly, when `T.P` is `Sendable`, `[T.A]` will also be `Sendable` via conditional conformance. We propose to infer the conditional conformance above for `Generic`, by inferring the required generic parameter constraints from the types of the instance storage. 
+When `T` is `Sendable`, the conditional conformance of `Optional` to `Sendable` will be used to make `T?` `Sendable`. Similarly, when `T.P` is `Sendable`, `[T.A]` will also be `Sendable` via conditional conformance. We propose to infer conditional conformances for non-public types by walking the types of all of the instance storage (stored properties for `struct`s, associated values for `enums`s) and collecting the full set of requirements needed to make that instance storage `Sendable`. This is a generalization of the logic of SE-0302, which can only produce unconditional conformances. For `Generic`, it will produce the conditional conformance above; for a non-generic type or a generic type whose instance storage is `Sendable` independent of the generic arguments, it will produce an unconditional conformance. Note that implicit conformances to `Sendable` can be disabled by providing an explicit conformance to `Sendable` (whether conditional or unconditional) or explicitly disabling conformance to `Sendable` with the syntax proposed above.
 
-Note that, in some cases, the type wll not be `Sendable` because a concrete type---not a type parameter---lacks a suitable `Sendable` conformance. For example:
+Also note that, in some cases, the type wll not be `Sendable` because a concrete type---not a type parameter---lacks a suitable `Sendable` conformance. For example:
 
 ```swift
 class Ref<T> { } // not Sendable
