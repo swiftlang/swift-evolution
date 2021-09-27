@@ -17,7 +17,7 @@
 
 [SE-0302](0302-concurrent-value-and-concurrent-closures.md) introduced the `Sendable` protocol, including `Sendable` requirements for various language constructs, conformances of various standard library types to `Sendable`, and inference rules for non-public types to implicitly conform to `Sendable`. Experience with `Sendable` has uncovered some issues with its original formulation, which this proposal seeks to address.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/improving-sendable/52377)
 
 ## Motivation
 
