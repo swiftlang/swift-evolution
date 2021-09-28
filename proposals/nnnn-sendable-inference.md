@@ -21,7 +21,7 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation
 
-A `Sendable` type is one whose values can be copied from one actor or task into another, such that it is safe to concurrently use any operations on both the original value and any of its copies. A type that provides value semantics is `Sendable` because its copies are independent, whereas a type with reference semantics will require some means of synchronization (e.g., a lock) to beme `Sendable`. Actors innately provide this synchronization (so they are always `Sendable`), where classes generally do not.
+A `Sendable` type is one whose values can be copied from one actor or task into another, such that it is safe to concurrently use any operations on both the original value and any of its copies. A type that provides value semantics is `Sendable` because its copies are independent, whereas a type with reference semantics will require some means of synchronization (e.g., a lock) to become `Sendable`. Actors innately provide this synchronization (so they are always `Sendable`), whereas classes generally do not.
 
 Much of Swift's concurrency model requires the use of types that conform to `Sendable`, so the model by which types become `Sendable` is important. If it requires too much manual annotation, the Swift ecosystem will take a long time to adopt concurrency and `Sendable`. If there is too much implicit adoption of `Sendable`, some types will be labeled `Sendable` that aren't safe to use in that manner, undercutting the safety benefits of `Sendable` enforcement. This proposal addresses several issues related to `Sendable`:
 
@@ -35,11 +35,11 @@ We'll address each issue in turn.
 
 ### Unsafe pointer types should not be `Sendable`
 
-SE-0302 [states]() that the unsafe pointer types conform to `Sendable`:
+SE-0302 states that the unsafe pointer types conform to `Sendable`:
 
 > `Unsafe(Mutable)(Buffer)Pointer`: these generic types _unconditionally_ conform to the `Sendable` protocol. This means that an unsafe pointer to a non-Sendable value can potentially be used to share such values between concurrency domains. Unsafe pointer types provide fundamentally unsafe access to memory, and the programmer must be trusted to use them correctly; enforcing a strict safety rule for one narrow dimension of their otherwise completely unsafe use seems inconsistent with that design.
 
-The main problem with this reasoning is that unsafe pointers have reference semantics, and therefore should not be be `Sendable` because the role of `Sendable` is to prevent sharing reference-semantic types across actor or task boundaries. Unsafe pointers are unsafe in exactly one way, which is that it is the developer's responsibility to guarantee the lifetime of the memory referenced by the unsafe pointer. This is an intentional and explicit hole in Swift's memory safety story that has been around since the beginning. That "unsafe" should not implicitly extend to use in concurrent code, 
+The main problem with this reasoning is that unsafe pointers have reference semantics, and therefore should not be be `Sendable` because the role of `Sendable` is to prevent sharing reference-semantic types across actor or task boundaries. Unsafe pointers are unsafe in exactly one way, which is that it is the developer's responsibility to guarantee the lifetime of the memory referenced by the unsafe pointer. This is an intentional and explicit hole in Swift's memory safety story that has been around since the beginning. That "unsafe" should not implicitly extend to use in concurrent code.
 
 Another problem with making the unsafe pointers `Sendable` is the second-order effect it has on value types that store unsafe pointers. Consider a wrapper struct around a resource:
 
@@ -65,7 +65,7 @@ Per SE-0302, non-`public` struct and enum types will implicitly conform to `Send
 
 > Public non-frozen structs and enums do not get an implicit conformance, because doing so would present a problem for API resilience: the implicit conformance to `Sendable` would become part of the contract with clients of the API, even if it was not intended to be. Moreover, this contract could easily be broken by extending the struct or enum with storage that does not conform to `Sendable`. 
 
-Similar concerns apply within a module, where a type that might appear `Sendable` from its instance storage but is not intended to have `Sendable` semantics. For example, a struct comprised only of `Sendable` types could nontheless have reference semantics:
+Similar concerns apply within a module, where a type that might appear `Sendable` from its instance storage is not intended to have `Sendable` semantics. For example, a struct comprised only of `Sendable` types could nonetheless have reference semantics:
 
 ```swift
 enum MyLibrary {
@@ -80,7 +80,7 @@ struct TaskLocalString { // should not be Sendable!
 }
 ```
 
-A `TaskLocalString` only stores an `Int`, which implies that it is `Sendable`... even though it's use of task-local storage means that it should not be shared across tasks at all. The available mechanisms to suppress the implicit `Sendable` conformances are all unfortunate: make the type `public` (which disables inference) or add an otherwise-useless stored property of non-`Sendable` type to `TaskLocalString`.
+A `TaskLocalString` only stores an `Int`, which implies that it is `Sendable`... even though its use of task-local storage means that it should not be shared across tasks at all. The available mechanisms to suppress the implicit `Sendable` conformances are all unfortunate: make the type `public` (which disables inference) or add an otherwise-useless stored property of non-`Sendable` type to `TaskLocalString`.
 
 ### Generic structs and enums don't infer `Sendable`
 
@@ -105,7 +105,7 @@ extension Pair: Sendable where T: Sendable, U: Sendable { }
 
 ### Maintaining `Sendable` conformances for a module is hard
 
-A Swift library should provide `Sendable` conformances for each of its public types that provide the appropriate semantics. For an existing Swift library, this requires the library author to audit each type to determine whether it is `Sendable` or not, and add explicit conformances for those types that are `Sendable`. As new types are added to the library, each must be considered to determine whether it is `Sendable`, representing an ongoing annotation burden. This is expected due to the pervasiveness of `Sendable`, but is a problem that there is no good way to distinguish an error of omision (the author forgot to think about `Sendable` when introducing a new type) from a type that has been considered and determined to be non-`Sendable`. This ambiguity makes it harder to rely on `Sendable` in general, because a user of the library cannot easily distinguish between a mistakenly non-`Sendable` type and a deliberately non-`Sendable` one.
+A Swift library should provide `Sendable` conformances for each of its public types that provide the appropriate semantics. For an existing Swift library, this requires the library author to audit each type to determine whether it is `Sendable` or not, and add explicit conformances for those types that are `Sendable`. As new types are added to the library, each must be considered to determine whether it is `Sendable`, representing an ongoing annotation burden. This is expected due to the pervasiveness of `Sendable`, but it is a problem that there is no good way to distinguish an error of omission (the author forgot to think about `Sendable` when introducing a new type) from a type that has been considered and determined to be non-`Sendable`. This ambiguity makes it harder to rely on `Sendable` in general, because a user of the library cannot easily distinguish between a mistakenly non-`Sendable` type and a deliberately non-`Sendable` one.
 
 ## Proposed solution
 
@@ -168,7 +168,7 @@ An "unavailable" conformance can only be written on the primary type definition 
 There are two reasons for re-using `@available(*, unavailable)` in this manner. The first is simply that the spelling already exists in the grammar, and states our intention quite clearly---this conformance is not available, ever. Second, the availability syntax generalizes well for conformances that are only available, e.g., for certain versions of a platform. Swift 5.4 introduced the notion of conditionally-available conformances, but avoided adding any specific syntax for them by requiring such conformances to be on a suitably-available extension:
 
 ```swift
-
+@available(macOS 11.9, iOS 14.0, tvOS 14.0, watchOS 7.0, *)
 extension X: P { } // conformance X: P is only available for the above platform versions
 ```
 
@@ -203,7 +203,7 @@ extension Generic: Sendable where T: Sendable, T.A: Sendable { }
 
 When `T` is `Sendable`, the conditional conformance of `Optional` to `Sendable` will be used to make `T?` `Sendable`. Similarly, when `T.P` is `Sendable`, `[T.A]` will also be `Sendable` via conditional conformance. We propose to infer conditional conformances for non-public types by walking the types of all of the instance storage (stored properties for `struct`s, associated values for `enums`s) and collecting the full set of requirements needed to make that instance storage `Sendable`. This is a generalization of the logic of SE-0302, which can only produce unconditional conformances. For `Generic`, it will produce the conditional conformance above; for a non-generic type or a generic type whose instance storage is `Sendable` independent of the generic arguments, it will produce an unconditional conformance. Note that implicit conformances to `Sendable` can be disabled by providing an explicit conformance to `Sendable` (whether conditional or unconditional) or explicitly disabling conformance to `Sendable` with the syntax proposed above.
 
-Also note that, in some cases, the type wll not be `Sendable` because a concrete type---not a type parameter---lacks a suitable `Sendable` conformance. For example:
+Also note that, in some cases, the type will not be `Sendable` because a concrete type---not a type parameter---lacks a suitable `Sendable` conformance. For example:
 
 ```swift
 class Ref<T> { } // not Sendable
@@ -221,7 +221,7 @@ As existing Swift code embraces `Sendable`, it can be a chore to audit each and 
 
 ```swift
 public struct Generic<T: P> { // warning: public type `Generic` is neither `Sendable` nor explicitly non-`Sendable`
-    // note: add conditional conformance to `Sendable` if this values of this type can be copied across concurrent tasks
+    // note: add conditional conformance to `Sendable` if values of this type can be copied across concurrent tasks
     // note: add explicit non-Sendable annotation to suppress this warning
   var value: T? = nil
   var assocValues: [T.A] = []
@@ -232,7 +232,7 @@ With such a flag, a user can conduct an audit of all of the public types for `Se
 
 ## Source compatibility
 
-This proposals alters `Sendable` conformances in several ways that can have impact on source compatibility.This proposa is a mix of additions and removals. The additions (e.g., conditional `Sendable` conformances for non-`public` types) aren't likely to break much code, because adding protocol conformances rarely does, and the new compiler flag is opt-in.
+This proposal alters `Sendable` conformances in several ways that can have an impact on source compatibility. This proposal is a mix of additions and removals. The additions (e.g., conditional `Sendable` conformances for non-`public` types) aren't likely to break much code, because adding protocol conformances rarely does, and the new compiler flag is opt-in.
 
 The removal of `Sendable` conformances from unsafe pointer types and key path types can certainly break code that depends on those conformances. There are two mitigating factors here that make us feel comfortable doing so at this time. The first mitigating factor is that `Sendable` is only very recently introduced in Swift 5.5, and `Sendable` conformances aren't enforced in the Swift Concurrency model just yet. The second is that the staging in of `Sendable` checking in the compiler implies that missing `Sendable` conformances are treated as warnings, not errors, so there is a smooth transition path for any code that depended on this now-removed conformances.
 
@@ -242,7 +242,7 @@ The removal of `Sendable` conformances from unsafe pointer types and key path ty
 
 ## Effect on API resilience
 
-For the most part, this proposal does not introduce any changes that directly affect API resilience. The changes to inference of `Sendable ` are mostly restricted to types that remain within a module (e.g., only non-public generic types can have conditional `Sendable` conformances inferred). This proposal does encourage changes to can impact API resilience, e.g., it introduces a compiler flag to encourage more adoption of `Sendable`, which will have downstream effects on clients, but generally the additional of a `Sendable` conformance does not break code.
+For the most part, this proposal does not introduce any changes that directly affect API resilience. The changes to inference of `Sendable` are mostly restricted to types that remain within a module (e.g., only non-public generic types can have conditional `Sendable` conformances inferred). This proposal does encourage changes that can impact API resilience, e.g., it introduces a compiler flag to encourage more adoption of `Sendable`, which will have downstream effects on clients, but generally the addition of a `Sendable` conformance does not break code.
 
 The inference of `Sendable` key path literals can change some types of public stored properties, however:
 
