@@ -64,10 +64,6 @@ public struct PluginContext {
     /// it or the command will need.
     public let pluginWorkDirectory: Path
 
-    /// The path of the directory into which built products associated with
-    /// the target are written.
-    public let builtProductsDirectory: Path
-
     /// Looks up and returns the path of a named command line executable tool.
     /// The executable must be provided by an executable target or a binary
     /// target on which the package plugin target depends. This function throws
@@ -297,7 +293,6 @@ extension BuildToolPlugin {
                 publicHeadersDirectory: ($0 as? SourceModuleTarget)?.publicHeadersDirectory)
             },
             pluginWorkDirectory: context.pluginWorkDirectory,
-            builtProductsDirectory: context.builtProductsDirectory,
             toolNamesToPaths: context.toolNamesToPaths))
     }
 }
