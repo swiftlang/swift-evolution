@@ -31,7 +31,7 @@ In addition to the new information, this proposal adds API for traversing the pa
 
 This proposal defines a new `PluginContext` structure that contains:
 
-* a reference to the `Package` object at the root of the subgraph to which the plugin is being applied
+* a reference to the `Package` at the root of the subgraph to which the plugin is being applied
 * the contextual information that was previously part of `TargetBuildContext`
 
 This structure factors out all the information related to the package graph, such as the package and target names and directories, leaving the context with just the top-level contextual information.
@@ -47,7 +47,8 @@ The new `PluginContext` structure in the `PackagePlugin` API is defined as:
 /// as well as contextual information based on the plugin's stated intent
 /// and requirements.
 public struct PluginContext {
-    /// Information about the package to which the plugin is being applied.
+    /// Information about the package to which the plugin is being applied,
+    /// and any other package reachable from it.
     public let package: Package
 
     /// The path of a writable directory into which the plugin or the build
@@ -89,37 +90,44 @@ This has the effect of factoring out all information related to the package and 
 
 ```swift
 /// Represents a single package in the graph (either the root or a dependency).
-public class Package {
+public protocol Package {
+    /// Opaque package identifier, unique within the graph.
+    var id: ID { get }
+    typealias ID = String
+    
     /// The name of the package (for display purposes only).
-    public let name: String
+    var name: String { get }
 
     /// The absolute path of the package directory in the local file system.
-    public let directory: Path
+    var directory: Path { get }
 
     /// Any dependencies on other packages, in the same order as they are
     /// specified in the package manifest.
-    public let dependencies: [Dependency]
-
-    /// Represents a resolved dependency of a package on another package. This is a
-    /// separate entity in order to make it easier for future versions of the API to
-    /// add information about the dependency itself.
-    public struct Dependency {
-        /// The package to which the dependency was resolved.
-        public let package: Package
-    }
+    var dependencies: [PackageDependency] { get }
 
     /// Any regular products defined in this package (except plugin products),
     /// in the same order as they are specified in the package manifest.
-    public let products: [Product]
+    var products: [Product] { get }
 
     /// Any regular targets defined in this package (except plugin targets),
     /// in the same order as they are specified in the package manifest.
-    public let targets: [Target]
+    var targets: [Target] { get }
 }
 
-/// Represents a single product defined in a package. Specializations represent
-/// different types of products.
-public class Product {
+/// Represents a resolved dependency of a package on another package. Other
+/// information in addition to the resolved package is likely to be added
+/// to this struct in the future.
+public struct PackageDependency {
+    /// The package to which the dependency was resolved.
+    public let package: Package
+}
+
+/// Represents a single product defined in a package.
+public protocol Product {
+    /// Opaque product identifier, unique within the graph.
+    var id: ID { get }
+    typealias ID = String
+
     /// The name of the product, as defined in the package manifest. It's unique
     /// among the products of the package in which it is defined.
     public let name: String
@@ -131,7 +139,7 @@ public class Product {
 }
 
 /// Represents an executable product defined in a package.
-public class ExecutableProduct: Product {
+public struct ExecutableProduct: Product {
     /// The target that contains the main entry point of the executable. Every
     /// executable product has exactly one main executable target. This target
     /// will always be one of the targets in the product's `targets` array.
@@ -139,7 +147,7 @@ public class ExecutableProduct: Product {
 }
 
 /// Represents a library product defined in a package.
-public class LibraryProduct: Product {
+public struct LibraryProduct: Product {
     /// Whether the library is static, dynamic, or automatically determined.
     public let type: LibraryType
 }
@@ -156,9 +164,12 @@ public enum LibraryType {
     case `automatic`
 }
 
-/// Represents a single target defined in a package. Specializations represent
-/// different types of targets.
-public class Target {
+/// Represents a single target defined in a package.
+public protocol Target {
+    /// Opaque target identifier, unique within the graph.
+    var id: ID { get }
+    typealias ID = String
+
     /// The name of the target, as defined in the package manifest. It's unique
     /// among the targets of the package.
     public var name: String
@@ -183,7 +194,7 @@ public class Target {
 
 /// Represents a target consisting of a source code module, containing either
 /// Swift or source files in one of the C-based languages.
-public class SourceModuleTarget: Target {
+public struct SourceModuleTarget: Target {
     /// The name of the module produced by the target (derived from the target
     /// name, though future SwiftPM versions may allow this to be customized).
     public var moduleName: String
@@ -199,14 +210,14 @@ public class SourceModuleTarget: Target {
 }
 
 /// Represents a target describing a library that is distributed as a binary.
-public class BinaryLibraryTarget: Target {
+public struct BinaryLibraryTarget: Target {
     /// The library in the local file system.
     public var libraryPath: Path
 }
 
 /// Represents a target describing a system library that is expected to be
 /// present on the host system.
-public class SystemLibraryTarget: Target {
+public struct SystemLibraryTarget: Target {
     /// The directory containing public C headers, if applicable.
     public let publicHeadersDirectory: Path?
   
