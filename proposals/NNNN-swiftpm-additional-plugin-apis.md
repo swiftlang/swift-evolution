@@ -11,7 +11,7 @@
 
 SE-0303 introduced the ability to define *build tool plugins* in SwiftPM, allowing custom tools to be invoked while building a package. In support of this, SE-0303 introduced a minimal initial API through which plugins can access information about the target for which they are invoked.
 
-This proposal extends the plugin API to provide more context, including a richer representation of the package graph.  This is in preparation for supporting new kinds of plugins in the future.
+This proposal extends the plugin API to provide more context, including a richer representation of the package graph. This is in preparation for supporting new kinds of plugins in the future.
 
 ## Motivation
 
@@ -25,7 +25,7 @@ This proposal extends the plugin API that was introduced in SE-0303 by defining 
 
 This is the same structure that SwiftPM’s built-in subsystems currently use, and the intent is that, over time, at least some of those subsystems can be reimplemented as plugins. This information is also expected to be useful to all kinds of plugins.
 
-In addition to the new information, this proposal adds API for traversing the package graph, such as being able to access topologically sorted lists of target dependencies. This will make it more convenient for build tool plugins that need to, for example, generate command line arguments that include a search paths for each dependency target.
+In addition to the new information, this proposal adds API for traversing the package graph, such as being able to access topologically sorted lists of target dependencies. This will make it more convenient for build tool plugins that, for example, need to generate command line arguments that include a search paths for each dependency target.
 
 ## Detailed Design
 
@@ -36,11 +36,11 @@ This proposal defines a new `PluginContext` structure that contains:
 
 This structure factors out all the information related to the package graph, such as the package and target names and directories, leaving the context with just the top-level contextual information.
 
-The `BuildToolPlugin` protocol entry point defined by SE-0303 is superseded with a new entry point that takes the new `PluginContext` type and a reference to the `Target` for which build commands should be generated, but the previous API remains so that existing plugins continue to function.
+The `BuildToolPlugin` protocol entry point defined by SE-0303 is superseded by a new entry point that takes the new `PluginContext` type and a reference to the `Target` for which build commands should be generate. The previous API remains so that existing plugins continue to work.
 
 ### Plugin API
 
-The new `PluginContext` structure in the `PackagePlugin` API is defined as:
+The new `PluginContext` structure in the `PackagePlugin` API is defined like this:
 
 ```swift
 /// Provides information about the package for which the plugin is invoked,
@@ -82,9 +82,9 @@ public struct PluginContext {
 }
 ```
 
-The `package` property is a reference to the top-level package to which the plugin is being applied. Through it, the entire subgraph of resolved packages reachable from it can be accessed.
+The `package` property is a reference to the top-level package to which the plugin is being applied. Through it, the script that implements the plugin can reach the entire subgraph of resolved packages on which it either directly or indirectly depends.
 
-The properties related to looking up tools with a particular name are unchanged from the original SE-0303 proposal.
+The function and structure definition that relates to looking up tools with a particular name are unchanged from the original SE-0303 proposal.
 
 This has the effect of factoring out all information related to the package and target, and it puts them into its own directed acyclic graph consisting of the following types:
 
@@ -224,6 +224,18 @@ public struct SourceModuleTarget: Target {
     /// The source files that are associated with this target. Any files that
     /// have been excluded in the manifest have already been filtered out.
     public var sourceFiles: FileList
+    
+    /// Any custom flags for the Swift compiler, derived from any settings
+    /// defined for the target in the manifest.
+    public var swiftCompilerFlags: [String]
+    
+    /// Any custom flags for the Clang compiler, derived from any settings
+    /// defined for the target in the manifest.
+    public var clangCompilerFlags: [String]
+    
+    /// Any custom flags for the host linker, derived from any settings
+    /// defined for the target in the manifest.
+    public var linkerFlags: [String]
 }
 
 /// Represents a target describing an artifact (e.g. a library or executable)
@@ -303,6 +315,8 @@ public enum FileType {
     case unknown
 }
 ```
+
+Note that the `Target` and `Product` types are defined using protocols, with structing implementing the specific types of targets and products. Although they define unique identifiers, they do not in this proposal conform to `Identifiable`, since that would introduce `Self` requirements on the protocol that makes it difficult to have heterogeneous collections of targets and products, as the SwiftPM package model has.  This should be alleviated via [SE-0309](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md). The `ID` type alias and `id` property should make it easy to conform these protocols to `Identifiable` in the future without affecting existing plugins.
 
 The `BuildToolPlugin` is extended with the following new entry point that takes the new, more general context and a direct reference to the target for which build commands should be created:
 
