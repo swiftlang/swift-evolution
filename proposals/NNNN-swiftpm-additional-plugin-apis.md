@@ -100,6 +100,17 @@ public protocol Package {
 
     /// The absolute path of the package directory in the local file system.
     var directory: Path { get }
+  
+    /// The resolved version or branch of the package, if any (intended for
+    /// display purposes only). This may be useful for plugins that generate
+    /// reports or source code that includes version information.
+    var versionDescription: String? { get }
+    
+    /// The resolved source control revision of the package, if any (intended
+    /// for display purposes only). For Git repositories, this is typically
+    /// the commit hash. This may be useful for plugins that generate reports
+    /// or source code that includes version information.
+    var sourceControlRevision: String? { get }
 
     /// Any dependencies on other packages, in the same order as they are
     /// specified in the package manifest.
