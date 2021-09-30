@@ -96,7 +96,7 @@ public protocol Package {
     typealias ID = String
     
     /// The name of the package (for display purposes only).
-    var name: String { get }
+    var displayName: String { get }
 
     /// The absolute path of the package directory in the local file system.
     var directory: Path { get }
