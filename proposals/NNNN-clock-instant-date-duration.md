@@ -232,10 +232,14 @@ extension Duration: AdditiveArithmetic { }
 
 extension Duration {
   public static func / (_ lhs: Duration, _ rhs: Double) -> Duration
+  public static func /= (_ lhs: inout Duration, _ rhs: Double)
   public static func / <T: BinaryInteger>(_ lhs: Duration, _ rhs: T) -> Duration
+  public static func /= <T: BinaryInteger>(_ lhs: inout Duration, _ rhs: T)
   public static func / (_ lhs: Duration, _ rhs: Duration) -> Double
   public static func * (_ lhs: Duration, _ rhs: Double) -> Duration
+  public static func *= (_ lhs: inout Duration, _ rhs: Double)
   public static func * <T: BinaryInteger>(_ lhs: Duration, _ rhs: T) -> Duration
+  public static func *= <T: BinaryInteger>(_ lhs: inout Duration, _ rhs: T)
 }
 ```
 
