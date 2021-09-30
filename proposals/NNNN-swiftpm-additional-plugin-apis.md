@@ -129,82 +129,88 @@ public protocol Package {
 /// information in addition to the resolved package is likely to be added
 /// to this struct in the future.
 public struct PackageDependency {
+    /// A description of the dependency as declared in the package (intended
+    /// for display purposes only).
+    public let description: String
+    
     /// The package to which the dependency was resolved.
     public let package: Package
 }
 
 /// Represents a single product defined in a package.
 public protocol Product {
-    /// Opaque product identifier, unique within the graph.
+    /// Opaque product identifier, unique among the products in the graph.
     var id: ID { get }
     typealias ID = String
 
-    /// The name of the product, as defined in the package manifest. It's unique
-    /// among the products of the package in which it is defined.
-    public let name: String
+    /// The name of the product, as defined in the package manifest. This name
+    /// is unique among the products in the package in which it is defined.
+    var name: String { get }
     
     /// The targets that directly comprise the product, in the order in which
     /// they are declared in the package manifest. The product will contain the
     /// transitive closure of the these targets and their depdendencies.
-    public let targets: [Target]
+    var targets: [Target] { get }
 }
 
 /// Represents an executable product defined in a package.
 public struct ExecutableProduct: Product {
     /// The target that contains the main entry point of the executable. Every
     /// executable product has exactly one main executable target. This target
-    /// will always be one of the targets in the product's `targets` array.
+    /// will always be one of the targets that is also included in the product's
+    /// `targets` list.
     public let mainTarget: Target
 }
 
 /// Represents a library product defined in a package.
 public struct LibraryProduct: Product {
     /// Whether the library is static, dynamic, or automatically determined.
-    public let type: LibraryType
-}
+    public let kind: Kind
 
-/// A type of library product.
-public enum LibraryType {
-    /// Static library.
-    case `static`
+    /// Represents a kind of library product.
+    public enum Kind {
+        /// A static library, whose code is copied into its clients.
+        case `static`
 
-    /// Dynamic library.
-    case `dynamic`
+        /// Dynamic library, whose code is referenced by its clients.
+        case `dynamic`
 
-    /// The type of library is unspecified and will be determined at build time.
-    case `automatic`
+        /// The kind of library produced is unspecified and is determined,
+        /// by the build system based on how the library is used.
+        case automatic
+    }
 }
 
 /// Represents a single target defined in a package.
 public protocol Target {
-    /// Opaque target identifier, unique within the graph.
+    /// Opaque target identifier, unique among the targets in the graph.
     var id: ID { get }
     typealias ID = String
 
-    /// The name of the target, as defined in the package manifest. It's unique
-    /// among the targets of the package.
-    public var name: String
+    /// The name of the target, as defined in the package manifest. This name
+    /// is unique among the targets in the package in which it is defined.
+    var name: String { get }
     
     /// The absolute path of the target directory in the local file system.
-    public var directory: Path
+    var directory: Path { get }
     
     /// Any other targets on which this target depends, in the same order as
     /// they are specified in the package manifest. Conditional dependencies
     /// that do not apply have already been filtered out.
-    public var dependencies: [Dependency]
-
-    /// Represents a dependency of a target on a product or on another target.
-    public enum Dependency {
-        /// A dependency on a target in the same package.
-        case target(Target)
-
-        /// A dependency on a product in another package.
-        case product(Product)
-    }
+    var dependencies: [Dependency] { get }
 }
 
-/// Represents a target consisting of a source code module, containing either
-/// Swift or source files in one of the C-based languages.
+/// Represents a dependency of a target on a product or on another target.
+public enum TargetDependency {
+    /// A dependency on a target in the same package.
+    case target(Target)
+
+    /// A dependency on a product in another package.
+    case product(Product)
+}
+
+/// Represents a target consisting of a source code module, containing source
+/// files in either Swift or in one of the languages supported by Clang.
 public struct SourceModuleTarget: Target {
     /// The name of the module produced by the target (derived from the target
     /// name, though future SwiftPM versions may allow this to be customized).
