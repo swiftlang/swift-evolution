@@ -257,11 +257,14 @@ public struct BinaryArtifactTarget: Target {
 /// Represents a target describing a system library that is expected to be
 /// present on the host system.
 public struct SystemLibraryTarget: Target {
-    /// The directory containing public C headers, if applicable.
-    public let publicHeadersDirectory: Path?
+    /// The name of the `pkg-config` file, if any, describing the library.
+    public let pkgConfig: String?
+
+    /// Flags from `pkg-config` to pass to Clang (and to SwiftC via `-Xcc`).
+    public let compilerFlags: [String]
   
-    /// The library in the local file system.
-    public let libraryPath: Path
+    /// Flags from `pkg-config` to pass to the platform linker.
+    public let linkerFlags: [String]
 }
 
 /// Provides information about a list of files. The order is not defined
