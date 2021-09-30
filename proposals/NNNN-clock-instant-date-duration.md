@@ -7,21 +7,21 @@
 ## Revision history
 * **v1** Initial pre-pitch
 * **v1.1** Refinement to clock, deadline and duration types
-	* Expanded to include a Deadline type
-	* Posed a Clock defined type protocol grouping instead of Duration based protocol grouping (Clock -> Deadline -> Duration rather than Duration + Clock)
+  * Expanded to include a Deadline type
+  * Posed a Clock defined type protocol grouping instead of Duration based protocol grouping (Clock -> Deadline -> Duration rather than Duration + Clock)
 * **v1.2** 
-	* Removed the DurationProtocol concept to aide ease of use and simplify implementations
-	* Introduced WallClock.Duration as the lowered Date type
+  * Removed the DurationProtocol concept to aide ease of use and simplify implementations
+  * Introduced WallClock.Duration as the lowered Date type
 * **v1.3**
-	* Rename Deadline to Instant since that makes a bit more sense generally (especially for Date)
-	* Add the requirement of a referencePoint to ClockProtocol
+  * Rename Deadline to Instant since that makes a bit more sense generally (especially for Date)
+  * Add the requirement of a referencePoint to ClockProtocol
 * **v1.4**
-	* Move the concept of `now` to the protocol requirement for clocks as an instance method
-	* Move the `duration(from:to:)` to an instance method on `InstantProtocol`
-	* Add a number of really useful operators
-	* Concrete clock types now have `.now` on their `Instant` types
-	* Added an example ManualClock
-	
+  * Move the concept of `now` to the protocol requirement for clocks as an instance method
+  * Move the `duration(from:to:)` to an instance method on `InstantProtocol`
+  * Add a number of really useful operators
+  * Concrete clock types now have `.now` on their `Instant` types
+  * Added an example ManualClock
+  
 ## Introduction
 
 The concepts of time can be broken down into three distinct parts: an item to provide a concept of now plus a way to wake up after a given point in time, a concept of a point in time, and a concept of a measurement in time. These three items are respectively a clock, an instant and a duration. The measurement of time can be used for many types of APIs, all the way from the high levels of a concept of a timeout on a network connection, to the amount of time to sleep a task. Currently the APIs that take measurement of time types take `NSTimeInterval` aka `TimeInterval`, `DispatchTimeInterval`, and even types like `timespec`. 
@@ -150,10 +150,10 @@ With additions as such developers can interact similarly to the existing API set
 
 ```swift
 DispatchQueue.main.asyncAfter(deadline: .now.advanced(by: .seconds(3)) {
-	doSomethingAfterThreeSecondsOfUptime()
+  doSomethingAfterThreeSecondsOfUptime()
 }
 DispatchQueue.main.asyncAfter(deadline: .now.advanced(by: .seconds(3), clock: .wall) {
-	doSomethingAfterThreeSecondsOfWallClock()
+  doSomethingAfterThreeSecondsOfWallClock()
 }
 ```
 
@@ -189,7 +189,7 @@ This can be used to adapt existing behaviors like `URLRequest` timeout. Which th
 
 ```swift
 extension URLRequest {
-	public init(url: URL, cachePolicy: CachePolicy = .useProtocolCachePolicy, deadline: MonotonicClock.Instant)
+  public init(url: URL, cachePolicy: CachePolicy = .useProtocolCachePolicy, deadline: MonotonicClock.Instant)
 }
 ```
 
@@ -286,11 +286,11 @@ Wall clocks are useful since they represent a transmittable form of time. Instan
 
 ```swift
 public struct WallClock: ClockProtocol {
-	public typealias Instant = Date
-	
-	public init()
-	
-	public static var now: Instant { get }
+  public typealias Instant = Date
+  
+  public init()
+  
+  public static var now: Instant { get }
 }
 
 extension ClockProtocol where Self == WallClock {
