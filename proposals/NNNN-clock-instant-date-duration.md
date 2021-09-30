@@ -110,7 +110,7 @@ It is worth noting that any extensions to Foundation, Dispatch or other framewor
 The base protocol for defining a clock requires two primitives; a way to wake up after a given instant, and a way to produce a concept of now.
 
 ```swift
-public protocol ClockProtocol {
+public protocol ClockProtocol: Sendable {
   associatedtype Instant: InstantProtocol
   
   var now: Instant { get }
@@ -169,7 +169,7 @@ Given a function with a deadline as an instant, if it calls another function tha
 
 
 ```swift
-public protocol InstantProtocol: Comparable, Hashable {
+public protocol InstantProtocol: Comparable, Hashable, Sendable{
   func advanced(by duration: Duration) -> Self
   func duration(to other: Self) -> Duration
 }
@@ -373,7 +373,7 @@ extension ClockProtocol where Self == UptimeClock {
 One example for adopting `ClockProtocol` is a manual clock. This could be a useful item for testing (but not currently part of this proposal as an API to add). It allows for the manual advancement of time in a deterministic manner. The general intent is to allow the manual clock type to be advanced from one thread and the sleep function can then be used to act as if it was a standard clock in generic APIs.
 
 ```swift
-public final class ManualClock: ClockProtocol {
+public final class ManualClock: ClockProtocol, @unchecked Sendable {
   public struct Instant: InstantProtocol {
     var offset: Duration = .zero
     
