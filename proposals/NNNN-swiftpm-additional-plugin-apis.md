@@ -91,7 +91,7 @@ This has the effect of factoring out all information related to the package and 
 ```swift
 /// Represents a single package in the graph (either the root or a dependency).
 public protocol Package {
-    /// Opaque package identifier, unique within the graph.
+    /// Opaque package identifier, unique among the packages in the graph.
     var id: ID { get }
     typealias ID = String
     
@@ -221,8 +221,8 @@ public struct SourceModuleTarget: Target {
     /// a public headers directory.
     public var publicHeadersDirectory: Path?
 
-    /// The source files that are associated with this target (any files that
-    /// have been excluded in the manifest have already been filtered out).
+    /// The source files that are associated with this target. Any files that
+    /// have been excluded in the manifest have already been filtered out.
     public var sourceFiles: FileList
 }
 
