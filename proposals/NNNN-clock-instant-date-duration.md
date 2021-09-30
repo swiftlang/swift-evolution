@@ -141,8 +141,8 @@ For example we can adapt existing DispatchQueue API to take an instant as a dead
 
 ```swift
 extension DispatchQueue {
-  func asyncAfter(deadline: Deadline<UptimeClock>, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping () -> Void)
-  func asyncAfter<Clock: ClockProtocol>(deadline: Deadline<Clock>, clock: Clock, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping () -> Void)
+  func asyncAfter(deadline: UptimeClock.Instant, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping () -> Void)
+  func asyncAfter<Clock: ClockProtocol>(deadline: Clock.Instant, clock: Clock, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping () -> Void)
 }
 ```
 
