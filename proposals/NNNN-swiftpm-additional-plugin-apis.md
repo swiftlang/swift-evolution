@@ -226,10 +226,32 @@ public struct SourceModuleTarget: Target {
     public var sourceFiles: FileList
 }
 
-/// Represents a target describing a library that is distributed as a binary.
-public struct BinaryLibraryTarget: Target {
-    /// The library in the local file system.
-    public var libraryPath: Path
+/// Represents a target describing an artifact (e.g. a library or executable)
+/// that is distributed as a binary.
+public struct BinaryArtifactTarget: Target {
+    /// The kind of binary artifact.
+    public let kind: Kind
+    
+    /// The original source of the binary artifact.
+    public let origin: Origin
+    
+    /// The location of the binary artifact in the local file system.
+    public var artifact: Path
+
+    /// Represents a kind of binary artifact.
+    public enum Kind {
+        case xcframework
+        case artifactsArchive
+    }
+	
+    // Represents the original location of a binary artifact.
+    public enum Origin: Equatable {
+        /// Represents an artifact that was downloaded from a remote URL.
+        case remote(url: String)
+
+        /// Represents an artifact that was available locally.
+        case local
+    }
 }
 
 /// Represents a target describing a system library that is expected to be
