@@ -270,11 +270,11 @@ public struct SystemLibraryTarget: Target {
 /// Provides information about a list of files. The order is not defined
 /// but is guaranteed to be stable. This allows the implementation to be
 /// more efficient than a static file list.
-public struct FileList: Sequence {
-    public struct Iterator: IteratorProtocol {
-        mutating public func next() -> File?
-    }
-    public func makeIterator() -> Iterator
+public protocol FileList: Sequence {
+    func makeIterator() -> FileListIterator
+}
+public struct FileListIterator: IteratorProtocol {
+    mutating public func next() -> File?
 }
 
 /// Provides information about a single file in a FileList.
