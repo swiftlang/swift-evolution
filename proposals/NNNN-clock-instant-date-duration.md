@@ -21,6 +21,8 @@
   * Add a number of really useful operators
   * Concrete clock types now have `.now` on their `Instant` types
   * Added an example ManualClock
+* **v1.4.1**
+  * Clarify the concrete clock types to show their conformances
   
 ## Introduction
 
@@ -285,12 +287,17 @@ To be clear; we are not suggesting that Calendar, Locale, or TimeZone be moved d
 Wall clocks are useful since they represent a transmittable form of time. Instants can be serialized and sent from one machine to another and the values are meaningful in a foreign context. That transmission can be immediately useful when dealing with concepts like distributed actors; where an actor may be hosted on a remote machine and a deadline for work is sent across from one domain to another. The `WallClock` type will use `Date` as its `Instant` type and provide an extension to access the clock instance as the inferred base type property.
 
 ```swift
-public struct WallClock: ClockProtocol {
-  public typealias Instant = Date
-  
+public struct WallClock {
   public init()
   
-  public static var now: Instant { get }
+  public static var now: Date { get }
+}
+
+extension WallClock: ClockProtocol {
+  public typealias Instant = Date
+
+  public var now: Date { get }
+  public func sleep(until deadline: Date) async throws
 }
 
 extension ClockProtocol where Self == WallClock {
@@ -303,15 +310,26 @@ extension ClockProtocol where Self == WallClock {
 When instants are for local processing only and need to be high resolution without the encumbrance of suspension while the machine is asleep `MonotonicClock` is the tool for the job. The `MonotonicClock.Instant` type can be initialized with a wall clock instant if that value can be expressed in terms of a relative point to now; knowing the delta between the current time and the specified wall clock instant a conversion to the current monotonic reference point can be made such that conversion (if possible) represents what the value would be in terms of the monotonic clock. Much like the wall clock version the monotonic clock also offers an extension to access the clock instance as the inferred base type property.
 
 ```swift
-public struct MonotonicClock: ClockProtocol {
-  public struct Instant: InstantProtocol { 
-    public init?(converting wallclockInstant: WallClock.Instant)
-    public static var now: MonotonicClock.Instant { get }
-  }
-  
+public struct MonotonicClock {
   public init()
   
   public static var now: Instant { get }
+}
+
+extension MonotonicClock: ClockProtocol {
+  public struct Instant { 
+    public init?(converting wallclockInstant: WallClock.Instant)
+    
+    public static var now: MonotonicClock.Instant { get }
+  }
+
+  public var now: Instant { get }
+  public func sleep(until deadline: Instant) async throws
+}
+
+extension MonotonicClock.Instant: InstantProtocol { 
+  func advanced(by duration: Duration) -> MonotonicClock.Instant
+  func duration(to other: MonotonicClock.Instant) -> Duration
 }
 
 extension ClockProtocol where Self == MonotonicClock {
@@ -325,14 +343,24 @@ Where local process scoped or cross machine scoped instants are not suitable upt
 
 ```swift
 public struct UptimeClock: ClockProtocol {
-  public struct Instant: InstantProtocol { 
-    public init?(converting wallclockInstant: WallClock.Instant)
-    public static var now: UptimeClock.Instant { get }
-  }
-  
   public init()
   
   public static var now: Instant { get }
+}
+
+extension UptimeClock: ClockProtocol {
+  public struct Instant { 
+    public init?(converting wallclockInstant: WallClock.Instant)
+    public static var now: UptimeClock.Instant { get }
+  }
+
+  public var now: Instant { get }
+  public func sleep(until deadline: Instant) async throws
+}
+
+extension UptimeClock.Instant: InstantProtocol { 
+  func advanced(by duration: Duration) -> UptimeClock.Instant
+  func duration(to other: UptimeClock.Instant) -> Duration
 }
 
 extension ClockProtocol where Self == UptimeClock {
