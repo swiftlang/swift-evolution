@@ -465,7 +465,7 @@ Or, in the case where an ease of use is preferred over a raw nanoseconds; we wil
 
 ```swift
 extension Task where Success == Never, Failure == Never {
-  public static func sleep(for duration: MonotonicClock.Duration) async throws
+  public static func sleep(for duration: Duration) async throws
 }
 ```
 
