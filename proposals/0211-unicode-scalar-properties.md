@@ -176,17 +176,6 @@ extension Unicode.Scalar.Properties {
 }
 ```
 
-We also propose the following Boolean computed property that is generally
-useful, though it does not correspond to a named Unicode property:
-
-```swift
-extension Unicode.Scalar.Properties {
-
-  // Implemented in terms of ICU's `u_isdefined`.
-  public var isDefined: Bool { get }
-}
-```
-
 ### Case Mappings
 
 The properties below provide full case mappings for scalars. Since a handful of
