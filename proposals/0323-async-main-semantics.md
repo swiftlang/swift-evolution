@@ -1,10 +1,11 @@
 # Asynchronous Main Semantics
 
 * Proposal: [SE-0323](0323-async-main-semantics.md)
-* Authors: [Evan Wilde](https://github.com/etcwilde)
-* Review Manager: [Doug Gregor](https://github.com/DougGregor/)
-* Status: **Accepted**
+* Author: [Evan Wilde](https://github.com/etcwilde)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Accepted (2021-10-01)**
 * Implementation: [apple/swift#38604](https://github.com/apple/swift/pull/38604)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0323-asynchronous-main-semantics/52531)
 
 ## Introduction
 
