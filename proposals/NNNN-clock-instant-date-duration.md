@@ -170,7 +170,7 @@ Given a function with a deadline as an instant, if it calls another function tha
 
 
 ```swift
-public protocol InstantProtocol: Comparable, Hashable, Sendable{
+public protocol InstantProtocol: Comparable, Hashable, Sendable {
   func advanced(by duration: Duration) -> Self
   func duration(to other: Self) -> Duration
 }
