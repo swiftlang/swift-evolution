@@ -23,6 +23,8 @@
   * Added an example ManualClock
 * **v1.4.1**
   * Clarify the concrete clock types to show their conformances
+* **v1.4.2**
+  * Move the measurement function to clock itself to prevent conflicts with existing APIs
   
 ## Introduction
 
@@ -124,17 +126,16 @@ This means that given an instant it is intrinsically linked to the clock; e.g. a
 Clocks can then be used to measure a given amount of work. This means that clock should have the extensions to allow for the affordance of measuring workloads for metrics but also measure them for performance benchmarks. 
 
 ```swift
-// measure with any clock
-public func measure<Clock: ClockProtocol>(clock: Clock, _ work: () async throws -> Void) reasync rethrows -> Duration
-
-// measure with a monotonic clock
-public func measure(_ work: () async throws -> Void) reasync rethrows -> Duration
+extension Clock {
+  public func measure(_ work: () async throws -> Void) reasync rethrows -> Duration
+}
 ```
 
 This means that making benchmarks is quite easy to do:
 
 ```swift
-let elapsed = measure(clock: .monotonic) {
+let clock = MonotonicClock()
+let elapsed = clock.measure {
   someWorkToBenchmark()
 }
 ```
