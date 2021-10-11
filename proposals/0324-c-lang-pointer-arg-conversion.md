@@ -3,7 +3,7 @@
 * Proposal: [SE-0324](0324-c-lang-pointer-arg-conversion.md)
 * Authors: [Andrew Trick](https://github.com/atrick), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Accepted (2021-10-04)**
+* Status: **Implemented (Swift 5.6)**
 * Implementation: [apple/swift#37956](https://github.com/apple/swift/pull/37956)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0324-relax-diagnostics-for-pointer-arguments-to-c-functions/52599)
 * Bugs: [SR-10246](https://bugs.swift.org/browse/SR-10246)
