@@ -28,7 +28,7 @@
   - [Motivation](#motivation)
     - [Initializer Races](#initializer-races)
     - [Initializer Delegation](#initializer-delegation)
-    - [Deinitializer Isolation](#deinitializer-isolation)
+    - [Sendable values](#sendable-values)
   - [Proposed solution](#proposed-solution)
     - [Problem 1: Initializer Data Races](#problem-1-initializer-data-races)
       - [Applying the Escaping-use Restriction](#applying-the-escaping-use-restriction)
@@ -105,7 +105,7 @@ The *de facto* expected behavior, as induced by the existing implementation, is 
 
   1. Initializers can exhibit data races due to ambiguous isolation semantics.
   2. Initializer delegation requires the use of a `convenience` keyword, which does not have meaning without inheritance.
-  3. Deinitializers are run without obtaining access to an actor's executor, yet in some instances can access actor-isolated state.
+  3. The interactions between [Sendable values](se306) and initialization / deinitialization are rough around the edges.
 
 The following subsections will discuss these three high-level problems in more detail.
 
@@ -196,7 +196,14 @@ Actors, which are reference types (like a classes), do not support inheritance. 
 
 <!-- TODO: look into NSObject-inheriting actors and other funky stuff -->
 
-### Deinitializer Isolation
+### Sendable values
+
+The concept of [Sendability](se306) helps eliminate concurrency bugs by preventing the creation of unsafe aliases for objects.
+One possible use case for actors is to act as a wrapper for interactions with mutable state within a class object
+
+<!-- last edits up to here. Need to discuss sendable on arguments to designated inits, and enforcing sendable on accesses from the deinit. -->
+-----
+
 
 A user-defined `deinit` plays an important role in programming idioms such as [RAII](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization). In Swift, only reference types support such a `deinit` and it is automatically called whenever the last reference to the object is destroyed, which can happen virtually anywhere. The implicit contract of a `deinit` is that, at the beginning of the `deinit`, no other references to `self` exist. In addition, after `deinit` has finished executing, any copies of `self` created during the `deinit` are not valid.
 
@@ -207,52 +214,48 @@ The first exception comes from the sharing of executors, which has been proposed
 The second exception is when a class is isolated to a global actor, such as the `MainActor`:
 
 ```swift
+class NetworkSession {
+  func close() { /* ... */}
+}
+
 @MainActor
+var allSessions: [NetworkSession] = []
+
 class NetworkSessionManager {
-  let sessions: [NetworkSession]
+  @MainActor var sessions: [NetworkSession] = []
   
-  func closeSessions() {
-    print("start of main thread method 'closeSessions'")
+  @MainActor func closeSessions() {
     for session in sessions {
       session.close()
     }
-    print("end of method")
+  }
+
+  @MainActor func publishSessions() {
+    allSessions += sessions
   }
 
   deinit {
-    self.closeSessions() // ❌ error: self is not isolated to the MainActor.
-    _ = self.sessions // ❌ error: self is not isolated to the MainActor.
+    self.closeSessions() // <- error, as expected.
+    
+    for session in self.sessions { // <- no error
+      // If someone called `publishSessions`, we would be operating on
+      // objects aliased by `allSessions`, which is not owned by this instance.
+      session.close()
+    }
   }
 }
 ```
 
 Global actors are singleton actor instances whose executor is used by multiple instances of some type.
 In the example above, synchronization with the `MainActor`'s executor would be required to correctly execute the `closeSessions` method, because the method must be run by the main thread.
-The contract of the `MainActor` is that it is a serial executor, so only one function isolated to it can be actively running at any point in time.
-Thus, if the `deinit` were allowed to invoke `closeSessions` *without* synchronization, there is the possibility of _observing_ this contract being violated:
+If the `deinit` were allowed to invoke `closeSessions` *without* synchronization, there is the possibility of _observing_ this contract being violated.
+That is not the case for reading the stored property `sessions`, since at the start of the `deinit`, we hold the only reference to the memory associated with that property.
+Otherwise, subsequent calls to `close` each `NetworkSession` object would happen without synchronization with the aliases to those objects stored in `allSessions`.
 
-```swift
-@MainActor
-func fn() {
-  Task.detached {
-    NetworkSessionManager() // init and then immediately deinit.
-  }
-  print("actually, 'fn' is on the main thread!")
-}
-```
-
-When run, the above can result in the following output:
-
-```
-start of main thread method 'closeSessions'
-actually, 'fn' is on the main thread!
-end of method
-```
-
-This limitation on the `deinit` of `MainActor`-isolated classes is a pain-point
+<!-- This limitation on the `deinit` of `MainActor`-isolated classes is a pain-point
 for users that are migrating code, because they cannot access stored properties
 to invoke the appropriate clean-ups.
-This can lead to unsafe workarounds, such as spawning a new task in the `deinit` to perform the clean-up, and thus extending the lifetime of `self` beyond the `deinit`.
+This can lead to unsafe workarounds, such as spawning a new task in the `deinit` to perform the clean-up, and thus extending the lifetime of `self` beyond the `deinit`. -->
 
 ## Proposed solution
 
@@ -589,3 +592,5 @@ Any changes to the isolation of a declaration continues to be an [ABI-breaking c
 ## Acknowledgments
 
 Thank you to the members of the Swift Forums for their discussions about this topic, which helped shape this proposal. In particular, we would like to thank anyone who participated in [this thread](https://forums.swift.org/t/on-actor-initializers/49001).
+
+[se306]: https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md
