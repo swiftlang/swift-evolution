@@ -23,7 +23,7 @@ New kinds of plugins that are being discussed will require a richer context. In 
 
 This proposal extends the plugin API that was introduced in SE-0303 by defining a generic `PluginContext` structure that supersedes `TargetBuildContext`. This new structure provides a distilled form of the resolved package graph as seen by SwiftPM, with information about all the products and targets therein.
 
-This is the same structure that SwiftPM’s built-in subsystems currently use, and the intent is that, over time, at least some of those subsystems can be reimplemented as plugins. This information is also expected to be useful to all kinds of plugins.
+This is the same structure that SwiftPM’s built-in subsystems currently use, and the intent is that, over time, at least some of those subsystems can be reimplemented as plugins. This information is also expected to be useful to various kinds of other plugins, provided by external packages.
 
 In addition to the new information, this proposal adds API for traversing the package graph, such as being able to access topologically sorted lists of target dependencies. This will make it more convenient for build tool plugins that, for example, need to generate command line arguments that include a search paths for each dependency target.
 
@@ -98,19 +98,12 @@ public protocol Package {
     /// The name of the package (for display purposes only).
     var displayName: String { get }
 
-    /// The absolute path of the package directory in the local file system.
+    /// The absolute path of the package directory in the local file system,
+    /// regardless of the original provenance of the package.
     var directory: Path { get }
   
-    /// The resolved version or branch of the package, if any (intended for
-    /// display purposes only). This may be useful for plugins that generate
-    /// reports or source code that includes version information.
-    var versionDescription: String? { get }
-    
-    /// The resolved source control revision of the package, if any (intended
-    /// for display purposes only). For Git repositories, this is typically
-    /// the commit hash. This may be useful for plugins that generate reports
-    /// or source code that includes version information.
-    var sourceControlRevision: String? { get }
+    /// The origin of the package (root, local, repository, registry, etc).
+    var origin: PackageOrigin { get }
 
     /// Any dependencies on other packages, in the same order as they are
     /// specified in the package manifest.
@@ -123,6 +116,27 @@ public protocol Package {
     /// Any regular targets defined in this package (except plugin targets),
     /// in the same order as they are specified in the package manifest.
     var targets: [Target] { get }
+}
+
+/// Represents the origin of a package in the graph.
+public enum PackageOrigin {
+    /// A root package (unversioned).
+    case root
+
+    /// A local package, referenced by path (unversioned).
+    case local(path: String)
+
+    /// A package from a Git repository, with a URL and with a textual
+    /// description of the resolved version or branch name (for display
+    /// purposes only), along with the corresponding SCM revision. The
+    /// revision is the Git commit hash and may be useful for plugins
+    /// that generates source code that includes version information.
+    case repository(url: String, displayVersion: String, scmRevision: String)
+
+    /// A package from a registry, with an identity and with a textual
+    /// description of the resolved version or branch name (for display
+    /// purposes only).
+    case registry(identity: String, displayVersion: String)
 }
 
 /// Represents a resolved dependency of a package on another package. Other
@@ -175,7 +189,7 @@ public struct LibraryProduct: Product {
         /// Dynamic library, whose code is referenced by its clients.
         case `dynamic`
 
-        /// The kind of library produced is unspecified and is determined,
+        /// The kind of library produced is unspecified and will be determined
         /// by the build system based on how the library is used.
         case automatic
     }
@@ -209,33 +223,44 @@ public enum TargetDependency {
     case product(Product)
 }
 
-/// Represents a target consisting of a source code module, containing source
-/// files in either Swift or in one of the languages supported by Clang.
-public struct SourceModuleTarget: Target {
+/// Represents a target consisting of a source code module, containing either
+/// Swift or source files in one of the C-based languages.
+public protocol SourceModuleTarget: Target {
     /// The name of the module produced by the target (derived from the target
     /// name, though future SwiftPM versions may allow this to be customized).
-    public var moduleName: String
+    public let moduleName: String
+
+    /// The source files that are associated with this target (any files that
+    /// have been excluded in the manifest have already been filtered out).
+    public let sourceFiles: FileList
+
+    /// Any custom linked libraries required by the module, as specified in
+    /// the package manifest.
+    public let linkedLibraries: [String]
+
+    /// Any custom linked frameworks required by the module, as specified in
+    /// the package manifest.
+    public let linkedFrameworks: [String]
+}
+
+/// Represents a target consisting of a source code module compiled using Swift.
+public struct SwiftSourceModuleTarget: SourceModuleTarget {
+    /// Any custom compilation conditions specified for the Swift target in
+    /// the package manifest.
+    public let compilationConditions: [String]
+}
+
+/// Represents a target consisting of a source code module compiled using Clang.
+public struct ClangSourceModuleTarget: SourceModuleTarget {
+    /// Any preprocessor definitions specified for the Clang target.
+    public let preprocessorDefinitions: [String]
+    
+    /// Any custom header search paths specified for the Clang target.
+    public let headerSearchPaths: [Path]
 
     /// The directory containing public C headers, if applicable. This will
-    /// only be set for targets that have Clang sources, and only if there is
-    /// a public headers directory.
-    public var publicHeadersDirectory: Path?
-
-    /// The source files that are associated with this target. Any files that
-    /// have been excluded in the manifest have already been filtered out.
-    public var sourceFiles: FileList
-    
-    /// Any custom flags for the Swift compiler, derived from any settings
-    /// defined for the target in the manifest.
-    public var swiftCompilerFlags: [String]
-    
-    /// Any custom flags for the Clang compiler, derived from any settings
-    /// defined for the target in the manifest.
-    public var clangCompilerFlags: [String]
-    
-    /// Any custom flags for the host linker, derived from any settings
-    /// defined for the target in the manifest.
-    public var linkerFlags: [String]
+    /// only be set for targets that have a directory of a public headers.
+    public let publicHeadersDirectory: Path?
 }
 
 /// Represents a target describing an artifact (e.g. a library or executable)
@@ -248,21 +273,26 @@ public struct BinaryArtifactTarget: Target {
     public let origin: Origin
     
     /// The location of the binary artifact in the local file system.
-    public var artifact: Path
+    public let artifact: Path
 
     /// Represents a kind of binary artifact.
     public enum Kind {
+        /// Represents a .xcframework directory containing frameworks for
+        /// one or more platforms.
         case xcframework
+      
+        /// Represents a .artifactsarchive directory containing SwiftPM
+        /// multiplatform artifacts.
         case artifactsArchive
     }
 	
     // Represents the original location of a binary artifact.
     public enum Origin: Equatable {
-        /// Represents an artifact that was downloaded from a remote URL.
-        case remote(url: String)
-
         /// Represents an artifact that was available locally.
         case local
+
+        /// Represents an artifact that was downloaded from a remote URL.
+        case remote(url: String)
     }
 }
 
