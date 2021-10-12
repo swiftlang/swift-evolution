@@ -3,7 +3,7 @@
 * Proposal: [SE-0323](0323-async-main-semantics.md)
 * Author: [Evan Wilde](https://github.com/etcwilde)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted (2021-10-01)**
+* Status: **Implemented (Swift 5.6)**
 * Implementation: [apple/swift#38604](https://github.com/apple/swift/pull/38604)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0323-asynchronous-main-semantics/52531)
 
