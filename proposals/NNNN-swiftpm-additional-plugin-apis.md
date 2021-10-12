@@ -105,6 +105,11 @@ public protocol Package {
     /// The origin of the package (root, local, repository, registry, etc).
     var origin: PackageOrigin { get }
 
+    /// The tools version specified by the resolved version of the package.
+    /// Behavior is often gated on the tools version, to make sure older
+    /// packages continue to work as intended.
+    var toolsVersion: ToolsVersion { get }
+  
     /// Any dependencies on other packages, in the same order as they are
     /// specified in the package manifest.
     var dependencies: [PackageDependency] { get }
@@ -137,6 +142,18 @@ public enum PackageOrigin {
     /// description of the resolved version or branch name (for display
     /// purposes only).
     case registry(identity: String, displayVersion: String)
+}
+
+/// Represents a version of SwiftPM on whose semantics a package relies.
+public struct ToolsVersion: CustomStringConvertible, Comparable {
+    /// The major version.
+    public let major: Int
+
+    /// The minor version.
+    public let minor: Int
+
+    /// The patch version.
+    public let patch: Int
 }
 
 /// Represents a resolved dependency of a package on another package. Other
