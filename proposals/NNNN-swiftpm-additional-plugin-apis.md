@@ -423,9 +423,15 @@ extension Target {
     /// depends on it (i.e. in "topological sort order").
     public var recursiveTargetDependencies: [Target]
 }
+
+extension SourceModuleTarget {
+    /// A possibly empty list of source files in the target that have the given
+    /// filename suffix.
+    public func sourceFiles(withSuffix: String) -> FileList
+}
 ```
 
-Future proposals might add other useful APIs, such as ones to filters dependencies or input files in other ways. For example, it’s common to want to operate on only a small subset of input files, such as those with a particular filename suffix.
+Future proposals might add other useful APIs.
 
 ## Example 1:  SwiftGen
 
@@ -510,7 +516,7 @@ struct MyPlugin: BuildToolPlugin {
         FileManager.default.createFile(atPath: moduleMappingsFile.string, contents: outputData)
         
         // Iterate over the .proto input files, creating a command for each.
-        let inputFiles = target.sourceFiles.filter { $0.path.extension == "proto" }
+        let inputFiles = target.sourceFiles(withSuffix: ".proto")
         return inputFiles.map { inputFile in            
             // The name of the output file is based on the name of the input file,
             // in a way that's determined by the protoc source generator plug-in
@@ -552,8 +558,4 @@ As specified in SE-0303, plugins are invoked in a sandbox that prevents network 
 
 This is a list of the currently open questions that will need to be resolved before this proposal is put up for review.
 
-* Should the whole package graph be available to every kind of plugin, or just the package to which it is being applied? If the whole graph is available, then does the plugin entry point need a separate parameter to specify the package to which the plugin is being applied?
-
-* For how long should the `TargetBuildContext` compatibility structure be supported? Presumably it can eb removed in the next tools version.
-
-* Should this proposal include better API for filtering on file types? This is a very common thing for plugins to want to do.
+* Should the whole package graph be available to every kind of plugin, or just the package to which it is being applied? If the whole graph is available, then does the plugin entry point need a separate parameter to specify the package to which the plugin is being applied? Vending the entire package graph to the plugin can cause unintentional dependencies on packages "higher up" in the hierarchy.
