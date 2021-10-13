@@ -1,11 +1,11 @@
 # Extended Package Plugin APIs
 
-* Proposal: [SE-NNNN](NNNN-swiftpm-additional-plugin-apis.md)
+* Proposal: [SE-0325](0325-swiftpm-additional-plugin-apis.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud)
-* Review Manager: TBD
-* Status: **Draft**
+* Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Active review (October 13...October 26, 2021) **
 * Implementation: [apple/swift-package-manager#3758](https://github.com/apple/swift-package-manager/pull/3758)
-* Review:  TBD
+* Pitch: https://forums.swift.org/t/pitch-additional-api-available-to-swiftpm-plugins/
 
 ## Introduction
 
