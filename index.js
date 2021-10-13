@@ -69,6 +69,12 @@ var states = {
     className: 'withdrawn',
     count: 0
   },
+  '.expired': {
+    name: 'Expired',
+    shortName: 'Expired',
+    className: 'expired',
+    count: 0
+  },
   '.deferred': {
     name: 'Deferred',
     shortName: 'Deferred',
@@ -228,7 +234,7 @@ function renderNav () {
   // with .accepted proposals.
   var checkboxes = [
     '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
-    '.previewing', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
+    '.previewing', '.implemented', '.returnedForRevision', '.expired', '.deferred', '.rejected', '.withdrawn'
   ].map(function (state) {
     var className = states[state].className
 
@@ -296,7 +302,7 @@ function renderBody () {
 
   var proposalPresentationOrder = [
     '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted', '.acceptedWithRevisions',
-    '.previewing', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
+    '.previewing', '.implemented', '.returnedForRevision', '.expired', '.deferred', '.rejected', '.withdrawn'
   ]
     
   proposalPresentationOrder.map(function (state) {

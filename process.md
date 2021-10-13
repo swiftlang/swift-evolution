@@ -115,6 +115,7 @@ A given proposal can be in one of several states:
 * **Accepted with revisions (YYYY-MM-DD)**:
   The proposal has been accepted (on the specified date),
   contingent upon the inclusion of one or more revisions.
+* **Expired**: The proposal's implementation has not been merged within one year of acceptance.
 * **Previewing**: The proposal has been accepted and is available for preview
   in the [Standard Library Preview package][preview-package].
 * **Implemented (Swift Next)**:
