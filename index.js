@@ -57,16 +57,34 @@ var states = {
     className: 'active-review',
     count: 0
   },
+  '.accepted': {
+    name: 'Accepted',
+    shortName: 'Accepted',
+    className: 'accepted',
+    count: 0
+  },
+  '.acceptedWithRevisions': {
+    name: 'Accepted with revisions',
+    shortName: 'Accepted',
+    className: 'accepted-with-revisions',
+    count: 0
+  },
+  '.previewing': {
+    name: 'Previewing',
+    shortName: 'Previewing',
+    className: 'previewing',
+    count: 0
+  },
+  '.implemented': {
+    name: 'Implemented',
+    shortName: 'Implemented',
+    className: 'implemented',
+    count: 0
+  },
   '.returnedForRevision': {
     name: 'Returned for Revision',
     shortName: 'Returned',
     className: 'returned-for-revision',
-    count: 0
-  },
-  '.withdrawn': {
-    name: 'Withdrawn',
-    shortName: 'Withdrawn',
-    className: 'withdrawn',
     count: 0
   },
   '.expired': {
@@ -81,34 +99,16 @@ var states = {
     className: 'deferred',
     count: 0
   },
-  '.accepted': {
-    name: 'Accepted',
-    shortName: 'Accepted',
-    className: 'accepted',
-    count: 0
-  },
-  '.acceptedWithRevisions': {
-    name: 'Accepted with revisions',
-    shortName: 'Accepted',
-    className: 'accepted-with-revisions',
-    count: 0
-  },
   '.rejected': {
     name: 'Rejected',
     shortName: 'Rejected',
     className: 'rejected',
     count: 0
   },
-  '.implemented': {
-    name: 'Implemented',
-    shortName: 'Implemented',
-    className: 'implemented',
-    count: 0
-  },
-  '.previewing': {
-    name: 'Previewing',
-    shortName: 'Previewing',
-    className: 'previewing',
+  '.withdrawn': {
+    name: 'Withdrawn',
+    shortName: 'Withdrawn',
+    className: 'withdrawn',
     count: 0
   },
   '.error': {

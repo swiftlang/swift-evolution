@@ -607,48 +607,37 @@ section ul, section li {
 
 /* status label colors */
 
-.color-awaiting-review {
-    color: rgb(255, 149, 0);
-    border-color: rgb(255, 149, 0);
-}
-
-.color-scheduled-for-review {
-    color: rgb(255, 149, 0);
-    border-color: rgb(255, 149, 0);
-}
-
+.color-awaiting-review,
+.color-scheduled-for-review,
 .color-active-review {
     color: rgb(255, 149, 0);
     border-color: rgb(255, 149, 0);
 }
-.color-returned-for-revision {
-    color: rgb(88, 86, 214);
-    border-color: rgb(88, 86, 214);
-}
-.color-expired {
-    color: rgb(88, 86, 214);
-    border-color: rgb(88, 86, 214);
-}
-.color-deferred {
-    color: rgb(88, 86, 214);
-    border-color: rgb(88, 86, 214);
-}
-.color-accepted,.color-accepted-with-revisions {
+
+.color-accepted,
+.color-accepted-with-revisions {
     color: rgb(76, 217, 100);
     border-color: rgb(76, 217, 100);
 }
-.color-rejected {
-    color: rgb(255, 59, 48);
-    border-color: rgb(255, 59, 48);
-}
+
 .color-previewing {
     color: rgb(0, 190, 180);
     border-color: rgb(0, 190, 180);
 }
+
 .color-implemented {
     color: rgb(0, 122, 255);
     border-color: rgb(0, 122, 255);
 }
+
+.color-returned-for-revision,
+.color-expired,
+.color-deferred {
+    color: rgb(88, 86, 214);
+    border-color: rgb(88, 86, 214);
+}
+
+.color-rejected,
 .color-withdrawn {
     color: rgb(255, 59, 48);
     border-color: rgb(255, 59, 48);
