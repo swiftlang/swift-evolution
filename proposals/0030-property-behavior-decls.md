@@ -3,7 +3,8 @@
 * Proposal: [SE-0030](0030-property-behavior-decls.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Deferred**
+* Status: **Withdrawn**
+* Next Proposal: [SE-0258](0258-property-wrappers.md)
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0030-property-behaviors/1546)
 
 ## Introduction
