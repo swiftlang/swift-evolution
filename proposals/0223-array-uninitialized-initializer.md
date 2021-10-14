@@ -3,7 +3,8 @@
 * Proposal: [SE-0223](0223-array-uninitialized-initializer.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Returned for revision**
+* Status: **Withdrawn**
+* Next Proposal: [SE-0245](0245-array-uninitialized-initializer.md)
 * Decision Notes: [Returned for revision](https://forums.swift.org/t/se-0223-accessing-an-arrays-uninitialized-buffer/15194/41)
 * Implementation: [apple/swift#17389](https://github.com/apple/swift/pull/17389)
 * Bug: [SR-3087](https://bugs.swift.org/browse/SR-3087)
