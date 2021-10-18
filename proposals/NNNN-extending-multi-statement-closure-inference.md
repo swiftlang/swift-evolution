@@ -5,6 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [PR](https://github.com/apple/swift/pull/38577)
+* Toolchain: Please use a [nightly snapshot of trunk development](https://swift.org/builds/development/xcode/swift-DEVELOPMENT-SNAPSHOT-2021-10-05-a/swift-DEVELOPMENT-SNAPSHOT-2021-10-05-a-osx.pkg) with `-Xfrontend -experimental-multi-statement-closures` flags to enable the feature.
 
 ## Introduction
 
