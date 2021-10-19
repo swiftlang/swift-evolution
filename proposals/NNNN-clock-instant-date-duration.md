@@ -25,6 +25,9 @@
   * Clarify the concrete clock types to show their conformances
 * **v1.4.2**
   * Move the measurement function to clock itself to prevent conflicts with existing APIs
+* **v1.4.3**
+  * Re-added hours and minutes construction
+  * added a base requirement for `ClockProtocol` to require a `minimumResolution`
   
 ## Introduction
 
@@ -115,7 +118,7 @@ It is worth noting that any extensions to Foundation, Dispatch, or other framewo
 
 ##### Clock
 
-The base protocol for defining a clock requires two primitives; a way to wake up after a given instant, and a way to produce a concept of now.
+The base protocol for defining a clock requires two primitives; a way to wake up after a given instant, and a way to produce a concept of now. Clocks can also be defined in terms of a potential resolution of access; some clocks may offer resolution at the nanosecond scale, other clocks may offer only microsecond scale. Any values of elapsed time may be considered to be 0 if they are below the minimum resolution.
 
 ```swift
 public protocol ClockProtocol: Sendable {
@@ -124,10 +127,14 @@ public protocol ClockProtocol: Sendable {
   var now: Instant { get }
   
   func sleep(until deadline: Instant) async throws
+  
+  var minimumResolution: Duration { get }
 }
 ```
 
 This means that given an instant, it is intrinsically linked to the clock; e.g., a monotonic instant is not meaningfully comparable to a wall clock instant. However, as an ease of use concession, the durations between two instants can be compared. However, doing this across clocks is considered a programmer error, unless handled very carefully. By making the protocol hierarchy just clocks and instants, it means that we can easily express a compact form of a duration that is usable in all cases; particularly for APIs that might adopt Duration as a replacement to an existing type.
+
+The clock minimum resolution will have a default implementation that returns `.nanosecond(1)`.
 
 Clocks can then be used to measure a given amount of work. This means that clock should have the extensions to allow for the affordance of measuring workloads for metrics, but also measure them for performance benchmarks.
 
@@ -214,16 +221,21 @@ It is reasonable to consider that each clock's instant has it's own "unit" of ti
 
 Similarly to how [CGFloat was offered a special case for conversion](https://github.com/apple/swift-evolution/blob/main/proposals/0307-allow-interchangeable-use-of-double-cgfloat-types.md), Duration should have a special conversion case to TimeInterval to aide in the ergonomics of making sure the types are approachable. This means that any API that currently takes a TimeInterval now can take a Duration, and any API that takes a duration can take a concrete TimeInterval value. Just as the `CGFloat` to `Double` conversion was not taken lightly - this also is not a small issue. Expressing durations as a `Double` not only is potentially lossy but also pollutes the potential namespace with perhaps dubious concepts like multiplying two `TimeInterval` variables together is perhaps not the most meaningful usage. `Duration` being structured means that the type can be opinionated in what types of conformances it has, and operations can be extended upon it without mucking with unrelated categories.
 
-Meaningful durations can always be expressed in terms of nanoseconds, either a duration before a reference point or after. They can be constructed from meaningful human measured (or machine measured precision) but should not account for any calendrical calculations (e.g., a measure of days, months or years distinctly need a calendar to be meaningful). Durations should able to be serialized, compared, and stored as keys, but also should be able to be added and subtracted (and zero is meaningful). They are distinctly NOT `Numeric` due to the aforementioned issue with regards to multiplying two `TimeInterval` variables. That being said, there is utility for ad-hoc division and multiplication to calculate back-offs.
+Meaningful durations can always be expressed in terms of nanoseconds plus a number of seconds, either a duration before a reference point or after. They can be constructed from meaningful human measured (or machine measured precision) but should not account for any calendrical calculations (e.g., a measure of days, months or years distinctly need a calendar to be meaningful). Durations should able to be serialized, compared, and stored as keys, but also should be able to be added and subtracted (and zero is meaningful). They are distinctly NOT `Numeric` due to the aforementioned issue with regards to multiplying two `TimeInterval` variables. That being said, there is utility for ad-hoc division and multiplication to calculate back-offs.
+
+The `Duration` must be able to account for high scale resolution of calculation; the storage will under the hood ensure proper rounding for division (by likely storing higher precision than exposed) and enough range to span the full range of potential reasonable instants. This means that spanning the full range of +/- thousands of years at a non lossy scale can be accomplished by storing the seconds and nanoseconds. 
 
 ```swift
 public struct Duration: Sendable {
-  public var nanoseconds: Int64
-  
-  public init<T: BinaryInteger>(nanoseconds: T)
+  public var seconds: Int64 { get }
+  public var nanoseconds: Int64 { get }
 }
 
 extension Duration {
+  public static func hours<T: BinaryInteger>(_ seconds: T) -> Duration
+  public static func hours(_ seconds: Double) -> Duration
+  public static func minutes<T: BinaryInteger>(_ seconds: T) -> Duration
+  public static func minutes(_ seconds: Double) -> Duration
   public static func seconds<T: BinaryInteger>(_ seconds: T) -> Duration
   public static func seconds(_ seconds: Double) -> Duration
   public static func milliseconds<T: BinaryInteger>(_ milliseconds: T) -> Duration
