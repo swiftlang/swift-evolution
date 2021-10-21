@@ -22,7 +22,7 @@ Currently adding a new expression or statement to a single-statement closure cou
 
 Let’s consider the following example:
 
-```
+```swift
 func map<T: BinaryInteger>(fn: (Int) -> T) -> T {
   return fn(42)
 }
@@ -36,7 +36,7 @@ let _ = map {
 
 Because single-statement closures are type-checked together with enclosing context, it’s possible to infer a type for generic parameter `T` based on the result type of a call to `doSomething`. The behavior is completely different if `doSomething` is not the only call in the body of the `map` closure:
 
-```
+```swift
 let _ = map {
   logger.info("About to call 'doSomething(\$0)'")
   doSomething($0)
@@ -68,7 +68,7 @@ Multi-statement closure inference would have the following semantics:
 
 Let’s go back to our example from `Motivation` section. 
 
-```
+```swift
 func map<T: BinaryInteger>(fn: (Int) -> T) -> T {
   return fn(42)
 }
@@ -88,7 +88,7 @@ According to new unified semantics, it is possible to correctly type-check the c
 
 Let’s consider another example which would be supported under new semantic rules:
 
-```
+```swift
 struct Box {
   let weight: UInt
 }
@@ -112,7 +112,7 @@ Under the new semantic rules, `result` would be type-checked to have a type of `
 
 This could be extrapolated to a more complex expression, for example:
 
-```
+```swift
 struct Box {
   let weight: UInt
 }
@@ -146,7 +146,7 @@ There is at least one situation where type-checker behavior differs between sing
 
 Let’s consider a call to an overloaded function `test` that expects a closure argument:
 
-```
+```swift
 func test<PtrTy, R>(_: (UnsafePointer<PtrTy>) -> R) -> R { ... }
 func test<ResultTy>(_: (UnsafeRawBufferPointer) -> ResultTy) -> ResultTy { ... }
 
@@ -157,7 +157,7 @@ let _: Int = test { ptr in
 
 Currently call to `test` is ambiguous because it’s possible to infer that `PtrTy` is `Int` from the body of the (single-statement closure) closure, so both overloads of `test` produce a valid solution. The situation is different if we were to introduce a new, and possibly completely unrelated, statement to this closure e.g.:
 
-```
+```swift
 func test<PtrTy, R>(_: (UnsafePointer<PtrTy>) -> R) -> R { ... }
 func test<ResultTy>(_: (UnsafeRawBufferPointer) -> ResultTy) -> ResultTy { ... }
 
@@ -194,7 +194,7 @@ To make incremental progress, I think it’s reasonable to split `inout` changes
 
 It’s common to have situations where an early `guard` statement returns `nil` that doesn’t supply enough type information to be useful for inference under the proposed rules:
 
-```
+```swift
 func test<T>(_: () -> T?) { ... }
 
 test {
