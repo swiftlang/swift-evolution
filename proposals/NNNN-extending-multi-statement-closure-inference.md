@@ -1,9 +1,9 @@
 # Enable multi-statement closure parameter/result type inference
 
-* Proposal: [SE-NNNN](NNNN-extending-multi-statement-closure-inference.md)
+* Proposal: [SE-0326](0326-extending-multi-statement-closure-inference.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active review (October 21 – November 1 2021)**
 * Implementation: [PR](https://github.com/apple/swift/pull/38577)
 * Toolchain: Please use a [nightly snapshot of trunk development](https://swift.org/builds/development/xcode/swift-DEVELOPMENT-SNAPSHOT-2021-10-05-a/swift-DEVELOPMENT-SNAPSHOT-2021-10-05-a-osx.pkg) with `-Xfrontend -experimental-multi-statement-closures` flags to enable the feature.
 
