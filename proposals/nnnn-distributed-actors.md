@@ -966,19 +966,18 @@ This is great, and solves the issue of locating _nodes_ of a cluster, however we
 In practice, _how_ such lookups are performed is highly tied to the underlying transport, and thus the transport library should provide a specific pattern to perform those lookups. We call this pattern the `Receptionist`, and it may take the following protocol shape:
 
 ```swift
-protocol Receptionist: DistributedActor { 
-    @discardableResult
-    public func register<Guest>(
-        _ guest: Guest,
-        with key: Reception.Key<Guest>,
-        replyTo: ActorRef<>? = nil
-    ) async -> Reception.Registered<Guest> 
-      where Guest: ReceptionistGuest
+protocol Receptionist { 
+    public func register<Guest>(_ guest: Guest, with key: Reception.Key<Guest>
+    ) async where Guest: DistributedActor
 
     distributed func lookup<Guest>(
         _ key: Reception.Key<Guest>
-    ) async -> Reception.Listing<Guest> 
-      where Guest: DistributedActor
+    ) async -> Set<Guest> 
+        where Guest: DistributedActor
+  
+    func subscribe<Guest>(to key: DistributedReception.Key<Guest>) 
+      async -> DistributedReception.GuestListing<Guest> // this is an AsyncSequence
+        where Guest: DistributedActor & __DistributedClusterActor
 
   // more convenience functions may exist ...
 }
@@ -989,9 +988,7 @@ Such receptionist is a normal distributed actor, which may be resolved on the us
 In practice, this means that locating all greeters in a system boils down to:
 
 ```swift
-guard let anyGreeter =
-  try await Receptionist.resolve(transport)
-    .lookup(Greeter.self).first else {
+guard receptionist.lookup(Greeter.self).first else {
   print("No Greeter discovered!")
   return
 }
@@ -1184,7 +1181,7 @@ protocol ActorTransport {
 
 This function can only be invoked on specific actor types–as usual with static functions on protocols–and serves as a factory function for actor proxies of given specific type.
 
-Implementing the resolve function by returning `.resolved(instance)` allows the transport to return known local actors it is aware of. Otherwise, if it intends to proxy messages to this actor through itself it should return `.proxy`, instructing the constructor to only construct a partial "proxy" instance using the address and transport. The transport may also chose to throw, in which case the constructor will rethrow the error, e.g. explaining that the passed in address is illegal or malformed.
+Implementing the resolve function by returning `.some(instance)` allows the transport to return known local actors it is aware of. Otherwise, if it intends to proxy messages to this actor through itself it should return `nil`, instructing the constructor to only construct a partial "proxy" instance using the address and transport. The transport may also chose to throw, in which case the constructor will rethrow the error, e.g. explaining that the passed in address is illegal or malformed.
 
 The `resolve` function is intentionally not asynchronous, in order to invoke it from inside `decode` implementations, as they may need to decode actor addresses into actor references.
 
