@@ -1616,7 +1616,7 @@ enum AppleStore {
     let storage: Storage
   
     distributed func handle(order: Order, customer: Customer) async throws -> Device {
-      let device = await try Task.withDeadline(in: .minutes(1)) { 
+      let device = try await Task.withDeadline(in: .minutes(1)) { 
         try await storage.fetchDevice(order.deviceID)
       }
       
