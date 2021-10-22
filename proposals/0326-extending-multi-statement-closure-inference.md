@@ -23,7 +23,7 @@ Currently adding a new expression or statement to a single-statement closure cou
 Let’s consider the following example:
 
 ```swift
-func map<T: BinaryInteger>(fn: (Int) -> T) -> T {
+func map<T>(fn: (Int) -> T) -> T {
   return fn(42)
 }
 
