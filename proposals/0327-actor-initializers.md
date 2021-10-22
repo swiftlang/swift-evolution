@@ -1,26 +1,16 @@
 # On Actors and Initialization
 
-* Proposal: [SE-NNNN](NNNN-actor-initializers.md)
+* Proposal: [SE-0327](0327-actor-initializers.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [John McCall](https://github.com/rjmccall), [Konrad Malawski](https://github.com/ktoso)
-* Review Manager: TBD
-* Status: **Partially implemented in `main`.**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Awaiting review (October 25...November 8, 2021)**
 * Previous Discussions:
   * [On Actor Initializers](https://forums.swift.org/t/on-actor-initializers/49001)
   * [Deinit and MainActor](https://forums.swift.org/t/deinit-and-mainactor/50132)
 
-<!-- *During the review process, add the following fields as needed:*
-
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md) -->
+* Implementation: **Partially implemented in `main`.**
 
 **Table of Contents**
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
-
-<!-- code_chunk_output -->
 
 - [On Actors and Initialization](#on-actors-and-initialization)
   - [Introduction](#introduction)
@@ -96,7 +86,7 @@ In this example, `self` escapes the initializer through the call to its method `
 Stored properties with default values can be viewed as being initialized immediately after entering the `init`, but prior to executing any of the `init`'s statements.
 
 Determining whether `self` is fully-initialized is a flow-sensitive analysis performed by the compiler. Because it's flow-sensitive, there are multiple points where `self` becomes fully-initialized, and these points are not explicitly marked in the source program. In the example above, there is only one such point, immediately after the rows are assigned to `[]`. Thus, it is permitted to call `addDefaultData` right after that assignment statement within the same block, because all paths leading to the call are guaranteed to have assigned `self.rows` beforehand. Keep in mind that these rules are not unique to actors, as they are enforced in initializers for other types like structs and classes.
- 
+
 
 ## Motivation
 
