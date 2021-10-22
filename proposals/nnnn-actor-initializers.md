@@ -1,4 +1,4 @@
-# Actor Initializers and Deinitializers
+# On Actors and Initialization
 
 * Proposal: [SE-NNNN](NNNN-actor-initializers.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [John McCall](https://github.com/rjmccall), [Konrad Malawski](https://github.com/ktoso)
@@ -22,7 +22,7 @@
 
 <!-- code_chunk_output -->
 
-- [Actor Initializers and Deinitializers](#actor-initializers-and-deinitializers)
+- [On Actors and Initialization](#on-actors-and-initialization)
   - [Introduction](#introduction)
   - [Background](#background)
   - [Motivation](#motivation)
