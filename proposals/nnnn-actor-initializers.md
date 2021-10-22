@@ -27,13 +27,13 @@
   - [Background](#background)
   - [Motivation](#motivation)
     - [Initializer Races](#initializer-races)
+    - [Stored Property Isolation](#stored-property-isolation)
     - [Initializer Delegation](#initializer-delegation)
-    - [Sendable values](#sendable-values)
   - [Proposed solution](#proposed-solution)
     - [Problem 1: Initializer Data Races](#problem-1-initializer-data-races)
       - [Applying the Escaping-use Restriction](#applying-the-escaping-use-restriction)
-    - [Problem 2: Initializer Delegation](#problem-2-initializer-delegation)
-    - [Problem 3: Deinitializers and Executors](#problem-3-deinitializers-and-executors)
+    - [Problem 2: Stored Property Isolation](#problem-2-stored-property-isolation)
+    - [Problem 3: Initializer Delegation](#problem-3-initializer-delegation)
     - [Summary](#summary)
   - [Source compatibility](#source-compatibility)
   - [Alternatives considered](#alternatives-considered)
@@ -58,7 +58,7 @@ This proposal aims to shore up the definition of an actor, to clarify *when* the
 
 To get the most out of this proposal, it is important to review the existing behaviors of initializer and deinitializer declarations in Swift.
 
-As with classes, actors support both synchronous and asynchronous initializers, along with a user-provided deinitializer, like so:
+As with classes, actors support both synchronous and asynchronous initializers, along with a customizable deinitializer, like so:
 
 ```swift
 actor Database {
@@ -101,11 +101,11 @@ Determining whether `self` is fully-initialized is a flow-sensitive analysis per
 ## Motivation
 
 While there is no existing specification for how actor initialization and deinitialization *should* work, that in itself is not the only motivation for this proposal.
-The *de facto* expected behavior, as induced by the existing implementation, is also problematic. In summary, the major problems are:
+The *de facto* expected behavior, as induced by the existing implementation, is also problematic. In summary, the issues include:
 
   1. Initializers can exhibit data races due to ambiguous isolation semantics.
-  2. Initializer delegation requires the use of a `convenience` keyword, which does not have meaning without inheritance.
-  3. The interactions between [Sendable values](se306) and initialization / deinitialization are rough around the edges.
+  2. Stored properties can have an isolation that differs from the isolation of the type's initializers.
+  3. *Minor:* Initializer delegation requires the use of the `convenience` keyword like classes, even though actors do not support inheritance. Is this attribute still needed? If so, what is the isolation of an actor's convenience initializer?
 
 The following subsections will discuss these three high-level problems in more detail.
 
@@ -171,6 +171,37 @@ then which executor should be used? Should it be valid to isolate an actor's `in
 The existing implementation makes it impossible to write a correct `init` for the example above, because 
 the `init` is considered to be entirely isolated to the `@MainActor`. Thus, it's not possible to initialize `self.status` _at all_. It's not possible to `await` and hop to `self`'s executor to perform an assignment to `self.status`, because `self` is not a fully-initialized actor-instance yet!
 
+### Stored Property Isolation
+
+The stored properties of classes, structs, and enums are currently permitted to have global-actor isolation applied to them. But, this creates a problems for both initialization and deinitialization. For example, when users specify a default value for the stored property, those default values are evaluated by the non-delegating initializer of a nominal type:
+
+```swift
+@MainActor func getStatus() -> Int { /* ... */ }
+@PIDActor func genPID() -> ProcessID { /* ... */ }
+
+class Process {
+  @MainActor var status: Int = getStatus()
+  @PIDActor var pid: ProcessID = genPID()
+  
+  init() {} // Problem: what is the isolation of this init?
+  
+  init() async {} // Problem: no `await` is written to acknowledge
+                  // that to initialize `status` and `pid`, an
+                  // async call would be required.
+
+  deinit {
+    // Problem: how do we release the resources contained
+    // in our global-actor isolated stored properties from 
+    // a deinit, which can never be actor-isolated?
+  }
+}
+```
+
+In the example above, because `status` and `pid` are isolated to two different global-actors, there's no single actor-isolation that can be specified for the synchronous `init`.
+In fact, all non-delegating initializers would need to have the same isolation as all stored properties.
+For the asynchronous `init`, the fact that a suspension may occur is not explicit in the program, because no `await` is needed on the right-hand side expression of the property declaration's assignment.
+Finally, even if the isolation of the initializers and stored properties matched, the deinit still can _never_ access the stored properties in order to invoke clean-ups routines, without using unsafe lifetime extensions of the actor from the `deinit`.
+
 ### Initializer Delegation
 
 All nominal types in Swift, except actors, explicitly support initializer delegation, which is when one initializer calls another one to perform initialization.
@@ -195,67 +226,6 @@ struct S {
 Actors, which are reference types (like a classes), do not support inheritance. But, currently they must use the `convenience` modifier on an initializer to perform any delegation. Is this modifier still needed?
 
 <!-- TODO: look into NSObject-inheriting actors and other funky stuff -->
-
-### Sendable values
-
-The concept of [Sendability](se306) helps eliminate concurrency bugs by preventing the creation of unsafe aliases for objects.
-One possible use case for actors is to act as a wrapper for interactions with mutable state within a class object
-
-<!-- last edits up to here. Need to discuss sendable on arguments to designated inits, and enforcing sendable on accesses from the deinit. -->
------
-
-
-A user-defined `deinit` plays an important role in programming idioms such as [RAII](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization). In Swift, only reference types support such a `deinit` and it is automatically called whenever the last reference to the object is destroyed, which can happen virtually anywhere. The implicit contract of a `deinit` is that, at the beginning of the `deinit`, no other references to `self` exist. In addition, after `deinit` has finished executing, any copies of `self` created during the `deinit` are not valid.
-
-The single-reference nature of `self` in a `deinit` means that, in theory, one should not need to `await` or synchronize with an actor's executor in order to access its isolated state. This is because any task that is still awaiting access to an actor-instance must also hold a reference to it. Thus, when there are no references to the instance left, then the executor should also be idle.
-
-There are two important exceptions to this, because in some cases, the executor is *not* exclusively owned by the instance. 
-The first exception comes from the sharing of executors, which has been proposed as part of Swift's [custom executors](https://forums.swift.org/t/support-custom-executors-in-swift-concurrency/44425).
-The second exception is when a class is isolated to a global actor, such as the `MainActor`:
-
-```swift
-class NetworkSession {
-  func close() { /* ... */}
-}
-
-@MainActor
-var allSessions: [NetworkSession] = []
-
-class NetworkSessionManager {
-  @MainActor var sessions: [NetworkSession] = []
-  
-  @MainActor func closeSessions() {
-    for session in sessions {
-      session.close()
-    }
-  }
-
-  @MainActor func publishSessions() {
-    allSessions += sessions
-  }
-
-  deinit {
-    self.closeSessions() // <- error, as expected.
-    
-    for session in self.sessions { // <- no error
-      // If someone called `publishSessions`, we would be operating on
-      // objects aliased by `allSessions`, which is not owned by this instance.
-      session.close()
-    }
-  }
-}
-```
-
-Global actors are singleton actor instances whose executor is used by multiple instances of some type.
-In the example above, synchronization with the `MainActor`'s executor would be required to correctly execute the `closeSessions` method, because the method must be run by the main thread.
-If the `deinit` were allowed to invoke `closeSessions` *without* synchronization, there is the possibility of _observing_ this contract being violated.
-That is not the case for reading the stored property `sessions`, since at the start of the `deinit`, we hold the only reference to the memory associated with that property.
-Otherwise, subsequent calls to `close` each `NetworkSession` object would happen without synchronization with the aliases to those objects stored in `allSessions`.
-
-<!-- This limitation on the `deinit` of `MainActor`-isolated classes is a pain-point
-for users that are migrating code, because they cannot access stored properties
-to invoke the appropriate clean-ups.
-This can lead to unsafe workarounds, such as spawning a new task in the `deinit` to perform the clean-up, and thus extending the lifetime of `self` beyond the `deinit`. -->
 
 ## Proposed solution
 
@@ -296,7 +266,19 @@ In such cases, protection for the `self` actor instance, after it is fully-initi
 This means that, within an `init` isolated to some global-actor `A`, the stored properties of `self` belonging to a different actor `B` can be accessed *without* synchronization.
 Thus, the `ConnectionManager` example from earlier will work as-is, because only stored properties of the actor-instance `self` are accessed.
 
-### Problem 2: Initializer Delegation
+### Problem 2: Stored Property Isolation
+
+Actor-isolation on a stored property only prevents concurrent access to the storage for the value, and not subsequent accesses.
+For example, if `pid` is an actor-isolated stored property, then the access `p.pid.reset()` only protects the access of `pid` from `p`, and not the call to `reset` afterwards.
+Thus, for value types (enums and structs), global-actor isolation on stored properties serves virtually no use: mutations of stored properties in value types can never race (due to copy-on-write semantics).
+
+The [Global actors proposal](se316) explicitly excludes actor types from having stored properties that are global-actor isolated.
+The only nominal type left in Swift to consider are classes. For a class, the benefit of global-actor isolated stored properties is to prevent races during an access. But, because a `deinit` cannot be made `async`, and it is undefined behavior for a class value's lifetime to extend beyond the invocation of a `deinit`, there would be no way to access the stored property during a `deinit`.
+
+In summary, the most straightforward solution to the problems described earlier is: global-actor isolation should not apply to the stored properties appearing within _any_ nominal type.
+
+
+### Problem 3: Initializer Delegation
 
 Next, one of the key downsides of the escaping-use restriction is that it becomes impossible to invoke a method in the time *after* `self` is fully-initialized, but *before* a non-delegating `init` returns.
 This pattern is important, for example, to organize set-up code that is needed both during initialization and the lifetime of the instance:
@@ -405,36 +387,6 @@ Thus, if any one of the following apply to an initializer, it must obey the esca
 2. `nonisolated`
 3. global-actor isolated 
 
-### Problem 3: Deinitializers and Executors
-
-Without access to the stored properties of a `MainActor`-isolated class during `deinit`, it is difficult to clean-up state because a `deinit` is implicitly `nonisolated`.
-We observe that, when an actor-isolated stored property is accessed, only the operation that _loads_ the value from the instance is synchronized with (and performed on) the executor.
-Any further method calls or accessed on the loaded value are subject to the isolation rules of that loaded value's members.
-Thus, we propose to allow access to isolated stored properties within any `deinit`, whether it is a class or actor.
-In this example:
-
-```swift
-@MainActor
-class NetworkSessionManager {
-  var sessions: [NetworkSession] = []
-
-  // func f() {}
-
-  deinit {
-    // ✅ no MainActor syncronization to access `sessions`
-    NetworkSessionManager.closeSessions(self.sessions)
-  }
-
-  nonisolated static func closeSessions(_: [NetworkSession]) { /* ... */ }
-}
-```
-
-there is no danger of a data race when accessing the `sessions` property of a `NetworkSessionManager` instance during its `deinit`.
-Furthermore, there are no observable side-effects of performing that access on an arbitrary executor.
-The only danger arises from access to isolated code that can have arbitrary side-effects, such as methods and computed properties.
-Thus, such accesses will follow ordinary isolation rules that guard their use,
-given that a `deinit` is implicitly `nonisolated`.
-
 ### Summary
 
 The following table summarizes the capabilities and requirements of actor initializers in this proposal:
@@ -452,6 +404,7 @@ The following are known source compatibility breaks with this proposal:
 
 1. The escaping-use restriction.
 2. `nonisolated` is ignored for `async` inits.
+3. Global-actor isolation on stored properties of a nominal type.
 
 **Breakage 1**
 
@@ -479,8 +432,7 @@ To resolve this source incompatibility issue without too much code churn, it is 
 
 **Breakage 2**
 
-In Swift 5.5, if a programmer requests that an `async` initializer be `nonisolated`, the escaping-use restriction is not applied, because isolation to `self` is applied regardless.
-For example, in this code:
+In Swift 5.5, if a programmer requests that an `async` initializer be `nonisolated`, the escaping-use restriction is not applied, because isolation to `self` is applied regardless. For example, in this code:
 
 ```swift
 actor MyActor {
@@ -506,6 +458,40 @@ Fixing this bug to match the proposal is very simple: remove the `nonisolated`.
 Callers of the `init` will not be affected, since no synchronization is needed to enter the `init`, regardless of its isolation.
 The compiler will be augmented with a fix-it in this scenario to make upgrading easy.
 
+**Breakage 3**
+The removal of global-actor isolation on stored properties imposes some source incompatability.
+For structs and enums, removal of a now invalid global-actor isolation on a stored property 
+without a property initializer is not a source break, as it would only generate 
+warnings that an `await` is now unnessecary:
+
+```swift
+struct S {
+  var counter: Int // suppose a fix-it removed @MainActor from this.
+
+  func f() async {
+    _ = await self.counter // warning: no 'async' operations occur within 'await' expression
+  }
+}
+```
+
+The behavior of the program changes only in a positive way: a superflous synchronization is removed.
+If the property's initializer requires global-actor isolation to evaluate, then the
+programmer will need to move that expression into the type's initializer:
+
+```swift
+@MainActor func getNumber() -> Int { 4 }
+
+struct S {
+  // 'await' operation cannot occur in a property initializer
+  var counter: Int /* = await getNumber() */
+
+  init() async {
+    counter = await getNumber() // OK
+  }
+}
+```
+
+This, combined with the rule change for classes, where the synchronization is not superflous, means that some minor source fixes will be required. A warning about this change will be emitted in when the compiler is operating in Swift 5 mode, because it will become an error in Swift 6.
 
 ## Alternatives considered
 
@@ -593,4 +579,4 @@ Any changes to the isolation of a declaration continues to be an [ABI-breaking c
 
 Thank you to the members of the Swift Forums for their discussions about this topic, which helped shape this proposal. In particular, we would like to thank anyone who participated in [this thread](https://forums.swift.org/t/on-actor-initializers/49001).
 
-[se306]: https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md
+[se316]: https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md
