@@ -412,7 +412,7 @@ func withLocalDistributedActor<Act, T>(
 func withLocalDistributedActor<Act, T>(
   _ actor: Act,
   _ body: (isolated Act) async throws -> T,
-  else whenRemote (Act) async throws -> T
+  else whenRemote: (Act) async throws -> T
 ) async rethrows -> T where Act: DistributedActor
 ```
 
