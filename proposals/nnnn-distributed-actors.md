@@ -838,7 +838,7 @@ The `DistributedActor` protocol also conforms to `Codable`. As it does not make 
 extension DistributedActor: Encodable {
   nonisolated func encode(to encoder: Encoder) throws { 
     var container = encoder.singleValueContainer()
-    try container.encode(self.actorAddress)
+    try container.encode(self.id)
   }
 }
 ```
