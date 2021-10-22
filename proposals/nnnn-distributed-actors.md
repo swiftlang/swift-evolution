@@ -412,7 +412,7 @@ func withLocalDistributedActor<Act, T>(
 func withLocalDistributedActor<Act, T>(
   _ actor: Act,
   _ body: (isolated Act) async throws -> T,
-  else whenRemote (Act) async throws -> T
+  else whenRemote: (Act) async throws -> T
 ) async rethrows -> T where Act: DistributedActor
 ```
 
@@ -858,7 +858,7 @@ The `DistributedActor` protocol also conforms to `Codable`. As it does not make 
 extension DistributedActor: Encodable {
   nonisolated func encode(to encoder: Encoder) throws { 
     var container = encoder.singleValueContainer()
-    try container.encode(self.actorAddress)
+    try container.encode(self.id)
   }
 }
 ```
@@ -1633,8 +1633,8 @@ enum AppleStore {
     let storage: Storage
   
     distributed func handle(order: Order, customer: Customer) async throws -> Device {
-      let device = await try Task.withDeadline(in: .minutes(1)) { 
-        await try storage.fetchDevice(order.deviceID)
+      let device = try await Task.withDeadline(in: .minutes(1)) { 
+        try await storage.fetchDevice(order.deviceID)
       }
       
       guard await customer.processPayment(device.price) else {
