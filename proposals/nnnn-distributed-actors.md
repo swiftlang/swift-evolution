@@ -313,7 +313,7 @@ func example3(transport: ActorTransport, friend name: ActorIdentity) async throw
   let b = try Capybara.resolve(name, using: transport)
   
   // identities are Codable
-  try await a.meet(b.id)
+  try await a.meet(friend: b.id)
 
   // resolve a local instance from an ID
   let aliasForA = try Capybara.resolve(a.id, using: transport)
