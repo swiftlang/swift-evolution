@@ -531,9 +531,28 @@ distributed actor DA {
 }
 ```
 
-The exact semantics of when `actorReady` and `resignIdentity` are invoked are very specific and defined as follows:
+The exact semantics of when `actorReady` and `resignIdentity` are invoked are very specific and depend on exact actor initializationsemantics as specified in SE-NNNN: Actor Initializers and Deinitializers. Specifically, the ready and resign calls are guaranteed the following semantics:
 
-The `actorReady` call is made when the actor is _fully initialized_ (see also SE-NNNN: Actor Initializers and Deinitializers). This is because at this point the `self` reference can be leaked, and could be used to even send it to some distributed actor. We want to ensure that the transport is always able to use "ready" actors, i.e. a "not-ready" actor's self cannot be leaked as it would cause similar issues to leaking a not fully initialized reference.
+In synchronous initializers, the `actorReady` call is performed as the _last_ action the actor's initializer performs. This ensures that the "escaping of self" is safe – by that time, we know, that the actor is fully initialized, and the `self` we are offering to the transport indeed is "ready". This is equivalent to calling this function from the outside of the initializer, immediately after it returned.
+
+In asynchronous initializers, the `actorReady` call is made when the actor is _fully initialized_ . This is because at this point the `self` reference can be leaked, and could be used to even send it to some distributed actor. We want to ensure that the transport is always able to use "ready" actors, i.e. a "not-ready" actor's self cannot be leaked as it would cause similar issues to leaking a not fully initialized reference.
+
+The call to `actorReady` is synthesized _exactly_ at the point where the actor becomes fully initialized. This also accounts for control flow, and even initialization in loops, in which case we guarantee that even though the actor became fully initialized inside the body of a loop, the call is made __only once__:
+
+```swift
+distributed actor Fish {
+  let name: String
+  init(choice: Int, transport: ActorTransport) { 
+    if choice % 2 == 0 {
+      name = "Anabelle"
+    } else {
+      name = "Charlie"
+    }
+  }
+}
+```
+
+
 
 In order to _become_ fully initialized, the distributed actor does _first_ call `self._id = transport.assignIdentity(Self.self)`. In face of failable initializers, this means that an initializer may assign the identity, and then _throw_ before ever becoming fully initialized. A similar situation already exists with classes, where a class that throws from its init before it is fully initialized, _does not_ cause its deinit to be called. The following example showcases the exact invocation semantics, where commented out code is representative of what semantics are synthesized:
 
@@ -574,6 +593,7 @@ Because such throw would happen between the `assignIdentity` and `actorReady` ca
 The `resignIdentity` call, has two situations in which it may be called: 
 
 - As first thing in the actor's `deinit`.
+- During an user-defined designated `init` during which the initialization of the actor _fails before the actor is fully initialized_.
 
 If no user-defined designated initializer is provided, a default initializer is synthesized that requires a named parameter `transport` of type `ActorTransport`, i.e., `init(transport:)`. The access level of the synthesized init is the same as the distributed actor declaration (i.e. for an internal distributed actor, the init is internal, and public for a public one). As with other nominal types, this initializer is only synthesized by the compiler if all stored properties can be default-initialized.
 
