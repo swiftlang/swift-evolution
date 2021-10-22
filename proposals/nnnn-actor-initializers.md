@@ -459,10 +459,10 @@ Callers of the `init` will not be affected, since no synchronization is needed t
 The compiler will be augmented with a fix-it in this scenario to make upgrading easy.
 
 **Breakage 3**
-The removal of global-actor isolation on stored properties imposes some source incompatability.
+The removal of global-actor isolation on stored properties imposes some source incompatibility.
 For structs and enums, removal of a now invalid global-actor isolation on a stored property 
 without a property initializer is not a source break, as it would only generate 
-warnings that an `await` is now unnessecary:
+warnings that an `await` is now unnecessary:
 
 ```swift
 struct S {
@@ -474,7 +474,7 @@ struct S {
 }
 ```
 
-The behavior of the program changes only in a positive way: a superflous synchronization is removed.
+The behavior of the program changes only in a positive way: a superfluous synchronization is removed.
 If the property's initializer requires global-actor isolation to evaluate, then the
 programmer will need to move that expression into the type's initializer:
 
@@ -491,7 +491,7 @@ struct S {
 }
 ```
 
-This, combined with the rule change for classes, where the synchronization is not superflous, means that some minor source fixes will be required. A warning about this change will be emitted in when the compiler is operating in Swift 5 mode, because it will become an error in Swift 6.
+This, combined with the rule change for classes, where the synchronization is not superfluous, means that some minor source fixes will be required. A warning about this change will be emitted in when the compiler is operating in Swift 5 mode, because it will become an error in Swift 6.
 
 ## Alternatives considered
 
