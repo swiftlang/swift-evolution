@@ -3,11 +3,10 @@
 * Proposal: [SE-0327](0327-actor-initializers.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [John McCall](https://github.com/rjmccall), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review (October 25...November 8, 2021)**
+* Status: **Scheduled for review (October 25...November 8, 2021)**
 * Previous Discussions:
   * [On Actor Initializers](https://forums.swift.org/t/on-actor-initializers/49001)
   * [Deinit and MainActor](https://forums.swift.org/t/deinit-and-mainactor/50132)
-
 * Implementation: **Partially implemented in `main`.**
 
 **Table of Contents**
@@ -34,14 +33,11 @@
   - [Effect on API resilience](#effect-on-api-resilience)
   - [Acknowledgments](#acknowledgments)
 
-<!-- /code_chunk_output -->
-
-
 ## Introduction
 
 Actors are a relatively new nominal type in Swift that provides data-race safety for its mutable state.
 The protection is achieved by _isolating_ the mutable state of each actor instance to at most one task at a time.
-The proposal that introduced actors ([SE-0306](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md)) is quite large and detailed, but misses some of the subtle aspects of creating and destroying an actor's isolated state.
+The proposal that introduced actors ([SE-0306](0306-actors.md)) is quite large and detailed, but misses some of the subtle aspects of creating and destroying an actor's isolated state.
 This proposal aims to shore up the definition of an actor, to clarify *when* the isolation of the data begins and ends for an actor instance, along with *what* can be done inside the body of an actor's `init` and `deinit` declarations.
 
 ## Background
@@ -262,11 +258,10 @@ Actor-isolation on a stored property only prevents concurrent access to the stor
 For example, if `pid` is an actor-isolated stored property, then the access `p.pid.reset()` only protects the access of `pid` from `p`, and not the call to `reset` afterwards.
 Thus, for value types (enums and structs), global-actor isolation on stored properties serves virtually no use: mutations of stored properties in value types can never race (due to copy-on-write semantics).
 
-The [Global actors proposal](se316) explicitly excludes actor types from having stored properties that are global-actor isolated.
+The [global actors](0316-global-actors.md) proposal explicitly excludes actor types from having stored properties that are global-actor isolated.
 The only nominal type left in Swift to consider are classes. For a class, the benefit of global-actor isolated stored properties is to prevent races during an access. But, because a `deinit` cannot be made `async`, and it is undefined behavior for a class value's lifetime to extend beyond the invocation of a `deinit`, there would be no way to access the stored property during a `deinit`.
 
 In summary, the most straightforward solution to the problems described earlier is: global-actor isolation should not apply to the stored properties appearing within _any_ nominal type.
-
 
 ### Problem 3: Initializer Delegation
 
@@ -485,9 +480,6 @@ This, combined with the rule change for classes, where the synchronization is no
 
 ## Alternatives considered
 
-<!-- Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead. -->
-
 This section explains alternate approaches that were ultimately not chosen for this proposal.
 
 ### Deinitializers
@@ -546,27 +538,14 @@ Thus, is not ultimately worthwhile to try to eliminate `convenience`, since it d
 While a `nonisolated` synchronous initializer is mostly useless, the compiler can simple tell programmers to remove the `nonisolated`, because it is meaningless in that case.
 Note that `nonisolated` _does_ provide utility for an `async` initializer, since it means that no implicit executor synchronization is performed, while allowing other `async` calls to happen within the initializer.
 
-
-
 ## Effect on ABI stability
 
 This proposal does not affect ABI stability.
 
 ## Effect on API resilience
 
-<!-- API resilience describes the changes one can make to a public API
-without breaking its ABI. Does this proposal introduce features that
-would become part of a public API? If so, what kinds of changes can be
-made without breaking ABI? Can this feature be added/removed without
-breaking ABI? For more information about the resilience model, see the
-[library evolution
-document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
-in the Swift repository. -->
-
-Any changes to the isolation of a declaration continues to be an [ABI-breaking change](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md#effect-on-api-resilience), but a change in what is allowed in the _implementation_ of, say, a `nonisolated` member will not affect API resilience.
+Any changes to the isolation of a declaration continues to be an [ABI-breaking change](0306-actors.md#effect-on-api-resilience), but a change in what is allowed in the _implementation_ of, say, a `nonisolated` member will not affect API resilience.
 
 ## Acknowledgments
 
 Thank you to the members of the Swift Forums for their discussions about this topic, which helped shape this proposal. In particular, we would like to thank anyone who participated in [this thread](https://forums.swift.org/t/on-actor-initializers/49001).
-
-[se316]: https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md
