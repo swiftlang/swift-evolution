@@ -4,7 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Withdrawn**
-* Next Proposal: [SE-0258](0258-property-wrappers.md)
+* Superseded by: [SE-0258](0258-property-wrappers.md)
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0030-property-behaviors/1546)
 
 ## Introduction
