@@ -18,7 +18,7 @@ Several of the discussions below refer to "C family" languages. This is intended
 
 ## Strings, Characters, and Collection Types
 
- * Make `Array<T>` subscript access return `T?` or `T!` instead of `T`: The current array behavior is [intentional](https://forums.swift.org/t/proposal-add-safe-subquence-access-via-subscript-for-colloctiontype/516/7), as it accurately reflects the fact that out-of-bounds array access is a logic error.  Changing the current behavior would slow `Array` accesses to an unacceptable degree. This topic has come up [multiple](https://forums.swift.org/t/proposal-add-safe-subquence-access-via-subscript-for-colloctiontype/516/5) times before but is very unlikely to be accepted.
+ * Change `Array<T>` subscript access to return `T?` or `T!` instead of `T`: The current array behavior is [intentional](https://forums.swift.org/t/proposal-add-safe-subquence-access-via-subscript-for-colloctiontype/516/7), as it accurately reflects the fact that out-of-bounds array access is a logic error. Changing the current behavior would slow `Array` accesses to an unacceptable degree. Changing the unlabeled array subscript to return an optional has come up [multiple](https://forums.swift.org/t/proposal-add-safe-subquence-access-via-subscript-for-colloctiontype/516/5) times before and is very unlikely to be accepted.
 
 ## Control Flow, Closures, Optional Binding, and Error Handling
 
