@@ -114,7 +114,7 @@ enum MyLibrary {
 
 Each task-local declaration represents its own, independent task-local storage. Reading from one declaration will never observe a value stored using a different declaration, even if the declarations look exactly the same.
 
-Because of those pitfals with creating multiple instances of the same task local identifier, we propose to diagnose and and fail at compile time unless the `@TaskLocal` property wrapper is defined on something other than a static or global property. 
+Because of those pitfalls with creating multiple instances of the same task local identifier, we propose to diagnose and fail at compile time if the `@TaskLocal` property wrapper is defined on a static or global property. 
 
 > In order to do so, we will extend the internal `public static subscript<T>(_enclosingInstance object: T, ...)` subscript mechanism to require "no enclosing instance", which will cause the apropriate compile time error reporting to be triggered if such wrapper is used on a non-static or non-global property.
 
@@ -395,7 +395,7 @@ func synchronous() { // even if no Task is available to this function, the APIs 
 
 Sometimes it may be necessary to "continue work asynchronously" _without waiting_ for the result of such operation. 
 
-Today there exists the `detach` operation which steps out of the realm of Structured Concurrency entirely, and may out-live it's calling scope entirely. This is problematic for task-local values which are built and optimized entirely around the structured notion of child-tasks. Also, a detached task's purpose is to "start from a clean slate" (i.e. detach) from the context it was created from. In other words, detached tasks cannot and will not inherit task-local values (!). Much in the same way as they would not inherit the execution context or priority of the calling context.
+Today there exists the `detach` operation which steps out of the realm of Structured Concurrency entirely, and may out-live it's calling scope entirely. This is problematic for task-local values which are built and optimized entirely around the structured notion of child-tasks. Also, a detached task's purpose is to "start from a clean slate" (i.e. detach) from the context it was created from. In other words, detached tasks cannot and will not inherit task-local values (!), much in the same way as they would not inherit the execution context or priority of the calling context.
 
 To illustrate the interaction of detached tasks and task-locals, consider the following example:
 
@@ -411,7 +411,7 @@ await Lib.$sugar.withValue(.noSugar) {
 } 
 ```
 
-As expected, because the *detached task* completely discards any contextual information from the creating task, no sugar preferences were automatically carried through to it. This is similar to task priority, which also is never automatically inherited in detached tasks.
+As expected, because the *detached task* completely discards any contextual information from the creating task, no `.sugar` preferences were automatically carried through to it. This is similar to task priority, which also is never automatically inherited in detached tasks.
 
 If necessary, it is possible is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
 
@@ -444,9 +444,9 @@ await Lib.$tea.withValue(.green) {
 print("outside")
 ```
 
-Note that the `async` operation, similar to a `detach` operation, is allowed to out-live the creating task. I.e. the operation is __not__ a child-task, and as such the usual technique of task-locals to rely on the task tree for storage of the taks-locals cannot be used here.
+Note that the `async` operation, similar to a `detach` operation, is allowed to out-live the creating task. I.e. the operation is __not__ a child-task, and as such the usual technique of task-locals to rely on the task tree for storage of the task-locals cannot be used here.
 
-The implementation ensures correctness of this by _copying_ all taks-local value bindings over to the new async task at the point of creation (line 3 in the above example). This means that such operation is slightly heavier than creating a plain child-task, because not only does the task have to be likel heap allocated, it also needs to copy over all task-local bindings from the creating task.
+The implementation ensures correctness of this by _copying_ all task-local value bindings over to the new async task at the point of creation (line 3 in the above example). This means that such operation is slightly heavier than creating a plain child-task, because not only does the task have to be likely heap allocated, it also needs to copy over all task-local bindings from the creating task.
 
 Please note that what is copied here are only the bindings, i.e. if a reference counted type was bound using `withValue` in the creating task, what is copied to the new task is a reference to the previous task, along with incrementing the reference count to it to keep the referenced object alive.
 
@@ -454,7 +454,7 @@ Please note that what is copied here are only the bindings, i.e. if a reference 
 
 One other situation where a task might out-live the `withValue` lexical-scope is a specific anti-pattern within task groups. This situation is reliabily detected at runtime and cause a crash when it is encountered, along with a detailed explanation of the issue.
 
-The one situation where a `withValue` scope is not enough to encapsulate the lifetime of a child-task is if the binding is performed _exactly_ around a TaskGroup's `group.spawn`, like this:
+This one situation where a `withValue` scope is not enough to encapsulate the lifetime of a child-task is if the binding is performed _exactly_ around a TaskGroup's `group.spawn`, like this:
 
 ```swift
 withTaskGroup(of: String.self) { group in 
@@ -951,7 +951,7 @@ Dispatch offers APIs that allow setting values that are _specific to a dispatch 
 These APIs serve their purpose well, however they are incompatible with Swift Concurrency's task-focused model. Even if actors and asynchronous functions execute on dispatch queues, no capability to carry values over multiple queues is given, which is necessary to work well with Swift Concurrency, as execution may hop back and forth between queues.
 
 ## Intended use-cases
-It is important to keep in mind the intended use case of this API. Task-local values are not indented to replace passing passing parameters where doing so explicitly is the right tool for the job. Please note that task local storage is more expensive to access than parameters passed explicitly. They also are "invisible" in API, so take care to avoid accidentally building APIs which absolutely must have some task local value set when they are called as this is very suprising and hard to debug behavior.
+It is important to keep in mind the intended use case of this API. Task-local values are not intended to replace passing parameters where doing so explicitly is the right tool for the job. Please note that task local storage is more expensive to access than parameters passed explicitly. They also are "invisible" in API, so take care to avoid accidentally building APIs which absolutely must have some task local value set when they are called as this is very suprising and hard to debug behavior.
 
 Only use task local storage for auxiliary _metadata_ or "_execution scoped configuration_", like mocking out some runtime bits for the duration of a _specific call_ but not globally, etc.
 
