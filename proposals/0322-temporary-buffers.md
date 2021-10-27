@@ -3,7 +3,7 @@
 * Proposal: [SE-0322](0322-temporary-buffers.md)
 * Author: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted with revisions (2021-10-01)**
+* Status: **Implemented (Swift 5.6)**
 * Implementation: [apple/swift#37666](https://github.com/apple/swift/pull/37666)
 * Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0322-temporary-uninitialized-buffers/52532)
 
