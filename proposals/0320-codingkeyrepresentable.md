@@ -3,7 +3,7 @@
 * Proposal: [SE-0320](0320-codingkeyrepresentable.md)
 * Author: [Morten Bek Ditlevsen](https://github.com/mortenbekditlevsen)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted (2021-09-14)**
+* Status: **Implemented (Swift 5.6)**
 * Implementation: [apple/swift#34458](https://github.com/apple/swift/pull/34458)
 * Decision Notes:
   [Review #1](https://forums.swift.org/t/se-0320-coding-of-non-string-int-keyed-dictionary-into-a-keyedcontainer/50903),
