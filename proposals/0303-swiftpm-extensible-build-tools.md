@@ -251,7 +251,7 @@ protocol BuildToolPlugin: Plugin {
     /// commands, configured based on the information in the context.
     func createBuildCommands(
         context: TargetBuildContext
-    ) throws -> [Command]
+    ) async throws -> [Command]
 }
 
 /// Provides information about the target being built, as well as contextual
@@ -419,9 +419,25 @@ enum Command {
 /// the plugin. If any errors are emitted, the plugin is considered to have
 /// have failed, which will be reported to users during the build.
 struct Diagnostics {
-    static func error(_ message: String, file: Path? = nil, line: Int? = nil)
-    static func warning(_ warning message: String, file: Path? = nil, line: Int? = nil)
-    static func remark(_ message: String, file: Path? = nil, line: Int? = nil)
+    /// Emits an error that is shown in SwiftPM or an IDE using it. If one
+    /// or more errors are emitted by a plugin, it is considered to have
+    /// failed to run.
+    static func error(_ message: String, file: Path? = #file, line: Int? = #line)
+
+    /// Emits a warning that is shown in SwiftPM or an IDE using it.
+    static func warning(_ message: String, file: Path? = #file, line: Int? = #line)
+
+    /// Emits a remark that may be shown in SwiftPM or an IDE using it.
+    static func remark(_ message: String, file: Path? = #file, line: Int? = #line)
+
+    /// Emits a diagnostic with the specified severity and descriptive message.
+    static func emit(_ severity: Serverity, _ message: String, file: Path? = #file, line: Int? = #line)
+    
+    /// The seriousness with which the diagnostic is treated. An error causes
+    /// SwiftPM to consider the plugin to have failed to run.
+    enum Severity {
+        case error, warning, remark
+    }
 }
 
 /// Provides information about a list of files. The order is not defined
