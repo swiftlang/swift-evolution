@@ -83,7 +83,7 @@ public struct PluginContext {
 }
 ```
 
-The `package` property is a reference to the top-level package to which the plugin is being applied. Through it, the script that implements the plugin can reach the entire subgraph of resolved packages on which it either directly or indirectly depends.
+The `package` property is a reference to the package to which the plugin is being applied. Through it, the script that implements the plugin can reach the entire subgraph of resolved packages on which it either directly or indirectly depends. Note that this might only constitute part of the package graph, if the plugin is being applied to a package other than the root package of the whole graph SwiftPM sees.
 
 The function and structure definition that relates to looking up tools with a particular name are unchanged from the original SE-0303 proposal.
 
@@ -554,9 +554,3 @@ struct MyPlugin: BuildToolPlugin {
 ## Security Considerations
 
 As specified in SE-0303, plugins are invoked in a sandbox that prevents network access and file system write operations other than to a small set of predetermined locations. This proposal only extends the information that is available to plugins so that it contains information that is already defined in a package graph — it doesn’t grant any new abilities to the plugin.
-
-## Open Questions
-
-This is a list of the currently open questions that will need to be resolved before this proposal is put up for review.
-
-* Should the whole package graph be available to every kind of plugin, or just the package to which it is being applied? If the whole graph is available, then does the plugin entry point need a separate parameter to specify the package to which the plugin is being applied? Vending the entire package graph to the plugin can cause unintentional dependencies on packages "higher up" in the hierarchy.
