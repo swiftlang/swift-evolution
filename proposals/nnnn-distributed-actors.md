@@ -1090,7 +1090,7 @@ let behavior: Behavior<Greet> = Behavior.setup { context in
                                                 
   func greet(who: ActorRef<String>, language: String) { 
     greeted += 1
-    localize("Hi \(who.address.name)!", in: "language")
+    localize("Hi \(who.address.name)!", in: language)
   }
 }
 
