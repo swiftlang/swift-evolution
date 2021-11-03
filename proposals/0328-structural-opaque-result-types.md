@@ -123,7 +123,7 @@ We could try to stop the user from defining a higher order function which return
 
 Another reason one might want to disallow returning functions that take opaque result types as arguments is that top-level functions can never have opaque result types as arguments.
 
-This decision should be considered in the context of generalized `some` syntax, which we are likely to implement in the future. The approach to higher order functions which is more consistent with this generalized syntax is debatable.
+This decision should be considered in the context of generalized `some` syntax, which we are likely to implement in the future. Which approach to higher order functions is more consistent with this generalized syntax is debatable.
 
 ### Constraint inference
 
