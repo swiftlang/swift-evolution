@@ -1,6 +1,6 @@
 # Clock, Instant, Date, and Duration
 
-* Proposal: [SE-0320](0320-clock-instant-date-duration.md)
+* Proposal: [SE-0329](0329-clock-instant-date-duration.md)
 * Author(s): [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (November 4...15, 2021)**
