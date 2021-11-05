@@ -1,8 +1,10 @@
 # Clock, Instant, Date, and Duration
 
-* Proposal: Swift-NNNN
-* Author(s): Philippe Hausler <phausler@apple.com>
-* Status: **Pitch**
+* Proposal: [SE-0320](0320-clock-instant-date-duration.md)
+* Author(s): [Philippe Hausler](https://github.com/phausler)
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (November 4...15, 2021)**
+* Implementation: [apple/swift#39753](https://github.com/apple/swift/pull/39753)
 
 ## Revision history
 * **v1** Initial pre-pitch
