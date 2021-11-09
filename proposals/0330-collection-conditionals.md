@@ -1,11 +1,10 @@
 # Conditionals in Collections
 
-* Proposal: [SE-NNNN](NNNN-collection-conditionals.md)
+* Proposal: [SE-0330](0330-collection-conditionals.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962)
-* Review Manager: TBD
-* Status: **Awaiting decision**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (November 8...19, 2021)**
 * Implementation: [apple/swift#19347](https://github.com/apple/swift/pull/19347)
-* Decision Notes: TBD
 * Bugs: [SR-8743](https://bugs.swift.org/browse/SR-8743)
 
 ## Introduction
