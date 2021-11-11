@@ -21,7 +21,9 @@ Separately to this proposal, it would also be useful to define custom actions th
 
 ## Proposed Solution
 
-This proposal defines a new plugin capability called `command` that allows packages to provide plugins for users to invoke directly. A command plugin specifies the verb through which the command can be invoked from the `swift` `package` CLI, and any special permissions it needs (such as file system access).
+This proposal defines a new plugin capability called `command` that allows packages to provide plugins for users to invoke directly. A command plugin specifies the semantic intent of the command — this might be a predefined intent such “documentation generation” or “source code formatting”, or it might be a custom intent with a specialized verb that allows the command to be invoked from the `swift` `package` CLI or from an IDE.  A command plugin can also specify any special permissions it needs (such as the permission to modify the package directory).
+
+The command's intent declaration provides a way of grouping command plugins by their functional categories, so that SwiftPM — or an IDE that supports SwiftPM packages — can show the commands that are available for a particular purpose. For example, this supports having different command plugins for generating documentation for a package, while still allowing those different commands be grouped and discovered based on their intent.
 
 As with build tool plugins, a package specifies the set of command plugins that are available to it by declaring dependencies on the packages that provide those plugins. Unlike build tool plugins, which are applied on a target-by-target basis through a declaration in the manifest of the package using the build tool, custom command plugins are not invoked automatically, but can instead be invoked directly by the user after the package graph has been resolved. This proposal adds options to the `swift` `package` CLI that allow users to invoke a plugin-provided command and to control the set of targets to which the command should apply.
 
@@ -49,12 +51,9 @@ extension PluginCapability {
     /// using the SwiftPM CLI (`swift package <verb>`), or in an IDE that supports
     /// Swift Packages.
     public static func command(
-        /// The `swift package` CLI verb through which the plugin can be invoked.
-        verb: String,
-        
-        /// A description of the functionality of the custom command, suitable for
-        /// showing in help text output.
-        description: String,
+        /// The semantic intent of the plugin (either one of the predefined intents,
+        /// or a custom intent).
+        intent: PluginCommandIntent,
         
         /// Any permissions needed by the command plugin. This affects what the
         /// sandbox in which the plugin is run allows. Some permissions may require
@@ -64,13 +63,34 @@ extension PluginCapability {
 }
 ```
 
-The plugin specifies the verb through which it can be invoked, and provides a description of the functionality that is suitable for inclusion in any help output. A future proposal may generalize this to provide a more abstract declaration of the “intent” of the plugin, but this initial proposal keeps the invocation as a literal verb to be added after `swift` `package`.
+The plugin specifies the intent of the command as either one of a set of predefined intents or as a custom intent with an custom verb and help description.
+
+In this proposal, the intent is expressed as an enum provided by SwiftPM in `PackageDescription`:
+
+```swift
+enum PluginCommandIntent {
+    /// The intent of the command is to generate documentation, either by parsing the
+    /// package contents directly or by using the build system support for generating
+    /// symbol graphs. Invoked by a `generate-documentation` verb to `swift package`.
+    case documentationGeneration
+    
+    /// The intent of the command is to modify the source code in the package based
+    /// on a set of rules. Invoked by a `format-source-code` verb to `swift package`.
+    case sourceCodeFormatting
+        
+    /// An intent that doesn't fit into any of the other categories, with a custom
+    /// verb through which it can be invoked.
+    case custom(verb: String, description: String)
+}
+```
+
+Future versions of SwiftPM will almost certainly add to this set of possible intents, using availability annotations gated on the tools version.
+
+If multiple command plugins in the dependency graph of a package specify the same intent, or specify a custom intent with the same verb, then the user will need to specify which plugin to invoke by qualifying the verb with the name of the plugin, e.g. `MyPlugin.do-something` (since plugin names are target names, they are already known to be unique within the package graph).
 
 The permissions affect the ways in which the command plugin can access external resources such as the file system or network. By default, command plugins have only read-only access to the file system (except for temporary-files locations) and cannot access the network.
 
-Command plugins that wants to modify the package source code (such as source formatters) needs to request the `packageWritability` permission. This modifies the sandbox in which the plugin is invoked to let it write inside the package directory in the file system, after notifying the user about what is going to happen and getting approval in a way that is appropriate for the IDE in question.
-
-If multiple command plugins specify the same verb, then the user will need to specify which plugin to invoke by qualifying the verb with the name of the plugin, e.g. `MyPlugin.do-something` (since plugin names are target names, they are already known to be unique within the package graph).
+A command plugin that wants to modify the package source code (such as source formatters) needs to request the `packageWritability` permission. This modifies the sandbox in which the plugin is invoked to let it write inside the package directory in the file system, after notifying the user about what is going to happen and getting approval in a way that is appropriate for the IDE in question.
 
 The permissions needed by the command are expressed as an enum in `PackageDescription`:
 
@@ -652,14 +672,6 @@ The big problem with such an approach is that it’s difficult to express condit
 ### Better support for plugin options
 
 In this initial proposal, the user command plugin is passed all the command line options that the user provided after the custom command verb in the `swift` `package` invocation. A future direction might be to have the plugin use SwiftArgumentParser to declare supported set of input parameters. This could allow SwiftPM (or possibly an IDE) to present an interface for those plugin options — IDEs, in particular, could construct user interfaces for well-defined options (possibly in the manner of the archaic MPW `Commando` tool).
-
-### Grouping of custom commands based on intent
-
-This proposal allows a custom command to specify a “verb” through which it can be invoked in a CLI or in an affordance such as a menu of an IDE.
-
-Ideally, plugin authors should be able to declare what the intent of their plugin is, i.e. what “role” it fulfills. When there are multiple plugins that have the same role, such as source code formatting or documentation generation, there would then be a way for SwiftPM CLI or for IDEs to group those commands by functionality. This would allow a degree of polymorphism by allowing actions such as “generate documentation” that choose the right plugin based on a package’s stated dependencies.
-
-In order to keep this proposal bounded, the grouping of commands into predefined intents or roles (with standardized invocation affordances) is kept as a future direction.
 
 ### Additional access to Package Manager services
 
