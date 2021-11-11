@@ -15,22 +15,29 @@
 
 - [On Actors and Initialization](#on-actors-and-initialization)
   - [Introduction](#introduction)
-  - [Background](#background)
   - [Motivation](#motivation)
-    - [Initializer Races](#initializer-races)
+    - [Overly restrictive non-async initializers](#overly-restrictive-non-async-initializers)
+    - [Data-races in deinitializers](#data-races-in-deinitializers)
     - [Stored Property Isolation](#stored-property-isolation)
     - [Initializer Delegation](#initializer-delegation)
-  - [Proposed solution](#proposed-solution)
-    - [Problem 1: Initializer Data Races](#problem-1-initializer-data-races)
-      - [Applying the Escaping-use Restriction](#applying-the-escaping-use-restriction)
-    - [Problem 2: Stored Property Isolation](#problem-2-stored-property-isolation)
-    - [Problem 3: Initializer Delegation](#problem-3-initializer-delegation)
-    - [Summary](#summary)
+  - [Proposed functionality](#proposed-functionality)
+    - [Non-delegating Initializers](#non-delegating-initializers)
+      - [Flow-sensitive Actor Isolation](#flow-sensitive-actor-isolation)
+        - [Initializers with `isolated self`](#initializers-with-isolated-self)
+        - [Initializers with `nonisolated self`](#initializers-with-nonisolated-self)
+      - [Global-actor isolated class initializers](#global-actor-isolated-class-initializers)
+    - [Delegating Initializers](#delegating-initializers)
+      - [Syntactic Form](#syntactic-form)
+      - [Isolation](#isolation)
+    - [Sendability](#sendability)
+    - [Deinitializers](#deinitializers)
+    - [Global-actor isolation and instance members](#global-actor-isolation-and-instance-members)
+      - [Removing Redundant Isolation](#removing-redundant-isolation)
   - [Source compatibility](#source-compatibility)
   - [Alternatives considered](#alternatives-considered)
-    - [Deinitializers](#deinitializers)
-    - [Flow-sensitive actor isolation](#flow-sensitive-actor-isolation)
-    - [Removing the need for `convenience`](#removing-the-need-for-convenience)
+    - [Introducing `nonisolation` after `self` is fully-initialized](#introducing-nonisolation-after-self-is-fully-initialized)
+    - [Permitting `await` for property access in `nonisolated self` initializers](#permitting-await-for-property-access-in-nonisolated-self-initializers)
+    - [Async Actor Deinitializers](#async-actor-deinitializers)
   - [Effect on ABI stability](#effect-on-abi-stability)
   - [Effect on API resilience](#effect-on-api-resilience)
   - [Acknowledgments](#acknowledgments)
@@ -42,126 +49,129 @@ The protection is achieved by _isolating_ the mutable state of each actor instan
 The proposal that introduced actors ([SE-0306](0306-actors.md)) is quite large and detailed, but misses some of the subtle aspects of creating and destroying an actor's isolated state.
 This proposal aims to shore up the definition of an actor, to clarify *when* the isolation of the data begins and ends for an actor instance, along with *what* can be done inside the body of an actor's `init` and `deinit` declarations.
 
-## Background
-
-To get the most out of this proposal, it is important to review the existing behaviors of initializer and deinitializer declarations in Swift.
-
-As with classes, actors support both synchronous and asynchronous initializers, along with a customizable deinitializer, like so:
-
-```swift
-actor Database {
-  var rows: [String]
-
-  init() { /* ... */ }
-  init(with: [String]) async { /* ... */ }
-  deinit { /* ... */ }
-}
-```
-
-An actor's initializer respects the same fundamental rules surrounding the use of `self` as other nominal types: until `self`'s stored properties have all been initialized to a value, `self` is not a fully-initialized instance.
-This concept of values being *fully-initialized* before use is a fundamental invariant in Swift.
-To prevent uses of ill-formed, incomplete instances of `self`, the compiler restricts `self` from escaping the initializer until all of its stored properties are initialized:
-
-```swift
-actor Database {
-  var rows: [String]
-
-  func addDefaultData(_ data: String) { /* ... */ }
-  func addEmptyRow() { rows.append(String()) }
-
-  init(with data: String?) {
-    if let data = data {
-      self.rows = []
-      // -- self fully-initialized here --
-      addDefaultData(data) // OK
-    }
-    addEmptyRow() // error: 'self' used in method call 'addEmptyRow' before all stored properties are initialized
-  }
-}
-```
-
-In this example, `self` escapes the initializer through the call to its method `addEmptyRow` (all methods take `self` as an implicit argument). But this call is flagged as an error, because it happens before `self.rows` is initialized _on all paths_ to that statement from the start of the initializer's body. Namely, if `data` is `nil`, then `self.rows` will not be initialized prior to it escaping from the initializer.
-Stored properties with default values can be viewed as being initialized immediately after entering the `init`, but prior to executing any of the `init`'s statements.
-
-Determining whether `self` is fully-initialized is a flow-sensitive analysis performed by the compiler. Because it's flow-sensitive, there are multiple points where `self` becomes fully-initialized, and these points are not explicitly marked in the source program. In the example above, there is only one such point, immediately after the rows are assigned to `[]`. Thus, it is permitted to call `addDefaultData` right after that assignment statement within the same block, because all paths leading to the call are guaranteed to have assigned `self.rows` beforehand. Keep in mind that these rules are not unique to actors, as they are enforced in initializers for other types like structs and classes.
-
-
 ## Motivation
 
 While there is no existing specification for how actor initialization and deinitialization *should* work, that in itself is not the only motivation for this proposal.
-The *de facto* expected behavior, as induced by the existing implementation, is also problematic. In summary, the issues include:
+The *de facto* expected behavior, as induced by the existing implementation in Swift 5.5, is also problematic. In summary, the issues include:
 
-  1. Initializers can exhibit data races due to ambiguous isolation semantics.
-  2. Stored properties can have an isolation that differs from the isolation of the type's initializers.
-  3. *Minor:* Initializer delegation requires the use of the `convenience` keyword like classes, even though actors do not support inheritance. Is this attribute still needed? If so, what is the isolation of an actor's convenience initializer?
+  1. Non-async initializers are overly strict about what can be done with `self`.
+  2. Actor deinitializers can exhibit data races.
+  3. Global-actor isolation for stored properties cannot always be respected during initialization.
+  4. Initializer delegation requires the use of the `convenience` keyword like classes, even though actors do not support inheritance.
 
-The following subsections will discuss these three high-level problems in more detail.
+It's important to keep in mind that these is not an exhaustive list. In particular, global-actor constrained classes that are defined in Swift are effectively actors themselves, so many of the same protections should apply to them, too.
 
-### Initializer Races
+The following subsections will discuss these these high-level problems in more detail.
 
-Unlike other synchronous methods of an actor, a synchronous (or "ordinary") `init` is special in that it is treated as being `nonisolated` from the outside, meaning that there is no `await` (or actor hop) required to call the `init`. This is because an `init`'s purpose is to bootstrap a fresh actor-instance, called `self`. Thus, at various points within the `init`'s body, `self` is considered a fully-fledged actor instance whose members must be protected by isolation. The existing implementation of actor initializers does not perform this enforcement, leading to data races with the code appearing in the `init`:
+### Overly restrictive non-async initializers
+
+An actor's executor serves as the arbiter for data-race free access to the actor's stored properties, analogous to a lock. A task can access the actor's isolated state if it is running on the actor's executor. The process of gaining access to an executor can only be done asynchronously from a task, as blocking a thread to wait for access is against the ethos of Swift Concurrency. This is why invoking a non-`async` method of an actor instance, from outside of the actor's isolation domain, requires an `await` to mark the possible suspension. The process of gaining access to an actor's executor will be referred to as "hopping" onto the executor throughout this proposal.
+
+Non-async initializers, and all deinitializers, of an actor fundamentally cannot perform a hop to the actor instance's executor, which would protect its state from concurrent access by other tasks. Without performing such a hop, a race between a new task and the code appearing in an `init` can be easily constructed:
 
 ```swift
-actor StatsTracker {
-  var counter: Int
+actor Clicker {
+  var count: Int
+  func click() { self.count += 1 }
 
-  init(_ start: Int) {
-    self.counter = start
-    // -- self fully-initialized here --
-    Task.detached { await self.tick() }
-    
-    // ... do some other work ...
-    
-    if self.counter != start { // 💥 race
-      fatalError("state changed by another thread!")
+  init(bad: Void) {
+    self.count = 0
+    Task { await self.click() }
+    self.click()
+
+    print(self.count) // 💥 Might print 1 or 2!
+  }
+}
+```
+
+To prevent the race above in `init(bad:)`, Swift 5.5 imposed a restriction on what can be done with `self` in a non-async initializer. In particular, having `self` escape in a closure capture, or be passed (implicitly) in the method call to `click`, triggers a warning that such uses of `self` will be an error in Swift 6. But, these restrictions are overly broad, because they would also reject initializers that are race-free, such as `init(ok:)`:
+
+```swift
+actor Clicker {
+  var count: Int
+  func click() { self.count += 1 }
+  nonisolated func announce() { print("performing a click!") }
+
+  init(ok: Void) {
+    self.count = 0
+    Task { await self.click() }
+    self.announce() // rejected in Swift 5.5, but is race-free.
+  }
+}
+```
+
+Leveraging the actor isolation model, we know `announce` cannot touch the stored property `count` to observe that `click` happened concurrently with the initializer. That's because `announce` is not isolated to the actor instance. In fact, a race can only happen in the initializer if an access to `count` appears after the creation of the task. This proposal aims to generalize that idea into something we refer to _flow-sensitive isolation_, which uses [data-flow analysis](https://en.wikipedia.org/wiki/Data-flow_analysis) to prove statically that non-async initializers of an actor are race-free.
+
+### Data-races in deinitializers
+
+While non-async initializers gained restrictions to prevent data races in Swift 5.5, deinitializers did not. Yet, `deinit`s can still exhibit data races and illegal lifetime extensions of `self` that live longer than the `deinit`'s invocation. One kind of data race in a `deinit` is conceptually the same as the one described earlier for non-async initializers:
+
+```swift
+actor Clicker {
+  var count: Int = 0
+
+  func click(_ times: n) {
+    for _ in 0<..n {
+      self.count += 1 
     }
   }
 
-  func tick() {
-    self.counter = self.counter + 1
+  deinit {
+    let current = count
+    
+    Task { await self.click(1000000) } // This might keep `self` alive after the `deinit` too!
+
+    assert(current == count)    // 💥 Might fail due to data-race!
   }
 }
 ```
 
-This example exhibits a race because `self`, once fully-initialized, is ready to provide isolated access to its members, i.e., it does *not* start in a reserved state. Isolated access is obtained by "hopping" to the executor corresponding to `self` from an asynchronous function. But, because `init` is synchronous, a hop to `self` fundamentally cannot be performed. Thus, once `self` is initialized, the remainder of the `init` is subject to the kind of data race that actors are meant to eliminate.
-
-If the `init` in the previous example were only changed to be `async`, this data race still does not go away. The existing implementation does not perform a hop to `self` in such initializers, even though it now could to prevent races. This is not just a bug that has a straightforward fix, because if an asynchronous actor `init` were isolated to the `@MainActor`: 
+There is another more subtle scenario in the `deinit` of global-actor isolated classes (GAICs). A GAIC is similar to an actor that shares its persistent executor with other instances. When an actor or GAIC's executor is not exclusively owned by the type's instance, then it is not safe to access a non-Sendable stored property from the `deinit`:
 
 ```swift
-class ConnectionStatusDelegate {
-  @MainActor
-  func connectionStarting() { /**/ }
-
-  @MainActor
-  func connectionEstablished() { /**/ }
+class NonSendableAhmed { 
+  var state: Int = 0
 }
 
-actor ConnectionManager {
-  var status: ConnectionStatusDelegate
-  var connectionCount: Int
+@MainActor
+class Maria {
+  let friend: NonSendableAhmed
 
-  @MainActor
-  init(_ sts: ConnectionStatusDelegate) async {
-    // --- on MainActor --
-    self.status = sts
-    self.status.connectionStarting()
-    self.connectionCount = 0
-    // --- self fully-initialized here ---
-    
-    // ... connect ...
-    self.status.connectionEstablished()
+  init() {
+    self.friend = NonSendableAhmed()
   }
+
+  init(sharingFriendOf otherMaria: Maria) {
+    // While the friend is non-Sendable, this initializer and
+    // and the otherMaria are isolated to the MainActor. That is,
+    // they share the same executor. So, it's OK for the non-Sendable value
+    // to cross between otherMaria and self.
+    self.friend = otherMaria.friend
+  }
+
+  deinit {
+    friend.state += 1   // 💥 the deinit is not isolated to the MainActor,
+                        // so this mutation can happen concurrently with other
+                        // accesses to the same underlying instance of 
+                        // NonSendableAhmed.
+  }
+}
+
+func example() async {
+  let m1 = await Maria()
+  let m2 = await Maria(sharingFriendOf: m1)
+  doSomething(m1, m2)
 }
 ```
 
-then which executor should be used? Should it be valid to isolate an actor's `init` to a global actor, such as the `@MainActor`, to ensure that the right executor is used for the operations it performs? The example above serves as a possible use case for that capability: being able to perform the initialization while on `@MainActor` so that the `ConnectionStatusDelegate` can be updated without any possibility of suspension (i.e., no `await` needed). 
+In the example above, access to isolated and non-Sendable stored properties of `Maria` from the `deinit` is not safe, as it can introduce a data race. That's because a `deinit` (and its callers) cannot hop to the `MainActor`'s executor in order to guarantee safe access, like an isolated method could. If the `friend` were `Sendable`, then there is no problem.
 
-The existing implementation makes it impossible to write a correct `init` for the example above, because 
-the `init` is considered to be entirely isolated to the `@MainActor`. Thus, it's not possible to initialize `self.status` _at all_. It's not possible to `await` and hop to `self`'s executor to perform an assignment to `self.status`, because `self` is not a fully-initialized actor-instance yet!
+Also, the reference count of `self` upon entering the `deinit` is zero. So, it is undefined behavior for that `self` instance to then escape the `deinit`, living beyond the lifetime of the `deinit`. This is a problem for ordinary classes, too, leading to [random crashes](https://bugs.swift.org/browse/SR-6942). Since lifetime extension issues in an actor's `deinit` is a general problem, we defer a solution to that for a future proposal.
+<!-- For actors, this is additionally problematic, because the task living beyond the lifetime of the `deinit` may be awaiting access to the actor's executor, when the executor has been asked to shutdown. -->
 
 ### Stored Property Isolation
 
-The stored properties of classes, structs, and enums are currently permitted to have global-actor isolation applied to them. But, this creates a problems for both initialization and deinitialization. For example, when users specify a default value for the stored property, those default values are evaluated by the non-delegating initializer of a nominal type:
+The stored properties of classes, structs, and enums are currently permitted to have global-actor isolation applied to them independently. But, this creates problems for both initialization and deinitialization. For example, when users specify a default value for the stored property, those default values are evaluated by the non-delegating initializer of a nominal type:
 
 ```swift
 @MainActor func getStatus() -> Int { /* ... */ }
@@ -172,27 +182,17 @@ class Process {
   @PIDActor var pid: ProcessID = genPID()
   
   init() {} // Problem: what is the isolation of this init?
-  
-  init() async {} // Problem: no `await` is written to acknowledge
-                  // that to initialize `status` and `pid`, an
-                  // async call would be required.
-
-  deinit {
-    // Problem: how do we release the resources contained
-    // in our global-actor isolated stored properties from 
-    // a deinit, which can never be actor-isolated?
-  }
 }
 ```
 
-In the example above, because `status` and `pid` are isolated to two different global-actors, there's no single actor-isolation that can be specified for the synchronous `init`.
-In fact, all non-delegating initializers would need to have the same isolation as all stored properties.
-For the asynchronous `init`, the fact that a suspension may occur is not explicit in the program, because no `await` is needed on the right-hand side expression of the property declaration's assignment.
-Finally, even if the isolation of the initializers and stored properties matched, the deinit still can _never_ access the stored properties in order to invoke clean-ups routines, without using unsafe lifetime extensions of the actor from the `deinit`.
+In the example above, because `status` and `pid` are isolated to two different global-actors, there's no single actor-isolation that can be specified for the non-async `init`.
+This means that `getStatus` and `genPID` are being called without acquiring actor isolation!
+<!-- In fact, all non-delegating initializers would need to have the same isolation as all stored properties. -->
+<!-- Even if the isolation of the initializers and stored properties matched, the `deinit` still can _never_ access the stored properties in order to invoke clean-up routines, *etc*, without using illegal lifetime extensions of the actor instance from the `deinit`. -->
 
 ### Initializer Delegation
 
-All nominal types in Swift, except actors, explicitly support initializer delegation, which is when one initializer calls another one to perform initialization.
+All nominal types in Swift support initializer delegation, which is when one initializer calls another one to perform initialization.
 For classes, initializer [delegation rules](https://docs.swift.org/swift-book/LanguageGuide/Initialization.html#ID216) are complex due to the presence of inheritance.
 So, classes have a required and explicit `convenience` modifier to make, for example, a distinction between initializers that *must* delegate and those that do not.
 In contrast, value types do *not* support inheritance, so [the rules](https://docs.swift.org/swift-book/LanguageGuide/Initialization.html#ID215) are much simpler: any `init` can delegate, but if it does, then it must delegate or assign to `self` in all cases:
@@ -211,334 +211,545 @@ struct S {
 }
 ```
 
-Actors, which are reference types (like a classes), do not support inheritance. But, currently they must use the `convenience` modifier on an initializer to perform any delegation. Is this modifier still needed?
+Actors, which are reference types (like a classes), do not support inheritance. But, the proposal for actors did not specify whether `convenience` is required or not in order to have a delegating initializer. Swift 5.5 requires the use of a `convenience` modifier to mark actor initializers that perform delegation for no good reason.
 
-<!-- TODO: look into NSObject-inheriting actors and other funky stuff -->
 
-## Proposed solution
 
-The previous sections described problems with the current state of actor initialization and deinitialization, as listed in the introduction of the Motivation section.
-The remainder of this section details the proposed solution to those problems.
 
-### Problem 1: Initializer Data Races
 
-This proposal aims to eliminate data races through the selective application of a usage restriction on `self` in an actor's initializer.
-For this discussion, an _escaping use of `self`_ means that a copy of `self` is exposed outside of the actor's initializer, before the initializer has finished.
-By rejecting programs with escaping uses of `self`, there is no way to construct the data race described earlier.
 
-> **NOTE:** Preventing `self` from escaping the `init` directly resolves the data race, because it forces the unique reference `self` to stay on the current thread until the completion of the `init`.
-Specifically, the only way to create a race is for there to be at least two copies of the reference `self`.
-Since a secondary thread can only gain access to a copy of `self` by having it "escape" the `init`, preventing the escape closes the possibility of a race.
 
-An actor's initializer that obeys the escaping-use restriction means that the following are rejected throughout the entire initializer:
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Proposed functionality
+
+The previous sections described problems with the current state of initialization and deinitialization in Swift.
+The remainder of this section aims to fix those problems while defining how actor and global-actor isolated class (GAIC) initializers and deinitializers differ from those belonging to an ordinary class. While doing so, this proposal will highlight how the problems above are resolved.
+
+### Non-delegating Initializers
+
+A non-delegating initializer of an actor or a global-actor isolated class (GAIC), is one where all of the the stored properties of the actor must be initialized.
+
+#### Flow-sensitive Actor Isolation
+
+The focus of this section is exclusively on non-delegating initializers for `actor` types, not GAICs.
+In Swift 5.5, an actor's initializer that obeys the _escaping-use restriction_ means that the following are rejected throughout the entire initializer:
 
 - Capturing `self` in a closure.
 - Calling a method or computed property on `self`.
 - Passing `self` as any kind of argument, whether by-value, `autoclosure`, or `inout`.
 
-The escaping-use restriction is not a new concept in Swift: for all nominal types, a very similar kind of restriction is applied to `self` until it becomes fully-initialized.
+But, those rules are an over-approximation of the restrictions needed to prevent the races described earlier. This proposal removes the escaping-use restriction for initializers. Instead, we propose a simpler set of rules as follows:
 
-#### Applying the Escaping-use Restriction
+  - An initializer has a `nonisolated self` reference if it is:
+     - non-async
+     - or global-actor isolated
+     - or `nonisolated`
+- Asynchronous actor initializers have an `isolated self` reference.
 
-If an actor's non-delegating initializer is synchronous or isolated to a global-actor, then it must obey the escaping-use restriction.
-This leaves only the instance-isolated `async` actor initializer, and all delegating initializers, as being free from this new restriction.
+The remainder of this section discusses how these new rules work for each of the two categories of non-delegating initializers.
 
-For a synchronous initializer, we cannot reserve the actor's executor by hopping to it from a synchronous context.
-Thus, the need for the restriction is clear: the only way to prevent simultaneous access to the actor's state is to prevent another thread from getting a copy of `self`.
-In contrast, an instance-isolated `async` initializer _will_ perform that hop immediately after `self` is fully-initialized in the `init`, so no restriction is applied.
+##### Initializers with `isolated self`
 
-For a global-actor isolated initializer, the need for the escaping-use restriction is a bit more subtle.
-In Swift's type system, a declaration cannot be isolated to _two_ actors at the same time.
-Because the programmer has to opt-in to global-actor isolation, it takes precedence when appearing on the `init` of an actor type and will be respected.
-In such cases, protection for the `self` actor instance, after it is fully-initialized, is provided by the escaping-use restriction.
-This means that, within an `init` isolated to some global-actor `A`, the stored properties of `self` belonging to a different actor `B` can be accessed *without* synchronization.
-Thus, the `ConnectionManager` example from earlier will work as-is, because only stored properties of the actor-instance `self` are accessed.
-
-### Problem 2: Stored Property Isolation
-
-Actor-isolation on a stored property only prevents concurrent access to the storage for the value, and not subsequent accesses.
-For example, if `pid` is an actor-isolated stored property, then the access `p.pid.reset()` only protects the access of `pid` from `p`, and not the call to `reset` afterwards.
-Thus, for value types (enums and structs), global-actor isolation on stored properties serves virtually no use: mutations of stored properties in value types can never race (due to copy-on-write semantics).
-
-The [global actors](0316-global-actors.md) proposal explicitly excludes actor types from having stored properties that are global-actor isolated.
-The only nominal type left in Swift to consider are classes. For a class, the benefit of global-actor isolated stored properties is to prevent races during an access. But, because a `deinit` cannot be made `async`, and it is undefined behavior for a class value's lifetime to extend beyond the invocation of a `deinit`, there would be no way to access the stored property during a `deinit`.
-
-In summary, the most straightforward solution to the problems described earlier is: global-actor isolation should not apply to the stored properties appearing within _any_ nominal type.
-
-### Problem 3: Initializer Delegation
-
-Next, one of the key downsides of the escaping-use restriction is that it becomes impossible to invoke a method in the time *after* `self` is fully-initialized, but *before* a non-delegating `init` returns.
-This pattern is important, for example, to organize set-up code that is needed both during initialization and the lifetime of the instance:
+For an asynchronous initializer, a hop to the actor's executor, which is a suspension point, will be performed immediately after `self` becomes fully-initialized in order to ascribe the isolation to `self`. Choosing this location for performing the executor hop preserves the concept of `self` being isolated throughout the entire async initializer. There are many possible points in an initializer where these suspensions can happen, and they all involve _some_ initializing store. Consider this example of `Bob`:
 
 ```swift
-actor A {
-  var friends: [A]
-
-  init(withFriends fs: [A]) {
-    friends = fs
-    self.notifyAll()  // ❌ disallowed by escaping-use restriction.
-  }
-
-  @MainActor
-  init() {
-    friends = ...
-    self.notifyAll()  // ❌ disallowed by escaping-use restriction.
-  }
-
-  func verify() { ... }
-  func notifyAll() { ... }
-}
-```
-
-Another important observation is that an isolated initializer that performs delegation is not particularly useful.
-A delegating initializer that is synchronous would still need to obey the escaping-use restriction, but now they also must first call some other `init` on all paths.
-But, _because_ an `init` must be called first on all paths of a delegating `init`, such an initializer has an explicit point where `self` is fully-initialized.
-This provides an excellent opportunity to perform _follow-up work_, after `self` is fully-initialized, but before completely returning from initialization.
-To do the follow-up work in a delegating init, we must be in a context that is not isolated to the actor instance, because the initialized instance's executor starts in an unreserved state.
-In addition, because _all_ initializers are viewed as `nonisolated` from the outside, an entire body of the delegating initializer can be cleanly treated as `nonisolated`!
-
-For ABI compatibility reasons with Swift 5.5, and to make the implicit `nonisolated` semantics clear, this proposal keeps the `convenience` modifier for actor initializers, as a way to mark initializers that _must_ delegate.
-If a programmer marks a convenience initializer with `nonisolated`, a warning will be emitted that says it is a redundant modifier, since `convenience` implies `nonisolated`.
-Global-actor isolation of a `convenience` init is allowed, and will override the implicit `nonisolated` behavior.
-Rewriting the above with this new rule would look like this:
-
-```swift
-// NOTE: Task.detached is _not_ an exact substitute for this.
-// It is expected that Custom Executors will provide a capability
-// that implements this function, which atomically enqueues a paused task
-// on the target actor before returning.
-func spawnAndEnqueueTask<A: AnyActor>(_ a: A, _ f: () -> Void) { ... }
-
-actor A {
-  var friends: [A]
-
-  private init(with fs: [A]) {
-    friends = fs
-  }
-
-  // Version 1: synchronous delegating initializer
-  convenience init() {
-    self.init(with: ...)
-    // ✅ self can be captured by closure, or passed as argument
-    spawnAndEnqueueTask(self) {
-      await self.notifyAll()
-    }
-  }
-
-  // Version 2: asynchronous delegating initializer
-  convenience init(withFakeFriends f: Double) async {
-    if f < 0 {
-      self.init()
-    } else {
-      self.init(with: manufacturedFriends(count: Int(f)))
-      await self.notifyAll()
-    }
-    await self.verify()
-  }
-
-  // Version 3: global-actor isolated inits can also be delegating.
-  @MainActor
-  convenience init(alt: Void) async {
-    self.init(with: ...)
-    await self.notifyAll()
-  }
-
-  init(bad1: Void) {
-    self.init() // ❌ error: only convenience initializers can delegate
-  }
-
-  nonisolated init(bad2: Void) {
-    self.init() // ❌ error: only convenience initializers can delegate
-  }
-
-  // warning: nonisolated on a synchronous non-delegating initializer is redundant
-  nonisolated init(bad3: Void) {
-    self.friends = []
-    self.notifyAll()  // ❌ disallowed by escaping-use restriction.
-  }
-
-  nonisolated init(ok: Void) async {
-    self.friends = []
-    self.notifyAll()  // ❌ disallowed by escaping-use restriction.
-  }
-
-  func verify() { ... }
-  func notifyAll() { ... }
-}
-```
-
-An easy way to remember the rules around actor initializers is, if the initializer is just `async`, with no other actor isolation changes, then there is no escaping-use restriction.
-Thus, if any one of the following apply to an initializer, it must obey the escaping-use restriction to maintain data-race safety for `self`:
-
-1. not `async`
-2. `nonisolated`
-3. global-actor isolated 
-
-### Summary
-
-The following table summarizes the capabilities and requirements of actor initializers in this proposal:
-
-| Initializer Kind / Rules  | Has escaping-use restriction  | Delegation  |
-|---------------------------|-------------------------------|-------------|
-| *Not* isolated to `self`    | Yes                           | No          |
-| Isolated to `self` + synchronous | Yes       | No          |
-| Isolated to `self` + `async` | No       | No          |
-| `convenience` + anything | No                | Yes (required) |
-
-## Source compatibility
-
-The following are known source compatibility breaks with this proposal:
-
-1. The escaping-use restriction.
-2. `nonisolated` is ignored for `async` inits.
-3. Global-actor isolation on stored properties of a nominal type.
-
-**Breakage 1**
-
-There is no simple way to automatically migrate applications that use `self` in an escaping manner within an actor initializer.
-At its core, the simplest migration path is to mark the initializer `async`, but that would introduce `async` requirements on callers. For example, in this code:
-
-```swift
-actor C {
-  init() {
-    self.f() // ❌ now rejected by this proposal
-  }
-
-  func f() { /* ... */}
-}
-
-func user() {
-  let c = C()
-}
-```
-
-we cannot introduce an `async` version of `init()`, whether it is delegating or not, because the `async` must be propagated to all callers, breaking the API.
-Fortunately, Swift concurrency has only been available for a few months, as of September 2021.
-
-To resolve this source incompatibility issue without too much code churn, it is proposed that the escaping-use restriction turns into an error in Swift 6 and later. For earlier versions that support concurrency, only a warning is emitted by the compiler.
-
-**Breakage 2**
-
-In Swift 5.5, if a programmer requests that an `async` initializer be `nonisolated`, the escaping-use restriction is not applied, because isolation to `self` is applied regardless. For example, in this code:
-
-```swift
-actor MyActor {
+actor Bob {
   var x: Int
+  var y: Int = 2
+  func f() {}
+  init(_ cond: Bool) async {
+    if cond {
+      self.x = 1 // initializing store
+    }
+    self.x = 2 // initializing store
 
-  nonisolated init(a: Int) async {
-    self.x = a
-    self.f() // permitted in Swift 5.5
-    assert(self.x == a) // guaranteed to always be true
-  }
-
-  func f() {
-    // create a task to try racing with init(a:)
-    Task.detached { await self.mutate() }
-  }
-
-  func mutate() { self.x += 1 }
-}
-```
-
-the `nonisolated` is simply ignored, and isolation is enforced with a hop-to-executor anyway.
-Fixing this bug to match the proposal is very simple: remove the `nonisolated`.
-Callers of the `init` will not be affected, since no synchronization is needed to enter the `init`, regardless of its isolation.
-The compiler will be augmented with a fix-it in this scenario to make upgrading easy.
-
-**Breakage 3**
-The removal of global-actor isolation on stored properties imposes some source incompatibility.
-For structs and enums, removal of a now invalid global-actor isolation on a stored property 
-without a property initializer is not a source break, as it would only generate 
-warnings that an `await` is now unnecessary:
-
-```swift
-struct S {
-  var counter: Int // suppose a fix-it removed @MainActor from this.
-
-  func f() async {
-    _ = await self.counter // warning: no 'async' operations occur within 'await' expression
+    f() // this is ok, since we're on the executor here.
   }
 }
 ```
 
-The behavior of the program changes only in a positive way: a superfluous synchronization is removed.
-If the property's initializer requires global-actor isolation to evaluate, then the
-programmer will need to move that expression into the type's initializer:
+The problem with trying to explicitly mark the suspension points in `Bob.init` is that they are not easy for programmers to track, nor are they consistent enough to stay the same under simple refactorings. Adding or removing a default value for a stored property, or changing the number of stored properties, can greatly influence where the hops may occur. Consider this slightly modified example from before:
 
 ```swift
-@MainActor func getNumber() -> Int { 4 }
+actor EvolvedBob {
+  var x: Int
+  var y: Int
+  func f() {}
+  init(_ cond: Bool) async {
+    if cond {
+      self.x = 1
+    }
+    self.x = 2 
+    self.y = 2 // initializing store
 
-struct S {
-  // 'await' operation cannot occur in a property initializer
-  var counter: Int /* = await getNumber() */
+    f() // this is ok, since we're on the executor here.
+  }
+}
+```
+
+Relative to `Bob`, the only change made to `EvolvedBob` is that its default value for `y` was converted into an unconditional store in the body of the initializer. From an observational point of view, `Bob.init` and `EvolvedBob.init` are identical. But from an implementation perspective, the suspension points for performing an executor hop differ dramatically. If those points required some sort of annotation in Swift, such as with `await`, then the reason why those suspension points moved is hard to explain to programmers.
+
+In summary, we propose to _implicitly_ perform suspensions to hop to the actors executor once `self` is initialized, instead of having programmers mark those points explicitly, for the following reasons:
+1. The finding and continually updating the suspension points is annoying for programmers.
+2. The reason _why_ some simple stores to a property can trigger a suspension is an implementation detail that is hard to explain to programmers.
+3. The benefits of marking these suspensions is very low. The reference to `self` is known to be unique by the time the suspension  will happen, so it is impossible to create an [actor reentrancy](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md#actor-reentrancy) situation.
+4. There is [already precedent](https://github.com/apple/swift-evolution/blob/main/proposals/0317-async-let.md#requiring-an-awaiton-any-execution-path-that-waits-for-an-async-let) in the language for performing implicit suspensions, namely for `async let`, when the language feature requiring suspensions is hard for programmers to determine.
+
+The net effect of these implicit executor-hops is that, for programmers, an `async` initializer does not appear to have any additional rules added to it! That is, programmers can simply view the initializer as being isolated throughout, like any ordinary `async` method would be! The flow-sensitive points where the hop is inserted into the initializer can be safely ignored as an implementation detail for all but the most rare situations. For example:
+
+```swift
+actor OddActor {
+  var x: Int
+  init() async {
+    let name = Thread.current.name
+    self.x = 0 // initializing store
+    assert(name == Thread.current.name) // may fail
+  }
+}
+```
+
+Note that the callers of `OddActor.init` cannot assume that the callee hasn't performed a suspension, just as with any `async` method, because an `await` is required to enter the initializer. Thus, this ability to observe an unmarked suspension is extremely limited.
+
+**In-depth discussions**
+
+The remainder of this subsection covers some technical details that are not required to understand this proposal and may be safely skipped.
+
+**Compiler Implementation Notes:** Identifying the assignment that fully-initializes `self` _does_ require a non-trivial data-flow analysis. Such an analysis is not feasible to do early in the compiler, during type checking. Does acceptance of this proposal mean that the actor-isolation checker, which is run as part of type-checking, will require additional analysis or significant changes? Nope! We can rely on existing restrictions on uses of `self`, prior to initialization, to exclude all places where `self` could be considered only `nonisolated`:
+
+```swift
+func isolatedFunc(_ a: isolated Alice) {}
+
+actor Alice {
+  var x: Int
+  var y: Task<Void, Never>
+
+  nonisolated func nonisolatedMethod() {}
+  func isolatedMethod() {}
 
   init() async {
-    counter = await getNumber() // OK
+    self.x = self.nonisolatedMethod() // error: illegal use of `self` before initialization.
+    self.y = Task { self.isolatedMethod() } // error: illegal capture of `self` before initialization
+    Task { 
+      self.isolatedMethod() // no await needed, since `self` is isolated.
+    }
+    self.isolatedMethod() // OK
+    isolatedFunc(self) // OK
   }
 }
 ```
 
-This, combined with the rule change for classes, where the synchronization is not superfluous, means that some minor source fixes will be required. A warning about this change will be emitted in when the compiler is operating in Swift 5 mode, because it will become an error in Swift 6.
+This means that the actor-isolation checker, run prior to converting the program to SIL, can uniformly view the parameter `self` as having type `isolated Self` for the async initializer above. Later in SIL, the defined-before-use verification (i.e., "definite initialization") will find and emit the errors above. As a bonus, that same analysis can be leveraged to find the initializing assignment and introduce the suspension to hop to the actor's executor.
+
+**Data-race Safety:** In terms of correctness, the proposed `isolated self` initializers are race-free because a hop to the actor's executor happens immediately after the initializing store to `self`, but before the next statement begins executing. Gaining access to the executor at this exact point prevents races, because escaping `self` to another task is only possible _after_ that point. In the `Alice` example above, we can see this in action, where the rejected assignment to `self.y` is due to an illegal capture of `self`.
+
+**Only one suspension is performed:** It is possible to construct an initializer with control-flow that crosses an implicit suspension points multiple times, as seen in `Bob` above and loops such as:
+
+```swift
+actor LoopyBob {
+  var x: Int
+  init(_ counter: Int) async {
+    var i = 0
+    repeat {
+      self.x = 0 // initializing store
+      i += 1
+    } while i < counter
+  }
+}
+```
+
+Once gaining access to an executor by crossing the first suspension point, crossing another suspension point does not change the executor, nor will that actually perform a suspension. Avoiding these unnecessary executor hops is an optimization that is done throughout Swift (e.g., self-recursive `async` and `isolated` functions).
+
+
+
+##### Initializers with `nonisolated self`
+
+The category of actor initializers that have a `nonisolated self` contain those which are non-async, or have an isolation that differs from being isolated to `self`. Unlike its methods, an actor's non-async initializer does _not_ require an `await` to be invoked, because there is no actor-instance to synchronize with. In addition, an initializer with a `nonisolated self` can access the instance's stored properties without synchronization, when it is safe to do so.
+
+Accesses to the stored properties of `self` is required to bootstrap an instance of an actor. Such accesses are considered to be a weaker form of isolation that relies on having exclusive access to the reference `self`. If `self` escapes the initializer, such uniqueness can no-longer be guaranteed without time-consuming analysis. Thus, the isolation of `self` decays (or changes) to `nonisolated` during any use of `self` that is not a direct stored-property access.  That change happens once on a given control-flow path and persists through the end of the initializer. Here are some example uses of `self` within an initializer that cause it to decay to a `nonisolated` reference:
+
+1. Passing `self` as an argument in a procedure call. This includes:
+  - Invoking a method of `self`.
+  - Accessing a computed property of `self`.
+2. Capturing `self` in a closure.
+3. Storing `self` to memory.
+
+Consider the following example that helps demonstrate how this isolation decay works:
+
+```swift
+class NotSendableString { /* ... */ }
+class Address: Sendable { /* ... */ }
+func greetCharlie(_ charlie: Charlie) {}
+
+actor Charlie {
+  var score: Int
+  let fixedNonSendable: NotSendableString
+  let fixedSendable: Address
+  var me: Self? = nil
+
+  func incrementScore() { self.score += 1 }
+  nonisolated func nonisolatedMethod() {}
+
+  init(_ initialScore: Int) {
+    self.score = initialScore
+    self.fixedNonSendable = NotSendableString("Charlie")
+    self.fixedSendable = NotSendableString("123 Main St.")
+
+    if score > 50 {
+      nonisolatedMethod() // a nonisolated use of `self`
+      greetCharlie(self)  // a nonisolated use of `self`
+      self.me = self      // a nonisolated use of `self`
+    } else if score < 50 {
+      score = 50
+    }
+ 
+    assert(score >= 50) // ❌ error: cannot access mutable isolated storage after `nonisolated` use of `self`
+
+    _ = self.fixedNonSendable // ❌ error: cannot access non-Sendable property after `nonisolated` use of `self`
+    _ = self.fixedSendable
+
+    Task { await self.incrementScore() } // a nonisolated use of `self`
+  }
+}
+```
+
+The central piece of this example is the `if-else` statement chain, which introduces multiple control-flow paths in the initializer. In the body of one of the first conditional block, several different `nonisolated` uses of `self` appear. In the other conditional cases (the `else-if`'s block and the implicitly empty `else`), it is still OK for reads and writes of `score` to appear. But, once control-flow meets-up after the `if-else` statement at the `assert`, `self` is considered `nonisolated` because one of the blocks that can reach that point introduces non-isolation. 
+
+As a consequence, the only stored properties that are accessible after `self` becomes `nonisolated` are let-bound properties whose type is `Sendable`.
+The diagnostics emitted for illegal accesses to other stored properties will point to one of the earlier uses of `self` that caused the isolation to change. The sense of "earlier" here is in terms of control-flow and not in terms of where the statements appear in the program. To see how this can happen in practice, consider this alternative definition of `Charlie.init` that uses `defer`:
+
+```swift
+init(hasADefer: Void) {
+  self.score = 0
+  defer { 
+    print(self.score) // error: cannot access mutable isolated storage after `nonisolated` use of `self`
+  }
+  Task { await self.incrementScore() } // note: a nonisolated use of `self`
+}
+```
+
+Here, we defer the printing of `self.score` until the end of the initializer. But, because `self` is captured in a closure before the `defer` is executed, that read of `self.score` is not always safe from data-races, so it is flagged as an error. Another scenario where an illegal property access can visually precede the decaying use is for loops:
+
+```swift
+init(hasALoop: Void) {
+  self.score = 0
+  for i in 0..<10 {
+    self.score += i     // error: cannot access mutable isolated storage after `nonisolated` use of `self`
+    greetCharlie(self)  // note: a nonisolated use of `self`
+  }
+}
+```
+
+In this for-loop example, we must still flag the mutation of `self.score` in a loop as an error, because it is only safe on the first loop iteration. On subsequent loop iterations, it will not be safe because `self` may be concurrently accessed after being escaped in a procedure call.
+
+**In-depth discussions**
+
+The remainder of this subsection covers some technical details that are not required to understand this proposal and may be safely skipped.
+
+**Limitations of Static Analysis**
+Not all loops iterate more than once, or even at all. The Swift compiler will be free to reject programs that may never exhibit a race dynamically, based on the static assumption that loops can iterate more than once and conditional blocks can be executed. To make this more concrete, consider these two silly loops:
+
+```swift
+init(hasASillyLoop1: Void) {
+  self.score = 0
+  while false {
+    self.score += i     // error: cannot access isolated storage after `nonisolated` use of `self`
+    greetCharlie(self)  // note: a nonisolated use of `self`
+  }
+}
+
+init(hasASillyLoop2: Void) {
+  self.score = 0
+  repeat {
+    self.score += i     // error: cannot access isolated storage after `nonisolated` use of `self`
+    greetCharlie(self)  // note: a nonisolated use of `self`
+  } while false
+}
+```
+
+In both loops above, it is clear to the programmer that no race will happen, because control-flow will not dynamically reach the statement incrementing `score` _after_ passing `self` in a procedure call. For these trivial examples, the compiler _may_ be able to prove that these loops do not execute more than once, but that is not guaranteed due to the [limitations of static analysis](https://en.wikipedia.org/wiki/Halting_problem).
+
+**Property Observers**
+In Swift, writes to a stored property can trigger a property observer to fire.
+Property observers, i.e., `didSet` and `willSet` can be attached to a stored property and have access to `self`:
+
+```swift
+actor Observed {
+  func mutate() { self.x += 1 }
+  var x: Int {
+    didSet {
+      print("hello!")
+      Task { await self.mutate() }
+    }
+  }
+
+  init() {
+    // none of these invokes the `didSet`, so `self` does not become
+    // `nonisolated` from these assignments:
+    self.x = 1
+    self.x = 2
+    self.x = 3
+  }
+}
+```
+
+But, such observers are _not_ invoked when assigning to a stored property within an initializer.
+Thus, non-isolation within an initializer cannot be introduced by an access to a stored property. The program above should be accepted as it is free of data races.
+
+**Data-race Safety**
+
+In effect, the concept of isolation decay prevents data-races by disallowing access to stored properties once the compiler can no-longer prove that the reference to `self` will not be concurrently accessed. For efficiency reasons, the compiler might not perform interprocedural analysis to prove that passing `self` to another function is safe from concurrent access by another task. Interprocedural analysis is inherently limited due to the nature of modules in Swift (i.e., separate compilation). Immediately after `self` has escaped the initializer, the treatment of `self` in the initializer changes to match the unacquired status of the actor's executor.
+
+#### Global-actor isolated class initializers
+
+Global-actor isolated classes (GAICs) have the ability to gain actor-isolation prior to the initialization of the instance's `self`. That's because its executor is a static instance, existing prior to even allocating uninitialized memory for a GAIC object. Thus, _all_ isolated initializers of a GAIC require callers to `await`. Flow-sensitive actor isolation does not apply to any initializer of a GAIC.
+
+### Delegating Initializers
+
+This section defines the syntactic form and rules about delegating initializers for `actor` types and global-actor isolated classes (GAICs).
+
+#### Syntactic Form
+
+While `actor`s are a reference type, their delegating initializers will follow the same basic rules that exist for value types, namely:
+
+1. If an initializer body contains a call to some `self.init`, then it's a delegating initializer. No `convenience` keyword is required.
+2. For delegating initializers, `self.init` must always be called on all paths, before `self` can be used.
+
+The reason for this difference between `actor` and `class` types is that `actor`s do not support inheritance, so they can shed the complexity of `class` initializer delegation. GAICs use the same syntactic form as ordinary classes to define delegating initializers.
+
+#### Isolation
+
+Much like their non-delegating counterparts, an actor's delegating initializer either has an `isolated self` or a `nonisolated self` reference. The decision procedure for categorizing these initializers are the same, too: non-async delegating initializers have a `nonisolated self`, *etc*.
+
+But, the delegating initializers of an actor have simpler isolation semantics, because they are not required to initialize the instance's stored properties. Thus, instead of using flow-sensitive actor isolation, delegating initializers have a uniform isolation for `self`, much like an ordinary function.
+
+### Sendability
+
+The delegating initializers of an `actor`, and all initializers of a GAIC, follow the same rules about Sendable arguments as other functions. Namely, if the function is isolated, then cross-actor calls require that the arguments conform to the `Sendable` protocol.
+
+All non-delegating initializers of an actor, regardless of any flow-sensitive isolation applied to `self`, are considered "isolated" from the `Sendable` point-of-view. That's because these initializers are permitted to access the actor's isolated stored properties during bootstrapping.
+
+As a result of these two rules, a delegating initializer with an `isolated self` can pass non-`Sendable` arguments when delegating to another initializer. Here are some examples to illustrate:
+
+```swift
+class NotSendableType { /* ... */ }
+
+actor George {
+  var ns: NonSendableType
+
+  init(anyNonDelegating ns: NonSendableType) { 
+    self.ns = ns
+  }
+
+  init(delegatingSync ns: NonSendableType) {
+    self.init(anyNonDelegating: ns) // ❌ error: cannot pass non-Sendable value across actors
+    self.ns = ns // ❌ error: cannot mutate isolated property from nonisolated context
+  }
+
+  init(delegatingAsync ns: NonSendableType) async {
+    self.init(anyNonDelegating: ns) // ✅ OK
+    self.ns = ns // ✅ OK
+  }
+
+  nonisolated init(delegatingNonIsoAsync ns: NonSendableType) async {
+    self.init(anyNonDelegating: ns) // ❌ error: cannot pass non-Sendable value across actors
+    self.ns = ns // ❌ error: cannot mutate isolated property from nonisolated context
+  }
+}
+
+func someUnrelatedCaller(ns: NonSendableType) async {
+  _ = George(anyNonDelegating: ns) // ❌ error: cannot pass non-Sendable value across actors
+  _ = George(delegatingSync: ns) // ✅ OK
+
+  _ = await George(delegatingAsync: ns) // ❌ error: cannot pass non-Sendable value across actors
+  _ = await George(delegatingNonIsoAsync: ns) // ✅ OK
+}
+```
+
+### Deinitializers
+
+In Swift 5.5, two different kinds of data races with an actor or global-actor isolated class (GAIC) can be created within a `deinit`, as shown in an earlier section. The first one involves a reference to `self` being shared with another task, and the second one with actors having shared executors.
+
+To solve the first kind of race, we propose having the same flow-sensitive actor isolation rules discussed earlier for a `nonisolated self` apply to an actor's `deinit`. A `deinit` falls under the `nonisolated self` category, because it is effectively a non-async, non-delegating initializer whose purpose is to clean-up or tear-down, instead of bootstrap. In particular, a `deinit` starts with a unique reference to `self`, so the rules for decaying to a `nonisolated self` match up perfectly. This solution will apply to the `deinit` of both actor types and GAICs.
+
+To solve the second race, we propose that a `deinit` can only access the stored properties of `self` that are `Sendable`. This means that, even when `self` is a unique reference and has not decayed to being `nonisolated`, only the `Sendable` stored properties of an actor or GAIC can be accessed. This restriction is not needed for an `init`, because the initializer has known call-sites that are checked for isolation and `Sendable` arguments. The lack of knowledge about when and where a `deinit` will be invoked is why `deinit`s must carry this extra burden. In effect, non-`Sendable` actor-isolated state can only be deinitialized by an actor by invoking that state's `deinit`.
+
+Here is an example to help illustrate the new rules for `deinit`:
+
+```swift
+actor A {
+  let immutableSendable = SendableType()
+  var mutableSendable = SendableType()
+  let nonSendable = NonSendableType()
+
+  init() {
+    _ = self.immutableSendable  // ✅ ok
+    _ = self.mutableSendable    // ✅ ok
+    _ = self.nonSendable        // ✅ ok
+
+    f(self) // trigger a decay to `nonisolated self`
+
+    _ = self.immutableSendable  // ✅ ok
+    _ = self.mutableSendable    // ❌ error: must be immutable
+    _ = self.nonSendable        // ❌ error: must be sendable
+  }
+
+
+  deinit {
+    _ = self.immutableSendable  // ✅ ok
+    _ = self.mutableSendable    // ✅ ok
+    _ = self.nonSendable        // ❌ error: must be sendable
+
+    f(self) // trigger a decay to `nonisolated self`
+
+    _ = self.immutableSendable  // ✅ ok
+    _ = self.mutableSendable    // ❌ error: must be immutable
+    _ = self.nonSendable        // ❌ error: must be sendable
+  }
+}
+```
+
+In the above, the only difference between the `init` and the `deinit` is that the `deinit` can only access `Sendable` properties, whereas the `init` can access non-`Sendable` properties prior to the isolation decay.
+
+
+### Global-actor isolation and instance members
+
+The main problem with global-actor isolation on the stored properties of a nominal type is that an impossible isolation requirement can be constructed. The isolation needed for a type's non-delegating initializers is the union of all isolation applied to its stored properties that *specifically* have a default value. It must be valid to meld together the expressions for each of the default values and place them into an initializer. If there is more than one unique global-actor required among those expressions, then the initializer cannot be defined.
+
+We propose solving this problem in a way that adds only one simple rule to remember, so that it does not induce any extra exceptions and corner-cases: 
+
+>If a nominal type's stored-property member has its own, independent global-actor isolation annotation, then that stored property cannot have an explicit default value.
+
+As a consequence, if programmers want to have default values for their stored properties, to take advantage of conciseness, then they must place the annotation on the entire type:
+
+```swift
+class ProtectedPairBad {
+  @BlueActor var hello = someFn() // ❌ error: default value not permitted
+  @BlueActor var goodbye = someFn() // ❌ error: default value not permitted
+}
+
+@BlueActor
+class ProtectedPairGood {
+  var hello = someFn()    // ✅ ok
+  var goodbye = someFn()  // ✅ ok
+}
+```
+
+This rule is subjective and an over-approximation of the required solution, but it is simple to remember. That is, for the example above, the compiler *could* accept `ProtectedPairBad` with some simple analysis of the isolation applied to the stored properties. But, that would make the rules about whether a stored-property member can have an explicit default value more difficult to explain and remember.
+
+
+#### Removing Redundant Isolation
+
+Global-actor isolation on a stored property provides safe concurrent access to the storage occupied by that stored property in the type's instances.
+For example, if `pid` is an actor-isolated stored property without an observer, then the access `p.pid.reset()` only protects the memory read of `pid` from `p`, and not the call to `reset` afterwards.
+
+Thus, for value types (enums and structs), global-actor isolation on stored properties fundamentally serves no use: mutations of the storage occupied by the stored property in a value type are concurrency-safe by default, thanks to copy-on-write semantics. The only exception to this is when the stored property has an observer, i.e., `didSet` and/or `willSet`. In those cases, the global-actor isolation on the property extends to those observers. Thus, we propose barring stored properties of a value type from having global-actor isolation, _unless_ if it has an attached observer.
+
+The [global actors](0316-global-actors.md) proposal explicitly excludes actor types from having stored properties that are global-actor isolated. But in Swift 5.5, that is not enforced by the compiler. We feel that the rule should be enforced, i.e., the storage of an actor should uniformly be isolated to the actor instance. One reason for this rule is that it eliminates the possibility of [false sharing](https://en.wikipedia.org/wiki/False_sharing) among threads. That is, with the rule in force, only one thread will access the memory occupied by an actor instance at any given time.
+
+
+## Source compatibility
+There are some changes in this proposal that are backwards compatible or easy to migrate:
+
+- The set of `init` declarations accepted by the compiler in Swift 5.5 (without emitted warnings) is a strict subset of the ones that will be permitted if this proposal is accepted, i.e., flow-sensitive isolation broadens the set of permitted programs.
+- Appearances of `convenience` on an actor's initializer can be ignored and/or have a fix-it emitted.
+- Appearances of superfluous global-actor isolation annotations on ordinary stored properties (say, in value types) can be ignored and/or have a fix-it emitted.
+
+But, there are others which will cause a non-trivial source break to patch holes in the concurrency model, for example:
+
+- The set of `deinit`s accepted by the compiler for actors and GAICs will be narrowed.
+- GAICs will have data-race protections applied to their `init`s, which narrows the set of acceptable `init` declarations.
+- Global-actor isolation on stored-property members of an actor type are prohibited.
+- Stored-property members that are still permitted to have global-actor isolation applied to them cannot have a default value.
+
+Note that these changes to GAICs will only apply to classes defined in Swift. Classes imported from Objective-C with MainActor-isolation applied will be assumed to not have data races.
+
 
 ## Alternatives considered
 
 This section explains alternate approaches that were ultimately not chosen for this proposal.
 
-### Deinitializers
+### Introducing `nonisolation` after `self` is fully-initialized
 
-One workaround for the lack of ability to synchronize with an actor's executor prior to destruction is to wrap the body of the `deinit` in a task.
-If this task wrapping is done implicitly, then it breaks the expectation within Swift that all tasks are explicitly created by the programmer.
-If the programmer decides to go the route of explicitly spawning a new task upon `deinit`, that decision is better left to the programmer.
-It is important to keep in mind that it is undefined behavior in Swift for a reference to `self` to escape a `deinit`, such as through task creation.
-Nevertheless, a program that does extend the lifetime of `self` in a `deinit` is not currently rejected by the compiler; and will not be if this proposal is accepted.
-
-### Flow-sensitive actor isolation
-
-The solution in this proposal focuses on having an _explicit_ point at which an actor's `self` transitions to becoming fully-initialized, by leaning on delegating initializers.
-
-If actor-isolation were formulated to change implicitly, after the point at which `self` becomes initialized in an actor, we could combine some of the capabilities of delegating and non-delegating inits.
-In particular, accesses to stored properties in an initializer would be conditionally asynchronous, at multiple control-flow sensitive points:
+It is tempting to say that, to avoid introducing another concept into the language, `nonisolation` should begin at the point where `self` becomes fully-initialized. But, because control-flow can cross from a scope where `self` is fully-initialized, to another scope where `self` _might_ be fully-initialized, this rule is not enough to determine whether an initializer has a race. Here are two examples of initializers where this simplistic rule breaks down:
 
 ```swift
-actor A {
+actor CounterExampleActor {
   var x: Int
-  var y: Int
+  
+  func mutate() { self.x += 1 }
+  
+  nonisolated func f() { 
+    Task { await self.mutate() }
+  }
 
-  init(with z: Int) {
-    self.y = z
-    guard z > 0 else {
-      self.x = -1
-      // `self` fully initialized here
-      print(self.x) // ❌ error: must 'await' access to 'x'
-      return
+  init(ex1 cond: Bool) {
+    if cond {
+      self.x = 0
+      f()
     }
-    self.x = self.y
-    // `self` fully initialized here
-    _ = self.y // ❌ error: must await access to 'y'
+    self.x = 1 // if cond is true, this might race!
+  }
+
+  init(ex2 max: Int) {
+    var i = 0
+    repeat {
+      self.x = i // after first loop iteration, this might race!
+      f()
+      i += 1
+    } while i < max
   }
 }
 ```
 
-This approach was not pursued for a two reasons.
-First, it is likely to be confusing to users if the body of an initializer can change its isolation part-way through, at invisible points.
-Second, the existing implementation of the compiler is not designed to handle conditional async-ness.
-In order to translate the program from an AST to the SIL representation, we need to decide whether an expression is async.
-But, the existing control-flow analysis, to determine where `self` becomes fully-initialized, must be run on the SIL representation of the program.
-Performing control-flow analysis on an AST representation would be painful and become a maintenance burden.
-SIL is a normalized representation that is specifically designed to support such analyses.
+In Swift, `self` can be freely used, _immediately_ after becoming fully-initialized. Thus, if we tie `nonisolation` to whether `self` is fully-initialized _at each use_, both initializers above should be accepted, even though they permit data races: `f` can escape `self` into a task that mutates the actor, yet the initializer will continue after returning from `f` with unsynchronized access to its stored properties.
 
-### Removing the need for `convenience`
+With the flow-sensitive isolation rules in this proposal, both property accesses above that can race are rejected because of a flow-isolation error. The source of `nonisolation` would be identified as the calls to `f()`, so that programmers can correct their code. 
 
-The removal of `convenience` to distinguish delegating initializers *will* create an ABI break.
-Currently, the addition or removal of `convenience` on an actor initializer is an ABI-breaking change, as it is with classes, because the emitted symbols and/or name mangling will change.
+Now, consider what would happen if the calls to `f` above were removed. With the proposed isolation rules, the programs would now be accepted because they are safe: there is no source of `nonisolation`. If we had said that `nonisolation` _always_ starts immediately after `self` is fully-initialized, and _persists until the end of the initializer_, then even without the calls to `f`, the initializers above would be would be needlessly rejected.
 
-If we were to disallow `nonisolated`, non-delegating initializers, we could enforce the rule that `nonisolated` means that it must delegate.
-But, such semantics would not align with global-actor isolation, which is conceptually the same as `nonisolated` with respect to an initializer: not being isolated to `self`.
-In addition, any Swift 5.5 code with `nonisolated` or equivalent on an actor initializer would become ABI and source incompatible with Swift 6.
 
-Thus, is not ultimately worthwhile to try to eliminate `convenience`, since it does provide some benefit: marking initializers that _must_ delegate.
-While a `nonisolated` synchronous initializer is mostly useless, the compiler can simple tell programmers to remove the `nonisolated`, because it is meaningless in that case.
-Note that `nonisolated` _does_ provide utility for an `async` initializer, since it means that no implicit executor synchronization is performed, while allowing other `async` calls to happen within the initializer.
+### Permitting `await` for property access in `nonisolated self` initializers
+
+In an `nonisolated self` initializer, we reject stored property accesses after the first non-isolated use. For a non-async initializer, there is no alternative to rejecting the program, since one cannot hop to the actor's executor in that context. But an `async` initializer that is not isolated to `self` _could_ perform that hop:
+
+```swift
+class SomeClass {}
+actor AwkwardActor {
+  var x: SomeClass
+  nonisolated func f() { /* ... */ }
+
+  nonisolated init() async {
+    self.x = SomeClass()
+    let a = self.x
+    f()
+    let b = await self.x // warning: accessing non-Sendable type `SomeClass` across actors
+    print(a + b)
+  }
+}
+```
+
+From an implementation perspective, it _is_ feasible to support the program above, where property accesses can become `async` expressions based on flow-sensitive isolation. But, this proposal currently takes the subjective position that such code should be rejected. The expressiveness gained by supporting such a flow-sensitive `async` property access is not worth the confusion they might create:
+
+For programmers who simply _read_ this valid code in a project, the `await` might look unnecessary or otherwise unnecessarily challenge their understanding of isolation. But, this specific kind of `nonisolated self` _and_ `async` initializer would be the only place where one could demonstrate to _readers_ that isolation can change mid-function. This is in contrast to a non-async `nonisolated self` initializer, for whom those property accesses are rejected for the same isolation-change reason. The subtle difference is that, unless the programmer is writing or modifying an `isolated self` actor initializer, they are not exposed to flow-sensitive isolation.
+
+
+### Async Actor Deinitializers
+
+One idea for working around the inability to synchronize from a `deinit` with the actor-instance's executor prior to destruction is to wrap the body of the `deinit` in a task. This would in effect allow the necessarily non-async `deinit` to act as though it were `async` in its body.
+
+The primary danger here is that it is currently undefined behavior in Swift for a reference to `self` to escape a `deinit` and persist after the `deinit` has completed, which must be possible if the `deinit` were asynchronous. The only other option would be to have `deinit` be blocking, but Swift concurrency is designed to avoid blocking.
 
 ## Effect on ABI stability
 
@@ -546,8 +757,8 @@ This proposal does not affect ABI stability.
 
 ## Effect on API resilience
 
-Any changes to the isolation of a declaration continues to be an [ABI-breaking change](0306-actors.md#effect-on-api-resilience), but a change in what is allowed in the _implementation_ of, say, a `nonisolated` member will not affect API resilience.
+This proposal does not affect API resilience.
 
 ## Acknowledgments
 
-Thank you to the members of the Swift Forums for their discussions about this topic, which helped shape this proposal. In particular, we would like to thank anyone who participated in [this thread](https://forums.swift.org/t/on-actor-initializers/49001).
+Thank you to the members of the Swift Forums for their time spent reading this proposal and its prior versions, along with posting their thoughts on the forums.
