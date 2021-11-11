@@ -850,7 +850,7 @@ Go Concurrency Patterns: Context](https://blog.golang.org/context).
 
 ### Surface API: Type-based key definitions
 
-The initially pitched approach to define task-local keys was impossible to get wrong thanks to the type always being unique. However declaring and using the keys was deemed to tiresome by the community during review, thus the proposal currently is pitching `@TaskLocal` property wrapper.
+The initially pitched approach to define task-local keys was impossible to get wrong thanks to the type always being unique. However declaring and using the keys was deemed too tiresome by the community during review, thus the proposal currently is pitching `@TaskLocal` property wrapper.
 
 The previous design required this boilerplate to declare a key:
 
