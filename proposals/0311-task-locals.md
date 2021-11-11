@@ -516,7 +516,7 @@ Task-local variables are semantically _inherited_ the same way by _child tasks_ 
 
 This implies that stored values may be accessed from different tasks executing concurrently. In order to guarantee safety, task-local values must conform to the `Sendable` protocol, introduced in [SE-0302](0302-concurrent-value-and-concurrent-closures.md).
 
-Accessing task-local values is synchronous and may be done from any context. If no task is available in the calling context, the default value for the task-local will be returned. The same default value is returned if the acessor is invoked from a context in which a task is present, however the task-local was never bound in this, or any of its parent tasks.
+Accessing task-local values is synchronous and may be done from any context. If no task is available in the calling context, the default value for the task-local will be returned. The same default value is returned if the accessor is invoked from a context in which a task is present, however the task-local was never bound in this, or any of its parent tasks.
 
 The specific lookup mechanism used by this accessor will be explained in detail in the next sections.
 
