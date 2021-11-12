@@ -416,7 +416,7 @@ As expected, because the *detached task* completely discards any contextual info
 If necessary, it is possible is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
 
 ```swift
-let sugarPreference = Lib.sugar                      // store the sugar preference in task-1
+let sugarPreference = Lib.sugar                 // store the sugar preference in task-1
 detach(priority: Task.currentPriority) {        // manually propagate priority
   await Lib.$sugar.withValue(sugarPreference) { // restore the sugar preference in detached-task
     assert(Lib.sugar == preference)
