@@ -57,4 +57,4 @@ N/A. This is not an API.
 
 ## Alternatives considered
 
-It was decided to tackle this limited scope for the introduction of conditional syntax first, as specific use cases can be thought of and to be honest this has always seemed like a bit of an omission. Other areas where conditionals could be introduced abound but can be discussed with reference to their own particular subtitles of implementation separately at a later date.
+It was decided to tackle this limited scope for the introduction of conditional syntax first, as specific use cases can be thought of and to be honest this has always seemed like a bit of an omission. Other areas where conditionals could be introduced abound but can be discussed with reference to their own particular subtleties of implementation separately at a later date.
