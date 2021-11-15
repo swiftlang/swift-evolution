@@ -146,7 +146,7 @@ Keeping this in mind, let us proceed to discussing the specific isolation rules 
 
 Distributed actors are a special flavor of the `actor` type that enforces additional rules on the type and its values, in order to enable location transparency. 
 
-They declared by prepending `distributed` to an `actor` declaration, like so:
+They are declared by prepending `distributed` to an `actor` declaration, like so:
 
 ```swift
 public distributed actor Player {
