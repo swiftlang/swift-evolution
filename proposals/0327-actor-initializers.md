@@ -3,10 +3,12 @@
 * Proposal: [SE-0327](0327-actor-initializers.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [John McCall](https://github.com/rjmccall), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (October 25...November 8, 2021)**
+* Status: **Returned for revision**
 * Previous Discussions:
   * [On Actor Initializers](https://forums.swift.org/t/on-actor-initializers/49001)
   * [Deinit and MainActor](https://forums.swift.org/t/deinit-and-mainactor/50132)
+  * [First review](https://forums.swift.org/t/se-0327-on-actors-and-initialization/53053)
+  * [Result of first review](https://forums.swift.org/t/returned-for-revision-se-0327-on-actors-and-initialization/53447)
 * Implementation: **Partially implemented in `main`.**
 
 **Table of Contents**
