@@ -18,8 +18,7 @@ This proposal introduces some quality-of-life improvements for `UnsafePointer` a
 
 1. Add an API to obtain an `UnsafeRawPointer` instance that is advanced to a given alignment from its starting point.
 2. Add an API to obtain a pointer to a stored property of an aggregate `T`, given an `UnsafePointer<T>`.
-3. Rename the unchecked subscript of `Unsafe[Mutable]Pointer` to include the argument label `unchecked`.
-4. Add the ability to compare pointers of any two types.
+3. Add the ability to compare pointers of any two types.
 
 Swift-evolution thread: [Discussion][pitch-thread]
 
@@ -35,12 +34,6 @@ An API that provides this utility would not take away from the fact that the typ
 
 Similarly, it is rather difficult to pass a pointer to a property of a struct to (e.g.) a C function.
 In such cases, the poor ergonomics lead to code that is less safe than it should be.
-
-From another perspective, the integer subscript on `UnsafePointer` is different from other subscripts in Swift.
-Normally, similar-looking subscripts perform bounds checking.
-The `UnsafePointer` version does not warn that it does not check its parameter,
-even though it looks similar to a `Collection` subscript at the point of use.
-It would be an improvement to give a name to the way that subscript is unsafe: it is **unchecked**.
 
 Finally, when dealing with pointers of different types,
 we can often get in situations where Swift's type system gets in the way.
@@ -186,30 +179,6 @@ var e = withUnsafeMutablePointer(to: &scheduling) {
                         $0.pointer(to: \.parameters)!)
 }
 ```
-
-
-#### Add `unchecked` argument label to `UnsafePointer`'s integer subscript
-
-In Swift, it is customary for subscripts to have a precondition that their argument be valid.
-It is reasonable and expected that `UnsafePointer` should have a less-safe subscript.
-Unfortunately, the unsafe usage is unmarked at the point of use.
-
-We propose to replace (via deprecation) the existing subscript of `UnsafePointer`
-with a subscript that adds an argument label (`unchecked`).
-The label will help visually distinguish the unchecked pointer subscript from a "normal" (checked) subscript.
-```swift
-extension UnsafeMutablePointer {
-  public subscript(unchecked i: Int) -> Pointee { get set }
-}
-```
-
-There is precedent for using of the word "unchecked" in the standard library.
-It is frequently used in internal names:
-the word currently appears as part of a Swift symbol on 197 lines of the standard library source code.
-It is also used to indicate unchecked preconditions in these public API:
-`@unchecked Sendable`, `Range.init(uncheckedBounds:)` and `ClosedRange.init(uncheckedBounds:)`.
-
-<!-- find stdlib/public -type f -exec egrep unchecked {} \; | grep -v // -->
 
 
 #### Allow comparisons of pointers of any type
@@ -378,44 +347,6 @@ extension UnsafeMutablePointer {
 ```
 
 
-#### Add `unchecked` argument label to `UnsafePointer`'s integer subscript
-
-```swift
-extension UnsafePointer {
-  @available(*, deprecated, renamed: "subscript(unchecked:)")
-  public subscript(i: Int) -> Pointee { get }
-
-  /// Accesses the pointee at the specified unchecked offset from this pointer.
-  ///
-  /// For a pointer `p`, the memory at `p + i` must be initialized.
-  ///
-  /// - Parameter i: The offset from this pointer at which to access an
-  ///   instance, measured in strides of the pointer's `Pointee` type.
-  public subscript(unchecked i: Int) -> Pointee { get }
-}
-
-extension UnsafeMutablePointer {
-  @available(*, deprecated, renamed: "subscript(unchecked:)")
-  public subscript(i: Int) -> Pointee { get set }
-
-  /// Accesses the pointee at the specified unchecked offset from this pointer.
-  ///
-  /// For a pointer `p`, the memory at `p + i` must be initialized when reading
-  /// the value by using the subscript. When the subscript is used as the left
-  /// side of an assignment, the memory at `p + i` must be initialized or
-  /// the pointer's `Pointee` type must be a trivial type.
-  ///
-  /// Do not assign an instance of a nontrivial type through the subscript to
-  /// uninitialized memory. Instead, use an initializing method, such as
-  /// `initialize(repeating:count:)`.
-  ///
-  /// - Parameter i: The offset from this pointer at which to access an
-  ///   instance, measured in strides of the pointer's `Pointee` type.
-  public subscript(unchecked i: Int) -> Pointee { get set }
-}
-```
-
-
 #### Allow comparisons of pointers of any type
 
 ```swift
@@ -464,21 +395,18 @@ extension UnsafeMutablePointer {
 
 ## Source compatibility
 
-Most of the proposed changes are additive, and therefore are source-compatible.
-The existing pointer subscript would be deprecated, producing a warning.
-A fixit will support an easy transition to the new version of the subscript.
+All of the proposed changes are additive, and do not affect existing code.
+
 
 ## Effect on ABI stability
 
-We intend to implement these changes in an ABI-neutral manner.
+We can implement these changes in an ABI-neutral manner.
+
 
 ## Effect on API resilience
 
 The proposed additions will be public API,
 and will all be marked `@_alwaysEmitIntoClient` to support back-deployability.
-
-The deprecated integer subscript will remain in place,
-and will therefore support pre-existing binaries.
 
 
 ## Alternatives considered
@@ -525,32 +453,20 @@ This seemed to imply even more strongly a direct access to the property,
 as well as being deemed "too magical".
 
 
-#### Add `unchecked` argument label to `UnsafePointer`'s integer subscript
-
-The community could decide not to do this.
-The authors believe that unsafe API would be improved by indicating the nature of their unsafety at the point of use,
-and this pitch is a first step for such improvements.
-
-In addition to changing the `UnsafePointer` subscript,
-we could also add a subscript to `UnsafeBufferPointer` that includes the `unchecked` argument label.
-The behaviour of this additional subscript would be different from the behaviour of the existing integer subscript,
-and would _not_ be a replacement.
-As a reminder, `UnsafeBufferPointer.subscript(_ i: Int)` performs bounds-checking in debug mode,
-and skips bounds-checking in release mode.
-This behaviour leads to optimization issues when there are three compilation units
-(the standard library, user code, and a third-party library that uses `UnsafeBufferPointer`),
-limiting the optimizations available to the library code.
-
-Adding an `unchecked` subscript to `UnsafeBufferPointer` could help the ultimate performance of such third-party libraries.
-Changing the default behaviour of `UnsafeBufferPointer`'s subscript with regards to bounds-checking is out of scope for this proposal.
-
-
 #### Allow comparisons of pointers of any type
 
 Compiler performance is a concern, and operator overloads have been the cause of performance issues in the past.
 Preliminary compiler performance testing [suggests][performance-test] that this addition does not appreciably affect performance.
 
-[performance-test]: https://github.com/apple/swift/pull/39635#issuecomment-939353928
+[performance-test]: https://github.com/apple/swift/pull/39635#issuecomment-966767929
+
+
+#### Add `unchecked` argument label to `UnsafePointer`'s integer subscript
+
+The original pitch for this proposal included the addition of an argument label ("unchecked") to `Unsafe[Mutable]Pointer`'s integer subscript.
+The intention for this change was to begin the process of better marking the use of unsafe API at the point of use.
+We are deferring this portion of the pitch because it has source compatibility implications,
+and will require a staged plan for deprecation and eventual removal.
 
 
 ## Acknowledgements
