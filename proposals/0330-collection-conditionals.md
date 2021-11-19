@@ -3,7 +3,8 @@
 * Proposal: [SE-0330](0330-collection-conditionals.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active review (November 8...19, 2021)**
+* Status: **Returned for revision**
+* Decision notes: [Rationale](https://forums.swift.org/t/se-0330-conditionals-in-collections/53375/22)
 * Implementation: [apple/swift#19347](https://github.com/apple/swift/pull/19347)
 * Bugs: [SR-8743](https://bugs.swift.org/browse/SR-8743)
 
