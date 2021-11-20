@@ -1,4 +1,4 @@
-# Support incremental migration to concurrency checking
+# Incremental migration to concurrency checking
 
 * Proposal: [SE-NNNN](NNNN-support-incremental-migration-to-concurrency-checking.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Becca Royal-Gordon](https://github.com/beccadax)
@@ -7,15 +7,15 @@
 
 ## Introduction
 
-[SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md) introduced the `Sendable` protocol, which is used to indicate which types have values that can safely be copied across task boundaries or, more generally, into any context where a copy of the value might be used concurrently with the original. However, Swift 5.5 does not fully enforce `Sendable` because interacting with modules which have not been updated for Swift Concurrency would be painful. We propose adding features to help developers migrate their code to support `Sendable` checking and interoperate with other modules that have not yet adopted it.
+Swift 5.5 introduced mechanisms to eliminate data races from the language, including the `Sendable` protocol ([SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md)) to indicate which types have values that can safely be used across task and actor boundaries, and global actors ([SE-0316](https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md)) to help ensure proper synchronization with (e.g.) the main actor. However, Swift 5.5 does not fully enforce `Sendable` nor all uses of the main actor because interacting with modules which have not been updated for Swift Concurrency would be painful. We propose adding features to help developers migrate their code to support concurrency and interoperate with other modules that have not yet adopted it.
 
-Swift-evolution threads: [[Pitch] Staging in `Sendable` checking](https://forums.swift.org/t/pitch-staging-in-sendable-checking/51341), [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution threads: [[Pitch] Staging in `Sendable` checking](https://forums.swift.org/t/pitch-staging-in-sendable-checking/51341), [Pitch #2](https://forums.swift.org/t/pitch-2-staging-in-sendable-checking/52413)
 
 ## Motivation
 
-Swift Concurrency seeks provide a mechanism for isolating state in concurrent programs to eliminate data  That mechanism is `Sendable` checking. APIs which send data across task boundaries require their inputs to conform to the `Sendable` protocol; types which are safe to send declare conformance, and the compiler checks that these types only contain `Sendable` types, unless the type's author explicitly indicates that the type is implemented so that it uses any un-`Sendable` contents safely.
+Swift Concurrency seeks provide a mechanism for isolating state in concurrent programs to eliminate data. The primary mechanism is `Sendable` checking. APIs which send data across task or actor boundaries require their inputs to conform to the `Sendable` protocol; types which are safe to send declare conformance, and the compiler checks that these types only contain `Sendable` types, unless the type's author explicitly indicates that the type is implemented so that it uses any un-`Sendable` contents safely.
 
-This would all be well and good if we were writing Swift 1, a brand-new language which did not need to interoperate with any existing code. Unfortunately, we are instead writing Swift 6, a new version of an existing language with millions of lines of existing libraries and deep interoperation with C, Objective-C, and hopefully soon C++ headers. None of this code specifies any of its concurrency behavior in a way that `Sendable` checking can understand, but until it can be updated, we still want to use it from Swift 6 code.
+This would all be well and good if we were writing Swift 1, a brand-new language which did not need to interoperate with any existing code. Instead, we are writing Swift 6, a new version of an existing language with millions of lines of existing libraries and deep interoperation with C and Objective-C. None of this code specifies any of its concurrency behavior in a way that `Sendable` checking can understand, but until it can be updated, we still want to use it from Swift.
 
 There are several areas where we wish to address adoption difficulties.
 
@@ -51,33 +51,17 @@ Here, we need:
 
 * Rules which cause those diagnostics to return once concurrency annotations have been added, but only as warnings, not errors
 
-### Adding `Sendable` conformances from Objective-C
-
-[SE-0297](https://github.com/apple/swift-evolution/blob/main/proposals/0297-concurrency-objc.md)'s `__attribute__((swift_attr))` makes it possible to declare many Swift concurrency behaviors in Objective-C headers[1], and  [SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#support-for-imported-c--objective-c-apis) specifies structural inference rules for `Sendable` conformances. However, neither proposal allows you to declare whether there should or shouldn't be a `Sendable` *conformance*, so there is no way to override SE-0302's rules when the semantic behavior doesn't match the behavior implied by the structural inference rules.
-
-For instance, a struct containing an `int` would be inferred to be `Sendable` because integers can generally be safely copied, but if that `int` is really a file descriptor, you would only want the struct to be `Sendable` if the APIs used that that file descriptor in a thread-safe way. Contrariwise, Objective-C classes can contain shared mutable state so they should not be `Sendable` by default, but if a specific class is known to be synchronized or truly immutable, it should be possible to make it `Sendable`. In both cases, we should be able to override the default behavior and specify the sendability of the type.
-
-Here, we need:
-
-* A way to add a `Sendable` conformance--whether available or [explicitly unavailable](https://github.com/DougGregor/swift-evolution/blob/sendable-inference/proposals/nnnn-sendable-inference.md#introduce-a-syntax-to-specify-explicitly-that-a-type-is-non-sendable)--to imported types
-
-> [1] SE-0297 alone allows you to specify:
->
-> * `swift_attr("@MainActor")` on declarations and block types.
-> * `swift_attr("nonisolated")` on declarations.
-> * `swift_attr("@Sendable")` on block types, Objective-C method declarations, and C function declarations.
-
 ## Proposed solution
 
-We propose a suite of features to aid in the adoption of concurrency annotations and `Sendable` checking. These features are designed to enable the following workflow for adopting `Sendable` checking:
+We propose a suite of features to aid in the adoption of concurrency annotations, especially `Sendable` checking. These features are designed to enable the following workflow for adopting concurrency checking:
 
-1. Enable Swift 6 mode or the `-warn-concurrency` flag. This causes new errors or warnings to appear when `Sendable` constraints are violated.
+1. Enable Swift 6 mode or the `-warn-concurrency` flag. This causes new errors or warnings to appear when concurrency constraints are violated.
 
-2. Start solving those errors. If they relate to types from another module, a fix-it will suggest using `@predatesConcurrency import`; do that to silence those warnings.
+2. Start solving those problems. If they relate to types from another module, a fix-it will suggest using a special kind of import, `@predatesConcurrency import`, which silences these warnings.
 
-3. Once you've solved these errors, integrate your changes into the larger build.
+3. Once you've solved these problems, integrate your changes into the larger build.
 
-4. At some future point, a module you import may be updated to add `Sendable` conformances and other concurrency annotations. If it is, and your code violates `Sendable` constraints, you will see warnings telling you about these mistakes; these are latent concurrency bugs in your code. Correct them.
+4. At some future point, a module you import may be updated to add `Sendable` conformances and other concurrency annotations. If it is, and your code violates the new constraints, you will see warnings telling you about these mistakes; these are latent concurrency bugs in your code. Correct them.
 
 5. Once you've fixed those bugs, or if there aren't any, you will see a warning telling you that the `@predatesConcurrency import` is unnecessary. Remove the `@predatesConcurrency` attribute. Any `Sendable`-checking failures involving that module from that point forward will not suggest using `@predatesConcurrency import` and, in Swift 6 mode, will be errors that prevent your project from building.
 
@@ -85,11 +69,10 @@ Achieving this will require several features working in tandem:
 
 * In Swift 6 mode, all code will be checked for missing `Sendable` conformances and other concurrency violations, with mistakes generally diagnosed as errors. The `-warn-concurrency` flag will diagnose these violations as warnings in older language versions.
 
-* When applied to a nominal declaration, the `@predatesConcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 mode that violate `Sendable` checking, and generate code that interoperates with pre-concurrency binaries.
+* When applied to a nominal declaration, the `@predatesConcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 mode that violate concurrency checking, and generate code that interoperates with pre-concurrency binaries.
 
 * When applied to an `import` statement, the `@predatesConcurrency` attribute tells the compiler that it should only diagnose `Sendable`-requiring uses of non-`Sendable` types from that module if the type explicitly declares a `Sendable` conformance that is unavailable or has constraints that are not satisifed; even then, this will only be a warning, not an error.
 
-* For Objective-C libraries, `__attribute__((swift_attr()))` will be extended to allow you to specify which types should be `Sendable`, including blanket non-`Sendable` for regions of your headers that you have finished auditing.
 
 ## Detailed design
 
@@ -105,11 +88,11 @@ When this proposal speaks of an error being emitted as a warning or suppressed, 
 
 Every scope in Swift can be described as having one of three "concurrency checking modes":
 
-* **Full concurrency checking**: Missing `Sendable` conformances are diagnosed as errors.
+* **Full concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as errors.
 
-* **Strict concurrency checking**: Missing `Sendable` conformances are diagnosed as warnings.
+* **Strict concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as warnings.
 
-* **Minimal concurrency checking**: Missing `Sendable` conformances are diagnosed as warnings; on nominal declarations, `@predatesConcurrency` (defined below) has special effects in this mode which suppress many diagnostics.
+* **Minimal concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as warnings; on nominal declarations, `@predatesConcurrency` (defined below) has special effects in this mode which suppress many diagnostics.
 
 The top level scope's concurrency checking mode is:
 
@@ -123,11 +106,11 @@ A child scope's concurrency checking mode is:
 
 * **Strict** if the parent's concurrency checking mode is **Minimal** and any of the following conditions is true of the child scope:
 
-  * It is a closure with an explicit `@actorIndependent` or global actor attribute.
+  * It is a closure with an explicit global actor attribute.
 
   * It is a closure or autoclosure whose type is `async` or `@Sendable`. (Note that the fact that the parent scope is in Minimal mode may affect whether the closure's type is inferred to be `@Sendable`.)
 
-  * It is a declaration with an explicit `@actorIndependent`, `nonisolated`, or global actor attribute.
+  * It is a declaration with an explicit `nonisolated` or global actor attribute.
 
   * It is a function, method, initializer, accessor, variable, or subscript which is marked `async` or `@Sendable`.
 
@@ -137,7 +120,7 @@ A child scope's concurrency checking mode is:
 
 > Implementation note: The logic for determining whether a child scope is in Minimal or Strict mode is currently implemented in `swift::contextUsesConcurrencyFeatures()`.
 
-Imported Objective-C declarations belong to a scope with Minimal concurrency checking.
+Imported C declarations belong to a scope with Minimal concurrency checking.
 
 ### `@predatesConcurrency` attribute on nominal declarations
 
@@ -147,9 +130,7 @@ To describe their concurrency behavior, maintainers must change some existing de
 * Add `Sendable` constraints to generic signatures
 * Add global actor attributes to declarations
 
-When applied to a nominal declaration, the `@predatesConcurrency` attribute indicates that a declaration existed before the module it belongs to fully adopted concurrency, so the compiler should take steps to avoid these source and ABI breaks. It can be applied to any `enum`, enum `case`, `struct`, `class`, `actor`, `protocol`, `associatedtype`, `var`, `let`, `subscript`, `init`, `func`, accessor, or `deinit` declaration. It can also be applied to an extension, in which case it will be applied to all declarations of those kinds in the extension.
-
-[Maybe you should be allowed to apply it to `typealias`, where it would mean that any declaration that used that typealias in its signature would need to have `@predatesConcurrency`. That way, if you changed a typealias for `(T) -> U` into `@Sendable (T) -> U`, you could add `@predatesConcurrency` to the typealias to ensure that the APIs using that typealias were all updated.]
+When applied to a nominal declaration, the `@predatesConcurrency` attribute indicates that a declaration existed before the module it belongs to fully adopted concurrency, so the compiler should take steps to avoid these source and ABI breaks. It can be applied to any `enum`, enum `case`, `struct`, `class`, `actor`, `protocol`, `var`, `let`, `subscript`, `init` or `func` declaration.
 
 When a nominal declaration uses `@predatesConcurrency`:
 
@@ -195,130 +176,6 @@ When an import is marked `@predatesConcurrency`, the following rules are in effe
 
 > [3] We don't define "unused" more specifically because we aren't sure if we can refine it enough to, for instance, recommend removing one of a pair of `@predatesConcurrency` imports which both import an affected type.
 
-### Customizing the `Sendable` behavior of Objective-C declarations
-
-#### `swift_attr("@Sendable")`
-
-Swift will extend `swift_attr("@Sendable")` to allow it to be applied to Objective-C interfaces and protocols, C record types (structs and unions), and C enum types. If an `@Sendable` attribute is present on such a type, Swift will synthesize an unconditional, fully available `Sendable` conformance.
-
-Swift will implicitly add `swift_attr("@Sendable")` to:
-
-* The block type of the completion handler parameter of a method which is imported as `async`. (That is, if Swift infers an imported method to be `async`, it will also modify the completion handler of the *non*-`async` version of the method to be `@Sendable`.)
-
-* Declarations for types marked with the following attributes:
-  * `enum_extensibility` (`NS_ENUM`)
-  * `ns_error_domain` (`NS_ERROR`)
-  * `flag_enum` (`NS_OPTIONS`)
-  * `swift_wrapper` (`NS_TYPED_ENUM`)
-
-> **Warning**: Marking `swift_wrapper` types as `Sendable` creates a small hole in `Sendable` checking because, if you returned an `NSMutableString` from a Swift API that was imported as the `swift_wrapper` type and later mutated it, this mutation would be visible from another thread. However, this is a serious misuse of `swift_wrapper` types even in non-concurrent scenarios.
-
-#### `swift_attr("@_nonSendable")`
-
-ClangImporter will also add `swift_attr("@_nonSendable")`, which can be applied to anything that allows `swift_attr("@Sendable")`, including the type declarations mentioned above. When applied to a type declaration, it indicates that Swift should synthesize an explicitly unavailable `Sendable` conformance for that declaration.
-
-This attribute can also be specified as `swift_attr("@_nonSendable(_assumed)")`. The two variants differ in how they behave when `swift_attr("@Sendable")` has also been applied to the same declaration or type:
-
-* `swift_attr("@_nonSendable")` causes any `@Sendable` attribute on the same declaration or type to be ignored.
-
-* `swift_attr("@_nonSendable(_assumed)")` is ignored if there is a `@Sendable` attribute on the same declaration or type.
-
-That creates the following set of rules:
-
-1. If the type inherits `Sendable` from a superclass, it has a `@MainActor` attribute, or its superclass has a `@MainActor` attribute, it is explicitly `Sendable`.
-
-1. If `swift_attr("@_nonSendable")` is present, the type is explicitly non-`Sendable`.
-
-2. If `swift_attr("@Sendable")` is present (including if it's added because of `enum_extensibility` or one of the other attributes mentioned above), the type is explicitly `Sendable`.
-
-3. If `swift_attr("@_nonSendable(_audited)")` is present, the type is explicitly non-`Sendable`.
-
-4. If the type meets one of the [`Sendable` Objective-C type criteria described in SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#support-for-imported-c--objective-c-apis), it is explicitly `Sendable`.
-
-5. Otherwise, the type is implicitly non-`Sendable`.
-
-#### Feature detection
-
-`__has_attribute(swift_attr)` is not sufficient for a header file to check if the `swift_attr("@Sendable")` changes and new `swift_attr("@_nonSendable")` attribute are supported by the Swift compiler importing it. To help with this, ClangImporter will define the `__SWIFT_ATTR_SUPPORTS_SENDABLE_DECLS` macro to be `1` or greater when these features are supported.
-
-#### Region-based auditing
-
-> **Note**: In the past, Foundation has provided macros with an `NS_` prefix for working more easily with ClangImporter features. However, Foundation is not part of the Swift Evolution process, so adding macros for these new features is out of scope for an Evolution proposal.
-
-`swift_attr` will be updated to allow it to be used with [the `clang attribute` pragma](https://clang.llvm.org/docs/LanguageExtensions.html#specifying-an-attribute-for-multiple-declarations-pragma-clang-attribute). With this change, it will be possible to define macros to do region-based `Sendable` auditing (i.e. a pair of `MY_ASSUME_UNSENDABLE_BEGIN`/`_END` macros).
-
-Here's a full set of macros as a sample:
-
-```objc
-#ifdef __SWIFT_ATTR_SUPPORTS_SENDABLE_DECLS
-
-#define MY_SENDABLE __attribute__((swift_attr("@Sendable")))
-#define MY_UNSENDABLE __attribute__((swift_attr("@_nonSendable")))
-#define MY_MAIN_ACTOR __attribute__((swift_attr("@MainActor")))
-#define MY_NONISOLATED __attribute__((swift_attr("nonisolated")))
-
-#define MY_ASSUME_UNSENDABLE_BEGIN _Pragma("clang attribute MY_ASSUME_UNSENDABLE.push __attribute__((swift_attr(\"@_nonSendable(_assumed)\"))), defined_in = any(objc_interface, record, enum, function, objc_method)")
-#define MY_ASSUME_UNSENDABLE_END _Pragma("clang attribute MY_ASSUME_UNSENDABLE.pop")
-
-#else
-
-#define MY_SENDABLE
-#define MY_UNSENDABLE
-#define MY_MAIN_ACTOR
-#define MY_NONISOLATED
-
-#define MY_ASSUME_UNSENDABLE_BEGIN
-#define MY_ASSUME_UNSENDABLE_END
-
-#endif
-```
-
-And an example of how they might be used:
-
-```objc
-// This struct would normally be inferred as Sendable because the imported types
-// of its fields are all Sendable, but we know that `fd` is a file descriptor
-// and `MyDatabaseHandle` does not attempt to synchronize its use across
-// multiple clients, so using the same handle in several tasks would not be
-// safe.
-MY_UNSENDABLE struct MyDatabaseHandle {
-  int fd;
-};
-
-// If that struct were below this line, we would also import it as explicitly
-// non-Sendable.
-MY_ASSUME_UNSENDABLE_BEGIN
-
-// Outside of an ASSUME_UNSENDABLE block, this struct would be inferred to be
-// Sendable, but ASSUME_UNSENDABLE takes priority over that.
-MY_SENDABLE struct MyPoint {
-  double x;
-  double y;
-};
-
-// This class would normally be inferred as non-Sendable, but we happen to know
-// that it, all of its subclasses, and all objects accessible through it are
-// truly immutable and can be used by multiple tasks simultaneously.
-MY_SENDABLE @interface MyRecord : NSObject
-
-@property (readonly) NSInteger recordID;
-@property (readonly,copy) NSString *name;
-
-// This method should only be called on the main actor.
-- (void)validateOrPresentErrorUsingResponder:(NSResponder*)responder MY_MAIN_ACTOR;
-
-@end
-
-// The first closure is run on an unspecified background task; the second is on
-// the main actor.
-void runInBackgroundAndThenOnMainActor(
-  MY_SENDABLE void (^backgroundFn)(),
-  MY_MAIN_ACTOR void (^mainActorFn)()
-);
-
-MY_ASSUME_UNSENDABLE_END
-```
-
 ## Source compatibility
 
 This proposal is largely motivated by source compatibility concerns. Correct use of `@predatesConcurrency` should prevent source breaks in code built with Minimal concurrency checking, and `@predatesConcurrency import` temporarily weakens concurrency-checking rules to preserve source compatibility if a project adopts Full or Strict concurrency checking before its dependencies have finished adding concurrency annotations.
@@ -355,4 +212,4 @@ Since these shortcomings significantly reduce its applicability, and you only ne
 
 ### Objective-C and `@predatesConcurrency`
 
-Because all Objective-C declarations are implicitly `@predatesConcurrency`, there is no way to force concurrency APIs to be checked in Minimal-mode code, even if they are new enough that there should be no violating uses. We think this limitation is acceptable to simplify the process of auditing large, existing Objective-C libraries.correctlyepoch"races.to 
+Because all Objective-C declarations are implicitly `@predatesConcurrency`, there is no way to force concurrency APIs to be checked in Minimal-mode code, even if they are new enough that there should be no violating uses. We think this limitation is acceptable to simplify the process of auditing large, existing Objective-C libraries.
