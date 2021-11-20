@@ -142,6 +142,44 @@ When a nominal declaration uses `@predatesConcurrency`:
 
 Objective-C declarations are always imported as though they were annotated with `@predatesConcurrency`.
 
+For example, consider a function that can only be called on the main actor, then runs the provided closure on a different task:
+
+```swift
+@MainActor func doSomethingThenFollowUp(_ body: @Sendable () -> Void) {
+  // do something
+  Task.detached {
+    // do something else
+    body()
+  }
+}
+```
+
+This function could have existed before concurrency, without the `@MainActor` and `@Sendable` annotations. After adding these concurrency annotations, code that worked previously would start producing errors:
+
+```swift
+class MyButton {
+  var clickedCount = 0
+  
+  func onClicked() { // always called on the main thread by the system
+    doSomethingThenFollowUp { // ERROR: cannot call @MainActor function outside the main actor
+      clickedCount += 1 // ERROR: captured 'self' with non-Sendable type `MyButton` in @Sendable closure
+    }
+  }
+}
+```
+
+However, if we add `@predatesConcurrency` to the declaration of `doSomethingThenFollowUp`, its type is adjusted to remove both the `@MainActor` and the `@Sendable`, eliminating the errors and providing the same type inference from before concurrency was adopted by `doSomethingThenFollowUp`. The difference is visible in the type of `doSomethingThenFollowUp` in a minimal vs. a strict context:
+
+```swift
+func minimal() {
+  let fn = doSomethingThenFollowUp // type is (( )-> Void) -> Void
+}
+
+func strict() async {
+  let fn = doSomethingThenFollowUp // type is @MainActor (@Sendable ( )-> Void) -> Void
+}
+```
+
 ### `Sendable` conformance status
 
 A type can be described as having one of the following three `Sendable` conformance statuses:
@@ -153,6 +191,41 @@ A type can be described as having one of the following three `Sendable` conforma
 * **Implicitly non-`Sendable`** if no `Sendable` conformance has been declared on this type at all.
 
 > [2] This means that, if a module is compiled with Swift 6 mode or the `-warn-concurrency` flag, all of its types are either explicitly `Sendable` or explicitly non-`Sendable`.
+
+A type can be made explicitly non-`Sendabl` by creating an unavailable conformance to `Sendable`, e.g.,
+
+```swift
+@available(unavailable, *)
+extension Point: Sendable { }
+```
+
+Such a conformance suppresses the implicit conformance of a struct or enum to `Sendable`.
+
+### `predatesConcurrency` on `Sendable` protocols
+
+Some number of existing protocols describe types that should all be `Sendable`. When such protocols are updated for concurrency, they will likely inherit from the `Sendable` protocol. However, doing so will break existing types that conform to the protocol and are now assumed to be `Sendable`. This problem was [described in SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#thrown-errors) because it affects the `Error` and `CodingKey` protocols:
+
+```swift
+protocol Error: /* newly added */ Sendable { ... }
+
+class MutableStorage {
+  var counter: Int
+}
+struct ProblematicError: Error {
+  var storage: MutableStorage // error: Sendable struct ProblematicError has non-Sendable stored property of type MutableStorage
+}
+```
+
+To address this, SE-0302 says the following about the additional of `Sendable` to the `Error` protocol:
+
+> To ease the transition, errors about types that get their `Sendable` conformances through `Error` will be downgraded to warnings in Swift < 6.
+
+We propose to replace this bespoke rule for `Error` and `CodingKey` to apply to every protocol that is annotated with `@predatesConcurrency` and inherits from `Sendable`. These two standard-library protocols will use `@predatesConcurrency`:
+
+```swift
+@predatesConcurrency protocol Error: Sendable { ... }
+@predatesConcurrency protocol CodingKey: Sendable { ... }
+```
 
 ### `@predatesConcurrency` attribute on `import` declarations
 
