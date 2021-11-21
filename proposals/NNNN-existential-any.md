@@ -10,6 +10,8 @@
 
 Existential types in Swift have an extremely lightweight spelling: a plain protocol name in type context means an existential type. Over the years, this has risen to the level of **active harm** by causing confusion, leading programmers down the wrong path that often requires them to re-write code once they hit a fundamental [limitation of value-level abstraction](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--limits-of-existentials). This proposal makes the impact of existential types explicit in the language by annotating such types with `any`.
 
+Swift evolution discussion thread: [[Pitch] Introduce existential `any`](https://forums.swift.org/t/pitch-introduce-existential-any/53520).
+
 ## Motivation
 
 Existential types in Swift have significant limitations and performance implications. Some of their limitations are missing language features, but many are fundamental to their type-erasing semantics. For example, given a protocol with associated type requirements, the existential type cannot conform to the protocol itself without a manual conformance implementation, because there is not an obvious concrete associated type that works for any value conforming to the protocol, as shown by the following example:
@@ -35,7 +37,31 @@ Despite these significant and often undesirable implications, existential types 
 
 ## Proposed solution
 
-I propose to make existential types syntactically explicit in the language using the `any` keyword. This proposal introduces the new syntax, and this syntax should be required under the Swift 6 language mode.
+I propose to make existential types syntactically explicit in the language using the `any` keyword. This proposal introduces the new syntax in the Swift 5 language mode, and this syntax should be required for existential types under the Swift 6 language mode.
+
+In Swift 5, anywhere that an existential type can be used today, the `any` keyword can be used to explicitly denote an existential type:
+
+```swift
+// Swift 5 mode
+
+protocol P {}
+struct S: P {}
+
+let p1: P = S() // 'P' in this context is an existential type
+let p2: any P = S() // 'any P' is an explicit existential type
+```
+
+In Swift 6, existential types are required be explicitly spelled with `any`:
+
+```swift
+// Swift 6 mode
+
+protocol P {}
+struct S: P {}
+
+let p1: P = S() // error
+let p2: any P = S() // okay
+```
 
 ## Detailed design
 
@@ -51,7 +77,7 @@ existential-type -> 'any' type
 
 ### Semantics of explicit existential types
 
-The semantics of `any` types are the same as existential types today. Explicit `any` can only be applied to protocols and protocol compositions; `any` cannot be applied to nominal types, structural types, and type parameters:
+The semantics of `any` types are the same as existential types today. Explicit `any` can only be applied to protocols and protocol compositions, or metatypes thereof; `any` cannot be applied to nominal types, structural types, type parameters, and protocol metatypes:
 
 ```swift
 struct S {}
@@ -61,33 +87,90 @@ let s: any S = S() // error: 'any' has no effect on concrete type 'S'
 func generic<T>(t: T) {
   let x: any T = t // error: 'any' has no effect on type parameter 'T'
 }
+
+let f: any ((Int) -> Void) = generic // error: 'any' has no effect on concrete type '(Int) -> Void'
 ```
 
-`any` also cannot be applied to `Any` and `AnyObject` (unless part of a protocol composition).
+#### `Any` and `AnyObject`
 
+`any` is unnecessary for `Any` and `AnyObject` (unless part of a protocol composition):
 
-> Rationale: `any Any` and `any AnyObject` are redundant. `Any` and `AnyObject` are already special types in the language, and their existence isn’t nearly as harmful as existential types for regular protocols because the type-erasing semantics is already explicit in the name.
+```swift
+struct S {}
+class C {}
 
+let value: any Any = S() // warning: 'any' is redundant on type 'Any'
+let values: [any Any] = [] // warning: 'any' is redundant on type 'Any'
+let object: any AnyObject = C() // warning: 'any' is redundant on type 'AnyObject'
 
-The existential metatype becomes `(any P).Type`, and the protocol metatype remains `P.Protocol`.
+protocol P {}
+extension C: P {}
 
-Examples
+let pObject: any AnyObject & P = C() // okay
+```
+
+> **Rationale**: `any Any` and `any AnyObject` are redundant. `Any` and `AnyObject` are already special types in the language, and their existence isn’t nearly as harmful as existential types for regular protocols because the type-erasing semantics is already explicit in the name.
+
+#### Metatypes
+
+The existential metatype, i.e. `P.Type`, becomes `any P.Type`. The protocol metatype, i.e. `P.Protocol`, becomes `(any P).Type`. The protocol metatype value `P.self` becomes `(any P).self`:
 
 ```swift
 protocol P {}
-class C {}
+struct S: P {}
 
-any P
-any Any           // error
-any AnyObject     // error
-any P & AnyObject
-any C             // error
-any P & C
-any () -> Void    // error
+let existentialMetatype: any P.Type = S.self
 
-(any P).Type
+protocol Q {}
+extension S: Q {}
 
-func test<T>(_: T) where T == any P
+let compositionMetatype: any (P & Q).Type = S.self
+
+let protocolMetatype: (any P).Type = (any P).self
+```
+
+> **Rationale**: The existential metatype is spelled `any P.Type` because it's an existential type that is a generalization over metatypes. The protocol metatype is the singleton metatype of the existential type `any P` itself, which is naturally spelled `(any P).Type`.
+
+Under this model, the `any` keyword conceptually acts like an existential quantifier `∃ T`. Formally, `any P.Type` means `∃ T:P . T.Type`, i.e. for some concrete type `T` conforming to `P`, this is the metatype of that concrete type.`(any P).Type` is formally `(∃ T:P . T).Type`, i.e. the metatype of the existential type itself.
+
+The distinction between `any P.Type` and `(any P).Type` is syntactically very subtle. However, `(any P).Type` is rarely useful in practice, and it's helpful to explain why, given a generic context where a type parameter `T` is substituted with an existential type, `T.Type` is the singleton protocol metatype.
+
+#### Type aliases and associated types
+
+Like plain protocol names, a type alias to a protocol `P` can be used as both a generic constraint and an existential type. Because `any` is explicitly an existential type, a type alias to `any P` can only be used as an existential type, it cannot be used as a generic conformance constraint, and `any` does not need to be written at the use-site:
+
+```swift
+protocol P {}
+typealias AnotherP = P
+typealias AnyP = any P
+
+struct S: P {}
+
+let p2: any AnotherP = S()
+let p1: AnyP = S()
+
+func generic<T: AnotherP>(value: T) { ... }
+func generic<T: AnyP>(value: T) { ... } // error
+```
+
+Once the `any` spelling is required under the Swift 6 language mode, a type alias to a plain protocol name is not a valid type witness for an associated type requirement; existential type witnesses must be explicit in the `typealias` with `any`:
+
+```swift
+// Swift 6 code
+
+protocol P {}
+
+protocol Requirements {
+  associatedtype A
+}
+
+struct S1: Requirements {
+  typealias A = P // error: associated type requirement cannot be satisfied with a protocol
+}
+
+struct S2: Requirements {
+  typealias A = any P // okay
+}
 ```
 
 ## Source compatibility
@@ -109,7 +192,16 @@ None.
 
 ## Alternatives considered
 
+### Rename `Any` and `AnyObject`
+
 Instead of leaving `Any` and `AnyObject` in their existing spelling, an alternative is to spell these types as `any Value` and `any Object`, respectively. Though this is more consistent with the rest of the proposal, this change would have an even bigger source compatibility impact. Given that `Any` and `AnyObject` aren’t as harmful as other existential types, changing the spelling isn’t worth the churn.
+
+### Use `Any<P>` instead of `any P`
+
+A common suggestion is to spell existential types with angle brackets on `Any`, e.g. `Any<Hashable>`. However, this syntax is misleading because it appears that `Any` is a generic type, which is confusing to the mental model for 2 reasons:
+
+1. A generic type is something programmers can implement themselves. In reality, existential types are a built-in language feature that would be _very_ difficult to replicate with regular Swift code.
+2. This syntax creates the misconception that the underlying concrete type is a generic argument to `Any` that is preserved statically in the existential type. The `P` in `Any<P>` looks like an implicit type parameter with a conformance requirement, but it's not; the underlying type conforming to `P` is erased at compile-time.
 
 ## Future Directions
 
