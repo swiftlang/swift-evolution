@@ -195,7 +195,9 @@ Thus, access to a distributed actor's stored properties from outside of the acto
 
 #### Distributed Methods
 
-We propose to allow developers tight control over the distributed nature of methods they write on their distributed actors. The only way distributed actors interact with the "outside" is through methods declared as `distributed`.
+Regular methods isolated to the distributed actor are not accessible from outside of the actor's isolation context. A new kind of method declaration, called a *distributed method*, are the only kind of isolated members that can be accessed from outside of a distributed actor. Nonisolated methods can be defined as usual, but a distributed method cannot be marked `nonisolated`. A distributed method is defined within a distributed actor type by writing `distributed` in front of the method's declaration:
+
+It is necessary to give developers tight control over the distributed nature of methods they write, and it must be a concious opt-in step to expose a method for distribution. 
 
 Distributed funcs are declared using the `distributed` keyword in front of a function, like this:
 
@@ -859,6 +861,7 @@ None.
 
 ## Changelog
 
+- 1.3 Introduce DistributedActor and DistributedActorSystem protocols properly
 - 1.2 Drop implicitly distributed methods
 - 1.1 Implicitly distributed methods
 - 1.0 Initial revision
