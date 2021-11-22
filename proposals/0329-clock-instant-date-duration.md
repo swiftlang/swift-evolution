@@ -3,9 +3,9 @@
 * Proposal: [SE-0329](0329-clock-instant-date-duration.md)
 * Author(s): [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (November 4...15, 2021)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#39753](https://github.com/apple/swift/pull/39753)
-* Review: ([review](https://forums.swift.org/t/se-0329-clock-instant-date-and-duration/53309))
+* Review: ([first review](https://forums.swift.org/t/se-0329-clock-instant-date-and-duration/53309)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0329-clock-instant-date-and-duration/53635))
 
 ## Revision history
 * **v1** Initial pre-pitch
