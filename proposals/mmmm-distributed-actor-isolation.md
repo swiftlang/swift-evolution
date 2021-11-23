@@ -221,6 +221,35 @@ Distributed functions _may_ be subject to additional type-checking. For example,
 
 For clarity, a number of details about this proposal were omitted from the Proposed Solution section. But, this section includes those details. Unless otherwise specified in this proposal, the semantics of a distributed actor are the same as a regular actor, as described in [SE-0306](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md).
 
+### Distributed Actors and Distributed Actor Systems
+
+All distributed actors are *explicitly* part of some specific distributed actor system. The term "actor system" orinates from both early, and current terminology relating to actor runtimes and loosely means "group of actors working together", which carries a specific meaning for distributed actors, because it implies they must be able to communicate over some (network or ipc) protocol they all understand. In Swift's local-only actor model, the system is somewhat implicit, because it simply is "the runtime", as all local objects can understand and invoke eachother however they see fit. In distribution this needs to become a little bit more specific: there can be different network protocols and "clusters" to which actors belong, and as such, they must be explicit about their actor system use. We feel this is an expected and natural way to introduce the concept of actor systems only once we enter distribution, because previously (in local only actors) the concept would not have added much value, but in distribution it is the *core* of everything distributed actors do.
+
+Libraries aiming to implement distributed actor systems, and act as the runtime for distributed actors must implement the `DistributedActorSystemProtocol`. We will expand the definition of this protocol with important lifecycle functions in the runtime focused proposal, however for now let us focus on its aspects which affect type checking and isolation of distributed actors. The protocol is defined as:
+
+```swift
+public protocol DistributedActorSystem: Sendable {
+  associatedtype Identity: Hashable & Sendable // disclossed below
+  associatedtype SerializationRequirement // discussed below
+  
+  // ... 
+} 
+```
+
+Every distributed actor must declare what distributed actor system it is able to work with, this is expressed as an `associatedtype` requirement on the `DistributedActor` protocol, to which all `distributed actor` declarations conform implicitly. The `DistributedActor` protocol cannot be conformed to explicitly by any other type other than a `distributed actor`, or a protocol which refines it. The protocol is defined as:
+
+```swift
+protocol DistributedActor: AnyActor, Sendable { 
+  associatedtype DistributedActorSystem: DistributedActorSystemProtocol
+}
+```
+
+
+
+
+
+
+
 ### Typechecking Distributed Actors
 
 This section discusses the semantic checking and restrictions placed on distributed actor types.
@@ -313,6 +342,77 @@ Similarily, it is not allowed to declare distributed function parameters as `ino
 While subscripts share many similarities with methods, they can lead to complex and potentially impossible to support invocations, meaning that they are currently also not allowed to be `distributed`. Such subscripts usefulness would, in any case, be severely limited by both their lack of support for being `async` (e.g., could only support read-only subscripts, because no coroutine-style accessors) and their lightweight syntax can lead to the same problems as properties.
 
 Distributed functions _may_ be combined with property wrappers to function parameters (which were introduced by [SE-0293: Extend Property Wrappers to Function and Closure Parameters](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md)), and their semantics are what one would expect: they are a transformation on the syntactical level, meaning that the actual serialized parameter value is what the property wapper has wrapped the parameter in.
+
+#### Distributed method parameters and return types
+
+Distributed methods have a few extra restrictions which are applied to their parameters and return types.
+
+Specifically, a distributed actor is always associated with a specific DistributedActorSystem–a protocol which specific runtime libraries implement–which manage their lifecycle and messaging interactions. Not only that, but the distributed actor system the actor is part of, may also dictate specific *serialization requirements* that the type must adhere to.
+
+#### Distributed Methods and Generics
+
+It is possible to declare and use distributed methods that make use of generics. E.g. we could define an actor that picks an element out of an collection, yet does not really care about the element type:
+
+```swift
+distributed actor Picker { 
+  func pickOne<Item>(from items: [Item]) -> Item? { // Is this ok? It depends...
+     ... 
+  }
+}
+```
+
+This is possible to implement in general, however the `Item` parameter will be subject to the same `SerializableRequirement` checking as any other parameter. Depending on the associated distributed actor system's serialization requirement, this declaration may fail to compile, e.g. because `Item` was not guaranteed to be `Codable`:
+
+```swift
+final class CodableMessagingSystem: DistributedActorSystemProtocol { 
+  typealias SerializationRequirement = Codable
+  // ... 
+}
+
+distributed actor Picker { 
+  typealias ActorSystem = CodableMessagingSystem
+  func pickOne<Item>(from items: [Item]) -> Item? { nil } // error: Item is not Codable
+  
+  func pickOneFixed<Item>(from items: [Item]) -> Item? 
+    where Item: Codable { nil } // OK
+}
+```
+
+This is just the same rule about serializaiton requirements really, but we wanted to spell it out explicitly. The runtime implementation of such calls is more complicated than non-generic calls, and does incur a slight wire envelope size increase, because it must carry the *specific type identifier* that was used to perform the call (e.g. that it was invoked using the *specific* `struct MyItem: Item` and not just some item). Generic distributed function calls will perform the deserialization using the *specific type* that was used to perform the remote invocation. 
+
+> As with any other type involved in message passing, actor systems may also perform additional inspections at run time of the types and check if they are trusted or not before proceeding to decode them (i.e. actor systems have the possibility to inspect incoming message envelopes and double-check involved types before proceeding tho decode the parameters). We will discuss this more in the runtime proposal though.
+
+Distributed methods must have the full generic type available at runtime when they are invoked, as such
+
+#### Distributed Methods and Existential Types
+
+It is worth calling out that does to existential types not conforming to themselfes, it is not possible to just pass a `Codable`-conforming existential as parameter to distributed functions. It will result in the following compile time error:
+
+```swift
+protocol P: Codable {} 
+
+distributed actor TestExistential {
+  distributed func compute(s: String, i: Int, p: P) {
+  }
+}
+
+// error: parameter 'p' of type 'P' in distributed instance method does not conform to 'Codable'
+//   distributed func compute(s: String, i: Int, p: P) {
+//                    ^
+```
+
+The way to deal with this, as with usual local-only Swift programming, is to make the `P` existential generic, like this:
+
+```swift
+protocol P: Codable {} 
+
+distributed actor TestExistential {
+  distributed func compute<Param: P>(s: String, i: Int, p: Param) { // OK
+  }
+}
+```
+
+which will compile, and work as expected at runtime.
 
 #### Implicit effects on distributed actor functions
 
@@ -691,7 +791,7 @@ distributed actor Worker {
   func work(on: Item) {} // "implicitly distributed"
   private func actualWork() {} // not distributed
   
-  local func shouldWotk(on item: Item) -> Bool { ... } // NOT distributed
+  local func shouldWork(on item: Item) -> Bool { ... } // NOT distributed
 }
 ```
 
@@ -865,7 +965,9 @@ None.
 
 ## Changelog
 
-- 1.3 Introduce DistributedActor and DistributedActorSystem protocols properly
+- 1.3 More about serialization typechecking and introducing mentioned protocols explicitly 
+  - Revisions Introduce `DistributedActor` and `DistributedActorSystem` protocols properly
+  - Discuss future directions for versioning and evolving APIs.
 - 1.2 Drop implicitly distributed methods
 - 1.1 Implicitly distributed methods
 - 1.0 Initial revision
