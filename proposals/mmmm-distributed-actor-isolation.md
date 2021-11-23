@@ -195,7 +195,9 @@ Thus, access to a distributed actor's stored properties from outside of the acto
 
 #### Distributed Methods
 
-Regular methods isolated to the distributed actor are not accessible from outside of the actor's isolation context. A new kind of method declaration, called a *distributed method*, are the only kind of isolated members that can be accessed from outside of a distributed actor. Nonisolated methods can be defined as usual, but a distributed method cannot be marked `nonisolated`. A distributed method is defined within a distributed actor type by writing `distributed` in front of the method's declaration:
+Regular methods isolated to the distributed actor are not accessible from outside of the actor's isolation context. 
+
+This proposal introduces a new kind of method declaration called a *distributed method*. Distributed methods the primary kind of isolated members that can be accessed from outside of a distributed actor. It is also possible to declare distributed computed properties, and nonisolated methods.  Nonisolated methods are defined as usual, but a distributed method cannot be marked `nonisolated`. A distributed method is defined within a distributed actor type by writing `distributed` in front of the method's declaration:
 
 It is necessary to give developers tight control over the distributed nature of methods they write, and it must be a concious opt-in step to expose a method for distribution. 
 
@@ -231,7 +233,9 @@ Distributed actor initializers are subject to the same isolation rules as actor 
 
 Remote actor references are not obtained via initializers, but rather through a special `resolve(_:using:)` function that is available on any `distributed actor` or `DistributedActor` constrained protocol. The specifics of resolving, and remote actor runtime details will be discussed in a follow up proposal shortly.
 
-#### Methods
+#### Distributed Methods
+
+The primary way a distributed actor may be interacted with is distributed methods. Most notably, invoking a non-distributed method (i.e. those declared with *just* the `func` keyword by itself), is not allowed as it may be potentially violating distributed actor isolation rules, that is unless the target of the invocation is known to be a *local* distributed actor - a topic we'll explore later on in this proposal.
 
 Distributed methods are declared by writing the `distributed` keyword in the place of a declaration modifier, under the `actor-isolation-modifier` production rule as specified by [the grammar in TSPL](https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#grammar_declaration-modifiers). Only methods can use `distributed` as a declaration modifier, and no order is specified for this modifier. 
 
