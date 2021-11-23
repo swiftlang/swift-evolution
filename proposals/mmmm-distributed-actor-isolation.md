@@ -770,11 +770,178 @@ When the instance is local, the `whenLocal` method exposes the distributed actor
 > **Note:** We would like to explore a slightly different shape of the `whenLocal` functions, that would allow _not_ hopping to the actor unless necessary, however we are currently lacking the implementation ability to do so. So this proposal for now shows the simple, `isolated` based approach. The alternate API we are considering would have the following shape:
 >
 > ```swift
->   @discardableResult
->   nonisolated func whenLocal<T>(
->     _ body: (local Self) async throws -> T
->   ) (re)async rethrows -> T?
+> @discardableResult
+> nonisolated func whenLocal<T>(
+>  _ body: (local Self) async throws -> T
+> ) reasync rethrows -> T?
 > ```
+>
+> This API could enable us to treat such `local DistActor` exactly the same as a local-only actor type; We could even consider allowing nonisolated stored properties, and allow accessing them synchronously like that:
+>
+> ```swift
+> // NOT part of this proposal, but a potential future direction
+> distributed actor FamousActor { 
+>   let name: String = "Emma"
+> }
+> 
+> FamousActor().whenLocal { fa /*: local FamousActor*/ in
+>   fa.name // OK, known to be local, distributed-isolation does not apply
+> }
+> ```
+>
+> 
+
+## Future Directions
+
+### Versioning and Evolution of Distributed Actors and Methods
+
+Versioning and evolution of exposed `distributed` functionality is a very important, and quite vast topic to tackle. This proposal by itself does not include new capabilities - we are aware this might be limiting adoption in certain use-cases. 
+
+#### Evolution of parameter values only
+
+In today's proposal, it is possible to evolve data models *inside* parameters passed through ditributed method calls. This completely relies on the serialization mechanism used for the individual parameters. Most frequently, we expect Codable, or some similar mechanism, to be used here and this evolution of those values relies entirely on what the underlying encoders/decoders can do. As an example, we can define a `Message` struct like this:
+
+```swift
+struct Message: Codable { 
+  let oldVersion: String
+  let onlyInNewVersion: String
+}
+
+distributed func accept(_: Message) { ... }
+```
+
+and the usual backwards / forwards evolution techniques used with `Codable` can be applied here. Most coders are able to easily ignore new unrecognized fields when decoding. It is also possible to improve or implement a different decoder that would also store unrecognized fields in some other container, e.g. like this:
+
+```swift
+struct Message: Codable { 
+  let oldVersion: String
+  let unknownFields: [String: ...] 
+}
+
+JSONDecoderAwareOfUnknownFields().decode(Message.self, from: ...)
+```
+
+and the decoder could populate the `unknownFields` if necessary. There are various techniques to perform schema evolution here, and we won't be explaining them in more depth here. We are aware of limitations and challanges related to `Codable` and might revisit it for improvements. 
+
+#### Evolution of distributed methods
+
+The above mentioned techniques apply only for the parameter values themselfes though. With distributed methods we need to also take care of the method signatures being versioned, this is because when we declare
+
+```swift
+distributed actor Greeter { 
+  distributed func greet(name: String)
+}
+```
+
+we exposed the ability to invoke `greet(name:)` to other peers. Such normal, non-generic signature will *not* cause the transmission of `String`, over the wire. They may be attempting to invoke this method, even as we roll out a new version of the "greeter server" which now has a new signature:
+
+```swift
+distributed actor Greeter { 
+  distributed func greet(name: String, in language: Language)
+}
+```
+
+This is a breaking change as much in API/ABI and of course also a break in the declared wire protocol (message) that the actor is willing to accept. 
+
+Today, Swift does not have great facilities to move between such definitions without manually having to keep around the forwarder methods, so we'd do the following:
+
+```swift
+distributed actor Greeter { 
+  
+  @available(*, deprecated, renamed: "greet(name:in:)")
+  distributed func greet(name: String) {
+    self.greet(name: name, in: .defaultLanguage)
+  }
+  
+  distributed func greet(name: String, in language: Language) {
+    print("\(language.greeting), name!")
+  }
+}
+```
+
+This manual pattern is used frequently today for plain old ABI-compatible library evolution, however is fairly manual and increasinly annoying to use as more and more APIs become deprecated and parameters are added. It also means we are unable to use Swift's default argument values, and have to manually provide the default values at call-sites instead.
+
+Instead, we are interested in extending the `@available` annotation's capabilities to be able to apply to method arguments, like this:
+
+```swift
+distributed func greet(
+  name: String,
+  @available(macOS 12.1, *) in language: Language = .defaultLanguage) {
+    print("\(language.greeting), name!")
+}
+
+// compiler synthesized:
+// // "Old" API, delegating to `greet(name:in:)`
+// distributed func greet(name: String) {
+//   self.greet(name: name, in: .defaultLanguage)
+// }
+```
+
+This functionality would address both ABI stable library development, as well as `distributed` method evolution, because effectively they share the same concern -- the need to introduce new parameters, without breaking old API. For distributed methods specifically, this would cause the emission of metadata and thunks, such that the method `greet(name:)` can be resolved from an incoming message from an "old" peer, while the actual local invocation is performed on `greet(name:in:)`.
+
+Similar to many other runtimes, removing parameters is not going to be supported, however we could look into automatically handling optional parameters, defaulting them to `nil` if not present incoming messages.
+
+In order to serve distribution well, we might have to extend what notion of "platform" is allowed in the available annotation, because these may not necessarily be specific to "OS versions" but rather "version of the distributed system cluster", which can be simply sem-ver numbers that are known to the cluster runtime:
+
+```swift
+distributed func greet(
+  name: String,
+  @available(distributed(cluster) 1.2.3, *) in language: Language = .defaultLanguage) {
+    print("\(language.greeting), name!")
+}
+```
+
+During the initial handshake peers in a distriuted system exchange information about their runtime version, and this can be used to inform method lookups, or even reject "too old" clients. 
+
+### Introducing the `local` keyword
+
+It would be possible to expand the way `distributed actors` can conform to protocols which are intended only for the actor's "local site" if we introduced a `local` keyword. It would be used to taint distributed actor variables as well as functions in protocols with a local bias.
+
+For example, `local` marked distributed actor variables could simplify the following (suprisingly common in some situations!) pattern:
+
+```swift
+distributed actor GameHost { 
+  let myself: local Player
+  let others: [Player]
+  
+  init(system: GameSystem) {
+    self.myself = Player(system: GameSystem)
+    self.others = []
+  }
+  
+  distributed func playerJoined(_ player: Player) { 
+    others.append(player)
+    if others.count >= 2 { // we need 2 other players to start a game
+      self.start()
+    }
+  }
+  
+  func start() {
+    // start the game somehow, inform the local and all remote players
+    // ... 
+    // Since we know `myself` is local, we can send it a closure with some logic 
+    // (or other non-serializable data, like a connection etc), without having to use the whenLocal trick.
+    myself.onReceiveMessage { ... game logic here ... }
+  }
+}
+```
+
+An `isolated Player` where Player is a `distributed actor` would also automatically be known to be `local`, and the `whenLocal` function could be expressed more efficiently (without needing to hop to the target actor at all):
+
+```
+// WITHOUT `local`:
+// extension DistributedActor {
+//   public nonisolated func whenLocal<T>(_ body: @Sendable (isolated Self) async throws -> T)
+//     async rethrows -> T? where T: Sendable
+
+// WITH local, we're able to not "hop" when not necessary:
+extension DistributedActor {
+  public nonisolated func whenLocal<T>(_ body: @Sendable (local Self) async throws -> T)
+    reasync rethrows -> T? where T: Sendable // note the reasync (!)
+}
+```
+
+TODO: explain more
 
 ## Alternatives Considered
 
