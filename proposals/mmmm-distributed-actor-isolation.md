@@ -21,20 +21,29 @@
     - [Location Transparency](#location-transparency)
     - [Remote and Local Distributed Actors](#remote-and-local-distributed-actors)
   - [Proposed solution](#proposed-solution)
-    - [Distributed actors](#distributed-actors)
-      - [Stored Properties](#stored-properties)
-      - [Distributed Methods](#distributed-methods)
+    - [Distributed Actors](#distributed-actors)
+    - [Complete isolation of state](#complete-isolation-of-state)
+    - [Distributed Methods](#distributed-methods)
   - [Detailed design](#detailed-design)
-    - [Typechecking Distributed Actors](#typechecking-distributed-actors)
-      - [Initializers](#initializers)
-      - [Methods](#methods)
-      - [Implicit effects on distributed actor functions](#implicit-effects-on-distributed-actor-functions)
-      - [Additional serialization-related type-checking of distributed functions](#additional-serialization-related-type-checking-of-distributed-functions)
-      - [Stored properties](#stored-properties-1)
+    - [Distributed Actors and Distributed Actor Systems](#distributed-actors-and-distributed-actor-systems)
+    - [Distributed Actor Initializers](#distributed-actor-initializers)
+    - [Distributed actors implicitly conforming to Codable](#distributed-actors-implicitly-conforming-to-codable)
+    - [Distributed Methods](#distributed-methods-1)
+      - [Distributed Method Serialization Requirements](#distributed-method-serialization-requirements)
+      - [Distributed Methods and Generics](#distributed-methods-and-generics)
+      - [Distributed Methods and Existential Types](#distributed-methods-and-existential-types)
+      - [Implicit effects on Distributed Methods](#implicit-effects-on-distributed-methods)
+    - [Distributed Actor Properties](#distributed-actor-properties)
+      - [Stored properties](#stored-properties)
       - [Computed properties](#computed-properties)
     - [Protocol Conformances](#protocol-conformances)
       - [The `DistributedActor` protocol and protocols inheriting from it](#the-distributedactor-protocol-and-protocols-inheriting-from-it)
     - [Breaking through Location Transparency](#breaking-through-location-transparency)
+  - [Future Directions](#future-directions)
+    - [Versioning and Evolution of Distributed Actors and Methods](#versioning-and-evolution-of-distributed-actors-and-methods)
+      - [Evolution of parameter values only](#evolution-of-parameter-values-only)
+      - [Evolution of distributed methods](#evolution-of-distributed-methods)
+    - [Introducing the `local` keyword](#introducing-the-local-keyword)
   - [Alternatives Considered](#alternatives-considered)
     - [Implicitly `distributed` methods / "opt-out of distribution"](#implicitly-distributed-methods--opt-out-of-distribution)
     - [Introducing "wrapper" type for `Distributed<SomeActor>`](#introducing-wrapper-type-for-distributedsomeactor)
@@ -60,8 +69,6 @@ This proposal focuses on the extended actor isolation and type-checking aspects 
 Swift Evolution:
 
 - [Distributed Actors: Pitch #1](https://forums.swift.org/t/pitch-distributed-actors/51669) - a comprehensive, yet quite large, pitch encompassing all pieces of the distributed actor feature; It will be split out into smaller proposals going into the details of each subject, such that we can focus on, and properly review, its independent pieces step by step.
-- Distributed Actor Isolation (this proposal)
-- ... more proposals coming soon ...
 
 While this pitch focuses _only_ on the actor isolation rules, we have work-in-progress transport implementations for distributed actors available as well. While they are work-in-progress and do not make use of the complete model described here, they may be useful to serve as reference for how distributed actors might be used.
 
@@ -86,7 +93,7 @@ The design of distributed actors intentionally does not provide facilities to ea
 
 Swift's take on location transparency is expressed and enforced in terms of actor isolation. The same way as actors isolate their state to protect from local race conditions, distributed actors must isolate their state because the state "might not actually be available locally" while we're dealing with a remote distributed actor reference.
 
-It will be possible to pass distributed actors to distrubuted methods, if the actor is able to conform to the serialization requirements imposed on it by the actor system. We will discuss these in a separate proposal.
+It is also possible to pass distributed actors to distrubuted methods, if the actor is able to conform to the serialization requirements imposed on it by the actor system.
 
 ### Remote and Local Distributed Actors
 
@@ -101,11 +108,11 @@ distributed actor TokenRange {
   
   init(...) { ... }
   
-  func read(at loc: Token) async throws -> Data? {
+  distributed func read(at loc: Token) -> Data? {
     return storage[loc]
   }
 
-  func write(to loc: Token, data: Data) throws -> Data? {
+  distributed func write(to loc: Token, data: Data) -> Data? {
     let prev = storage[loc]
     storage[loc] = data
     return prev
@@ -125,7 +132,9 @@ func test_distributedTokenRange() async throws {}
 }
 ```
 
-Note that we could write the same unit-test using a distributed remote actor, and the test would remain exactly the same:
+Note that the even though this test is strictly local -- there are no remote actors involved here at all -- the call-sites of distributed methods have implicitly gained the async and throwing effects, which means that we must invoke them with `try await dist.<invocation>` This is an important aspect of the design, as it allows us to surface any potential network issues that might occur during these calls, such as timeouts, network failures or other issues that may have caused these calls to fail. This failure is a natural consequence of the calls potentially having to cross process or network boundaries. The asynchronous effect is similar, because we might be waiting for a long time for a response to arrive, distributed calls must be potential suspension points.
+
+We could write the same unit-test using a distributed remote actor, and the test would remain exactly the same:
 
 ```swift
 func test_distributedTokenRange() async throws {}
@@ -142,14 +151,14 @@ Keeping this in mind, let us proceed to discussing the specific isolation rules 
 
 ## Proposed solution
 
-### Distributed actors
+### Distributed Actors
 
-Distributed actors are a special flavor of the `actor` type that enforces additional rules on the type and its values, in order to enable location transparency. 
+Distributed actors are a special flavor of the `actor` type that enforces additional rules on the type and its values, in order to enable location transparency. Thanks to this, it is possible to program against a distributed actor without, statically, knowing if a specific instance is remote or local. All calls are made to look as-if they were remote, and in the local case simply no networking s performed and the calls execute the same as if they were a normal local-only actor.
 
-They are declared by prepending `distributed` to an `actor` declaration, like so:
+Distributed actors are declared by prepending `distributed` to an `actor` declaration:
 
 ```swift
-public distributed actor Player {
+distributed actor Player {
   // ...
   let name: String
 }
@@ -163,7 +172,7 @@ This property of hiding away information about the location of the actual instan
 
 Distributed actor isolation checks introduce by this proposal serve the purpose of enforcing the property of location transparency, and helping developers not accidentally break it. For example, the above `Player` actor could be used to represent an actor in a remote host, where the some game state is stored and references to player's devices are managed. As such, the _state_ of a distributed actor is not known locally. This brings us to the first of the additional isolation checks: properties.
 
-#### Stored Properties
+### Complete isolation of state
 
 Because a distributed actor, along with its actual state, may be located on a remote host, some of the conveniences local-only actors allow cannot be allowed for distributed ones. Let's consider the following `Player` type:
 
@@ -191,17 +200,15 @@ func example1(p: Player) async throws -> (String, Int) {
 
 Instead, the use of methods to perform a batched read is strongly encouraged.
 
-Thus, access to a distributed actor's stored properties from outside of the actor's isolation are forbidden. In addition, computed properties cannot be `nonisolated` or participate in a key-path. We will discuss computed properties later on.
+Stored properties cannot ever be access from outside the distributed actor. They cannot be declared `distributed` nor `nonisolated`. 
 
-#### Distributed Methods
+### Distributed Methods
 
-Regular methods isolated to the distributed actor are not accessible from outside of the actor's isolation context. 
+In order to enforce the distributed "*maybe remote*" nature of distributed actors, this proposal introduces a new kind of method declaration called a *distributed method*. Other than a few special cases (such as `nonisolated` members), distributed methods are the only members that can be invoked cross-actor on distributed actors.
 
-This proposal introduces a new kind of method declaration called a *distributed method*. Distributed methods the primary kind of isolated members that can be accessed from outside of a distributed actor. It is also possible to declare distributed computed properties, and nonisolated methods.  Nonisolated methods are defined as usual, but a distributed method cannot be marked `nonisolated`. A distributed method is defined within a distributed actor type by writing `distributed` in front of the method's declaration:
+It is also possible to declared computed properties as distributed. A distributed method is defined within a distributed actor type by writing `distributed` in front of the method's declaration:
 
-It is necessary to give developers tight control over the distributed nature of methods they write, and it must be a concious opt-in step to expose a method for distribution. 
-
-Distributed funcs are declared using the `distributed` keyword in front of a function, like this:
+It is necessary to give developers tight control over the distributed nature of methods they write, and it must be a concious opt-in step. Distributed methods are declared using the `distributed` keyword in front of the `func` keyword, like this:
 
 ```swift
 distributed actor Player { 
@@ -215,7 +222,36 @@ distributed actor Player {
 }
 ```
 
-Distributed functions _may_ be subject to additional type-checking. For example, in a future proposal we will discuss the serialization aspects of distributed method calls, where we will discuss how to statically check and enforce parameters and return values of distributed methods are either `Codable`, or conforming to some other marker protocol that may be used by the distributed actor runtime to serialize the messages.
+It is not possible to invoke the `thinkOfNextMove()` method cross-actor, because the target of the invocation may be remote, and it was not "exposed" for distribution using the `distributed func` keywords. This is checked at compile time and is a more restrictive form of actor-isolation checking:
+
+```swift
+func test(p: Player) async throws { 
+  try await p.yourTurn() 
+  // ✅ ok, distributed func
+  
+  try await p.thinkOfNextMove() 
+  // ❌ error: only 'distributed' instance methods can be called on a potentially remote distributed actor
+}
+```
+
+Distribution must not be simply inferred from access-control, because the concept of distribution is orthogonal to access control. For example, it is very much common to have `internal distributed func` (or even `private distributed func`) declarations, which are useful for actors within a module communicating with eachother (remotely), however those methods should be be invoked be end-users of such library. 
+
+Distributed methods may be subject to additional type-checking, specifically a distributed actor infers a `SerializationRequirement` from the ActorSystem it is associated with. One common serialization requirement is `Codable`.
+
+Such `SerializationRequirement` typealias defined on the actor system the actor is associated with causes additional type-checks to be enforced on distributed methods: all parameter types and return type of such method must be or conform to the SerializationRequirement type. This allows the compiler to fail compilation early, rather than leaving serialization crashes to the runtime, easing development and analysis of distributed actor systems:
+
+```swift
+distributed actor Player { 
+  typealias ActorSystem = CodableMessagingSystem 
+  // inferred: typealias SerializationRequirement = Codable
+  
+  distributed func test(not: NotCodable) {} 
+  // ❌ error: parameter 'not' of type 'NotCodable' in distributed instance method
+  //           does not conform to 'Codable'
+}
+```
+
+
 
 ## Detailed design
 
@@ -236,7 +272,7 @@ Distributed actors can only be declared using the `distributed actor` keywords. 
 protocol DistributedActor: AnyActor, Identifiable, Hashable { 
   /// Type of the distributed actor system this actor is able to operate with.
   /// It can be a type erased, or existential actor system if the actor is able to work with different ones.
-  associatedtype DistributedActorSystem 
+  associatedtype DistributedActorSystem: DistributedActorSystemProtocol
   
   /// The type of identity assigned to this actor by the actor system.
   /// 
@@ -253,6 +289,11 @@ protocol DistributedActor: AnyActor, Identifiable, Hashable {
   /// The identity may be freely shard across tasks and processes, and resolving it should return a reference
   /// to the actor where it originated from.
   nonisolated var id: ActorIdentity { get }
+  
+  /// Distributed Actor System responsible for managing this distributed actor.
+  ///
+  /// It is responsible for assigning and managing the actor's identity, 
+  /// as well as delivering incoming messages as distributed method invocations on the actor.
   nonisolated var actorSystem: DistributedActorSystem { get }
 }
 ```
@@ -315,7 +356,7 @@ protocol XPCActor: DistributedActor {
 Those protocols, because they refine the `DistributedActor` protocol, can also only be conformed to by other distributed actors. It allows developers to declare specific requirements to their distributed actor's use, and even provide extensions based on the actor system type used by those actors, e.g.:
 
 ```swift
-extension DistributedActor where DistributedActorTransport == ClusterSystem {
+extension DistributedActor where DistributedActorSystem == ClusterSystem {
   /// Returns the node on which this distributed actor instance is located.
   nonisolated var node: Cluster.Node? { ... }
 }
@@ -323,11 +364,7 @@ extension DistributedActor where DistributedActorTransport == ClusterSystem {
 
 >  **Note:** We refer to `distributed actor` declarations or protocols refining the `DistributedActor` protocol as any "distributed actor type" - wherever this phrase is used, it can apply to a specific actor or such protocol.
 
-### Typechecking Distributed Actors
-
-This section discusses the semantic checking and restrictions placed on distributed actor types.
-
-#### Initializers
+### Distributed Actor Initializers
 
 Distributed actor initializers are always _local_, therefore no special rules are applied to their isolation checking.
 
@@ -338,7 +375,8 @@ A distributed actor's *designated initializer* must always contain exactly one `
 Similar to classes and local-only actors, a distributed actor gains an implicit default designated initializer when no user-defined initializer is found. This initializer accepts an actor system as parameter, in order to conform to the requirement stated above:
 
 ```swift
-// typealias DefaultDistributedActorSystem = SomeSystem
+// default system for this module:
+typealias DefaultDistributedActorSystem = SomeSystem
 
 distributed actor Worker { 
   // synthesized default designated initializer:
@@ -396,7 +434,7 @@ distributed actor InitializeMe {
   // ❌ error: designated distributed actor initializer 'init(x:)' is missing required 'DistributedActorSystem' parameter
 
   init(system: AnyDistributedActorSystem, too many: AnyDistributedActorSystem)
-  // ❌ error: designated distributed actor initializer 'init(transport:too:)' must accept exactly one DistributedActorSystem parameter, found 2
+  // ❌ error: designated distributed actor initializer 'init(system:too:)' must accept exactly one DistributedActorSystem parameter, found 2
   
   // --------
   
@@ -412,9 +450,7 @@ distributed actor InitializeMe {
 }
 ```
 
-
-
-*Remote* distributed actor references are not obtained via initializers, but rather through a static `resolve(_:using:)` function that is available on any `distributed actor` or `DistributedActor` constrained protocol:
+*Remote* distributed actor references are not obtained via initializers, but rather through a static `resolve(_:using:)` function that is available on any distributed type:
 
 ```swift
 extension DistributedActor { 
@@ -426,18 +462,18 @@ extension DistributedActor {
   /// a local instance or request a "proxy" to be created for this identity.
   ///
   /// A remote distributed actor reference will forward all invocations through
-  /// the transport, allowing it to take over the remote messaging with the
+  /// the system, allowing it to take over the remote messaging with the
   /// remote actor instance.
   ///
   /// - Parameter identity: identity uniquely identifying a, potentially remote, actor in the system
   /// - Parameter system: distributed actor system which must resolve and manage the returned distributed actor reference
-  static func resolve(_ identity: Identity, using transport: DistributedActorSystem) throws -> Self
+  static func resolve(_ identity: Identity, using system: DistributedActorSystem) throws -> Self
 }
 ```
 
 The specifics of resolving, and remote actor runtime details will be discussed in a follow up proposal focused on the runtime aspects of distributed actors. We mention it here to share a complete picture how Identities, systems, and remote references all fit into the picture.
 
-#### Distributed actors implicitly conforming to Codable
+### Distributed Actors implicitly conform to Codable
 
 If a distributed actor's `Identity` conforms to `Codable`, the distributed actor automatically gains a `Codable` conformance as well.
 
@@ -476,16 +512,18 @@ And similarily, decoding a distributed actor has the specific meaning of attempt
     }
 
     // [1] decode the identity
-    let id: Identity = try transport.decodeIdentity(from: decoder)
+    let id: Identity = try system.decodeIdentity(from: decoder)
     // [2] resolve the identity using the current system; this usually will return a "remote reference"
     self = try Self.resolve(id, using: system)
   }
 // }
 ```
 
-The Decodable's `init(from:)` implementation is actually not possible to express in plain Swift today, because the restriction on self assignment in class initializers (and therefore also actor initializers). We intend to generalize and allow these kinds of assignments in classes and actors in general via a separate proposal.
+The Decodable's `init(from:)` implementation is actually not possible to express in plain Swift today, because the restriction on self assignment in class initializers (and therefore also actor initializers). 
 
-Note also that realistically, there is only one correct way to implement a distributed actor's Codability (as well as Hashable and Equatable conformances), because the only property that is related to its identity, and is known to both local and remote "sides" is the identity, as such implementations of those protocols must be directly derived from the `id` property of a distributed actor.
+> **Note:** We intend to eventually generalize this more permissive self-assignment in designated class/actor initializer mechanism, however that would be done as separate mini proposal.
+
+Note also that, realistically, there is only one correct way to implement a distributed actor's Codability (as well as `Hashable` and `Equatable` conformances), because the only property that is related to its identity, and is known to both local and remote "sides" is the identity, as such implementations of those protocols must be directly derived from the `id` property of a distributed actor.
 
 The capability, to share actor references actoss to other (potentially remote) distributed actors, is crucial for location-transparency and the ability to "send actor references around" which enables developers to implement "call me later" style patterns (since we cannot do so with closures, as they are not serializable). In a way, this is similar to the delegate pattern, known to developers on Apple platforms: where we offer an instance to some other object, that will call lifecycle or other types of methods on the delegage whenever certain events happen.
 
@@ -540,23 +578,35 @@ func play(game: Game) async throws {
 
 The `Player` distributed actor automatically gained a Codable conformance, because it is using the `SomeCodableDistributedActorSystem` that assigns it a `SomeCodableIdentity`. Other serialization mechanisms are also able to implement this "encode the Identity" and "decode the Identity, and resolve it" pattern, so this pattern is equally achievable using Codable, or other serialization mechanisms.
 
-#### Distributed Methods
+### Distributed Methods
 
-The primary way a distributed actor may be interacted with is distributed methods. Most notably, invoking a non-distributed method (i.e. those declared with *just* the `func` keyword by itself), is not allowed as it may be potentially violating distributed actor isolation rules, that is unless the target of the invocation is known to be a *local* distributed actor - a topic we'll explore later on in this proposal.
+The primary way a distributed actor can be interacted with are distributed methods. Most notably, invoking a non-distributed method (i.e. those declared with *just* the `func` keyword by itself), is not allowed as it may be potentially violating distributed actor isolation rules, that is unless the target of the invocation is known to be a *local* distributed actor - a topic we'll explore later on in this proposal:
+
+```swift
+distributed actor IsolationExample { 
+  func notDistributed() {}
+  distributed func accessible() {}
+}
+
+func test(actor: IsolationExample) async throws {
+  try await actor.notDistributed() 
+  // ❌ error: only 'distributed' instance methods can be called on a potentially remote distributed actor
+  
+  try await error.accessible()
+  // ✅ ok, method is distributed
+}
+```
 
 Distributed methods are declared by writing the `distributed` keyword in the place of a declaration modifier, under the `actor-isolation-modifier` production rule as specified by [the grammar in TSPL](https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#grammar_declaration-modifiers). Only methods can use `distributed` as a declaration modifier, and no order is specified for this modifier. 
 
-A `distributed actor` type, extensions of such a type, and `DistributedActor` inheriting protocols are the only places where distributed method declarations are allowed. This is because, in order to implement a distributed method, a transport and identity must be associated with the values carrying the method. Distributed methods can synchronously refer to any of the state isolated to the distributed actor instance.
+Distributed actor types are the only types in which a distributed method declaration is allowed. This is because, in order to implement a distributed method, an actor system and identity must be associated with the values carrying the method. Distributed methods can synchronously refer to any of the state isolated to the distributed actor instance.
 
 The following distributed method declarations are not allowed:
 
 ```swift
-actor NotDistributed {
-  distributed func test() {} // error: 'distributed' function can only be declared within 'distributed actor'
-}
-
-class/enum/struct NotActor {
-  distributed func test() {} // error: 'distributed' function can only be declared within 'distributed actor'
+actor/class/enum/struct NotDistributedActor {
+  distributed func test() {} 
+  // ❌ error: 'distributed' function can only be declared within 'distributed actor'
 }
 ```
 
@@ -582,13 +632,13 @@ It is not allowed to combine `distributed` with `nonisolated`, as a distributed 
 
 ```swift
 distributed actor Charlie {
-  // ❌ error: 'distributed' function must not be 'nonisolated'
-  // fixit: remove 'nonisolated' or 'distributed'
   distributed nonisolated func cantDoThat() {}
+  // ❌ error: 'distributed' function must not be 'nonisolated'
+  // 💡 fixit: remove 'nonisolated' or 'distributed'
 }
 ```
 
-It is possible to declare a nonisolated method though. Such function can only access other `nonisolated` functions and computed properties on the distributed actor. There are _two_ special properties that we'll discuss in the future that are accessible this way: the actor's identity, and the distributed actor system it belongs to. Those properties are synthesized by the compiler, and we'll soon explain them in greater depth in the runtime focused proposals detailing the distributed actor runtime design.
+It is possible to declare a nonisolated method though. Such function can only access other `nonisolated` members of the instance. Two important members which are such nonisolated computed properties are the actor's identity, and associated actor system. Those are synthesized by the compiler, however they just follow the same isolation rules as laid out in this proposal:
 
 ```swift
 distributed actor Charlie: CustomStringConvertible { 
@@ -605,17 +655,18 @@ Distributed methods may be declared explicitly `async` or `throws` and this has 
 
 Distributed functions must be able to invoked from another process, by code from either the same, or a different module. As such distributed functions must be either `public`, `internal` or `fileprivate`. Declaring a `private distributed func` is not allowed, as it defeats the purpose of distributed method, it would not be possible to invoke such function using legal Swift.
 
-It is not allowed to use `rethrows` with distributed functions, because it is not possible to serialize a closure and send it over the network to obtain the "usual" re-throwing behavior one would have expected.
+It is not allowed to declare distributed function parameters as `inout` or varargs:
 
 ```swift
 distributed actor Charlie {
-  // ❌ error: 'distributed' function cannot be declared rethrows, 
-  // as it is not possible to serialize closures to have them execute on a remote instance
-  distributed func cantDoThat(fun: () throws -> String) rethrows { ... }
+  distributed func varargs(int: Int...) {}
+  // ❌ error: cannot declare variadic argument 'int' in distributed instance method 'varargs(int:)'
+  
+  distributed func noInout(inNOut burger: inout String) {}
+  // ❌ error: cannot declare 'inout' argument 'burger' in distributed instance method 'noInout(inNOut:)'
+  // 💡 fixit: remove 'inout'
 }
 ```
-
-Similarily, it is not allowed to declare distributed function parameters as `inout`. 
 
 While subscripts share many similarities with methods, they can lead to complex and potentially impossible to support invocations, meaning that they are currently also not allowed to be `distributed`. Such subscripts usefulness would, in any case, be severely limited by both their lack of support for being `async` (e.g., could only support read-only subscripts, because no coroutine-style accessors) and their lightweight syntax can lead to the same problems as properties.
 
@@ -623,11 +674,13 @@ Distributed functions _may_ be combined with property wrappers to function param
 
 #### Distributed Method Serialization Requirements
 
-Every distributed actor is associated with a `DistributedActorSystem` which may declare a `SerializationRequirement`. This requirement is used to drive type checking of distributed methods (and computed properties) declared on distributed actors.
+An important goal of the distributed actor design is being able to enforce some level of compile time safety onto distributed methods calls, which helps prevent unexpected runtime failures, and aides developers make conscious decisions which types should be exposed to remote peers and which not.
 
-This allows the system to enforce that only conforming parameters will pass compilation and will be attempted to be serialized. In practice this means that we can move a lot of runtime failures to compile time, making it easier to spot bugs and serialization mistakes. Another important point is that it allows us to confine specific actors to sending only well-known types, if we needed to do so.
+This feature is applied to `distributed` methods, and configured by declaring a `SerializationRequirement` typealias on the actort system, from which specific actors infer it. This type alias informs the type-checker to ensure that all parameters, as well as return type of a distributed methods must conform to the type that is provided as `SerializationRequirement`. This is in addition to the usual `Sendable` conformance requirements enforced on any values passed to/from actors).
 
-Most frequently, the serialization requirement is going to be `Codable`. This is how this would be declared in practice:
+Another interesting capability this unlocks is being able to confine actors to sending only well-known types, if we wanted to enforce such closed-world assumptions onto the permissible messages exchanged between actors.
+
+Most frequently, the serialization requirement is going to be `Codable`, so for the rest of this proposal we'll focus mostly on this use-case. It is equally possible and supported to provide e.g. an external serialization systems top-level protocol as requirement here, e.g. a Protocol Buffer `Message`. The following snippet illustrates how this can works in practice:
 
 ```swift
 protocol CodableDistributedActorSystem: DistributedActorSystem { 
@@ -675,6 +728,48 @@ distributed actor Worker {
 }
 ```
 
+Distributed actors may also witness protocol requirements (discussed in more detail below), however their method declarations must then also conform to the `SerializationRequirement`:
+
+```swift
+protocol Greetings { 
+  func greet(name: String) async throws
+}
+
+distributed actor Greeter: Greetings { 
+  // typealias SerializationRequirement = Codable
+  distributed func greet(name: String) { // may or may not be async/throws, it always is when cross-actor
+    // ✅ ok, String is Codable
+  }
+}
+```
+
+Note that while every `distributed actor` must be associated with some specific distributed actor system, protocols need not be so struct and we are allowed to specify a distributed actor protocol like this:
+
+```swift
+protocol Greetings: DistributedActor {
+  // no specific ActorSystem requirement (!)
+  func greet(name: String)
+}
+```
+
+At the declaration site of such protocol the distributed functions are *not* subject to any `SerializationRequirement` checks. However once it is implemented by a distributed actor, that actor will be associated with a specific actor system, and thus also a specific SerializationRequirement, and could potentially not be able to implement such protocol because of the serializability checks, e.g.:
+
+```swift
+protocol Greetings: DistributedActor {
+  // no specific ActorSystem requirement (!)
+  func greet(name: String)
+}
+
+distributed actor Greeter { 
+  // typealias SerializationRequirement = MagicMessage
+  distributed func greet(name: String) {} 
+  // ❌ error: parameter 'name' of type 'String' in distributed instance method 
+  //   				 does not conform to 'MagicMessage'
+}
+```
+
+A similar mechanism will exist for resolving remote actor references only based on a protocol.
+
 #### Distributed Methods and Generics
 
 It is possible to declare and use distributed methods that make use of generics. E.g. we could define an actor that picks an element out of an collection, yet does not really care about the element type:
@@ -690,21 +785,21 @@ distributed actor Picker {
 This is possible to implement in general, however the `Item` parameter will be subject to the same `SerializableRequirement` checking as any other parameter. Depending on the associated distributed actor system's serialization requirement, this declaration may fail to compile, e.g. because `Item` was not guaranteed to be `Codable`:
 
 ```swift
-final class CodableMessagingSystem: DistributedActorSystemProtocol { 
-  typealias SerializationRequirement = Codable
-  // ... 
-}
-
 distributed actor Picker { 
-  typealias ActorSystem = CodableMessagingSystem
-  func pickOne<Item>(from items: [Item]) -> Item? { nil } // error: Item is not Codable
+  // typealias ActorSystem = CodableMessagingSystem
+  func pickOne<Item>(from items: [Item]) -> Item? { nil } 
+  // ❌ error: parameter 'items' of type '[Item]' in distributed instance method 
+  //   				 does not conform to 'Codable'
+  // ❌ error: return type 'Item' in distributed instance method does not conform to 'Codable'
   
   func pickOneFixed<Item>(from items: [Item]) -> Item? 
-    where Item: Codable { nil } // OK
+    where Item: Codable { nil } // ✅ ok, we declared that the generic 'Item' is 'Codable'
 }
 ```
 
-This is just the same rule about serializaiton requirements really, but we wanted to spell it out explicitly. The runtime implementation of such calls is more complicated than non-generic calls, and does incur a slight wire envelope size increase, because it must carry the *specific type identifier* that was used to perform the call (e.g. that it was invoked using the *specific* `struct MyItem: Item` and not just some item). Generic distributed function calls will perform the deserialization using the *specific type* that was used to perform the remote invocation. 
+This is the same rule about serializaiton requirements really, but spelled out explicitly.
+
+ The runtime implementation of such calls is more complicated than non-generic calls, and does incur a slight wire envelope size increase, because it must carry the *specific type identifier* that was used to perform the call (e.g. that it was invoked using the *specific* `struct MyItem: Item` and not just some item). Generic distributed function calls will perform the deserialization using the *specific type* that was used to perform the remote invocation. 
 
 As with any other type involved in message passing, actor systems may also perform additional inspections at run time of the types and check if they are trusted or not before proceeding to decode them (i.e. actor systems have the possibility to inspect incoming message envelopes and double-check involved types before proceeding tho decode the parameters).
 
@@ -718,13 +813,9 @@ protocol P: Codable {}
 distributed actor TestExistential {
   typealias ActorSystem = CodableMessagingSystem
   
-  distributed func compute(s: String, i: Int, p: P) {
-  }
+  distributed func compute(s: String, i: Int, p: P) {}
+  // ❌ error: parameter 'p' of type 'P' in distributed instance method does not conform to 'Codable'
 }
-
-// error: parameter 'p' of type 'P' in distributed instance method does not conform to 'Codable'
-//   distributed func compute(s: String, i: Int, p: P) {
-//                    ^
 ```
 
 The way to deal with this, as with usual local-only Swift programming, is to make the `P` existential generic, like this:
@@ -735,17 +826,16 @@ protocol P: Codable {}
 distributed actor TestExistential {
   typealias ActorSystem = CodableMessagingSystem
   
-  distributed func compute<Param: P>(s: String, i: Int, p: Param) {
-     // OK
-  }
+  distributed func compute<Param: P>(s: String, i: Int, p: Param) {}
+  // ✅ ok, the generic allows us getting access to the specific underlying type
 }
 ```
 
-which will compile, and work as expected at runtime.
+which will compile, and work as expected.
 
-#### Implicit effects on distributed actor functions
+#### Implicit effects on Distributed Methods
 
-Actor methods can be asynchronous (and throwing) or not, however invoking them cross-actor always causes them to become implicitly asynchronous:
+Local-only actor methods can be asynchronous , throwing or both, however invoking them cross-actor always causes them to become implicitly asynchronous:
 
 ```swift
 // Reminder about implicit async on actor functions
@@ -756,7 +846,9 @@ actor Greeter {
   }
 }
 
-await Greeter().hi() // implicitly asynchronous
+Task {
+  await Greeter().hi() // implicitly asynchronous
+}
 ```
 
 The same mechanism is extended to the throwing behavior of distributed methods. Distributed cross-actor calls may fail not only because of the remote side actively throwing an error, but also because of transport errors such as network issues or serialization failures. Therefore, distributed cross-actor calls also implicitly gain the the throwing effect, and must be marked with `try` when called:
@@ -770,7 +862,9 @@ distributed actor Greeter {
   }
 }
 
-try await Greeter().greet() // cross-actor distributed function call: implicitly async throws
+Task {
+  try await Greeter().greet() // cross-actor distributed function call: implicitly async throws
+}
 ```
 
 It is also possible to declare distributed functions as either `throws` or `async` (or both). The implicitly added effect is a no-op then, as the function always was, respectively, throwing or asynchronous already.
@@ -834,7 +928,7 @@ It is also worth calling out the interactions with `Task` and `async let`. Their
 extension Worker {
   func test(other: Philosopher) async throws {
     // self --------------------------------------------------------------------
-    async let alet = self.simple() // implicitly asyunc; async let introduced concurrent context
+    async let alet = self.simple() // implicitly async; async let introduced concurrent context
     _ = await alet // not throwing, but asynchronous!
 
     Task {
@@ -861,13 +955,59 @@ extension Worker {
 }
 ```
 
-#### Additional serialization-related type-checking of distributed functions
+#### Isolation states and Implicit effects on Distributed Methods
 
-While not discussed in depth in this proposal, which focuses specifically on the isolation rules, it is worth pointing out that an important piece of marking functions as distributed is the ability to enforce compile time checks onto their signatures. 
+A distributed actor reference. such as a variable or function parameter, effectively can be in one of three states:
 
-Specifically we intend to allow declaring a `typealias SerializationRequirement = Codable` which causes the type-checker to ensure that all parameters, as well as return type of a distributed function conform to this requirement (in addition to the usual `Sendable` conformance requirements enforced on any values passed to/from actors).
+- `isolated` – as defined by Swift's local-only actors. The `isolated` also implies the following "local" state, because it is not possible to pass isolated members across distributed boundaries,
+- "local" – not explicitly modeled in the type-system in this proposal, though we might end up wanting to do so (see Future Directions), or
+- "potentially remote" – which is the default state of any distributed actor variable.
 
-The details of the serialization mechanism will be discussed in depth in a follow-up proposal, focused on forming and serialization of distributed actor messages.
+These states determine the implicit effects that function invocations, and general distributed actor isolation checking, need to apply when checking accesses through the distributed actor reference. 
+
+Let us discuss the implications of these states on the effects applied to method calls on such distributed actor references, starting from the last "potentially remote" state, as it is the default and most prominent state which enables location-transparency.
+
+By default, any call on a ("potentially remote") distributed actor must be assumed to be crossing network boundaries. Thus, the type system pessimistically applies implicit throwing and async effects to such call-sites:
+
+```swift
+func test(actor: Greeter) async throws { 
+  try await actor.greet(name: "Asa") // ✅ call could be remote
+}
+```
+
+In special circumstances, a reference may be "known to be local", even without introducing a special "local" keyword in the language this manifests itself for example in closures which capture `self`. For example, we may capture `self` in a detached task, meaning that the task's closure will be executing on some different execution context than the actor itself -- and thus `self` is *not* isolated, however we *know* that it definitely is local, because there is no way we could ever refer to `self` from a remote actor:
+
+```swift
+distributed actor Closer { 
+  distributed func check() -> Bool { true }
+
+  func test() {
+    Task.detached { 
+      await self.check() // ✅ call is definitely local, but it must be asynchronous
+    }
+  }
+}
+```
+
+In the above situation, we know for sure that the `self.check()` will not be crossing any process boundaries, and therefore there cannot be any implicit errors emitted by the underlying distributed actor system transport. This manifests in the type-system by the `distributed func` call not being throwing (!), however it remains asynchronous because of the usual local-only actor isolation rules.
+
+The last case is `isolated` distributed actor references. This is relatively simple, because it just reverts all isolation checking to the local-only model. Instance members of actors are effectively methods which take an `isolated Self`, and in the same way functions which accept an `isolated Some(Distributed)Actor` are considered to be isolated to that actor. For the purpose of distributed actor isolation checking it effectively means there are no distributed checks at all, and we can even access stored properties synchronously on such reference:
+
+```swift
+distributed actor Namer { 
+  let baseName: String = ...
+}
+
+func bad(n: Namer) {
+  n.baseName // ❌ error, as expected we cannot access the distributed actor-isolated state
+}
+
+func good(n: isolated Namer) {
+  n.baseName // ✅ ok; we are isolated to the specific 'n' Namer instance
+}
+```
+
+### Distributed Actor Properties
 
 #### Stored properties
 
@@ -945,7 +1085,9 @@ distributed actor Chunk {
 }
 ```
 
-A distributed computed property is similar to a function accepting zero arguments, and returning a value. They are subject to the same isolation rules, and implicit async and throwing effects. As such, accessing such variable (even across the network) is fairly explicitly telling the developer something is going on here, and they should re-consider if e.g. doing this in a loop truly is a good idea:
+A distributed computed property is similar to a method accepting zero arguments, and returning a value. 
+
+Distributed computed properties are subject to the same isolation rules, and implicit async and throwing effects. As such, accessing such variable (even across the network) is fairly explicitly telling the developer something is going on here, and they should re-consider if e.g. doing this in a loop truly is a good idea:
 
 ```swift
 var i = 0
@@ -969,21 +1111,9 @@ Any value returned by such computed property needs to be able to be serialized, 
 
 It is not possible to declare read/write computed properties, because of underlying limitations of effectful properties.
 
-### Implicit Distributed Actor Protocol Conformances
-
-Distributed actors implicitly derive a few prototol conformances based off the `Identity` type they are assigned by a transport.
-
-Specifically, if the `Identity` type is:
-
-- `Hashable`, or
-- `Equatable`, or
-- `Codable`
-
-The distributed actor containing the identity is too.
-
 ### Protocol Conformances
 
-Distributed actors can conform to protocols, in a similar manner as local-only actors can.
+Distributed actors can conform to protocols in the same manner as local-only actors can.
 
 As calls "through" protocols are always cross-actor, requirements that are possible to witness by a `distributed actor` must be `async throws`. The following protocol shows a few examples of protocol requirements, and wether they are possible to witness using a distributed actor's distributed function:
 
@@ -1236,7 +1366,7 @@ During the initial handshake peers in a distriuted system exchange information a
 
 ### Introducing the `local` keyword
 
-It would be possible to expand the way `distributed actors` can conform to protocols which are intended only for the actor's "local site" if we introduced a `local` keyword. It would be used to taint distributed actor variables as well as functions in protocols with a local bias.
+It would be possible to expand the way distributed actors can conform to protocols which are intended only for the actor's "local side" if we introduced a `local` keyword. It would be used to taint distributed actor variables as well as functions in protocols with a local bias.
 
 For example, `local` marked distributed actor variables could simplify the following (suprisingly common in some situations!) pattern:
 
@@ -1267,9 +1397,11 @@ distributed actor GameHost {
 }
 ```
 
+The above example makes use of the `myself: local Player` stored property, which propagates the knowlage that the player instance stored in this property *definitely* is local, and therefore we can call non-distributed methods on it, which is useful when we need to pass it closures or other non serializable state -- as we do in the `start()` method.
+
 An `isolated Player` where Player is a `distributed actor` would also automatically be known to be `local`, and the `whenLocal` function could be expressed more efficiently (without needing to hop to the target actor at all):
 
-```
+```swift
 // WITHOUT `local`:
 // extension DistributedActor {
 //   public nonisolated func whenLocal<T>(_ body: @Sendable (isolated Self) async throws -> T)
@@ -1282,7 +1414,65 @@ extension DistributedActor {
 }
 ```
 
-TODO: explain more
+This version of the `whenLocal` API is more powerful, since it would allow accessing actor state without hops, if we extended the model to allow this. This would allow treating `local AnyDistributedActor` the same way as we treat any local-only actor, and can be very useful in testing. 
+
+We would not have to wrap APIs in `whenLocal` or provide wrapper APIs that are `nonisolated` but actually invoke things on seld, like this real problem example, from implementing a Cluster "receptionist" actor where certain calls shall only be made by the "local side", however the entire actor is accessible remotely for other peers to communicate with:
+
+```swift
+distributed actor Receptionist { 
+  distributed func receiveGossip(...) { ... }
+  
+  // only to be invoked by "local" actors
+  func registerLocalActor<Act>(actor: Act) where Act: DistributedActor { ... }
+}
+```
+
+Since it is too annoying to tell end-users to "always use `whenLocal` to invoke the local receptionist", library developers are forced to provide the following wrapper:
+
+```swift
+extension Receptionist { 
+  
+  // annoying forwarder/wrapper func; potentially unsafe, intended only for local use.
+  nonisolated func register<Act>(actor: Act) async where Act: DistributedActor { 
+    await self.whenLocal { myself in 
+      myself.registerLocalActor(actor: actor)
+    } else: {
+			fatalError("\(#function) must only be called on the local receptionist!")
+    }
+  }
+}
+
+// ------------------------------------
+final class System: DistributedActorSystem {
+  // ...
+  let receptionist: Receptionist
+}
+
+distributed actor Worker { 
+  init(system: System) async { 
+    receptionist.register(self) // ✅ OK
+  }
+}
+```
+
+This mostly works, but the implementation of the `nonisolated func register` leaves much to be desired. Rather, we want to express the following:
+
+```swift
+final class System: DistributedActorSystem {
+  // ...
+  let receptionist: local Receptionist
+}
+
+distributed actor Worker { 
+  init(system: System) async { 
+    await receptionist.registerLocalActor(self) // ✅ OK
+  }
+}
+```
+
+Without the need of manually implementing the "discard the distributed nature" of such actors.
+
+We see this as a natural follow up and future direction, which may take a while to implement, but would vastly improve the ergonomics of distributed actors in those special yet common enough few cases where such actors make an appearance.
 
 ## Alternatives Considered
 
@@ -1465,7 +1655,7 @@ Marking an actor as distributed when it previously was not is potentially source
 
 ## Effect on ABI stability
 
-TODO: are distributed functions ABI, I guess so.
+None.
 
 ## Effect on API resilience
 
@@ -1475,7 +1665,10 @@ None.
 
 - 1.3 More about serialization typechecking and introducing mentioned protocols explicitly 
   - Revisions Introduce `DistributedActor` and `DistributedActorSystem` protocols properly
-  - Discuss future directions for versioning and evolving APIs.
+  - Discuss future directions for versioning and evolving APIs
+  - Introduce conditional Codable conformance of distributed actors, based on Identity
+  - Discuss `SerializationRequirement` driven typechecking of distributed methods
+  - Discuss `DistributedActorSystem` parameter requirement in required initializers
 - 1.2 Drop implicitly distributed methods
 - 1.1 Implicitly distributed methods
 - 1.0 Initial revision
