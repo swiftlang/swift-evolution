@@ -437,6 +437,109 @@ extension DistributedActor {
 
 The specifics of resolving, and remote actor runtime details will be discussed in a follow up proposal focused on the runtime aspects of distributed actors. We mention it here to share a complete picture how Identities, systems, and remote references all fit into the picture.
 
+#### Distributed actors implicitly conforming to Codable
+
+If a distributed actor's `Identity` conforms to `Codable`, the distributed actor automatically gains a `Codable` conformance as well.
+
+This conformance is synthesized by the compiler, for every specific `distributed actor` declaration. It is not possible to express such conformance using the conditional conformances. 
+
+> **Note:** It is not possible to implement such conformance semantics on the DistributedActor protocol using conditional  conditional conformances (like this `extension DistributedActor: Codable where Identity: Codable`), and it is unlikely to be supported in the future. As such, we currently opt to synthesize the conformance for specific distributed actor declarations.
+
+```swift
+distributed actor Player /*: DistributedActor, Codable */ { 
+  // typealias Identity = SomeCodableIdentity
+}
+```
+
+The synthesized `Codable` conformance strictly relies on the implementation of the actors' identity `Codable` conformance. When we "encode" a distributed actor, we never encode "the actor", but rather only its identity:  
+
+```swift
+// distributed actor Player: Codable, ... {
+  nonisolated public func encode(to encoder: Encoder) throws {
+    // ~~~ pseudo code for illustration purposes ~~~ 
+    var container = encoder.singleValueContainer()
+    try container.encode(self.id)
+  }
+// }
+```
+
+And similarily, decoding a distributed actor has the specific meaning of attempting to `resolve(_:using:)` a reference of the specific actor type, using the decoded identity:
+
+```swift
+// distributed actor Player: Codable, ... {
+  nonisolated public init(from decoder: Decoder) throws {
+    // ~~~ pseudo code for illustration purposes ~~~ 
+    guard let system = decoder.userInfo[.distributedActorSystemKey] as? DistributedActorSystem else {
+      throw DistributedActorCodingError(message:
+        "Missing DistributedActorSystem (for key .distributedActorSystemKey) " +
+        "in \(decoder).userInfo, while decoding \(Self.self)!")
+    }
+
+    // [1] decode the identity
+    let id: Identity = try transport.decodeIdentity(from: decoder)
+    // [2] resolve the identity using the current system; this usually will return a "remote reference"
+    self = try Self.resolve(id, using: system)
+  }
+// }
+```
+
+The Decodable's `init(from:)` implementation is actually not possible to express in plain Swift today, because the restriction on self assignment in class initializers (and therefore also actor initializers). We intend to generalize and allow these kinds of assignments in classes and actors in general via a separate proposal.
+
+Note also that realistically, there is only one correct way to implement a distributed actor's Codability (as well as Hashable and Equatable conformances), because the only property that is related to its identity, and is known to both local and remote "sides" is the identity, as such implementations of those protocols must be directly derived from the `id` property of a distributed actor.
+
+The capability, to share actor references actoss to other (potentially remote) distributed actors, is crucial for location-transparency and the ability to "send actor references around" which enables developers to implement "call me later" style patterns (since we cannot do so with closures, as they are not serializable). In a way, this is similar to the delegate pattern, known to developers on Apple platforms: where we offer an instance to some other object, that will call lifecycle or other types of methods on the delegage whenever certain events happen.
+
+To illustrate how this capability is used in practice, let us consider the following turn-based distributed `Game` example, which waits until it has enough players gathered, and then kicks off the game by notifying all the players (regardless _where_ they are located) that the game is now starting.
+
+```swift
+typealias DefaultDistributedActorSystem = SomeCodableDistributedActorSystem
+struct SomeCodableDistributedActorSystem: DistributedActorSystem {
+  typealias Identity = SomeCodableIdentity
+  typealias SerializationRequirement = Codable
+}
+
+distributed actor Player {
+  distributed func play(turn: Int) -> Move { ... }
+  distributed func oppononentMoved(_ move: Move) { ... }
+}
+
+distributed actor Game { 
+  let minPlayers = 2
+  var players: Set<Player> = []
+  
+  distributed func join(player: Player) async throws {
+    guard players.count < 2 else {
+      throw ...
+    }
+    
+    players.insert(player)
+    
+    if players.count == 2 { 
+      await play() // keep asking players for their move via 'play(turn:)' until one of them wins
+    }
+  }
+  
+  func play() async throws {
+    // keep asking players for their move via 'play(turn:)' until one of them wins
+  }
+  
+  distributed var result: GameResult { 
+     ... 
+  }
+}
+
+func play(game: Game) async throws { 
+  try await game.join(player: Player(system: ...))
+  try await game.join(player: Player(system: ...))
+  // the game begins, players are notified about it
+
+  let result =  try await game.result
+  print("Winner of \(game) was: \(result.winner)")
+}
+```
+
+The `Player` distributed actor automatically gained a Codable conformance, because it is using the `SomeCodableDistributedActorSystem` that assigns it a `SomeCodableIdentity`. Other serialization mechanisms are also able to implement this "encode the Identity" and "decode the Identity, and resolve it" pattern, so this pattern is equally achievable using Codable, or other serialization mechanisms.
+
 #### Distributed Methods
 
 The primary way a distributed actor may be interacted with is distributed methods. Most notably, invoking a non-distributed method (i.e. those declared with *just* the `func` keyword by itself), is not allowed as it may be potentially violating distributed actor isolation rules, that is unless the target of the invocation is known to be a *local* distributed actor - a topic we'll explore later on in this proposal.
