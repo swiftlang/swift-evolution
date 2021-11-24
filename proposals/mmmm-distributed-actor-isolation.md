@@ -27,12 +27,13 @@
   - [Detailed design](#detailed-design)
     - [Distributed Actors and Distributed Actor Systems](#distributed-actors-and-distributed-actor-systems)
     - [Distributed Actor Initializers](#distributed-actor-initializers)
-    - [Distributed actors implicitly conforming to Codable](#distributed-actors-implicitly-conforming-to-codable)
+    - [Distributed Actors implicitly conform to Codable](#distributed-actors-implicitly-conform-to-codable)
     - [Distributed Methods](#distributed-methods-1)
       - [Distributed Method Serialization Requirements](#distributed-method-serialization-requirements)
       - [Distributed Methods and Generics](#distributed-methods-and-generics)
       - [Distributed Methods and Existential Types](#distributed-methods-and-existential-types)
       - [Implicit effects on Distributed Methods](#implicit-effects-on-distributed-methods)
+      - [Isolation states and Implicit effects on Distributed Methods](#isolation-states-and-implicit-effects-on-distributed-methods)
     - [Distributed Actor Properties](#distributed-actor-properties)
       - [Stored properties](#stored-properties)
       - [Computed properties](#computed-properties)
@@ -1669,6 +1670,7 @@ None.
   - Introduce conditional Codable conformance of distributed actors, based on Identity
   - Discuss `SerializationRequirement` driven typechecking of distributed methods
   - Discuss `DistributedActorSystem` parameter requirement in required initializers
+  - Discuss isolation states in depth "isolated", "known to be local", "potentially remote" and their effect on implicit effects on call-sites
 - 1.2 Drop implicitly distributed methods
 - 1.1 Implicitly distributed methods
 - 1.0 Initial revision
