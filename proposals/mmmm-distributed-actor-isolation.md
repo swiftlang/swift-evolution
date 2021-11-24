@@ -623,9 +623,57 @@ Distributed functions _may_ be combined with property wrappers to function param
 
 #### Distributed Method Serialization Requirements
 
-Distributed methods have a few extra restrictions which are applied to their parameters and return types.
+Every distributed actor is associated with a `DistributedActorSystem` which may declare a `SerializationRequirement`. This requirement is used to drive type checking of distributed methods (and computed properties) declared on distributed actors.
 
-Most notably, any distributed actor is associated with some `DistributedActorSystem`, and the system may require some specific serialization mechanism to be used for forming the wire-format messages. Most commonly, `Codable` is going to be used as a way to serialize messages. This is expressed
+This allows the system to enforce that only conforming parameters will pass compilation and will be attempted to be serialized. In practice this means that we can move a lot of runtime failures to compile time, making it easier to spot bugs and serialization mistakes. Another important point is that it allows us to confine specific actors to sending only well-known types, if we needed to do so.
+
+Most frequently, the serialization requirement is going to be `Codable`. This is how this would be declared in practice:
+
+```swift
+protocol CodableDistributedActorSystem: DistributedActorSystem { 
+  typealias SerializationRequirement = Codable  
+}
+
+distributed actor Worker { 
+  typealias ActorSystem = CodableDistributedActorSystem
+  // inferred: typealias SerializationRequirement = SpecificActorSystem.SerializationRequirement
+  //																							= Codable
+}
+```
+
+It is possible, albeit not recommended, to keep the `SerializationRequirement` as `Any` in which case no additional checks are performed on distributed methods.
+
+This section will discuss the implications of the SerializationRequirement on distributed method declarations. 
+
+A serialization requirement means that all parameter types and return type of a distributed method must conform to the requirement. With the `CodableDistributedActorSystem` in mind, let us write a few methods and see how this works:
+
+```swift
+distributed actor Worker { 
+  typealias ActorSystem = CodableDistributedActorSystem
+  
+  distributed func ok() // ✅ ok, no parameters
+  distributed func greet(name: String) -> String // ✅ ok, String is Codable
+
+  struct NotCodable {}
+  
+  distributed func reject(not: NotCodable)
+  // ❌ error: parameter 'not' of type 'NotCodable' in distributed instance method
+  //           does not conform to 'Codable'
+  // 💡 fixit: add ': Codable' to 'struct NotCodable'
+}
+```
+
+This also naturally extends to closures without any the need of introducing any special rules, because closures do not conform to protocols (such as Codable), the following is naturally ill-formed and rejected:
+
+```swift
+distributed actor Worker { 
+  typealias ActorSystem = CodableDistributedActorSystem
+  
+  distributed func take(_ closure: (String) -> String) 
+  // ❌ error: parameter 'closure' of type '(String) -> String' in distributed instance method
+  //           does not conform to 'Codable'
+}
+```
 
 #### Distributed Methods and Generics
 
@@ -658,11 +706,7 @@ distributed actor Picker {
 
 This is just the same rule about serializaiton requirements really, but we wanted to spell it out explicitly. The runtime implementation of such calls is more complicated than non-generic calls, and does incur a slight wire envelope size increase, because it must carry the *specific type identifier* that was used to perform the call (e.g. that it was invoked using the *specific* `struct MyItem: Item` and not just some item). Generic distributed function calls will perform the deserialization using the *specific type* that was used to perform the remote invocation. 
 
-> As with any other type involved in message passing, actor systems may also perform additional inspections at run time of the types and check if they are trusted or not before proceeding to decode them (i.e. actor systems have the possibility to inspect incoming message envelopes and double-check involved types before proceeding tho decode the parameters). We will discuss this more in the runtime proposal though.
-
-Distributed methods must have the full generic type available at runtime when they are invoked, as such
-
-**TODO: The archetype issue**
+As with any other type involved in message passing, actor systems may also perform additional inspections at run time of the types and check if they are trusted or not before proceeding to decode them (i.e. actor systems have the possibility to inspect incoming message envelopes and double-check involved types before proceeding tho decode the parameters).
 
 #### Distributed Methods and Existential Types
 
