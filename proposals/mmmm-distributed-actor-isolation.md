@@ -223,32 +223,105 @@ For clarity, a number of details about this proposal were omitted from the Propo
 
 ### Distributed Actors and Distributed Actor Systems
 
-All distributed actors are *explicitly* part of some specific distributed actor system. The term "actor system" orinates from both early, and current terminology relating to actor runtimes and loosely means "group of actors working together", which carries a specific meaning for distributed actors, because it implies they must be able to communicate over some (network or ipc) protocol they all understand. In Swift's local-only actor model, the system is somewhat implicit, because it simply is "the runtime", as all local objects can understand and invoke eachother however they see fit. In distribution this needs to become a little bit more specific: there can be different network protocols and "clusters" to which actors belong, and as such, they must be explicit about their actor system use. We feel this is an expected and natural way to introduce the concept of actor systems only once we enter distribution, because previously (in local only actors) the concept would not have added much value, but in distribution it is the *core* of everything distributed actors do.
+Distributed actors can only be declared using the `distributed actor` keywords. Such types automatically conform to the `DistributedActor` protocol. The protocol is defined in the `_Distributed` module as follows:
+
+```swift
+/// Common protocol to which all distributed actors conform.
+///
+/// The `DistributedActor` protocol generalizes over all distributed actor types.
+/// All distributed actor types implicitly conform to this protocol.
+/// 
+/// It is not possible to explicitly conform to this protocol using any other declaration 
+/// other than a 'distributed actor', e.g. it cannot be conformed to by a plain 'actor' or 'class'.
+protocol DistributedActor: AnyActor, Identifiable, Hashable { 
+  /// Type of the distributed actor system this actor is able to operate with.
+  /// It can be a type erased, or existential actor system if the actor is able to work with different ones.
+  associatedtype DistributedActorSystem 
+  
+  /// The type of identity assigned to this actor by the actor system.
+  /// 
+  /// The 'Identity' must be at least 'Sendable' and 'Hashable'.
+  /// If the 'Identity' conforms to `Codable` then the distributed actor does so implicitly as well.
+  typealias Identity = DistributedActorSystem.Identity
+  
+  /// The serialization requirement to apply to all distributed method and computed property declarations.
+  typealias SerializationRequirement = DistributedActorSystem.SerializationRequirement
+
+  /// Unique identity of this distributed actor, used to resolve remote references to it from other peers,
+  /// and also enabling the Hashable and (optional) Codable conformances of a distributed actor.
+  /// 
+  /// The identity may be freely shard across tasks and processes, and resolving it should return a reference
+  /// to the actor where it originated from.
+  nonisolated var id: ActorIdentity { get }
+  nonisolated var actorSystem: DistributedActorSystem { get }
+}
+```
+
+All distributed actors are *explicitly* part of some specific distributed actor system. The term "actor system" originates from both early, and current terminology relating to actor runtimes and loosely means "group of actors working together", which carries a specific meaning for distributed actors, because it implies they must be able to communicate over some (network or ipc) protocol they all understand. In Swift's local-only actor model, the system is somewhat implicit, because it simply is "the runtime", as all local objects can understand and invoke eachother however they see fit. In distribution this needs to become a little bit more specific: there can be different network protocols and "clusters" to which actors belong, and as such, they must be explicit about their actor system use. We feel this is an expected and natural way to introduce the concept of actor systems only once we enter distribution, because previously (in local only actors) the concept would not have added much value, but in distribution it is the *core* of everything distributed actors do.
+
+The protocol also includes two nonisolated property requirements: `id` and `actorSystem`. Witnesses for these requirements are nonisolated computed properties that the compiler synthesizes in specific distributed actor declarations. They store the actor system the actor was created with, and its identity, which is crucial to its lifecycle and messaging capabilities. We will not discuss in depth how the identity is assigned in this proposal, but in short: it is created and assigned by the actor system during the actors initialization.
 
 Libraries aiming to implement distributed actor systems, and act as the runtime for distributed actors must implement the `DistributedActorSystemProtocol`. We will expand the definition of this protocol with important lifecycle functions in the runtime focused proposal, however for now let us focus on its aspects which affect type checking and isolation of distributed actors. The protocol is defined as:
 
 ```swift
-public protocol DistributedActorSystem: Sendable {
+public protocol DistributedActorSystemProtocol: Sendable {
   associatedtype Identity: Hashable & Sendable // disclossed below
   associatedtype SerializationRequirement // discussed below
   
-  // ... 
+  // ... many lifecycle related functions, to be defined in follow-up proposals ... 
 } 
 ```
 
-Every distributed actor must declare what distributed actor system it is able to work with, this is expressed as an `associatedtype` requirement on the `DistributedActor` protocol, to which all `distributed actor` declarations conform implicitly. The `DistributedActor` protocol cannot be conformed to explicitly by any other type other than a `distributed actor`, or a protocol which refines it. The protocol is defined as:
+Every distributed actor must declare what distributed actor system it is able to work with, this is expressed as an `associatedtype` requirement on the `DistributedActor` protocol, to which all `distributed actor` declarations conform implicitly. For example, this distributed actor works with some `ClusterSystem`:
 
 ```swift
-protocol DistributedActor: AnyActor, Sendable { 
-  associatedtype DistributedActorSystem: DistributedActorSystemProtocol
+distributed actor Worker { 
+  typealias ActorSystem = ClusterSystem
 }
 ```
 
+The necessity of declaring this statically will become clear as we discuss the serialization requirements and details of the typechecking mechanisms in the sections below.
 
+Please note that it is possible to use a protocol or type eraser as the actor system, which allows actors to swap-in completely different actor system implementations, as long as their serialization mechanisms are compatible. The standard library provides a type-eraser called `AnyDistributedActorSystem` for this purpose, and distributed actors default to this type of actor system. 
 
+It is possible to declare a module-wide `typealias DefaultDistributedActorSystem` in order to change this "default" actor system type, for all distributed actor types declared within a module:
 
+```swift
+// in 'Cluster' module:
+typealias DefaultDistributedActorSystem = ClusterSystem
 
+// in 'Cluster' module, clearly we want to use the 'ClusterSystem'
+distributed actor Example {
+  // synthesized:
+  // typealias DistributedActorSystem = DefaultDistributedActorSystem // ClusterSystem
 
+  // synthesized initializers (discussed below) also acccept the expected type then:
+  // init(system: DefaultDistributedActorSystem) { ... }
+}
+```
+
+It is also possible to declare protocols which refine the general `DistributedActor` concept to some specific transport, such as:
+
+```swift
+protocol ClusterActor: DistributedActor {
+  typealias DistributedActorSystem = ClusterSystem
+}
+
+protocol XPCActor: DistributedActor {
+  typealias DistributedActorSystem = XPCSystem
+}
+```
+
+Those protocols, because they refine the `DistributedActor` protocol, can also only be conformed to by other distributed actors. It allows developers to declare specific requirements to their distributed actor's use, and even provide extensions based on the actor system type used by those actors, e.g.:
+
+```swift
+extension DistributedActor where DistributedActorTransport == ClusterSystem {
+  /// Returns the node on which this distributed actor instance is located.
+  nonisolated var node: Cluster.Node? { ... }
+}
+```
+
+>  **Note:** We refer to `distributed actor` declarations or protocols refining the `DistributedActor` protocol as any "distributed actor type" - wherever this phrase is used, it can apply to a specific actor or such protocol.
 
 ### Typechecking Distributed Actors
 
@@ -260,7 +333,9 @@ Distributed actor initializers are always _local_, therefore no special rules ar
 
 Distributed actor initializers are subject to the same isolation rules as actor initializers, as outlined in [SE-0327: On Actors and Initialization](https://forums.swift.org/t/se-0327-on-actors-and-initialization/53053). Please refer to that proposal for details about when it is safe to escape `self` out of an actor initializer, as well as when it is permitted to call other functions on the actor during its initialization.
 
-Remote actor references are not obtained via initializers, but rather through a special `resolve(_:using:)` function that is available on any `distributed actor` or `DistributedActor` constrained protocol. The specifics of resolving, and remote actor runtime details will be discussed in a follow up proposal shortly.
+A distributed actor's *designated initializer* must always contain exactly one `DistributedActorTransport` parameter. This is because the lifecycle and messaging of a distributed actor is managed by such system.
+
+*Remote* distributed actor references are not obtained via initializers, but rather through a special `resolve(_:using:)` function that is available on any `distributed actor` or `DistributedActor` constrained protocol. The specifics of resolving, and remote actor runtime details will be discussed in a follow up proposal shortly.
 
 #### Distributed Methods
 
@@ -343,11 +418,11 @@ While subscripts share many similarities with methods, they can lead to complex 
 
 Distributed functions _may_ be combined with property wrappers to function parameters (which were introduced by [SE-0293: Extend Property Wrappers to Function and Closure Parameters](https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md)), and their semantics are what one would expect: they are a transformation on the syntactical level, meaning that the actual serialized parameter value is what the property wapper has wrapped the parameter in.
 
-#### Distributed method parameters and return types
+#### Distributed Method Serialization Requirements
 
 Distributed methods have a few extra restrictions which are applied to their parameters and return types.
 
-Specifically, a distributed actor is always associated with a specific DistributedActorSystem–a protocol which specific runtime libraries implement–which manage their lifecycle and messaging interactions. Not only that, but the distributed actor system the actor is part of, may also dictate specific *serialization requirements* that the type must adhere to.
+Most notably, any distributed actor is associated with some `DistributedActorSystem`, and the system may require some specific serialization mechanism to be used for forming the wire-format messages. Most commonly, `Codable` is going to be used as a way to serialize messages. This is expressed
 
 #### Distributed Methods and Generics
 
@@ -384,6 +459,8 @@ This is just the same rule about serializaiton requirements really, but we wante
 
 Distributed methods must have the full generic type available at runtime when they are invoked, as such
 
+**TODO: The archetype issue**
+
 #### Distributed Methods and Existential Types
 
 It is worth calling out that does to existential types not conforming to themselfes, it is not possible to just pass a `Codable`-conforming existential as parameter to distributed functions. It will result in the following compile time error:
@@ -392,6 +469,8 @@ It is worth calling out that does to existential types not conforming to themsel
 protocol P: Codable {} 
 
 distributed actor TestExistential {
+  typealias ActorSystem = CodableMessagingSystem
+  
   distributed func compute(s: String, i: Int, p: P) {
   }
 }
@@ -407,7 +486,10 @@ The way to deal with this, as with usual local-only Swift programming, is to mak
 protocol P: Codable {} 
 
 distributed actor TestExistential {
-  distributed func compute<Param: P>(s: String, i: Int, p: Param) { // OK
+  typealias ActorSystem = CodableMessagingSystem
+  
+  distributed func compute<Param: P>(s: String, i: Int, p: Param) {
+     // OK
   }
 }
 ```
@@ -639,6 +721,18 @@ Because distributed methods and properties are statically known, we could envisi
 Any value returned by such computed property needs to be able to be serialized, similarily to distributed method parameters and return values, and would be subject to the same checks.
 
 It is not possible to declare read/write computed properties, because of underlying limitations of effectful properties.
+
+### Implicit Distributed Actor Protocol Conformances
+
+Distributed actors implicitly derive a few prototol conformances based off the `Identity` type they are assigned by a transport.
+
+Specifically, if the `Identity` type is:
+
+- `Hashable`, or
+- `Equatable`, or
+- `Codable`
+
+The distributed actor containing the identity is too.
 
 ### Protocol Conformances
 
