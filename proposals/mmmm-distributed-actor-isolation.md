@@ -244,7 +244,7 @@ protocol DistributedActor: AnyActor, Identifiable, Hashable {
   /// If the 'Identity' conforms to `Codable` then the distributed actor does so implicitly as well.
   typealias Identity = DistributedActorSystem.Identity
   
-  /// The serialization requirement to apply to all distributed method and computed property declarations.
+  /// The serialization requirement to apply to all distributed declarations inside the actor.
   typealias SerializationRequirement = DistributedActorSystem.SerializationRequirement
 
   /// Unique identity of this distributed actor, used to resolve remote references to it from other peers,
@@ -384,6 +384,35 @@ distributed actor Worker {
   }
 }
 ```
+
+Having that said, here are a few example of legal and illegal initializer declarations:
+
+```swift
+distributed actor InitializeMe { 
+  init() 
+  // ❌ error: designated distributed actor initializer 'init()' is missing required 'DistributedActorSystem' parameter
+  
+  init(x: String)
+  // ❌ error: designated distributed actor initializer 'init(x:)' is missing required 'DistributedActorSystem' parameter
+
+  init(system: AnyDistributedActorSystem, too many: AnyDistributedActorSystem)
+  // ❌ error: designated distributed actor initializer 'init(transport:too:)' must accept exactly one DistributedActorSystem parameter, found 2
+  
+  // --------
+  
+  
+  init(system: AnyDistributedActorSystem) // ✅ ok
+  init(y: Int, system: AnyDistributedActorSystem) // ✅ ok
+  init(canThrow: Bool, system: AnyDistributedActorSystem) async throws // ✅ ok, effects are ok too
+  
+  // 'convenience' may or may not be necessary, depending on SE-0327 review outcome.
+  convenience init() { 
+    self.init(system: SomeSystem(...)) // legal, but not recommended
+  }
+}
+```
+
+
 
 *Remote* distributed actor references are not obtained via initializers, but rather through a static `resolve(_:using:)` function that is available on any `distributed actor` or `DistributedActor` constrained protocol:
 
