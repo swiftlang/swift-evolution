@@ -333,9 +333,80 @@ Distributed actor initializers are always _local_, therefore no special rules ar
 
 Distributed actor initializers are subject to the same isolation rules as actor initializers, as outlined in [SE-0327: On Actors and Initialization](https://forums.swift.org/t/se-0327-on-actors-and-initialization/53053). Please refer to that proposal for details about when it is safe to escape `self` out of an actor initializer, as well as when it is permitted to call other functions on the actor during its initialization.
 
-A distributed actor's *designated initializer* must always contain exactly one `DistributedActorTransport` parameter. This is because the lifecycle and messaging of a distributed actor is managed by such system.
+A distributed actor's *designated initializer* must always contain exactly one `DistributedActorSystem` parameter. This is because the lifecycle and messaging of a distributed actor is managed by the system. It also assigns every newly initialized distributed actor instance an identity, that the actor then stores and makes accessible via the compiler-synthesized computed property `id`. The system is similarily available to the actor via the compiler synthesized computed property `actorSystem`.
 
-*Remote* distributed actor references are not obtained via initializers, but rather through a special `resolve(_:using:)` function that is available on any `distributed actor` or `DistributedActor` constrained protocol. The specifics of resolving, and remote actor runtime details will be discussed in a follow up proposal shortly.
+Similar to classes and local-only actors, a distributed actor gains an implicit default designated initializer when no user-defined initializer is found. This initializer accepts an actor system as parameter, in order to conform to the requirement stated above:
+
+```swift
+// typealias DefaultDistributedActorSystem = SomeSystem
+
+distributed actor Worker { 
+  // synthesized default designated initializer:
+  // init(system: DefaultDistributedActorSystem)
+}
+```
+
+if no module-wide `DefaultDistributedActorSystem` is defined, such declaration would request the developer to provide one at compile time:
+
+```swift
+distributed actor Worker { 
+  typealias ActorSystem = SomeSystem
+
+  // synthesized default designated initializer:
+  // init(system: SomeSystem)
+}
+```
+
+Alternatively, we can infer this typealias from an user-defined initializer, like this:
+
+```swift
+distributed actor Worker { 
+  // inferred typealias from explicit initializer declaration
+  // typealias ActorSystem = SomeSystem
+  
+  init(system: SomeSystem) { self.name = "Alice" }
+}
+```
+
+The necessity to pass an actor system to each newly created distributed actor is because the system is the one assigning and managing identities. While we don't discuss those details in depth in this proposal, here is a short pseudo-code of why passing this system is necessary:
+
+```swift
+// Lifecycle interactions with the system during initialization
+// NOT PART OF THIS PROPOSAL; These will be discussed in-depth in a forthcoming proposal focused on the runtime.
+distributed actor Worker { 
+  init(system: SomeSystem) {
+    // self._system = system
+    // the actor is assigned an unique identity as it initializes:
+    // self._id = system.assignIdentity(Self.self)
+    self.name = "Alice" 
+    // once fully initialized, the actor is ready to receive remote calls:
+    // system.actorReady(self)
+  }
+}
+```
+
+*Remote* distributed actor references are not obtained via initializers, but rather through a static `resolve(_:using:)` function that is available on any `distributed actor` or `DistributedActor` constrained protocol:
+
+```swift
+extension DistributedActor { 
+  
+  /// Resolves the passed in `identity` using the passed distributed actor `system`, 
+  /// returning either a local or remote distributed actor reference.
+  ///
+  /// The system will be asked to `resolve` the identity and return either
+  /// a local instance or request a "proxy" to be created for this identity.
+  ///
+  /// A remote distributed actor reference will forward all invocations through
+  /// the transport, allowing it to take over the remote messaging with the
+  /// remote actor instance.
+  ///
+  /// - Parameter identity: identity uniquely identifying a, potentially remote, actor in the system
+  /// - Parameter system: distributed actor system which must resolve and manage the returned distributed actor reference
+  static func resolve(_ identity: Identity, using transport: DistributedActorSystem) throws -> Self
+}
+```
+
+The specifics of resolving, and remote actor runtime details will be discussed in a follow up proposal focused on the runtime aspects of distributed actors. We mention it here to share a complete picture how Identities, systems, and remote references all fit into the picture.
 
 #### Distributed Methods
 
