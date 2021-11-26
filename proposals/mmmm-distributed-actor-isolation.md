@@ -273,13 +273,13 @@ Distributed actors can only be declared using the `distributed actor` keywords. 
 protocol DistributedActor: AnyActor, Identifiable, Hashable { 
   /// Type of the distributed actor system this actor is able to operate with.
   /// It can be a type erased, or existential actor system if the actor is able to work with different ones.
-  associatedtype DistributedActorSystem: DistributedActorSystemProtocol
+  associatedtype DistributedActorSystem: DistributedActorSystem
   
-  /// The type of identity assigned to this actor by the actor system.
+  /// The type of id assigned to this actor by the actor system.
   /// 
-  /// The 'Identity' must be at least 'Sendable' and 'Hashable'.
-  /// If the 'Identity' conforms to `Codable` then the distributed actor does so implicitly as well.
-  typealias Identity = DistributedActorSystem.Identity
+  /// The 'ID' must be at least 'Sendable' and 'Hashable'.
+  /// If the 'ID' conforms to `Codable` then the distributed actor does so implicitly as well.
+  typealias ID = DistributedActorSystem.ID
   
   /// The serialization requirement to apply to all distributed declarations inside the actor.
   typealias SerializationRequirement = DistributedActorSystem.SerializationRequirement
@@ -287,27 +287,27 @@ protocol DistributedActor: AnyActor, Identifiable, Hashable {
   /// Unique identity of this distributed actor, used to resolve remote references to it from other peers,
   /// and also enabling the Hashable and (optional) Codable conformances of a distributed actor.
   /// 
-  /// The identity may be freely shard across tasks and processes, and resolving it should return a reference
+  /// The id may be freely shard across tasks and processes, and resolving it should return a reference
   /// to the actor where it originated from.
-  nonisolated var id: ActorIdentity { get }
+  nonisolated var id: ID { get }
   
   /// Distributed Actor System responsible for managing this distributed actor.
   ///
-  /// It is responsible for assigning and managing the actor's identity, 
+  /// It is responsible for assigning and managing the actor's id, 
   /// as well as delivering incoming messages as distributed method invocations on the actor.
   nonisolated var actorSystem: DistributedActorSystem { get }
 }
 ```
 
-All distributed actors are *explicitly* part of some specific distributed actor system. The term "actor system" originates from both early, and current terminology relating to actor runtimes and loosely means "group of actors working together", which carries a specific meaning for distributed actors, because it implies they must be able to communicate over some (network or ipc) protocol they all understand. In Swift's local-only actor model, the system is somewhat implicit, because it simply is "the runtime", as all local objects can understand and invoke eachother however they see fit. In distribution this needs to become a little bit more specific: there can be different network protocols and "clusters" to which actors belong, and as such, they must be explicit about their actor system use. We feel this is an expected and natural way to introduce the concept of actor systems only once we enter distribution, because previously (in local only actors) the concept would not have added much value, but in distribution it is the *core* of everything distributed actors do.
+All distributed actors are *explicitly* part of some specific distributed actor system. The term "actor system" originates from both early, and current terminology relating to actor runtimes and loosely means "group of actors working together", which carries a specific meaning for distributed actors, because it implies they must be able to communicate over some (network or ipc) protocol they all understand. In Swift's local-only actor model, the system is somewhat implicit, because it simply is "the runtime", as all local objects can understand and invoke each other however they see fit. In distribution this needs to become a little bit more specific: there can be different network protocols and "clusters" to which actors belong, and as such, they must be explicit about their actor system use. We feel this is an expected and natural way to introduce the concept of actor systems only once we enter distribution, because previously (in local only actors) the concept would not have added much value, but in distribution it is the *core* of everything distributed actors do.
 
-The protocol also includes two nonisolated property requirements: `id` and `actorSystem`. Witnesses for these requirements are nonisolated computed properties that the compiler synthesizes in specific distributed actor declarations. They store the actor system the actor was created with, and its identity, which is crucial to its lifecycle and messaging capabilities. We will not discuss in depth how the identity is assigned in this proposal, but in short: it is created and assigned by the actor system during the actors initialization.
+The protocol also includes two nonisolated property requirements: `id` and `actorSystem`. Witnesses for these requirements are nonisolated computed properties that the compiler synthesizes in specific distributed actor declarations. They store the actor system the actor was created with, and its id, which is crucial to its lifecycle and messaging capabilities. We will not discuss in depth how the id is assigned in this proposal, but in short: it is created and assigned by the actor system during the actor's initialization.
 
-Libraries aiming to implement distributed actor systems, and act as the runtime for distributed actors must implement the `DistributedActorSystemProtocol`. We will expand the definition of this protocol with important lifecycle functions in the runtime focused proposal, however for now let us focus on its aspects which affect type checking and isolation of distributed actors. The protocol is defined as:
+Libraries aiming to implement distributed actor systems, and act as the runtime for distributed actors must implement the `DistributedActorSystem`. We will expand the definition of this protocol with important lifecycle functions in the runtime focused proposal, however for now let us focus on its aspects which affect type checking and isolation of distributed actors. The protocol is defined as:
 
 ```swift
-public protocol DistributedActorSystemProtocol: Sendable {
-  associatedtype Identity: Hashable & Sendable // disclossed below
+public protocol DistributedActorSystem: Sendable {
+  associatedtype ActorID: Hashable & Sendable // discussed below
   associatedtype SerializationRequirement // discussed below
   
   // ... many lifecycle related functions, to be defined in follow-up proposals ... 
@@ -371,7 +371,7 @@ Distributed actor initializers are always _local_, therefore no special rules ar
 
 Distributed actor initializers are subject to the same isolation rules as actor initializers, as outlined in [SE-0327: On Actors and Initialization](https://forums.swift.org/t/se-0327-on-actors-and-initialization/53053). Please refer to that proposal for details about when it is safe to escape `self` out of an actor initializer, as well as when it is permitted to call other functions on the actor during its initialization.
 
-A distributed actor's *designated initializer* must always contain exactly one `DistributedActorSystem` parameter. This is because the lifecycle and messaging of a distributed actor is managed by the system. It also assigns every newly initialized distributed actor instance an identity, that the actor then stores and makes accessible via the compiler-synthesized computed property `id`. The system is similarily available to the actor via the compiler synthesized computed property `actorSystem`.
+A distributed actor's *designated initializer* must always contain exactly one `DistributedActorSystem` parameter. This is because the lifecycle and messaging of a distributed actor is managed by the system. It also assigns every newly initialized distributed actor instance an identity, that the actor then stores and makes accessible via the compiler-synthesized computed property `id`. The system is similarly available to the actor via the compiler synthesized computed property `actorSystem`.
 
 Similar to classes and local-only actors, a distributed actor gains an implicit default designated initializer when no user-defined initializer is found. This initializer accepts an actor system as parameter, in order to conform to the requirement stated above:
 
@@ -416,7 +416,7 @@ distributed actor Worker {
   init(system: SomeSystem) {
     // self._system = system
     // the actor is assigned an unique identity as it initializes:
-    // self._id = system.assignIdentity(Self.self)
+    // self._id = system.assignID(Self.self)
     self.name = "Alice" 
     // once fully initialized, the actor is ready to receive remote calls:
     // system.actorReady(self)
@@ -468,7 +468,7 @@ extension DistributedActor {
   ///
   /// - Parameter identity: identity uniquely identifying a, potentially remote, actor in the system
   /// - Parameter system: distributed actor system which must resolve and manage the returned distributed actor reference
-  static func resolve(_ identity: Identity, using system: DistributedActorSystem) throws -> Self
+  static func resolve(_ identity: ID, using system: DistributedActorSystem) throws -> Self
 }
 ```
 
@@ -476,15 +476,15 @@ The specifics of resolving, and remote actor runtime details will be discussed i
 
 ### Distributed Actors implicitly conform to Codable
 
-If a distributed actor's `Identity` conforms to `Codable`, the distributed actor automatically gains a `Codable` conformance as well.
+If a distributed actor's `ID` conforms to `Codable`, the distributed actor automatically gains a `Codable` conformance as well.
 
 This conformance is synthesized by the compiler, for every specific `distributed actor` declaration. It is not possible to express such conformance using the conditional conformances. 
 
-> **Note:** It is not possible to implement such conformance semantics on the DistributedActor protocol using conditional  conditional conformances (like this `extension DistributedActor: Codable where Identity: Codable`), and it is unlikely to be supported in the future. As such, we currently opt to synthesize the conformance for specific distributed actor declarations.
+> **Note:** It is not possible to implement such conformance semantics on the DistributedActor protocol using conditional  conditional conformances (like this `extension DistributedActor: Codable where ID: Codable`), and it is unlikely to be supported in the future. As such, we currently opt to synthesize the conformance for specific distributed actor declarations.
 
 ```swift
 distributed actor Player /*: DistributedActor, Codable */ { 
-  // typealias Identity = SomeCodableIdentity
+  // typealias ID = SomeCodableID
 }
 ```
 
@@ -500,7 +500,7 @@ The synthesized `Codable` conformance strictly relies on the implementation of t
 // }
 ```
 
-And similarily, decoding a distributed actor has the specific meaning of attempting to `resolve(_:using:)` a reference of the specific actor type, using the decoded identity:
+And similarily, decoding a distributed actor has the specific meaning of attempting to `resolve(_:using:)` a reference of the specific actor type, using the decoded id:
 
 ```swift
 // distributed actor Player: Codable, ... {
@@ -513,7 +513,7 @@ And similarily, decoding a distributed actor has the specific meaning of attempt
     }
 
     // [1] decode the identity
-    let id: Identity = try system.decodeIdentity(from: decoder)
+    let id: ID = try system.decodeID(from: decoder)
     // [2] resolve the identity using the current system; this usually will return a "remote reference"
     self = try Self.resolve(id, using: system)
   }
@@ -533,7 +533,7 @@ To illustrate how this capability is used in practice, let us consider the follo
 ```swift
 typealias DefaultDistributedActorSystem = SomeCodableDistributedActorSystem
 struct SomeCodableDistributedActorSystem: DistributedActorSystem {
-  typealias Identity = SomeCodableIdentity
+  typealias ID = SomeCodableID
   typealias SerializationRequirement = Codable
 }
 
@@ -577,7 +577,7 @@ func play(game: Game) async throws {
 }
 ```
 
-The `Player` distributed actor automatically gained a Codable conformance, because it is using the `SomeCodableDistributedActorSystem` that assigns it a `SomeCodableIdentity`. Other serialization mechanisms are also able to implement this "encode the Identity" and "decode the Identity, and resolve it" pattern, so this pattern is equally achievable using Codable, or other serialization mechanisms.
+The `Player` distributed actor automatically gained a Codable conformance, because it is using the `SomeCodableDistributedActorSystem` that assigns it a `SomeCodableID`. Other serialization mechanisms are also able to implement this "encode the ID" and "decode the ID, and resolve it" pattern, so this pattern is equally achievable using Codable, or other serialization mechanisms.
 
 ### Distributed Methods
 
@@ -643,8 +643,8 @@ It is possible to declare a nonisolated method though. Such function can only ac
 
 ```swift
 distributed actor Charlie: CustomStringConvertible { 
-  // synthesized: nonisolated var id: ActorIdentity { get }
-  // synthesized: nonisolated var actorSystem: DistributedActorSystem { get }
+  // synthesized: nonisolated var id: Self.ID { get }
+  // synthesized: nonisolated var actorSystem: Self.ActorSystem { get }
   
   nonisolated var description: String { 
     "Charlie(\(self.id))" // ok to refer to `self.id` since also nonisolated
@@ -717,7 +717,7 @@ distributed actor Worker {
 }
 ```
 
-This also naturally extends to closures without any the need of introducing any special rules, because closures do not conform to protocols (such as Codable), the following is naturally ill-formed and rejected:
+This also naturally extends to closures without any the need of introducing any special rules, because closures do not conform to protocols (such as `Codable`), the following is naturally ill-formed and rejected:
 
 ```swift
 distributed actor Worker { 
@@ -1667,7 +1667,7 @@ None.
 - 1.3 More about serialization typechecking and introducing mentioned protocols explicitly 
   - Revisions Introduce `DistributedActor` and `DistributedActorSystem` protocols properly
   - Discuss future directions for versioning and evolving APIs
-  - Introduce conditional Codable conformance of distributed actors, based on Identity
+  - Introduce conditional Codable conformance of distributed actors, based on ID
   - Discuss `SerializationRequirement` driven typechecking of distributed methods
   - Discuss `DistributedActorSystem` parameter requirement in required initializers
   - Discuss isolation states in depth "isolated", "known to be local", "potentially remote" and their effect on implicit effects on call-sites
