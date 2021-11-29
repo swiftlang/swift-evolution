@@ -123,7 +123,7 @@ This proposal extends the PackagePlugin API to:
 This proposal extends `PluginAPI` with an entry point for command plugins:
 
 ```swift
-/// Defines functionality for all plugins that have a `customCommand` capability.
+/// Defines functionality for all plugins that have a `command` capability.
 public protocol CommandPlugin: Plugin {
     /// Invoked by SwiftPM to perform the custom actions of the command.
     func performCommand(
@@ -143,7 +143,7 @@ public protocol CommandPlugin: Plugin {
     
     /// A proxy to the Swift Package Manager or IDE hosting the package plugin,
     /// through which the plugin can ask for specialized information or actions.
-    var packageManager: PackageManagerServiceProvider { get }
+    var packageManager: PackageManager { get }
 }
 ```
 
@@ -178,7 +178,7 @@ public struct PackageManager {
     public func build(
         _ subset: BuildSubset,
         parameters: BuildParameters
-    ) async -> BuildResult
+    ) async throws -> BuildResult
     
     /// Specifies what subset of products and targets of a package to build.
     public enum BuildSubset {
@@ -258,7 +258,7 @@ public struct PackageManager {
     public func test(
         _ subset: TestSubset,
         parameters: TestParameters
-    ) async -> TestResult
+    ) async throws -> TestResult
         
     /// Specifies what tests in a package to run.
     public enum TestSubset {
@@ -426,10 +426,9 @@ let package = Package(
     targets: [
         // This is the actual target that implements the command plugin.
         .plugin(
-            "MyDocCPlugin",
+            name: "MyDocCPlugin",
             capability: .command(
-                verb: "generate-documentation",
-                description: "Uses docc to generate documentation for a package")
+                intent: .documentationGeneration
             )
         )
     ]
@@ -447,7 +446,7 @@ struct MyDocCPlugin: CommandPlugin {
         context: PluginContext,
         targets: [Target],
         arguments: [String]
-    ) throws {
+    ) async throws {
         // We'll be creating commands that invoke `docc`, so start by locating it.
         let doccTool = try context.tool(named: "docc")
         
@@ -473,13 +472,13 @@ struct MyDocCPlugin: CommandPlugin {
             // Invoke `docc` with arguments and the optional catalog.
             var doccArgs = ["convert"]
             if let doccCatalog = doccCatalog {
-                doccArgs += ["\(doccCatalog.path)")]
+                doccArgs += ["\(doccCatalog.path)"]
             }
             doccArgs += [
                 "--fallback-display-name", target.name,
                 "--fallback-bundle-identifier", target.name,
                 "--fallback-bundle-version", "0",
-                "--additional-symbol-graph-dir", "\(symbolGraphDir)",
+                "--additional-symbol-graph-dir", "\(symbolGraphInfo.directoryPath)",
                 "--output-dir", "\(outputDir)",
             ]
             let (exitcode, stdout, stderr) = try doccTool.run(arguments: doccArgs)
@@ -602,7 +601,7 @@ Since `--allow-writing-to-package-directory` is not passed, `swift` `package` wi
 
 ## Example 3: Building Deployment Artifacts
 
-The final example of a command plugin uses the `PackageManagerServiceProvider`’s build functionality to do a release built of two hypothetical products and then to create a distribution archive from it.
+The final example of a command plugin uses the `PackageManager` service provider’s build functionality to do a release build of a hypothetical product and then to create a distribution archive from it.
 
 This example shows use of a local plugin target, so no package dependency is needed. This is mostly appropriate for custom commands that are unlikely to be useful outside the package.
 
@@ -624,8 +623,10 @@ let package = Package(
         .plugin(
             "MyDistributionArchiveCreator",
             capability: .command(
-                verb: "create-distribution-archive",
-                description: "Creates a .tar file containing release binaries")
+                intent: .custom(
+                    verb: "create-distribution-archive",
+                    description: "Creates a .tar file containing release binaries"
+                )
             ),
         )
     ]
@@ -664,7 +665,7 @@ struct MyDistributionArchiveCreator: CommandPlugin {
         guard result.succeeded else { throw Error("couldn't build product") }
         
         // Decide on the output path for the archive.
-        let outputPath = context.pluginWorkingDirectory.appending("\(archiveName).tar")
+        let outputPath = context.pluginWorkDirectory.appending("\(archiveName).tar")
     
         // Use Foundation to run `tar`. The exact details of using the Foundation
         // API aren't relevant; the point is that the built artifacts can be used
