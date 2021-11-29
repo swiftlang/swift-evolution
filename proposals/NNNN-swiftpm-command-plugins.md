@@ -88,18 +88,18 @@ Future versions of SwiftPM will almost certainly add to this set of possible int
 
 If multiple command plugins in the dependency graph of a package specify the same intent, or specify a custom intent with the same verb, then the user will need to specify which plugin to invoke by qualifying the verb with the name of the plugin target followed by a `:` character, e.g. `MyPlugin:do-something`.  Because plugin names are target names, they are already known to be unique within the package graph, so the combination of plugin name and verb is known to be unique.
 
-The permissions affect the ways in which the command plugin can access external resources such as the file system or network. By default, command plugins have only read-only access to the file system (except for temporary-files locations) and cannot access the network.
+A command plugin can also specify the permissions it needs, which affect the ways in which the plugin can access external resources such as the file system or network. By default, command plugins have only read-only access to the file system (except for temporary-files locations) and cannot access the network.
 
-A command plugin that wants to modify the package source code (such as source formatters) needs to request the `packageWritability` permission. This modifies the sandbox in which the plugin is invoked to let it write inside the package directory in the file system, after notifying the user about what is going to happen and getting approval in a way that is appropriate for the IDE in question.
+A command plugin that wants to modify the package source code (as for example a source code formatter might want to) needs to request the `writeToPackageDirectory` permission. This modifies the sandbox in which the plugin is invoked to let it write inside the package directory in the file system, after notifying the user about what is going to happen and getting approval in a way that is appropriate for the IDE in question.
 
 The permissions needed by the command are expressed as an enum in `PackageDescription`:
 
 ```swift
 enum PluginPermission {
-    /// The custom command plugin requests permission to modify the files inside the
-    /// package directory. The `reason` string is shown to the user at the time of
-    /// request for approval, explaining why the plugin is requesting this access.
-    case packageWritability(reason: String)
+    /// The command plugin wants permission to modify the files under the package
+    /// directory. The `reason` string is shown to the user at the time of request
+    /// for approval, explaining why the plugin is requesting this access.
+    case writeToPackageDirectory(reason: String)
     
     /// It is likely that future proposals will want to provide some kind of network
     /// access. In the interest of keeping this proposal bounded, we just note that
@@ -392,10 +392,10 @@ The user can also provide additional parameters that are passed directly to the 
 
 Arguments are currently passed to the plugin exactly as they are written after the command’s verb. A future proposal could allow the plugin to define parameters (using SwiftArgumentParser) that SwiftPM could interpret and that would integrate better with SwiftPM’s own command line arguments.
 
-As mentioned in the *Permissions* section, command plugins are by default blocked from modifying the files inside the package directory on platforms that support sandboxing. If a command plugin that requires file system writability is invoked, `swift` `package` will ask for approval if stdin is connected to a TTY (or an error will be reported without invoking the plugin if it is not). An `--allow-package-writability` option lets the use bypass the request to approve the file system access, which is useful in CI and other automation.
+As mentioned in the *Permissions* section, command plugins are by default blocked from modifying the files inside the package directory on platforms that support sandboxing. If a command plugin that requires file system writability is invoked, `swift` `package` will ask for approval — this is done using console input if stdin is connected to a TTY, or if not, an error will be reported without invoking the plugin. An `--allow-writing-to-package-directory` option can be used to bypass the request to approve the file system access, which is useful in CI and other automation.
 
 ```shell
-❯ swift package --allow-package-writability do-something
+❯ swift package --allow-writing-to-package-directory do-something
 ```
 
 Asking for permission from the user helps to prevent unexpected modification of the package by command plugins.
@@ -523,7 +523,7 @@ The plugin should emit the path at which it generated the documentation.
 
 ## Example 2: Formatting Source Code
 
-This example uses `swift-format` to reformat the code in a package, which requires the plugin to have `.packageWritability` permission.
+This example uses `swift-format` to reformat the code in a package, which requires the plugin to have `.writeToPackageDirectory` permission.
 
 Note that this package depends on the executable provided by the *swift-format* package.
 
@@ -543,7 +543,7 @@ let package = Package(
                 verb: "format-my-code",
                 description: "Uses swift-format to modify the Swift code in the package"),
                 permissions: [
-                    .packageWritability(reason: "This command reformats source files")
+                    .writeToPackageDirectory(reason: "This command reformats source files")
                 ]
             ),
             dependencies: [
@@ -598,7 +598,7 @@ Users can then invoke this custom command using the `swift` `package` invocation
 ❯ swift package format-my-code
 ```
 
-Since `--allow-package-writability` is not passed, `swift` `package` will ask the user for permission if its stdin is attached to a TTY, or will fail with an error if not. If `--allow-package-writability` were passed, it would just allow the plugin to run (with package directory writability allowed by the sandbox profile) without asking for permission.
+Since `--allow-writing-to-package-directory` is not passed, `swift` `package` will ask the user for permission if its stdin is attached to a TTY, or will fail with an error if not. If `--allow-writing-to-package-directory` were passed, it would just allow the plugin to run (with package directory writability allowed by the sandbox profile) without asking for permission.
 
 ## Example 3: Building Deployment Artifacts
 
