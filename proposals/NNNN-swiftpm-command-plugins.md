@@ -555,8 +555,7 @@ let package = Package(
         .plugin(
             "MyFormatterPlugin",
             capability: .command(
-                verb: "format-my-code",
-                description: "Uses swift-format to modify the Swift code in the package"),
+                intent: .sourceCodeFormatting,
                 permissions: [
                     .writeToPackageDirectory(reason: "This command reformats source files")
                 ]
