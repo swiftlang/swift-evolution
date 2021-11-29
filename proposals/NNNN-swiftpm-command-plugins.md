@@ -707,11 +707,13 @@ This example does not need to ask for permission to write to the package directo
 
 ## Security Considerations
 
-As with other plugins, custom command plugins are sandboxed in a way that restricts their access to certain system resources. By default, plugins are prevented from writing to the file system (other than to temporary directories and cache directories), and are prevented from accessing the network.
+On platforms where SwiftPM supports sandboxing, all plugins are sandboxed in a way that restricts their access to certain system resources. By default, plugins are prevented from writing to the file system (other than to temporary directories and cache directories), and are prevented from accessing the network.
 
 Custom command plugins that need special permissions — such as writing to the package source directory — can specify a requirement for this permission in the declaration of the plugin. This may cause user interaction to approve the plugin’s request, and if granted, the sandbox is modified to allow this access.
 
 The form that this request for approval will take depends on whether the plugin is invoked from the SwiftPM CLI or from an IDE that supports Swift Packages. The CLI may implement an option that needs to be passed at the time the plugin is invoked, while an IDE should ideally cache the response in some way that prevents the user from being prompted every time they invoke the plugin.
+
+On platforms where SwiftPM does not support sandboxing, the user should be notified that invoking the command plugin will result in running code that might perform any action, and should be given the location of the Swift script that implements the plugin so it can be examined by the user.
 
 ## Alternatives Considered
 
