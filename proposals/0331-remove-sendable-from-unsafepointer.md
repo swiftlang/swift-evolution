@@ -1,9 +1,9 @@
 # Remove Sendable conformance from unsafe pointer types
 
-* Proposal: [SE-NNNN](NNNN-re.md)
-* Authors: [Andrew Trick](https://github.com/atrick), [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Proposal: [SE-0331](0331-remove-sendable-from-unsafepointer.md)
+* Authors: [Andrew Trick](https://github.com/atrick)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (November 29...December 10, 2021)**
 
 * Implementation: [apple/swift#39218](https://github.com/apple/swift/pull/39218)
 
