@@ -200,8 +200,20 @@ public struct PackageManager {
         
         /// Controls the amount of detail in the log. 
         public var logging: BuildLogVerbosity
+
+        /// Additional flags to pass to all C compiler invocations.
+        public var otherCFlags: [String] = []
+
+        /// Additional flags to pass to all C++ compiler invocations.
+        public var otherCxxFlags: [String] = []
+
+        /// Additional flags to pass to all Swift compiler invocations.
+        public var otherSwiftcFlags: [String] = []
         
-        // More parameters would almost certainly be added in future proposals.
+        /// Additional flags to pass to all linker invocations.
+        public var otherLinkerFlags: [String] = []
+
+        /// Future proposals should add more controls over the build.
     }
     
     /// Represents an overall purpose of the build, which affects such things as
