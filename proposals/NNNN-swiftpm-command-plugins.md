@@ -3,7 +3,9 @@
 * Proposal: [SE-NNNN](NNNN-swiftpm-command-plugins.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
 * Review Manager: TBD
-* Status: **Pitch**
+* Status: **Awaiting Review**
+* Pitch: [Package Manager Command Plugins](https://forums.swift.org/t/pitch-package-manager-command-plugins/53172)
+* Implementation: [apple/swift-package-manager#3855](https://github.com/apple/swift-package-manager/pull/3855)
 
 ## Introduction
 
