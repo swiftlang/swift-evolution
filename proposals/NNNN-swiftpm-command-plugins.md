@@ -404,6 +404,22 @@ In IDEs that support Swift packages, command plugins could be provided through c
 
 If a future proposal introduces a way of declaring parameters in a manner similar to SwiftArgumentParser, then an IDE could possibly also show a more targeted user interface for those parameters, since the types and optionality will be known.
 
+### Discovering Command Plugins
+
+Any plugins defined by a package are included in the `swift package describe` output for that package.
+
+Because the command plugins that are available to a package also include those that are defined as plugin products by any package dependencies, it is also useful to have a convenient way of listing all commands that are visible to a particular package.  This is provided by the `swift package plugin --list` option, which defaults to text output but also supports a `--json` option. A `--capability` option can be used to filter plugins to only those supporting a particular capability, e.g.
+
+```shell
+❯ swift package plugin --list --capability=buildTool --json
+```
+
+or
+
+```shell
+❯ swift package plugin --list --capability=command --json
+```
+
 ## Example 1:  Generating Documentation
 
 Here's a brief example of a hypothetical command plugin that uses `docc` to generate documentation for one or more targets in a package. This example calls back to the plugin host (SwiftPM or an IDE) to generate symbol graphs.
