@@ -284,8 +284,35 @@ public struct PackageManager {
         /// Path of the code coverage JSON file, if code coverage was requested.
         public var codeCoveragePath: Path?
         
-        /// This should also contain information about the tests that were run
-        /// and whether each succeeded/failed.
+        /// Results for all the test targets that were run (filtered based on
+        /// the input subset passed when running the test).
+        public var testTargets: [UnitTestTarget]
+        
+        /// Represents the results of running some or all of the tests in a
+        /// single test target.
+        public struct TestTarget {
+            public var name: String
+            public var testCases: [TestCase]
+            
+            /// Represents the results of running some or all of the tests in
+            /// a single test case.
+            public struct TestCase {
+                public var name: String
+                public var tests: [Test]
+
+                /// Represents the results of running a single test.
+                public struct Test {
+                    public var name: String
+                    public var outcome: Outcome
+                    public var duration: Double
+                    
+                    /// Represents the outcome of running a single test.
+                    public enum Outcome {
+                        case succeeded, skipped, failed
+                    }
+                }
+            }
+        }
     }
     
     //
