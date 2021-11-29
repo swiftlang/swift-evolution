@@ -323,23 +323,36 @@ public struct PackageManager {
     /// and options. If the symbol graphs need to be created or updated first,
     /// they will be. SwiftPM or an IDE may generate these symbol graph files
     /// in any way it sees fit.
-    public func getSymbolGraphDirectory(
+    public func getSymbolGraph(
         for target: Target,
         options: SymbolGraphOptions
-    ) async throws -> Path
+    ) async throws -> SymbolGraphResult
 
     /// Represents options for symbol graph generation. These options are taken
     /// into account when determining whether generated information is already
     /// up-to-date.
     public struct SymbolGraphOptions {
         /// The symbol graph will include symbols at this access level and higher.
-        public var minimumAccessLevel: AccessLevel = AccessLevel.public
-        
+        public var minimumAccessLevel: AccessLevel = .public
+      
         /// Represents a Swift access level.
-        public enum AccessLevel: String, CaseIterable {
+        public enum AccessLevel {
             case `private`, `fileprivate`, `internal`, `public`, `open`
         }
-    }}
+        
+        /// Whether to include synthesized members.
+        public var includeSynthesized: Bool = false
+        
+        /// Whether to include symbols marked as SPI.
+        public var includeSPI: Bool = false
+    }
+
+    /// Represents the result of symbol graph generation.
+    public struct SymbolGraphResult {
+        /// The directory that contains the symbol graph files for the target.
+        public var directoryPath: Path
+    }
+}
 ```
 
 ### Permissions
@@ -451,9 +464,11 @@ struct MyDocCPlugin: CommandPlugin {
             let doccCatalog = target.sourceFiles.first { $0.path.extension == "docc" }
                         
             // Ask SwiftPM to generate or update symbol graph files for the target.
-            let symbolGraphDir = try packageManager.getSymbolGraphDirectory(
-                for: target,
-                options: .init(minimumAccessLevel: .public))
+            let symbolGraphInfo = try packageManager.getSymbolGraph(for: target,
+                options: .init(
+                    minimumAccessLevel: .public,
+                    includeSynthesized: false,
+                    includeSPI: false))
             
             // Invoke `docc` with arguments and the optional catalog.
             var doccArgs = ["convert"]
