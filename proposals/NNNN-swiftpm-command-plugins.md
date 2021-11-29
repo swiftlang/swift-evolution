@@ -313,7 +313,7 @@ public struct PackageManager {
         
         /// Results for all the test targets that were run (filtered based on
         /// the input subset passed when running the test).
-        public var testTargets: [UnitTestTarget]
+        public var testTargets: [TestTarget]
         
         /// Represents the results of running some or all of the tests in a
         /// single test target.
@@ -441,17 +441,21 @@ If a future proposal introduces a way of declaring parameters in a manner simila
 
 Any plugins defined by a package are included in the `swift` `package` `describe` output for that package.
 
-Because the command plugins that are available to a package also include those that are defined as plugin products by any package dependencies, it is also useful to have a convenient way of listing all commands that are visible to a particular package.  This is provided by the `swift` `package` `plugin` `--list` option, which defaults to text output but also supports a `--json` option. A `--capability` option can be used to filter plugins to only those supporting a particular capability, e.g.
+Because the command plugins that are available to a package also include those that are defined as plugin products by any package dependencies, it is also useful to have a convenient way of listing all commands that are visible to a particular package.  This is provided by the `swift` `package` `plugin` `--list` option, which defaults to text output but also supports a `--json` option. A `--capability` option can be used to filter plugins to only those supporting a particular capability.
+
+For example:
 
 ```shell
-❯ swift package plugin --list --capability=buildTool --json
+❯ swift package plugin --list --capability=buildTool
 ```
 
-or
+would produce textual output of any plugins with a build tool capacity available to the package, while:
 
 ```shell
 ❯ swift package plugin --list --capability=command --json
 ```
+
+would produce JSON output of an plugins with a command capacity available to the package.
 
 ## Example 1:  Generating Documentation
 
@@ -488,6 +492,7 @@ The implementation of the package plugin itself:
 
 ```swift
 import PackagePlugin
+import Foundation
 
 @main
 struct MyDocCPlugin: CommandPlugin {
@@ -519,6 +524,7 @@ struct MyDocCPlugin: CommandPlugin {
                     includeSPI: false))
             
             // Invoke `docc` with arguments and the optional catalog.
+            let doccExec = URL(fileURLWithPath: doccTool.path.string)
             var doccArgs = ["convert"]
             if let doccCatalog = doccCatalog {
                 doccArgs += ["\(doccCatalog.path)"]
@@ -530,9 +536,10 @@ struct MyDocCPlugin: CommandPlugin {
                 "--additional-symbol-graph-dir", "\(symbolGraphInfo.directoryPath)",
                 "--output-dir", "\(outputDir)",
             ]
-            let (exitcode, stdout, stderr) = try doccTool.run(arguments: doccArgs)
+            let process = try Process.run(doccExec, arguments: doccArgs)
+            process.waitUntilExit()
 
-            // The plugin should also report non-zero exit codes here.
+            // The plugin should also report non-zero exit codes from `docc` here.
             
             print("Generated documentation at \(outputDir).")
         }
@@ -565,7 +572,7 @@ Users can then invoke this command plugin using the `swift` `package` invocation
 ❯ swift package generate-documentation
 ```
 
-Since no `--target` options are provided, SwiftPM passes all the package’s regular targets to the plugin (in this simple example, just the `MyLibrary` target).
+Since no `--target` options are provided, SwiftPM passes all the package’s regular targets to the plugin (in this simple example, just the `MyLibrary` target).
 
 The plugin would usually print the path at which it generated the documentation.
 
@@ -605,17 +612,20 @@ The implementation of the package plugin itself:
 
 ```swift
 import PackagePlugin
+import Foundation
 
 @main
 struct MyFormatterPlugin: CommandPlugin {
-    
     func performCommand(
        context: PluginContext,
        targets: [Target],
        arguments: [String]
-    ) throws {
+    ) async throws {
         // We'll be invoking `swift-format`, so start by locating it.
         let swiftFormatTool = try context.tool(named: "swift-format")
+      
+        // By convention, use a configuration file in the package directory.
+        let configFile = context.package.directory.appending(".swift-format.json")
   
         // Iterate over the targets we've been asked to format.
         for target in targets {
@@ -625,15 +635,19 @@ struct MyFormatterPlugin: CommandPlugin {
  
             // Invoke `swift-format` on the target directory, passing a configuration
             // file from the package directory.
-            let (exitcode, stdout, stderr) = try swiftFormatTool.run(arguments: [
-                "-m", "format",
-                "--configuration", "\(context.package.directory.appending(".swift-format.yml"))",
+            let swiftFormatExec = URL(fileURLWithPath: swiftFormatTool.path.string)
+            let swiftFormatArgs = [
+                "--configuration", "\(configFile)",
                 "--in-place",
                 "--recursive",
                 "\(target.directory)"
-            ])
- 
-            // The plugin should report non-zero exit codes from `swift-format` here.
+            ]
+            let process = try Process.run(swiftFormatExec, arguments: swiftFormatArgs)
+            process.waitUntilExit()
+
+            // The plugin should also report non-zero exit codes from `swift-format` here.
+            
+            print("Formatted the source code in \(target.directory).")
         }
     }
 }
@@ -642,7 +656,7 @@ struct MyFormatterPlugin: CommandPlugin {
 Users can then invoke this command using the `swift` `package` invocation:
 
 ```shell
-❯ swift package format-my-code
+❯ swift package format-source-code
 ```
 
 Since `--allow-writing-to-package-directory` is not passed, `swift` `package` will ask the user for permission if its stdin is attached to a TTY, or will fail with an error if not. If `--allow-writing-to-package-directory` were passed, it would just allow the plugin to run (with package directory writability allowed by the sandbox profile) without asking for permission.
@@ -689,7 +703,6 @@ import Foundation
 
 @main
 struct MyDistributionArchiveCreator: CommandPlugin {
-    
     func performCommand(
        context: PluginContext,
        targets: [Target],
@@ -781,7 +794,7 @@ The API in the `PackageManager` type that this proposal defines is just a start.
 
 Currently, the only specialized information that a user command plugin can request from SwiftPM is the directory of symbol graph files for a particular target. The intent is to provide a menu of useful information that might or might not require computation in order to provide, and to allow the plugin to request this information from SwiftPM whenever it needs it.
 
-Extending the `PackageManager` API does need to be done in a way that is possible to implement in various IDEs that support Swift packages but that use a different build system than SwiftPM's.
+Extending the `PackageManager` API does need to be done in a way that is possible to implement in various IDEs that support Swift packages but that use a different build system than SwiftPM's.
 
 ### Providing access to build and test progress and structured results
 
