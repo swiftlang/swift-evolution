@@ -86,7 +86,7 @@ enum PluginCommandIntent {
 
 Future versions of SwiftPM will almost certainly add to this set of possible intents, using availability annotations gated on the tools version.
 
-If multiple command plugins in the dependency graph of a package specify the same intent, or specify a custom intent with the same verb, then the user will need to specify which plugin to invoke by qualifying the verb with the name of the plugin, e.g. `MyPlugin.do-something` (since plugin names are target names, they are already known to be unique within the package graph).
+If multiple command plugins in the dependency graph of a package specify the same intent, or specify a custom intent with the same verb, then the user will need to specify which plugin to invoke by qualifying the verb with the name of the plugin target followed by a `:` character, e.g. `MyPlugin:do-something`.  Because plugin names are target names, they are already known to be unique within the package graph, so the combination of plugin name and verb is known to be unique.
 
 The permissions affect the ways in which the command plugin can access external resources such as the file system or network. By default, command plugins have only read-only access to the file system (except for temporary-files locations) and cannot access the network.
 
