@@ -15,19 +15,19 @@ The *build tool plugins* that were introduced in SE-0303 are focused on code gen
 
 It would be useful to support a different kind of plugin that users can invoke directly, and that can be allowed to have more flexibility than a build tool that's invoked automatically during the build. Such custom command plugins could be used for documentation generation, source code reformatting, unit test report generation, build artifact post-processing, and other uses that don't fit the definition of a typical build tool. Rather than extending the build system, such plugins could extend and improve the workflow for package authors and users, whether or not those workflows have anything to do with the build system.
 
-One key tension in this proposal is between providing rich functionality for plugins to use while still presenting that functionality in a way that's general enough to be implemented in both the SwiftPM CLI and in any IDE that supports packages. To that end, this proposal provides a minimal initial API, with the intention of adding more functionality in future proposals.
+One key tension in this proposal is between providing functionality that is rich enough to be useful for plugins, while still presenting that functionality in a way that's general enough to be implemented in both the SwiftPM CLI and in any IDE that supports packages. To that end, this proposal provides a minimal initial API, with the intention of adding more functionality in future proposals.
 
-Separately to this proposal, it would also be useful to define custom actions that could run as a side effect of operations such as building and testing, and to be called in response to various events that can happen during a build or test run — but that is not what this proposal is about, and it would be the subject of a future proposal. Rather, this proposal focuses on the direct invocation of a custom command by a user, independently of whether the plugin that implements the command then decides to ask SwiftPM to perform a build as part of its implementation.
+Separately to this proposal, it would also be useful to define custom actions that could run as a side effect of operations such as building and testing, and which would be called in response to various events that can happen during a build or test run — but that is not what this proposal is about, and that kind of plugin would be the subject of a future proposal. Rather, this proposal focuses on the direct invocation of a custom command by a user, independently of whether the plugin that implements the command then decides to ask SwiftPM to perform a build as part of its implementation.
 
 ## Proposed Solution
 
-This proposal defines a new plugin capability called `command` that allows packages to provide plugins for users to invoke directly. A command plugin specifies the semantic intent of the command — this might be a predefined intent such “documentation generation” or “source code formatting”, or it might be a custom intent with a specialized verb that allows the command to be invoked from the `swift` `package` CLI or from an IDE.  A command plugin can also specify any special permissions it needs (such as the permission to modify the package directory).
+This proposal defines a new plugin capability called `command` that allows packages to augment the set of package-related commands availabile in the SwiftPM CLI and in IDEs that support packages. A command plugin specifies the semantic intent of the command — this might be one of the predefined intents such “documentation generation” or “source code formatting”, or it might be a custom intent with a specialized verb that can be passed to the `swift` `package` command. A command plugin can also specify any special permissions it needs (such as the permission to modify the files under the package directory).
 
-The command's intent declaration provides a way of grouping command plugins by their functional categories, so that SwiftPM — or an IDE that supports SwiftPM packages — can show the commands that are available for a particular purpose. For example, this supports having different command plugins for generating documentation for a package, while still allowing those different commands be grouped and discovered based on their intent.
+The command's intent declaration provides a way of grouping command plugins by their functional categories, so that SwiftPM — or an IDE that supports SwiftPM packages — can show the commands that are available for a particular purpose. For example, this approach supports having different command plugins for generating documentation for a package, while still allowing those different commands to be grouped and discovered by intent.
 
-As with build tool plugins, a package specifies the set of command plugins that are available to it by declaring dependencies on the packages that provide those plugins. Unlike build tool plugins, which are applied on a target-by-target basis through a declaration in the manifest of the package using the build tool, custom command plugins are not invoked automatically, but can instead be invoked directly by the user after the package graph has been resolved. This proposal adds options to the `swift` `package` CLI that allow users to invoke a plugin-provided command and to control the set of targets to which the command should apply.
+As with build tool plugins, command plugins are made available to a package by declaring dependencies on the packages that provide the plugins. Unlike build tool plugins, which are applied on a target-by-target basis using a declaration in the package manifest, custom command plugins are not invoked automatically — instead they can be invoked directly by the user after the package graph has been resolved. This proposal adds options to the `swift` `package` CLI that allow users to invoke a plugin-provided command and to control the set of targets to which the command should apply. It is expected that IDEs that support SwiftPM packages should provide a way to invoke the command plugins thorugh their user interfaces.
 
-Command plugins are implemented similarly to build tool plugins: each plugin is a Swift script that has access to API in the `PackagePlugin` module and that is invoked with parameters describing its inputs. The Swift script contains the logic to carry out the functionality of the plugin, usually by invoking other commands, but potentially also by asking the package manager to perform certain actions such as performing a build or a test run.
+Command plugins are implemented similarly to build tool plugins: each plugin is a Swift script that has access to API in the `PackagePlugin` module and that is invoked with parameters describing its inputs. The Swift script contains the logic to carry out the functionality of the plugin, usually by invoking other subprocesses, but potentially also by asking the package manager to perform certain actions such as building package products or running unit tests.
 
 Unlike build tool plugins, which operate indirectly by defining build commands for SwiftPM to run at a later point in time (and only when needed), custom command plugins directly carry out the functionality of the plugin at the time they are invoked. This usually involves invoking tools that are in the toolchain or that are provided by dependencies, but it could also involve logic that is implemented completely inside the plugin itself (using Foundation APIs, for example). The plugin does not return until the command is complete.
 
@@ -84,7 +84,7 @@ enum PluginCommandIntent {
 }
 ```
 
-Future versions of SwiftPM will almost certainly add to this set of possible intents, using availability annotations gated on the tools version.
+Future versions of SwiftPM will almost certainly add to this set of possible intents, using availability annotations gated on the tools version to conditionally make new enum cases available.
 
 If multiple command plugins in the dependency graph of a package specify the same intent, or specify a custom intent with the same verb, then the user will need to specify which plugin to invoke by qualifying the verb with the name of the plugin target followed by a `:` character, e.g. `MyPlugin:do-something`.  Because plugin names are target names, they are already known to be unique within the package graph, so the combination of plugin name and verb is known to be unique.
 
@@ -141,25 +141,25 @@ public protocol CommandPlugin: Plugin {
         arguments: [String],
     ) async throws
     
-    /// A proxy to the Swift Package Manager or IDE hosting the package plugin,
+    /// A proxy to the Swift Package Manager or IDE hosting the command plugin,
     /// through which the plugin can ask for specialized information or actions.
     var packageManager: PackageManager { get }
 }
 ```
 
-This defines a basic entry point for a command plugin, passing it information about the context in which the plugin is invoked (including information about the package graph), the set of targets on which the command should operate, and the arguments passed by the user after the verb in the `package` `package` invocation.
+This defines a basic entry point for a command plugin, passing it information about the context in which the plugin is invoked (including information about the package graph), the set of targets on which the command should operate, and the arguments passed by the user after the verb in the `swift` `package` invocation.
 
 The `context` parameter provides access to the package to which the user applies the plugin, including any dependencies, and it also provides access to a working directory that the plugin can use for any purposes, as well as a way to look up command line tools with a given name. This is the same as the support that is available to all plugins via SE-0325.
 
 An opaque reference to a proxy for the Package Manager services in SwiftPM or the host IDE is also made available to the plugin, for use in accessing derived information and for carrying out more specialized actions. This is described in more detail below.
 
-Many command plugins will invoke other tools to do the actual work. A plugin can use Foundation’s `Process` API to invoke executables, using the `PluginContext.tool(named:)` API to obtain the full path of the command line tool in the local file system (even if it originally came from a binary target or is provided by the Swift toolchain, etc).
+Many command plugins will invoke tools using subprocesses in order to do the actual work. A plugin can use the Foundation module’s `Process` API to invoke executables, after using the PackagePlugin module's `PluginContext.tool(named:)` API to obtain the full path of the command line tool in the local file system.
 
 Plugins can also use Foundation APIs for reading and writing files, encoding and decoding JSON, and other actions.
 
 #### Accessing Package Manager Services
 
-In addition to invoking arbitrary command line tools and using Foundation APIs, plugins can use the `packageManager` property to obtain more specialized information and to invoke certain SwiftPM services. This is a proxy to SwiftPM or to the IDE that is hosting the plugin, providing access to some of its functionality. The set of services provided in this API is expected to grow over time.
+In addition to invoking invoking tool executables and using Foundation APIs, command plugins can use the `packageManager` property to obtain more specialized information and to invoke certain SwiftPM services. This is a proxy to SwiftPM or to the IDE that is hosting the plugin, and provides access to some of its functionality. The set of services provided in this API is expected to grow over time, and would ideally, over time, comprise most of the SwiftPM functionality available in its CLI.
 
 ```swift
 /// Provides specialized information and services from the Swift Package Manager or
@@ -172,34 +172,42 @@ public struct PackageManager {
     //
     
     /// Performs a build of all or a subset of products and targets in a package.
-    /// Any errors encountered during the build are reported in the build result.
-    /// The SwiftPM CLI or any IDE supporting packages may show the progress of
-    /// the build as it happens.
+    ///
+    /// Any errors encountered during the build are reported in the build result,
+    /// as is the log of the build commands that were run. This method throws an
+    /// error if the input parameters are invalid or in case the build cannot be
+    /// started.
+    ///
+    /// The SwiftPM CLI or any IDE that supports packages may show the progress
+    /// of the build as it happens.
+    ///
+    /// Future proposals should consider adding ways for the plugin to receive
+    /// incremental progress during the build.
     public func build(
         _ subset: BuildSubset,
         parameters: BuildParameters
     ) async throws -> BuildResult
     
-    /// Specifies what subset of products and targets of a package to build.
+    /// Specifies a subset of products and targets of a package to build.
     public enum BuildSubset {
-        /// Represents the subset consisting of all products and either all targets
-        /// or, if `includingTests` is false, just the non-test targets.
+        /// Represents the subset consisting of all products and of either all
+        /// targets or (if `includingTests` is false) just non-test targets.
         case all(includingTests: Bool)
 
-        /// Represents a specific product.
+        /// Represents the product with the specified name.
         case product(String)
 
-        /// Represents a specific target.
+        /// Represents the target with the specified name.
         case target(String)
     }
     
     /// Parameters and options to apply during the build.
     public struct BuildParameters {
         /// Whether to build for debug or release.
-        public var configuration: BuildConfiguration
+        public var configuration: BuildConfiguration = .debug
         
-        /// Controls the amount of detail in the log. 
-        public var logging: BuildLogVerbosity
+        /// Controls the amount of detail to include in the build log.
+        public var logging: BuildLogVerbosity = .concise
 
         /// Additional flags to pass to all C compiler invocations.
         public var otherCFlags: [String] = []
@@ -219,15 +227,13 @@ public struct PackageManager {
     /// Represents an overall purpose of the build, which affects such things as
     /// optimization and generation of debug symbols.
     public enum BuildConfiguration {
-        case debug
-        case release
+        case debug, release
     }
     
-    /// Represents the amount of detail in a log.
+    /// Represents the amount of detail in a build log (corresponding to the `-v`
+    /// and `-vv` options to `swift build`).
     public enum BuildLogVerbosity {
-        case concise
-        case verbose
-        case debug
+        case concise, verbose, debug
     }
     
     /// Represents the results of running a build.
@@ -235,7 +241,8 @@ public struct PackageManager {
         /// Whether the build succeeded or failed.
         public var succeeded: Bool
         
-        /// Log output (the verbatim text in the initial proposal).
+        /// Log output (in this proposal just a long text string; future proposals
+        /// should consider returning structured build log information).
         public var logText: String
         
         /// The artifacts built from the products in the package. Intermediates
@@ -254,9 +261,7 @@ public struct PackageManager {
             /// formats may vary from platform to platform — for example, on macOS
             /// a dynamic library may in fact be built as a framework.
             public enum Kind {
-                case executable
-                case dynamicLibrary
-                case staticLibrary
+                case executable, dynamicLibrary, staticLibrary
             }
         }
     }
@@ -266,7 +271,17 @@ public struct PackageManager {
     //
     
     /// Runs all or a specified subset of the unit tests of the package, after
-    /// doing an incremental build if necessary.
+    /// an incremental build if necessary (the same as `swift test` does).
+    ///
+    /// Any test failures are reported in the test result. This method throws an
+    /// error if the input parameters are invalid or in case the test cannot be
+    /// started.
+    ///
+    /// The SwiftPM CLI or any IDE that supports packages may show the progress
+    /// of the tests as they happen.
+    ///
+    /// Future proposals should consider adding ways for the plugin to receive
+    /// incremental progress during the tests.
     public func test(
         _ subset: TestSubset,
         parameters: TestParameters
@@ -283,18 +298,18 @@ public struct PackageManager {
         case filtered([String])
     }
     
-    /// Parameters that control how the test is run.
+    /// Parameters that control how the tests are run.
     public struct TestParameters {
-        /// Whether to enable code coverage collection while running the tests.
-        public var enableCodeCoverage: Bool
+        /// Whether to collect code coverage information while running the tests.
+        public var enableCodeCoverage: Bool = false
         
-        /// There are likely other parameters we would want to add here.
+        /// Future proposals should add more controls over running the tests.
     }
     
-    /// Represents the result of running tests.
+    /// Represents the result of running unit tests.
     public struct TestResult {
-        /// Path of the code coverage JSON file, if code coverage was requested.
-        public var codeCoveragePath: Path?
+        /// Whether the test run succeeded or failed.
+        public var succeeded: Bool
         
         /// Results for all the test targets that were run (filtered based on
         /// the input subset passed when running the test).
@@ -325,6 +340,10 @@ public struct PackageManager {
                 }
             }
         }
+
+        /// Path of a generated `.profdata` file suitable for processing using
+        /// `llvm-cov`, if `enableCodeCoverage` was set in the test parameters.
+        public var codeCoverageDataFile: Path?
     }
     
     //
@@ -371,12 +390,14 @@ public struct PackageManager {
 
 Like other plugins, command plugins are run in a sandbox on platforms that support it. By default this sandbox does not allow the plugin to modify the file system (except in special temporary-files paths) and blocks any network access.
 
-Some commands, such as source code formatters, might need to modify the file system in order to be useful. Such plugins can specify the permissions they need, and this will cause:
+Some commands, such as source code formatters, might need to modify the file system in order to be useful. Such plugins can specify the permissions they need, and this will:
 
-* the user to be notified about the need for the additional permission and provided with some way to approve it
-* the sandbox to be modified in an appropriate manner (if the user approves)
+* notify the user about the need for the additional permission and provide a way to approve or reject it
+* if the user approves, cause the sandbox to be modified in an appropriate manner
 
-The exact form of the notification and approval will depend on the CLI or IDE that runs the plugin. SwiftPM’s CLI is expected to ask the user for permission if connected to a TTY, while an IDE might present user interface allowing the choice. In order to avoid having to request permission every time, some kind of caching of the response could be implemented as an implementation detail.
+The exact form of the notification and approval will depend on the CLI or IDE that runs the plugin. SwiftPM’s CLI is expected to ask the user for permission using a console prompt (if connected to TTY), and to provide options for approving or rejecting the request when not connected to a TTY.
+
+An IDE might present user interface affordances  providing the notification and allowing the choice. In order to avoid having to request permission every time the plugin is invoked, some kind of caching of the response could be implemented.
 
 ### Invoking Command Plugins
 
@@ -386,7 +407,7 @@ In the SwiftPM CLI, command plugins provided by the package or its dependencies 
 ❯ swift package do-something
 ```
 
-This will invoke the plugin and only return when it completes. Since no other options were provided, this will pass all the targets in the package to the plugin.
+This will invoke the plugin and only return when it completes. Since no other options were provided, this will pass all regular targets in the package to the plugin ("special" targets such as those that define plugins will be excluded).
 
 To pass a subset of the targets to the plugin, one or more `--target` options can be used in the invocation:
 
@@ -394,7 +415,7 @@ To pass a subset of the targets to the plugin, one or more `--target` options ca
 ❯ swift package --target Foo --target Bar do-something
 ```
 
-This will pass the `Foo` and `Bar` targets to the plugin (assuming those are names of regular targets defined in the package).
+This will pass the `Foo` and `Bar` targets to the plugin (assuming those are names of regular targets defined in the package — if they are not, an error is emitted).
 
 The user can also provide additional parameters that are passed directly to the plugin. In the following example, the plugin will receive the parameters `aParam` and `-aFlag`, in addition to the targets named `Foo` and `Bar`.
 
@@ -412,15 +433,15 @@ As mentioned in the *Permissions* section, command plugins are by default blocke
 
 Asking for permission from the user helps to prevent unexpected modification of the package by command plugins.
 
-In IDEs that support Swift packages, command plugins could be provided through context menus or other user interface affordances that allow the commands to be invoked on a package or possibly on a selection of targets in a package. A plugin itself does not need to know how or in what context it is being invoked.
+In IDEs that support Swift packages, command plugins could be provided through context menus or other user interface affordances that allow the commands to be invoked on a package or possibly on a selection of targets in a package. A plugin itself does not need to know, and should not make assumptions about, how or in what context it is being invoked.
 
 If a future proposal introduces a way of declaring parameters in a manner similar to SwiftArgumentParser, then an IDE could possibly also show a more targeted user interface for those parameters, since the types and optionality will be known.
 
 ### Discovering Command Plugins
 
-Any plugins defined by a package are included in the `swift package describe` output for that package.
+Any plugins defined by a package are included in the `swift` `package` `describe` output for that package.
 
-Because the command plugins that are available to a package also include those that are defined as plugin products by any package dependencies, it is also useful to have a convenient way of listing all commands that are visible to a particular package.  This is provided by the `swift package plugin --list` option, which defaults to text output but also supports a `--json` option. A `--capability` option can be used to filter plugins to only those supporting a particular capability, e.g.
+Because the command plugins that are available to a package also include those that are defined as plugin products by any package dependencies, it is also useful to have a convenient way of listing all commands that are visible to a particular package.  This is provided by the `swift` `package` `plugin` `--list` option, which defaults to text output but also supports a `--json` option. A `--capability` option can be used to filter plugins to only those supporting a particular capability, e.g.
 
 ```shell
 ❯ swift package plugin --list --capability=buildTool --json
@@ -452,7 +473,7 @@ let package = Package(
         ),
     ],
     targets: [
-        // This is the actual target that implements the command plugin.
+        // This is the target that implements the command plugin.
         .plugin(
             name: "MyDocCPlugin",
             capability: .command(
@@ -483,7 +504,7 @@ struct MyDocCPlugin: CommandPlugin {
         
         // Iterate over the targets we were given.
         for target in targets {
-            // Only consider kinds of targets that can have source files.
+            // Only consider those kinds of targets that can have source files.
             guard let target = target as? SourceModuleTarget else { continue }
             
             // Find the first DocC catalog in the target, if there is one (a more
@@ -511,7 +532,7 @@ struct MyDocCPlugin: CommandPlugin {
             ]
             let (exitcode, stdout, stderr) = try doccTool.run(arguments: doccArgs)
 
-            // We should also report non-zero exit codes here.
+            // The plugin should also report non-zero exit codes here.
             
             print("Generated documentation at \(outputDir).")
         }
@@ -538,15 +559,15 @@ let package = Package(
 
 Note, that, unlike with built tool plugins, there is no `plugins` clause for command plugins — this is because they are applied explicitly by user action and not implicitly when building targets.
 
-Users can then invoke this custom command using the `swift` `package` invocation:
+Users can then invoke this command plugin using the `swift` `package` invocation:
 
 ```shell
 ❯ swift package generate-documentation
 ```
 
-Since no `--target` options are provided, SwiftPM passes all the package’s targets to the plugin (in this simple example, just `MyLibraryTarget`).
+Since no `--target` options are provided, SwiftPM passes all the package’s regular targets to the plugin (in this simple example, just the `MyLibrary` target).
 
-The plugin should emit the path at which it generated the documentation.
+The plugin would usually print the path at which it generated the documentation.
 
 ## Example 2: Formatting Source Code
 
@@ -612,13 +633,13 @@ struct MyFormatterPlugin: CommandPlugin {
                 "\(target.directory)"
             ])
  
-            // We should report non-zero exit codes here.
+            // The plugin should report non-zero exit codes from `swift-format` here.
         }
     }
 }
 ```
 
-Users can then invoke this custom command using the `swift` `package` invocation:
+Users can then invoke this command using the `swift` `package` invocation:
 
 ```shell
 ❯ swift package format-my-code
@@ -691,6 +712,9 @@ struct MyDistributionArchiveCreator: CommandPlugin {
         // Check the result. Ideally this would report more details.
         guard result.succeeded else { throw Error("couldn't build product") }
         
+        // Get the list of built executables from the build result.
+        let builtExecutables = result.builtArtifacts.first{ $0.kind == .executable }
+        
         // Decide on the output path for the archive.
         let outputPath = context.pluginWorkDirectory.appending("\(archiveName).tar")
     
@@ -698,11 +722,11 @@ struct MyDistributionArchiveCreator: CommandPlugin {
         // API aren't relevant; the point is that the built artifacts can be used
         // by the script.
         let tarTool = try context.tool(named: "tar")
-        let tarArgs = ["-czf", outputPath.string, result.buildArtifacts.first{ $0.kind == .executable }.path.string]
+        let tarArgs = ["-czf", outputPath.string] + builtExecutables.map{ $0.path.string }
         let process = Process.run(URL(fileURLWithPath: tarTool.path.string), arguments: tarArgs)
         process.waitUntilExit()
         
-        // We should also report errors from the creation of the archive.
+        // The plugin should also report errors from the creation of the archive.
         
         print("Created archive at \(outputPath).")
     }
@@ -731,25 +755,33 @@ On platforms where SwiftPM does not support sandboxing, the user should be notif
 
 ### Package Manager services
 
-Most of the alternatives that were considered for this proposal center around what kind of services the Package Manager provides to plugins. This proposal chooses to expose to the plugin some of the most common actions, such as building and testing, that are also available in the SwiftPM CLI commands such as `swift` `build` and `swift` `test`. There was an intentional choice to initially limit the set of options provided in order to keep this proposal bounded.
+Most of the alternatives that were considered for this proposal center around what kinds of services the Package Manager provides to plugins. This proposal chooses to expose to the plugin some of the most common actions, such as building and testing, that are also available in SwiftPM CLI commands such as `swift` `build` and `swift` `test`.
+
+There was an intentional choice to keep the set of options provided as simple as possible in order to keep this proposal bounded. Future proposals should be able to extend this API to provide more options and additional functionality.
 
 ### Declaring prerequisites in the manifest
 
-An alternative to having the plugin call back to the host (through the `PackageManager` type) for specialized information and for asking it to perform builds or run tests, would be to declare these prerequisites in the manifest of the package that provides the plugin. Under such an approach, SwiftPM would first make sure that the prerequisites are satisfied before invoking the plugin.
+An alternative to having the plugin use the `PackageManager` APIs to call back to the host to get specialized information and to perform builds or run tests would be to declare these prerequisites in the manifest of the package that provides the plugin. Under such an approach, SwiftPM would first make sure that the prerequisites are satisfied before invoking the plugin at all.
 
-The big problem with such an approach is that it’s difficult to express conditional dependencies in the manifest without adding greatly to the complexity of the manifest API, and any approach relying on such up-front prerequisites would necessarily be less flexible than letting the plugin perform package actions if and when it needs them. It would also be contrary to the goal of keeping the package manifest as clear and simple as possible. The implementation of the plugin seems like a much more appropriate place for any non-trivial logic regarding plugin prerequisites.
+The major problem with such an approach is that it’s difficult to express conditional dependencies in the manifest without adding greatly to the complexity of the manifest API, and any approach relying on such up-front prerequisites would necessarily be less flexible than letting the plugin perform package actions when and if it needs them. It would also be contrary to the goal of keeping the package manifest as clear and simple as possible. The implementation of the plugin seems like a much more appropriate place for any non-trivial logic regarding its prerequisites.
 
 ## Future Directions
 
 ### Better support for plugin options
 
-In this initial proposal, the user command plugin is passed all the command line options that the user provided after the custom command verb in the `swift` `package` invocation. A future direction might be to have the plugin use SwiftArgumentParser to declare supported set of input parameters. This could allow SwiftPM (or possibly an IDE) to present an interface for those plugin options — IDEs, in particular, could construct user interfaces for well-defined options (possibly in the manner of the archaic MPW `Commando` tool).
+In this initial proposal, the command plugin is passed all the command line options that the user provided after the command verb in the `swift` `package` invocation. It is then up to the plugin logic to interpret these options.
+
+Since SwiftPM currently has only a single-layered package dependency graph, it isn't feasible in today's SwiftPM to allow a plugin to define its own dependencies on packages such as SwiftArgumentParser.
+
+Once this is possible, a future direction might be to have a command plugin use SwiftArgumentParser to declare a supported set of input parameters. This could allow SwiftPM (or possibly an IDE) to present an interface for those plugin options — IDEs, in particular, could construct user interfaces for well-defined options (possibly in the manner of the archaic MPW `Commando` tool).
 
 ### Additional access to Package Manager services
 
 The API in the `PackageManager` type that this proposal defines is just a start. The idea is to, over time, offer plugins a variety of functionality and derivable information that they can request and then further process.
 
 Currently, the only specialized information that a user command plugin can request from SwiftPM is the directory of symbol graph files for a particular target. The intent is to provide a menu of useful information that might or might not require computation in order to provide, and to allow the plugin to request this information from SwiftPM whenever it needs it.
+
+Extending the `PackageManager` API does need to be done in a way that is possible to implement in various IDEs that support Swift packages but that use a different build system than SwiftPM's.
 
 ### Providing access to build and test progress and structured results
 
