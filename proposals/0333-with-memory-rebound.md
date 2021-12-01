@@ -1,15 +1,12 @@
 # Expand usability of `withMemoryRebound`
 
-* Proposal: [SE-NNNN][proposal]
+* Proposal: [SE-0333][0333-with-memory-rebound.md]
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
-* Review Manager: TBD
-* Status: **Pending**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (Nov-30 to Dec-9 2021)**
 * Implementation: [draft pull request][draft-pr]
-* Decision Notes: TBD
 * Bugs: [SR-11082](https://bugs.swift.org/browse/SR-11082), [SR-11087](https://bugs.swift.org/browse/SR-11087)
-* Previous Revision: [none](https://github.com/apple/swift-evolution/blob/main/proposal-templates/0000-swift-template.md)
 
-[proposal]: https://gist.github.com/glessard/f0dc4a7c6eff53b67240b1cb886a346d
 [draft-pr]: https://github.com/apple/swift/pull/39529
 [pitch-thread]: https://forums.swift.org/t/pitch-expand-usability-of-withmemoryrebound/52500
 
