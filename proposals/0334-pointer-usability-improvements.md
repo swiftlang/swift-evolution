@@ -1,6 +1,6 @@
 # Pointer API Usability Improvements
 
-* Proposal: [SE-0334][0334-pointer-usability-improvements.md]
+* Proposal: [SE-0334](0334-pointer-usability-improvements.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (November 30 - December 9, 2021)**
