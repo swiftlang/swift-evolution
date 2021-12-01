@@ -1,14 +1,12 @@
 # Pointer API Usability Improvements
 
-* Proposal: [SE-NNNN full proposal draft][proposal]
+* Proposal: [SE-0334][0334-pointer-usability-improvements.md]
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
-* Review Manager: TBD
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active review (November 30 - December 9, 2021)**
 * Status: [Draft pull request][draft-pr]
-* Implementation: pending
 * Bugs: [rdar://64342031](rdar://64342031), [SR-11156](https://bugs.swift.org/browse/SR-11156) ([rdar://53272880](rdar://53272880)), [rdar://22541346](rdar://22541346)
-* Previous Revision: none
 
-[proposal]: https://gist.github.com/glessard/ca662b89c070d279f8eb298850260b0c
 [draft-pr]: https://github.com/apple/swift/pull/39639
 [pitch-thread]: https://forums.swift.org/t/52736
 
