@@ -4,7 +4,7 @@
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (November 30 - December 9, 2021)**
-* Status: [Draft pull request][draft-pr]
+* Implementation: [Draft pull request][draft-pr]
 * Bugs: [rdar://64342031](rdar://64342031), [SR-11156](https://bugs.swift.org/browse/SR-11156) ([rdar://53272880](rdar://53272880)), [rdar://22541346](rdar://22541346)
 
 [draft-pr]: https://github.com/apple/swift/pull/39639
