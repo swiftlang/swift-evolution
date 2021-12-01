@@ -1,9 +1,9 @@
 # Expand usability of `withMemoryRebound`
 
-* Proposal: [SE-0333][0333-with-memory-rebound.md]
+* Proposal: [SE-0333](0333-with-memory-rebound.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (Nov-30 to Dec-9 2021)**
+* Status: **Active review (November 30 - December 9, 2021)**
 * Implementation: [draft pull request][draft-pr]
 * Bugs: [SR-11082](https://bugs.swift.org/browse/SR-11082), [SR-11087](https://bugs.swift.org/browse/SR-11087)
 
