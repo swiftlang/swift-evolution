@@ -70,7 +70,7 @@ but we only have the following:
 - `func initialize<S: Sequence>(from source: S) -> (S.Iterator, Index)`
 - `func assign(repeating repeatedValue: Element)`
 
-Missing are methods to assign from a `Sequence` or a `Collection`,
+Missing are methods to update memory from a `Sequence` or a `Collection`,
 move elements from another `UnsafeMutableBufferPointer`,
 modify the initialization state of a range of memory for a particular index of the buffer,
 or to deinitialize (at all).
@@ -147,10 +147,11 @@ they include no preconditions beyond having a valid `Collection` and valid buffe
 with the understanding that if a user wishes stricter behaviour,
 they can compose it from these functions.
 
-The above changes include a method to assign a single element.
+The above changes include a method to update a single element.
 Evidently that is a synonym for the `subscript(_ i: Index)` setter.
-We hope that documenting the assignment action specifically will help clarify the requirements of that action,
-which are evidently muddled when documented along with the subscript getter.
+We hope that documenting the update action specifically will help clarify the requirements of that action which,
+as experience shows, get muddled when documented along with the subscript getter.
+
 Similarly, we propose adding to `UnsafeMutablePointer` and `UnsafeMutableRawPointer`:
 ```swift
 extension UnsafeMutablePointer {
