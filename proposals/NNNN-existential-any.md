@@ -6,6 +6,29 @@
 * Status: **Awaiting implementation**
 * Implementation: [apple/swift#40282](https://github.com/apple/swift/pull/40282)
 
+## Contents
+  - [Introduction](#introduction)
+  - [Motivation](#motivation)
+  - [Proposed solution](#proposed-solution)
+  - [Detailed design](#detailed-design)
+    - [Grammar of explicit existential types](#grammar-of-explicit-existential-types)
+    - [Semantics of explicit existential types](#semantics-of-explicit-existential-types)
+      - [`Any` and `AnyObject`](#any-and-anyobject)
+      - [Metatypes](#metatypes)
+      - [Type aliases and associated types](#type-aliases-and-associated-types)
+  - [Source compatibility](#source-compatibility)
+  - [Effect on ABI stability](#effect-on-abi-stability)
+  - [Effect on API resilience](#effect-on-api-resilience)
+  - [Alternatives considered](#alternatives-considered)
+    - [Rename `Any` and `AnyObject`](#rename-any-and-anyobject)
+    - [Use `Any<P>` instead of `any P`](#use-anyp-instead-of-any-p)
+  - [Future Directions](#future-directions)
+    - [Extending existential types](#extending-existential-types)
+    - [Re-purposing the plain protocol name](#re-purposing-the-plain-protocol-name)
+  - [Revisions](#revisions)
+    - [Changes from the pitch discussion](#changes-from-the-pitch-discussion)
+  - [Acknowledgments](#acknowledgments)
+
 ## Introduction
 
 Existential types in Swift have an extremely lightweight spelling: a plain protocol name in type context means an existential type. Over the years, this has risen to the level of **active harm** by causing confusion, leading programmers down the wrong path that often requires them to re-write code once they hit a fundamental [limitation of value-level abstraction](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--limits-of-existentials). This proposal makes the impact of existential types explicit in the language by annotating such types with `any`.
@@ -245,6 +268,14 @@ extension Array {
 
 This sugar eliminates a lot of noise in cases where a type parameter is only referred to once in a generic signature, and it enforces a natural model of abstraction, where programmers only need to name an entity when they need to refer to it multiple times.
 
+## Revisions
+
+### Changes from the pitch discussion
+
+* Spell the existential metatype as `any P.Type`, and the protocol metatype as `(any P).Type`.
+* Preserve `any` through type aliases.
+* Allow `any` on `Any` and `AnyObject`.
+
 ## Acknowledgments
 
-Thank you to Joe Groff, who originally suggested this direction and syntax in [Improving the UI of generics](https://forums.swift.org/t/improving-the-ui-of-generics/22814), and to those who advocated for this change in the recent discussion about [easing the learning curve for generics](https://forums.swift.org/t/discussion-easing-the-learning-curve-for-introducing-generic-parameters/52891).
+Thank you to Joe Groff, who originally suggested this direction and syntax in [Improving the UI of generics](https://forums.swift.org/t/improving-the-ui-of-generics/22814), and to those who advocated for this change in the recent discussion about [easing the learning curve for generics](https://forums.swift.org/t/discussion-easing-the-learning-curve-for-introducing-generic-parameters/52891). Thank you to John McCall and Slava Pestov, who helped me figure out the implementation model.
