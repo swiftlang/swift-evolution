@@ -25,7 +25,7 @@
       - [Flow-sensitive Actor Isolation](#flow-sensitive-actor-isolation)
         - [Initializers with `isolated self`](#initializers-with-isolated-self)
         - [Initializers with `nonisolated self`](#initializers-with-nonisolated-self)
-      - [Global-actor isolated class initializers](#global-actor-isolated-class-initializers)
+      - [Global-actor isolated classes](#global-actor-isolated-classes)
     - [Delegating Initializers](#delegating-initializers)
       - [Syntactic Form](#syntactic-form)
       - [Isolation](#isolation)
@@ -511,9 +511,48 @@ Thus, non-isolation within an initializer cannot be introduced by an access to a
 
 In effect, the concept of isolation decay prevents data-races by disallowing access to stored properties once the compiler can no-longer prove that the reference to `self` will not be concurrently accessed. For efficiency reasons, the compiler might not perform interprocedural analysis to prove that passing `self` to another function is safe from concurrent access by another task. Interprocedural analysis is inherently limited due to the nature of modules in Swift (i.e., separate compilation). Immediately after `self` has escaped the initializer, the treatment of `self` in the initializer changes to match the unacquired status of the actor's executor.
 
-#### Global-actor isolated class initializers
+#### Global-actor isolated classes
 
-Global-actor isolated classes (GAICs) have the ability to gain actor-isolation prior to the initialization of the instance's `self`. That's because its executor is a static instance, existing prior to even allocating uninitialized memory for a GAIC object. Thus, _all_ isolated initializers of a GAIC require callers to `await`. Flow-sensitive actor isolation does not apply to any initializer of a GAIC.
+A non-isolated initializer of a global-actor isolated class (GAIC) is in the same situation as a non-async actor initializer, in that it must bootstrap the instance without the executor's protection. Thus, we can construct a data-race just like before:
+
+```swift
+@MainActor
+class RequiresFlowIsolation<T>
+  where T: Sendable, T: Equatable {
+
+  var item: T
+
+  func mutateItem() { /* ... */ }
+  
+   nonisolated init(with t: T) {
+    self.item = t
+    Task { await self.mutateItem() }
+    self.item = t   // 💥 races with the task!
+  }
+}
+```
+
+to demonstrate a problem. To solve it, we propose to apply flow-sensitive actor isolation to the initializers of GAICs that are marked as non-isolated.
+
+For isolated initializers, GAICs have the ability to gain actor-isolation prior to calling the initializer itself. That's because its executor is a static instance, existing prior to even allocating uninitialized memory for a GAIC object. Thus, all isolated initializers of a GAIC require callers to `await` to gain access to the right executor. For isolated initializers of GAICs, there is no danger of race, regardless of the isolation of its members:
+
+```swift
+@MainActor
+class ProtectedByExecutor<T: Equatable> {
+  var item: T
+
+  func mutateItem() { /* ... */ }
+  
+  init(with t: T) {
+    self.item = t
+    Task { self.mutateItem() }  // ✅ we're on the executor when creating this task.
+    assert(self.item == t) // ✅ always true, since we hold the executor here.
+  }
+}
+```
+
+The class in the example above is free from a race, even in its non-async initializer, because the executor is acquired prior to entering that initializer and is held throughout. All other classes, which are not GAICs, have some holes in actor isolation. Those classes rely on `Sendable` restrictions to help prevent data races.
+
 
 ### Delegating Initializers
 
@@ -669,7 +708,7 @@ There are some changes in this proposal that are backwards compatible or easy to
 But, there are others which will cause a non-trivial source break to patch holes in the concurrency model, for example:
 
 - The set of `deinit`s accepted by the compiler for actors and GAICs will be narrowed.
-- GAICs will have data-race protections applied to their `init`s, which narrows the set of acceptable `init` declarations.
+- GAICs will have data-race protections applied to their non-isolated `init`s, which slightly narrows the set of acceptable `init` declarations.
 - Global-actor isolation on stored-property members of an actor type are prohibited.
 - Stored-property members that are still permitted to have global-actor isolation applied to them cannot have a default value.
 
