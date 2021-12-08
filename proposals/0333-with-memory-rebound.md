@@ -136,10 +136,9 @@ Two types A and B are layout equivalent when they are, for example:
 - identical types;
 - one is a typealias for the other;
 - trivial scalar types with the same size and alignment, including floating-point and integer types;
-- one is a class type, and the other is an `AnyObject` existential;
+- one is a class type, and the other is one of its superclass types (including `AnyObject`);
 - pointer types, such as `UnsafePointer` and `OpaquePointer`;
 - one is a frozen struct with a single stored property, the other is the type of its stored property;
-- one is a frozen enum with a single case, the other is the associated value of the enum's single case;
 
 Homogeneous aggregate types (tuples, array storage, and frozen structs) are layout equivalent if they have the same number of layout-equivalent elements.
 
