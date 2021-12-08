@@ -221,7 +221,7 @@ Instead of leaving `Any` and `AnyObject` in their existing spelling, an alternat
 
 ### Use `Any<P>` instead of `any P`
 
-A common suggestion is to spell existential types with angle brackets on `Any`, e.g. `Any<Hashable>`. However, this syntax is misleading because it appears that `Any` is a generic type, which is confusing to the mental model for 2 reasons:
+A common suggestion is to spell existential types with angle brackets on `Any`, e.g. `Any<Hashable>`. `any P` has symmetry with `some P`, where both keywords can be applied to protocol constraints. The `Any<P>` syntax is also misleading because it appears that `Any` is a generic type, which is confusing to the mental model for 2 reasons:
 
 1. A generic type is something programmers can implement themselves. In reality, existential types are a built-in language feature that would be _very_ difficult to replicate with regular Swift code.
 2. This syntax creates the misconception that the underlying concrete type is a generic argument to `Any` that is preserved statically in the existential type. The `P` in `Any<P>` looks like an implicit type parameter with a conformance requirement, but it's not; the underlying type conforming to `P` is erased at compile-time.
