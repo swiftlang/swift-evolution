@@ -1,9 +1,9 @@
 # Introduce existential `any`
 
-* Proposal: [SE-NNNN](NNNN-existential-any.md)
+* Proposal: [SE-0335](0335-existential-any.md)
 * Authors: [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (December 8...22, 2021)**
 * Implementation: [apple/swift#40282](https://github.com/apple/swift/pull/40282)
 
 ## Contents
