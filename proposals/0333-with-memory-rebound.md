@@ -67,7 +67,7 @@ var points = Array<CGPoint>(unsafeUninitializedCapacity: count/2) {
 
 We could do better with an improved version of `withMemoryRebound`.
 Since `CGPoint` values consist of a pair of `CGFloat` values,
-and `CGFloat` values are themselves layout-compatible with `Double` (when executing on a 64-bit platform):
+and `CGFloat` values are themselves layout-equivalent with `Double` (when executing on a 64-bit platform):
 ```swift
 var points = Array<CGPoint>(unsafeUninitializedCapacity: data.count/2) {
   buffer, initializedCount in
@@ -301,21 +301,21 @@ extension UnsafePointer {
   /// After executing `body`, this method rebinds memory back to the original
   /// `Pointee` type.
   ///
-  /// - Note: Only use this method to rebind the pointer's memory to a type
-  ///   that is layout compatible with the `Pointee` type. The stride of the
+  /// - Note: Only use this method to rebind the pointer's memory to a type `T`
+  ///   that is layout equivalent with the `Pointee` type, or a type `T` that 
+  ///   is an aggregate of `Pointee` instances, or a type `T` such that `Pointee`
+  ///   is an aggregate of `T` instances. As such, the stride of the
   ///   temporary type (`T`) may be an integer multiple or a whole fraction
-  ///   of `Pointee`'s stride, for example to point to one element of
-  ///   an aggregate.
+  ///   of `Pointee`'s stride.
   ///   To bind a region of memory to a type that does not match these
-  ///   requirements, convert the pointer to a raw pointer and use the
-  ///   `bindMemory(to:)` method.
+  ///   requirements, convert the pointer to a raw pointer and use its
+  ///   `withMemoryRebound(to:)` method.
   ///   If `T` and `Pointee` have different alignments, this pointer
   ///   must be aligned with the larger of the two alignments.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. The type `T` must be layout compatible
-  ///     with the pointer's `Pointee` type.
+  ///     pointer. This pointer must be correctly aligned for `type`.
   ///   - count: The number of instances of `T` in the re-bound region.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
@@ -370,21 +370,21 @@ extension UnsafeMutablePointer {
   /// After executing `body`, this method rebinds memory back to the original
   /// `Pointee` type.
   ///
-  /// - Note: Only use this method to rebind the pointer's memory to a type
-  ///   that is layout compatible with the `Pointee` type. The stride of the
+  /// - Note: Only use this method to rebind the pointer's memory to a type `T`
+  ///   that is layout equivalent with the `Pointee` type, or a type `T` that 
+  ///   is an aggregate of `Pointee` instances, or a type `T` such that `Pointee`
+  ///   is an aggregate of `T` instances. As such, the stride of the
   ///   temporary type (`T`) may be an integer multiple or a whole fraction
-  ///   of `Pointee`'s stride, for example to point to one element of
-  ///   an aggregate.
+  ///   of `Pointee`'s stride.
   ///   To bind a region of memory to a type that does not match these
-  ///   requirements, convert the pointer to a raw pointer and use the
-  ///   `bindMemory(to:)` method.
+  ///   requirements, convert the pointer to a raw pointer and use its
+  ///   `withMemoryRebound(to:)` method.
   ///   If `T` and `Pointee` have different alignments, this pointer
   ///   must be aligned with the larger of the two alignments.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. The type `T` must be layout compatible
-  ///     with the pointer's `Pointee` type.
+  ///     pointer. This pointer must be correctly aligned for `type`.
   ///   - count: The number of instances of `T` in the re-bound region.
   ///   - body: A closure that takes a mutable typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
@@ -434,20 +434,21 @@ extension UnsafeBufferPointer {
   /// After executing `body`, this method rebinds memory back to the original
   /// `Element` type.
   ///
-  /// - Note: Only use this method to rebind the buffer's memory to a type
-  ///   that is layout compatible with the currently bound `Element` type.
-  ///   The stride of the temporary type (`T`) may be an integer multiple
-  ///   or a whole fraction of `Element`'s stride.
+  /// - Note: Only use this method to rebind the pointer's memory to a type `T`
+  ///   that is layout equivalent with the `Element` type, or a type `T` that 
+  ///   is an aggregate of `Element` instances, or a type `T` such that `Element`
+  ///   is an aggregate of `T` instances. As such, the stride of the
+  ///   temporary type (`T`) may be an integer multiple or a whole fraction
+  ///   of `Element`'s stride.
   ///   To bind a region of memory to a type that does not match these
-  ///   requirements, convert the buffer to a raw buffer and use the
-  ///   `bindMemory(to:)` method.
+  ///   requirements, convert the pointer to a raw buffer and use its
+  ///   `withMemoryRebound(to:)` method.
   ///   If `T` and `Element` have different alignments, this buffer's
   ///   `baseAddress` must be aligned with the larger of the two alignments.
   ///
   /// - Parameters:
-  ///   - type: The type to temporarily bind the memory referenced by this
-  ///     buffer. The type `T` must be layout compatible
-  ///     with the pointer's `Element` type.
+  ///   - type: The type to temporarily bind the memory referenced by this pointer.
+  ///     This buffer's `baseAddress` must be correctly aligned for `type`.
   ///   - body: A closure that takes a  typed buffer to the
   ///     same memory as this buffer, only bound to type `T`. The buffer
   ///     parameter contains a number of complete instances of `T` based
@@ -499,20 +500,21 @@ extension UnsafeMutableBufferPointer {
   /// After executing `body`, this method rebinds memory back to the original
   /// `Element` type.
   ///
-  /// - Note: Only use this method to rebind the buffer's memory to a type
-  ///   that is layout compatible with the currently bound `Element` type.
-  ///   The stride of the temporary type (`T`) may be an integer multiple
-  ///   or a whole fraction of `Element`'s stride.
+  /// - Note: Only use this method to rebind the pointer's memory to a type `T`
+  ///   that is layout equivalent with the `Element` type, or a type `T` that 
+  ///   is an aggregate of `Element` instances, or a type `T` such that `Element`
+  ///   is an aggregate of `T` instances. As such, the stride of the
+  ///   temporary type (`T`) may be an integer multiple or a whole fraction
+  ///   of `Element`'s stride.
   ///   To bind a region of memory to a type that does not match these
-  ///   requirements, convert the buffer to a raw buffer and use the
-  ///   `bindMemory(to:)` method.
+  ///   requirements, convert the pointer to a raw buffer and use its
+  ///   `withMemoryRebound(to:)` method.
   ///   If `T` and `Element` have different alignments, this buffer's
   ///   `baseAddress` must be aligned with the larger of the two alignments.
   ///
   /// - Parameters:
-  ///   - type: The type to temporarily bind the memory referenced by this
-  ///     buffer. The type `T` must be layout compatible
-  ///     with the pointer's `Element` type.
+  ///   - type: The type to temporarily bind the memory referenced by this pointer.
+  ///     This buffer's `baseAddress` must be correctly aligned for `type`.
   ///   - body: A closure that takes a mutable typed buffer to the
   ///     same memory as this buffer, only bound to type `T`. The buffer
   ///     parameter contains a number of complete instances of `T` based
@@ -567,14 +569,15 @@ extension UnsafeRawPointer {
   ///   must equal zero.
   ///
   /// - Note: The region of memory starting at this pointer may have been
-  ///   bound to a type. If that is the case, then `T` must be
-  ///   layout compatible with the type to which the memory has been bound.
+  ///   bound to a type (the prebound type). If that is the case, then `T` must be
+  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   the prebound type, or the the prebound type is an aggregate of `T`.
   ///   This requirement does not apply if the region of memory
   ///   has not been bound to any type.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. This pointer must be a multiple of this type's alignment.
+  ///     pointer. This pointer must be correctly aligned for `type`.
   ///   - count: The number of instances of `T` in the re-bound region.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
@@ -626,14 +629,15 @@ extension UnsafeMutableRawPointer {
   ///   must equal zero.
   ///
   /// - Note: The region of memory starting at this pointer may have been
-  ///   bound to a type. If that is the case, then `T` must be
-  ///   layout compatible with the type to which the memory has been bound.
+  ///   bound to a type (the prebound type). If that is the case, then `T` must be
+  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   the prebound type, or the the prebound type is an aggregate of `T`.
   ///   This requirement does not apply if the region of memory
   ///   has not been bound to any type.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. This pointer must be a multiple of this type's alignment.
+  ///     pointer. This pointer must be correctly aligned for `type`.
   ///   - count: The number of instances of `T` in the re-bound region.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
@@ -681,14 +685,16 @@ extension UnsafeRawBufferPointer {
   ///   must equal zero.
   ///
   /// - Note: A raw buffer may represent memory that has been bound to a type.
-  ///   If that is the case, then `T` must be layout compatible with the
-  ///   type to which the memory has been bound. This requirement does not
-  ///   apply if the raw buffer represents memory that has not been bound
-  ///   to any type.
+  ////  (the prebound type). If that is the case, then `T` must be
+  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   the prebound type, or the the prebound type is an aggregate of `T`.
+  ///   This requirement does not apply if the region of memory
+  ///   has not been bound to any type.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. This pointer must be a multiple of this type's alignment.
+  ///     pointer. This buffer's `baseAddress` must be correctly aligned
+  ///     for `type`.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
   ///     pointer argument is valid only for the duration of the closure's
@@ -754,14 +760,16 @@ extension UnsafeMutableRawBufferPointer {
   ///   must equal zero.
   ///
   /// - Note: A raw buffer may represent memory that has been bound to a type.
-  ///   If that is the case, then `T` must be layout compatible with the
-  ///   type to which the memory has been bound. This requirement does not
-  ///   apply if the raw buffer represents memory that has not been bound
-  ///   to any type.
+  ////  (the prebound type). If that is the case, then `T` must be
+  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   the prebound type, or the the prebound type is an aggregate of `T`.
+  ///   This requirement does not apply if the region of memory
+  ///   has not been bound to any type.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. This pointer must be a multiple of this type's alignment.
+  ///     pointer. This buffer's `baseAddress` must be correctly aligned
+  ///     for `type`.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
   ///     pointer argument is valid only for the duration of the closure's
