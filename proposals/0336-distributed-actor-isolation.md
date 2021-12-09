@@ -1,9 +1,9 @@
 # Distributed Actor Isolation
 
 * Proposal: [SE-0336](0336-distributed-actor-isolation.md)
-* Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](https://github.com/xedin) [Doug Gregor](https://github.com/DougGregor), [Kavon Farvardin](https://github.com/kavon)
+* Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](https://github.com/xedin), [Doug Gregor](https://github.com/DougGregor), [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (Dec 8...22, 2021)**
+* Status: **Active review (December 8...22, 2021)**
 * Implementation: 
   * Partially available in [recent `main` toolchain snapshots](https://swift.org/download/#snapshots) behind the `-enable-experimental-distributed` feature flag. 
   * This flag also implicitly enables `-enable-experimental-concurrency`.
