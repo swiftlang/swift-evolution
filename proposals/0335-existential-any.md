@@ -221,7 +221,11 @@ Instead of leaving `Any` and `AnyObject` in their existing spelling, an alternat
 
 ### Use `Any<P>` instead of `any P`
 
-A common suggestion is to spell existential types with angle brackets on `Any`, e.g. `Any<Hashable>`. `any P` has symmetry with `some P`, where both keywords can be applied to protocol constraints. The `Any<P>` syntax is also misleading because it appears that `Any` is a generic type, which is confusing to the mental model for 2 reasons:
+A common suggestion is to spell existential types with angle brackets on `Any`, e.g. `Any<Sequence>`. However, an important aspect of the proposed design is that `any` has symmetry with `some`, where both keywords can be applied to protocol constraints. This symmetry is important for helping programmers understand and remember the syntax, and for future extensions of the `some` and `any` syntax. Opaque types and existential types would both greatly benefit from being able to specify constraints on associated types. This could naturally be done in angle brackets, e.g. `some Sequence<Int>` and `any Sequence<Int>`, or `some Sequence<.Element == Int>` and `any Sequence<.Element == Int>`.
+
+Using the same syntax between opaque types and exsitential types also makes it very easy to replace `any` with `some`, and it is indeed the case that many uses of existential types today could be replaced with opaque types instead.
+
+Finally, the `Any<P>` syntax is misleading because it appears that `Any` is a generic type, which is confusing to the mental model for 2 reasons:
 
 1. A generic type is something programmers can implement themselves. In reality, existential types are a built-in language feature that would be _very_ difficult to replicate with regular Swift code.
 2. This syntax creates the misconception that the underlying concrete type is a generic argument to `Any` that is preserved statically in the existential type. The `P` in `Any<P>` looks like an implicit type parameter with a conformance requirement, but it's not; the underlying type conforming to `P` is erased at compile-time.
