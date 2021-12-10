@@ -68,10 +68,14 @@ In Swift 5, anywhere that an existential type can be used today, the `any` keywo
 // Swift 5 mode
 
 protocol P {}
-struct S: P {}
+protocol Q {}
+struct S: P, Q {}
 
 let p1: P = S() // 'P' in this context is an existential type
 let p2: any P = S() // 'any P' is an explicit existential type
+
+let pq1: P & Q = S() // 'P & Q' in this context is an existential type
+let pq2: any P & Q = S() // 'any P & Q' is an explicit existential type
 ```
 
 In Swift 6, existential types are required be explicitly spelled with `any`:
@@ -80,10 +84,14 @@ In Swift 6, existential types are required be explicitly spelled with `any`:
 // Swift 6 mode
 
 protocol P {}
-struct S: P {}
+protocol Q {}
+struct S: P, Q {}
 
 let p1: P = S() // error
 let p2: any P = S() // okay
+
+let pq1: P & Q = S() // error
+let pq2: any P & Q = S() // okay
 ```
 
 ## Detailed design
