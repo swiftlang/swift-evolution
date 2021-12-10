@@ -498,7 +498,7 @@ actor Status {
 }
 ```
 
-Notice that calling an isolated method from an initializer with a `nonisolated self` is permitted, provided that it is an `async` initializer. That call is considered a nonisolated use, i.e., it's the first use of `self` other than to access a stored property, so `self` is treated as `nonisolated` during that use. Afterwards, access to all stored properties within the `init` is lost, just like for the non-async case. While this initializer could `await` to read the `Sendable` value of `self.valid`, we have chosen to forbid this. See the [discussion](#permitting-await-for-property-access-in-nonisolated-self-initializers) in the Alternatives Considerred section for more details.
+Notice that calling an isolated method from an initializer with a `nonisolated self` is permitted, provided that you can `await` the call. That call is considered a nonisolated use, i.e., it's the first use of `self` other than to access a stored property. Afterwards, access to most stored properties within the `init` is lost, just like for the non-async case. Because this initializer is `async`, it could technically `await` to read the `Sendable` value of `self.valid`. But, we have chosen to forbid awaited access to stored properties in this situation. See the [discussion](#permitting-await-for-property-access-in-nonisolated-self-initializers) in the Alternatives Considerred section for more details.
 
 
 **In-depth discussions**
