@@ -780,16 +780,18 @@ In the above, the only difference between the `init` and the `deinit` is that th
 
 ### Global-actor isolation and instance members
 
-The main problem with global-actor isolation on the stored properties of a nominal type is that an impossible isolation requirement can be constructed. The isolation needed for a type's non-delegating initializers is the union of all isolation applied to its stored properties that *specifically* have a default value. It must be valid to meld together the expressions for each of the default values and place them into an initializer. If there is more than one unique global-actor required among those expressions, then the initializer cannot be defined. In addition, a non-async and non-delegating initializer's isolation must match the isolation of the union of its stored properties that have default values, or vice-versa.
+The main problem with global-actor isolation on the stored properties of a type is that, if the property is isolated to a global actor, then its default-value expression is also isolated to that actor. Since global-actor isolation can be applied independently to each stored property, an impossible isolation requirement can be constructed. The isolation needed for a type's non-delegating *and* non-async initializers is the union of all isolation applied to its stored properties that have a default value. That's because a non-async initializer cannot hop to any executor, and a function cannot be isolated to two global actors. Currently, Swift 5.5 accepts programs with these impossible requirements.
 
-We propose the following rule that provides maximal use of default values, while excluding all problematic cases:
+To fix this problem, we propose the following rule that provides maximal use of default values, while excluding the problematic cases described earlier:
 
->For a given type, the isolation of all non-async and non-delegating initializers must be compatible with the isolation of stored properties with default values. An isolated property is *compatible* if all such initializers have the same isolation.
+>For a given type with some stored property, a default value can only be provided if the isolation of the property is *compatible* with the isolation of all non-async and non-delegating initializers of that type. An isolated property is *compatible* if it is not isolated, or all such initializers have the same isolation.
 
 Formally, "compatible" could be defined as a relation. If `I` and `P` are sets of isolations for each relevant initializer and stored property, respectively, then *compatible* is a relation over the Cartesian product `I x P`. A pair `(i, p)` in `I x P` is *compatible* if any of these are true:
 
   - The isolations are equal (`i == p`).
   - The property is nonisolated (`p == nonisolated`).
+
+This rule is sound under a separate compilation model, because neither stored properties nor non-delegating initializers can be defined in type extensions. Furthermore, this compatability rule does not extend to the inherited stored properties or designated initializers of a subclass. Only the designated initializers of a class must be compatible with its own stored properties.
 
 
 #### Removing Redundant Isolation
