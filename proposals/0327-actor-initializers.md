@@ -196,8 +196,6 @@ class Process {
 
 The example above is accepted in Swift 5.5, but is impossible to implement.
 Because `status` and `pid` are isolated to two different global-actors, there's no single actor-isolation that can be specified for the non-async `init`. In fact, it's not possible to perform the appropriate actor hops within the non-async initializer. As a result, `getStatus` and `genPID` are being called without hopping to the appropriate executor.
-<!-- In fact, all non-delegating initializers would need to have the same isolation as all stored properties. -->
-<!-- Even if the isolation of the initializers and stored properties matched, the `deinit` still can _never_ access the stored properties in order to invoke clean-up routines, *etc*, without using illegal lifetime extensions of the actor instance from the `deinit`. -->
 
 ### Initializer Delegation
 
@@ -271,7 +269,7 @@ The remainder of this section discusses how these two classes of initializers wo
 
 ##### Initializers with `isolated self`
 
-For an asynchronous initializer, a hop to the actor's executor will be performed immediately after `self` becomes fully-initialized, in order to ascribe the isolation to `self`. Choosing this location for performing the executor hop preserves the concept of `self` being isolated throughout the entire async initializer. 
+For an asynchronous initializer, a hop to the actor's executor will be performed immediately after `self` becomes fully-initialized, in order to ascribe the isolation to `self`. Choosing this location for performing the executor hop preserves the concept of `self` being isolated throughout the entire async initializer. That is, before any escaping uses of `self` can happen in an initializer, the executor hop has been performed.
 
 It's important to recognize that an executor hop is a suspension point. There are many possible points in an initializer where these suspensions can happen, since there are multiple places where a store to `self` cause it to become initialized. Consider this example of `Bob`:
 
@@ -313,10 +311,11 @@ actor EvolvedBob {
 Relative to `Bob`, the only change made to `EvolvedBob` is that its default value for `y` was converted into an unconditional store in the body of the initializer. From an observational point of view, `Bob.init` and `EvolvedBob.init` are identical. But from an implementation perspective, the suspension points for performing an executor hop differ dramatically. If those points required some sort of annotation in Swift, such as with `await`, then the reason why those suspension points moved is hard to explain to programmers.
 
 In summary, we propose to _implicitly_ perform suspensions to hop to the actors executor once `self` is initialized, instead of having programmers mark those points explicitly, for the following reasons:
-1. The finding and continually updating the suspension points is annoying for programmers.
-2. The reason _why_ some simple stores to a property can trigger a suspension is an implementation detail that is hard to explain to programmers.
-3. The benefits of marking these suspensions is very low. The reference to `self` is known to be unique by the time the suspension  will happen, so it is impossible to create an [actor reentrancy](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md#actor-reentrancy) situation.
-4. There is [already precedent](https://github.com/apple/swift-evolution/blob/main/proposals/0317-async-let.md#requiring-an-awaiton-any-execution-path-that-waits-for-an-async-let) in the language for performing implicit suspensions, namely for `async let`, when the language feature requiring suspensions is hard for programmers to determine.
+
+- The finding and continually updating the suspension points is annoying for programmers.
+- The reason _why_ some simple stores to a property can trigger a suspension is an implementation detail that is hard to explain to programmers.
+- The benefits of marking these suspensions is very low. The reference to `self` is known to be unique by the time the suspension  will happen, so it is impossible to create an [actor reentrancy](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md#actor-reentrancy) situation.
+- There is [already precedent](https://github.com/apple/swift-evolution/blob/main/proposals/0317-async-let.md#requiring-an-awaiton-any-execution-path-that-waits-for-an-async-let) in the language for performing implicit suspensions, namely for `async let`, when the benefits outweigh the negatives.
 
 The net effect of these implicit executor-hops is that, for programmers, an `async` initializer does not appear to have any additional rules added to it! That is, programmers can simply view the initializer as being isolated throughout, like any ordinary `async` method would be! The flow-sensitive points where the hop is inserted into the initializer can be safely ignored as an implementation detail for all but the most rare situations. For example:
 
@@ -390,10 +389,10 @@ The category of actor initializers that have a `nonisolated self` contain those 
 
 Accesses to the stored properties of `self` is required to bootstrap an instance of an actor. Such accesses are considered to be a weaker form of isolation that relies on having exclusive access to the reference `self`. If `self` escapes the initializer, such uniqueness can no-longer be guaranteed without time-consuming analysis. Thus, the isolation of `self` decays (or changes) to `nonisolated` during any use of `self` that is not a direct stored-property access.  That change happens once on a given control-flow path and persists through the end of the initializer. Here are some example uses of `self` within an initializer that cause it to decay to a `nonisolated` reference:
 
-1. Passing `self` as an argument in a procedure call. This includes:
-  - Invoking a method of `self`.
-  - Accessing a computed property of `self`.
-2. Capturing `self` in a closure.
+1. Passing `self` as an argument in any procedure call. This includes:
+    - Invoking a method of `self`.
+    - Accessing a computed property of `self`.
+2. Capturing `self` in a closure (or autoclosure).
 3. Storing `self` to memory.
 
 Consider the following example that helps demonstrate how this isolation decay works:
@@ -418,9 +417,9 @@ actor Charlie {
     self.fixedSendable = NotSendableString("123 Main St.")
 
     if score > 50 {
-      nonisolatedMethod() // a nonisolated use of `self`
-      greetCharlie(self)  // a nonisolated use of `self`
-      self.me = self      // a nonisolated use of `self`
+      nonisolatedMethod() // ✅ a nonisolated use of `self`
+      greetCharlie(self)  // ✅ a nonisolated use of `self`
+      self.me = self      // ✅ a nonisolated use of `self`
     } else if score < 50 {
       score = 50
     }
@@ -430,7 +429,7 @@ actor Charlie {
     _ = self.fixedNonSendable // ❌ error: cannot access non-Sendable property after `nonisolated` use of `self`
     _ = self.fixedSendable
 
-    Task { await self.incrementScore() } // a nonisolated use of `self`
+    Task { await self.incrementScore() } // ✅ a nonisolated use of `self`
   }
 }
 ```
@@ -444,7 +443,7 @@ The diagnostics emitted for illegal accesses to other stored properties will poi
 init(hasADefer: Void) {
   self.score = 0
   defer { 
-    print(self.score) // error: cannot access mutable isolated storage after `nonisolated` use of `self`
+    print(self.score) // ❌ error: cannot access mutable isolated storage after `nonisolated` use of `self`
   }
   Task { await self.incrementScore() } // note: a nonisolated use of `self`
 }
@@ -463,6 +462,45 @@ init(hasALoop: Void) {
 ```
 
 In this for-loop example, we must still flag the mutation of `self.score` in a loop as an error, because it is only safe on the first loop iteration. On subsequent loop iterations, it will not be safe because `self` may be concurrently accessed after being escaped in a procedure call.
+
+**Other Examples**
+
+Other than non-async inits, a global-actor isolated initializer or one that is marked with `nonisolated` will have a `nonisolated self`. Consider this example of such an initializer:
+
+```swift
+func printStatus(_ s: Status) { /* ... */}
+
+actor Status {
+  var valid: Bool
+
+  // an isolated method
+  func exchange(with new: Bool) { 
+    let old = valid
+    valid = new
+    return old
+  }
+
+  // an isolated method
+  func isValid() { return self.valid }
+
+  // A `nonisolated self` initializer that calls isolated methods with `await`.
+  @MainActor init(_ val: Bool) async {
+    self.valid = val
+
+    let old = await self.exchange(with: false) // note: a non-isolated use
+    assert(old == val)
+    
+    _ = self.valid // ❌ error: cannot access mutable isolated storage after non-isolated use of `self`
+    
+    let isValid = await self.isValid() // ✅ OK
+
+    assert(isValid == false)
+  }
+}
+```
+
+Notice that calling an isolated method from an initializer with a `nonisolated self` is permitted, provided that it is an `async` initializer. That call is considered a nonisolated use, i.e., it's the first use of `self` other than to access a stored property, so `self` is treated as `nonisolated` during that use. Afterwards, access to all stored properties within the `init` is lost, just like for the non-async case. While this initializer could `await` to read the `Sendable` value of `self.valid`, we have chosen to forbid this. See the [discussion](#permitting-await-for-property-access-in-nonisolated-self-initializers) in the Alternatives Considerred section for more details.
+
 
 **In-depth discussions**
 
