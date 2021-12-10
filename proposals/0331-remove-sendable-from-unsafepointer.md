@@ -3,7 +3,7 @@
 * Proposal: [SE-0331](0331-remove-sendable-from-unsafepointer.md)
 * Authors: [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (November 29...December 10, 2021)**
+* Status: **Accepted**
 
 * Implementation: [apple/swift#39218](https://github.com/apple/swift/pull/39218)
 
