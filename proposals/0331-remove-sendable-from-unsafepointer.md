@@ -4,7 +4,7 @@
 * Authors: [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 5.6)**
-
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0331-remove-sendable-conformance-from-unsafe-pointer-types/53979)
 * Implementation: [apple/swift#39218](https://github.com/apple/swift/pull/39218)
 
 ## Introduction
