@@ -57,7 +57,7 @@ The *de facto* expected behavior, as induced by the existing implementation in S
 
   1. Non-async initializers are overly strict about what can be done with `self`.
   2. Actor deinitializers can exhibit data races.
-  3. Global-actor isolation for stored properties cannot always be respected during initialization.
+  3. Global-actor isolation for default values of stored properties cannot always be respected during initialization.
   4. Initializer delegation requires the use of the `convenience` keyword like classes, even though actors do not support inheritance.
 
 It's important to keep in mind that these is not an exhaustive list. In particular, global-actor isolated types are effectively actors themselves, so many of the same protections should apply to them, too.
@@ -194,8 +194,7 @@ class Process {
 }
 ```
 
-The example above is accepted in Swift 5.5, but is impossible to implement.
-Because `status` and `pid` are isolated to two different global-actors, there's no single actor-isolation that can be specified for the non-async `init`. In fact, it's not possible to perform the appropriate actor hops within the non-async initializer. As a result, `getStatus` and `genPID` are being called without hopping to the appropriate executor.
+The example above is accepted in Swift 5.5, but is impossible to implement. Because `status` and `pid` are isolated to two different global-actors, there is no single actor-isolation that can be specified for the non-async `init`. In fact, it's not possible to perform the appropriate actor hops within the non-async initializer. As a result, `getStatus` and `genPID` are being called without hopping to the appropriate executor.
 
 ### Initializer Delegation
 
@@ -781,28 +780,16 @@ In the above, the only difference between the `init` and the `deinit` is that th
 
 ### Global-actor isolation and instance members
 
-The main problem with global-actor isolation on the stored properties of a nominal type is that an impossible isolation requirement can be constructed. The isolation needed for a type's non-delegating initializers is the union of all isolation applied to its stored properties that *specifically* have a default value. It must be valid to meld together the expressions for each of the default values and place them into an initializer. If there is more than one unique global-actor required among those expressions, then the initializer cannot be defined.
+The main problem with global-actor isolation on the stored properties of a nominal type is that an impossible isolation requirement can be constructed. The isolation needed for a type's non-delegating initializers is the union of all isolation applied to its stored properties that *specifically* have a default value. It must be valid to meld together the expressions for each of the default values and place them into an initializer. If there is more than one unique global-actor required among those expressions, then the initializer cannot be defined. In addition, a non-async and non-delegating initializer's isolation must match the isolation of the union of its stored properties that have default values, or vice-versa.
 
-We propose solving this problem in a way that adds only one simple rule to remember, so that it does not induce any extra exceptions and corner-cases: 
+We propose the following rule that provides maximal use of default values, while excluding all problematic cases:
 
->If a nominal type's stored-property member has its own, independent global-actor isolation annotation, then that stored property cannot have an explicit default value.
+>For a given type, the isolation of all non-async and non-delegating initializers must be compatible with the isolation of stored properties with default values. An isolated property is *compatible* if all such initializers have the same isolation.
 
-As a consequence, if programmers want to have default values for their stored properties, to take advantage of conciseness, then they must place the annotation on the entire type:
+Formally, "compatible" could be defined as a relation. If `I` and `P` are sets of isolations for each relevant initializer and stored property, respectively, then *compatible* is a relation over the Cartesian product `I x P`. A pair `(i, p)` in `I x P` is *compatible* if any of these are true:
 
-```swift
-class ProtectedPairBad {
-  @BlueActor var hello = someFn() // ❌ error: default value not permitted
-  @BlueActor var goodbye = someFn() // ❌ error: default value not permitted
-}
-
-@BlueActor
-class ProtectedPairGood {
-  var hello = someFn()    // ✅ ok
-  var goodbye = someFn()  // ✅ ok
-}
-```
-
-This rule is subjective and an over-approximation of the required solution, but it is simple to remember. That is, for the example above, the compiler *could* accept `ProtectedPairBad` with some simple analysis of the isolation applied to the stored properties. But, that would make the rules about whether a stored-property member can have an explicit default value more difficult to explain and remember.
+  - The isolations are equal (`i == p`).
+  - The property is nonisolated (`p == nonisolated`).
 
 
 #### Removing Redundant Isolation
