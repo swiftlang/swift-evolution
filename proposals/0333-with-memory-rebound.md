@@ -121,7 +121,7 @@ while it is `Element` for the `BufferPointer` types.
 For simplicity the following discussion calls both `Pointee`.
 
 In the general case, the runtime performs housekeeping tasks when initializing, deinitializing or updating a value of a type.
-Initializing and deinitialization of a type that is or contains a reference type means that type-specific code is executed,
+Initializing and deinitialization of a type that is or stores a reference type means that type-specific code is executed,
 and therefore in general data cannot be accessed as another type.
 
 `withMemoryRebound` can be used safely with pairs of types `Pointee` and `T` that do _not_ require initialization or deinitialization.
