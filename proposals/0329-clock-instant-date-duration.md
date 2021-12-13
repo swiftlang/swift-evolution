@@ -1,4 +1,4 @@
-# Clock, Instant, Date, and Duration
+# Clock, Instant, and Duration
 
 * Proposal: [SE-0329](0329-clock-instant-date-duration.md)
 * Author(s): [Philippe Hausler](https://github.com/phausler)
@@ -34,14 +34,22 @@
 * **v1.4.4**
   * Rename `ClockProtocol` to `Clock` to better adhere to naming guidelines
   * Adjusted measurement to have both a required method (plus default implementation) as well as a free floating function for standardized measurement.
-  
+* **v2.0**
+  * Remove `Date` lowering
+  * Remove `WallClock`
+  * Add tolerances
+  * Remove `.hours` and `.minutes`
+  * Proposal reorganization
+  * Added `DurationProtocol` and per instant interval association
+  * Rename Monotonic and Uptime clocks to Continuous and Suspending to avoid platform ambiguity and perhaps add more clarity of uses.
+
 ## Introduction
 
 The concepts of time can be broken down into three distinct parts:
 
 1. An item to provide a concept of now plus a way to wake up after a given point in time
 2. A concept of a point in time
-3. A concept of a measurement in time.
+3. A concept of a measurement of elapsed time.
 
 These three items are respectively a **clock**, an **instant** and a **duration**. The measurement of time can be used for many types of APIs, all the way from the high levels of a concept of a timeout on a network connection, to the amount of time to sleep a task. Currently, the APIs that take measurement of time types take `NSTimeInterval` (aka `TimeInterval`), `DispatchTimeInterval`, and even types like `timespec`.
 
@@ -51,49 +59,19 @@ To define a standard way of interacting with time, we need to ensure that in the
 
 From a performance standpoint, a distinct requirement is that any duration type (or clock type) must be reasonably performant enough to do tasks like measuring the execution performance of a function, without incurring a large overhead to the execution of the measurement. This means that any type that is expressing a duration should be small, and likely backed by some sort of (or group of) PoD type(s).
 
-Time itself is always measured in a manner that is in reference to a certain frame of analysis. For example, uptime is measured in relative perspective to how long the machine has been booted, whereas wall clock measurements are sourced from a network transaction to update time as a reference to coordinated universal time (UTC). Any instants expressed in terms of boot time versus UTC wall clock time can only be converted in a potentially lossy manner. Wall clock times can always be safely transmitted from one machine to another since the frame of reference is shared, whereas boot time on the other hand is meaningless when transmitted from two machines, but quite meaningful when transmitted from process to process on the same machine.
+Time itself is always measured in a manner that is in reference to a certain frame of analysis. For example, uptime is measured in relative perspective to how long the machine has been booted, whereas other clocks may be relative to a specific epoch. Any instants expressed in terms of a specific reference point may be converted in potentially a lossy manner whereas others may not be convertible at all; so these conversions cannot be uniformly expressed as a general protocol requirement.
 
-As it stands today, there are a number of APIs and types to represent clocks, instants, and durations. Foundation, for example, defines instant as `Date`, which is constructed from a wall clock reference point, and `TimeInterval` which is defined as a `Double` representing the number of seconds between two points in time. Dispatch defines `DispatchTime`, `DispatchWallTime`, and `DispatchTimeInterval`; these, respectively, work in relation to a reference of uptime, a wall clock time, and a value of seconds/milliseconds/microseconds/nanoseconds. These obviously are not the only definitions, but when dealing with concurrency, a uniform accessor to all of these concepts is helpful to build the primitives needed for sleep and other temporal concepts.
+The primary motivation for clocks is to offer a way to schedule work to be done at a later time. Instants are intended to serve a temporal reference point for that scheduling. Durations are specifically designed to be a high precision integral time representing an elapsed duration between two points in time.
 
-## Definitions
-
-Time is relative, temporal types doubly so. In this document, there will be some discussion with regards to the categorization of temporal types that readers should be distinctly aware of.
-
-**Absolute Time:** Time that always increments, but suspends while the machine is asleep. The reference point at which this starts is relative to the boot time of the machine so no-two machines would be expected to have the same uptime values.
-
-**Calendar:** A human locale based system in which to measure time.
-
-**Clock:** The mechanism in which to measure time, and understand how that time flows.
-
-**Continuous Time:** Time that always increments but does not stop incrementing while the system is asleep. This is useful to consider as a stopwatch style time; the reference point at which this starts and are most definitely different per machine.
-
-**Date:** A Date value encapsulates a single point in time, independent of any particular calendrical system or time zone. Date values represent a time interval relative to an absolute reference date.
-
-**Deadline:** In common parlance, it is a limit defined as an instant in time: a narrow field of time by which an objective must be accomplished.
-
-**Duration:** A measurement of how much time has elapsed between two deadlines or reference points.
-
-**Instant:** A precise moment in time.
-
-**Monotonic Time:** Darwin and BSD define this as continuous time. Linux, however, defines this as a time that always increments, but does stop incrementing while the system is asleep.
-
-**Network Update Time:** A value of wall clock time that is transmitted via ntp; used to synchronize the wall clocks of machines connected to a network.
-
-**Temporal:** Related to the concept of time.
-
-**Time Zone:** An arbitrary political defined system in which to normalize time in a quasi-geospatial delineation intended to keep the apex of the solar day around 12:00.
-
-**Uptime:** Darwin and BSD define this as absolute time. Linux, however, defines this as time that does not suspend while asleep but is relative to the boot.
-
-**Wall Clock Time:** Time like reading from a clock. This may be adjusted forwards or backwards for numerous reasons; in this context, it is time that is not specific to a time zone or locale, but measured from an absolute reference date. Network updates may adjust the drift on the clock either backwards or forwards depending on the relativistic drift, clock skew from inaccuracies with the processor, or from hardware power characteristics.
-
-Since there are platform differences in the definition of monotonic time and uptime, for the rest of this proposal it will be in terms of the definition on Darwin and BSD that are referencing monotonic and uptime.
+As it stands today, there are a number of APIs and types to represent clocks, instants, and durations. Foundation, for example, defines instant as `Date`, which is constructed from a UTC reference point using an epoch of Jan 1 2001, and `TimeInterval` which is defined as a `Double` representing the number of seconds between two points in time. Dispatch defines `DispatchTime`, `DispatchWallTime`, and `DispatchTimeInterval`; these, respectively, work in relation to a reference of uptime, a wall clock time, and a value of seconds/milliseconds/microseconds/nanoseconds. These obviously are not the only definitions, but when dealing with concurrency, a uniform accessor to all of these concepts is helpful to build the primitives needed for sleep and other temporal concepts.
 
 ## Detailed Design
 
 ### Prior Art
 
-There are a number of cases where these types end up being conflated with calendrical math. It is reasonable to say that the requirements for calendrical math have a distinct requirement of understanding of locales and time zones, and are clearly out of scope of any duration or clock types that might be introduced. That is distinct responsibilities of `Calendar` and `DateComponents`.
+This proposal focuses on time as used for scheduling work in a process. The most useful clocks for this purpose are simple and local ones that calculate the time since the machine running the process was started. Time can also be expressed in human terms by using calendars, like "April 1, 2021" in the Gregorian calendar. To align with the different responsibilities of the standard library and Foundation, we aim to leave the definition of calendars and the math related to moving between dates in a calendar to Foundation's `Calendar`, `DateComponents`, `TimeZone` and `Date` types.
+
+For brevity three other languages were chosen to represent an analysis of how time is handled for other languages; Go, Rust, Kotlin. These by no means are the only examples in other languages. Python and C++ also have notable implementations that share some similarities with the proposed implementation.
 
 #### Go
 https://pkg.go.dev/time
@@ -120,8 +98,6 @@ So given all of that, Swift can take this to another level of both accuracy of i
 
 The given requirements are that we must have a way of expressing the frame of reference of time. This needs to be able to express a concept of now, and a concept of waking up after a given instant has passed. Instants must be able to be compared among each other but are specific to the clock they were obtained. Instants also must be able to be advanced by a given duration or a distance between two instants must be able to emit a duration. Durations must be comparable and also must have some intrinsic unit of time that can suffice for broad application.
 
-It is worth noting that any extensions to Foundation, Dispatch, or other frameworks beyond the Swift standard library and concurrency library are not within the scope of this proposal and are under the prevue of those teams. This may or may not include additional Clock adoptions, additional functions that take the new types and changes in deprecations. Any examples here are listed as illustrations of potential use cases and not to be considered as part of this proposal.
-
 ##### Clock
 
 The base protocol for defining a clock requires two primitives; a way to wake up after a given instant, and a way to produce a concept of now. Clocks can also be defined in terms of a potential resolution of access; some clocks may offer resolution at the nanosecond scale, other clocks may offer only microsecond scale. Any values of elapsed time may be considered to be 0 if they are below the minimum resolution.
@@ -132,25 +108,19 @@ public protocol Clock: Sendable {
   
   var now: Instant { get }
   
-  func sleep(until deadline: Instant) async throws
+  func sleep(until deadline: Instant, tolerance: Instant.Interval?) async throws 
   
-  var minimumResolution: Duration { get }
+  var minimumResolution: Instant.Interval { get }
   
   func measure(_ work: () async throws -> Void) reasync rethrows -> Duration
 }
 ```
 
-This means that given an instant, it is intrinsically linked to the clock; e.g., a monotonic instant is not meaningfully comparable to a wall clock instant. However, as an ease of use concession, the durations between two instants can be compared. However, doing this across clocks is considered a programmer error, unless handled very carefully. By making the protocol hierarchy just clocks and instants, it means that we can easily express a compact form of a duration that is usable in all cases; particularly for APIs that might adopt Duration as a replacement to an existing type.
+This means that given an instant, it is intrinsically linked to the clock; e.g., a specific clock's instant is not meaningfully comparable to all other clock instants. However, as an ease of use concession, the durations between two instants can be compared. However, doing this across clocks is potentially considered a programmer error, unless handled very carefully. By making the protocol hierarchy just clocks and instants, it means that we can easily express a compact form of a duration that is usable in all cases; particularly for APIs that might adopt Duration as a replacement to an existing type.
 
-The clock minimum resolution will have a default implementation that returns `.nanosecond(1)`. 
+The clock minimum resolution will have a default implementation that returns `.nanosecond(1)`. This property serves to inform users of a clock the potential minimum granularity of what to invocations to now may return but also indicate the minimum variance between two instants that are significant. Practically speaking, this becomes relevant when measuring work - execution of a small work load may be executed in under the minimum resolution and not provide accurate information. 
 
-Clocks can then be used to measure a given amount of work. This means that clock should have the extensions to allow for the affordance of measuring workloads for metrics, but also measure them for performance benchmarks. In addition to the per clock definitions of measuring a base measurement function using the monotonic clock will also be added.
-
-```swift
-public func measure(_ work: () async throws -> Void) reasync rethrows -> Duration
-```
-
-This means that making benchmarks is quite easy to do:
+Clocks can then be used to measure a given amount of work. This means that clock should have the extensions to allow for the affordance of measuring workloads for metrics, but also measure them for performance benchmarks. This means that making benchmarks is quite easy to do:
 
 ```swift
 let elapsed = measure {
@@ -158,71 +128,65 @@ let elapsed = measure {
 }
 ```
 
-For example, we can adapt existing DispatchQueue API to take an instant as a deadline given a specific clock, or allow for generalized clocks. This allows for fine grained execution with exactly how the developer intends to have it work.
+The primary use for a clock beyond vending `now` is to wake up after a given deadline. This affords the possibility to schedule work to be done after that given instant. Wake-ups for scheduled work can incur power implications. Specifically waking up the CPU too often can cause undue power drain. By indicating a tolerance to the deadline it allows the underlying scheduling mechanisms from the kernel to potentially offer a slightly adjusted deadline to wake up by which means that work along with other work being scheduled can be grouped together for more power efficient execution. Not specifying a tolerance infers to the implementor of the clock that the tolerance is up to the implementation details of that clock to choose an appropriate value. The tolerance is a maximum duration after deadline by which the system may delay sleep by.
 
-```swift
-extension DispatchQueue {
-  func asyncAfter(deadline: UptimeClock.Instant, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping () -> Void)
-  func asyncAfter<C: Clock>(deadline: C.Instant, clock: C, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping () -> Void)
+```
+func delayedHello() async throws {
+  try await someClock.sleep(until: .now.advanced(by: .seconds(3))
+  print("hello delayed world")
 }
 ```
 
-With additions as such, developers can interact similarly to the existing API set, but utilize the new generalized clock concepts. This allows for future expansion of clock concepts by the teams in which it is meaningful without needing to plumb through concepts into Dispatch's implementation.
-
-```swift
-DispatchQueue.main.asyncAfter(deadline: .now.advanced(by: .seconds(3)) {
-  doSomethingAfterThreeSecondsOfUptime()
-}
-DispatchQueue.main.asyncAfter(deadline: .now.advanced(by: .seconds(3), clock: .wall) {
-  doSomethingAfterThreeSecondsOfWallClock()
-}
-```
-
-By providing the clock type, developers are empowered to make better choices for exactly the concept of time they want to utilize, but also allowed progressive disclosure to powerful tools to express that time.
+In the above example a clock is slept until 3 seconds from the instant it was called and then prints. The sleep function should throw if the task was cancelled while the sleep function is suspended. In this example the tolerance value is defaulted to nil by the clock and left as a "dealers choice" of how much tolerance may be applied to the deadline. 
 
 ##### Instant
 
-As previously stated, instants need to be compared, and might be stored as a key, but only need to define a concept of now, and a way to advance them given a duration. By utilizing a protocol to define an instant, it provides a mechanism in which to use the right storage for the type, but also be type safe with regards to the clock they are intended for. The primary reasoning that instants are useful is that they can be composed.
+As previously stated, instants need to be compared, and might be stored as a key, but only need to define a concept of now, and a way to advance them given a duration. By utilizing a protocol to define an instant, it provides a mechanism in which to use the right storage for the type, but also be type safe with regards to the clock they are intended for. 
 
-Given a function with a deadline as an instant, if it calls another function that takes a deadline as an instant, the original can just be passed without mutation to the next function. That means that the instant in which that deadline elapses does not have interference with the pre-existing calls or execution time in-between functions. One common example of this is the timeout associated with url requests; a timeout does not fully encapsulate how the execution deadline occurs; there is a deadline to meet for the connection to be established, data to be sent, and a response to be received; a timeout spanning all of those must then have measurement to account for each step, whereas a deadline is static throughout.
-
+The primary reasoning that instants are useful is that they can be composed. Given a function with a deadline as an instant, if it calls another function that takes a deadline as an instant, the original can just be passed without mutation to the next function. That means that the instant in which that deadline elapses does not have interference with the pre-existing calls or execution time in-between functions. One common example of this is the timeout associated with url requests; a timeout does not fully encapsulate how the execution deadline occurs; there is a deadline to meet for the connection to be established, data to be sent, and a response to be received; a timeout spanning all of those must then have measurement to account for each step, whereas a deadline is static throughout.
 
 ```swift
 public protocol InstantProtocol: Comparable, Hashable, Sendable {
-  func advanced(by duration: Duration) -> Self
-  func duration(to other: Self) -> Duration
+  associatedtype Interval: DurationProtocol
+  func advanced(by duration: Interval) -> Self
+  func duration(to other: Self) -> Interval
 }
 
 extension InstantProtocol {
-  public static func + (_ lhs: Self, _ rhs: Duration) -> Self
-  public static func - (_ lhs: Self, _ rhs: Duration) -> Self
+  public static func + (_ lhs: Self, _ rhs: Interval) -> Self
+  public static func - (_ lhs: Self, _ rhs: Interval) -> Self
   
-  public static func += (_ lhs: inout Self, _ rhs: Duration)
-  public static func -= (_ lhs: inout Self, _ rhs: Duration)
+  public static func += (_ lhs: inout Self, _ rhs: Interval)
+  public static func -= (_ lhs: inout Self, _ rhs: Interval)
   
-  public static func - (_ lhs: Self, _ rhs: Self) -> Duration
+  public static func - (_ lhs: Self, _ rhs: Self) -> Interval
 }
 ```
 
-`InstantProtocol` in addition to the `advance(by:)` and `duration(to:)` methods also has operators to add and subtract durations. However, it does not adhere to `AdditiveArithemtic` since that requires same type addition as well as a "zero"; of which neither make sense generally for defining instants.
+`InstantProtocol` in addition to the `advance(by:)` and `duration(to:)` methods also has operators to add and subtract durations. However, it does not adhere to `AdditiveArithemtic` since that requires same type addition as well as a "zero"; of which neither make sense generally for defining instants. Also it does not adhere to `Strideable` because that requires the stride to be `SignedNumeric` which means that `Duration` would be required to be multiplied by another `Duration` which is inappropriate for two durations. 
 
-This can be used to adapt existing behaviors like `URLRequest` timeout. Which then becomes more composable with other instant concepts than the existing timeout APIs.
+If at such timed that `Strideable` no longer requires `SignedNumeric` strides, or that `SignedNumeric` no longer requires the multiplication of self; this or adopting types should be considered for adjustment.
+
+##### DurationProtocol
+
+Specific clocks may have concepts of intervals that may express durations outside of temporal concepts. For example a clock tied to the GPU may express intervals as a number of frames, whereas a manual clock may express them as steps. Most clocks however will express their interval as a duration represented by an integral measuring seconds/nanoseconds etc. This duration has a few basic requirements; it must be comparable, and able to be added (similar to the concept previously stated with `InstantProtocol` they cannot be `Stridable` since it would mean that two `DurationProtocol` adopting types would then be allowed to be multiplied together).
 
 ```swift
-extension URLRequest {
-  public init(url: URL, cachePolicy: CachePolicy = .useProtocolCachePolicy, deadline: MonotonicClock.Instant)
+public protocol DurationProtocol: Comparable, AdditiveArithmetic, Sendable {
+  static func / <T: BinaryInteger>(_ lhs: Self, _ rhs: T) -> Self
+  static func /= <T: BinaryInteger>(_ lhs: inout Self, _ rhs: T)
+  static func * <T: BinaryInteger>(_ lhs: Self, _ rhs: T) -> Self
+  static func *= <T: BinaryInteger>(_ lhs: inout Self, _ rhs: T)
+  
+  static func / (_ lhs: Self, _ rhs: Self) -> Double
 }
 ```
 
-This will be expanded upon further, but `RunLoop` will be modified to now take a type that is an `InstantProtocol` conforming type.
+In order to ensure efficient calculations for durations there must be a few additional methods beyond just additive arithmetics that types conforming to `DurationProtocol` must implement - these are the division and multiplication by binary integers and a division creating a double value.  This provides the most minimal set of functions to accomplish concepts like the scheduling of a timer, or back-off algorithms.
 
-```swift
-RunLoop.main.run(until: .now.advanced(by: .seconds(3)))
-```
+The naming of `DurationProtocol` was chosen because we feel that the canonical definition of intervals is a temporal duration. All clocks being proposed here have an interval type of `Duration`; but other more specialized clocks may offer duration types that provide their own custom intervals.
 
 ##### Duration
-
-It is reasonable to consider that each clock's instant has it's own "unit" of time measurement. However, that complicates the adoption story and proliferates a practically identical type to solely prevent one potential minor mistake of comparing the duration from the difference of instants from two different clocks. Duration itself should be trivial to express, non-lossy storage, which avoids mathematical ambiguity. On one end of the spectrum is to make isolate monotonic durations different from wall clock durations, on the other is say everything is just a Double. Both have advantages, but both have distinct disadvantages. Making duration a structure that is trivial allows a happy middle ground, but also allows for the potential of incremental adoption.
 
 Meaningful durations can always be expressed in terms of nanoseconds plus a number of seconds, either a duration before a reference point or after. They can be constructed from meaningful human measured (or machine measured precision) but should not account for any calendrical calculations (e.g., a measure of days, months or years distinctly need a calendar to be meaningful). Durations should able to be serialized, compared, and stored as keys, but also should be able to be added and subtracted (and zero is meaningful). They are distinctly NOT `Numeric` due to the aforementioned issue with regards to multiplying two `TimeInterval` variables. That being said, there is utility for ad-hoc division and multiplication to calculate back-offs.
 
@@ -235,10 +199,6 @@ public struct Duration: Sendable {
 }
 
 extension Duration {
-  public static func hours<T: BinaryInteger>(_ seconds: T) -> Duration
-  public static func hours(_ seconds: Double) -> Duration
-  public static func minutes<T: BinaryInteger>(_ seconds: T) -> Duration
-  public static func minutes(_ seconds: Double) -> Duration
   public static func seconds<T: BinaryInteger>(_ seconds: T) -> Duration
   public static func seconds(_ seconds: Double) -> Duration
   public static func milliseconds<T: BinaryInteger>(_ milliseconds: T) -> Duration
@@ -265,21 +225,101 @@ extension Duration {
   public static func * <T: BinaryInteger>(_ lhs: Duration, _ rhs: T) -> Duration
   public static func *= <T: BinaryInteger>(_ lhs: inout Duration, _ rhs: T)
 }
+
+extension Duration: DurationProtocol { }
 ```
 
-##### Date
+##### ContinuousClock
 
-When speaking of temporal types, `Date` has served a distinct and special place in the core of Swift in some really prominent places. A `Date` value encapsulates a single point in time, independent of any particular calendrical system or time zone. `Date` values represent a time interval relative to an absolute reference date. It could easily be considered the canonical representation of a wall clock reference point and is quite suited as a concept to be used as a deadline for wall clock based calculations. In short, as part of this proposal, we intend to give `Date` a new home and move it from Foundation to the standard library. Now this will not include all of the API associated with `Date`, but instead a distinct subset of the API surface area about `Date` that is relevant to representing wall clock time reference points.
+When instants are for local processing only and need to be high resolution without the encumbrance of suspension while the machine is asleep, `ContinuousClock` is the tool for the job. On Darwin platforms this refers to time derived from the monotonic clock, for linux platforms this is in reference to the uptime clock; being that those two are the closest in behavioral meaning. The `ContinuousClock.Instant` type can be initialized with a wall clock instant if that value can be expressed in terms of a relative point to now; knowing the delta between the current time and the specified wall clock instant a conversion to the current monotonic reference point can be made such that conversion (if possible) represents what the value would be in terms of the continuous clock. This clock also offers an extension to access the clock instance as the inferred base type property.
 
 ```swift
-@available(macOS 10.9, iOS 7.0, tvOS 9.0, watchOS 2.0, macCatalyst 13.0, *)
-@_originallyDefinedIn(module: "Foundation", macOS /*TBD*/, iOS /*TBD*/, tvOS /*TBD*/, watchOS /*TBD*/, macCatalyst /*TBD*/)
-public struct Date {
-  public init(converting monotonicInstant: MonotonicClock.Instant)
-  public init(converting uptimeInstant: UptimeClock.Instant)
+public struct ContinuousClock {
+  public init()
   
-  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
-  public static var now : Date { get }
+  public static var now: Instant { get }
+}
+
+extension ContinuousClock: Clock {
+  public struct Instant {
+    public static var now: ContinuousClock.Instant { get }
+  }
+
+  public var now: Instant { get }
+  public var minimumResolution: Duration { get }
+  public func sleep(until deadline: Instant, tolerance: Duration? = nil) async throws
+}
+
+extension ContinuousClock.Instant: InstantProtocol {
+  public func advanced(by duration: Duration) -> ContinuousClock.Instant
+  public func duration(to other: ContinuousClock.Instant) -> Duration
+}
+
+extension Clock where Self == ContinuousClock {
+  public static var continuous: ContinuousClock { get }
+}
+```
+
+##### SuspendingClock
+
+Where local process scoped or cross machine scoped instants are not suitable: uptime serves the purpose of a clock that does not increment while the machine is asleep but is a time that is referenced to the boot time of the machine. This allows for the affordance of cross process communication in the scope of that machine. Similar to the other clocks there is an extension to access the clock instance as the inferred base type property. For Darwin based platforms this is derived from the uptime clock whereas for linux based platforms this is derived from the monotonic clock since those most closely represent the concept for not incrementing while the machine is asleep.
+
+```swift
+public struct SuspendingClock {
+  public init()
+  
+  public static var now: Instant { get }
+}
+
+extension SuspendingClock: Clock {
+  public struct Instant {
+    public static var now: SuspendingClock.Instant { get }
+  }
+
+  public var minimumResolution: Duration { get }
+  public func sleep(until deadline: Instant, tolerance: Duration? = nil) async throws
+}
+
+extension SuspendingClock.Instant: InstantProtocol {
+  public func advanced(by duration: Duration) -> SuspendingClock.Instant
+  public func duration(to other: SuspendingClock.Instant) -> Duration
+}
+
+extension Clock where Self == SuspendingClock {
+  public static var suspending: SuspendingClock { get }
+}
+```
+
+##### Clocks Outside of the Standard Library
+
+In previous iterations of this proposal we offered a concept of a WallClock, however, after some compelling feedback we feel that this type may not be the most generally useful without the context of calendrical calculations. Since Foundation is the home of these types of calculations we feel that a clock based upon UTC more suitably belongs in that layer. This clock will adjust the fire time based upon the current UTC time; this means that that if a bit of work is scheduled by a specific time of day made by calculation via `Calendar` this clock can wake up from the sleep when the system time hits that deadline.
+
+Foundation will provide a type `UTCClock` that encompasses this behavior and use `Date` as the instant type. Additionally Foundation will provide conversions to and from `Date` to the other instant types in this proposal. 
+
+```swift
+public struct UTCClock {
+  public init()
+  
+  public static var now: Date { get }
+}
+
+extension UTCClock: Clock {
+  public var minimumResolution: Duration { get }
+  public func sleep(until deadline: Date, tolerance: Duration? = nil) async throws
+}
+
+extension Date {
+  public func leapSeconds(to other: Date) -> Duration
+  public init(_ instant: ContinuousClock.Instant)
+  public init(_ instant: SuspendingClock.Instant)
+}
+
+extension ContinuousClock.Instant {
+  public init?(_ instant: Date)
+}
+
+extension SuspendingClock.Instant {
+  public init?(_ instant: Date)
 }
 
 extension Date: InstantProtocol {
@@ -287,108 +327,18 @@ extension Date: InstantProtocol {
   public func duration(to other: Date) -> Duration
 }
 
-extension Date: Codable { }
-extension Date: Hashable { }
-extension Date: Equatable { }
-```
-
-As a _potential_ implementation detail; `Date` currently stores its value as a `Double` of seconds from Jan 1 2001 UTC. This causes floating point drift when the value is further out from that point in time, since we are taking the leap to move `Date` down the stack from Foundation to the standard library this seems like perfect opportunity to address this issue with a more robust storage solution. Instead of storing as a 64 bit `Double` value, it will now be stored as a `Int64` for seconds, and a `UInt32` for nanoseconds normalized where the nanoseconds storage will be no more than 1,000,000,000 nanoseconds (which is 29 bits) and a full range of seconds. This means that the storage size of `Date` will increase from 64 bits to 96 bits, with the benefit that the range of expressible dates will be +/-9,223,372,036,854,775,807.999999999 seconds around Jan 1 1970; which is full nanosecond resolution of a range of 585 billion years +/- a few months worth of leap year days and such - we feel that this range is suitable for any software and can be revisited in a few hundred billion years when it becomes an issue.
-
-To give clarity on the real world impact of changing the storage size of `Date`; Xcode (it was a handy target for me to test) in a reasonably real world scenario created over 10,000 `NSDate` objects and around 3,000 of which were still resident at a quiescence point. Xcode reflects a decently large scale application and the translation from `NSDate` to `Date` does not 100% apply here but it gives a metric for what type of impact that might have in an extreme case; approximately 12kB more memory usage - comparatively to the total memory used this seems quite small, so the system impact should be relatively negligible.
-
-Readers may have noticed that `Date` remains `Codable` at the standard library layer but gains a new storage mechanism. The coding format will remain the same. Since that represents a serialization mechanism that is written to disk and is therefore permanent for document formats. We do not intend for `Date` to break existing document formats and all current serialization will both emit and decode as it would for double values relative to Jan 1 2001 UTC as well as the `DateEncodingStrategy` for JSONSerialization. This does mean that when encoding and decoding `Date` values it may loose small portions of precision, however this is acceptable losses since any format stored as such inherently takes some amount of time to either transmit or write to disk; any sub-second (near nanosecond) precision that may be lost will be vastly out weighed from the write and read times.
-
-The storage change is not a hard requirement; and may be a point in which we might decide is not worth taking.
-
-All remaining APIs on Date will exist still at the Foundation layer for compatibility with existing software.
-
-To be clear, we are not suggesting that Calendar, Locale, or TimeZone be moved down; those transitions are distinctly out of scope of this proposal and are not a goal.
-
-##### WallClock
-
-Wall clocks are useful since they represent a transmittable form of time. Instants can be serialized and sent from one machine to another and the values are meaningful in a foreign context. That transmission can be immediately useful when dealing with concepts like distributed actors; where an actor may be hosted on a remote machine and a deadline for work is sent across from one domain to another. The `WallClock` type will use `Date` as its `Instant` type and provide an extension to access the clock instance as the inferred base type property.
-
-```swift
-public struct WallClock {
-  public init()
-  
-  public static var now: Date { get }
-}
-
-extension WallClock: Clock {
-  public typealias Instant = Date
-
-  public var now: Date { get }
-  public func sleep(until deadline: Date) async throws
-}
-
-extension Clock where Self == WallClock {
-  public static var wall: WallClock { get }
+extension Clock where Self == UTCClock {
+  public static var utc: UTCClock { get }
 }
 ```
 
-##### MonotonicClock
+The `UTCClock` will allow for a method in which to wake up after a deadline defined by a `Date`. The implementation of `Date` transacts upon the number of seconds since Jan 1 2001 as defined by the system clock so any network time (or manual) updates may shift that point of now either forward or backward depending on the skew the system clock may undergo. The value being stored is not dependent upon timezone, daylight savings, or calendrical representation but the current NTP updates do represent any applied leap seconds that may have occurred. In light of this particular edge case that previously was not exposed, `Date` will now offer a new method to determine the leap second duration that may have elapsed between a given data and another date. This provides a method in which to account for these leap seconds in a historical sense. Similar to timezone databases the leap seconds will be updated (if there is any additional planned leap seconds) along with software updates. 
 
-When instants are for local processing only and need to be high resolution without the encumbrance of suspension while the machine is asleep `MonotonicClock` is the tool for the job. The `MonotonicClock.Instant` type can be initialized with a wall clock instant if that value can be expressed in terms of a relative point to now; knowing the delta between the current time and the specified wall clock instant a conversion to the current monotonic reference point can be made such that conversion (if possible) represents what the value would be in terms of the monotonic clock. Much like the wall clock version the monotonic clock also offers an extension to access the clock instance as the inferred base type property.
+Previous revisions of this proposal moved `Date` to the standard library along with a new wall clock that uses it. After feedback from the community, we now believe the utility of this clock is very specialized and more closely related to the calendar types in Foundation. Therefore, `Date` will remain in Foundation alongside them.
 
-```swift
-public struct MonotonicClock {
-  public init()
-  
-  public static var now: Instant { get }
-}
+`Date` is best used as the storage for point in time to be interpreted using a `Calendar`, `TimeZone`, and with formatting functions for display to people. A survey of the existing `Date` API in the macOS and iOS SDKs shows this to already be the case for the vast majority of properties and functions that use it. The discussion around the appropriateness of the `Date` name was mostly focused on its uses in *non*-calendrical contexts. We hope this combination of `Date` and `UTCClock` will help reinforce the relationship between those types and add clarity to when it should be used.
 
-extension MonotonicClock: Clock {
-  public struct Instant {
-    public init?(converting wallClockInstant: WallClock.Instant)
-    
-    public static var now: MonotonicClock.Instant { get }
-  }
-
-  public var now: Instant { get }
-  public func sleep(until deadline: Instant) async throws
-}
-
-extension MonotonicClock.Instant: InstantProtocol {
-  func advanced(by duration: Duration) -> MonotonicClock.Instant
-  func duration(to other: MonotonicClock.Instant) -> Duration
-}
-
-extension Clock where Self == MonotonicClock {
-  public static var monotonic: MonotonicClock { get }
-}
-```
-
-##### UptimeClock
-
-Where local process scoped or cross machine scoped instants are not suitable uptime serves the purpose of a clock that does not increment while the machine is asleep but is a time that is referenced to the boot time of the machine, this allows for the affordance of cross process communication in the scope of that machine. Similar to the other clocks there is an extension to access the clock instance as the inferred base type property.
-
-```swift
-public struct UptimeClock: Clock {
-  public init()
-  
-  public static var now: Instant { get }
-}
-
-extension UptimeClock: Clock {
-  public struct Instant {
-    public init?(converting wallClockInstant: WallClock.Instant)
-    public static var now: UptimeClock.Instant { get }
-  }
-
-  public var now: Instant { get }
-  public func sleep(until deadline: Instant) async throws
-}
-
-extension UptimeClock.Instant: InstantProtocol {
-  func advanced(by duration: Duration) -> UptimeClock.Instant
-  func duration(to other: UptimeClock.Instant) -> Duration
-}
-
-extension Clock where Self == UptimeClock {
-  public static var uptime: UptimeClock { get }
-}
-```
+This approach preserves compatibility with those APIs while still providing the capability to use `Date` for scheduling in the rare cases that it is needed.
 
 ##### Example Custom Clock
 
@@ -432,7 +382,7 @@ public final class ManualClock: Clock, @unchecked Sendable {
     lock.deallocate()
   }
   
-  public func sleep(until deadline: Instant) async throws {
+  public func sleep(until deadline: Instant, tolerance: Duration? = nil) async throws {
     // Enqueue a pending wake-up into the list such that when
     return await withUnsafeContinuation {
       if deadline <= now {
@@ -471,56 +421,90 @@ public final class ManualClock: Clock, @unchecked Sendable {
 }
 ```
 
-## Impact on Existing Code
-
-### Existing APIs
-
-Task will have a more distinct `sleep` function where a clock can be specified.
-
-```swift
-extension Task where Success == Never, Failure == Never {
-  public static func sleep<C: Clock>(until deadline: C.Instant, clock: C) async throws
-}
-```
-
-Or, in the case where an ease of use is preferred over a raw nanoseconds; we will add a connivence API exposing a monotonic duration to sleep for.
-
-```swift
-extension Task where Success == Never, Failure == Never {
-  public static func sleep(for duration: Duration) async throws
-}
-```
-
-The `DispatchQueue` implementation can support three types of fundamental clock types; monotonic, wall, and uptime. This might be able to be expressed as overloads to the instant types and avoid ambiguity by specifying a clock.
-
-```swift
-extension DispatchQueue {
-  public func asyncAfter(deadline: MonotonicClock.Instant, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping @convention(block) () -> Void)
-  public func asyncAfter(deadline: WallClock.Instant, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping @convention(block) () -> Void)
-  public func asyncAfter(deadline: UptimeClock.Instant, qos: DispatchQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute work: @escaping @convention(block) () -> Void)
-}
-```
-
 ### Existing Application Code
 
 This proposal is purely additive and has no direct impact to existing application code.
 
 ## Impact on ABI
 
-The proposed implementation will introduce two runtime functions; a way of obtaining time and a way of sleeping given a standard clock. Date when lowered will not immediately be frozen, however as a future direction we plan on making the type frozen for performance reasons; (it is mentioned in the evolution manifesto)[https://github.com/apple/swift/blob/main/docs/LibraryEvolutionManifesto.md#limitations] that a concept of a frozen as of a certain version will be a future direction available to evolution. We feel that this is an appropriate use case and should be revisited when that is available.
+The proposed implementation will introduce three runtime functions; a way of obtaining time, a way of sleeping given a standard clock, and a way of obtaining the minimum resolution given a standard clock. 
 
 ## Alternatives Considered
 
-It has been considered to move Date down into the standard library to encompass a wall + monotonic concept like Go, but this was not viewed as extensible enough to capture all potential clock sources. Additionally this approach breaks the concept of comparability which is a key requirement for any `InstantProtocol`.
+#### Singular Instant Representation
 
-It has been considered to leave the Duration type to be a structure and shared among all clocks. This exposes the potential error in which two durations could be interchanged that are measuring two different things. From an opinionated type system perspective a `MonotonicClock.Duration` measures monotonic seconds and a `WallClock.Duration` measures wall clock seconds which are two different unit systems. This point is debatable and can be changed with the caveat that developers may write inappropriate code.
+It was considered to have a singular type to represent monotonic, uptime, and wall clock instants similar to Go. However this approach causes a problem with comparability; an instant may be greater in one respect but less or equal in some other respect. In order to properly adhere to `Comparable` as a requisite to `InstantProtocol` we feel that combining the instants into one unified type is not ideal.
 
-It has been considered to attempt to make Duration into a protocol form to restrict the concepts of measurement to only be compared in the clock scope they were defined by but that proves to be quite cumbersome for implementations and dramatically reduces the ease of use for APIs that might want to use interval types.
+#### Inverted Protocol Hierarchy
 
-A concrete type expressing Deadlines could be introduced however adding that defeats the progressive disclosure of the existing types and poses a compatibility problem with existing APIs. Effectively it would make functions that currently take Date instead need to take `Deadline<WallClock>` which seems anti-thematic to tight integration with existing APIs.
+Another exploration was to have an inverted scheme of instant and clock however this means that the generic signatures of functions that use specific clocks or instants become much more difficult to write.
 
-It has been considered that Date should account for leap seconds, however after much consideration this is viewed as perhaps too disruptive to the storage and serialization of Date and that it is better suited to leverage calendrical calculations such as those in Foundation to account for leap seconds since that falls in line more so with DateComponents than Date.
+#### Lowering of Date/UTCClock
 
-As an alternative to moving Date to the standard library we have considered other strategies such as introducing a new type with a name that connotes better the concept of a date being defined as a point in time devoid of a calendar. However this ends up having a multi-level fall out. The large swath of APIs that are both in existing Swift exports of frameworks and SDKs that exist today have a use cases that use the same definition - that means that introducing a new type that serves the same purpose then becomes a quandary of "which type should I use". As a point of reference the SDK for macOS has approximately 1000 occurrences of the type NSDate which is bridged to Date, we feel that changing this would lead to needless churn for developers for no clear advantage especially since we can reform the storage to be more accurate. This is a topic that has been debated at length and we feel that the overall benefits for the reduction of churn at the magnitude of impact out weigh the marginal gains of a different name that may carry the same level of nomenclature ambiguity.
+Originally the proposal included a concept of lowering `Date` to the standard library in addition to altering its storage from `Double` to a `Duration`. There were strong objections on a few fronts with this move which ultimately had convincing merit. The primary objection was to the name `Date`; given that there was no additional contextual API within the standard library or concurrency library this meant that `Date` could easily get confused with the concept of a calendrical date (which that type definitively is not). Additionally it was rightfully brought up that `Date` is missing concepts of leap seconds (which has since been accepted and proposed as an alteration to Foundation) because we see the utility of that as an additional functionality to `Date`. 
 
-It was considered to make Foundation.TimeInterval to be implicitly converted to Duration; however it was determined that this is better suited as a potential future direction for importer adjustments instead since that type would potentially cause systemic problems with overloads based on the aliasing behavior of TimeInterval.
+Also in the original revisions of the proposal we had a concept of `WallClock`. After much discussion we feel that the name wall clock is misleading since the type really represents a clock based on UTC (once `Date` has a historical accounting of leap seconds). But furthermore, we feel that the general utility of scheduling via a UTC clock is not a common task and that a vast majority of clocks for scheduling are really things that transact either via a clock that time passes while the machine is asleep or a clock that time does not pass while the machine is asleep. That accounting means that we feel that the right home for `UTCClock` is in a higher level framework for that specialized task along side the calendrical calculation APIs; which is Foundation.
+
+#### Alternative Names
+
+There have been a number of names that have been considered during this proposal (these are a few highlights):
+
+The protocol `Clock` has been considered to be named:
+* `ClockProtocol` - The protocol suffix was considered superfluous and a violation of the naming guidelines.
+
+The protocol `InstantProtocol` has been considered to be named:
+* `ReferencePoint` - This ended up being too vague and did not capture the concept of time
+* `Deadline`/`DeadlineProtocol` - Not all instant types are actually deadlines, so the nomenclature became confusing.
+
+The protocol `DurationProtocol` has been considered to be named:
+* Not having it has been considered but ultimately rejected to ensure flexibility of the API for other clock types that transact in concept like "frames" or "steps".
+
+The clock `ContinuousClock` has been considered to be named:
+* `MonotonicClock` - Unfortunately Darwin and Linux differ on the definition of monotonic. 
+* `UniformClock` - This does not disambiguate the behavioral difference between this clock and the `SuspendingClock` since both are uniform in their incrementing while the machine is not asleep.
+
+The clock `SuspendingClock` has been considered to be named:
+* `UptimeClock` - Just as `MonotonicClock` has ambiguity with regards to Linux and Darwin behaviors.
+* `AbsoluteClock` - Very vague when not immediately steeped in mach-isms.
+* `ExecutionClock` - The name more infers the concept of `CLOCK_PROCESS_CPUTIME_ID` than `CLOCK_UPTIME_RAW` (on Darwin).
+* `DiscontinuousClock` - Has its roots in the mathematical concept of discontinuous functions but perhaps is not immediately obvious that it is the clock that does not advance while the machine is asleep
+
+The type `Duration` has been considered to be named:
+* `Interval` - This is quite ambiguous and could refer to numerous other concepts other than time.
+
+The type `Date` has been considered to be named:
+* `Timestamp` - A decent alternative but still comes at a slight ambiguity with regards to being tied to a calendar. Also has string like connotations (with how it is used in logs)
+* `Timepoint`/`TimePoint` - A reasonable alternative with less ambiguity but ultimately not compelling enough to churn thousands of APIs that already exist (just counting the ones included in the iOS and macOS SDKs, not to mention the other use sites that may exist). 
+* `WallClock.Instant`/`UTCClock.Instant` - This is a very wordy way of spelling the same idea as `Date` represents today.
+
+## Appendix
+
+Time is relative, temporal types doubly so. In this document, there will be some discussion with regards to the categorization of temporal types that readers should be distinctly aware of.
+
+**Calendar:** A human locale based system in which to measure time.
+
+**Clock:** The mechanism in which to measure time, and understand how that time flows.
+
+**Continuous Time:** Time that always increments but does not stop incrementing while the system is asleep. This is useful to consider as a stopwatch style time; the reference point at which this starts and are most definitely different per machine.
+
+**Date:** A Date value encapsulates a single point in time, independent of any particular calendrical system or time zone. Date values represent a time interval relative to an absolute reference date.
+
+**Deadline:** In common parlance, it is a limit defined as an instant in time: a narrow field of time by which an objective must be accomplished.
+
+**Duration:** A measurement of how much time has elapsed between two deadlines or reference points.
+
+**Instant:** A precise moment in time.
+
+**Monotonic Time:** Darwin and BSD define this as continuous time. Linux, however, defines this as a time that always increments, but does stop incrementing while the system is asleep.
+
+**Network Update Time:** A value of wall clock time that is transmitted via ntp; used to synchronize the wall clocks of machines connected to a network.
+
+**Temporal:** Related to the concept of time.
+
+**Time Zone:** An arbitrary political defined system in which to normalize time in a quasi-geospatial delineation intended to keep the apex of the solar day around 12:00.
+
+**Tolerance:** The duration around a given point in time is accepted as accurate.
+
+**Uptime:** Darwin and BSD define this as absolute time suspending when asleep. Linux, however, defines this as time that does not suspend while asleep but is relative to the boot.
+
+**Wall Clock Time:** Time like reading from a clock. This may be adjusted forwards or backwards for numerous reasons; in this context, it is time that is not specific to a time zone or locale, but measured from an absolute reference date. Network updates may adjust the drift on the clock either backwards or forwards depending on the relativistic drift, clock skew from inaccuracies with the processor, or from hardware power characteristics.
