@@ -109,7 +109,7 @@ public protocol Clock: Sendable {
   var now: Instant { get }
   
   func sleep(until deadline: Instant, tolerance: Instant.Interval?) async throws 
-  
+
   var minimumResolution: Instant.Interval { get }
   
   func measure(_ work: () async throws -> Void) reasync rethrows -> Duration
@@ -123,7 +123,7 @@ The clock minimum resolution will have a default implementation that returns `.n
 Clocks can then be used to measure a given amount of work. This means that clock should have the extensions to allow for the affordance of measuring workloads for metrics, but also measure them for performance benchmarks. This means that making benchmarks is quite easy to do:
 
 ```swift
-let elapsed = measure {
+let elapsed = someClock.measure {
   someWorkToBenchmark()
 }
 ```
