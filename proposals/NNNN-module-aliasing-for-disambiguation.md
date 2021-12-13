@@ -4,7 +4,7 @@
 * Authors: [Ellie Shin](https://github.com/elsh)
 * Review Manager: TBD
 * Status: **Implemented**
-* Pitch: [Forum discussion](https://forums.swift.org/t/pitch-module-aliasing/51737)
+* Pitch: [Module Aliasing](https://forums.swift.org/t/pitch-module-aliasing/51737)
 * Implementation:
 [apple/swift#39376](https://github.com/apple/swift/pull/39376), [apple/swift#39496](https://github.com/apple/swift/pull/39496), [apple/swift#39533](https://github.com/apple/swift/pull/39533), [apple/swift#39628](https://github.com/apple/swift/pull/39628), [apple/swift#39634](https://github.com/apple/swift/pull/39634),  [apple/swift#39705](https://github.com/apple/swift/pull/39705), [apple/swift#39929](https://github.com/apple/swift/pull/39929), [apple/swift#40064](https://github.com/apple/swift/pull/40064),  [apple/swift#40384](https://github.com/apple/swift/pull/40384), [apple/swift#40450](https://github.com/apple/swift/pull/40450), [apple/swift#40494](https://github.com/apple/swift/pull/40494), [apple/swift-driver#912](https://github.com/apple/swift-driver/pull/912), [apple/swift-driver#913](https://github.com/apple/swift-driver/pull/913)
 
@@ -22,7 +22,7 @@ As Swift libraries and packages are more widely adopted, we are increasingly enc
 
 ## Proposed solution
 
-We believe that module aliasing support will provide a more systematic means to address module name collision. By aliasing, i.e. renaming, we can disambiguate the conflicting modules without requiring manual source changes. It will be supported for pure Swift modules only (see the *Requirements / Limitations* section for more details). 
+We believe that module aliasing support will provide a more systematic means to address module name collision. By aliasing, i.e. renaming, we can disambiguate the conflicting modules without requiring manual source changes. It will be supported for pure Swift modules only (see the **Requirements / Limitations** section for more details). 
 
 To go over how the aliasing works, let’s consider the following scenario: App depends on module Utils from package swift-game, and now wants to add another dependency, also called Utils but from another package. Currently we will get an error due to the duplicate module names. 
 ```
@@ -53,12 +53,14 @@ In the following steps, we will use a compiler invocation command to demonstrate
 2. Similarly, we can rename Utils from swift-draw as DrawUtils, following the step 1.  
 3. Finally, we build App (without the aliasing flag) and directly import GameUtils and/or DrawUtils. 
 
-[App]
 ```
+[App]
+
 import GameUtils
 import DrawUtils
 ```
 In practice, a dependency graph will be more complex than the scenario described above. As an example, we have the following modified scenario. App imports module Game, which imports module Utils from the same package. App also imports another module called Utils from a different package.  
+
 ```
 App 
 |— Module Game (from package ‘swift-game’)
@@ -66,8 +68,9 @@ App
 |— Module Utils (from package ‘swift-draw’)
 ```
 
-[Module Game] // swift-game
 ```
+[Module Game] // swift-game
+
 import Utils  // swift-game
 public func start(level: Utils.Level) { ... }
 ```
@@ -188,17 +191,17 @@ To allow module aliasing, the following requirements need to be met.
 * Runtime: calls to convert String to types in module, i.e direct or indirect calls to NSClassFromString(...), will fail and should be avoided.
 * For resources, only asset catalogs and localized strings are allowed.
 * Higher chance of running into existing issues as follows:
-    * Retroactive conformance (https://forums.swift.org/t/retroactive-conformances-vs-swift-in-the-os/14393): this is already not a recommended practice and should be avoided.   
-    * Extension member “leaks”: this is considered a bug (https://bugs.swift.org/browse/SR-3908) but hasn’t been fixed yet. More discussions here (https://forums.swift.org/t/pre-pitch-import-access-control-a-modest-proposal/50087). 
+    * [Retroactive conformance](https://forums.swift.org/t/retroactive-conformances-vs-swift-in-the-os/14393): this is already not a recommended practice and should be avoided.   
+    * Extension member “leaks”: this is [considered a bug](https://bugs.swift.org/browse/SR-3908) but hasn’t been fixed yet. More discussions [here](https://forums.swift.org/t/pre-pitch-import-access-control-a-modest-proposal/50087). 
 * Code size increase will be more implicit and requires a caution, although module aliasing will be opt-in and a size threshold could be set to provide a warning. 
 
 ## Future Directions
 
-* Currently when a module contains a type with the same name, fully qualifying a type in the module results in an error; it treats the left most qualifier as a type instead of the module (bug (https://bugs.swift.org/browse/SR-14195), forums1 (https://forums.swift.org/t/fixing-modules-that-contain-a-type-with-the-same-name/3025), forums2 (https://forums.swift.org/t/pitch-fully-qualified-name-syntax/28482)); `XCTest` is a good example as it contains a class called `XCTest`. Trying to access a top level function `XCTAssertEqual` via `XCTest.XCTAssertEqual(...)` results in “Type 'XCTest' has no member 'XCTAssertEqual'” error. Module aliasing could mitigate this issue by renaming `XCTest` as `XCTestFramework` without requiring source changes in the `XCTest` module and allowing the function access via `XCTestFramework.XCTAssertEqual(...)` in the user code.
+* Currently when a module contains a type with the same name, fully qualifying a type in the module results in an error; it treats the left most qualifier as a type instead of the module ([bug](https://bugs.swift.org/browse/SR-14195), [discussions](https://forums.swift.org/t/fixing-modules-that-contain-a-type-with-the-same-name/3025), [pitch](https://forums.swift.org/t/pitch-fully-qualified-name-syntax/28482)); `XCTest` is a good example as it contains a class called `XCTest`. Trying to access a top level function `XCTAssertEqual` via `XCTest.XCTAssertEqual(...)` results in “Type 'XCTest' has no member 'XCTAssertEqual'” error. Module aliasing could mitigate this issue by renaming `XCTest` as `XCTestFramework` without requiring source changes in the `XCTest` module and allowing the function access via `XCTestFramework.XCTAssertEqual(...)` in the user code.
 
 * Introducing new import syntax such as `import Utils as GameUtils` has been discussed in forums to improve module disambiguation. The module aliasing infrastructure described in this proposal paves the way towards introducing such syntax that can allow more explicit (in source code) aliasing.  
 
-* Visibility change to import decl access level (from public to internal) pitched here (https://forums.swift.org/t/pre-pitch-import-access-control-a-modest-proposal/50087) could help address extension leaks issues mentioned in *Requirements / Limitations* section. 
+* Visibility change to import decl access level (from public to internal) pitched [here](https://forums.swift.org/t/pre-pitch-import-access-control-a-modest-proposal/50087) could help address extension leaks issues mentioned in **Requirements / Limitations** section. 
 
 * Swift modules can have C target dependencies. Adding module aliasing support for such modules is possible but will require changing visibility to C symbols.
 
@@ -216,4 +219,4 @@ The feature in this proposal does not have impact on the ABI or runtime.
 This proposal does not introduce features that would be part of a public API.
 
 ## Acknowledgments
-This proposal was improved with helpful suggestions and feedback along with code reviews by Becca Royal-Gordon, Alexis Laferriere, Pavel Yaskevich, Joe Groff, Mike Ash, Adrian Prantl, Artem Chikin, Boris Buegling, Anders Bertelrud, Tom Doron, and Johannes Weiss, and others.  
+This proposal was improved with feedback and helpful suggestions along with code reviews by Becca Royal-Gordon, Alexis Laferriere, Pavel Yaskevich, Joe Groff, Mike Ash, Adrian Prantl, Artem Chikin, Boris Buegling, Anders Bertelrud, Tom Doron, and Johannes Weiss, and others.  
