@@ -68,22 +68,22 @@ extension PluginCapability {
 
 The plugin specifies the intent of the command as either one of a set of predefined intents or as a custom intent with an custom verb and help description.
 
-In this proposal, the intent is expressed as an enum provided by SwiftPM in `PackageDescription`:
+In this proposal, the intent is expressed as an opaque struct with enum semantics in `PackageDescription`:
 
 ```swift
-enum PluginCommandIntent {
+public struct PluginCommandIntent {
     /// The intent of the command is to generate documentation, either by parsing the
     /// package contents directly or by using the build system support for generating
     /// symbol graphs. Invoked by a `generate-documentation` verb to `swift package`.
-    case documentationGeneration
+    public static func documentationGeneration() -> PluginCommandIntent
     
     /// The intent of the command is to modify the source code in the package based
     /// on a set of rules. Invoked by a `format-source-code` verb to `swift package`.
-    case sourceCodeFormatting
+    public static func sourceCodeFormatting() -> PluginCommandIntent
         
     /// An intent that doesn't fit into any of the other categories, with a custom
     /// verb through which it can be invoked.
-    case custom(verb: String, description: String)
+    public static func custom(verb: String, description: String) -> PluginCommandIntent
 }
 ```
 
@@ -95,20 +95,18 @@ A command plugin can also specify the permissions it needs, which affect the way
 
 A command plugin that wants to modify the package source code (as for example a source code formatter might want to) needs to request the `writeToPackageDirectory` permission. This modifies the sandbox in which the plugin is invoked to let it write inside the package directory in the file system, after notifying the user about what is going to happen and getting approval in a way that is appropriate for the IDE in question.
 
-The permissions needed by the command are expressed as an enum in `PackageDescription`:
+The permissions needed by the command are expressed as an opaque static struct with enum semantics in `PackageDescription`:
 
 ```swift
-enum PluginPermission {
+public struct PluginPermission {
     /// The command plugin wants permission to modify the files under the package
     /// directory. The `reason` string is shown to the user at the time of request
     /// for approval, explaining why the plugin is requesting this access.
-    case writeToPackageDirectory(reason: String)
+    public static func writeToPackageDirectory(reason: String) -> PluginPermission
     
     /// It is likely that future proposals will want to provide some kind of network
     /// access. In the interest of keeping this proposal bounded, we just note that
     /// as a possible future need here but do not initially allow any network access.
-    
-    /// Any future enum cases should use @available()
 }
 ```
 
@@ -484,7 +482,7 @@ let package = Package(
         .plugin(
             name: "MyDocCPlugin",
             capability: .command(
-                intent: .documentationGeneration
+                intent: .documentationGeneration()
             )
         )
     ]
@@ -598,7 +596,7 @@ let package = Package(
         .plugin(
             "MyFormatterPlugin",
             capability: .command(
-                intent: .sourceCodeFormatting,
+                intent: .sourceCodeFormatting(),
                 permissions: [
                     .writeToPackageDirectory(reason: "This command reformats source files")
                 ]
