@@ -165,7 +165,7 @@ extension InstantProtocol {
 
 `InstantProtocol` in addition to the `advance(by:)` and `duration(to:)` methods also has operators to add and subtract durations. However, it does not adhere to `AdditiveArithemtic` since that requires same type addition as well as a "zero"; of which neither make sense generally for defining instants. Also it does not adhere to `Strideable` because that requires the stride to be `SignedNumeric` which means that `Duration` would be required to be multiplied by another `Duration` which is inappropriate for two durations. 
 
-If at such timed that `Strideable` no longer requires `SignedNumeric` strides, or that `SignedNumeric` no longer requires the multiplication of self; this or adopting types should be considered for adjustment.
+If at such time that `Strideable` no longer requires `SignedNumeric` strides, or that `SignedNumeric` no longer requires the multiplication of self; this or adopting types should be considered for adjustment.
 
 ##### DurationProtocol
 
