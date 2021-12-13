@@ -231,7 +231,7 @@ extension Duration: DurationProtocol { }
 
 ##### ContinuousClock
 
-When instants are for local processing only and need to be high resolution without the encumbrance of suspension while the machine is asleep, `ContinuousClock` is the tool for the job. On Darwin platforms this refers to time derived from the monotonic clock, for linux platforms this is in reference to the uptime clock; being that those two are the closest in behavioral meaning. The `ContinuousClock.Instant` type can be initialized with a wall clock instant if that value can be expressed in terms of a relative point to now; knowing the delta between the current time and the specified wall clock instant a conversion to the current monotonic reference point can be made such that conversion (if possible) represents what the value would be in terms of the continuous clock. This clock also offers an extension to access the clock instance as the inferred base type property.
+When instants are for local processing only and need to be high resolution without the encumbrance of suspension while the machine is asleep, `ContinuousClock` is the tool for the job. On Darwin platforms this refers to time derived from the monotonic clock, for linux platforms this is in reference to the uptime clock; being that those two are the closest in behavioral meaning. This clock also offers an extension to access the clock instance as the inferred base type property.
 
 ```swift
 public struct ContinuousClock {
