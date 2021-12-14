@@ -805,6 +805,8 @@ Since SwiftPM currently has only a single-layered package dependency graph, it i
 
 Once this is possible, a future direction might be to have a command plugin use SwiftArgumentParser to declare a supported set of input parameters. This could allow SwiftPM (or possibly an IDE) to present an interface for those plugin options — IDEs, in particular, could construct user interfaces for well-defined options (possibly in the manner of the archaic MPW `Commando` tool).
 
+Another direction might be for the PackagePlugin API to define its own facility for a plugin to declare externally visible properties. This might include considerations particular to plugins, such as whether or not a particular path property is intended to be writable (requiring permission from the user before the plugin runs). As with SwiftArgumentParser, a natural approach would be to declare such properties on the type that implements the plugin, with their values having been set by the plugin host at the time the plugin is invoked.
+
 ### Additional access to Package Manager services
 
 The API in the `PackageManager` type that this proposal defines is just a start. The idea is to, over time, offer plugins a variety of functionality and derivable information that they can request and then further process.
