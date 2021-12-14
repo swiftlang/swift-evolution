@@ -504,26 +504,26 @@ struct MyDocCPlugin: CommandPlugin {
     ) async throws {
         // We'll be creating commands that invoke `docc`, so start by locating it.
         let doccTool = try context.tool(named: "docc")
-        
+
         // Construct the path of the directory in which to emit documentation.
         let outputDir = context.pluginWorkDirectory.appending("Outputs")
-        
+
         // Iterate over the targets we were given.
         for target in targets {
             // Only consider those kinds of targets that can have source files.
             guard let target = target as? SourceModuleTarget else { continue }
-            
+
             // Find the first DocC catalog in the target, if there is one (a more
             // robust example would handle the presence of multiple catalogs).
             let doccCatalog = target.sourceFiles.first { $0.path.extension == "docc" }
-                        
+
             // Ask SwiftPM to generate or update symbol graph files for the target.
-            let symbolGraphInfo = try packageManager.getSymbolGraph(for: target,
+            let symbolGraphInfo = try await packageManager.getSymbolGraph(for: target,
                 options: .init(
                     minimumAccessLevel: .public,
                     includeSynthesized: false,
                     includeSPI: false))
-            
+
             // Invoke `docc` with arguments and the optional catalog.
             let doccExec = URL(fileURLWithPath: doccTool.path.string)
             var doccArgs = ["convert"]
@@ -540,9 +540,14 @@ struct MyDocCPlugin: CommandPlugin {
             let process = try Process.run(doccExec, arguments: doccArgs)
             process.waitUntilExit()
 
-            // The plugin should also report non-zero exit codes from `docc` here.
-            
-            print("Generated documentation at \(outputDir).")
+            // Check whether the subprocess invocation was successful.
+            if process.terminationReason == .exit && process.terminationStatus == 0 {
+                print("Generated documentation at \(outputDir).")
+            }
+            else {
+                let problem = "\(process.terminationReason):\(process.terminationStatus)"
+                Diagnostics.error("docc invocation failed: \(problem)")
+            }
         }
     }
 }
@@ -618,22 +623,22 @@ import Foundation
 @main
 struct MyFormatterPlugin: CommandPlugin {
     func performCommand(
-       context: PluginContext,
-       targets: [Target],
-       arguments: [String]
+        context: PluginContext,
+        targets: [Target],
+        arguments: [String]
     ) async throws {
         // We'll be invoking `swift-format`, so start by locating it.
         let swiftFormatTool = try context.tool(named: "swift-format")
-      
+
         // By convention, use a configuration file in the package directory.
         let configFile = context.package.directory.appending(".swift-format.json")
-  
+
         // Iterate over the targets we've been asked to format.
         for target in targets {
             // Skip any type of target that doesn't have source files.
             // Note: We could choose to instead emit a warning or error here.
             guard let target = target as? SourceModuleTarget else { continue }
- 
+
             // Invoke `swift-format` on the target directory, passing a configuration
             // file from the package directory.
             let swiftFormatExec = URL(fileURLWithPath: swiftFormatTool.path.string)
@@ -646,9 +651,14 @@ struct MyFormatterPlugin: CommandPlugin {
             let process = try Process.run(swiftFormatExec, arguments: swiftFormatArgs)
             process.waitUntilExit()
 
-            // The plugin should also report non-zero exit codes from `swift-format` here.
-            
-            print("Formatted the source code in \(target.directory).")
+            // Check whether the subprocess invocation was successful.
+            if process.terminationReason == .exit && process.terminationStatus == 0 {
+                print("Formatted the source code in \(target.directory).")
+            }
+            else {
+                let problem = "\(process.terminationReason):\(process.terminationStatus)"
+                Diagnostics.error("swift-format invocation failed: \(problem)")
+            }
         }
     }
 }
@@ -688,7 +698,7 @@ let package = Package(
             capability: .command(
                 intent: .custom(
                     verb: "create-distribution-archive",
-                    description: "Creates a .tar file containing release binaries"
+                    description: "Creates a .zip containing release builds of products"
                 )
             ),
         )
@@ -705,44 +715,50 @@ import Foundation
 @main
 struct MyDistributionArchiveCreator: CommandPlugin {
     func performCommand(
-       context: PluginContext,
-       targets: [Target],
-       arguments: [String]
+        context: PluginContext,
+        targets: [Target],
+        arguments: [String]
     ) async throws {
         // Check that we were given the name of a product as the first argument
         // and the name of an archive as the second.
         guard arguments.count == 2 else {
-           throw Error("Expected two arguments: product name and archive name")
+            throw Error("Expected two arguments: product name and archive name")
         }
         let productName = arguments[0]
         let archiveName = arguments[1]
-        
+
         // Ask the plugin host (SwiftPM or an IDE) to build our product.
-        let result = await packageManager.build(
+        let result = try await packageManager.build(
             .product(productName),
             parameters: .init(configuration: .release, logging: .concise)
         )
         
         // Check the result. Ideally this would report more details.
         guard result.succeeded else { throw Error("couldn't build product") }
-        
+
         // Get the list of built executables from the build result.
-        let builtExecutables = result.builtArtifacts.first{ $0.kind == .executable }
-        
+        let builtExecutables = result.builtArtifacts.filter{ $0.kind == .executable }
+
         // Decide on the output path for the archive.
-        let outputPath = context.pluginWorkDirectory.appending("\(archiveName).tar")
-    
-        // Use Foundation to run `tar`. The exact details of using the Foundation
+        let outputPath = context.pluginWorkDirectory.appending("\(archiveName).zip")
+
+        // Use Foundation to run `zip`. The exact details of using the Foundation
         // API aren't relevant; the point is that the built artifacts can be used
         // by the script.
-        let tarTool = try context.tool(named: "tar")
-        let tarArgs = ["-czf", outputPath.string] + builtExecutables.map{ $0.path.string }
-        let process = Process.run(URL(fileURLWithPath: tarTool.path.string), arguments: tarArgs)
+        let zipTool = try context.tool(named: "zip")
+        let zipArgs = ["-j", outputPath.string] + builtExecutables.map{ $0.path.string }
+        let zipToolURL = URL(fileURLWithPath: zipTool.path.string)
+        let process = try Process.run(zipToolURL, arguments: zipArgs)
         process.waitUntilExit()
-        
-        // The plugin should also report errors from the creation of the archive.
-        
-        print("Created archive at \(outputPath).")
+
+        // Check whether the subprocess invocation was successful.
+        if process.terminationReason == .exit && process.terminationStatus == 0 {
+            print("Created distribution archive at \(outputPath).")
+        }
+        else {
+            let problem = "\(process.terminationReason):\(process.terminationStatus)"
+            Diagnostics.error("zip invocation failed: \(problem)")
+        }
     }
 }
 ```
