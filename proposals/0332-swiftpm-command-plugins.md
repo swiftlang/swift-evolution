@@ -816,3 +816,7 @@ Extending the `PackageManager` API does need to be done in a way that is possibl
 ### Providing access to build and test progress and structured results
 
 The initial proposed API for having plugins run builds and tests is fairly minimal. In particular, the build log is returned at the end of the build as a single text string, and the plugin has no way to cancel the build. Future proposals should extend this, ideally to the point at which `swift` `build` and `swift` `test` could themselves be implemented using the same API as for custom commands.
+
+### Allowing a plugin to report progress
+
+While a plugin can emit diagnostics using the `Diagnostics` type, there is currently no way for a plugin to report progress while it is running. This would be very useful for long-running plugins, and should be addressed in a future proposal.
