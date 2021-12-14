@@ -87,7 +87,7 @@ public struct PluginCommandIntent {
 }
 ```
 
-Future versions of SwiftPM will almost certainly add to this set of possible intents, using availability annotations gated on the tools version to conditionally make new enum cases available.
+Future proposals will almost certainly add to this set of possible intents, using availability annotations gated on the tools version to conditionally make new types of intent available.
 
 If multiple command plugins in the dependency graph of a package specify the same intent, or specify a custom intent with the same verb, then the user will need to specify which plugin to invoke by qualifying the verb with the name of the plugin target followed by a `:` character, e.g. `MyPlugin:do-something`.  Because plugin names are target names, they are already known to be unique within the package graph, so the combination of plugin name and verb is known to be unique.
 
@@ -103,12 +103,12 @@ public struct PluginPermission {
     /// directory. The `reason` string is shown to the user at the time of request
     /// for approval, explaining why the plugin is requesting this access.
     public static func writeToPackageDirectory(reason: String) -> PluginPermission
-    
-    /// It is likely that future proposals will want to provide some kind of network
-    /// access. In the interest of keeping this proposal bounded, we just note that
-    /// as a possible future need here but do not initially allow any network access.
 }
 ```
+
+Future proposals will almost certainly add to this set of possible permissions, using availability annotations gated on the tools version to conditionally make new types of permission available.
+
+In particular, it is likely that future proposals will want to provide a way for a plugin to ask for permission to access the network. In the interest of keeping this proposal bounded, we note that as a possible future need here, but do not initially allow any network access.
 
 ### Plugin API
 
@@ -389,7 +389,7 @@ public struct PackageManager {
 
 ### Permissions
 
-Like other plugins, command plugins are run in a sandbox on platforms that support it. By default this sandbox does not allow the plugin to modify the file system (except in special temporary-files paths) and blocks any network access.
+Like other plugins, command plugins are run in a sandbox on platforms that support it. By default this sandbox does not allow the plugin to modify the file system (except in special temporary-files paths) and it blocks any network access.
 
 Some commands, such as source code formatters, might need to modify the file system in order to be useful. Such plugins can specify the permissions they need, and this will:
 
@@ -398,13 +398,15 @@ Some commands, such as source code formatters, might need to modify the file sys
 
 The exact form of the notification and approval will depend on the CLI or IDE that runs the plugin. SwiftPM’s CLI is expected to ask the user for permission using a console prompt (if connected to TTY), and to provide options for approving or rejecting the request when not connected to a TTY.
 
+Note that this approval needs to be obtained before running the plugin, which is why it is declared in the package manifest. There is currently no provision for a plugin to ask for more permissions while it runs.
+
 An IDE might present user interface affordances  providing the notification and allowing the choice. In order to avoid having to request permission every time the plugin is invoked, some kind of caching of the response could be implemented.
 
 SwiftPM or IDEs may also provide options to allow users to specify additional writable file system locations for the plugin, but that would not affect the API described in this proposal.
 
 ### Invoking Command Plugins
 
-In the SwiftPM CLI, command plugins provided by the package or its dependencies are available as verbs that can be specified in a `swift` `package` invocation. For example, if the root package defines a command plugin with a `do-something` verb — or if it has a dependency on a package that defines such a plugin — a user can run it using the invocation:
+In the SwiftPM CLI, command plugins provided by a package or its direct dependencies are available as verbs that can be specified in a `swift` `package` invocation. For example, if the root package defines a command plugin with a `do-something` verb — or if it has a dependency on a package that defines such a plugin — a user can run it using the invocation:
 
 ```shell
 ❯ swift package do-something
@@ -420,7 +422,7 @@ To pass a subset of the targets to the plugin, one or more `--target` options ca
 
 This will pass the `Foo` and `Bar` targets to the plugin (assuming those are names of regular targets defined in the package — if they are not, an error is emitted).
 
-The user can also provide additional parameters that are passed directly to the plugin. In the following example, the plugin will receive the parameters `aParam` and `-aFlag`, in addition to the targets named `Foo` and `Bar`.
+The user can also provide additional arguments that are passed directly to the plugin. In the following example, the plugin will receive the arguments `aParam` and `-aFlag`, in addition to the targets named `Foo` and `Bar`.
 
 ```shell
 ❯ swift package --target Foo --target Bar do-something aParam -aFlag
