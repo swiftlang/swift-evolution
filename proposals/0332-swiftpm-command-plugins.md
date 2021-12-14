@@ -400,6 +400,8 @@ The exact form of the notification and approval will depend on the CLI or IDE th
 
 An IDE might present user interface affordances  providing the notification and allowing the choice. In order to avoid having to request permission every time the plugin is invoked, some kind of caching of the response could be implemented.
 
+SwiftPM or IDEs may also provide options to allow users to specify additional writable file system locations for the plugin, but that would not affect the API described in this proposal.
+
 ### Invoking Command Plugins
 
 In the SwiftPM CLI, command plugins provided by the package or its dependencies are available as verbs that can be specified in a `swift` `package` invocation. For example, if the root package defines a command plugin with a `do-something` verb — or if it has a dependency on a package that defines such a plugin — a user can run it using the invocation:
