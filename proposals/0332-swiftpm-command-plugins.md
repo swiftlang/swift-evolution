@@ -68,26 +68,26 @@ extension PluginCapability {
 
 The plugin specifies the intent of the command as either one of a set of predefined intents or as a custom intent with an custom verb and help description.
 
-In this proposal, the intent is expressed as an enum provided by SwiftPM in `PackageDescription`:
+In this proposal, the intent is expressed as an opaque struct with enum semantics in `PackageDescription`:
 
 ```swift
-enum PluginCommandIntent {
+public struct PluginCommandIntent {
     /// The intent of the command is to generate documentation, either by parsing the
     /// package contents directly or by using the build system support for generating
     /// symbol graphs. Invoked by a `generate-documentation` verb to `swift package`.
-    case documentationGeneration
+    public static func documentationGeneration() -> PluginCommandIntent
     
     /// The intent of the command is to modify the source code in the package based
     /// on a set of rules. Invoked by a `format-source-code` verb to `swift package`.
-    case sourceCodeFormatting
+    public static func sourceCodeFormatting() -> PluginCommandIntent
         
     /// An intent that doesn't fit into any of the other categories, with a custom
     /// verb through which it can be invoked.
-    case custom(verb: String, description: String)
+    public static func custom(verb: String, description: String) -> PluginCommandIntent
 }
 ```
 
-Future versions of SwiftPM will almost certainly add to this set of possible intents, using availability annotations gated on the tools version to conditionally make new enum cases available.
+Future proposals will almost certainly add to this set of possible intents, using availability annotations gated on the tools version to conditionally make new types of intent available.
 
 If multiple command plugins in the dependency graph of a package specify the same intent, or specify a custom intent with the same verb, then the user will need to specify which plugin to invoke by qualifying the verb with the name of the plugin target followed by a `:` character, e.g. `MyPlugin:do-something`.  Because plugin names are target names, they are already known to be unique within the package graph, so the combination of plugin name and verb is known to be unique.
 
@@ -95,22 +95,20 @@ A command plugin can also specify the permissions it needs, which affect the way
 
 A command plugin that wants to modify the package source code (as for example a source code formatter might want to) needs to request the `writeToPackageDirectory` permission. This modifies the sandbox in which the plugin is invoked to let it write inside the package directory in the file system, after notifying the user about what is going to happen and getting approval in a way that is appropriate for the IDE in question.
 
-The permissions needed by the command are expressed as an enum in `PackageDescription`:
+The permissions needed by the command are expressed as an opaque static struct with enum semantics in `PackageDescription`:
 
 ```swift
-enum PluginPermission {
+public struct PluginPermission {
     /// The command plugin wants permission to modify the files under the package
     /// directory. The `reason` string is shown to the user at the time of request
     /// for approval, explaining why the plugin is requesting this access.
-    case writeToPackageDirectory(reason: String)
-    
-    /// It is likely that future proposals will want to provide some kind of network
-    /// access. In the interest of keeping this proposal bounded, we just note that
-    /// as a possible future need here but do not initially allow any network access.
-    
-    /// Any future enum cases should use @available()
+    public static func writeToPackageDirectory(reason: String) -> PluginPermission
 }
 ```
+
+Future proposals will almost certainly add to this set of possible permissions, using availability annotations gated on the tools version to conditionally make new types of permission available.
+
+In particular, it is likely that future proposals will want to provide a way for a plugin to ask for permission to access the network. In the interest of keeping this proposal bounded, we note that as a possible future need here, but do not initially allow any network access.
 
 ### Plugin API
 
@@ -333,11 +331,11 @@ public struct PackageManager {
                 /// Represents the results of running a single test.
                 public struct Test {
                     public var name: String
-                    public var outcome: Outcome
+                    public var result: Result
                     public var duration: Double
                     
-                    /// Represents the outcome of running a single test.
-                    public enum Outcome {
+                    /// Represents the result of running a single test.
+                    public enum Result {
                         case succeeded, skipped, failed
                     }
                 }
@@ -391,7 +389,7 @@ public struct PackageManager {
 
 ### Permissions
 
-Like other plugins, command plugins are run in a sandbox on platforms that support it. By default this sandbox does not allow the plugin to modify the file system (except in special temporary-files paths) and blocks any network access.
+Like other plugins, command plugins are run in a sandbox on platforms that support it. By default this sandbox does not allow the plugin to modify the file system (except in special temporary-files paths) and it blocks any network access.
 
 Some commands, such as source code formatters, might need to modify the file system in order to be useful. Such plugins can specify the permissions they need, and this will:
 
@@ -400,11 +398,15 @@ Some commands, such as source code formatters, might need to modify the file sys
 
 The exact form of the notification and approval will depend on the CLI or IDE that runs the plugin. SwiftPM’s CLI is expected to ask the user for permission using a console prompt (if connected to TTY), and to provide options for approving or rejecting the request when not connected to a TTY.
 
+Note that this approval needs to be obtained before running the plugin, which is why it is declared in the package manifest. There is currently no provision for a plugin to ask for more permissions while it runs.
+
 An IDE might present user interface affordances  providing the notification and allowing the choice. In order to avoid having to request permission every time the plugin is invoked, some kind of caching of the response could be implemented.
+
+SwiftPM or IDEs may also provide options to allow users to specify additional writable file system locations for the plugin, but that would not affect the API described in this proposal.
 
 ### Invoking Command Plugins
 
-In the SwiftPM CLI, command plugins provided by the package or its dependencies are available as verbs that can be specified in a `swift` `package` invocation. For example, if the root package defines a command plugin with a `do-something` verb — or if it has a dependency on a package that defines such a plugin — a user can run it using the invocation:
+In the SwiftPM CLI, command plugins provided by a package or its direct dependencies are available as verbs that can be specified in a `swift` `package` invocation. For example, if the root package defines a command plugin with a `do-something` verb — or if it has a dependency on a package that defines such a plugin — a user can run it using the invocation:
 
 ```shell
 ❯ swift package do-something
@@ -420,7 +422,7 @@ To pass a subset of the targets to the plugin, one or more `--target` options ca
 
 This will pass the `Foo` and `Bar` targets to the plugin (assuming those are names of regular targets defined in the package — if they are not, an error is emitted).
 
-The user can also provide additional parameters that are passed directly to the plugin. In the following example, the plugin will receive the parameters `aParam` and `-aFlag`, in addition to the targets named `Foo` and `Bar`.
+The user can also provide additional arguments that are passed directly to the plugin. In the following example, the plugin will receive the arguments `aParam` and `-aFlag`, in addition to the targets named `Foo` and `Bar`.
 
 ```shell
 ❯ swift package --target Foo --target Bar do-something aParam -aFlag
@@ -484,7 +486,7 @@ let package = Package(
         .plugin(
             name: "MyDocCPlugin",
             capability: .command(
-                intent: .documentationGeneration
+                intent: .documentationGeneration()
             )
         )
     ]
@@ -506,26 +508,26 @@ struct MyDocCPlugin: CommandPlugin {
     ) async throws {
         // We'll be creating commands that invoke `docc`, so start by locating it.
         let doccTool = try context.tool(named: "docc")
-        
+
         // Construct the path of the directory in which to emit documentation.
         let outputDir = context.pluginWorkDirectory.appending("Outputs")
-        
+
         // Iterate over the targets we were given.
         for target in targets {
             // Only consider those kinds of targets that can have source files.
             guard let target = target as? SourceModuleTarget else { continue }
-            
+
             // Find the first DocC catalog in the target, if there is one (a more
             // robust example would handle the presence of multiple catalogs).
             let doccCatalog = target.sourceFiles.first { $0.path.extension == "docc" }
-                        
+
             // Ask SwiftPM to generate or update symbol graph files for the target.
-            let symbolGraphInfo = try packageManager.getSymbolGraph(for: target,
+            let symbolGraphInfo = try await packageManager.getSymbolGraph(for: target,
                 options: .init(
                     minimumAccessLevel: .public,
                     includeSynthesized: false,
                     includeSPI: false))
-            
+
             // Invoke `docc` with arguments and the optional catalog.
             let doccExec = URL(fileURLWithPath: doccTool.path.string)
             var doccArgs = ["convert"]
@@ -542,9 +544,14 @@ struct MyDocCPlugin: CommandPlugin {
             let process = try Process.run(doccExec, arguments: doccArgs)
             process.waitUntilExit()
 
-            // The plugin should also report non-zero exit codes from `docc` here.
-            
-            print("Generated documentation at \(outputDir).")
+            // Check whether the subprocess invocation was successful.
+            if process.terminationReason == .exit && process.terminationStatus == 0 {
+                print("Generated documentation at \(outputDir).")
+            }
+            else {
+                let problem = "\(process.terminationReason):\(process.terminationStatus)"
+                Diagnostics.error("docc invocation failed: \(problem)")
+            }
         }
     }
 }
@@ -598,7 +605,7 @@ let package = Package(
         .plugin(
             "MyFormatterPlugin",
             capability: .command(
-                intent: .sourceCodeFormatting,
+                intent: .sourceCodeFormatting(),
                 permissions: [
                     .writeToPackageDirectory(reason: "This command reformats source files")
                 ]
@@ -620,22 +627,22 @@ import Foundation
 @main
 struct MyFormatterPlugin: CommandPlugin {
     func performCommand(
-       context: PluginContext,
-       targets: [Target],
-       arguments: [String]
+        context: PluginContext,
+        targets: [Target],
+        arguments: [String]
     ) async throws {
         // We'll be invoking `swift-format`, so start by locating it.
         let swiftFormatTool = try context.tool(named: "swift-format")
-      
+
         // By convention, use a configuration file in the package directory.
         let configFile = context.package.directory.appending(".swift-format.json")
-  
+
         // Iterate over the targets we've been asked to format.
         for target in targets {
             // Skip any type of target that doesn't have source files.
             // Note: We could choose to instead emit a warning or error here.
             guard let target = target as? SourceModuleTarget else { continue }
- 
+
             // Invoke `swift-format` on the target directory, passing a configuration
             // file from the package directory.
             let swiftFormatExec = URL(fileURLWithPath: swiftFormatTool.path.string)
@@ -648,9 +655,14 @@ struct MyFormatterPlugin: CommandPlugin {
             let process = try Process.run(swiftFormatExec, arguments: swiftFormatArgs)
             process.waitUntilExit()
 
-            // The plugin should also report non-zero exit codes from `swift-format` here.
-            
-            print("Formatted the source code in \(target.directory).")
+            // Check whether the subprocess invocation was successful.
+            if process.terminationReason == .exit && process.terminationStatus == 0 {
+                print("Formatted the source code in \(target.directory).")
+            }
+            else {
+                let problem = "\(process.terminationReason):\(process.terminationStatus)"
+                Diagnostics.error("swift-format invocation failed: \(problem)")
+            }
         }
     }
 }
@@ -690,7 +702,7 @@ let package = Package(
             capability: .command(
                 intent: .custom(
                     verb: "create-distribution-archive",
-                    description: "Creates a .tar file containing release binaries"
+                    description: "Creates a .zip containing release builds of products"
                 )
             ),
         )
@@ -707,44 +719,50 @@ import Foundation
 @main
 struct MyDistributionArchiveCreator: CommandPlugin {
     func performCommand(
-       context: PluginContext,
-       targets: [Target],
-       arguments: [String]
+        context: PluginContext,
+        targets: [Target],
+        arguments: [String]
     ) async throws {
         // Check that we were given the name of a product as the first argument
         // and the name of an archive as the second.
         guard arguments.count == 2 else {
-           throw Error("Expected two arguments: product name and archive name")
+            throw Error("Expected two arguments: product name and archive name")
         }
         let productName = arguments[0]
         let archiveName = arguments[1]
-        
+
         // Ask the plugin host (SwiftPM or an IDE) to build our product.
-        let result = await packageManager.build(
+        let result = try await packageManager.build(
             .product(productName),
             parameters: .init(configuration: .release, logging: .concise)
         )
         
         // Check the result. Ideally this would report more details.
         guard result.succeeded else { throw Error("couldn't build product") }
-        
+
         // Get the list of built executables from the build result.
-        let builtExecutables = result.builtArtifacts.first{ $0.kind == .executable }
-        
+        let builtExecutables = result.builtArtifacts.filter{ $0.kind == .executable }
+
         // Decide on the output path for the archive.
-        let outputPath = context.pluginWorkDirectory.appending("\(archiveName).tar")
-    
-        // Use Foundation to run `tar`. The exact details of using the Foundation
+        let outputPath = context.pluginWorkDirectory.appending("\(archiveName).zip")
+
+        // Use Foundation to run `zip`. The exact details of using the Foundation
         // API aren't relevant; the point is that the built artifacts can be used
         // by the script.
-        let tarTool = try context.tool(named: "tar")
-        let tarArgs = ["-czf", outputPath.string] + builtExecutables.map{ $0.path.string }
-        let process = Process.run(URL(fileURLWithPath: tarTool.path.string), arguments: tarArgs)
+        let zipTool = try context.tool(named: "zip")
+        let zipArgs = ["-j", outputPath.string] + builtExecutables.map{ $0.path.string }
+        let zipToolURL = URL(fileURLWithPath: zipTool.path.string)
+        let process = try Process.run(zipToolURL, arguments: zipArgs)
         process.waitUntilExit()
-        
-        // The plugin should also report errors from the creation of the archive.
-        
-        print("Created archive at \(outputPath).")
+
+        // Check whether the subprocess invocation was successful.
+        if process.terminationReason == .exit && process.terminationStatus == 0 {
+            print("Created distribution archive at \(outputPath).")
+        }
+        else {
+            let problem = "\(process.terminationReason):\(process.terminationStatus)"
+            Diagnostics.error("zip invocation failed: \(problem)")
+        }
     }
 }
 ```
@@ -791,6 +809,8 @@ Since SwiftPM currently has only a single-layered package dependency graph, it i
 
 Once this is possible, a future direction might be to have a command plugin use SwiftArgumentParser to declare a supported set of input parameters. This could allow SwiftPM (or possibly an IDE) to present an interface for those plugin options — IDEs, in particular, could construct user interfaces for well-defined options (possibly in the manner of the archaic MPW `Commando` tool).
 
+Another direction might be for the PackagePlugin API to define its own facility for a plugin to declare externally visible properties. This might include considerations particular to plugins, such as whether or not a particular path property is intended to be writable (requiring permission from the user before the plugin runs). As with SwiftArgumentParser, a natural approach would be to declare such properties on the type that implements the plugin, with their values having been set by the plugin host at the time the plugin is invoked.
+
 ### Additional access to Package Manager services
 
 The API in the `PackageManager` type that this proposal defines is just a start. The idea is to, over time, offer plugins a variety of functionality and derivable information that they can request and then further process.
@@ -802,3 +822,7 @@ Extending the `PackageManager` API does need to be done in a way that is possibl
 ### Providing access to build and test progress and structured results
 
 The initial proposed API for having plugins run builds and tests is fairly minimal. In particular, the build log is returned at the end of the build as a single text string, and the plugin has no way to cancel the build. Future proposals should extend this, ideally to the point at which `swift` `build` and `swift` `test` could themselves be implemented using the same API as for custom commands.
+
+### Allowing a plugin to report progress
+
+While a plugin can emit diagnostics using the `Diagnostics` type, there is currently no way for a plugin to report progress while it is running. This would be very useful for long-running plugins, and should be addressed in a future proposal.
