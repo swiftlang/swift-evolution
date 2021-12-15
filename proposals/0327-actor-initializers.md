@@ -780,18 +780,19 @@ In the above, the only difference between the `init` and the `deinit` is that th
 
 ### Global-actor isolation and instance members
 
-The main problem with global-actor isolation on the stored properties of a type is that, if the property is isolated to a global actor, then its default-value expression is also isolated to that actor. Since global-actor isolation can be applied independently to each stored property, an impossible isolation requirement can be constructed. The isolation needed for a type's non-delegating *and* non-async initializers is the union of all isolation applied to its stored properties that have a default value. That's because a non-async initializer cannot hop to any executor, and a function cannot be isolated to two global actors. Currently, Swift 5.5 accepts programs with these impossible requirements.
+The main problem with global-actor isolation on the stored properties of a type is that, if the property is isolated to a global actor, then its default-value expression is also isolated to that actor. Since global-actor isolation can be applied independently to each stored property, an impossible isolation requirement can be constructed. The isolation needed for a type's non-delegating *and* non-async initializers would be the union of all isolation applied to its stored properties that have a default value. That's because a non-async initializer cannot hop to any executor, and a function cannot be isolated to two global actors. Currently, Swift 5.5 accepts programs with these impossible requirements.
 
-To fix this problem, we propose the following rule that provides maximal use of default values, while excluding the problematic cases described earlier:
+To fix this problem, we propose to remove any isolation applied to the default-value expressions of stored properties that are a member of a nominal type. Instead, those expressions will be treated by the type system as being `nonisolated`. If isolation is required to initialize those properties, then an `init` can always be defined and given the appropriate isolation.
 
->For a given type with some stored property, a default value can only be provided if the isolation of the property is *compatible* with the isolation of all non-async and non-delegating initializers of that type. An isolated property is *compatible* if it is not isolated, or all such initializers have the same isolation.
+For global or static stored properties, the isolation of the default-value expression will continue to match the isolation applied to the property. This isolation is needed to support declarations such as:
 
-Formally, "compatible" could be defined as a relation. If `I` and `P` are sets of isolations for each relevant initializer and stored property, respectively, then *compatible* is a relation over the Cartesian product `I x P`. A pair `(i, p)` in `I x P` is *compatible* if any of these are true:
+```
+@MainActor
+var x = 20
 
-  - The isolations are equal (`i == p`).
-  - The property is nonisolated (`p == nonisolated`).
-
-This rule is sound under a separate compilation model, because neither stored properties nor non-delegating initializers can be defined in type extensions. Furthermore, this compatability rule does not extend to the inherited stored properties or designated initializers of a subclass. Only the designated initializers of a class must be compatible with its own stored properties.
+@MainActor 
+var y = x + 2
+```
 
 
 #### Removing Redundant Isolation
@@ -811,12 +812,12 @@ There are some changes in this proposal that are backwards compatible or easy to
 - Appearances of `convenience` on an actor's initializer can be ignored and/or have a fix-it emitted.
 - Appearances of superfluous global-actor isolation annotations on ordinary stored properties (say, in value types) can be ignored and/or have a fix-it emitted.
 
-But, there are others which will cause a non-trivial source break to patch holes in the concurrency model, for example:
+But, there are others which will cause a non-trivial source break to patch holes in the concurrency model of Swift 5.5, for example:
 
 - The set of `deinit`s accepted by the compiler for actors and GAITs will be narrowed.
 - GAITs will have data-race protections applied to their non-isolated `init`s, which slightly narrows the set of acceptable `init` declarations.
 - Global-actor isolation on stored-property members of an actor type are prohibited.
-- Stored-property members that are still permitted to have global-actor isolation applied to them cannot have a default value.
+- Stored-property members that are still permitted to have actor isolation applied to them will have a `nonisolated` default-value expression.
 
 Note that these changes to GAITs will only apply to classes defined in Swift. Classes imported from Objective-C with MainActor-isolation applied will be assumed to not have data races.
 
