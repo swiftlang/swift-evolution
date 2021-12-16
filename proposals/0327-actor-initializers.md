@@ -62,7 +62,7 @@ The *de facto* expected behavior, as induced by the existing implementation in S
 
 It's important to keep in mind that these is not an exhaustive list. In particular, global-actor isolated types are effectively actors themselves, so many of the same protections should apply to them, too.
 
-The following subsections will discuss these these high-level problems in more detail.
+The following subsections will discuss these high-level problems in more detail.
 
 ### Overly restrictive non-async initializers
 
