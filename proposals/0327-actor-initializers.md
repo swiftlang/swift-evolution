@@ -390,7 +390,8 @@ Accesses to the stored properties of `self` is required to bootstrap an instance
 
 1. Passing `self` as an argument in any procedure call. This includes:
     - Invoking a method of `self`.
-    - Accessing a computed property of `self`.
+    - Accessing a computed property of `self`, including ones using a property wrapper.
+    - Triggering an observed property (i.e., one with a `didSet` and/or `willSet`).
 2. Capturing `self` in a closure (or autoclosure).
 3. Storing `self` to memory.
 
@@ -527,33 +528,6 @@ init(hasASillyLoop2: Void) {
 ```
 
 In both loops above, it is clear to the programmer that no race will happen, because control-flow will not dynamically reach the statement incrementing `score` _after_ passing `self` in a procedure call. For these trivial examples, the compiler _may_ be able to prove that these loops do not execute more than once, but that is not guaranteed due to the [limitations of static analysis](https://en.wikipedia.org/wiki/Halting_problem).
-
-**Property Observers**
-In Swift, writes to a stored property can trigger a property observer to fire.
-Property observers, i.e., `didSet` and `willSet` can be attached to a stored property and have access to `self`:
-
-```swift
-actor Observed {
-  func mutate() { self.x += 1 }
-  var x: Int {
-    didSet {
-      print("hello!")
-      Task { await self.mutate() }
-    }
-  }
-
-  init() {
-    // none of these invokes the `didSet`, so `self` does not become
-    // `nonisolated` from these assignments:
-    self.x = 1
-    self.x = 2
-    self.x = 3
-  }
-}
-```
-
-But, such observers are _not_ invoked when assigning to a stored property within an initializer.
-Thus, non-isolation within an initializer cannot be introduced by an access to a stored property. The program above should be accepted as it is free of data races.
 
 **Data-race Safety**
 
@@ -798,9 +772,7 @@ var y = x + 2
 #### Removing Redundant Isolation
 
 Global-actor isolation on a stored property provides safe concurrent access to the storage occupied by that stored property in the type's instances.
-For example, if `pid` is an actor-isolated stored property without an observer, then the access `p.pid.reset()` only protects the memory read of `pid` from `p`, and not the call to `reset` afterwards.
-
-Thus, for value types (enums and structs), global-actor isolation on stored properties fundamentally serves no use: mutations of the storage occupied by the stored property in a value type are concurrency-safe by default, thanks to copy-on-write semantics. The only exception to this is when the stored property has an observer, i.e., `didSet` and/or `willSet`. In those cases, the global-actor isolation on the property extends to those observers. Thus, we propose barring stored properties of a value type from having global-actor isolation, _unless_ if it has an attached observer.
+For example, if `pid` is an actor-isolated stored property (i.e., one without an observer or property wrapper), then the access `p.pid.reset()` only protects the memory read of `pid` from `p`, and not the call to `reset` afterwards. Thus, for value types (enums and structs), global-actor isolation on those stored properties fundamentally serves no use: mutations of the storage occupied by the stored property in a value type are concurrency-safe by default, thanks to copy-on-write semantics. So, we propose to remove the requirement that access to those properties are protected by isolation. That is, reading or writing those stored properties do not require an `await`.
 
 The [global actors](0316-global-actors.md) proposal explicitly excludes actor types from having stored properties that are global-actor isolated. But in Swift 5.5, that is not enforced by the compiler. We feel that the rule should be enforced, i.e., the storage of an actor should uniformly be isolated to the actor instance. One benefit of this rule is that it reduces the possibility of [false sharing](https://en.wikipedia.org/wiki/False_sharing) among threads. Specifically, only one thread will have write access the memory occupied by an actor instance at any given time.
 
