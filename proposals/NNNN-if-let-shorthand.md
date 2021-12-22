@@ -94,7 +94,7 @@ if let foo = foo { ... }
 
 ## Source compatibility
 
-This change is purely additive and does not break source compatibility any valid existing Swift code.
+This change is purely additive and does not break source compatibility of any valid existing Swift code.
 
 ## Effect on ABI stability
 
@@ -122,6 +122,7 @@ if (foo != null) {
 
 This pattern in Kotlin _does not_ define a new variable -- it merely changes the type of the existing variable within the inner scope. So mutations that affect the inner scope also affect the outer scope:
 
+```kt
 var foo: String? = "foo"
 
 if (foo != null) {
