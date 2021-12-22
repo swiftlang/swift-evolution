@@ -40,7 +40,7 @@ extension MyActor {
     // Here we call a function which is not actor-isolated.
     let update = await session.readConsistentUpdate()
 
-    // Now we resume executing the function, so formaally we switch back to
+    // Now we resume executing the function, so formally we switch back to
     // the actor.
     name = update.name
     age = update.age
@@ -56,7 +56,7 @@ extension MyNetworkSession {
 
     // This code runs without any special isolation.
 
-    // Keep calling readUpdate until it return the same thing twice in a
+    // Keep calling readUpdate until it returns the same thing twice in a
     // row.  If that never happens in 1000 different calls, just return the
     // last update.  This code is just for explanatory purposes; please don't
     // expect too much from it.
@@ -127,7 +127,7 @@ actor MyActor {
 func outside(argument: NonSendableValue) async {
   // Under the current execution semantics, when we resume from this
   // sleep, we will not be on the actor's executor anymore.
-  // Under the proposed executtion semantics, we will leave the actor's
+  // Under the proposed execution semantics, we will leave the actor's
   // executor even before sleeping.
   await Task.sleep(nanoseconds: 1_000)
 
@@ -143,7 +143,7 @@ The sendability rule for `async` calls must be changed: the arguments and result
 
 ## Source compatibility
 
-The change to the execution semantics will not break source compatibility.  It is possible that it will break behavior in code that has already adopted concurrency by introducing a data race.
+The change to the execution semantics will not break source compatibility.  However, it's possible that recompiling code under this proposal will introduce a data race if that code was previously relying on an actor-isolated value passed as an argument to a non-actor-isolation function only being accessed on the actor's executor.  There should at least be a warning in this case.
 
 The change to the sendability rule may break source compatibility for code that has already adopted concurrency.
 
