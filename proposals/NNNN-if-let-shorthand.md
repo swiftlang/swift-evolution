@@ -4,8 +4,7 @@
 * Authors: [Cal Stephens](https://github.com/calda)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [calda/swift@ee8ebc0](https://github.com/calda/swift/commit/ee8ebc03db3d9be56fd5e2a8b036544e4b544535
-https://github.com/calda/swift/commit/ee8ebc03db3d9be56fd5e2a8b036544e4b544535)
+* Implementation: [apple/swift#40694](https://github.com/apple/swift/pull/40694)
 
 ## Introduction
 
@@ -19,7 +18,7 @@ if let foo {
 }
 ```
 
-Swift-evolution thread: TODO
+Swift-evolution thread: [`if let` shorthand](https://forums.swift.org/t/if-let-shorthand/54230)
 
 ## Motivation
 
