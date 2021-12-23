@@ -86,19 +86,15 @@ When this proposal speaks of an error being emitted as a warning or suppressed, 
 
 ### Concurrency checking modes
 
-Every scope in Swift can be described as having one of three "concurrency checking modes":
+Every scope in Swift can be described as having one of two "concurrency checking modes":
 
-* **Full concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as errors.
-
-* **Strict concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as warnings.
+* **Strict concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed. In Swift 6, these will generally be errors; in Swift 5 mode and with nominal declarations visible via  `@preconcurrency import` (defined below), these diagnostics will be warnings.
 
 * **Minimal concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as warnings; on nominal declarations, `@preconcurrency` (defined below) has special effects in this mode which suppress many diagnostics.
 
 The top level scope's concurrency checking mode is:
 
-* **Full** when the module is being compiled in Swift 6 mode or later.
-
-* **Strict** when the module is being compiled in a language version mode before Swift 6, but the `-warn-concurrency` flag is used, or when the file being parsed is a module interface.
+* **Strict** when the module is being compiled in Swift 6 mode or later, when the `-warn-concurrency` flag is used with an earlier language mode, or when the file being parsed is a module interface.
 
 * **Minimal** otherwise.
 
@@ -118,7 +114,7 @@ A child scope's concurrency checking mode is:
 
 * Otherwise, the same as the parent scope's.
 
-> Implementation note: The logic for determining whether a child scope is in Minimal or Strict mode is currently implemented in `swift::contextUsesConcurrencyFeatures()`.
+> Implementation note: The logic for determining whether a child scope is in Minimal or Strict mode is currently implemented in `swift::contextRequiresStrictConcurrencyChecking()`.
 
 Imported C declarations belong to a scope with Minimal concurrency checking.
 
@@ -184,26 +180,26 @@ func strict() async {
 
 A type can be described as having one of the following three `Sendable` conformance statuses:
 
-* **Explicitly `Sendable`** if it actually conforms to `Sendable`.
+* **Explicitly `Sendable`** if it actually conforms to `Sendable`, whether via explicit declaration or because the `Sendable` conformance was inferred based on the rules specified in [SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md).
 
-* **Explicitly non-`Sendable`** if a `Sendable` conformance has been declared for the type, but it is not available or has constraints the type does not satisfy, *or* if the type was declared in a scope that uses Full or Strict concurrency checking.[2]
+* **Explicitly non-`Sendable`** if a `Sendable` conformance has been declared for the type, but it is not available or has constraints the type does not satisfy, *or* if the type was declared in a scope that uses Strict concurrency checking.[2]
 
 * **Implicitly non-`Sendable`** if no `Sendable` conformance has been declared on this type at all.
 
 > [2] This means that, if a module is compiled with Swift 6 mode or the `-warn-concurrency` flag, all of its types are either explicitly `Sendable` or explicitly non-`Sendable`.
 
-A type can be made explicitly non-`Sendabl` by creating an unavailable conformance to `Sendable`, e.g.,
+A type can be made explicitly non-`Sendable` by creating an unavailable conformance to `Sendable`, e.g.,
 
 ```swift
 @available(unavailable, *)
 extension Point: Sendable { }
 ```
 
-Such a conformance suppresses the implicit conformance of a struct or enum to `Sendable`.
+Such a conformance suppresses the implicit conformance of a type to `Sendable`.
 
-### `predatesConcurrency` on `Sendable` protocols
+### `@preconcurrency` on `Sendable` protocols
 
-Some number of existing protocols describe types that should all be `Sendable`. When such protocols are updated for concurrency, they will likely inherit from the `Sendable` protocol. However, doing so will break existing types that conform to the protocol and are now assumed to be `Sendable`. This problem was [described in SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#thrown-errors) because it affects the `Error` and `CodingKey` protocols:
+Some number of existing protocols describe types that should all be `Sendable`. When such protocols are updated for concurrency, they will likely inherit from the `Sendable` protocol. However, doing so will break existing types that conform to the protocol and are now assumed to be `Sendable`. This problem was [described in SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#thrown-errors) because it affects the `Error` and `CodingKey` protocols from the standard library:
 
 ```swift
 protocol Error: /* newly added */ Sendable { ... }
@@ -229,19 +225,19 @@ We propose to replace this bespoke rule for `Error` and `CodingKey` to apply to 
 
 ### `@preconcurrency` attribute on `import` declarations
 
-The `@preconcurrency` attribute can be applied to an `import` statement to indicate that the compiler should reduce the strength of some concurrency-checking violations caused by types imported from that module. You can use it to import a module which has not yet been updated with concurrency annotations; if you do, the compiler will tell you when all of the types you need to be `Sendable` have been annotated. It also serves as a temporary escape hatch to keep your project compiling until any mistaken assumptions you had about that module are fixed.
+The `@preconcurrency` attribute can be applied to an `import` declaration to indicate that the compiler should reduce the strength of some concurrency-checking violations caused by types imported from that module. You can use it to import a module which has not yet been updated with concurrency annotations; if you do, the compiler will tell you when all of the types you need to be `Sendable` have been annotated. It also serves as a temporary escape hatch to keep your project compiling until any mistaken assumptions you had about that module are fixed.
 
 When an import is marked `@preconcurrency`, the following rules are in effect:
 
 * If an implicitly non-`Sendable` type is used where a `Sendable` type is needed:
 
-  * If the type is visible through an `@preconcurrency import`, no diagnostic is emitted.
+  * If the type is visible through a `@preconcurrency import`, the diagnostic is suppressed (prior to Swift 6) or emitted as a warning (in Swift 6 and later).
   
-  * Otherwise, the diagnostic is emitted normally, but a note is attached recommending that `@preconcurrency import` be used to work around the issue.
+  * Otherwise, the diagnostic is emitted normally, but a separate diagnostic is provided recommending that `@preconcurrency import` be used to work around the issue.
 
 * If an explicitly non-`Sendable` type is used where a `Sendable` type is needed:
 
-  * If the type is visible through an `@preconcurrency import`, a warning is emitted instead of an error, even in Full concurrency checking mode.
+  * If the type is visible through an `@preconcurrency import`, a warning is emitted instead of an error, even in Swift 6.
 
   * Otherwise, the diagnostic is emitted normally.
 
