@@ -55,7 +55,7 @@ Here, we need:
 
 We propose a suite of features to aid in the adoption of concurrency annotations, especially `Sendable` checking. These features are designed to enable the following workflow for adopting concurrency checking:
 
-1. Enable Swift 6 mode or the `-warn-concurrency` flag. This causes new errors or warnings to appear when concurrency constraints are violated.
+1. Enable concurrency checking,  by adopting concurrency features (such as `async/await` or actors), enabling Swift 6 mode, or the adding the `-warn-concurrency` flag. This causes new errors or warnings to appear when concurrency constraints are violated.
 
 2. Start solving those problems. If they relate to types from another module, a fix-it will suggest using a special kind of import, `@preconcurrency import`, which silences these warnings.
 
@@ -67,7 +67,7 @@ We propose a suite of features to aid in the adoption of concurrency annotations
 
 Achieving this will require several features working in tandem:
 
-* In Swift 6 mode, all code will be checked for missing `Sendable` conformances and other concurrency violations, with mistakes generally diagnosed as errors. The `-warn-concurrency` flag will diagnose these violations as warnings in older language versions.
+* In Swift 6 mode, all code will be checked completely for missing `Sendable` conformances and other concurrency violations, with mistakes generally diagnosed as errors. The `-warn-concurrency` flag will diagnose these violations as warnings in older language versions.
 
 * When applied to a nominal declaration, the `@preconcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 mode that violate concurrency checking, and generate code that interoperates with pre-concurrency binaries.
 
