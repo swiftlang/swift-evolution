@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Swift 5.5 introduced mechanisms to eliminate data races from the language, including the `Sendable` protocol ([SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md)) to indicate which types have values that can safely be used across task and actor boundaries, and global actors ([SE-0316](https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md)) to help ensure proper synchronization with (e.g.) the main actor. However, Swift 5.5 does not fully enforce `Sendable` nor all uses of the main actor because interacting with modules which have not been updated for Swift Concurrency would be painful. We propose adding features to help developers migrate their code to support concurrency and interoperate with other modules that have not yet adopted it.
+Swift 5.5 introduced mechanisms to eliminate data races from the language, including the `Sendable` protocol ([SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md)) to indicate which types have values that can safely be used across task and actor boundaries, and global actors ([SE-0316](https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md)) to help ensure proper synchronization with (e.g.) the main actor. However, Swift 5.5 does not fully enforce `Sendable` nor all uses of the main actor because interacting with modules which have not been updated for Swift Concurrency was found to be too onerous, . We propose adding features to help developers migrate their code to support concurrency and interoperate with other modules that have not yet adopted it, providing a smooth path for the Swift ecosystem to eliminate data racesT.
 
 Swift-evolution threads: [[Pitch] Staging in `Sendable` checking](https://forums.swift.org/t/pitch-staging-in-sendable-checking/51341), [Pitch #2](https://forums.swift.org/t/pitch-2-staging-in-sendable-checking/52413)
 
@@ -21,7 +21,7 @@ There are several areas where we wish to address adoption difficulties.
 
 ### Adding retroactive concurrency annotations to libraries
 
-Many existing APIs should be updated to formally specify specify concurrency behavior that they have always followed, but have not been able to describe to the compiler until now. For instance, it has always been the case that most UIKit methods and properties should only be used on the main thread, but before the `@MainActor` attribute, this behavior could only be documented and asserted in the implementation, not described to the compiler.
+Many existing APIs should be updated to formally specify concurrency behavior that they have always followed, but have not been able to describe to the compiler until now. For instance, it has always been the case that most UIKit methods and properties should only be used on the main thread, but before the `@MainActor` attribute, this behavior could only be documented and asserted in the implementation, not described to the compiler.
 
 Thus, many modules should undertake a comprehensive audit of their APIs to decide where to add concurrency annotations. But if they try to do so with the tools they currently have, this will surely cause source breaks. For instance, if a method is marked `@MainActor`, projects which have not yet adopted Swift Concurrency will be unable to call it even if they are using it correctly, because the project does not yet have the annotations to *prove to the compiler* that the call will run in the main actor.
 
@@ -57,21 +57,21 @@ We propose a suite of features to aid in the adoption of concurrency annotations
 
 1. Enable Swift 6 mode or the `-warn-concurrency` flag. This causes new errors or warnings to appear when concurrency constraints are violated.
 
-2. Start solving those problems. If they relate to types from another module, a fix-it will suggest using a special kind of import, `@predatesConcurrency import`, which silences these warnings.
+2. Start solving those problems. If they relate to types from another module, a fix-it will suggest using a special kind of import, `@preconcurrency import`, which silences these warnings.
 
 3. Once you've solved these problems, integrate your changes into the larger build.
 
 4. At some future point, a module you import may be updated to add `Sendable` conformances and other concurrency annotations. If it is, and your code violates the new constraints, you will see warnings telling you about these mistakes; these are latent concurrency bugs in your code. Correct them.
 
-5. Once you've fixed those bugs, or if there aren't any, you will see a warning telling you that the `@predatesConcurrency import` is unnecessary. Remove the `@predatesConcurrency` attribute. Any `Sendable`-checking failures involving that module from that point forward will not suggest using `@predatesConcurrency import` and, in Swift 6 mode, will be errors that prevent your project from building.
+5. Once you've fixed those bugs, or if there aren't any, you will see a warning telling you that the `@preconcurrency import` is unnecessary. Remove the `@preconcurrency` attribute. Any `Sendable`-checking failures involving that module from that point forward will not suggest using `@preconcurrency import` and, in Swift 6 mode, will be errors that prevent your project from building.
 
 Achieving this will require several features working in tandem:
 
 * In Swift 6 mode, all code will be checked for missing `Sendable` conformances and other concurrency violations, with mistakes generally diagnosed as errors. The `-warn-concurrency` flag will diagnose these violations as warnings in older language versions.
 
-* When applied to a nominal declaration, the `@predatesConcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 mode that violate concurrency checking, and generate code that interoperates with pre-concurrency binaries.
+* When applied to a nominal declaration, the `@preconcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 mode that violate concurrency checking, and generate code that interoperates with pre-concurrency binaries.
 
-* When applied to an `import` statement, the `@predatesConcurrency` attribute tells the compiler that it should only diagnose `Sendable`-requiring uses of non-`Sendable` types from that module if the type explicitly declares a `Sendable` conformance that is unavailable or has constraints that are not satisifed; even then, this will only be a warning, not an error.
+* When applied to an `import` statement, the `@preconcurrency` attribute tells the compiler that it should only diagnose `Sendable`-requiring uses of non-`Sendable` types from that module if the type explicitly declares a `Sendable` conformance that is unavailable or has constraints that are not satisifed; even then, this will only be a warning, not an error.
 
 
 ## Detailed design
@@ -92,7 +92,7 @@ Every scope in Swift can be described as having one of three "concurrency checki
 
 * **Strict concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as warnings.
 
-* **Minimal concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as warnings; on nominal declarations, `@predatesConcurrency` (defined below) has special effects in this mode which suppress many diagnostics.
+* **Minimal concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as warnings; on nominal declarations, `@preconcurrency` (defined below) has special effects in this mode which suppress many diagnostics.
 
 The top level scope's concurrency checking mode is:
 
@@ -122,7 +122,7 @@ A child scope's concurrency checking mode is:
 
 Imported C declarations belong to a scope with Minimal concurrency checking.
 
-### `@predatesConcurrency` attribute on nominal declarations
+### `@preconcurrency` attribute on nominal declarations
 
 To describe their concurrency behavior, maintainers must change some existing declarations in ways which, by themselves, could be source-breaking in pre-concurrency code or ABI-breaking when interoperating with previously-compiled binaries. In particular, they may need to:
 
@@ -130,9 +130,9 @@ To describe their concurrency behavior, maintainers must change some existing de
 * Add `Sendable` constraints to generic signatures
 * Add global actor attributes to declarations
 
-When applied to a nominal declaration, the `@predatesConcurrency` attribute indicates that a declaration existed before the module it belongs to fully adopted concurrency, so the compiler should take steps to avoid these source and ABI breaks. It can be applied to any `enum`, enum `case`, `struct`, `class`, `actor`, `protocol`, `var`, `let`, `subscript`, `init` or `func` declaration.
+When applied to a nominal declaration, the `@preconcurrency` attribute indicates that a declaration existed before the module it belongs to fully adopted concurrency, so the compiler should take steps to avoid these source and ABI breaks. It can be applied to any `enum`, enum `case`, `struct`, `class`, `actor`, `protocol`, `var`, `let`, `subscript`, `init` or `func` declaration.
 
-When a nominal declaration uses `@predatesConcurrency`:
+When a nominal declaration uses `@preconcurrency`:
 
 * Its name is mangled as though it does not use any of the listed features.
 
@@ -140,7 +140,7 @@ When a nominal declaration uses `@predatesConcurrency`:
 
 * The ABI checker will remove any use of these features when it produces its digests.
 
-Objective-C declarations are always imported as though they were annotated with `@predatesConcurrency`.
+Objective-C declarations are always imported as though they were annotated with `@preconcurrency`.
 
 For example, consider a function that can only be called on the main actor, then runs the provided closure on a different task:
 
@@ -168,7 +168,7 @@ class MyButton {
 }
 ```
 
-However, if we add `@predatesConcurrency` to the declaration of `doSomethingThenFollowUp`, its type is adjusted to remove both the `@MainActor` and the `@Sendable`, eliminating the errors and providing the same type inference from before concurrency was adopted by `doSomethingThenFollowUp`. The difference is visible in the type of `doSomethingThenFollowUp` in a minimal vs. a strict context:
+However, if we add `@preconcurrency` to the declaration of `doSomethingThenFollowUp`, its type is adjusted to remove both the `@MainActor` and the `@Sendable`, eliminating the errors and providing the same type inference from before concurrency was adopted by `doSomethingThenFollowUp`. The difference is visible in the type of `doSomethingThenFollowUp` in a minimal vs. a strict context:
 
 ```swift
 func minimal() {
@@ -220,69 +220,69 @@ To address this, SE-0302 says the following about the additional of `Sendable` t
 
 > To ease the transition, errors about types that get their `Sendable` conformances through `Error` will be downgraded to warnings in Swift < 6.
 
-We propose to replace this bespoke rule for `Error` and `CodingKey` to apply to every protocol that is annotated with `@predatesConcurrency` and inherits from `Sendable`. These two standard-library protocols will use `@predatesConcurrency`:
+We propose to replace this bespoke rule for `Error` and `CodingKey` to apply to every protocol that is annotated with `@preconcurrency` and inherits from `Sendable`. These two standard-library protocols will use `@preconcurrency`:
 
 ```swift
-@predatesConcurrency protocol Error: Sendable { ... }
-@predatesConcurrency protocol CodingKey: Sendable { ... }
+@preconcurrency protocol Error: Sendable { ... }
+@preconcurrency protocol CodingKey: Sendable { ... }
 ```
 
-### `@predatesConcurrency` attribute on `import` declarations
+### `@preconcurrency` attribute on `import` declarations
 
-The `@predatesConcurrency` attribute can be applied to an `import` statement to indicate that the compiler should reduce the strength of some concurrency-checking violations caused by types imported from that module. You can use it to import a module which has not yet been updated with concurrency annotations; if you do, the compiler will tell you when all of the types you need to be `Sendable` have been annotated. It also serves as a temporary escape hatch to keep your project compiling until any mistaken assumptions you had about that module are fixed.
+The `@preconcurrency` attribute can be applied to an `import` statement to indicate that the compiler should reduce the strength of some concurrency-checking violations caused by types imported from that module. You can use it to import a module which has not yet been updated with concurrency annotations; if you do, the compiler will tell you when all of the types you need to be `Sendable` have been annotated. It also serves as a temporary escape hatch to keep your project compiling until any mistaken assumptions you had about that module are fixed.
 
-When an import is marked `@predatesConcurrency`, the following rules are in effect:
+When an import is marked `@preconcurrency`, the following rules are in effect:
 
 * If an implicitly non-`Sendable` type is used where a `Sendable` type is needed:
 
-  * If the type is visible through an `@predatesConcurrency import`, no diagnostic is emitted.
+  * If the type is visible through an `@preconcurrency import`, no diagnostic is emitted.
   
-  * Otherwise, the diagnostic is emitted normally, but a note is attached recommending that `@predatesConcurrency import` be used to work around the issue.
+  * Otherwise, the diagnostic is emitted normally, but a note is attached recommending that `@preconcurrency import` be used to work around the issue.
 
 * If an explicitly non-`Sendable` type is used where a `Sendable` type is needed:
 
-  * If the type is visible through an `@predatesConcurrency import`, a warning is emitted instead of an error, even in Full concurrency checking mode.
+  * If the type is visible through an `@preconcurrency import`, a warning is emitted instead of an error, even in Full concurrency checking mode.
 
   * Otherwise, the diagnostic is emitted normally.
 
-* If the `@predatesConcurrency` attribute is unused[3], a warning will be emitted recommending that it be removed.
+* If the `@preconcurrency` attribute is unused[3], a warning will be emitted recommending that it be removed.
 
-> [3] We don't define "unused" more specifically because we aren't sure if we can refine it enough to, for instance, recommend removing one of a pair of `@predatesConcurrency` imports which both import an affected type.
+> [3] We don't define "unused" more specifically because we aren't sure if we can refine it enough to, for instance, recommend removing one of a pair of `@preconcurrency` imports which both import an affected type.
 
 ## Source compatibility
 
-This proposal is largely motivated by source compatibility concerns. Correct use of `@predatesConcurrency` should prevent source breaks in code built with Minimal concurrency checking, and `@predatesConcurrency import` temporarily weakens concurrency-checking rules to preserve source compatibility if a project adopts Full or Strict concurrency checking before its dependencies have finished adding concurrency annotations.
+This proposal is largely motivated by source compatibility concerns. Correct use of `@preconcurrency` should prevent source breaks in code built with Minimal concurrency checking, and `@preconcurrency import` temporarily weakens concurrency-checking rules to preserve source compatibility if a project adopts Full or Strict concurrency checking before its dependencies have finished adding concurrency annotations.
 
 ## Effect on ABI stability
 
-By itself, `@predatesConcurrency` does not change the ABI of a declaration. If it is applied to declarations which have already adopted one of the features it affects, that will create an ABI break. However, if those features are added at the same time or after `@predatesConcurrency` is added, adding those features will *not* break ABI.
+By itself, `@preconcurrency` does not change the ABI of a declaration. If it is applied to declarations which have already adopted one of the features it affects, that will create an ABI break. However, if those features are added at the same time or after `@preconcurrency` is added, adding those features will *not* break ABI.
 
-`@predatesConcurrency`'s tactic of disabling `Sendable` conformance errors is compatible with the current ABI because `Sendable` was designed to not emit additional metadata, have a witness table that needs to be passed, or otherwise impact the calling convention or most other parts of the ABI. It only affects the name mangling.
+`@preconcurrency`'s tactic of disabling `Sendable` conformance errors is compatible with the current ABI because `Sendable` was designed to not emit additional metadata, have a witness table that needs to be passed, or otherwise impact the calling convention or most other parts of the ABI. It only affects the name mangling.
 
 This proposal should not otherwise affect ABI.
 
 ## Effect on API resilience
 
-`@predatesConcurrency` on nominal declarations will need to be printed into module interfaces. It is effectively a feature to allow the evolution of APIs in ways that would otherwise break resilience.
+`@preconcurrency` on nominal declarations will need to be printed into module interfaces. It is effectively a feature to allow the evolution of APIs in ways that would otherwise break resilience.
 
-`@predatesConcurrency` on `import` statements will not need to be printed into module interfaces; since module interfaces use the Strict concurrency checking mode, where concurrency diagnostics are warnings, they have enough "wiggle room" to tolerate the missing conformances. (As usual, compiling a module interface silences warnings by default.)
+`@preconcurrency` on `import` statements will not need to be printed into module interfaces; since module interfaces use the Strict concurrency checking mode, where concurrency diagnostics are warnings, they have enough "wiggle room" to tolerate the missing conformances. (As usual, compiling a module interface silences warnings by default.)
 
 ## Alternatives considered
 
 ### A "concurrency epoch"
 
-If the evolution of a given module is tied to a version that can be expressed in `@available`, it is likely that there will be some specific version where it retroactively adds concurrency annotations to its public APIs, and that thereafter any new APIs will be "born" with correct concurrency annotations. We could take advantage of this by allowing the module to specify a "concurrency a particular version when it started ensuring that new APIs were annotated and automatically applying `@predatesConcurrency` to APIs available before this cutoff.
+If the evolution of a given module is tied to a version that can be expressed in `@available`, it is likely that there will be some specific version where it retroactively adds concurrency annotations to its public APIs, and that thereafter any new APIs will be "born" with correct concurrency annotations. We could take advantage of this by allowing the module to specify a "concurrency a particular version when it started ensuring that new APIs were annotated and automatically applying `@preconcurrency` to APIs available before this cutoff.
 
-This would save maintainers from having to manually add `@predatesConcurrency` to many of the APIs they are retroactively updating. However, it would have a number of limitations:
+This would save maintainers from having to manually add `@preconcurrency` to many of the APIs they are retroactively updating. However, it would have a number of limitations:
 
-1. It would only be useful for modules used exclusively on Darwin. Non-Darwin or cross-platform modules would still need to add `@predatesConcurrency` manually.
+1. It would only be useful for modules used exclusively on Darwin. Non-Darwin or cross-platform modules would still need to add `@preconcurrency` manually.
 
 2. It would only be useful for modules which are version-locked with either Swift itself or a Darwin OS. Modules in the package ecosystem, for instance, would have little use for it.
 
-3. In practice, version numbers may be insufficiently granular for this task. For instance, if a new API is added at the beginning of a development cycle and it is updated for concurrency later in that cycle, you might mistakenly assume that it will automatically get `@predatesConcurrency` when in fact you will need to add it by hand.
+3. In practice, version numbers may be insufficiently granular for this task. For instance, if a new API is added at the beginning of a development cycle and it is updated for concurrency later in that cycle, you might mistakenly assume that it will automatically get `@preconcurrency` when in fact you will need to add it by hand.
 
-Since these shortcomings significantly reduce its applicability, and you only need to add `@predatesConcurrency` to declarations you are explicitly editing (so you are already very close to the place where you need to add it), we think a concurrency epoch is not worth the trouble.
+Since these shortcomings significantly reduce its applicability, and you only need to add `@preconcurrency` to declarations you are explicitly editing (so you are already very close to the place where you need to add it), we think a concurrency epoch is not worth the trouble.
 
-### Objective-C and `@predatesConcurrency`
+### Objective-C and `@preconcurrency`
 
-Because all Objective-C declarations are implicitly `@predatesConcurrency`, there is no way to force concurrency APIs to be checked in Minimal-mode code, even if they are new enough that there should be no violating uses. We think this limitation is acceptable to simplify the process of auditing large, existing Objective-C libraries.
+Because all Objective-C declarations are implicitly `@preconcurrency`, there is no way to force concurrency APIs to be checked in Minimal-mode code, even if they are new enough that there should be no violating uses. We think this limitation is acceptable to simplify the process of auditing large, existing Objective-C libraries.
