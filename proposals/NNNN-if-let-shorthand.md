@@ -68,8 +68,8 @@ This would apply to all conditional control flow statements:
 if let foo { ... }
 if var foo { ... }
 
-else let foo { ... }
-else var foo { ... }
+else if let foo { ... }
+else if var foo { ... }
 
 guard let foo else { ... }
 guard var foo else { ... }
