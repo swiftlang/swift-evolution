@@ -3,13 +3,13 @@
 * Proposal: [SE-NNNN](NNNN-support-incremental-migration-to-concurrency-checking.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: [Pull request](https://github.com/apple/swift/pull/40680), [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/761//artifact/branch-main/swift-PR-40680-761-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/1256//artifact/branch-main/swift-PR-40680-1256-osx.tar.gz)
 
 ## Introduction
 
 Swift 5.5 introduced mechanisms to eliminate data races from the language, including the `Sendable` protocol ([SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md)) to indicate which types have values that can safely be used across task and actor boundaries, and global actors ([SE-0316](https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md)) to help ensure proper synchronization with (e.g.) the main actor. However, Swift 5.5 does not fully enforce `Sendable` nor all uses of the main actor because interacting with modules which have not been updated for Swift Concurrency was found to be too onerous, . We propose adding features to help developers migrate their code to support concurrency and interoperate with other modules that have not yet adopted it, providing a smooth path for the Swift ecosystem to eliminate data racesT.
 
-Swift-evolution threads: [[Pitch] Staging in `Sendable` checking](https://forums.swift.org/t/pitch-staging-in-sendable-checking/51341), [Pitch #2](https://forums.swift.org/t/pitch-2-staging-in-sendable-checking/52413)
+Swift-evolution threads: [[Pitch] Staging in `Sendable` checking](https://forums.swift.org/t/pitch-staging-in-sendable-checking/51341), [Pitch #2](https://forums.swift.org/t/pitch-2-staging-in-sendable-checking/52413), [Pitch #3](https://forums.swift.org/t/pitch-3-incremental-migration-to-concurrency-checking/53610)
 
 ## Motivation
 
