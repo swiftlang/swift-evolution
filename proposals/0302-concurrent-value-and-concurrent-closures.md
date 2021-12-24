@@ -529,7 +529,7 @@ This can be achieved by the introduction of a generic helper struct:
 
 ```swift
 @propertyWrapper
-struct UnsafeTransfer<Wrapper> : @unchecked Sendable {
+struct UnsafeTransfer<Wrapped> : @unchecked Sendable {
   var wrappedValue: Wrapped
   init(wrappedValue: Wrapped) {
     self.wrappedValue = wrappedValue
