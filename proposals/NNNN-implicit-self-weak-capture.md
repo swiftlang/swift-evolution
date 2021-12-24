@@ -1,4 +1,4 @@
-# Allow implicit `self` for `weak self` captures after `self` is unwrapped
+# Allow implicit `self` for `weak self` captures, after `self` is unwrapped
 
 * Proposal: [SE-NNNN](NNNN-implicit-self-weak-capture.md)
 * Authors: [Cal Stephens](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
@@ -25,7 +25,7 @@ class ViewController {
 }
 ```
 
-Swift-evolution thread: TODO
+Swift-evolution thread: [Allow implicit `self` for `weak self` captures, after `self` is unwrapped](https://forums.swift.org/t/allow-implicit-self-for-weak-self-captures-after-self-is-unwrapped/54262)
 
 ## Motivation
 
@@ -46,7 +46,7 @@ button.tapHandler = { [weak self] in
 }
 ```
 
-Since `self` has already been captured explicitly, there is limited value in requiring authors to use explicit `self`. This is inconsistent, and adds unnecessary visual noise to `weak self` closures. 
+Since `self` has already been captured explicitly, there is limited value in requiring authors to use explicit `self`. This is inconsistent, and adds unnecessary visual noise to the body of closures using `weak self` captures.
 
 ## Proposed solution
 
@@ -115,7 +115,7 @@ It is technically possible to also support implicit `self` _before_ `self` has b
 
 ```swift
 button.tapHandler = { [weak self] in
-  dismiss() // `self?.dismiss()`
+  dismiss() // as in `self?.dismiss()`
 }
 ```
 
