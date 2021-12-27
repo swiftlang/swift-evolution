@@ -35,6 +35,16 @@ if let someLengthyVariableName = someLengthyVariableName, let anotherImportantVa
 }
 ```
 
+One approach for dealing with this is to use shorter, less descriptive, names for the unwrapped variables:
+
+```swift
+if let a = someLengthyVariableName, let b = anotherImportantVariable {
+    ...
+}
+```
+
+This approach, however, reduces clarity at the point of use for the unwrapped variables. Instead of encouraging short variable names, we should allow for the ergonomic use of descriptive variable names.
+
 ## Proposed solution
 
 If we instead omit the right-hand expression, and allow the compiler to automatically shadow the existing variable with that name, these optional bindings are much less verbose, and noticably easier to read / write:
@@ -48,7 +58,7 @@ if let someLengthyVariableName, let anotherImportantVariable {
 }
 ```
 
-This is a fairly natural extension to the existing syntax for optional binding conditions. Using `let` (or `var`) here makes it abundantly clear that a new variable is being defined, which is especially important when used with mutable value types. Using `let` / `var` here also allows us to avoid adding any new keywords to the language.
+This is a fairly natural extension to the existing syntax for optional binding conditions.
 
 ## Detailed design
 
@@ -92,6 +102,20 @@ is transformed into:
 if let foo = foo { ... }
 ```
 
+Explicit type annotations are permitted, like with standard optional binding conditions.
+
+For example:
+
+```swift
+if let foo: Foo { ... }
+```
+
+is transformed into:
+
+```swift
+if let foo: Foo = foo { ... }
+```
+
 ## Source compatibility
 
 This change is purely additive and does not break source compatibility of any valid existing Swift code.
@@ -106,9 +130,29 @@ This change is purely additive, and is a syntactic transformation to existing va
 
 ## Alternatives considered
 
-There have been many other proposed spellings for this feature.
+There have been many other proposed spellings for this feature:
 
-One common proposal is to permit `nil`-checks (like `if foo != nil`) to unwrap the variable in the inner scope. Kotlin supports this type of syntax:
+### `if let foo?`
+
+One common suggestion is to include a `?` to explicitly indicate that this is unwrapping an optional, using `if let foo?`. This is indicative of the existing `case let foo?` pattern matching syntax.
+
+`if let foo = foo` (the most common existing syntax for this) unwraps optionals without an explicit `?`. This implies that a conditional optional binding is sufficiently clear without a `?` to indicate the presence of an optional. If this is the case, then an additional `?` is likely not strictly necessary in the shorthand `if let foo` case.
+
+While the symmetry of `if let foo?` with `case let foo?` is quite nice, the symmetry of `if let foo` with `if let foo = foo` is even more important. Pattern matching is a somewhat advanced feature — `if let foo = foo` bindings are much more fundamental. 
+
+Additionally, the `?` makes it trickier to support explicit type annotations like in `if let foo: Foo = foo`. `if let foo: Foo` is a natural consequence of the existing grammar. It's less clear how this would work with an additional `?`. `if let foo?: Foo` likely makes the most sense, but doesn't match any existing language constructs.
+
+### `if unwrap foo`
+
+Another common suggestion is to introduce a new keyword for this purpose, like `if unwrap foo` or `if have foo`. 
+
+It is preferable to draw from existing keywords and patterns rather than introduce a new keyword specifically for this shorthand syntax. 
+
+For pairity with existing optional binding conditions, any new syntax should support the distintion between `if let foo = foo` and `if var foo = foo`. Additionally, explicitly writing `let` or `var` is important for indicating that a new variable is being declared for the inner scope.
+
+### `if foo != nil`
+
+One somewhat common proposal is to permit `nil`-checks (like `if foo != nil`) to unwrap the variable in the inner scope. Kotlin supports this type of syntax:
 
 ```kt
 var foo: String? = "foo"
@@ -134,7 +178,7 @@ if (foo != null) {
 print(foo) // "bar"
 ```
 
-This is different from Swift's optional binding conditions (`if let foo = foo`), which define a new, _separate_ variable. This is a defining characteristic of optional binding conditions in Swift, so any shorthand syntax must make it abundantly clear that a new variable is being declared. 
+This is different from Swift's optional binding conditions (`if let foo = foo`), which define a new, _separate_ variable. This is a defining characteristic of optional binding conditions in Swift, so any shorthand syntax must make it abundantly clear that a new variable is being declared.
 
 ## Acknowledgments
 
