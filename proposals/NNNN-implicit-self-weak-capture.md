@@ -77,23 +77,36 @@ If `self` has not been unwrapped yet, the following error will be emitted:
 
 ```swift
 button.tapHandler = { [weak self] in
-  // error: explicit use of 'self' is required when 'self' is optional,
-  // to make control flow explicit
-  // fix-it: reference 'self?.' explicitly
-  dismiss()
+    // error: explicit use of 'self' is required when 'self' is optional,
+    // to make control flow explicit
+    // fix-it: reference 'self?.' explicitly
+    dismiss()
 }
 ```
 
-Like in [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), the innermost closure most capture `self` explicitly in order to use implicit `self`.
+Following the precedent of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), the innermost closure most capture `self` explicitly in order to use implicit `self`.
 
 ```swift
-execute { [weak self] in
-  guard let self = self else { return }
+button.tapHandler = { [weak self] in
+    guard let self = self else { return }
 
-  execute {
-      // call to method 'operation' in closure requires explicit use of 'self' to make capture semantics explicit
-      dismiss()
-  }
+    execute {
+        // error: call to method 'method' in closure requires 
+        // explicit use of 'self' to make capture semantics explicit
+        dismiss()
+    }
+}
+```
+
+Also following [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), implicit `self` will only be permitted if the `self` optional binding specifically, and exclusively, refers the closure's `self` capture:
+
+```swift
+button.tapHandler = { [weak self] in
+    guard let self = self ?? someOptionalWithSameTypeOfSelf else { return }
+
+    // error: call to method 'method' in closure requires explicit use of 'self' 
+    // to make capture semantics explicit
+    method()
 }
 ```
 
@@ -115,7 +128,7 @@ It is technically possible to also support implicit `self` _before_ `self` has b
 
 ```swift
 button.tapHandler = { [weak self] in
-  dismiss() // as in `self?.dismiss()`
+    dismiss() // as in `self?.dismiss()`
 }
 ```
 
@@ -124,3 +137,5 @@ That would effectively add implicit control flow, however. `dismiss()` would onl
 ## Acknowledgments
 
 Thanks to the authors of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md) for laying the foundation for this proposal.
+
+Thanks to Kyle Sluder for [the suggestion](https://forums.swift.org/t/allow-implicit-self-for-weak-self-captures-after-self-is-unwrapped/54262/2) to not permit implicit `self` in cases where the unwrapped `self` value doesn't necessarily refer to the closure's `self` capture, like in `let self = self ?? C.global`.
