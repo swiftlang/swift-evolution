@@ -1,4 +1,4 @@
-# `if let` shorthand
+# `if let` shorthand for shadowing an existing optional variable 
 
 * Proposal: [SE-NNNN](NNNN-if-let-shorthand.md)
 * Authors: [Cal Stephens](https://github.com/calda)
@@ -132,23 +132,58 @@ This change is purely additive, and is a syntactic transformation to existing va
 
 There have been many other proposed spellings for this feature:
 
+### `if foo`
+
+The briefest possible spelling for this feature would just be a bare `if foo` condition. This spelling, however, would create ambiguity between optional unwrapping conditions and boolean conditions, and could lead to confusing / conter-intuitive situations:
+
+```swift
+let foo: Bool = true
+let bar: Bool? = false
+
+if foo, bar {
+  // would succeed
+}
+
+if foo == true, bar == true {
+  // would fail
+}
+```
+
+To avoid this abiguity, we need some sort of distinct syntax for optional bindings.
+
+### `if foo?`, `if unwrap foo`
+
+Another option is to introduce a new keyword or sigil for this purpose, like `if foo?`, `if unwrap foo` or `if have foo`.
+
+One of the key behaviors of optional unwrapping is that it creates a new variable defined within the inner scope. We use `let` / `var` to introduce new variables elsewhere in the language, so `if let foo` should make the variable scoping behavior reasonably clear and unabiguous. For `if foo?` and `if unwrap foo`, it is not inherently obvious whether or not a new variable is defined for the inner scope. This has the potential to be confusing, and likely reduces clarity compared to the existing syntax.
+
+Another downside of introducing a new keyword / sigil is that the limitations of this shorthand syntax become less intutive. For example, it is not necessarily obvious that `if foo.bar?` or `if unwrap foo.bar` would be invalid. On the other hand, it is somewhat intuitive that `if let foo.bar` would be invalid (e.g. that `let` can only be followed by an identifier and not an expression) since this is the case elsewhere in the language.
+
+Other benefits of using the `let` keyword here include:
+
+ - supporting `var` (like in `if var foo = foo`) is trivial since we already have the `let` introducer for the more common immutable case.
+
+ - consistency with existing optional binding conditions, which is useful in mixed-expression `if` statements:
+
+      ```swift
+      // Consistent
+      if let user, let defaultAddress = user.shippingAddresses.first { ... }
+
+      // Inconsistent
+      if unwrap user, let defaultAddress = user.shippingAddresses.first { ... }
+
+      if user?, let defaultAddress = user.shippingAddresses.first { ... }
+      ```
+
 ### `if let foo?`
 
-One common suggestion is to include a `?` to explicitly indicate that this is unwrapping an optional, using `if let foo?`. This is indicative of the existing `case let foo?` pattern matching syntax.
+Another option is to include a `?` to explicitly indicate that this is unwrapping an optional, using `if let foo?`. This is indicative of the existing `case let foo?` pattern matching syntax.
 
 `if let foo = foo` (the most common existing syntax for this) unwraps optionals without an explicit `?`. This implies that a conditional optional binding is sufficiently clear without a `?` to indicate the presence of an optional. If this is the case, then an additional `?` is likely not strictly necessary in the shorthand `if let foo` case.
 
 While the symmetry of `if let foo?` with `case let foo?` is quite nice, the symmetry of `if let foo` with `if let foo = foo` is even more important. Pattern matching is a somewhat advanced feature — `if let foo = foo` bindings are much more fundamental. 
 
 Additionally, the `?` makes it trickier to support explicit type annotations like in `if let foo: Foo = foo`. `if let foo: Foo` is a natural consequence of the existing grammar. It's less clear how this would work with an additional `?`. `if let foo?: Foo` likely makes the most sense, but doesn't match any existing language constructs.
-
-### `if unwrap foo`
-
-Another common suggestion is to introduce a new keyword for this purpose, like `if unwrap foo` or `if have foo`. 
-
-It is preferable to draw from existing keywords and patterns rather than introduce a new keyword specifically for this shorthand syntax. 
-
-For pairity with existing optional binding conditions, any new syntax should support the distintion between `if let foo = foo` and `if var foo = foo`. Additionally, explicitly writing `let` or `var` is important for indicating that a new variable is being declared for the inner scope.
 
 ### `if foo != nil`
 
@@ -178,8 +213,24 @@ if (foo != null) {
 print(foo) // "bar"
 ```
 
-This is different from Swift's optional binding conditions (`if let foo = foo`), which define a new, _separate_ variable. This is a defining characteristic of optional binding conditions in Swift, so any shorthand syntax must make it abundantly clear that a new variable is being declared.
+This is different from Swift's optional binding conditions (`if let foo = foo`), which define a new, _separate_ variable in the inner scope. This is a defining characteristic of optional binding conditions in Swift, so any shorthand syntax must make it abundantly clear that a new variable is being declared.
+
+### Don't permit `if var foo`
+
+Since `if var foo = foo` is significantly less common that `if let foo = foo`, we could potentially choose to _not_ support `var` in this shorthand syntax. 
+
+`var` shadowing has the potential to be more confusing than `let` shadowing -- `var` introduces a new _mutable_ variable, and any mutations to the new variable are not shared with the original optional variable. `if var foo = foo` already exists, and it seems unlikely that `if var foo` would be more confusing / less clear than the existing syntax.
+
+Since `let` and `var` are interchangable elsewhere in the language, that should also be the case here -- disallowing `if var foo` would be inconsistent with existing optional binding condition syntax. If we were using an alternative spelling that _did not_ use `let`, it may be reasonable to exclude `var` -- but since we are using `let` here, `var` should also be allowed.
 
 ## Acknowledgments
 
 Many thanks to Craig Hockenberry, who recently wrote about this topic in [Let’s fix `if let` syntax](https://forums.swift.org/t/lets-fix-if-let-syntax/48188) which directly informed this proposal.
+
+Thanks to Ben Cohen for suggesting the alternative `if let foo?` spelling.
+
+Thanks to Chris Lattner for suggesting to consider whether or not we should support `if var foo`.
+
+Thanks to [tera](https://forums.swift.org/u/tera/summary) for suggesting the alternative `if foo` spelling.
+
+Thanks to James Dempsey for providing the "consistency with existing optional binding conditions" example.
