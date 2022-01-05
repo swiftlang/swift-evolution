@@ -42,6 +42,11 @@
   * Proposal reorganization
   * Added `DurationProtocol` and per instant interval association
   * Rename Monotonic and Uptime clocks to Continuous and Suspending to avoid platform ambiguity and perhaps add more clarity of uses.
+* **v2.1**
+  * Refined `DurationProtocol` to only use `Int` instead of `BinaryInteger` for arithmetic.
+  * Added some additional alternatives considered for `DurationProtocol` and naming associated with it.
+  * Renamed the associated type on `InstantProtocol` to be `Duration`.
+  * Added back in task based sleep methods. Added a shorthand for sleeping tasks given a Duration.
 
 ## Introduction
 
@@ -107,15 +112,15 @@ public protocol Clock: Sendable {
   
   var now: Instant { get }
   
-  func sleep(until deadline: Instant, tolerance: Instant.Interval?) async throws 
+  func sleep(until deadline: Instant, tolerance: Instant.Duration?) async throws 
 
-  var minimumResolution: Instant.Interval { get }
+  var minResolution: Instant.Duration { get }
   
   func measure(_ work: () async throws -> Void) reasync rethrows -> Duration
 }
 ```
 
-This means that given an instant, it is intrinsically linked to the clock; e.g., a specific clock's instant is not meaningfully comparable to all other clock instants. However, as an ease of use concession, the durations between two instants can be compared. However, doing this across clocks is potentially considered a programmer error, unless handled very carefully. By making the protocol hierarchy just clocks and instants, it means that we can easily express a compact form of a duration that is usable in all cases; particularly for APIs that might adopt Duration as a replacement to an existing type.
+This means that given an instant, it is intrinsically linked to the clock; e.g., a specific clock's instant is not meaningfully comparable to all other clock instants. However, as an ease of use concession, the duration between two instants can be compared. However, doing this across clocks is potentially considered a programmer error, unless handled very carefully. By making the protocol hierarchy just clocks and instants, it means that we can easily express a compact form of a duration that is usable in all cases; particularly for APIs that might adopt Duration as a replacement to an existing type.
 
 The clock minimum resolution will have a default implementation that returns `.nanosecond(1)`. This property serves to inform users of a clock the potential minimum granularity of what to invocations to now may return but also indicate the minimum variance between two instants that are significant. Practically speaking, this becomes relevant when measuring work - execution of a small work load may be executed in under the minimum resolution and not provide accurate information. 
 
@@ -146,19 +151,19 @@ The primary reasoning that instants are useful is that they can be composed. Giv
 
 ```swift
 public protocol InstantProtocol: Comparable, Hashable, Sendable {
-  associatedtype Interval: DurationProtocol
-  func advanced(by duration: Interval) -> Self
-  func duration(to other: Self) -> Interval
+  associatedtype Duration: DurationProtocol
+  func advanced(by duration: Duration) -> Self
+  func duration(to other: Self) -> Duration
 }
 
 extension InstantProtocol {
-  public static func + (_ lhs: Self, _ rhs: Interval) -> Self
-  public static func - (_ lhs: Self, _ rhs: Interval) -> Self
+  public static func + (_ lhs: Self, _ rhs: Duration) -> Self
+  public static func - (_ lhs: Self, _ rhs: Duration) -> Self
   
-  public static func += (_ lhs: inout Self, _ rhs: Interval)
-  public static func -= (_ lhs: inout Self, _ rhs: Interval)
+  public static func += (_ lhs: inout Self, _ rhs: Duration)
+  public static func -= (_ lhs: inout Self, _ rhs: Duration)
   
-  public static func - (_ lhs: Self, _ rhs: Self) -> Interval
+  public static func - (_ lhs: Self, _ rhs: Self) -> Duration
 }
 ```
 
@@ -168,22 +173,22 @@ If at such time that `Strideable` no longer requires `SignedNumeric` strides, or
 
 ### DurationProtocol
 
-Specific clocks may have concepts of intervals that may express durations outside of temporal concepts. For example a clock tied to the GPU may express intervals as a number of frames, whereas a manual clock may express them as steps. Most clocks however will express their interval as a duration represented by an integral measuring seconds/nanoseconds etc. This duration has a few basic requirements; it must be comparable, and able to be added (similar to the concept previously stated with `InstantProtocol` they cannot be `Stridable` since it would mean that two `DurationProtocol` adopting types would then be allowed to be multiplied together).
+Specific clocks may have concepts of durations that may express durations outside of temporal concepts. For example a clock tied to the GPU may express durations as a number of frames, whereas a manual clock may express them as steps. Most clocks however will express their duration type as a `Duration` represented by an integral measuring seconds/nanoseconds etc. We feel that it is not an incredibly common task to implement a clock and using the extended name of `Swift.Duration` is reasonable to expect and does not impact normal interactions with clocks. This duration has a few basic requirements; it must be comparable, and able to be added (similar to the concept previously stated with `InstantProtocol` they cannot be `Stridable` since it would mean that two `DurationProtocol` adopting types would then be allowed to be multiplied together).
 
 ```swift
 public protocol DurationProtocol: Comparable, AdditiveArithmetic, Sendable {
-  static func / <T: BinaryInteger>(_ lhs: Self, _ rhs: T) -> Self
-  static func /= <T: BinaryInteger>(_ lhs: inout Self, _ rhs: T)
-  static func * <T: BinaryInteger>(_ lhs: Self, _ rhs: T) -> Self
-  static func *= <T: BinaryInteger>(_ lhs: inout Self, _ rhs: T)
+  static func / (_ lhs: Self, _ rhs: Int) -> Self
+  static func /= (_ lhs: inout Self, _ rhs: Int)
+  static func * (_ lhs: Self, _ rhs: Int) -> Self
+  static func *= (_ lhs: inout Self, _ rhs: Int)
   
   static func / (_ lhs: Self, _ rhs: Self) -> Double
 }
 ```
 
-In order to ensure efficient calculations for durations there must be a few additional methods beyond just additive arithmetics that types conforming to `DurationProtocol` must implement - these are the division and multiplication by binary integers and a division creating a double value.  This provides the most minimal set of functions to accomplish concepts like the scheduling of a timer, or back-off algorithms.
+In order to ensure efficient calculations for durations there must be a few additional methods beyond just additive arithmetic that types conforming to `DurationProtocol` must implement - these are the division and multiplication by binary integers and a division creating a double value.  This provides the most minimal set of functions to accomplish concepts like the scheduling of a timer, or back-off algorithms. This protocol definition is very close to a concept of `VectorSpace`; if at such time that a more refined protocol definition for a composition of `Comparable` and `AdditiveArithmetic` comes to be - this protocol should be considered as part of any potential improvement in that area.
 
-The naming of `DurationProtocol` was chosen because we feel that the canonical definition of intervals is a temporal duration. All clocks being proposed here have an interval type of `Duration`; but other more specialized clocks may offer duration types that provide their own custom intervals.
+The naming of `DurationProtocol` was chosen because we feel that the canonical definition of durations is a temporal duration. All clocks being proposed here have an interval type of `Swift.Duration`; but other more specialized clocks may offer duration types that provide their own custom durations.
 
 ### Duration
 
@@ -216,13 +221,13 @@ extension Duration: AdditiveArithmetic { }
 extension Duration {
   public static func / (_ lhs: Duration, _ rhs: Double) -> Duration
   public static func /= (_ lhs: inout Duration, _ rhs: Double)
-  public static func / <T: BinaryInteger>(_ lhs: Duration, _ rhs: T) -> Duration
-  public static func /= <T: BinaryInteger>(_ lhs: inout Duration, _ rhs: T)
+  public static func / (_ lhs: Duration, _ rhs: Int) -> Duration
+  public static func /= (_ lhs: inout Duration, _ rhs: Int)
   public static func / (_ lhs: Duration, _ rhs: Duration) -> Double
   public static func * (_ lhs: Duration, _ rhs: Double) -> Duration
   public static func *= (_ lhs: inout Duration, _ rhs: Double)
-  public static func * <T: BinaryInteger>(_ lhs: Duration, _ rhs: T) -> Duration
-  public static func *= <T: BinaryInteger>(_ lhs: inout Duration, _ rhs: T)
+  public static func * (_ lhs: Duration, _ rhs: Int) -> Duration
+  public static func *= (_ lhs: inout Duration, _ rhs: Int)
 }
 
 extension Duration: DurationProtocol { }
@@ -339,6 +344,26 @@ Previous revisions of this proposal moved `Date` to the standard library along w
 
 This approach preserves compatibility with those APIs while still providing the capability to use `Date` for scheduling in the rare cases that it is needed.
 
+### Task
+
+The existing `Task` API has methods in which to sleep. These existing methods do not have any specified behavior of sleeping; however under the hood it uses a continuous clock on darwin and a suspending clock on linux. 
+
+The existing API for sleeping will be deprecated, and the existing deprecation will be updated accordingly to point to the new APIs.
+
+```swift
+extension Task {
+  @available(*, deprecated, renamed: "Task.sleep(for:)")
+  public static func sleep(_ duration: UInt64) async
+  
+  @available(*, deprecated, renamed: "Task.sleep(for:)")
+  public static func sleep(nanoseconds duration: UInt64) async throws
+  
+  public static func sleep(for: Duration) async throws
+  
+  public static func sleep<C: Clock>(until deadine: C.Instant, tolerance: C.Instant.Duration? = nil, clock: C) async throws
+}
+```
+
 ### Example Custom Clock
 
 One example for adopting `Clock` is a manual clock. This could be a useful item for testing (but not currently part of this proposal as an API to add). It allows for the manual advancement of time in a deterministic manner. The general intent is to allow the manual clock type to be advanced from one thread and the sleep function can then be used to act as if it was a standard clock in generic APIs.
@@ -444,6 +469,12 @@ Originally the proposal included a concept of lowering `Date` to the standard li
 
 Also in the original revisions of the proposal we had a concept of `WallClock`. After much discussion we feel that the name wall clock is misleading since the type really represents a clock based on UTC (once `Date` has a historical accounting of leap seconds). But furthermore, we feel that the general utility of scheduling via a UTC clock is not a common task and that a vast majority of clocks for scheduling are really things that transact either via a clock that time passes while the machine is asleep or a clock that time does not pass while the machine is asleep. That accounting means that we feel that the right home for `UTCClock` is in a higher level framework for that specialized task along side the calendrical calculation APIs; which is Foundation.
 
+### DurationProtocol Generalized Arithmetics and Protocol Definition
+
+It was considered to have a more general form of the arithmetics for `DurationProtocol`. This poses a potential pitfall for adopters that may inadvertently implement some truncation of values. Since most values passed around that are integral types are spelled as `Int` it means that this interface is better served as just using multiplication and division via `Int`. In that vein; it was also considered to use `Double` instead, this however does not work nicely for types that define durations like "steps" or "frames"; e.g. things that are not distinctly divisible beyond 1 unit. It is still under the domain of that `DurationProtocol` adopting type to define that behavior and how it rounds or asserts etc.
+
+Similarly to the arithmetics; it was also considered to have the associated type to `InstantProtocol` as just a glob of protocols `Comparable & AdditiveArithmetic & Sendable`, however this lacks the capability of fast-paths for things like back-offs (ala Zeno's algorithm) or debounce, or timer coalescing. Some of them could be re-written in terms of loops of addition, however it would likely result in hot-looping over missed intervals in some cases, or in others not even being able to implement them (e.g. division for back-offs).
+
 ### Alternative Names
 
 There have been a number of names that have been considered during this proposal (these are a few highlights):
@@ -454,6 +485,7 @@ The protocol `Clock` has been considered to be named:
 The protocol `InstantProtocol` has been considered to be named:
 * `ReferencePoint` - This ended up being too vague and did not capture the concept of time
 * `Deadline`/`DeadlineProtocol` - Not all instant types are actually deadlines, so the nomenclature became confusing.
+* The associated type of `InstantProtocol.Duration` was considered for a few other names; `TimeSpan` and `Interval`. These names lack symmetry; `Clock` has an `Instant` which is an `InstantProtocol`, `InstantProtocol` has a `Duration` which is a `DurationProtocol`.
 
 The protocol `DurationProtocol` has been considered to be named:
 * Not having it has been considered but ultimately rejected to ensure flexibility of the API for other clock types that transact in concept like "frames" or "steps".
