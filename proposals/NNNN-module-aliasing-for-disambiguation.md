@@ -216,9 +216,11 @@ This proposal does not introduce features that would be part of a public API.
 
 * C++ interop support could potentially allow C++ modules to be aliased besides pure Swift modules.  
 
-* Nested namespacing / submodules in Swift is a multifaceted feature and requires answers to problems including how the nesting should be represented, e.g. via a lexical scope or a file-system, whether it requires a new keyword or a module metadata file, what access control should be allowed for a submodule and how it interacts with its sibling submodule or its parent module or its client, how submodules can be imported or re-exported or interop with Objective-C, whether the name lookup ordering should be modified for a fully qualified decl access containing multiple nested modules, and the impact on ABI/ source/backward compatibility. 
-  
-  Module aliaisng does not introduce any lexical or structural changes that might have an impact on any of the concerning areas listed above; it simply aliases the module names referenced as if users renamed their modules manually. It is an orthogonal feature and can coexist with nested namespacing / submodules if we do decide to support it in the future. 
+* Swift currently does not support nested namespacing / submodules, but it would be an interesting future direction to explore. Such feature would allow Swift users to better organize their code, resolve naming conflicts, and set more fine grained access controls.
+
+  Module aliaisng does not introduce any lexical or structural changes that might have an impact on areas concerning submodules support; it simply aliases the module names referenced as if users renamed their modules manually. It is an orthogonal feature and can coexist with nested namespacing / submodules if we decide to support it in the future.
+
+  Supporting nested namespacing / submodules as a future direction for Swift would require detailed design for some of the following concerns: how the nesting should be represented, e.g. via a lexical scope or a file-system, whether it requires a new keyword or a module metadata file, what access control should be allowed for a submodule and how it interacts with its sibling submodule or its parent module or its client, how submodules can be imported or re-exported or interop with Objective-C, whether the name lookup ordering should be modified for a fully qualified decl access containing multiple nested modules, and the impact on ABI/ source/backward compatibility. 
 
 ## Acknowledgments
 This proposal was improved with feedback and helpful suggestions along with code reviews by Becca Royal-Gordon, Alexis Laferriere, Pavel Yaskevich, Joe Groff, Mike Ash, Adrian Prantl, Artem Chikin, Boris Buegling, Anders Bertelrud, Tom Doron, and Johannes Weiss, and others.  
