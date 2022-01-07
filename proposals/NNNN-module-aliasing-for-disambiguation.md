@@ -29,7 +29,7 @@ We believe that module aliasing provides a systematic method for addressing modu
 
 Module aliasing relies on being able to change the namespace of all declarations in a module, so initially only pure Swift modules will be supported.  Languages that give declarations names outside of the control of Swift, such as C, C++, and Objective-C, would require special handling; see the **Requirements / Limitations** section for more details.
 
-To go over how the module aliasing works, let’s consider the following scenario: App depends on module Utils from package swift-game, and wants to add another dependency also called Utils but from another package. Currently we will get an error due to the duplicate module names. 
+To see how module aliasing works, let’s consider the following scenario: `App` currently uses a module named `Utils` from the package `swift-game`, and it wants to also use a module named `Utils` from the package `swift-draw`. Currently we will get an error due to the duplicate module names. 
 ```
 App
 |— Module Utils (from package ‘swift-game’)
