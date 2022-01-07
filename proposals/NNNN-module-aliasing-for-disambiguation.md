@@ -82,7 +82,7 @@ public func start(level: Utils.Level) { ... }
 
 As with the first scenario, the Utils modules are conflicting, so we need to perform the steps 1-2 above. Then we need to build module Game by applying `-module-alias Utils=GameUtils`, so that the references to Utils in source files of module Game are compiled as GameUtils without making any source changes. The compiler invocation command to build Game then is `swiftc -module-name Game -module-alias Utils=GameUtils ...`. App can then import module Game and any of the renamed Utils as needed. 
 
-As seen above, module aliasing can be done directly via a compiler invocation command, but most users do not interact with the command directly. Thus we plan to provide an easier access via new build configs which can be adopted by any build systems; in particular, we will focus on how it can be adopted via SwiftPM, described in a later section. 
+As seen above, module aliasing can be done directly via compiler invocation flags. However, most users use high-level build systems rather than interacting with the command line directly. We will describe how this feature can be adopted in SwiftPM in a later section. 
 
 ## Detailed design
 
