@@ -25,7 +25,9 @@ The above issues have been brought up in several forum discussions, such as [mod
 
 ## Proposed solution
 
-We believe that the module aliasing method will provide a systematic means to address a module name collision without requiring submodule or namespacing support. The conflicting modules can be aliased as unique names to be disambiguated without involving manual source changes. This assumes all decls to be part of a module so initially only pure Swift modules will be supported; decls with flat namespaces (e.g. C/Objective-C) would require special handling (see the **Requirements / Limitations** section for more details). 
+We believe that module aliasing provides a systematic method for addressing module name collisions. The conflicting modules can be given unique names while still allowing the source code that depends on them to compile.
+
+Module aliasing relies on being able to change the namespace of all declarations in a module, so initially only pure Swift modules will be supported.  Languages that give declarations names outside of the control of Swift, such as C, C++, and Objective-C, would require special handling; see the **Requirements / Limitations** section for more details.
 
 To go over how the module aliasing works, let’s consider the following scenario: App depends on module Utils from package swift-game, and wants to add another dependency also called Utils but from another package. Currently we will get an error due to the duplicate module names. 
 ```
