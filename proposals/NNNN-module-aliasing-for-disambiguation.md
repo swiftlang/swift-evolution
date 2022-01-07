@@ -50,7 +50,7 @@ public protocol Drawable { ... }
 public class Canvas: Utils.Drawable { ... }
 ```
 
-In the following steps, we will use a compiler invocation command to demonstrate how the conflicting modules can be aliased. 
+Since `App` directly depends on these two `Utils` modules, we need to rename them both so that the code in `App` can disambiguate between them.  We can do this by passing module-alias flags to the compiler when building these modules and any module (other than `App`) which uses them. When building the `App` module, we do not pass module-alias flags, and so `App` can use them under their renamed names:
 
 1. First, take the Utils module from swift-game, and rename it to be unique; let’s call it GameUtils. We will need to compile the module (a) by giving a new name GameUtils while (b) treating any references to Utils in its source files as GameUtils.  
     a. The first part (renaming) can be achieved via passing the new name (GameUtils) to `-module-name` and an output path flag, `-o`,  `-emit-module-path`, or `-emit-module-interface-path`, which are all existing flags. The resulting binary then, for example, will be `/path/to/GameUtils.swiftmodule` (instead of `Utils.swiftmodule`).
