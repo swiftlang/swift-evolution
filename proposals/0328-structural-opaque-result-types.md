@@ -3,10 +3,10 @@
 * Proposal: [SE-0328](0328-structural-opaque-result-types.md)
 * Authors: [Benjamin Driscoll](https://github.com/willtunnels), [Holly Borla](https://github.com/hborla)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted with modifications (2021-11-30)**
+* Status: **Implemented (**Swift Next**)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0328-structural-opaque-result-type/53789)
 * Implementation: [apple/swift#38392](https://github.com/apple/swift/pull/38392)
-* Toolchain: Any recent [nightly main snapshot](https://swift.org/download/#snapshots) with the `-Xfrontend -enable-experimental-structural-opaque-types` flags
+* Toolchain: Any recent [nightly main snapshot](https://swift.org/download/#snapshots) 
 
 ## Introduction
 
