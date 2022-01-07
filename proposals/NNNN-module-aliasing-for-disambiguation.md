@@ -64,7 +64,7 @@ Since `App` directly depends on these two `Utils` modules, we need to rename the
 import GameUtils
 import DrawUtils
 ```
-In practice, a dependency graph will be more complex than the scenario described above. As an example, we have the following modified scenario. App imports module Game, which imports module Utils from the same package. App also imports another module called Utils from a different package.  
+The above scenario, where a single module directly depends on two modules with the same name, is uncommon because it relies on "top-level" modules having conflicting names. Most conflicts involve indirect dependencies. Consider the following modified scenario. `App` imports the module `Game`, which imports a module `Utils` from the same package. `App` also imports another module called `Utils` from a different package. (This collision might have been introduced when updating to a new version of `Game`'s package, which introduced an "internal" `Utils` module for the first time.)
 
 ```
 App 
