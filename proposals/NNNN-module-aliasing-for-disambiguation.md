@@ -10,7 +10,7 @@
 
 ## Introduction
 
-Currently when there are duplicate module names, it fails to compile. The issue has become more widespread as libraries written in Swift have become more increasingly distributed. There is no submodule support in Swift, and introducing structural namespacing is a non-trivial task and would most likely be source breaking. This proposal introduces a way to disambiguate conflicting modules without requiring source breaking changes, by means of aliasing module names. 
+Swift does not allow multiple modules in a program to share the same name, and attempts to do so will fail to build. These name collisions can happen in a reasonable program when using multiple packages developed independently from each other. This proposal introduces a way to resolve these conflicts without making major, invasive changes to a package's source by turning a module name in source into an alias to a different, unique name.
 
 ## Motivation
 
