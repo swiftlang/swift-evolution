@@ -135,10 +135,12 @@ To this we add that, as an alternative, `T` can be a homogeneous aggregate of `P
 Two types A and B are layout equivalent when they are, for example:
 - identical types;
 - one is a typealias for the other;
-- trivial scalar types with the same size and alignment, including floating-point and integer types;
-- one is a class type, and the other is one of its superclass types (including `AnyObject`);
+- trivial scalar types with the same size and alignment, such as floating-point, integer and pointer types;
+- one is a class type, and the other is one of its superclass types, or `AnyObject`;
+- optional references whose underlying types are layout equivalent;
 - pointer types, such as `UnsafePointer` and `OpaquePointer`;
-- one is a frozen struct with a single stored property, the other is the type of its stored property;
+- optional pointer types, such as `UnsafePointer?` and `UnsafeRawPointer?`;
+- one is a struct with a single stored property, the other is the type of its stored property;
 
 Homogeneous aggregate types (tuples, array storage, and frozen structs) are layout equivalent if they have the same number of layout-equivalent elements.
 
