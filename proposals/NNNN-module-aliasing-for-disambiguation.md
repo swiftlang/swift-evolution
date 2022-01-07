@@ -36,7 +36,7 @@ App
 |— Module Utils (from package ‘swift-draw’) // want to add a new dependency
 ```
 
-As an example, Utils from each package has the following code:
+The `Utils` modules from each package have the following code:
 ```
 [Module Utils] // swift-game
 
