@@ -16,7 +16,7 @@ Swift does not allow multiple modules in a program to share the same name, and a
 
 As the Swift package ecosystem has grown, programmers have begun to frequently encounter module name clashes. There are two main use cases where these arise:
 
-* Adding a new dependency or upgrading as it can introduce a collision: A new (or upgraded) module can have the same name as another module that is already in the dependency graph. 
+* Two different packages include logically different modules that happen to have the same name.  Often, these modules are "internal" dependencies of the package, which would be submodules if Swift supported submodules; for example, it's common to put common utilities into a `Utils` module, which will then collide if more than one package does it.  Programmers often run into this problem when adding a new dependency or upgrading an existing one.
 * Upgrading a package from a version pinned by another library in the same dependency graph: If a package is used by multiple libraries in the same graph, only one version of the package can be allowed in the graph; this prevents a library from upgrading to a newer version of the package, making migration work much harder later.  
 
 The above issues have been brought up in several forum discussions, such as [module name 'Logging' clash in Vapor](https://forums.swift.org/t/logging-module-name-clash-in-vapor-3/25466) and [namespacing packages/modules regarding SwiftNIO](https://forums.swift.org/t/namespacing-of-packages-modules-especially-regarding-swiftnio/24726).
