@@ -14,7 +14,7 @@ Swift does not allow multiple modules in a program to share the same name, and a
 
 ## Motivation
 
-As Swift libraries and packages are more widely adopted, we frequently encounter module name clashes. As there’s no submodule or namespace support in Swift, libraries are often forced to be renamed or pinned to a non-conflicting version in such scenario. This makes use cases such as the following particularly challenging.
+As the Swift package ecosystem has grown, programmers have begun to frequently encounter module name clashes. There are two main use cases where these arise:
 
 * Adding a new dependency or upgrading as it can introduce a collision: A new (or upgraded) module can have the same name as another module that is already in the dependency graph. 
 * Upgrading a package from a version pinned by another library in the same dependency graph: If a package is used by multiple libraries in the same graph, only one version of the package can be allowed in the graph; this prevents a library from upgrading to a newer version of the package, making migration work much harder later.  
