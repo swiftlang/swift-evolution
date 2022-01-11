@@ -13,7 +13,7 @@ Swift-evolution threads: [[Pitch] Staging in `Sendable` checking](https://forums
 
 ## Motivation
 
-Swift Concurrency seeks provide a mechanism for isolating state in concurrent programs to eliminate data. The primary mechanism is `Sendable` checking. APIs which send data across task or actor boundaries require their inputs to conform to the `Sendable` protocol; types which are safe to send declare conformance, and the compiler checks that these types only contain `Sendable` types, unless the type's author explicitly indicates that the type is implemented so that it uses any un-`Sendable` contents safely.
+Swift Concurrency seeks provide a mechanism for isolating state in concurrent programs to eliminate data races. The primary mechanism is `Sendable` checking. APIs which send data across task or actor boundaries require their inputs to conform to the `Sendable` protocol; types which are safe to send declare conformance, and the compiler checks that these types only contain `Sendable` types, unless the type's author explicitly indicates that the type is implemented so that it uses any un-`Sendable` contents safely.
 
 This would all be well and good if we were writing Swift 1, a brand-new language which did not need to interoperate with any existing code. Instead, we are writing Swift 6, a new version of an existing language with millions of lines of existing libraries and deep interoperation with C and Objective-C. None of this code specifies any of its concurrency behavior in a way that `Sendable` checking can understand, but until it can be updated, we still want to use it from Swift.
 
