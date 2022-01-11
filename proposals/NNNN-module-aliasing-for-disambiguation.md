@@ -10,68 +10,31 @@
 
 ## Introduction
 
-Swift does not allow multiple modules in a program to share the same name, and attempts to do so will fail to build. These name collisions can happen in a reasonable program when using multiple packages developed independently from each other. This proposal introduces a way to resolve these conflicts without making major, invasive changes to a package's source by turning a module name in source into an alias to a different, unique name.
+Swift does not allow multiple modules in a program to share the same name, and attempts to do so will fail to build. These name collisions can happen in a reasonable program when using multiple packages developed independently from each other. This proposal introduces a way to resolve these conflicts without making major, invasive changes to a package's source by turning a module name in source into an alias, a different unique name.
 
 ## Motivation
 
-As the Swift package ecosystem has grown, programmers have begun to frequently encounter module name clashes. There are two main use cases where these arise:
+As the Swift package ecosystem has grown, programmers have begun to frequently encounter module name clashes, as seen in several forum discussions including [module name 'Logging' clash in Vapor](https://forums.swift.org/t/logging-module-name-clash-in-vapor-3/25466) and [namespacing packages/modules regarding SwiftNIO](https://forums.swift.org/t/namespacing-of-packages-modules-especially-regarding-swiftnio/24726). There are two main use cases where these arise:
 
 * Two different packages include logically different modules that happen to have the same name.  Often, these modules are "internal" dependencies of the package, which would be submodules if Swift supported submodules; for example, it's common to put common utilities into a `Utils` module, which will then collide if more than one package does it.  Programmers often run into this problem when adding a new dependency or upgrading an existing one.
-* Two different versions of the same package need to be included in the same program.  This isn't always reasonable, but in many cases it would work out fine if it was permitted.  Programmers often run into this problem when trying to upgrade a dependency that another library has pinned to a specific version.  Being unable to resolve this collision makes it difficult to gradually update dependencies, forcing migration to be done all at once later.
+* Two different versions of the same package need to be included in the same program.  Programmers often run into this problem when trying to upgrade a dependency that another library has pinned to a specific version.  Being unable to resolve this collision makes it difficult to gradually update dependencies, forcing migration to be done all at once later.
 
 In both cases, it is important to be able to resolve the conflict without making invasive changes to the conflicting packages.  While submodules might be a better long-term solution for the first case, they are not currently supported by Swift.  Even if submodules were supported, they might not always be correctly adopted by packages, and it would not be reasonable for package clients to have to rewrite the package to properly use them.  Submodules and other namespacing features would not completely eliminate the need to "retroactively" resolve module name conflicts.
 
-The above issues have been brought up in several forum discussions, such as [module name 'Logging' clash in Vapor](https://forums.swift.org/t/logging-module-name-clash-in-vapor-3/25466) and [namespacing packages/modules regarding SwiftNIO](https://forums.swift.org/t/namespacing-of-packages-modules-especially-regarding-swiftnio/24726).
-
 ## Proposed solution
 
-We believe that module aliasing provides a systematic method for addressing module name collisions. The conflicting modules can be given unique names while still allowing the source code that depends on them to compile.
+We believe that module aliasing provides a systematic method for addressing module name collisions. The conflicting modules can be given unique names while still allowing the source code that depends on them to compile. There's already a way to set a module name to a different name, but we need a new aliasing technique that will allow source files referencing the original module names to compile without making source changes. This will be done via new build settings which will then translate to new compiler flags described below. Together, these low-level tools will allow conflicts to be resolved by giving modules a unique name while using aliases to avoid the need to change any source code. 
 
-Module aliasing relies on being able to change the namespace of all declarations in a module, so initially only pure Swift modules will be supported.  Languages that give declarations names outside of the control of Swift, such as C, C++, and Objective-C, would require special handling; see the **Requirements / Limitations** section for more details.
-
-To see how module aliasing works, let’s consider the following scenario: `App` currently uses a module named `Utils` from the package `swift-game`, and it wants to also use a module named `Utils` from the package `swift-draw`. Currently we will get an error due to the duplicate module names. 
-```
-App
-|— Module Utils (from package ‘swift-game’)
-|— Module Utils (from package ‘swift-draw’) // want to add a new dependency
-```
-
-The `Utils` modules from each package have the following code:
-```
-[Module Utils] // swift-game
-
-public struct Level { ... }
-public var currentLevel: Utils.Level { ... }
-```
-```
-[Module Utils] // swift-draw
-
-public protocol Drawable { ... }
-public class Canvas: Utils.Drawable { ... }
-```
-
-Since `App` directly depends on these two `Utils` modules, we need to rename them both so that the code in `App` can disambiguate between them.  We can do this by passing module-alias flags to the compiler when building these modules and any module (other than `App`) which uses them. When building the `App` module, we do not pass module-alias flags, and so `App` can use them under their renamed names:
-
-1. First, take the Utils module from swift-game, and rename it to be unique; let’s call it GameUtils. We will need to compile the module (a) by giving a new name GameUtils while (b) treating any references to Utils in its source files as GameUtils.  
-    a. The first part (renaming) can be achieved via passing the new name (GameUtils) to `-module-name` and an output path flag, `-o`,  `-emit-module-path`, or `-emit-module-interface-path`, which are all existing flags. The resulting binary then, for example, will be `/path/to/GameUtils.swiftmodule` (instead of `Utils.swiftmodule`).
-    b. The second part (treating references to Utils in source files as GameUtils) will be addressed by introducing a new compiler flag `-module-alias [name]=[binary_name]`, where the name is the module name that appears in source files (Utils), while the binary_name is the name of the .swiftmodule (GameUtils), the canonical name used for file contents including symbol mangling. Combined with step (a), the compiler invocation command will be `swiftc -module-name GameUtils -emit-module-path /path/to/GameUtils.swiftmodule -module-alias Utils=GameUtils ...`.    
-2. Similarly, we can rename Utils from swift-draw as DrawUtils, following the step 1.  
-3. Finally, we build App (without the aliasing flag) and directly import GameUtils and/or DrawUtils. 
-
-```
-[App]
-
-import GameUtils
-import DrawUtils
-```
-The above scenario, where a single module directly depends on two modules with the same name, is uncommon because it relies on "top-level" modules having conflicting names. Most conflicts involve indirect dependencies. Consider the following modified scenario. `App` imports the module `Game`, which imports a module `Utils` from the same package. `App` also imports another module called `Utils` from a different package. (This collision might have been introduced when updating to a new version of `Game`'s package, which introduced an "internal" `Utils` module for the first time.)
+We propose to introduce the following new settings in SwiftPM. To illustrate the flow, let's go over an example. Consider the following scenario: `App` imports the module `Game`, which imports a module `Utils` from the same package. `App` also imports another module called `Utils` from a different package. (This collision might have been introduced when updating to a new version of `Game`'s package, which introduced an "internal" `Utils` module for the first time.)
 
 ```
 App 
-|— Module Game (from package ‘swift-game’)
-|— Module Utils (from package ‘swift-game’)
-|— Module Utils (from package ‘swift-draw’)
+  |— Module Game (from package ‘swift-game’)
+      |— Module Utils (from package ‘swift-game’)
+  |— Module Utils (from package ‘swift-draw’) 
 ```
+
+The modules from each package have the following code:
 
 ```
 [Module Game] // swift-game
@@ -80,13 +43,55 @@ import Utils  // swift-game
 public func start(level: Utils.Level) { ... }
 ```
 
-As with the first scenario, the Utils modules are conflicting, so we need to perform the steps 1-2 above. Then we need to build module Game by applying `-module-alias Utils=GameUtils`, so that the references to Utils in source files of module Game are compiled as GameUtils without making any source changes. The compiler invocation command to build Game then is `swiftc -module-name Game -module-alias Utils=GameUtils ...`. App can then import module Game and any of the renamed Utils as needed. 
+```
+[Module Utils] // swift-draw
 
-As seen above, module aliasing can be done directly via compiler invocation flags. However, most users use high-level build systems rather than interacting with the command line directly. We will describe how this feature can be adopted in SwiftPM in a later section. 
+public protocol Drawable { ... }
+public class Canvas: Utils.Drawable { ... }
+```
+
+```
+[Module Utils] // swift-game
+
+public struct Level { ... }
+public var currentLevel: Utils.Level { ... }
+```
+
+Since `App` depends on these two `Utils` modules, we have a conflict, thus we need to rename one. We will introduce a new setting in SwiftPM called `moduleAliases` that will allow setting unique names for dependencies, like so:
+```
+ targets: [
+  .executableTarget(
+    name: "App",
+    dependencies: [
+     .product(name: "GameProduct", *moduleAliases*: ["Utils": "GameUtils"], package: "swift-game"), 
+     .product(name: "DrawProdut", package: "swift-draw"), 
+   ])
+ ]
+```
+
+The setting `moduleAliases` will rename `Utils` from the `swift-game` package as `GameUtils` and alias all its references in the source code to be compiled as `GameUtils`. Since renaming one of the `Utils` modules will resolve the conflict, it is not necessary to rename the other `Utils` module. The references to `Utils` in the `Game` module will be built as `GameUtils` without requiring any source changes. If `App` needs to reference both `Utils` modules in its source code, it can do so via the unique names:
+```
+[App]
+
+import GameUtils
+import Utils
+```
+
+Module aliasing relies on being able to change the namespace of all declarations in a module, so initially only pure Swift modules will be supported and users will be required to opt in.  Support for languages that give declarations names outside of the control of Swift, such as Objective-C, C, and C++, would be limited as it will require special handling; see the **Requirements / Limitations** section for more details.
+
 
 ## Detailed design
 
 ### Changes to Swift Frontend
+
+While the most use cases will involve setting `moduleAliases` via SwiftPM, it helps to understand how it maps to the compiler invocations under the hood. The invocation commands will include a new compiler flag called `-module-alias`. Given the above scenario, it will perform the following. 
+
+1. First, take the `Utils` module from `swift-game`, and rename it as `GameUtils`. We will need to compile the module `Utils` by  (a) giving a new name `GameUtils` while (b) treating any references to `Utils` in its source files as `GameUtils`.  
+    a. The first part (renaming) can be achieved via passing the new name (`GameUtils` d) to `-module-name` and an output path flag, `-o`,  `-emit-module-path`, or `-emit-module-interface-path`, which are all existing flags. The resulting binary then, for example, would be `/path/to/GameUtils.swiftmodule` (instead of `Utils.swiftmodule`).
+    b. The second part (treating references to Utils in source files as GameUtils) will be addressed via a new compiler flag `-module-alias [name]=[binary_name]`, where the name is the module name that appears in source files (`Utils`), while the binary_name is the name of the .swiftmodule (`GameUtils`), the canonical name used for file contents including symbol mangling. Combined with step (a), the compiler invocation command then would be `swiftc -module-name GameUtils -emit-module-path /path/to/GameUtils.swiftmodule -module-alias Utils=GameUtils ...`.    
+2. Then we need to build module `Game` by applying `-module-alias Utils=GameUtils`, so that the references to `Utils` in source files of module `Game` are compiled as `GameUtils` without any source changes. The compiler invocation command to build `Game` then is `swiftc -module-name Game -module-alias Utils=GameUtils ...`. 
+3. Building `App` does not require passing in the `-module-alias` flag. If it needs to import the `Utils` module from `swift-game`, it can directly reference it via `import GameUtils`. 
+
 
 The arguments to the `-module-alias` flag will be validated against reserved names, invalid identifiers, wrong format or ordering (`-module-alias Utils=GameUtils` is correct but `-module-alias GameUtils=Utils` is not). The flag can be repeated to allow multiple aliases, e.g. `-module-alias Utils=GameUtils -module-alias Logging=SwiftLogging`, and will be checked against duplicates. Diagnostics and fix-its will contain the name Utils in the error messages as opposed to GameUtils to be consistent with the names appearing to users. 
 
@@ -220,11 +225,7 @@ This proposal does not introduce features that would be part of a public API.
 
 * C++ interop support could potentially allow C++ modules to be aliased besides pure Swift modules.  
 
-* Swift currently does not support nested namespacing / submodules, but it would be an interesting future direction to explore. Such feature would allow Swift users to better organize their code, resolve naming conflicts, and set more fine grained access controls.
-
-  Module aliaisng does not introduce any lexical or structural changes that might have an impact on areas concerning submodules support; it simply aliases the module names referenced as if users renamed their modules manually. It is an orthogonal feature and can coexist with nested namespacing / submodules if we decide to support it in the future.
-
-  Supporting nested namespacing / submodules as a future direction for Swift would require detailed design for some of the following concerns: how the nesting should be represented, e.g. via a lexical scope or a file-system, whether it requires a new keyword or a module metadata file, what access control should be allowed for a submodule and how it interacts with its sibling submodule or its parent module or its client, how submodules can be imported or re-exported or interop with Objective-C, whether the name lookup ordering should be modified for a fully qualified decl access containing multiple nested modules, and the impact on ABI/ source/backward compatibility. 
+* Nested namespacing or submodules might be a better long-term solution for some of the collision issues described in **Motivation**. However, it would not completely eliminate the need to "retroactively" resolve module name conflicts. Module aliaisng does not introduce any lexical or structural changes that might have an impact on potential future submodules support; it's an orthogonal feature and can be used in conjunction if needed.
 
 ## Acknowledgments
 This proposal was improved with feedback and helpful suggestions along with code reviews by Becca Royal-Gordon, Alexis Laferriere, Pavel Yaskevich, Joe Groff, Mike Ash, Adrian Prantl, Artem Chikin, Boris Buegling, Anders Bertelrud, Tom Doron, and Johannes Weiss, and others.  
