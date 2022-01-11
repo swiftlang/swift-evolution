@@ -25,7 +25,7 @@ In both cases, it is important to be able to resolve the conflict without making
 
 We believe that module aliasing provides a systematic method for addressing module name collisions. The conflicting modules can be given unique names while still allowing the source code that depends on them to compile. There's already a way to set a module name to a different name, but we need a new aliasing technique that will allow source files referencing the original module names to compile without making source changes. This will be done via new build settings which will then translate to new compiler flags described below. Together, these low-level tools will allow conflicts to be resolved by giving modules a unique name while using aliases to avoid the need to change any source code. 
 
-We propose to introduce the following new settings in SwiftPM. To illustrate the flow, let's go over an example. Consider the following scenario: `App` imports the module `Game`, which imports a module `Utils` from the same package. `App` also imports another module called `Utils` from a different package. (This collision might have been introduced when updating to a new version of `Game`'s package, which introduced an "internal" `Utils` module for the first time.)
+We propose to introduce the following new settings in SwiftPM. To illustrate the flow, let's go over an example. Consider the following scenario: `App` imports the module `Game`, which imports a module `Utils` from the same package. `App` also imports another module called `Utils` from a different package. This collision might have been introduced when updating to a new version of `Game`'s package, which introduced an "internal" `Utils` module for the first time.
 
 ```
 App 
@@ -44,17 +44,17 @@ public func start(level: Utils.Level) { ... }
 ```
 
 ```
-[Module Utils] // swift-draw
-
-public protocol Drawable { ... }
-public class Canvas: Utils.Drawable { ... }
-```
-
-```
 [Module Utils] // swift-game
 
 public struct Level { ... }
 public var currentLevel: Utils.Level { ... }
+```
+
+```
+[Module Utils] // swift-draw
+
+public protocol Drawable { ... }
+public class Canvas: Utils.Drawable { ... }
 ```
 
 Since `App` depends on these two `Utils` modules, we have a conflict, thus we need to rename one. We will introduce a new setting in SwiftPM called `moduleAliases` that will allow setting unique names for dependencies, like so:
@@ -63,8 +63,8 @@ Since `App` depends on these two `Utils` modules, we have a conflict, thus we ne
   .executableTarget(
     name: "App",
     dependencies: [
-     .product(name: "GameProduct", *moduleAliases*: ["Utils": "GameUtils"], package: "swift-game"), 
-     .product(name: "DrawProdut", package: "swift-draw"), 
+     .product(name: "Game", *moduleAliases*: ["Utils": "GameUtils"], package: "swift-game"), 
+     .product(name: "Utils", package: "swift-draw"), 
    ])
  ]
 ```
@@ -86,7 +86,7 @@ Module aliasing relies on being able to change the namespace of all declarations
 
 Most use cases should just require setting `moduleAliases` in a package manifest.  However, it may be helpful to understand how that setting changes the compiler invocations under the hood. In our example scenario, those invocations will change as follows:
 
-1. First, we need to take the `Utils` module from `swift-game` and rename it to `GameUtils`. To do this, we will compile the module as if it was actually named `GameUtils`, while treating any references to `Utils` in its source files as references to `GameUtils`.  
+1. First, we need to take the `Utils` module from `swift-game` and rename it `GameUtils`. To do this, we will compile the module as if it was actually named `GameUtils`, while treating any references to `Utils` in its source files as references to `GameUtils`.  
     a. The first part (renaming) can be achieved by passing the new module name (`GameUtils`) to `-module-name`. The new module name will also need to be used in any flags specifying output paths, such as `-o`,  `-emit-module-path`, or `-emit-module-interface-path`.  For example, the binary module file should be built as `GameUtils.swiftmodule` instead of `Utils.swiftmodule`.
     b. The second part (treating references to `Utils` in source files as `GameUtils`) can be achieved with a new compiler flag `-module-alias [name]=[new_name]`. Here, `name` is the module name that appears in source files (`Utils`), while `new_name` is the new, unique name (`GameUtils`).  So in our example, we will pass `-module-alias Utils=GameUtils`.
     
@@ -119,45 +119,45 @@ The module aliasing arguments will be used during dependency scan for both impli
 
 ### Changes to SwiftPM
 
-To allow module aliasing more accessible, we will introduce new build configs which can map to the compiler flags for aliasing described above. Let’s go over how they can be adopted by SwiftPM with the second scenario (copied below). 
+To allow module aliasing more accessible, we will introduce new build configs which can map to the compiler flags for aliasing described above. Let’s go over how they can be adopted by SwiftPM with the above scenario (copied below). 
 ```
-App
-|— Module Game (from package ‘swift-game’)
-|— Module Utils (from package ‘swift-game’)
-|— Module Utils (from package ‘swift-draw’)
+App 
+  |— Module Game (from package ‘swift-game’)
+      |— Module Utils (from package ‘swift-game’)
+  |— Module Utils (from package ‘swift-draw’) 
 ```
-Manifest swift-game: the Utils module needs to opt in to allow module aliasing; we will introduce a new parameter called `allowModuleAliasing`. The Utils target has to meet the requirements described in the **Requirements/Limitations** section below. A package can vend multiple targets which might not meet the requirements, so this new parameter needs to be specified per target. If opted in, SwiftPM will perform validations such as whether the target is a pure Swift module.
+
+Here are the example manifests for `swift-game` and `swift-draw`. 
 
 ```
 {
  name: "swift-game",
  dependencies: [],
  products: [
-   .library(name: "GameProduct", targets: ["Game"]),
-   .library(name: "UtilsProduct", targets: ["Utils"]),
+   .library(name: "Game", targets: ["Game"]),
+   .library(name: "Utils", targets: ["Utils"]),
  ],
  targets: [
    .target(name: "Game", targets: ["Utils"]),
-   .target(name: "Utils", *allowModuleAliasing*: true, dependencies: ["Logging"])
+   .target(name: "Utils", dependencies: [])
  ]
 }
 ```
 
-Manifest swift-draw: similar to above, opt-in via `allowModuleAliasing`.
 ```
 {
  name: "swift-draw",
  dependencies: [],
  products: [
-   .library(name: "UtilsProduct", targets: ["Utils"]),
+   .library(name: "Utils", targets: ["Utils"]),
  ],
  targets: [
-   .target(name: "Utils", *allowModuleAliasing*: true, dependencies: ["Logging"])
+   .target(name: "Utils", dependencies: [])
  ]
 }
 ```
 
-App manifest: needs to explicitly define unique names for conflicting modules via a new parameter called `moduleAliases`. 
+The `App` manifest needs to explicitly define unique names for the conflicting modules via a new parameter called `moduleAliases`. 
 ```
 {
  name: "App",
@@ -172,14 +172,15 @@ App manifest: needs to explicitly define unique names for conflicting modules vi
   .executableTarget(
     name: "App",
     dependencies: [
-     .product(name: "GameProduct", *moduleAliases*: ["Utils": "GameUtils"], package: "swift-game"), 
-     .product(name: "UtilsProduct", *moduleAliases*: ["Utils": "DrawUtils"], package: "swift-draw"), 
+     .product(name: "Game", *moduleAliases*: ["Utils": "GameUtils"], package: "swift-game"), 
+     .product(name: "Utils", package: "swift-draw"), 
    ])
  ]
 }
 ```
 
-SwiftPM will check validations on `moduleAliases`; for each entry in `moduleAliases`, check if the target indeed opts in for `allowModuleAliasing`, and trigger a build with `-module-alias`. An error will be thrown if conflicting targets do not opt in or no `moduleAliases` are declared. The aliasing option should be supported with a minor version upgrade. 
+SwiftPM will check validations on `moduleAliases`; for each entry in `moduleAliases`, it will check if the specified module meets the requirements described in the **Requirements/Limitations** section below, such as whether the module is a pure Swift module. If validations pass, it will trigger a build with `-module-alias` for the module as described earlier. Note that only one new name can be given to a conflicting module and it should be a unique name. 
+
 
 ### Resources
 
@@ -232,4 +233,4 @@ This proposal does not introduce features that would be part of a public API.
 * Nested namespacing or submodules might be a better long-term solution for some of the collision issues described in **Motivation**. However, it would not completely eliminate the need to "retroactively" resolve module name conflicts. Module aliasing does not introduce any lexical or structural changes that might have an impact on potential future submodules support; it's an orthogonal feature and can be used in conjunction if needed.
 
 ## Acknowledgments
-This proposal was improved with feedback and helpful suggestions along with code reviews by Becca Royal-Gordon, Alexis Laferriere, Pavel Yaskevich, Joe Groff, Mike Ash, Adrian Prantl, Artem Chikin, Boris Buegling, Anders Bertelrud, Tom Doron, and Johannes Weiss, and others.  
+This proposal was improved with feedback and helpful suggestions along with code reviews by Becca Royal-Gordon, Alexis Laferriere, John McCall, Joe Groff, Mike Ash, Pavel Yaskevich, Adrian Prantl, Artem Chikin, Boris Buegling, Anders Bertelrud, Tom Doron, and Johannes Weiss, and others.  
