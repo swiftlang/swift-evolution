@@ -93,7 +93,7 @@ While the most use cases will involve setting `moduleAliases` via SwiftPM, it he
     Putting these steps together, the compiler invocation command would be `swiftc -module-name GameUtils -emit-module-path /path/to/GameUtils.swiftmodule -module-alias Utils=GameUtils ...`.
     
     For all intents and purposes, the true name of the module is now `GameUtils`.  The name `Utils` is no longer associated with it.  Module aliases can be used in specific parts of the build to allow source code that still uses the name `Utils` (possibly including the module itself) to continue to compile.
-2. Then we need to build module `Game` by applying `-module-alias Utils=GameUtils`, so that the references to `Utils` in source files of module `Game` are compiled as `GameUtils` without any source changes. The compiler invocation command to build `Game` then is `swiftc -module-name Game -module-alias Utils=GameUtils ...`. 
+2. Next, we need to build the module `Game`.  `Game` contains references to `Utils`, which we need to treat as references to `GameUtils`. We can do this by just passing `-module-alias Utils=GameUtils` without any other changes. The overall compiler invocation command to build `Game` is `swiftc -module-name Game -module-alias Utils=GameUtils ...`. 
 3. Building `App` does not require passing in the `-module-alias` flag. If it needs to import the `Utils` module from `swift-game`, it can directly reference it via `import GameUtils`. 
 
 
