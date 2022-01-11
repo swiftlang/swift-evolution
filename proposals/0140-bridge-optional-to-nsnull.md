@@ -195,9 +195,11 @@ error, so should fail early at runtime:
 This point of view is understandable, but is inconsistent with how Swift itself
 dynamically treats Optionals inside Anys:
 
+```swift
   let a: Int? = 3
   let b = a as Any
   let c = a as! Int // Casts '3' out of the Optional as a non-optional Int
+```
 
 And while it's true that Cocoa uses `NSNull` sparingly, it *is* the standard
 sentinel used in the few places where a null-like object is expected, such as
