@@ -86,7 +86,7 @@ Module aliasing relies on being able to change the namespace of all declarations
 
 While the most use cases will involve setting `moduleAliases` via SwiftPM, it helps to understand how it maps to the compiler invocations under the hood. The invocation commands will include a new compiler flag called `-module-alias`. Given the above scenario, it will perform the following. 
 
-1. First, take the `Utils` module from `swift-game`, and rename it as `GameUtils`. We will need to compile the module `Utils` by  (a) giving a new name `GameUtils` while (b) treating any references to `Utils` in its source files as `GameUtils`.  
+1. First, we need to take the `Utils` module from `swift-game` and rename it to `GameUtils`. To do this, we will compile the module as if it was actually named `GameUtils`, while treating any references to `Utils` in its source files as references to `GameUtils`.  
     a. The first part (renaming) can be achieved by passing the new module name (`GameUtils`) to `-module-name`. The new module name will also need to be used in any flags specifying output paths, such as `-o`,  `-emit-module-path`, or `-emit-module-interface-path`.  For example, the binary module file should be built as `GameUtils.swiftmodule` instead of `Utils.swiftmodule`.
     b. The second part (treating references to `Utils` in source files as `GameUtils`) can be achieved with a new compiler flag `-module-alias [name]=[new_name]`. Here, `name` is the module name that appears in source files (`Utils`), while `new_name` is the new, unique name (`GameUtils`).  So in our example, we will pass `-module-alias Utils=GameUtils`.
     
