@@ -225,7 +225,7 @@ This proposal does not introduce features that would be part of a public API.
 
 * C++ interop support could potentially allow C++ modules to be aliased besides pure Swift modules.  
 
-* Nested namespacing or submodules might be a better long-term solution for some of the collision issues described in **Motivation**. However, it would not completely eliminate the need to "retroactively" resolve module name conflicts. Module aliaisng does not introduce any lexical or structural changes that might have an impact on potential future submodules support; it's an orthogonal feature and can be used in conjunction if needed.
+* Nested namespacing or submodules might be a better long-term solution for some of the collision issues described in **Motivation**. However, it would not completely eliminate the need to "retroactively" resolve module name conflicts. Module aliasing does not introduce any lexical or structural changes that might have an impact on potential future submodules support; it's an orthogonal feature and can be used in conjunction if needed.
 
 ## Acknowledgments
 This proposal was improved with feedback and helpful suggestions along with code reviews by Becca Royal-Gordon, Alexis Laferriere, Pavel Yaskevich, Joe Groff, Mike Ash, Adrian Prantl, Artem Chikin, Boris Buegling, Anders Bertelrud, Tom Doron, and Johannes Weiss, and others.  
