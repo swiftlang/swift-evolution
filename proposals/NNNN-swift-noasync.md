@@ -69,12 +69,14 @@ func asyncFun() async {
 }
 ```
 
-Using an annotated API from an asynchronous context results in an error.
+Using an API annotated with the `noasync` availability kind from an asynchronous
+context will result in an error.
 In certain cases, it is possible to use the API safely within an asynchronous
-context, but not across suspension points. The attribute is only checked in the
-immediate context, so an unavailable function call wrapped in a synchronous
-context will not emit the error. This allows functions to wrap the behaviour and
-provide safe alternative APIs, like the example below:
+context, but not across suspension points.
+The attribute only prevents API usage in the immediate asynchronous context;
+wrapping a call to an unavailable API in a synchronous context and calling the
+wrapper will not emit an error. This allows functions to wrap the API and
+provide a safe alternative, like the example below:
 
 ```swift
 func goodAsyncFunc(_ mutex: UnsafeMutablePointer<pthread_mutex_t>, _ op : () -> ()) async {
@@ -126,13 +128,14 @@ In some cases, it is possible to provide an alternative that is safe. The
 `with_pthread_mutex_lock` is an example of a way to provide a safe way to wrap
 locking and unlocking pthread mutexes.
 
-In other cases, it may be safe to use an API from a specific executor. For
+In other cases, it may be safe to use an API from a specific actor. For
 example, API that uses thread-local storage isn't safe for consumption by
 asynchronous functions in general, but is safe for functions on the MainActor
 since it will only use the main thread.
 
 The unavailable API should still be annotated as such, but an alternative
-function can be implemented as an extension of an actor.
+function can be implemented as an extension of the actors that support the
+operation.
 
 ```swift
 @available(*, noasync, renamed: "mainactorReadID()", message: "use mainactorReadID instead")
@@ -146,40 +149,31 @@ func asyncFunc() async {
   let id = readIDFromThreadLocal()
 
   // Good, we know it's coming from the main actor on the main thread.
-  // Note that we have to jump to the main actor, so there is a suspension.
+  // Note the suspension due to the jump to the main actor.
   let id = await readIDFromMainActor()
 }
 ```
 
-Custom executors are a goal for the language in the future. Restricting an API
-to a custom executor is achieved in the same way that restricting the API to a
-global actor is done. In many ways, they are the same thing. An actor ensures
-that methods and operations on that actor are done on the executor for that
-actor. By setting the `unownedExecutor` of an actor to the desired executor and
-creating a wrapper function for the restricted API in that actor, the restricted
-API is now only available for use from asynchronous contexts on that actor, and
-in extension, that executor.
-
+Restricting a synchronous API to an actor is done similarly, as demonstrated in
+the example below. The synchronous `save` function is part of a public API, so
+it can't just be pulled into the `DataStore` actor without causing a source
+break. Instead, it is annotated with a `noasync` available attribute.
+`DataStore.save` is a thin wrapper around the original synchronous save
+function. Calls from an asynchronous context to `save` may only be done through
+the `DataStore` actor, ensuring that the cooperative pool isn't tied up with the
+save function. The original save function is still available to synchronous code
+as it was before.
 
 ```swift
-@available(*, noasync, renamed: "IOActor.readInt()")
-func readIntFromIO() -> String { }
+@available(*, noasync, renamed: "DataStore.save()")
+public func save(_ line: String) { }
 
-extension IOActor {
-  // IOActor replacement API goes here
-  func readInt() -> String { readIntFromIO() }
-}
+public actor DataStore { }
 
-actor MyIOActor : IOActor {
-  func printInt() {
-    // Okay! It's synchronous on the IOActor
-    print(readInt())
+public extension DataStore {
+  func save(_ line: String) {
+    save(line)
   }
-}
-
-func print(myActor : MyIOActor) async {
-  // Okay! We only call `readIntFromIO` on the IOActor's executor
-  print(await myActor.readInt())
 }
 ```
 
@@ -323,6 +317,54 @@ between this and the other availability modes. The `noasync`, as discussed
 above, is a weaker check and does not require API that is using the unavailable
 function to also be annotated. The other availability checks do require that the
 availability information be propagated.
+
+## Future Directions
+
+[Custom executors](https://forums.swift.org/t/support-custom-executors-in-swift-concurrency/44425)
+are pitched to become part of the language as a future feature.
+Restricting an API to a custom executor is the same as restricting that API to
+an actor. The difference is that the actor providing the replacement API has
+it's `unownedExecutor` overridden with the desired custom executor.
+
+Hand-waving around some of the syntax, this protection could look something like
+the following example:
+
+```swift
+protocol IOActor : Actor { }
+
+extension IOActor {
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    return getMyCustomIOExecutor()
+  }
+}
+
+@available(*, noasync, renamed: "IOActor.readInt()")
+func readIntFromIO() -> String { }
+
+extension IOActor {
+  // IOActor replacement API goes here
+  func readInt() -> String { readIntFromIO() }
+}
+
+actor MyIOActor : IOActor {
+  func printInt() {
+    // Okay! It's synchronous on the IOActor
+    print(readInt())
+  }
+}
+
+func print(myActor : MyIOActor) async {
+  // Okay! We only call `readIntFromIO` on the IOActor's executor
+  print(await myActor.readInt())
+}
+```
+
+The `IOActor` overrides it's `unownedExecutor` with a specific custom IO
+executor and provides a synchronous `readInt` function wrapping a call to the
+`readIntFromIO` function. The `noasync` availability attribute ensures that
+`readIntFromIO` cannot generally be used from asynchronous contexts.
+When `readInt` is called, there will be a hop to the `MyIOActor`, which uses the
+custom IO executor.
 
 ## Acknowledgments
 
