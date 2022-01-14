@@ -1,9 +1,9 @@
 # Clarify the Execution of Non-Actor-Isolated Async Functions
 
-* Proposal: [SE-0000](0000-clarify-execution-non-actor-async.md)
+* Proposal: [SE-0338](0338-clarify-execution-non-actor-async.md)
 * Authors: [John McCall](https://github.com/rjmccall)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active Review** (January 14th...24th, 2022)**
 
 ## Introduction
 
