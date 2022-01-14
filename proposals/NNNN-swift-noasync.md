@@ -69,14 +69,14 @@ func asyncFun() async {
 }
 ```
 
-Using an API annotated with the `noasync` availability kind from an asynchronous
-context will result in an error.
-In certain cases, it is possible to use the API safely within an asynchronous
-context, but not across suspension points.
-The attribute only prevents API usage in the immediate asynchronous context;
-wrapping a call to an unavailable API in a synchronous context and calling the
-wrapper will not emit an error. This allows functions to wrap the API and
-provide a safe alternative, like the example below:
+The `noasync` availability attribute only prevents API usage in the immediate
+asynchronous context; wrapping a call to an unavailable API in a synchronous
+context and calling the wrapper will not emit an error. This allows for cases
+where it is possible to use the API safely within an asynchronous context, but
+in specific ways. The example below demonstrates this with an example of using a
+pthread mutex to wrap a critical section. The function ensures that there cannot
+be a suspension point between obtaining and releasing the lock, and therefore is
+safe for consumption by asynchronous contexts.
 
 ```swift
 func goodAsyncFunc(_ mutex: UnsafeMutablePointer<pthread_mutex_t>, _ op : () -> ()) async {
