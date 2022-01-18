@@ -3,7 +3,7 @@
 * Proposal: [SE-0338](0338-clarify-execution-non-actor-async.md)
 * Authors: [John McCall](https://github.com/rjmccall)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review** (January 14...24, 2022)**
+* Status: **Active Review (January 14...24, 2022)**
 
 ## Introduction
 
