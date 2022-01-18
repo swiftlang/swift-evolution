@@ -15,7 +15,7 @@
 The function `withMemoryRebound(to:capacity:_ body:)`
 executes a closure while temporarily binding a range of memory to a different type than the callee is bound to.
 We propose to lift some notable limitations of `withMemoryRebound` and enable rebinding to a larger set of types,
-as well as rebinding from raw memory pointers and buffers.
+as well as rebinding the memory pointed to by raw memory pointers and buffers.
 
 Swift-evolution thread: [Pitch thread][pitch-thread]
 
@@ -36,33 +36,19 @@ func withMemoryRebound<T, Result>(
 ) rethrows -> Result
 ```
 
-This function is currently more limited than necessary.
-It requires that the stride of `Pointee` and `T` be equal.
-This requirement makes many legitimate use cases technically illegal,
+In its current incarnation, this function is more limited than necessary.
+It requires that the stride of `Pointee` and `T` be equal,
+and that requirement makes many legitimate use cases technically illegal,
 even though they could be supported by the compiler.
 
-We propose to allow temporarily binding to a type `T` whose stride is
-a whole fraction or whole multiple of `Pointee`'s stride,
-when the starting address is properly aligned for type `T`.
-As before, `T`'s memory layout must be compatible with that of`Pointee`.
+We propose to expand and better define the rules by which the function can be used,
+including to allow temporarily binding to a type `T` that is a homogeneous aggregate of `Pointee`,
+or a type `T` of which `Pointee` is a homogeneous aggregate.
+For instance, the tuple `(Int, Int, Int)` is a homogeneous aggregate.
 
-<!-- 
-Two types are mutually layout compatible if their in-memory representation has the same size and alignment
-or they have the same number of mutually layout-compatible elements.
-The concept of layout compatibility is not strictly defined, but here are examples of mutually layout compatible types:
-- a type and its typealias
-- two integer types of the same bit width
-- class references, and `AnyObject` existentials
-- two pointer types
-- frozen structs with one stored property, and a value of the same type as the stored property
-
-Types can also be layout compatible in a non-mutual manner; 
-for example, homogeneous aggregates are layout compatible with larger homogeneous aggregates if their common elements are mutually layout compatible.
- -->
-
-For example, suppose that a buffer of `Double` consisting of a series of (x,y) pairs is returned from data analysis code written in C.
+As an example of rebinding, suppose that a buffer of `Double` consisting of a series of (x,y) pairs is returned from data analysis code written in C.
 The next step might be to display it in a preview graph, which needs to read `CGPoint` values.
-We need to copy the `Double` values as pairs to values of type `CGPoint` (when executing on a 64-bit platform):
+We need to copy pairs of `Double` values to values of type `CGPoint` (when executing on a 64-bit platform):
 
 ```swift
 var count = 0
@@ -81,7 +67,7 @@ var points = Array<CGPoint>(unsafeUninitializedCapacity: count/2) {
 
 We could do better with an improved version of `withMemoryRebound`.
 Since `CGPoint` values consist of a pair of `CGFloat` values,
-and `CGFloat` values are themselves layout-compatible with `Double` (when executing on a 64-bit platform):
+and `CGFloat` values are themselves layout-equivalent with `Double` (when executing on a 64-bit platform):
 ```swift
 var points = Array<CGPoint>(unsafeUninitializedCapacity: data.count/2) {
   buffer, initializedCount in
@@ -128,15 +114,44 @@ var points = Array<CGPoint>(unsafeUninitializedCapacity: data.count/MemoryLayout
 
 ## Proposed solution
 
-We propose to lift the restriction that the strides of `T` and `Pointee` must be equal.
-This means that it will now be considered correct to re-bind from a homogeneous aggregate type to the type of its constitutive elements,
-as they are layout compatible, even though their stride is different.
+`withMemoryRebound` is currently defined for `UnsafePointer`, `UnsafeMutablePointer`,
+`UnsafeBufferPointer` and `UnsafeMutableBufferPointer`.
+The type to which the memory is bound by the `Pointer` types is called `Pointee`,
+while it is `Element` for the `BufferPointer` types.
+For simplicity the following discussion calls both `Pointee`.
+
+In the general case, the runtime performs housekeeping tasks when initializing, deinitializing or updating a value of a type.
+Initializing and deinitialization of a type that is or stores a reference type means that type-specific code is executed,
+and therefore in general data cannot be accessed as another type.
+
+`withMemoryRebound` can be used safely with pairs of types `Pointee` and `T` that do _not_ require initialization or deinitialization.
+These types do not yet have a formal name in Swift,
+but are referred to as "trivial" types in some API documentation.
+
+In order to safely use `withMemoryRebound`, the current rule
+is that the destination type, `T`, must be _layout equivalent_ with `Pointee`.
+To this we add that, as an alternative, `T` can be a homogeneous aggregate of `Pointee`, or `Pointee` can be a homogeneous aggregate of `T`.
+
+Two types A and B are layout equivalent when they are, for example:
+- identical types;
+- one is a typealias for the other;
+- trivial scalar types with the same size and alignment, such as floating-point, integer and pointer types;
+- one is a class type, and the other is one of its superclass types, or `AnyObject`;
+- optional references whose underlying types are layout equivalent;
+- pointer types, such as `UnsafePointer` and `OpaquePointer`;
+- optional pointer types, such as `UnsafePointer?` and `UnsafeRawPointer?`;
+- one is a struct with a single stored property, the other is the type of its stored property;
+
+Homogeneous aggregate types (tuples, array storage, and frozen structs) are layout equivalent if they have the same number of layout-equivalent elements.
+
 
 ### Instance methods of `UnsafePointer<Pointee>` and `UnsafeMutablePointer<Pointee>`
 
-We propose to lift the restriction that the strides of `T` and `Pointee` must be equal, when calling `withMemoryRebound`.
+We propose to lift the restriction that the strides of `T` and `Pointee` must be equal when calling `withMemoryRebound`.
+`T` and `Pointee` must either be layout equivalent (see above,)
+or one must be a homogeneous aggregate of the other.
 The function declarations remain the same on these two types,
-though given the relaxed restriction, 
+though given the updated rules, 
 we must clarify the meaning of the `capacity` argument.
 `capacity` shall mean the number of strides of elements of the temporary type (`T`) to be temporarily bound.
 The documentation will be updated to reflect the changed behaviour.
@@ -165,6 +180,8 @@ extension UnsafeMutablePointer {
 We propose adding a `withMemoryRebound` method, which currently does not exist on these types.
 Since it operates on raw memory, this version of `withMemoryRebound` places no restriction on the temporary type (`T`).
 It is therefore up to the program author to ensure type safety when using these methods.
+When applied to memory that is initialized but viewed as raw memory,
+the relation between the initialized type and `T` must be valid under the `UnsafePointer.withMemoryRebound` rules.
 As in the `UnsafePointer` case, `capacity` means the number of strides of elements of the temporary type (`T`) to be temporarily bound.
 
 ```swift
@@ -187,9 +204,11 @@ extension UnsafeMutableRawPointer {
 
 ### Instance methods of `UnsafeBufferPointer` and `UnsafeMutableBufferPointer`
 
-We propose to lift the restriction that the strides of `T` and `Pointee` must be equal, when calling `withMemoryRebound`.
+We propose to lift the restriction that the strides of `T` and `Element` must be equal when calling `withMemoryRebound`.
+`T` and `Element` must either be layout equivalent (see above,)
+or one must be a homogeneous aggregate of the other.
 The function declarations remain the same on these two types.
-The capacity of the buffer to the temporary type will be calculated using the length of the `UnsafeBufferPointer<Element>` and the stride of the temporary type.
+The capacity of the buffer to the temporary type will be calculated using the capacity of the `UnsafeBufferPointer<Element>` and the stride of the temporary type.
 The documentation will be updated to reflect the changed behaviour.
 We will add parameter labels to the closure type declaration to benefit code completion (a source compatible change.)
 
@@ -214,9 +233,11 @@ extension UnsafeMutableBufferPointer {
 We propose adding a `withMemoryRebound` method, which currently does not exist on these types.
 Since it operates on raw memory, this version of `withMemoryRebound` places no restriction on the temporary type (`T`).
 It is therefore up to the program author to ensure type safety when using these methods.
-The capacity of the buffer to the temporary type will be calculated using the length of the `UnsafeRawBufferPointer` and the stride of the temporary type.
+When applied to memory that is initialized but viewed as raw memory,
+the relation between the initialized type and `T` must be valid under the `UnsafePointer.withMemoryRebound` rules.
+The capacity of the buffer to the temporary type will be calculated using the capacity of the `UnsafeRawBufferPointer` and the stride of the temporary type.
 
-Finally the set, we propose to add an `assumingMemoryBound` function that calculates the capacity of the returned `UnsafeBufferPointer`.
+To complete the set, we propose to add an `assumingMemoryBound` function that calculates the capacity of the returned `UnsafeBufferPointer`.
 
 ```swift
 extension UnsafeRawBufferPointer {
@@ -282,21 +303,21 @@ extension UnsafePointer {
   /// After executing `body`, this method rebinds memory back to the original
   /// `Pointee` type.
   ///
-  /// - Note: Only use this method to rebind the pointer's memory to a type
-  ///   that is layout compatible with the `Pointee` type. The stride of the
+  /// - Note: Only use this method to rebind the pointer's memory to a type `T`
+  ///   that is layout equivalent with the `Pointee` type, or a type `T` that 
+  ///   is an aggregate of `Pointee` instances, or a type `T` such that `Pointee`
+  ///   is an aggregate of `T` instances. As such, the stride of the
   ///   temporary type (`T`) may be an integer multiple or a whole fraction
-  ///   of `Pointee`'s stride, for example to point to one element of
-  ///   an aggregate.
+  ///   of `Pointee`'s stride.
   ///   To bind a region of memory to a type that does not match these
-  ///   requirements, convert the pointer to a raw pointer and use the
-  ///   `bindMemory(to:)` method.
+  ///   requirements, convert the pointer to a raw pointer and use its
+  ///   `withMemoryRebound(to:)` method.
   ///   If `T` and `Pointee` have different alignments, this pointer
   ///   must be aligned with the larger of the two alignments.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. The type `T` must be layout compatible
-  ///     with the pointer's `Pointee` type.
+  ///     pointer. This pointer must be correctly aligned for `type`.
   ///   - count: The number of instances of `T` in the re-bound region.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
@@ -351,21 +372,21 @@ extension UnsafeMutablePointer {
   /// After executing `body`, this method rebinds memory back to the original
   /// `Pointee` type.
   ///
-  /// - Note: Only use this method to rebind the pointer's memory to a type
-  ///   that is layout compatible with the `Pointee` type. The stride of the
+  /// - Note: Only use this method to rebind the pointer's memory to a type `T`
+  ///   that is layout equivalent with the `Pointee` type, or a type `T` that 
+  ///   is an aggregate of `Pointee` instances, or a type `T` such that `Pointee`
+  ///   is an aggregate of `T` instances. As such, the stride of the
   ///   temporary type (`T`) may be an integer multiple or a whole fraction
-  ///   of `Pointee`'s stride, for example to point to one element of
-  ///   an aggregate.
+  ///   of `Pointee`'s stride.
   ///   To bind a region of memory to a type that does not match these
-  ///   requirements, convert the pointer to a raw pointer and use the
-  ///   `bindMemory(to:)` method.
+  ///   requirements, convert the pointer to a raw pointer and use its
+  ///   `withMemoryRebound(to:)` method.
   ///   If `T` and `Pointee` have different alignments, this pointer
   ///   must be aligned with the larger of the two alignments.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. The type `T` must be layout compatible
-  ///     with the pointer's `Pointee` type.
+  ///     pointer. This pointer must be correctly aligned for `type`.
   ///   - count: The number of instances of `T` in the re-bound region.
   ///   - body: A closure that takes a mutable typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
@@ -415,20 +436,21 @@ extension UnsafeBufferPointer {
   /// After executing `body`, this method rebinds memory back to the original
   /// `Element` type.
   ///
-  /// - Note: Only use this method to rebind the buffer's memory to a type
-  ///   that is layout compatible with the currently bound `Element` type.
-  ///   The stride of the temporary type (`T`) may be an integer multiple
-  ///   or a whole fraction of `Element`'s stride.
+  /// - Note: Only use this method to rebind the pointer's memory to a type `T`
+  ///   that is layout equivalent with the `Element` type, or a type `T` that 
+  ///   is an aggregate of `Element` instances, or a type `T` such that `Element`
+  ///   is an aggregate of `T` instances. As such, the stride of the
+  ///   temporary type (`T`) may be an integer multiple or a whole fraction
+  ///   of `Element`'s stride.
   ///   To bind a region of memory to a type that does not match these
-  ///   requirements, convert the buffer to a raw buffer and use the
-  ///   `bindMemory(to:)` method.
+  ///   requirements, convert the pointer to a raw buffer and use its
+  ///   `withMemoryRebound(to:)` method.
   ///   If `T` and `Element` have different alignments, this buffer's
   ///   `baseAddress` must be aligned with the larger of the two alignments.
   ///
   /// - Parameters:
-  ///   - type: The type to temporarily bind the memory referenced by this
-  ///     buffer. The type `T` must be layout compatible
-  ///     with the pointer's `Element` type.
+  ///   - type: The type to temporarily bind the memory referenced by this pointer.
+  ///     This buffer's `baseAddress` must be correctly aligned for `type`.
   ///   - body: A closure that takes a  typed buffer to the
   ///     same memory as this buffer, only bound to type `T`. The buffer
   ///     parameter contains a number of complete instances of `T` based
@@ -480,20 +502,21 @@ extension UnsafeMutableBufferPointer {
   /// After executing `body`, this method rebinds memory back to the original
   /// `Element` type.
   ///
-  /// - Note: Only use this method to rebind the buffer's memory to a type
-  ///   that is layout compatible with the currently bound `Element` type.
-  ///   The stride of the temporary type (`T`) may be an integer multiple
-  ///   or a whole fraction of `Element`'s stride.
+  /// - Note: Only use this method to rebind the pointer's memory to a type `T`
+  ///   that is layout equivalent with the `Element` type, or a type `T` that 
+  ///   is an aggregate of `Element` instances, or a type `T` such that `Element`
+  ///   is an aggregate of `T` instances. As such, the stride of the
+  ///   temporary type (`T`) may be an integer multiple or a whole fraction
+  ///   of `Element`'s stride.
   ///   To bind a region of memory to a type that does not match these
-  ///   requirements, convert the buffer to a raw buffer and use the
-  ///   `bindMemory(to:)` method.
+  ///   requirements, convert the pointer to a raw buffer and use its
+  ///   `withMemoryRebound(to:)` method.
   ///   If `T` and `Element` have different alignments, this buffer's
   ///   `baseAddress` must be aligned with the larger of the two alignments.
   ///
   /// - Parameters:
-  ///   - type: The type to temporarily bind the memory referenced by this
-  ///     buffer. The type `T` must be layout compatible
-  ///     with the pointer's `Element` type.
+  ///   - type: The type to temporarily bind the memory referenced by this pointer.
+  ///     This buffer's `baseAddress` must be correctly aligned for `type`.
   ///   - body: A closure that takes a mutable typed buffer to the
   ///     same memory as this buffer, only bound to type `T`. The buffer
   ///     parameter contains a number of complete instances of `T` based
@@ -548,14 +571,15 @@ extension UnsafeRawPointer {
   ///   must equal zero.
   ///
   /// - Note: The region of memory starting at this pointer may have been
-  ///   bound to a type. If that is the case, then `T` must be
-  ///   layout compatible with the type to which the memory has been bound.
+  ///   bound to a type (the prebound type). If that is the case, then `T` must be
+  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   the prebound type, or the the prebound type is an aggregate of `T`.
   ///   This requirement does not apply if the region of memory
   ///   has not been bound to any type.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. This pointer must be a multiple of this type's alignment.
+  ///     pointer. This pointer must be correctly aligned for `type`.
   ///   - count: The number of instances of `T` in the re-bound region.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
@@ -607,14 +631,15 @@ extension UnsafeMutableRawPointer {
   ///   must equal zero.
   ///
   /// - Note: The region of memory starting at this pointer may have been
-  ///   bound to a type. If that is the case, then `T` must be
-  ///   layout compatible with the type to which the memory has been bound.
+  ///   bound to a type (the prebound type). If that is the case, then `T` must be
+  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   the prebound type, or the the prebound type is an aggregate of `T`.
   ///   This requirement does not apply if the region of memory
   ///   has not been bound to any type.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. This pointer must be a multiple of this type's alignment.
+  ///     pointer. This pointer must be correctly aligned for `type`.
   ///   - count: The number of instances of `T` in the re-bound region.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
@@ -662,14 +687,16 @@ extension UnsafeRawBufferPointer {
   ///   must equal zero.
   ///
   /// - Note: A raw buffer may represent memory that has been bound to a type.
-  ///   If that is the case, then `T` must be layout compatible with the
-  ///   type to which the memory has been bound. This requirement does not
-  ///   apply if the raw buffer represents memory that has not been bound
-  ///   to any type.
+  ////  (the prebound type). If that is the case, then `T` must be
+  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   the prebound type, or the the prebound type is an aggregate of `T`.
+  ///   This requirement does not apply if the region of memory
+  ///   has not been bound to any type.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. This pointer must be a multiple of this type's alignment.
+  ///     pointer. This buffer's `baseAddress` must be correctly aligned
+  ///     for `type`.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
   ///     pointer argument is valid only for the duration of the closure's
@@ -735,14 +762,16 @@ extension UnsafeMutableRawBufferPointer {
   ///   must equal zero.
   ///
   /// - Note: A raw buffer may represent memory that has been bound to a type.
-  ///   If that is the case, then `T` must be layout compatible with the
-  ///   type to which the memory has been bound. This requirement does not
-  ///   apply if the raw buffer represents memory that has not been bound
-  ///   to any type.
+  ////  (the prebound type). If that is the case, then `T` must be
+  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   the prebound type, or the the prebound type is an aggregate of `T`.
+  ///   This requirement does not apply if the region of memory
+  ///   has not been bound to any type.
   ///
   /// - Parameters:
   ///   - type: The type to temporarily bind the memory referenced by this
-  ///     pointer. This pointer must be a multiple of this type's alignment.
+  ///     pointer. This buffer's `baseAddress` must be correctly aligned
+  ///     for `type`.
   ///   - body: A closure that takes a typed pointer to the
   ///     same memory as this pointer, only bound to type `T`. The closure's
   ///     pointer argument is valid only for the duration of the closure's
