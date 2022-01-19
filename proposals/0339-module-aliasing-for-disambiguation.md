@@ -1,12 +1,12 @@
 # Module Aliasing For Disambiguation
 
-* Proposal: [SE-NNNN](NNNN-module-aliasing-for-disambiguation.md)
+* Proposal: [SE-0339](0339-module-aliasing-for-disambiguation.md)
 * Authors: [Ellie Shin](https://github.com/elsh)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (January 19th...31st, 2022)**
 * Pitch: [Module Aliasing](https://forums.swift.org/t/pitch-module-aliasing/51737)
-* Implementation:
-[apple/swift#39376](https://github.com/apple/swift/pull/39376), [apple/swift#39496](https://github.com/apple/swift/pull/39496), [apple/swift#39533](https://github.com/apple/swift/pull/39533), [apple/swift#39628](https://github.com/apple/swift/pull/39628), [apple/swift#39634](https://github.com/apple/swift/pull/39634),  [apple/swift#39705](https://github.com/apple/swift/pull/39705), [apple/swift#39929](https://github.com/apple/swift/pull/39929), [apple/swift#40064](https://github.com/apple/swift/pull/40064),  [apple/swift#40384](https://github.com/apple/swift/pull/40384), [apple/swift#40450](https://github.com/apple/swift/pull/40450), [apple/swift#40494](https://github.com/apple/swift/pull/40494), [apple/swift-driver#912](https://github.com/apple/swift-driver/pull/912), [apple/swift-driver#913](https://github.com/apple/swift-driver/pull/913)
+* Implementation: ([toolchain](https://github.com/apple/swift/pull/40899)),
+[apple/swift-package-manager#4023](https://github.com/apple/swift-package-manager/pull/4023), others
 
 ## Introduction
 
