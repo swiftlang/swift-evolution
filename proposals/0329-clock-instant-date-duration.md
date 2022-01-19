@@ -47,6 +47,10 @@
   * Added some additional alternatives considered for `DurationProtocol` and naming associated with it.
   * Renamed the associated type on `InstantProtocol` to be `Duration`.
   * Added back in task based sleep methods. Added a shorthand for sleeping tasks given a Duration.
+* **v3.0**
+  * Moved `measure` into a category from a protocol requirement
+  * Renamed the `nanoseconds` and `seconds` property of `Duration` to `nanosecondsPortion` and `secondsPortion` to indicate their fractional composition to types like `timespec`
+
 
 ## Introduction
 
@@ -115,8 +119,10 @@ public protocol Clock: Sendable {
   func sleep(until deadline: Instant, tolerance: Instant.Duration?) async throws 
 
   var minResolution: Instant.Duration { get }
-  
-  func measure(_ work: () async throws -> Void) reasync rethrows -> Duration
+}
+
+extension Clock {
+  func measure(_ work: () async throws -> Void) reasync rethrows -> Instant.Duration
 }
 ```
 
@@ -194,12 +200,12 @@ The naming of `DurationProtocol` was chosen because we feel that the canonical d
 
 Meaningful durations can always be expressed in terms of nanoseconds plus a number of seconds, either a duration before a reference point or after. They can be constructed from meaningful human measured (or machine measured precision) but should not account for any calendrical calculations (e.g., a measure of days, months or years distinctly need a calendar to be meaningful). Durations should able to be serialized, compared, and stored as keys, but also should be able to be added and subtracted (and zero is meaningful). They are distinctly NOT `Numeric` due to the aforementioned issue with regards to multiplying two `TimeInterval` variables. That being said, there is utility for ad-hoc division and multiplication to calculate back-offs.
 
-The `Duration` must be able to account for high scale resolution of calculation; the storage will under the hood ensure proper rounding for division (by likely storing higher precision than exposed) and enough range to span the full range of potential reasonable instants. This means that spanning the full range of +/- thousands of years at a non lossy scale can be accomplished by storing the seconds and nanoseconds. 
+The `Duration` must be able to account for high scale resolution of calculation; the storage will under the hood ensure proper rounding for division (by likely storing higher precision than exposed) and enough range to span the full range of potential reasonable instants. This means that spanning the full range of +/- thousands of years at a non lossy scale can be accomplished by storing the seconds and nanoseconds. Not all systems will need that full range, however in order to properly represent nanosecond precision across the full range of times expressed in the operating systems that Swift works on a full 128 bit storage is needed to represent these values. That in turn necessitates exposing the conversion to existing types as breaking the duration into two portions. These portions of a duration are exposed for interoperability with existing APIs such as `timespec` as a seconds portion and nanoseconds portion. 
 
 ```swift
 public struct Duration: Sendable {
-  public var seconds: Int64 { get }
-  public var nanoseconds: Int64 { get }
+  public var secondsPortion: Int64 { get }
+  public var nanosecondsPortion: Int64 { get }
 }
 
 extension Duration {
@@ -346,7 +352,7 @@ This approach preserves compatibility with those APIs while still providing the 
 
 ### Task
 
-The existing `Task` API has methods in which to sleep. These existing methods do not have any specified behavior of sleeping; however under the hood it uses a continuous clock on darwin and a suspending clock on linux. 
+The existing `Task` API has methods in which to sleep. These existing methods do not have any specified behavior of sleeping; however under the hood it uses a continuous clock on Darwin and a suspending clock on Linux. 
 
 The existing API for sleeping will be deprecated, and the existing deprecation will be updated accordingly to point to the new APIs.
 
@@ -360,7 +366,7 @@ extension Task {
   
   public static func sleep(for: Duration) async throws
   
-  public static func sleep<C: Clock>(until deadine: C.Instant, tolerance: C.Instant.Duration? = nil, clock: C) async throws
+  public static func sleep<C: Clock>(until deadline: C.Instant, tolerance: C.Instant.Duration? = nil, clock: C) async throws
 }
 ```
 
@@ -475,6 +481,10 @@ It was considered to have a more general form of the arithmetics for `DurationPr
 
 Similarly to the arithmetics; it was also considered to have the associated type to `InstantProtocol` as just a glob of protocols `Comparable & AdditiveArithmetic & Sendable`, however this lacks the capability of fast-paths for things like back-offs (ala Zeno's algorithm) or debounce, or timer coalescing. Some of them could be re-written in terms of loops of addition, however it would likely result in hot-looping over missed intervals in some cases, or in others not even being able to implement them (e.g. division for back-offs).
 
+### Clock and Task Sleep Tolerance Optionality
+
+It was raised that the hint from IDEs such as Xcode for the `.none` autocomplete do exist and those nomenclatures are perhaps misleading for the `tolerance` parameter to the sleep functions. We agree that this is perhaps a less than ideal name to expose as an autocomplete, however it was decided that code using `.none` instead of not passing a parameter or passing `nil` is stylistically problematic and left-overs from earlier versions of swift. It was concluded that the solutions in this space should be applicable to any other method that has an optional parameter and not just `Clock` and `Task`; moreover it seems like this is perhaps a bug in Xcode's autocomplete than an issue with the API as proposed since the `ContinuousClock`, `SuspendingClock` and `UTCClock` being proposed are most meaningful of the lack of a parameter value than to introduce any sort of enumeration mirroring `Optional` without any sort of direct type passing capability. In short - a more general solution should be approached with this problem and the optional duration type should remain.
+
 ### Alternative Names
 
 There have been a number of names that have been considered during this proposal (these are a few highlights):
@@ -502,11 +512,15 @@ The clock `SuspendingClock` has been considered to be named:
 
 The type `Duration` has been considered to be named:
 * `Interval` - This is quite ambiguous and could refer to numerous other concepts other than time.
+* The `nanosecondsPortion` and `secondsPortion` were considered to be named `nanoseconds` and `seconds` however those names posed ambiguity of rounding; naming them with the term portion infers their fractional composition rather than just a rounded/truncated value. 
 
 The type `Date` has been considered to be named:
 * `Timestamp` - A decent alternative but still comes at a slight ambiguity with regards to being tied to a calendar. Also has string like connotations (with how it is used in logs)
 * `Timepoint`/`TimePoint` - A reasonable alternative with less ambiguity but ultimately not compelling enough to churn thousands of APIs that already exist (just counting the ones included in the iOS and macOS SDKs, not to mention the other use sites that may exist). 
 * `WallClock.Instant`/`UTCClock.Instant` - This is a very wordy way of spelling the same idea as `Date` represents today.
+
+The `Task.sleep(for:tolerance:clock:)` API has been considered to be named:
+* `Task.sleep(_:tolerance:clock:)` - even though this is still grammatically correct and omits potentially a needless word of "for", having this extra word still reads well but also offers a better fix-it for migration from deprecated APIs. That migration was considered worth it to keep the "for".
 
 ## Appendix
 
