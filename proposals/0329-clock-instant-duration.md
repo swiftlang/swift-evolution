@@ -1,13 +1,15 @@
 # Clock, Instant, and Duration
 
-* Proposal: [SE-0329](0329-clock-instant-date-duration.md)
-* Author(s): [Philippe Hausler](https://github.com/phausler)
+* Proposal: [SE-0329](0329-clock-instant-duration.md)
+* Author: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (January 19th...24th, 2022)**
-* Implementation: [apple/swift#39753](https://github.com/apple/swift/pull/39753)
+* Implementation: [apple/swift#40609](https://github.com/apple/swift/pull/40609)
 * Review: ([first review](https://forums.swift.org/t/se-0329-clock-instant-date-and-duration/53309)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0329-clock-instant-date-and-duration/53635)) ([second review](https://forums.swift.org/t/se-0329-second-review-clock-instant-and-duration/54509)) ([third review](https://forums.swift.org/t/se-0329-third-review-clock-instant-and-duration/54727))
 
-## Revision history
+<details>
+<summary><b>Revision history</b></summary>
+
 * **v1** Initial pre-pitch
 * **v1.1** Refinement to clock, deadline and duration types
   * Expanded to include a Deadline type
@@ -51,6 +53,7 @@
   * Moved `measure` into a category from a protocol requirement
   * Renamed the `nanoseconds` and `seconds` property of `Duration` to `nanosecondsPortion` and `secondsPortion` to indicate their fractional composition to types like `timespec`
 
+</details>
 
 ## Introduction
 
