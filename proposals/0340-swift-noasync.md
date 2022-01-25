@@ -1,7 +1,9 @@
 # Unavailable From Async Attribute
 
+* Proposal: [SE-0340](0340-swift-noasync.md)
 * Authors: [Evan Wilde](https://github.com/etcwilde)
-* Status:  **Implemented**
+* Review manager: [Joe Groff](https://github.com/jckarter)
+* Status:  **Active review (Jan 25...Feb 8, 2022)**
 * Implementation: [Underscored attribute](https://github.com/apple/swift/pull/40149), [Attribute with optional message](https://github.com/apple/swift/pull/40378), [noasync availability](https://github.com/apple/swift/pull/40769)
 * Discussion: [Discussion: Unavailability from asynchronous contexts](https://forums.swift.org/t/discussion-unavailability-from-asynchronous-contexts/53088)
 * Pitch: [Pitch: Unavailability from asynchronous contexts](https://forums.swift.org/t/pitch-unavailability-from-asynchronous-contexts/53877)
