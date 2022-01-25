@@ -131,9 +131,9 @@ let f: any ((Int) -> Void) = generic // error: 'any' has no effect on concrete t
 struct S {}
 class C {}
 
-let value: any Any = S() // warning: 'any' is redundant on type 'Any'
-let values: [any Any] = [] // warning: 'any' is redundant on type 'Any'
-let object: any AnyObject = C() // warning: 'any' is redundant on type 'AnyObject'
+let value: any Any = S()
+let values: [any Any] = []
+let object: any AnyObject = C()
 
 protocol P {}
 extension C: P {}
@@ -166,6 +166,10 @@ let protocolMetatype: (any P).Type = (any P).self
 Under this model, the `any` keyword conceptually acts like an existential quantifier `∃ T`. Formally, `any P.Type` means `∃ T:P . T.Type`, i.e. for some concrete type `T` conforming to `P`, this is the metatype of that concrete type.`(any P).Type` is formally `(∃ T:P . T).Type`, i.e. the metatype of the existential type itself.
 
 The distinction between `any P.Type` and `(any P).Type` is syntactically very subtle. However, `(any P).Type` is rarely useful in practice, and it's helpful to explain why, given a generic context where a type parameter `T` is substituted with an existential type, `T.Type` is the singleton protocol metatype.
+
+##### Metatypes for `Any` and `AnyObject`
+
+Like their base types, `Any.Type` and `AnyObject.Type` remain valid existential metatypes; writing `any` on these metatypes in unnecessary. The protocol metatypes for `Any` and `AnyObject` are spelled `(any Any).Type` and `(any AnyObject).Type`, respectively.
 
 #### Type aliases and associated types
 
@@ -213,6 +217,10 @@ Enforcing that existential types use the `any` keyword will require a source cha
 
 1. It saves programmers time in the long run by preventing them from writing new code that will become invalid later.
 2. It communicates the existence of `any` and encourages programmers to start using it for other existential types before adopting Swift 6.
+
+### Transitioning to `any` in Swift 6
+
+The new `any` syntax will be staged in over several major Swift releases. In the release where `any` is introduced, the compiler will not emit any warnings for the lack of `any` on existential types. After `any` is introduced, warnings will be added to guide programmers toward the new syntax. Finally, these warnings can become errors, or [plain protocol names can be repurposed](#re-purposing-the-plain-protocol-name), in Swift 6.
 
 ## Effect on ABI stability
 
