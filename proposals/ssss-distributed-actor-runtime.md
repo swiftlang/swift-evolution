@@ -53,7 +53,7 @@
 
 With the recent introduction of [actors](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md) to the language, Swift gained powerful and foundational building blocks for expressing *thread-safe* concurrent programs. Actors guarantee thread-safety thanks to actor-isolation of mutable state they encapsulate.
 
-In [SE-NNNN: Distributed Actor Isolation](https://github.com/ktoso/swift-evolution/blob/distributed-isolation/proposals/mmmm-distributed-actor-isolation.md#distributed-actor-isolation) we took it a step further, guaranteeing complete isolation of state with distributed actor-isolation, and setting the stage for `distributed` method calls to be performed across process and node boundaries. 
+In [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) we took it a step further, guaranteeing complete isolation of state with distributed actor-isolation, and setting the stage for `distributed` method calls to be performed across process and node boundaries. 
 
 This proposal focuses on the runtime aspects of making such remote calls possible, their exact semantics and how developers can provide their own `DistributedActorSystem` implementations to hook into the same language mechanisms, extending Swift's distributed actor model to various environments (such as cross-process communication, clustering, or even client/server communication).
 
@@ -61,19 +61,18 @@ This proposal focuses on the runtime aspects of making such remote calls possibl
 
 It is recommended, though not required, to familiarize yourself with the prior proposals before reading this one:
 
-- [SE-NNNN: Distributed Actor Isolation](https://github.com/apple/swift-evolution/pull/1478) - a detailed proposal 
-- Distributed Actor Runtime & Serialization (this proposal)
+- [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) - a detailed proposal 
+- Distributed Actor Runtime (this proposal)
 
 Feel free to reference the following library implementations which implement this proposal's library side of things:
 
 - [Swift Distributed Actors Library](https://www.swift.org/blog/distributed-actors/) - a reference implementation of a *peer-to-peer cluster* for distributed actors. Its internals depend on the work in progress language features and are dynamically changing along with these proposals. It is a realistic implementation that we can use as reference for these design discussions.
-- "[Fishy Transport](https://github.com/apple/swift-sample-distributed-actors-transport)" Sample - a simplistic example transport implementation that is easier to follow the basic integration pieces than the realistic cluster implementation. Feel free to refer to it as well, while keeping in mind that it is very simplified in its implementation approach.
 
 ## Motivation
 
-With distributed actor-isolation checking laid out in [SE-NNNN: Distributed Actor Isolation](https://github.com/ktoso/swift-evolution/blob/distributed-isolation/proposals/mmmm-distributed-actor-isolation.md#distributed-actor-isolation) we took the first step towards enabling remote calls being made by invoking `distributed func` declarations on distributed actors. The isolation model and serialization requirement checks in that proposal outline how we can guarantee the soundness of such distributed actor model at compile time.
+With distributed actor-isolation checking laid out in [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) we took the first step towards enabling remote calls being made by invoking `distributed func` declarations on distributed actors. The isolation model and serialization requirement checks in that proposal outline how we can guarantee the soundness of such distributed actor model at compile time.
 
-Distributed actors enable developers to build their applications and systems using the concept of actors that may be local or remote, and communicate with them regardless of their location. Our goal is to set developers free from having to re-invent ad-hoc approaches to networking, serialization and error handling every time they need to embrace distributed computing. 
+Distributed actors enable developers to build their applications and systems using the concept of actors that may be "local" or "remote", and communicate with them regardless of their location. Our goal is to set developers free from having to re-invent ad-hoc approaches to networking, serialization and error handling every time they need to embrace distributed computing. 
 
 Instead, we aim to embrace a co-operative approach to the problem, in which:
 
@@ -82,13 +81,13 @@ Instead, we aim to embrace a co-operative approach to the problem, in which:
 2. `DistributedActorSystem` library implementations, hook into the language provided cut-points, taking care of the actual message interactions, e.g. by sending messages representing remote distributed method calls over the network,
 3. `distributed actor` authors, who want to focus on getting things done, express their distributed API boundaries and communicate using them. They may have opinions about serialization and specifics of message handling, and should be able to configure and use the `DistributedActorSystem` of their choice to get things done.
 
-In general, we propose to embrace the actor style of communication for typical distributed system development, and aim to provide the necessary tools in the language, and runtime to make this a pleasant and nice default-go-to experience for developers.
+In general, we propose to embrace the actor style of communication for typical distributed system development, and aim to provide the necessary tools in the language, and runtime to make this a pleasant and nice default go-to experience for developers.
 
-Distributed actors may not serve *all* possible use-cases where networking is involved, but we believe a large group of applications and systems will benefit from them, as the ecosystem gains more and more `DistributedActorSystem` implementations.
+Distributed actors may not serve *all* possible use-cases where networking is involved, but we believe a large group of applications and systems will benefit from them, as the ecosystem gains mature `DistributedActorSystem` implementations.
 
 #### Example scenario
 
-In this proposal we will focus only on the runtime aspects of distributed actors and methods, i.e. what happens in order to create, send, and receive messages formed when a distributed method is called on a remote actor. For more details on distributed actor isolation and other compile-time checks, please refer to [SE-0336: Distributed Actor Isolation](https://github.com/ktoso/swift-evolution/blob/distributed-isolation/proposals/0336-distributed-actor-isolation.md#distributed-actor-isolation).
+In this proposal we will focus only on the runtime aspects of distributed actors and methods, i.e. what happens in order to create, send, and receive messages formed when a distributed method is called on a remote actor. For more details on distributed actor isolation and other compile-time checks, please refer to [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md).
 
 We need to pass around distributed actors in order to invoke methods on them at some later point in time. We need those actors to declare `distributed` methods such that we have something we can message them with, and there must be some lifecycle and registration mechanisms related to them. 
 
@@ -137,27 +136,31 @@ distributed actor Game {
 }
 ```
 
+This code snippet showcases what kind of distributed actors one might want to implement – they represent addressable identities in a system where players may be hosted on different hosts or devices. And we'd like to communicate with any of them from the `Game` actor which manages the entire game's state. Players may be on the same host as the `Game` actor, or on different ones, but we never have to change the implementation of Game to deal with this – thanks to distributed actors and the concept of location transparency, we can implement this piece of code once, and run it all locally, or distributed without changing the code specifically for either of those cases.
+
 ### Caveat: Low-level implementation details
 
-This proposal includes low-level implementation details in order to showcase how one can use to build a real, efficient, and extensible distributed actor system using the proposed language runtime. 
+This proposal includes low-level implementation details in order to showcase how one can use to build a real, efficient, and extensible distributed actor system using the proposed language runtime. It is primarily written for distributed actor system authors, which need to understand the underlying mechanisms which distributed actors use.
 
-End users of distributed actors need not dive deep into this proposal, and may be better served by reading [SE-NNNN: Distributed Actor Isolation](https://github.com/ktoso/swift-evolution/blob/distributed-isolation/proposals/mmmm-distributed-actor-isolation.md#distributed-actor-isolation) which focuses on how distributed actors are used. This proposal focuses on how distributed actors can be implemented – because this language feature is extensible, advanced library authors may step in and build their own distributed actor runtimes.
+End users, which just want to use _distributed actors_, and not necessarily _implement_ a distributed actor system runtime, do not need to dive deep as deep into this proposal, and may be better served by reading [SE-0366: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) which focuses on how distributed actors are used. Reading this, runtime, proposal however will provide additional insights as to why distributed actors are isolated the way they are.
+
+This proposal focuses on how a distributed actor system runtime can be implemented. Because this language feature is extensible, library authors may step in and build their own distributed actor runtimes. It is expected that there will be relatively few, but solid actor system implementations eventually, yet their use would apply to many many more end-users than actor system developers.
 
 ## Detailed design
 
-This proposal's detailed design section is going to deep dive into the runtime details and its interaction with user provided `DistributedActorSystem` implementations. Many of those aspects do not necessarily matter to the end-user/developer that only wants to write some distributed actors and have them communicate using *some* distributed actor system. This proposal however, dives deeper, explaining how distributed actors actually work internally.
+This proposal's detailed design section is going to deep dive into the runtime details and its interaction with user provided `DistributedActorSystem` implementations. Many of those aspects do are not strictly necessary to fully internallize by the end-user/developer that only wants to write some distributed actors and have them communicate using *some* distributed actor system. 
 
 ### The `DistributedActorSystem` protocol
 
-At the core of everything actors do, is the `DistributedActorSystem` protocol. This protocol is open to be implemented by anyone, and can be used to extend the functionality of distributed actors to other environments. 
+At the core of everything distributed actors do, is the `DistributedActorSystem` protocol. This protocol is open to be implemented by anyone, and can be used to extend the functionality of distributed actors to various environments. 
 
 Building a solid actor system implementation is not a trivial task, and we only expect a handful of mature implementations to take the stage eventually.
 
 > At the time of writing, we–the proposal authors–have released a work in progress [peer-to-peer cluster actor system implementation](https://www.swift.org/blog/distributed-actors/) that is tracking this evolving language feature. It can be viewed as a reference implementation for the language features and `DistributedActorSystem` protocol discussed in this proposal. 
 >
-> As not everything mentioned in this proposal is implemented yet, the cluster library is lagging behind a little, but will be adopting the new APIs as they become available in the language.
+> Not everything mentioned in this proposal is implemented yet, the cluster library is lagging behind a little, but will be adopting the new APIs as they become available in the language.
 
-Below we present the full listing of the `DistributedActorSystem` protocol, and we'll be explaining the specific methods one by one as we go through what and how distributed actors do in order to achieve their messaging capabilities:
+Below we present the full listing of the `DistributedActorSystem` protocol, and we'll be explaining the specific methods one by one as we go:
 
 ```swift
 // Module: _Distributed
@@ -170,23 +173,34 @@ protocol DistributedActorSystem: Sendable {
   /// A 'distributed actor' created using a specific actor system, will use the system's 'ActorID' as 
   /// the 'ID' type it stores and uses for its 'Hashable' implementation.
   ///
-  ///
   /// ### Implicit 'distribute actor' Codable conformance
   /// If the 'ActorID' (and therefore also the 'DistributedActor.ID') conforms to 'Codable',
   /// the 'distributed actor' will gain an automatically synthesized conformance to 'Codable' as well.
   associatedtype ActorID: Sendable & Hashable
   
-  /// The specific type of the argument builder to be used for remote calls.
-  associatedtype Invocation: DistributedTargetInvocation
+  /// The specific type of the invocation encoder that will be created and populated 
+  /// with details about the invocation when a remote call is about to be made.
+  ///
+  /// The populated instance will be passed to the remoteCall from where it can be
+  /// used to serialize into a message format in order to perform the remote invocation.
+  associatedtype InvocationEncoder: DistributedTargetInvocationEncoder
+  
+  /// The specific type of invocation decoder used by this actor system.
+  ///
+  /// An instance of this type must be passed to `executeDistributedTarget` which
+  /// extracts arguments and applies them to the local target of the invocation.
+  associatedtype InvocationDecoder: DistributedTargetInvocationDecoder
 
-  /// The serialization requirement to be applied to all distributed members of a distributed actor.
+  /// The serialization requirement that will be applied to all distributed targets used with this system. 
   ///
   /// An actor system is still allowed to throw serialization errors if a specific value passed to a distributed
   /// func violates some other restrictions that can only be checked at runtime, e.g. checking specific types
   /// against an "allow-list" or similar. The primary purpose of the serialization requirement is to provide
   /// compile time hints to developers, that they must carefully consider evolution and serialization of 
   /// values passed to and from distributed methods and computed properties.
-  typealias SerializationRequirement = Invocation.SerializationRequirement
+  associatedtype SerializationRequirement
+    where SerializationRequirement == InvocationEncoder.SerializationRequirement,
+          SerializationRequirement == InvocationDecoder.SerializationRequirement
   
   // ==== ---------------------------------------------------------------------
   // - MARK: Actor Lifecycle
@@ -244,52 +258,66 @@ protocol DistributedActorSystem: Sendable {
   /// by other means, such as "watching an actor for termination" or similar.
   func resolve<Act>(_ id: ActorID, as actorType: Act.Type) throws -> Act?
       where Act: DistributedActor, 
-            Act.ID: ActorID
+            Act.ID: ActorID,
+            Act.SerializationRequirement == Self.SerializationRequirement
   
   // ==== ---------------------------------------------------------------------
   // - MARK: Remote Target Invocations
 
   /// Invoked by the Swift runtime when a distributed remote call is about to be made.
   ///
-  /// The returned DistributedTargetInvocation will be populated with all
-  /// arguments, generic substitutions, and specific error and return types
-  /// that are associated with this specific invocation. 
-  /// 
-  /// Next, the prepared invocation will be passed to the remoteCall where the actual 
-  /// remote message send should be performed by the system.
-  @inlinable
-  func makeInvocation() throws -> Invocation
-  
+  /// The returned `InvocationEncoder` will be populated with all
+  /// generic substitutions, arguments, and specific error and return types
+  /// that are associated with this specific invocation.
+  func makeInvocationEncoder() -> InvocationEncoder
+
   // We'll discuss the remoteCall method in detail in this proposal.
-  // It cannot be declared as protocol requirement, and remains an ad-hoc
-  // like this:
-//  /// Invoked by the Swift runtime when making a remote call.
-//  ///
-//  /// The `arguments` are the arguments container that was previously created
-//  /// by `makeInvocation` and has been populated with all arguments.
-//  ///
-//  /// This method should perform the actual remote function call, and await for its response.
-//  ///
-//  /// ## Errors
-//  /// This method is allowed to throw because of underlying transport or serialization errors,
-//  /// as well as by re-throwing the error received from the remote callee (if able to).
-//  func remoteCall<Act, Err, Res>(
-//      on actor: Act,
-//      target: RemoteCallTarget,
-//      arguments: Invocation,
-//      throwing: Err.Type,
-//      returning: Res.Type
-//  ) async throws -> Res.Type
-//      where Act: DistributedActor,
-//            Act.ID == ActorID,
-//            Res: Self.SerializationRequirement
+  // It cannot be declared as protocol requirement, and remains an ad-hoc 
+  // requirement like this:
+  /// Invoked by the Swift runtime when making a remote call.
+  ///
+  /// The `invocation` are the arguments container that was previously created
+  /// by `makeInvocation` and has been populated with all arguments.
+  ///
+  /// This method should perform the actual remote function call, and await for its response.
+  ///
+  /// ## Errors
+  /// This method is allowed to throw because of underlying transport or serialization errors,
+  /// as well as by re-throwing the error received from the remote callee (if able to).
+  //
+  // Ad-hoc protocol requirement
+  func remoteCall<Act, Err, Res>(
+      on actor: Act,
+      target: RemoteCallTarget,
+      arguments: Invocation,
+      throwing: Err.Type,
+      returning: Res.Type
+  ) async throws -> Res
+      where Act: DistributedActor,
+            Act.ID == ActorID,
+            Err: Error,
+            Res: Self.SerializationRequirement
+  
+  /// Invoked by the Swift runtime when making a remote call to a 'Void' returning function.
+  ///
+  /// ( ... Same as remoteCall ... )
+  //
+  // Ad-hoc protocol requirement
+  func remoteCallVoid<Act, Err>(
+      on actor: Act,
+      target: RemoteCallTarget,
+      arguments: Invocation,
+      throwing: Err.Type
+  ) async throws
+      where Act: DistributedActor,
+            Act.ID == ActorID,
+            Err: Error
 }
 
 /// A distributed 'target' can be a `distributed func` or `distributed` computed property.
 ///
 /// The actor system should encode the identifier however it sees fit, 
 /// and transmit it to the remote peer in order to invoke identify the target of an invocation.
-@available(SwiftStdlib 5.6, *)
 public struct RemoteCallTarget: Hashable {
   /// The mangled name of the invoked distributed method.
   /// 
@@ -301,18 +329,22 @@ public struct RemoteCallTarget: Hashable {
 }
 ```
 
+In the following sections, we will be explaining how the various methods of a distributed system are invoked by the Swift runtime.
+
 ### Implicit Distributed Actor Properties
 
 Distributed actors have two properties that are crucial for the inner workings of actors that we'll explore during this proposal: the `id` and `actorSystem`.
 
 These properties are synthesized by the compiler, in every `distributed actor` instance, and they witness the `nonisolated` property requirements defined on the `DistributedActor` protocol. 
 
-The `DistributedActor` protocol, as a reminder, defines those requirements:
+The `DistributedActor` protocol (defined in SE-0336), defines those requirements:
 
 ```swift
 protocol DistributedActor {
   associatedtype ActorSystem: DistributedActorSystem
+  
   typealias ID = ActorSystem.ActorID
+  typealias SerializationRequirement: ActorSystem.SerializationRequirement
   
   nonisolated var id: ID { get }
   nonisolated var actorSystem: ActorSystem { get }
@@ -321,19 +353,47 @@ protocol DistributedActor {
 }
 ```
 
-which are witnessed by the following *synthesized properties* in every specific distributed actor instance.
+which are witnessed by *synthesized properties* in every specific distributed actor instance.
 
 Next, we will discuss how those properties get initialized, and used in effectively all aspects of a distributed actor's lifecycle.
 
-### Initializing Distributed Local Actors
+### Initializing Distributed Actors
 
 At runtime, a *local* `distributred actor` is effectively the same as a local-only `actor`. The allocated `actor` instance is a normal `actor`, however its initialization is a little special, because it must interact with its associated actor system to make itself available for remote calls.
 
 We will focus on non-delegating initializers, as they are the ones where distributed actors cause additional things to happen. 
 
-A non-delegating initializer of a type must *fully initialize* it. The place in code where an actor becomes fully initialized has important and specific meaning to actor isolation which is defined in depth in [SE-0327: On Actors and Initialization](https://github.com/apple/swift-evolution/pull/1476). Not only that, but once fully initialized it is possible to escape `self` out of a distributed actor's initializer. This aspect is important for distributed actors, because it means that once fully initialized they _must_ be registered with the actor system as they may be sent to other distributed actors and even sent messages to.
+> Please note that **initializing** a distributed actor always returns a "**local** distributed actor". The only way to obtain a "**remote** distributed actor", i.e. "a remote reference" is by using the `resolve(id:using:)` method which is explained in [Resolving Distributed Actors](#resolving-distributed-actors).
 
-All non-delegating initializers must accept exactly parameter that conforms to the `DistributedActorSystem` protocol. The type-checking rules of this are explained in depth in [SE-NNNN: Distributed Actor Isolation](...). E.g. these are well-formed initializers:
+Distributed actor initializers inject a number of calls into specific places of the initializer's body. These calls allow for the associated actor system to manage the actor's identity, and availability to remote calls. Before we dive into the details, the following diagram outlines the various calls that will be explained in this section:
+
+```
+┌────────────────────────────┐               ┌──────────────────────────┐                         
+│  distributed actor MyActor │               │ MyDistributedActorSystem │                         
+└────────────────────────────┘               └──────────────────────────┘                         
+      │                                                    │                                      
+ init(...)                                                 │                                      
+      │                                                    │                                      
+      │── // self.id = actorSystem.assignID(Self.self) ───▶│ Generate and reserve ID               
+      │                                                    │                                      
+      │   // self.actorSystem = system                     │                                      
+      │                                                    │                                      
+      │   <initialize other properties...>                 │                                      
+      │                                                    │ 
+      │── // actorSystem.actorReady(self) ────────────────▶│ Store a mapping (ID -> some DistributedActor)
+      │                                                    │                                               
+     ...                                                  ...
+      │                                                    │                                      
+      ◌ deinit ─ // actorSystem.resignID(self.id) ────────▶│ Remove (ID -> some DistributedActor) mapping 
+                                                           │                                      
+                                                          ...
+```
+
+### Distributed Actor initializers
+
+A non-delegating initializer of a type must *fully initialize* it. The place in code where an actor becomes fully initialized has important and specific meaning to actor isolation which is defined in depth in [SE-0327: On Actors and Initialization](https://github.com/apple/swift-evolution/pull/1476). Not only that, but once fully initialized it is possible to escape `self` out of a (distributed) actor's initializer. This aspect is especially important for distributed actors, because it means that once fully initialized they _must_ be registered with the actor system as they may be sent to other distributed actors and even sent messages to.
+
+All non-delegating initializers must accept a parameter that conforms to the `DistributedActorSystem` protocol. The type-checking rules of this are explained in depth in [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md). The following are examples of well-formed initializers:
 
 ```swift
 distributed actor DA { 
@@ -359,7 +419,7 @@ These initializers are ill-formed since they are missing the necessary parameter
 
 ```swift
 distributed actor DA { 
-  init(transport: SomeActorSystem, too many: SomeActorSystem) { ... }
+  init(system: SomeActorSystem, too many: SomeActorSystem) { ... }
   // ❌ error: designated distributed actor initializer 'init(transport:too:)' must accept exactly one ActorTransport parameter, found 2
   
   init(x: String) {}
@@ -375,7 +435,7 @@ Now in the next sections, we will explore in depth why this parameter was necess
 
 The first reason is that we need to initialize the `actorSystem` stored property.
 
-This is also necessary for any distributed actor's default initializer, which is synthesized when no user-defined initializer is provided. It is similar to the no-argument default initializer that is synthesized for classes and actors, however since we must initialize the `id` and `actorSystem`, it also accepts a required `system` parameter:
+This is also necessary for any distributed actor's default initializer, which is synthesized when no user-defined initializer is provided. It is similar to the no-argument default initializer that is synthesized for classes and actors:
 
 ```swift
 // user defined:
@@ -406,7 +466,7 @@ distributed actor DA {
 }
 ```
 
-The initialization of the `id` property is a little more involved. We need to communicate with the `system` used to initialize the distributed actor, for it is the `ActorSystem` that allocates and manages identifiers. In order to obtain a fresh `ID` for the actor being initialized, we need to call `system`'s `assignID` method. This is done early (before user-defined code) in the actors designated initializer, like this:
+The initialization of the `id` property is a little more involved. We need to communicate with the `system` used to initialize the distributed actor, for it is the `ActorSystem` that allocates and manages identifiers. In order to obtain a fresh `ID` for the actor being initialized, we need to call `system`'s `assignID` method. This is done before any user-defined code is allowed to run in the actors designated initializer, like this:
 
 ```swift
 distributed actor DA { 
@@ -438,20 +498,20 @@ So far, the initialization process was fairly straight forward. We only needed t
 
 As the actor becomes fully initialized, the type system allows escaping its `self` through method calls or closures. This can lead to unsafe access patterns, but those are discussed and prevented by [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). Distributed actor initializers are subject to the same rules as outlined in that proposal. In addition to that, in order for distributed actors to be able to escape through distributed calls made during their initializer, a system must carefully manage IDs that have been assigned but are not "ready" yet.
 
-Readying is done automatically by code synthesized into the distributed actor's non-delegating initializers, and takes the shape of an `self.actorSystem.actorReady(self)` call, injected at appropriate spots in the actor's initializer. This call is necessary in order for the distributed actor system to be able to resolve an incoming `ID` (that it knows, since it assigned it) to a specific distributed actor instance (which it does not know, until `actorReady` is called on it). This means that there is a state between the `assignID` and `actorReady` calls, during which the actor system cannot yet properly resolve the actor. 
+Readying is done automatically by code synthesized into the distributed actor's non-delegating initializers, and takes the shape of an `self.actorSystem.actorReady(self)` call, injected at appropriate spots in the initializer. This call is necessary in order for the distributed actor system to be able to resolve an incoming `ID` (that it knows, since it assigned it) to a specific distributed actor instance (which it does not know, until `actorReady` is called on the system). This means that there is a state between the `assignID` and `actorReady` calls, during which the actor system cannot yet properly resolve the actor. 
 
-In this section we will discuss the exact semantics of readying actors, how systems must implement and handle these calls, and where exactly they are invoked during from any distributed actor initializer.
+In this section we will discuss the exact semantics of readying actors, how systems must implement and handle these `actorReady` calls, and where exactly they are invoked during from any distributed actor initializer.
 
-> **Note:** It is highly recommended to read [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) in order to understand how initializers can guarantee thread-safety, and how this proposal plays well with the there proposed initializer rules. The two proposals have been developed in tandem, and we made sure they mesh well together.
+> **Note:** It is highly recommended to read [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) before reading the remainder of the initializer discussion of this proposal. As the synchronous and asynchronous rules about initialization directly fall out of SE-0327's initializer isolation rules. The two proposals have been developed in tandem, and we made sure they mesh well together.
 
-Where the `system.actorReady(self)` call is performed depends on whether the initializer is asynchronous. The reasons for this are due to thread-safety checks and how isolation is changed in actor initializers as proposed by [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). Specifically, these locations fall out of the rules where any such user-defined code would be permitted, and what changes it causes to `self` isolation. Please refer to that proposal for a detailed discussion of this topic as it is a very deep topic. 
+Where the `system.actorReady(self)` call is performed depends on whether the initializer is asynchronous. Specifically, these locations fall out of the rules where any such user-defined code would be permitted, and what changes it causes to `self` isolation. 
 
-Specifically, the ready call in distributed actors is made:
+The `actorReady` call in distributed actors is made:
 
 - at the _end_ of **synchronous non-delegating initializers**, or
 - where the actor becomes fully-initialized (and the initializer implicitly hops to the actors' execution context) in **asynchronous non-delegating initializers**.
 
-The following snippet illustrates a synchronous initializer, and where the ready call is injected in it:
+The following snippet illustrates a **synchronous initializer**, and where the ready call is injected in it:
 
 ```swift
 distributed actor DA { 
@@ -461,16 +521,16 @@ distributed actor DA {
     // << self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     self.number = 42
-    // ... fully initialized ...
+    // ~~~ become fully initialized ~~~
     // cannot escape `self` without changing initializer semantics
-    // since it is a synchronous one
+    // since it is a synchronous one (as dictated by SE-0327)
     print("Initialized \(\(self.id))")
     // << system.actorReady(self)
   }
 }
 ```
 
-Whereas the following snippet illustrates an asynchronous initializer, for the same actor:
+The next snippet illustrates an **asynchronous initializer**, for the same actor:
 
 ```swift
 distributed actor DA { 
@@ -480,7 +540,7 @@ distributed actor DA {
     // << self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     self.number = 42
-    // fully initialized:
+    // ~~~ become fully initialized ~~~
     // << <hop to self executor>
     // << system.actorReady(self)
     print("Initialized \(\(self.id))")
@@ -499,13 +559,13 @@ distributed actor DA {
     if number % 2 == 0 {
       print("even")
       self.number = number
-      // ~ become fully initialized ~
+      // ~~~ become fully initialized ~~~
       // << <hop to self executor>
       // << system.actorReady(self)
     } else {
       print("odd")
       self.number = number
-      // ~ become fully initialized ~
+      // ~~~ become fully initialized ~~~
       // << <hop to self executor>
       // << system.actorReady(self)
     }  
@@ -513,17 +573,19 @@ distributed actor DA {
 }
 ```
 
-Actor system implementations need to take special care about actor identifiers that have been assigned, but are not yet ready. 
+Special care needs to be taken about the distributed actor and actor system interaction in the time between the `assignID` and `actorReady` calls, because during this time the system is unable to *deliver* an invocation to the target actor. However, it is always able to recognize that an ID is known, but just not ready yet – the system did create and assign the ID after all. 
 
-Because of general rules about escaping `self` from not yet initialized actors and classes, it is not possible to escape a distributed actor's `self` before it is fully initialized. 
+> We suggest using the qualifier "**reserved**" for identifiers between the point in time as they have been assigned, but their respective actors have not become "ready" yet. 
+>
+> A reserved identifier is an important concept, because we need to make sure to never assign the same identity to two different actors -- as it would lead to ambiguity as to which actor an incoming message is designated to.
 
-Special care needs to be taken about the distributed actor and actor system interaction between the `assignID` and `actorReady` calls, because during this time the system is unable to *deliver* an invocation to the target actor. However, it is always able to recognize that an ID is known, but just not ready yet – the system did create and assign the ID after all. This matters only in **synchronous** distributed actor initializers, because the ready call is performed at the end of the initializer, and before that users are allowed to e.g. escape the `self` into a `Task` and potentially invoke a remote distributed method passing `self` to it, like this:
+This matters even more in **synchronous** distributed actor initializers, because the ready call is performed at the end of the initializer, and before that users are allowed to e.g. escape the `self` into a `Task` and potentially invoke a remote distributed method passing `self` to it, like this:
 
 ```swift
 init(greeter: Greeter, system: ActorSystem) { // synchronous (!)
  // ...
  // << id = system.assignID(Self.self)
- // ~ fully initialized ~
+ // ~~~ become fully initialized ~~~
  Task { 
    try await greeter.hello(from: self)
  }
@@ -538,13 +600,15 @@ init(greeter: Greeter, system: ActorSystem) { // synchronous (!)
 
  In the above scenario, there exist a timespan between offering `self` to another distributed actor and the actor itself becoming ready. If the remote `Greeter` were to call a distributed method on that "escaped self" and the originating system would receive that message before the `system.actorReady(self)` call is invoked, the system would be unable to deliver the invocation. 
 
-This thankfully is not a problem unknown to distributed actor runtimes, and can be solved by buffering messages to recipients that have been assigned an ID but are not yet ready. Since this is a synchronous initializer we are talking about here, this situation cannot lead to a deadlock since the initializer will continue running and we are unable to suspend it (because it is not async). In theory, a synchronous distributed actor initializer that *never returned* is problematic here, because it will never become ready, but this simply isn't the nature of how initializers should be used, and after careful consideration we decided this is a fair tradeoff. 
+This thankfully is not a problem unknown to distributed actor runtimes, and can be solved by buffering messages to recipients that have been assigned an ID but are not yet ready. Since this is a synchronous initializer we are talking about, this situation cannot lead to a deadlock since the initializer will continue running and we are unable to suspend it (because it is not async). In theory, a synchronous distributed actor initializer that *never returned* is problematic here, because it will never become ready, but this simply isn't the nature of how initializers should be used, and after careful consideration we decided this is a fair tradeoff. 
 
-Never-returning *synchronous* initializers, which escape self to other distributed actors, may not be able to receive incoming distributed calls. The problem does not necessarily have to lead to deadlocks or never-resumed tasks because remote calls are often associated with deadlines which would break the infinite wait. The above situation though quite an edge case though, and the other rules about actor isolation and thread-safety of initializers we feel more than make up for this one weird situation. The problem does not manifest with asynchronous initializers, so this is another option available for end users which truly want to perform distributed calls that are not request/reply, but direct messages from the remote peer, this is another option available to resolve the issue.
+Never-returning *synchronous* initializers, which escape self to other distributed actors, may not be able to receive incoming distributed calls. The problem does not necessarily have to lead to deadlocks or never-resumed tasks because remote calls are often associated with deadlines which would avoid an infinite wait. The above situation though quite an edge case though, and the other rules about actor isolation and thread-safety of initializers we feel more than make up for this one weird situation. 
+
+This problem does not manifest with asynchronous initializers, so this is another option availablet to avoid this issue.
 
 #### Ready-ing Distributed Actors, exactly once
 
-Another interesting case the synthesis in asynchronous initializers needs to take care of is triggering the `actorReady` call only *once*, as the actor truly becomes fully initialized. This issue does not manifest itself in simple init implementations, however the following snippet does a good job showing an example of where it can manifest:
+Another interesting case the synthesis in asynchronous initializers needs to take care of is triggering the `actorReady` call only *once*, as the actor first becomes fully initialized. This issue does not manifest itself in simple init implementations, however the following snippet does a good job showing an example of where it can manifest:
 
 ```swift
 distributed actor DA {
@@ -562,9 +626,13 @@ distributed actor DA {
 }
 ```
 
-This actor performs a loop during which it assigns values to `self.int`, the actor becomes fully initialized the first time this loop runs. While the implications on actor isolation are hard to observe here, the general need of performing a task once the actor is fully initialized is the same. In the case of distributed actors, we need to emit the `actorReady(self)` call, only once, as the actor becomes initialized, and we should not repeatedly call the actor system's `actorReady` method which would force system developers into weirdly defensive implementations of this method.
+This actor performs a loop during which it assigns values to `self.int`, the actor becomes fully initialized the first time this loop runs. 
 
-Thankfully, this is possible to track in the compiler, and we can emit the ready call only once, based on internal initialization marking mechanisms (that store specific bits for every initialized field). The synthesized (pseudo)-code therefore is something like this:
+We need to emit the `actorReady(self)` call, only once, as the actor becomes initialized, and we should not repeatedly call the actor system's `actorReady` method which would force system developers into weirdly defensive implementations of this method. Tankfully, this is possible to track in the compiler, and we can emit the ready call only once, based on internal initialization marking mechanisms (that store specific bits for every initialized field). 
+
+> This same mechanism of "do something only once, at full initialization time" is also used to emit "hop to self" in normal actors, where the actor's execution hops to its dedicated executor once it has become fully initialized, but does not need to hop any of the subsequent times in the loop.
+
+The synthesized (pseudo)-code therefore is something like this:
 
 ```swift
 distributed actor DA {
@@ -602,11 +670,11 @@ Using this technique we are able to emit the ready call only once, and put off t
 
 Things get more complicated in face of failable as well as throwing initializers. Specifically, because we not only have to assign identities, we also need to ensure that they are resigned when the distributed actor is deallocated. In the simple, non-throwing initialization case this is simply done in the distributed actor's `deinit`, however some initialization semantics make this more complicated.
 
-#### Resigning Distributed Actor IDs
+### Resigning Distributed Actor IDs
 
 In addition to assigning `ID` instances to specific actors as they get created, we must also *always* ensure the `ID`s assigned are resigned as their owning actors get destroyed. 
 
-Resigning an `ID` allows the actor system to release any resources it might have held in association with this actor. Most often this means removing it from some internal lookup table that was used to implement the `resolve(ID) -> Self` method of a distributed actor, but it could also imply tearing down connections, clearing caches, or even dropping any in-flight messages addressed to the now terminated distributed actor.
+Resigning an `ID` allows the actor system to release any resources it might have held in association with this actor. Most often this means removing it from some internal lookup table that was used to implement the `resolve(ID) -> Self` method of a distributed actor, but it could also imply tearing down connections, clearing caches, or even dropping any in-flight messages addressed to the now terminated actor.
 
 In the simple case this is trivially solved by deinitialization: we completely initialize the actor, and once it deinitializes, we invoke resign the ID in the actor's deinitializer:
 
@@ -626,7 +694,7 @@ deinit {
 }
 ```
 
-Things get more complicated once we take into account the existence of *failable* and *throwing* initializers though. Existing Swift semantics around those types of initializers, and their effect on if and when `deinit` is invoked mean that we need to take special care about them.
+Things get more complicated once we take into account the existence of *failable* and *throwing* initializers. Existing Swift semantics around those types of initializers, and their effect on if and when `deinit` is invoked mean that we need to take special care of them.
 
 Let us first discuss [failable initializers](https://docs.swift.org/swift-book/LanguageGuide/Initialization.html#ID224), i.e. initializers which are allowed to assign `nil` during their initialization. As actors allow such initializers, distributed actors should too, in order to make the friction of moving from local-only to distributed actors as small as possible.
 
@@ -642,6 +710,8 @@ distributed actor DA {
       return nil
     }
     self.int = int
+    // ~~~ become fully initialized ~~~
+    // << self.actorSystem.actorReady(self)
   }
   
   // deinit {
@@ -652,7 +722,9 @@ distributed actor DA {
 
 Due to rules about actor and class init/deinit, when we `return nil` from a failable initializer, its deinitializer *does not run* (!). Because of this, we cannot rely on the deinit to resign the ID as we'd leave an un-used, but still registered identity hanging in the actor system, and the `resignID` is injected just before the "failing return" from such initializer. This is done transparently, and neither distributed actor developers nor actor system developers need to worry about this: the ID is always resigned properly.
 
-Next, we need to discuss *throwing* initializers, and their complicated multiple paths of execution. Again, rules about class and actor deinitialization, are tightly related to whether or not a types deinit will be executed or not, so let us analyse the following example:
+> This does mean that `resignID` may be called without `actorReady` having ever been called! The system should react to this as it would to any usual resignID and free any resources associated with the identifier.
+
+Next, we need to discuss *throwing* initializers, and their multiple paths of execution. Again, rules about class and actor deinitialization, are tightly related to whether or not a types deinit will be executed or not, so let us analyse the following example:
 
 ```swift
 distributed actor DA {
@@ -710,7 +782,7 @@ Both the synchronous and asynchronous initializers deal with this situation well
 To summarize, the following are rules that distributed actor system implementors can rely on:
 
 - `assignID(_:)` will be called exactly-once, at the very beginning of the initialization of a distributed actor associated with the system,
-- `actorReady(_:)` will be called exactly-once, after all other properties of the distributed actor have been initialized, and it is ready to receive messages from other peers. By construction, it will also always be called after `assignID(_:)` and before any `resignID(_:)` call.
+- `actorReady(_:)` will be called exactly-once, after all other properties of the distributed actor have been initialized, and it is ready to receive messages from other peers. By construction, it will also always be called after `assignID(_:)`.
 - `resignID(_:)` will be called exactly-once as the actor becomes deinitialized, or fails to finish its initialization. This call will always be made after an `assignID(_:)` call. While there may be ongoing racy calls to the transport as the actor invokes this method, any such calls after `resignID(_:)` was invoked, should be handled as if actor never existed to begin with.
 
 Note that the system usually should not hold the actor with a strong reference, as doing so inhibits its ability to deinit until the system lets go of it.
@@ -727,7 +799,7 @@ extension DistributedActor {
 }
 ```
 
-This method will either return a distributed actor reference, or throw when the actor system is unable to resolve the reference.
+This method will return a distributed actor reference, or throw when the actor system is unable to resolve the reference. 
 
 The `resolve(id:using:)` method on distributed actors is an interesting case of the Swift runtime collaborating with the `DistributedActorSystem`. The Swift runtime implements this method as calling the passed-in actor system to resolve the ID, and if the system claims that this is a _remote_ reference, the Swift runtime will allocate a _remote_ distributed actor reference, sometimes called a "proxy" instance. 
 
@@ -749,11 +821,13 @@ extension DistributedActor {
 
 Specifically, this calls into the `ActorSystem`'s `resolve(id:as:)` method which has a slightly different signature than the one defined on actors, specifically it can return `nil` to signal the instance is not found in this actor system, but we're able to proxy it. 
 
-The resolve implementation should be relatively fast, and should be non-blocking. Specifically it should *not* attempt to contact the remote peer to confirm whether this actor really exists or not. Systems should blindly resolve remote identifiers assuming the remote peer will be able to handle them. Some systems may after all spin up actor instances lazily, upon the first message sent to them etc.
+> The **result** of `resolve(id:using:)` may be a **local instance** of a distributed actor, or a **reference to a remote** distributed actor.
+
+The resolve implementation should be fast, and should be non-blocking. Specifically it should *not* attempt to contact the remote peer to confirm whether this actor really exists or not. Systems should blindly resolve remote identifiers assuming the remote peer will be able to handle them. Some systems may after all spin up actor instances lazily, upon the first message sent to them etc.
 
 Allocating the remote reference is implemented by the Swift runtime, by creating a fixed-size object that serves only the purpose of proxying calls into the `system.remoteCall`. The `_isDistributedRemoteActor()` function always returns `true` for such a reference. 
 
-If the system entirely fails to resolve the id, e.g. because it was ill-formed or the system unable to handle proxies for the given id, it must throw with an error conforming to `DistribtuedActorSystemError`, rather than returning `nil`. An example implementation could look something like this:
+If the system entirely fails to resolve the id, e.g. because it was ill-formed or the system is unable to handle proxies for the given id, it must throw with an error conforming to `DistribtuedActorSystemError`, rather than returning `nil`. An example implementation could look something like this:
 
 ```swift
 final class ClusterSystem: DistributedActorSystem { 
@@ -762,7 +836,9 @@ final class ClusterSystem: DistributedActorSystem {
   
   // example implementation; more sophisticated ones can exist, but boil down to the same idea
   func resolve<ID, Act>(id: ID, as actorType: Act.Type)
-      throws -> Act? where Act: DistributedActor, Act.ID == ActorID, ID: ActorID {
+      throws -> Act? where Act: DistributedActor, 
+                           Act.ID == Self.ActorID,
+                           Act.SerializationRequirement == Self.SerializationRequirement {
     if validate(id) == .illegal { 
       throw IllegalActorIDError(id)
     }
@@ -795,13 +871,106 @@ try Two.resolve(id: one.id, using: cluster)
 
 This is only the case for local instances though. For remote instances, by design, the local actor system does not track any information about them and as any remote call can fail anyway, the failures surface at call-site (as the remote recipient will fail to be resolved).
 
-### Distributed Methods
+### Invoking Distributed Methods
 
-#### Invoking Distributed Methods on Remote Instances
+Invoking a distributed method (or distributed computed property) involves a number of steps that occur on two "sides" of the call. 
 
-From the end-user's (here, defined as developer using distributed actors, not implementing an actor system runtime) perspective a remote call is a plain-old method invocation on a *potentially remote* distributed actor instance. 
+The local/remote wording which works well with actors in general can get slightly confusing here, because every a call made "locally" on a "remote reference", actually results in a "local" invocation execution on the "remote system". Instead, we will be using the terms "**sender**" and "**recipient**" to better explain which side of a distributed call we are focusing on.
 
-Such calls actually invoke a "distributed thunk", which takes care of checking if the remote or local code-path shall be taken for this specific invocation:
+As was shown earlier, invoking a `distributed func` essentially can follow one of two execution paths:
+
+- if the distributed actor instance was actually **local**:
+  - the call is made directly, as if it was a plain-old local-only `actor`
+- if the distributed actor was **remote**:
+  - the call must be transformed into an invocation that will be offered to the `system.remoteCall(...)` method to execute
+
+The first case is governed by normal actor execution rules; There might be a execution context switch onto the actor's executor, and the actor will receive and execute the method call as usual.
+
+In this section, we will explain all the steps invokved in the second, remote, case of a distributed method call. The invocations will be using two very important types that represent the encoding and decoding side of such distributed method invocations. 
+
+The full listing of those types is presented below:
+
+```swift
+protocol DistributedActorSystem: ... { 
+  // ... 
+  associatedtype InvocationEncoder: DistributedTargetInvocationEncoder
+  associatedtype InvocationDecoder: DistributedTargetInvocationDecoder
+
+  func makeInvocationEncoder() -> InvocationEncoder  
+}
+```
+
+
+
+```swift
+public protocol DistributedTargetInvocationEncoder {
+  associatedtype SerializationRequirement
+
+  /// Record a type of generic substitution which is necessary to invoke a generic distributed invocation target.
+  /// 
+  /// The arguments must be encoded order-preserving, and once `decodeGenericSubstitutions`
+  /// is called, the substitutions must be returned in the same order in which they were recorded.
+  mutating func recordGenericSubstitution<T>(_ type: T.Type) throws
+
+  /// Record an argument of `Argument` type in this arguments storage.
+  ///
+  /// Ad-hoc requirement.
+  mutating func recordArgument<Argument: SerializationRequirement>(_ argument: Argument) throws
+
+  /// Record the error type thrown by the distributed invocation target.
+  /// If the target does not throw, this method will not be called and the error type can be assumed `Never`.
+  ///
+  /// Ad-hoc requirement.
+  mutating func recordErrorType<E: Error>(_ type: E.Type) throws
+
+  /// Record the return type of the distributed method.
+  /// If the target does not return any specific value, this method will not be called and the return type can be assumed `Void`.
+  ///
+  /// Ad-hoc requirement.
+  mutating func recordReturnType<R: SerializationRequirement>(_ type: R.Type) throws
+
+  /// All values and types have been recorded. 
+  /// Optionally "finalize" the recording, if necessary.
+  mutating func doneRecording() throws
+}
+```
+
+
+
+```swift
+public protocol DistributedTargetInvocationDecoder {
+  associatedtype SerializationRequirement
+
+  func decodeGenericSubstitutions() throws -> [Any.Type]
+
+  /// Ad-hoc protocol requirement
+  ///
+  /// Attempt to decode the next argument from the underlying buffers into pre-allocated storage
+  /// pointed at by 'pointer'.
+  ///
+  /// This method should throw if it has no more arguments available, if decoding the argument failed,
+  /// or, optionally, if the argument type we're trying to decode does not match the stored type.
+  ///
+  /// The result of the decoding operation must be stored into the provided 'pointer' rather than
+  /// returning a value. This pattern allows the runtime to use a heavily optimized, pre-allocated
+  /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
+  /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
+  /// performs the actual distributed (local) instance method invocation.
+  mutating func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument
+
+  func decodeErrorType() throws -> Any.Type?
+
+  func decodeReturnType() throws -> Any.Type?
+}
+```
+
+
+
+#### Sender: Invoking a distributed method
+
+Calls of a distributed method on a remote distributed actor reference need to be turned into a runtime introspectable representation which will be passed to the `remoteCall` method of a specific distributed actor system implementation.
+
+In this section, we'll see what happens for the following `greet(name:)` distributed method call:
 
 ```swift
 // distributed func greet(name: String) -> String { ... }
@@ -812,98 +981,127 @@ try await greeter.greet(name: "Alice")
 Such invocation is actually calling a "distributed thunk" for the method, rather than the method directly. The "distributed thunk" is synthesized by the compiler for every `distributed func`, and can be illustrated by the following snippet:
 
 ```swift
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SYNTHESIZED ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 extension Greeter {
   // synthesized; not user-accessible thunk for: greet(name: String) -> String
   nonisolated func greet_$distributedThunk(name: String) async throws -> String {
-    if _isDistributedRemoteActor(self) {
-      // [1] prepare the invocation object:
-      var invocation = self.actorSystem.makeInvocation()
-      // [1.1] for each argument, synthesize a specialized recordArgument call:
-      try invocation.recordArgument(name)
-      
-      // [1.2] if method has generic parameters, record substitutions
-      // e.g. for func generic<A, B>(a: A, b: B) we would get two substitutions,
-      // for the generic parameters A and B:
-      //
-      // << arguments.recordGenericTypeSubstitution(_getMangledTypeName(type(of: a)))
-      // << arguments.recordGenericTypeSubstitution(_getMangledTypeName(type(of: b)))
-      
-      // [1.3] we also record the return type; it may or may not be necessary to transmit over the wire
-      //       but thanks to this encoding we're able
-      try invocation.recordErrorType(_getMangledTypeName(Error.self))
-      
-      // [1.4] if the target was throwing, record Error.self, 
-      // though otherwise we do not invoke the record error type
-      // try invocation.recordReturnType(_getMangledTypeName(Error.self))
-      
-      // [1.5] done recording arguments
-      try invocation.doneRecording()
-      
-      return try await self.actorSystem.remoteCall(
-        on: self,
-        target: RemoteCallTarget(...),
-        invocation: invocation,
-        throwing: Never.self, // the target func was not throwing
-        returning: String.self
-      )
-    } else {
+    guard _isDistributedRemoteActor(self) else {
       // the local func was not throwing, but since we're nonisolated in the thunk,
       // we must hop to the target actor here, meaning the 'await' is always necessary.
       return await self.greet(name: name) 
     }
+
+    // [1] prepare the invocation object:
+    var invocation = self.actorSystem.makeInvocationEncoder()
+    
+    // [1.1] if method has generic parameters, record substitutions
+    // e.g. for func generic<A, B>(a: A, b: B) we would get two substitutions,
+    // for the generic parameters A and B:
+    //
+    // << invocation.recordGenericSubstitution(<runtime type of a>)
+    // << invocation.recordGenericSubstitution(<runtime type of b>)
+    
+    // [1.2] for each argument, synthesize a specialized recordArgument call:
+    try invocation.recordArgument(name)
+      
+    // [1.3] if the target was throwing, record Error.self, 
+    // otherwise do not invoke recordErrorType at all.
+    //
+    // << try invocation.recordErrorType(Error.self)
+      
+    // [1.4] we also record the return type; it may or may not be necessary to
+    // transmit over the wire but if necessary, the system may choose to do so.
+    // 
+    // This call is not made when the return type is Void.
+    try invocation.recordReturnType(String.self)
+      
+    // [1.5] done recording arguments
+    try invocation.doneRecording()
+      
+    // [2] invoke the `remoteCall` method of the actor system
+    return try await self.actorSystem.remoteCall(
+      on: self,
+      target: RemoteCallTarget(...),
+      invocation: invocation,
+      throwing: Never.self, // the target func was not throwing
+      returning: String.self
+    )
   }
 }
 ```
 
-The synthesized thunk is always throwing and asynchronous, this is correct because it is only invoked in situations where we might end up calling the `actorSystem.remoteCall(...)` method, which by necessity is asynchronous and throwing as well. 
+The synthesized thunk is always throwing and asynchronous, this is correct because it is only invoked in situations where we might end up calling the `actorSystem.remoteCall(...)` method, which by necessity is asynchronous and throwing.
 
-The thunk is `nonisolated` because it is a method that can actually run on a *remote* instance, and as such is not allowed to touch any other state than other nonisolated stored properties, specifically the actor's `id` and `actorSystem` which is necessary to make the remote call. 
+The thunk is `nonisolated` because it is a method that can actually run on a *remote* instance, and as such is not allowed to touch any other state than other nonisolated stored properties. This is specifically designed such that the thunk (and actor system are able to access the `id` of the actor (and the `actorSystem` property itself) which is necessary to perform the actual remote message send.
 
-The `nonisolated` aspect of the method has another important role to play: if this invocation happens to be  on a local distributed actor, we do not want to "hop" twice, but only once we have confirmed the actor is local and hop to it using the same semantics as we would when performing a normal actor method call. If the instance was remote, we don't need to suspend early at all, and we leave it to the `actorSystem` to decide when exactly the task will suspend. For example, the system may only suspend the call after it has sent the bytes synchronously over some IPC channel etc. Those semantics when to suspend are highly dependent on the specific underlying transport, and thanks to this approach we allow system implementations to do the right thing, whatever that might be: they can suspend early, late, or even not at all if the call is known to be impossible to succeed.
+The `nonisolated` aspect of the method has another important role to play: if this invocation happens to be  on a local distributed actor, we do not want to "hop" executors twice, but only once we have confirmed the actor is local and hop to it using the same semantics as we would when performing a normal actor method call. If the instance was remote, we don't need to suspend early at all, and we leave it to the `ActorSystem` to decide when exactly the task will suspend. For example, the system may only suspend the call after it has sent the bytes synchronously over some IPC channel etc. Those semantics when to suspend are highly dependent on the specific underlying transport, and thanks to this approach we allow system implementations to do the right thing, whatever that might be: they can suspend early, late, or even not at all if the call is known to be impossible to succeed.
 
-Note that the compiler will pass the `self` of the distributed *known-to-be-remote* actor to the remoteCall method on the actor system. This allows the system to check the passed type for any potential, future, customization points that the actor may declare as static properties, and/or conformances affecting how a message shall be serialized or delivered. It is of course impossible for the system to access any of that actor's state, because it is remote after all. The one piece of state it will need to access though is the actor's `id` because that is signifying the *recipient* actor of the message it is about to send.
+Note that the compiler will pass the `self` of the distributed *known-to-be-remote* actor to the remoteCall method on the actor system. This allows the system to check the passed type for any potential, future, customization points that the actor may declare as static properties, and/or conformances affecting how a message shall be serialized or delivered. It is impossible for the system to access any of that actor's state, because it is remote after all. The one piece of state it will need to access though is the actor's `id` because that is signifying the *recipient* of the call.
 
-The thunk creates the `invocation` container [1] into which it records all arguments. Note that  all these APIs are using only concrete types, so we never pay for any existential wrapping or other indirections. The `record...` calls are expected to serialize the values, using any mechanism they want to, and thanks to the type performing the recording being provided by the specific `ActorSystem`, it also knows that it can rely on the arguments to conform to the system's `SerializationRequirement`.
+The thunk creates the `invocation` container `[1]` into which it records all arguments. Note that  all these APIs are using only concrete types, so we never pay for any existential wrapping or other indirections. The `record...` calls are expected to serialize the values, using any mechanism they want to, and thanks to the type performing the recording being provided by the specific `ActorSystem`, it also knows that it can rely on the arguments to conform to the system's `SerializationRequirement`.
 
-A non-obvious part of this thunk is the `recordGenericTypeSubstitution` [1.2] calls which are made when the `distributed func` has generic parameters, or involves any generics in its parameters whatsoever. This also happens when the distributed actor itself has generic parameters, like for example a generic greeter of various greeting types: `Greeter<G: Greeting>`. The system does not have to worry too much about the details of the generic substitutions, other than store them in the passed-in order.
-
-Finally, we also record the specific return [1.3] and error types [1.4]. The return type should be pretty self-explanatory, however the error may be a little surprising. The `recordErrorType` method is only called when the target function is throwing, and allows the runtime to encode that a throw from the remote target method is expected. If Swift were to ever gain typed errors, we could record them using this mechanism as well. If the target method is not throwing, then the `recordErrorType` is not called.
-
-Next, we will discuss how the actor system must implement the `remoteCall()` method(s), in order to properly serialize and send the remote call to its recipient.
-
-#### Serializing Distributed Invocations
-
-The next step in making a remote call is serializing a representation of the distributed method (or computed property) invocation. This is done through a series of compiler, runtime, and distributed actor system interactions. These interactions are designed to be highly efficient and customizable. For example, thanks to this `DistributedTargetInvocation` approach that we'll discuss here, we are able to *never* resort to existential boxing of values, allow serializers to manage and directly write into their destination buffers (i.e. allowing for zero copies to be performed between the message serialization and the underlying networking layer), and more. 
-
-Sadly, it comes at the cost of having to implement a few ad-hoc protocol requirements which are not as nice to deal with but luckily only distributed system library authors will have to interact with those, meaning that the potential for mistakes with the ad-hoc declarations here is minimal and centralized.
-
-Every distributed actor system will do something slightly different in their `makeInvocation` and `remoteCall` implementations - based on their underlying serialization and transport mechanisms. However, most systems will need to form some kind of "Envelope" (easy to remember as: "the thing that contains the Message and also has knowledge of the recipient"). 
-
-Let us consider a `ClusterSystem` that will use `Codable` and send messages over the network. The `SerializationRequirement = Codable` is actually defined by the Invocation type, which we'll discuss next, but first let us discuss the example `Envelope` we'll use in our discussion in this section.
+The first step in the thunk is to record any "generic substitutions" `[1.1] ` if they are necessary. This makes it possible for remote calls to support generic arguments, and even generic distributed actors. The calls are not emitted for calls where the generic context is not necessary for the invocation. For a generic method however, the runtime will invoke the `recordGenericTypeSubstitution` with _concrete_ types of the generic context that is necessary to perform the call. For example, if we declared a generic `echo` method like this:
 
 ```swift
-// !! ClusterSystem or Envelope are NOT part of the proposal, but serves as illustration how actor systems might !!
-// !! implement the necessary pieces of the DistributedActorSystem protocol.                                    !!
+distributed func echo<T: SerializationRequirement>(_ value: T) -> T
+```
+
+and call it like this:
+
+```swift
+try await greeter.echo("Echo!") // typechecks ok; String: SerializationRequirement
+```
+
+The swift runtime would generate the following call:
+
+````swift
+try invocation.recordGenericTypeSubstitution(String.self)
+````
+
+This method is implemented by a distributed actor system library, and can use this information to double check this type against an allow-list of types allowed to be transmitted over the wire, and then store and send it over to the recipient such that it knows what type to decode the argument as.
+
+Next, the runtime will record all arguments of the invocation `[1.2]`. This is done in a series of `recordArgument` calls, which are made in declaration order of the parameters of the function. This method will never be invoked if the target is a distributed computed property. 
+
+As the `recordArgument(_:)` method is generic over the argument type (`<Argument: SerializationRequirement>`), and requires the argument to conform to `SerializationRequirement` (which in turn was enforced at compile time by [SE-0336](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md)), the actor system implementation will have an easy time to serialize or validate this argument. For example, if the `SerializationRequirement` was codable -- this is where one could invoke `SomeEncoder().encode(argument)` because `Argument` is a concrete type conforming to `Codable`!
+
+Finally, the specific error `[1.3]` and return types `[1.4]` are also recorded. If the function is not throwing, `recordErrorType` is not called. Likewise, if the return type is `Void` the `recordReturnType` is not called. 
+
+Recording the error type is mostly future-proofing and currently will only ever be invoked with the `Error.self` or not at all. It allows informing the system if a throw from the remote side is to be expected, and technically, if Swift were to gain typed throws this method could record specific expected error types as well - although we have no plans with regards to typed throws at this point in time. 
+
+The last encoder call is `remoteCall()` is made, to signal to the invocation encoder that no further record calls will be made. This is useful since with the optional nature of some of the calls, it would be difficult to know for a system implementation when the invocation is fully constructed. Operations which may want to be delayed until completion could include serialization. de-duplicating values or similar operations which benefit from seeing the whole constructed invocation state in the encoder.
+
+Lastly, the populated encoder, along with additional type and function identifying information is passed to the `remoteCall`, or `remoteCallVoid` method on the actor system which should actually perform the message request/response interaction with the remote actor.
+
+#### Sender: Serializing and Sending Invocations
+
+The next step in making a remote call is serializing a representation of the distributed method (or computed property) invocation. This is done through a series of compiler, runtime, and distributed actor system interactions. These interactions are designed to be highly efficient and customizable. Thanks to the `DistributedTargetInvocationEncoder`, we are able to never resort to existential boxing of values, allow serializers to manage and directly write into their destination buffers (i.e. allowing for zero copies to be performed between the message serialization and the underlying networking layer), and more. 
+
+Let us consider a `ClusterSystem` that will use `Codable` and send messages over the network. Most systems will need to form some kind of "Envelope" (easy to remember as: "the thing that contains the **message** and also has knowledge of the **recipient**"). For the purpose of this proposal, we'll define a a `WireEnvelope` and use it in the next snippets to showcase how a typical actor system would work with it. This type is not pre-defined or required by this proposal, but it is something implementations will frequently do on their own:
+
+```swift
+// !! ClusterSystem or WireEnvelope are NOT part of the proposal, but serves as illustration how actor systems might !!
+// !! implement the necessary pieces of the DistributedActorSystem protocol.                                         !!
 
 final struct ClusterSystem: DistributedActorSystem { 
-  
-  /// The specific type of the argument builder to be used for remote calls.
-  associatedtype Invocation: ClusterSystemTargetInvocation
+  // ...
+  typealias SerializationRequirement = Codable
+  typealias InvocationEncoder = ClusterTargetInvocationEncoder
+  typealias InvocationDecoder = ClusterTargetInvocationDecoder
   
   // Just an example, we can implement this more efficiently if we wanted to.
-  private struct WireEnvelope: Codable { 
+  private struct WireEnvelope: Codable, Sendable { 
     var recipientID: ClusterSystem.ActorID // is Codable
     
     /// Mangled method/property identifier, e.g. in a mangled format
-    var identifier: String 
+    var identifier: String
+    
+    // Type substitutions matter only for distributed methods which use generics:
+    var genericSubstitutions: [String]
     
     // For illustration purposes and simplicity of code snippets we use '[Data]' here, 
     // but real implementations can be much more efficient here -- packing all the data into exact 
     // byte buffer that will be passed to the networking layer etc.
     var arguments: [Data] // example is using Data, because that's what Codable coders use
-    
-    // Type substitutions matter only for distributed methods which use generics:
-    var genericSubstitutions: [String]
     
     // Metadata can be used by swift-distributed-tracing, or other instrumentations to carry extra information:
     var metadata: [String: [Data]] // additional metadata, such as trace-ids etc.
@@ -917,127 +1115,36 @@ Note that `method` property is enough to identify the target of the call, we do 
 >
 > While advanced implementations may apply compression and other techniques to minimize the overhead of these envelopes - this is a deep topic by itself, and we won't be going in depth on it in this proposal - rest assured though, we have focused on making different kinds of implementations possible with this approach.
 
-A remote call is implemented in two "steps", first we will return an `Invocation` object that the Swift runtime will call with information about the invocation. The invocation is a specific type defined by the `DistributedActorSystem` implementation and conforming to the `ClusterTargetIncovation` protocol:
+Next, we will discuss how the `InvocationEncoder` can be implemented in order to create such `WireEnvelope`.
 
-```swift
+> Note on ad-hoc requirements: Some of the protocol requirements on the encoder as well as actor system protocols are so-called "ad-hoc" requirements. This means that they are not directly expressed in Swift source, but instead the compiler is aware of the signatures and specifically enforces that a type conforming to such protocol implements these special methods. 
+>
+> Specifically, methods which fall into this category are functions which use the `SerializationRequirement` as generic type requirement. This is currently not expressible in plain Swift, due to limitations in the type system which are difficult to resolve immediately, but in time as this could become implementable these requirements could become normal protocol requirements. 
+>
+> This tradeoff was discussed at length and we believe it is worth taking, because it allows us to avoid numerous un-necessary type-casts, both inside the runtime as well as actor system implementations. It also allows us to avoid any existential boxing  and thus lessens the allocation footprint of making remote calls which is an important aspect of the design and use cases we are targeting.
 
-/// Represents an invocation of a distributed target (method or computed property).
-///
-/// ## Forming an invocation
-///
-/// On the sending-side an instance of an invocation is constructed by the runtime,
-/// and calls to: `recordGenericSubstitution`, `recordArgument`, `recordReturnType`,
-/// `recordErrorType`, and finally `doneRecording` are made (in this order).
-///
-/// If the return type of the target is `Void` the `recordReturnType` is not invoked.
-///
-/// If the error type thrown by the target is not defined the `recordErrorType` is not invoked.
-///
-/// An invocation implementation may decide to perform serialization right-away in the
-/// `record...` invocations, or it may choose to delay doing so until the invocation is passed
-/// to the `remoteCall`. This decision largely depends on if serialization is allowed to happen
-/// on the caller's task, and if any smarter encoding can be used once all parameter calls have been
-/// recorded (e.g. it may be possible to run-length encode values of certain types etc.)
-///
-/// Once encoded, the system should use some underlying transport mechanism to send the
-/// bytes serialized by the invocation to the remote peer.
-///
-/// ## Decoding an invocation
-/// Since every actor system is going to deal with a concrete invocation type, they may
-/// implement decoding them whichever way is most optimal for the given system.
-///
-/// Once decided, the invocation must be passed to `executeDistributedTarget`
-/// which will decode the substitutions, argument values, return and error types (in that order).
-///
-/// Note that the decoding will be provided with the specific types that the sending side used to perform the call,
-/// so decoding can rely on simply invoking e.g. `Codable` (if that is the `SerializationRequirement`) decoding
-/// entry points on the provided types.
-public protocol DistributedTargetInvocation {
-  /// The type that all distributed target parameters and return type must conform to.
-  /// 
-  /// This type is equal to 'DistributedActorSystem.SerializationRequirement' 
-  /// and 'DistributedActor.SerializationRequirement' of the same actor system.
-  associatedtype SerializationRequirement
-  
-  /// The specific type of argument decoder, invoked while decoding arguments
-  /// on the recipient side of a distributed remote call.
-  associatedtype ArgumentDecoder: DistributedTargetInvocationArgumentDecoder
-
-
-  // === Sending / recording  -------------------------------------------------
-
-  mutating func recordGenericSubstitution<T>(mangledType: T.Type) throws
-
-//  /// Ad-hoc requirement
-//  ///
-//  /// Record an argument of `Argument` type in this arguments storage.
-//  /// 
-//  /// Invoked with the specific type of each argument, which allows the implementation
-//  /// to immediately use it for encoding the value. The argument is guaranteed via 
-//  /// compile-time checks on distributed call targets to conform to the 'SerializationRequirement'.
-//  mutating func recordArgument<Argument: SerializationRequirement>(argument: Argument) throws
-
-  /// Record the error type of the distributed target.
-  /// 
-  /// This method is only invoked if the target is throwing.
-  mutating func recordErrorType<E: Error>(mangledType: E.Type) throws
-
-//  /// Ad-hoc requirement
-//  /// 
-//  /// Invoked with the specific type of the distributed target's return value.
-//  /// The type is guaranteed via compile-time on distributed call targets to 
-//  /// conform to the 'SerializationRequirement'.
-//  /// 
-//  /// This method is not invoked when the return type of the target is `Void`, 
-//  /// because the `Void` type does not necessarily have to conform to the `SerializationRequirement`.
-//  mutating func recordReturnType<R: SerializationRequirement>(mangledType: R.Type) throws 
-
-  /// Invoked after all other `record...` calls have been made and the encoding phase is complete.
-  /// Implementations may use this to apply any kind of compression or other "final" step to the encoding.
-  mutating func doneRecording() throws
-
-  // === Receiving / decoding -------------------------------------------------
-
-  mutating func decodeGenericSubstitutions() throws -> [Any.Type]
-
-  mutating func argumentDecoder() -> Self.ArgumentDecoder
-
-  mutating func decodeReturnType() throws -> Any.Type?
-
-  mutating func decodeErrorType() throws -> Any.Type?
-}
-```
-
-We will discuss the protocol in depth in the following sections. 
-
-Before that, it is worth explaining why some protocol requirements are "ad-hoc" requirements. We want to guarantee implementors of the `DistributedTargetInvocation` type that the passed-in arguments in fact do conform to the `SerializationRequirement` associated value. Because this is compile-time guaranteed, we can avoid numerous `as?` casts in actor system implementations, which can matter in some high-performance transport scenarios. Sadly, this generic constraint is currently not expressible in Swift and enabling it is a large complex type system feature. Because of how performance sensitive, and intertwined with the compiler and runtime the construction of the `DistributedTargetInvocation` is, we believe this is a feature we can work without for the time being, and as it becomes expressible in the language we could adopt it.
-
-This `DistributedTargetInvocation` approach allows us to avoid any existential boxing, unsafe APIs, all while allowing system developers to directly serialize data in whatever way they see fit:
+The following listing illustrates how one _could_ implement a `DistributedTargetInvocationEncoder`:
 
 ```swift
 extension ClusterSystem { 
   
-  // typealias Invocation = ClusterSystemTargetInvocation
-  func makeInvocation(target: RemoteCallTarget) -> ClusterTargetInvocation {
+  // typealias InvocationEncoder = ClusterTargetInvocationEncoder
+  func makeInvocationEncoder() -> Self.InvocationEncoder {
     return ClusterTargetInvocation(system: system)
   }
+}
   
-  struct ClusterTargetInvocation: DistributedTargetInvocation {
-    typealias ArgumentDecoder = ClusterTargetInvocationArgumentDecoder
-    typealias SerializationRequirement = Codable
+struct ClusterTargetInvocationEncoder: DistributedTargetInvocationEncoder {
+  typealias SerializationRequirement = ClusterSystem.SerializationRequirement
     
-    let system: ClusterSystem
-    var envelope: Envelope
+  let system: ClusterSystem
+  var envelope: Envelope
     
     init(system: ClusterSystem) {
       self.system = system
       self.envelope = .init() // new "empty" envelope
     }
 
-    // === Sending / recording  -------------------------------------------------
-
-    /// Ad-hoc requirement
-    ///
     /// The arguments must be encoded order-preserving, and once `decodeGenericSubstitutions`
     /// is called, the substitutions must be returned in the same order in which they were recorded.
     mutating func recordGenericSubstitution<T: SerializationRequirement>(type: T.Type) throws {
@@ -1046,30 +1153,16 @@ extension ClusterSystem {
       envelope.genericSubstitutions.append(String(reflecting: T.self))
     }
 
-    /// Ad-hoc requirement
-    ///
-    /// Record an argument of `Argument` type in this arguments storage.
     mutating func recordArgument<Argument: SerializationRequirement>(argument: Argument) throws {
       // in this implementation, we just encode the values one-by-one as we receive them:
       let argData = try system.encoder.encode(argument) // using whichever Encoder the system has configured
       envelope.arguments.append(argData)
     }
     
-    /// Ad-hoc requirement
-    ///
-    /// Optionally, record the expected return type. 
-    /// Encoding this information may not be necessary, depending on how the target identity is defined.
-    ///
-    /// This method is NOT invoked when `E` would have been `Never`, 
-    /// i.e. when the target is not declared as throwing.
     mutating func recordErrorType<E: Error>(errorType: E.Type) throws {
       envelope.returnType = String(reflecting: returnType)
     }
     
-    /// Ad-hoc requirement
-    ///
-    /// Optionally, record the expected return type. 
-    /// Encoding this information may not be necessary, depending on how the target identity is defined.
     mutating func recordReturnType<R: SerializationRequirement>(returnType: R.Type) throws {
       envelope.returnType = String(reflecting: returnType)
     }
@@ -1079,14 +1172,13 @@ extension ClusterSystem {
     mutating func doneRecording() throws {
       // our impl does not need to do anything here
     }
-
-    // === Receiving / decoding -------------------------------------------------
-    // ... will be discussed in following sections ... 
   }
 }
 ```
 
-The above invocation is constructed by the Swift runtime whenever a remote call is about to be performed. The runtime then invokes the record methods providing the invocation the chance to either serialize, or store for future serialization all the arguments. Once that is complete, the runtime will pass the constructed `Invocation` to the `remoteCall`:
+The above encoder is going to be called by the Swift runtime as was explained in the previous section.
+
+Once that is complete, the runtime will pass the constructed `InvocationEncoder` to the `remoteCall`:
 
 ```swift
  extension ClusterSystem {
@@ -1096,13 +1188,14 @@ The above invocation is constructed by the Swift runtime whenever a remote call 
   func remoteCall<Act, Err, Res>(
       on actor: Act,
       target: RemoteCallTarget,
-      invocation: Self.Invocation, // ClusterSystemTargetInvocation
+      invocation: Self.InvocationEncoder,
       throwing: Err.Type,
-      returning: Res.Type // TODO: to make it `: SerializationRequirement` it'd need to be an ad hoc requirement
-  ) async throws -> Res.Type
+      returning: Res.Type
+  ) async throws -> Res
       where Act: DistributedActor,
             Act.ID == ActorID.
-            Res: Codable { // since SerializationRequirement == Codable
+            Err: Error,
+            Res: Self.SerializationRequirement {
     var envelope = invocation.envelope
     
     // [1] the recipient is transferred over the wire as its id
@@ -1123,21 +1216,19 @@ The above invocation is constructed by the Swift runtime whenever a remote call 
 }
 ```
 
-While the in-line comments explain a little what is going on here, let us examine these in more detail.
+The overall purpose of this `remoteCall` implementation is to create some form of message representation of the invocation and send it off to the remote node (or process) to receive and invoke the target method on the remote actor. 
 
-The overall purpose of this `remoteCall` implementation is to create some form of message that it will send to the remote node (or process) to receive and invoke the target method on the remote actor. 
-
-In our example implementation, the `Invocation` already serialized the arguments and stored them in the `Envelope`, so the `remoteCall` only needs to add the information about the call recipient [1], and the target (method) of the call [2]. In our example implementation, we just store the target's mangled name [2], which is simple, but it has its challenges in regard to protocol evolution.
+In our example implementation, the `Invocation` already serialized the arguments and stored them in the `Envelope`, so the `remoteCall` only needs to add the information about the call recipient `[1]`, and the target (method or computed property) of the call `[2]`. In our example implementation, we just store the target's mangled name `[2]`, which is simple, but it has its challenges in regard to protocol evolution.
 
 One notable issue that mangled names have is that any change in the method signature will result in not being able to resolve the target method anymore, we are very much aware of the issues this may cause to protocol evolution, and we lay out plans in [Future Directions](#future-directions) to improve the lookup mechanisms in ways that will even allow adding parameters (with default values), in wire (and ABI) compatible ways.
 
-The final step is handing over the envelope containing the encoded arguments, recipient information etc. to the underlying transport mechanism [3]. The transport does not really have to concern itself with any of the specifics of the call, other than transmitting the bytes to the callee and the response data back. As we get the response data back, we have the concrete type of the expected response and can attempt to decode it [4].
+The final step is handing over the envelope containing the encoded arguments, recipient information etc. to the underlying transport mechanism `[3]`. The transport does not really have to concern itself with any of the specifics of the call, other than transmitting the bytes to the callee and the response data back. As we get the response data back, we have the concrete type of the expected response and can attempt to decode it `[4]`.
 
->  **Note:** During this proposal we frequently refer to an "`Envelope`", however this isn't any specific type that is part of the proposal. 
+> Note on `remoteCallVoid`: One limitation in the current implementation approach is that a remote call signature cannot handle void returning methods, because of the `Res: SerializationRequirement` requirement on the method. 
 >
->  It is a general pattern that every actor system will end up implementing in their own way, depending on the transport and serialization layers employed. For example, with a network transport and `Codable` serialization it could simply be an `struct Envelope: Codable` that contains the target method mangled name, the encoded message.
+> This will be possible to solve using the incoming [Variadic Generics](https://forums.swift.org/t/variadic-generics/54511) language feature that is being currently being worked on and pitched. With this feature, the return type could be represented as variadic generic and the `Void` return type would be modeled as "empty" tuple, whereas a value return would contain the specific type of the return, this way we would not violate the `Res: SerializationRequirement` when we needed to model `Void` calls.
 
-#### Receiving Remote Calls
+#### Recipient: Receiving Invocations
 
 On the remote side, there usually will be some receive loop or similar mechanism that is implemented in the transport layer of the actor system. In practice this often means binding a port and receiving TCP (or UDP) packets, applying some form of framing and eventually decoding the incoming message envelope.
 
@@ -1156,11 +1247,11 @@ func receiveLoop(with node: Node) async throws {
 
 In a real server implementation we'd likely use a [Swift NIO](https://github.com/apple/swift-nio) ChannelPipeline to perform this networking, framing and emitting of `Envelope`s, but this is beyond the scope of what we need to explain in this proposal to get the general idea of how this is going to work.
 
-#### Deserializing incoming Invocations
+#### Recipient: Deserializing incoming Invocations
 
 Now that we have received all the bytes for one specific envelope, we need to perform a two-step deserialization on it. 
 
-First, we'll need to decode the target identifier (e.g. method name, mangled method name, or some form of ID), and the actor `ID` of the recipient. These are necessary to decode always, as we need to locate both the method and actor we're trying to invoke.
+First, we'll need to decode the target identifier (e.g. method name, mangled method name, or some other form of target identifier), and the actor `ID` of the recipient. These are necessary to decode always, as we need to locate both the method and actor we're trying to invoke.
 
 Next, the deserialization of the actual message representation of our invocation will take place. However, this is done lazily. Rather than just decoding the values and storing them somewhere in our system implementation, these will be requested by the Swift runtime when it is about to perform the method call. 
 
@@ -1179,13 +1270,12 @@ We see that as we decode our wire envelope, we are able to get the header sectio
 Next, we need to prepare for the decoding of the message section. This is done by implementing the remaining protocol requirements on the `ClusterTargetInvocation` type we defined earlier, as well as implementing a decoding iterator of type `DistributedTargetInvocationArgumentDecoder`, as shown below:
 
 ```swift
-extension ClusterSystem.ClusterTargetInvocation { // TODO: Split it into 2 separate "sides"
-    
-  // === Receiving / decoding -------------------------------------------------
-  
-  typealias ArgumentDecoder = ClusterTargetArgumentDecoder
-  
-  // FIXME: would like the visitor here too to avoid the array...
+final class ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
+  typealias SerializationRequirement = Codable
+      
+  let system: ClusterSystem
+  var bytes: ByteBuffer
+
   mutating func decodeGenericSubstitutions() throws -> [Any.Type] {
     let subCount = try self.bytes.readInt() 
     
@@ -1198,9 +1288,23 @@ extension ClusterSystem.ClusterTargetInvocation { // TODO: Split it into 2 separ
     
     return subTypes
   }
-
-  mutating func argumentDecoder() -> Self.ArgumentDecoder { 
-    return ClusterTargetArgumentDecoder(from: &self.bytes)
+  
+  /// Attempt to decode the next argument from the underlying buffers into pre-allocated storage
+  /// pointed at by 'pointer'.
+  ///
+  /// This method should throw if it has no more arguments available, if decoding the argument failed,
+  /// or, optionally, if the argument type we're trying to decode does not match the stored type.
+  ///
+  /// The result of the decoding operation must be stored into the provided 'pointer' rather than
+  /// returning a value. This pattern allows the runtime to use a heavily optimized, pre-allocated
+  /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
+  /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
+  /// performs the actual distributed (local) instance method invocation.
+  mutating func decodeNext<Argument: SerializationRequirement>() throws {
+    try nextDataLength = try bytes.readInt()
+    let nextData = try bytes.readData(bytes: nextDataLength)
+    // since we are guaranteed the values are Codable, so we can just invoke it:
+    return try system.decoder.decode(as: Argument.self, from: bytes)
   }
 
   mutating func decodeErrorType() throws -> Any.Type? { 
@@ -1226,103 +1330,43 @@ extension ClusterSystem.ClusterTargetInvocation { // TODO: Split it into 2 separ
 The general idea here is that the `Invocation` is *lazy* in its decoding and just stores the remaining bytes of the envelope. All we need to do for now is to implement the Invocation in such way that it expects the decoding methods be invoked in the following order (which is the same as the order on the sending side):
 
 - 0...1 invocation of `decodeGenericArguments`,
-- 0...1 invocation of  `argumentDecoder`,
-  - 0...n invocations of `decoder.decodeNext(Argument.self)`
-- 0...1 invocations of `decodeReturnType`
+- 0...n invocations of `decoder.decodeNextArgument<Argument>`,
+- 0...1 invocations of `decodeReturnType`,
 - 0...1 invocations of `decodeErrorType`.
 
-The argument decoder is the most interesting of all of those steps, because it has to perform actual decoding of the arguments from the stored bytes in the envelope to the expected `Argument` types. This is another case where the arguments being able to statically guarantee conforming to the `SerializationRequirement` is a great benefit, as the implementation of the type can just rely on this to perform the decoding:
+Decoding arguments is the most interesting here. This is another case where the compiler and Swift runtime enables us to implement things more easily. Since the `Argument` generic type of the `decodeNextArgument` is ensured to conform to the `SerializationRequirement`, actor system implementations can rely on this fact and have a simpler time implementing the decoding steps. For example, with `Codable` the decoding steps becomes a rather simple task of invoking the usual `Decoder` APIs.
 
-```swift
-extension ClusterSystem { 
-  internal struct ClusterTargetArgumentDecoder: DistributedTargetInvocationArgumentDecoder {
-    associatedtype SerializationRequirement = Codable
-    
-    let system: ClusterSystem
-    var bytes: ByteBuffer
-
-    /// Ad-hoc protocol requirement
-    ///
-    /// Attempt to decode the next argument from the underlying buffers into pre-allocated storage
-    /// pointed at by 'pointer'.
-    ///
-    /// This method should throw if it has no more arguments available, if decoding the argument failed,
-    /// or, optionally, if the argument type we're trying to decode does not match the stored type.
-    ///
-    /// The result of the decoding operation must be stored into the provided 'pointer' rather than
-    /// returning a value. This pattern allows the runtime to use a heavily optimized, pre-allocated
-    /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
-    /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
-    /// performs the actual distributed (local) instance method invocation.
-    mutating func decodeNext<Argument: SerializationRequirement>(
-      into pointer: UnsafeMutablePointer<Argument> // pointer to our hbuffer
-    ) throws {
-      try nextDataLength = try bytes.readInt()
-      let nextData = try bytes.readData(bytes: nextDataLength)
-      // again, we are guaranteed the values are Codable, so we can just invoke it:
-      let argument = system.decoder.decode(as: Argument.self, from: bytes)
-      pointer.initialize(argument)
-    }
-  }
-}
-```
-
-Since this is executed on the _recipient_ node, we may not actually have a version of the user-library where the arguments indeed conform to the required `SerializationRequirement` - if that is the case, the `executeDistributedTarget` method will throw signaling this issue, and we can handle it gracefully by returning a decoding error to the caller.
-
-If the type conformances are correct though, the decoding implementation is fairly simple for authors of the distributed systems, and they can use all type information to do so, e.g. implementing a `Decodable` based `decodeNext` is pretty simple (as it would be with protocol buffers or similar APIs as well.)
-
-It is worth to point out the shape of the `decodeNext(into:)` API in the sense that we never *return* the decoded value, but instead write it directly into the `UnsafeMutablePointer` provided to the call.
-
-The reason we implement it this way is efficiency: the Swift runtime is able to stack-allocate a slab of memory for all the expected arguments that the call expects (thanks to looking-up the local `distributed func`), and vend specific pointers to the "slots" where each argument should be decoded into. It is not possible to achieve this level of efficiency with returning values, because they would end up being type-erased and wrapped using existential wrappers (in `Any`). 
-
-While this API shape is more annoying to implement, we are comfortable putting a slightly higher burden on distributed actor system implementors, because this code is only going to be written once per system type, yet will be used many times by all kinds of distributed actor end-users, and the efficiency benefits of this design by far outweigh the slight inconvenience caused to the few implementations.
-
-Summing up, we are convinced this "Handler-style" approach to decoding values, as well as receiving return values and errors by the distributed system implementation, gives us the best of all worlds:
-
-- nowhere in this API will values be subject to existential boxing which would be detrimental to performance of high-performance focused systems
-- network buffers never need to be copied, or converted to any specific format, systems can use whichever buffers they got the data in directly, potentially even allowing for zero-copy style deserialization
-- the runtime is not opinionated about network buffer types, they could be anything (Data, NIO.ByteBuffer, or even memory mapped files)
-- developers only deal with concrete types, and no special handling is needed to handle generic parameters
-- the visiting of parameters in order makes implementations that read from a single continuous buffer as well as "one by one" from a set of Data objects simple
-
-This design allows us to strive for the most high-performance messaging implementations possible, while also allowing pretty convenient usage in heavier implementations which may not have go to these extreme lengths to achieve their performance goals.
+This decoder must be prepared by the actor system and eventually passed to the `executeDistributedTarget` method which we'll discuss next. That, Swift runtime provided, function is the one which will be calling the `decode...` methods and will is able to ensure all the type requirements are actually met and form the correct generic method invocations.
 
 > **Note:** This proposal does not include an implementation for the mentioned `summonType(byName:)` function, it is just one way systems may choose to implement these functions. Possible implementations include: registering all "trusted" types, using mangled names, or something else entirely. This proposal has no opinion about how these types are recovered from the transmitted values.
 
-#### Resolving the Recipient 
+#### Recipient: Resolving the recipient actor instance
 
-The first step to prepare the invocation is to resolve the target actor. We discussed how resolving actors works in [Resolving Distributed Actors](#resolving-distributed-actors), however in this section we can tie it into the real process of invoking the target function as well.
+Now that we have prepared our `InvocationDecoder` we are ready to make the next step, and resolve the recipient actor which the invocation shall be made on. 
+
+We already discussed how resolving actors works in [Resolving Distributed Actors](#resolving-distributed-actors), however in this section we can tie it into the real process of invoking the target function as well.
 
 In the example we're following so far, the recipient resolution is simple because we have the recipient id available in the `Envelope.recipientID`, so we only need to resolve that using the system that is receiving the message:
 
 ```swift
-let actor: DistributedActor = try self.resolveAny(id: envelope.recipientID) // where self is a DistributedActorSystem
+guard let actor: any DistributedActor = try self.knownActors[envelope.recipientID] else {
+  throw ClusterSystemError.unknownRecipient(envelope.recipientID)
+}
 ```
 
-The implementation here is the same as implementing the `DistributedActorSystem.resolve` just that it doesn't have to cast to a specific actor type -- it is not really necessary to perform the invocation. 
+This logic is the same as the internal implementation of the `resolve(id:as:)` method only that we don't have a need to validate the specific type of the actor - this will be handled by the Swift runtime in `executeDistributedTarget`'s implementation the target of the call which we'll explain in the next section.
 
-If we needed to, we could confirm though if the actor is of the right type, by using the `actorType` of the resolved `DistributedFunction`, like this:
+#### Recipient: The `executeDistributedTarget` method
 
-```swift
-let actor: DistribtuedActor = try self.resolve(id: envelope.recipientID, as: dfunc.actorType)
-// which internally does:
-//   let anyActor = self.resolveAny(id: id)
-//   if anyActor as? dfunc.actorType else {
-//     throw ResolvedUnexpectedActorType(...) 
-//   }
-```
+Invoking a distributed method is a tricky task, and involves a lot of type demangling, opening existential types, forming specific generic invocations and tightly managing all of that in order to avoid un-necessary heap allocations to pass the decoded arguments to the target function etc. After iterating over with multiple designs, we decided to expose a single `DistributedActorSystem.executeDistributedTarget` entry point which efficiently performs all the above operations. 
 
-But since the returned value will end up erased anyway, it does not really matter all that much to try to resolve a specific type here, thus the above-mentioned `resolveAny`.
-
-#### The `executeDistributedTarget` method
-
-Invoking a distributed method is a tricky task, and involves a lot of type demangling, opening existential types, and tightly managing all of that in order to avoid un-necessary heap allocations to pass the decoded arguments to the target function etc. After iterating over with multiple designs, we decided to expose a single `DistributedActorSystem.executeDistributedTarget` entry point. It efficiently performs all the above operations, while allowing distributed actor systems developers to implement whichever coding strategy they choose, potentially directly from the buffers obtained from the transport layer.
+Thanks to abstracting the decoding logic into the `DistributedTargetInvocationDecoder` type, all deserialization can be made directly from the buffers that were received from the underlying network transport. The `executeDistributedTarget` method has no opinion about what serialization mechanism is used either, and any mechanism, be it `Codable` or other external serialization systems can be used. allowing distributed actor systems developers to implement whichever coding strategy they choose, potentially directly from the buffers obtained from the transport layer.
 
 The `executeDistributedTarget` method is defined as:
 
 ```swift
 extension DistributedActorSystem {
-    /// Prepare and execute a call to the distributed function identified by the passed arguments,
+  /// Prepare and execute a call to the distributed function identified by the passed arguments,
   /// on the passed `actor`, and collect its results using the `ResultHandler`.
   ///
   /// This method encapsulates multiple steps that are invoked in executing a distributed function,
@@ -1338,7 +1382,7 @@ extension DistributedActorSystem {
   func executeDistributedTarget<Act, ResultHandler>(
       on actor: Act,
       mangledName: String,
-      invocation: Self.Invocation,
+      invocation: Self.InvocationDecoder,
       handler: ResultHandler
   ) async throws where Act: DistributedActor,
                        Act.ID == ActorID,
@@ -1348,44 +1392,49 @@ extension DistributedActorSystem {
 }
 ```
 
-This method encapsulates all the difficult and hard to implement pieces of the function invocation, and it accepts the target of the call, along with a `DistributedTargetInvocationResultHandler` type, that will be used for decoding the calls arguments, as well as receiving the invocations result (or error).
+This method encapsulates all the difficult and hard to implement pieces of the target invocation, and it accepts the base actor the call should be performed on, along with a `DistributedTargetInvocationResultHandler`.
 
-This handler type allows us to offer developers a type-safe, hard-to-get-wrong and highly optimized way to perform the target method invocation. We are able to avoid heap allocations for the decoded parameter values, as well as any existential wrappers, which might have been otherwise utilized in an API with a more obvious shape (i.e. by the call just returning the arguments, we would incur both existential boxing and type-cast overheads).
+Rather than having the `executeDistributedTarget` method return an `Any` result, we use the result handler in order to efficiently, and type-safely provide the result value to the actor system library implementation. This technique is the same as we did with the `recordArgument` method before, and it allows us to provide the _specific_ type including its `SerializationRequirement` conformance making handling results much simpler, and without having to resort to any casts which can be unsafe if used wrongly, or have impact on runtime performance. 
 
 The `DistributedTargetInvocationResultHandler` is defined as follows:
 
 ```swift
 protocol DistributedTargetInvocationResultHandler {
+  associatedtype SerializationRequirement
+  
   func onReturn<Res>(value: Res) async throws
-  func onThrow<Err>(error: Err) async throws where Err: Error
+    where Res: SerializationRequirement
+  func onThrow<Err>(error: Err) async throws 
+    where Err: Error
 }
 ```
 
-And an implementation would usually provide a single handler type that contains logic to "send the reply" to whoever created this call.
+In a way, the `onReturn`/`onThrow` methods can be thought of as the counterparts of the `recordArgument` calls on the sender side. We need to encode the result and send it _back_ to the sender after all. This is why providing the result value along with the appropriate SerializationRequirement conforming type is so important -- it makes sending back the reply to a call, as simple as encoding the argument of the call.
 
-#### Performing the distributed target call
+Errors must be handled by informing the sender about the failed call. This is in order to avoid senders waiting and waiting for a reply, and eventually triggering a timeout; rather, they should be informed as soon as possible that a call has failed. Treat an error the same way as you would a valid return in terms of sending the reply back. However it is not required to actually send back the actual error, as it may not be safe, or a good idea from a security and information exposure perspective, to send back entire errors. Instead, systems are encouraged to send back a reasonable amount of information about a failure, and e.g. optionally, only if the thrown error type is Codable and allow-listed to be sent over the wire, transport it directly.
 
-Once we have completed all the above steps, all building up to actually invoking the target of a remote call: it is finally time to do so, by calling the `executeDistributedTarget` method:
+#### Recipient: Executing the distributed target
+
+Now that we have completed all the above steps, all building up to actually invoking the target of a remote call: it is finally time to do so, by calling the `executeDistributedTarget` method:
 
 ```swift
 // inside recipient actor system
-let envelope: Envelope = // receive & decode ...
+let envelope: IncomingEnvelope = // receive & decode ...
 let recipient: DistributedActor = // resolve ...
 
-// FIXME: make a separate type for DECODING side (!!!!!!!)
-let invocation = makeInvocation(from: envelope)
+let invocationDecoder = InvocationDecoder(system: self, bytes: envelope.bytes)
 
 try await executeDistributedTarget(
   on: recipient, // target instance for the call
   mangledName: envelope.targetName, // target func/var for the call
   invocation: invocation // will be used to perform decoding arguments,
-  handler: ReplyHandler(to: envelope) // handles replying to the caller (omitted in proposal)
+  handler: ClusterTargetInvocationResultHandler(system, envelope) // handles replying to the caller (omitted in proposal)
 )
 ```
 
 This call triggers all the decoding that we discussed earlier, and if any of the decoding, or distributed func/var resolution fails this call will throw. Otherwise, once all decoding has successfully been completed, the arguments are passed through the buffer to a distributed method accessor that actually performs the local method invocation. Once the method returns, its results are moved into the handler where the actor system takes over in order to send a reply to the remote caller - completing the remote call!
 
-For sake of completeness, the listing below shows the distributed method accessor thunk that is synthesized by the compiler. The thunk is passed the memory buffer into which argument values have just been stored during the `decodeArgument` calls on the `Invocation`. The thunk unpacks the well-typed buffer that contains the method call arguments into local variables, and invokes the actual target, like this:
+For sake of completeness, the listing below shows the **distributed method accessor thunk** that is synthesized by the compiler. The thunk is passed the memory buffer into which argument values have just been stored during the `decodeNextArgument` calls on the `Invocation`. The thunk unpacks the well-typed buffer that contains the method call arguments into local variables, and invokes the actual target, like this:
 
 ```swift
 distributed actor DA {
@@ -1424,11 +1473,11 @@ As we can see, this thunk is "just" taking care of converting the heterogeneous 
 
 The thunk again uses the indirect return, so we can avoid any kind of implicit existential boxing even on those layers. Errors are always returned indirectly, so we do not need to do it explicitly.
 
-#### Collecting result/error from the Invocation
+#### Recipient: Collecting result/error from the Invocation
 
 Now that the distributed method has been invoked, it eventually returns or throws an error. 
 
-Collecting the return (or error) value is also implemented using the `DistributedMethodInvocationHandler` we passed to the `invoke(...)` method before. This is done for the same reason as parameters: we need a concrete type in order to efficiently pass the values to the actor system, so it can encode them without going through existential wrappers. As we cannot implement the `invoke()` method to be codable over the expected types -- we don't know them until we've looked up the actual method we were about to invoke (and apply generic substitutions to them).
+Collecting the return (or error) value is also implemented using the `DistributedMethodInvocationHandler` we passed to the `executeDistributedTarget(...)` method. This is done for the same reason as parameters: we need a concrete type in order to efficiently pass the values to the actor system, so it can encode them without going through existential wrappers. As we cannot implement the `invoke()` method to be codable over the expected types -- we don't know them until we've looked up the actual method we were about to invoke (and apply generic substitutions to them).
 
 The implementation could look as follows:
 
@@ -1463,6 +1512,12 @@ The general pattern here is the same as with decoding parameters, however in the
 Once the `onError` or `onReturn` methods complete, the `executeDistributedTarget` method returns, and its caller knows the distributed request/response has completed – at least, as far as this peer is concerned. We omit the implementation of the `reply` and `replyError` methods that the actor system would implement here, because they are pretty much the same process as sending the request, except that the message must be sent as a response to a specific request, rather than target a specific actor and method. How this is achieved can differ wildly between transport implementations: some have built-in request/reply mechanisms, while others are uni-directional and rely on tagging replies with identifiers such as "this is a reply for request 123456".
 
 ## Future Work
+
+### Variadic generics removing the need for `remoteCallVoid`
+
+Once [variadic generics](https://forums.swift.org/t/variadic-generics/54511/2) are fully implemented, we will be able to remove the limitation that we cannot express the `remoteCall<..., Res: SerializationRequirement>(..., returning returnType: Res.Type)` function for the `Void` type, since it cannot always conform to `SerializationRequirement`.
+
+With variadic generics it would be natural to conform an "empty tuple" to the `SerializationRequirement` and we'd this way be able to implement only a single method (`remoteCall`) rather than having to provide an additional special case implementation for `Void` return types.
 
 ### Stable names and more API evolution features
 
@@ -1732,6 +1787,10 @@ None.
 
 ## Changelog
 
+- 2.0 Update proposal to latest `excecuteDistributedTarget` runtime
+  - Explain how we deal with `: SerializationRequirement` in generics
+  - Explain how we need to use `remoteCallVoid` and how we could get rid of it in the future
+  - Overall reflow and fix various wording
 - 1.2 Drop implicitly distributed methods
 - 1.1 Implicitly distributed methods
 - 1.0 Initial revision
