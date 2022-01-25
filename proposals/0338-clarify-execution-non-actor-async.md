@@ -1,7 +1,7 @@
 # Clarify the Execution of Non-Actor-Isolated Async Functions
 
 * Proposal: [SE-0338](0338-clarify-execution-non-actor-async.md)
-* Authors: [John McCall](https://github.com/rjmccall)
+* Author: [John McCall](https://github.com/rjmccall)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (January 14...24, 2022)**
 
@@ -99,7 +99,7 @@ Dynamically, a switch will not suspend the task if the task is already on an app
 
 The `Sendable` rule for calls to non-actor-isolated `async` functions is currently broken.  This rule is closely tied to the execution semantics of these functions because of the role of sendability checking in proving the absence of data races.  The `Sendable` rule is broken even under the current semantics, but it's arguably even more broken under the proposed rule, so we really do need to fix it as part of this proposal.  (There is an alternative which would make the current rule correct, but it doesn't seem advisable; see "Alternatives Considered".)
 
-It is a basic goal of Swift concurrency that programs should be free of basic data races.  In order to achieve this, we must be able to prove that all uses of certain values and memory are totally ordered.  All of the code that runs on a particular task is totally ordered with respect to itself.  Similarly, all of the code that runs on a particular actor is totally ordered with respect to itself.  So if we can restrict a value/memory to only be used by a single task or actor, we've proven that all of its uses are totally ordered.  This is the immediate goal of sendability checking: it prevents non-`Sendable` values from being shared between different concurrent contexts and thus potentially being accessed in non-totally-ordered ways.
+It is a basic goal of Swift concurrency that programs should be free of basic data races.  In order to achieve this, we must be able to prove that all uses of certain values and memory are totally ordered.  All of the code that runs on a particular task is totally ordered with respect to itself.  Similarly, all of the code that runs on a particular actor is totally ordered with respect to itself.  So, if we can restrict a value/memory to only be used by a single task or actor, we've proven that all of its uses are totally ordered.  This is the immediate goal of sendability checking: it prevents non-`Sendable` values from being shared between different concurrent contexts and thus potentially being accessed in non-totally-ordered ways.
 
 For the purposes of sendability, the concurrent context of an actor-isolated `async` function is the actor.  An actor can have non-`Sendable` values in its actor-isolated storage.  Actor-isolated functions can read values from that storage into their local state, and similarly they can write values from their local state into actor-isolated storage.  Therefore, such functions must strictly separate their "internal" local state from the "external" local state of the task.  (It would be possible to be more lenient here, but that is outside the scope of this proposal.)
 
@@ -205,7 +205,7 @@ Overall, while this approach has some benefits over the proposal, it seems bette
 
 There is still room under this proposal for `async` functions to dynamically inherit their executor from their caller.  It simply needs to be opt-in rather than opt-out.  This does not seem like such an urgent need that it needs to be part of this proposal.
 
-While `reasync` functions have not yet been proposed, it would probably be reasonable for them to inherit executors, since they deliberately blur the lines between synchronous and asynchonous operation.
+While `reasync` functions have not yet been proposed, it would probably be reasonable for them to inherit executors, since they deliberately blur the lines between synchronous and asynchronous operation.
 
 To allow the caller to use a stronger sendability rule, to avoid over-constraining static optimization of switching, and to support a more efficient ABI, this kind of inheritance should be part of the function signature of the callee.
 
