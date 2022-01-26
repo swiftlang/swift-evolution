@@ -31,7 +31,6 @@
       - [Syntactic Form](#syntactic-form)
       - [Isolation](#isolation)
     - [Sendability](#sendability)
-      - [Delegation and Sendable](#delegation-and-sendable)
     - [Deinitializers](#deinitializers)
     - [Global-actor isolation and instance members](#global-actor-isolation-and-instance-members)
       - [Removing Redundant Isolation](#removing-redundant-isolation)
@@ -40,6 +39,7 @@
     - [Introducing `nonisolation` after `self` is fully-initialized](#introducing-nonisolation-after-self-is-fully-initialized)
     - [Permitting `await` for property access in `nonisolated self` initializers](#permitting-await-for-property-access-in-nonisolated-self-initializers)
     - [Async Actor Deinitializers](#async-actor-deinitializers)
+    - [Requiring Sendable arguments only for delegating initializers](#requiring-sendable-arguments-only-for-delegating-initializers)
   - [Effect on ABI stability](#effect-on-abi-stability)
   - [Effect on API resilience](#effect-on-api-resilience)
   - [Acknowledgments](#acknowledgments)
@@ -598,114 +598,96 @@ But, the delegating initializers of an actor have simpler rules about what can a
 
 ### Sendability
 
-The delegating initializers of an `actor`, and all initializers of a GAIT, follow the same rules about Sendable arguments as other functions. Namely, if the function is isolated, then cross-actor calls require that the arguments conform to the `Sendable` protocol.
-
-All non-delegating initializers of an actor, regardless of any flow-sensitive isolation applied to `self`, are considered "isolated" from the `Sendable` point-of-view. That's because these initializers are permitted to access the actor's isolated stored properties during bootstrapping.
-
-These two rules force programmers to correctly deal with `Sendable` values when creating a new actor instance. Fundamentally, programmers will have only two options for initializing a non-`Sendable` stored property of an actor:
+When passing values to any of an `actor`'s initializers, from outside of that actor, those values must be `Sendable`.
+Thus, during the initialization of a new instance, the actor's "boundary" in terms of Sendability begins at the initial call-site to one of its initializers.
+This rule forces programmers to correctly deal with `Sendable` values when creating a new actor instance. Fundamentally, programmers will have only two options for initializing a non-`Sendable` stored property of an actor:
 
 ```swift
 class NotSendableType { /* ... */ }
 struct Piece: Sendable { /* ... */ }
 
 actor Greg {
-  var ns: NonSendableType
+  var ns: NotSendableType
 
-  // Option 1: a non-delegating init can only take 
-  // Sendable values and use them to construct 
-  // a new non-Sendable value.
+  // Option 1: an initializer that can be called from anywhere, 
+  // because its arguments are Sendable.
   init(fromPieces ps: (Piece, Piece)) {
-    self.ns = NonSendableType(ps)
+    self.ns = NotSendableType(ps)
   }
 
-  // Option 2: a delegating and nonisolated-self init
-  // can take a non-Sendable value and allow you to
-  // pass the Sendable pieces to a non-delegating init.
-  init(with ns: NonSendableType) {
+  // Option 2: an initializer that can only be delegated to,
+  // because its arguments are not Sendable.
+  init(with ns: NotSendableType) {
     self.init(fromPieces: ns.getPieces())
   }
 }
 ```
 
-As shown in the example above, you _can_ construct an actor that has a non-`Sendable` stored property. But, you must be able to create a new instance of that type from `Sendable` pieces of data. The two options above provide ways to either accept the pieces directly in a non-delegating initializer, or to rely on a delegating initializer to start with non-`Sendable` values. This effectively forces programmers to construct a new, fresh instance of the non-Sendable value within the non-delegating initializer.
-
-#### Delegation and Sendable
-
-It's tempting to think that all delegating initializers can accept non-Sendable values from any caller, but that's not true. Whether it is safe to pass a non-Sendable value to a delegating initializer still depends on the isolation of the caller.
-
-For example, an `async` delegating initializer has an `isolated self`, so it has access to the stored properties after delegating. If we were to allow non-Sendable values into this initializer _without_ paying attention to the isolation of its caller, then an invalid sharing of non-Sendable values can happen:
+As shown in the example above, you _can_ construct an actor that has a non-`Sendable` stored property. But, you should create a new instance of that type from `Sendable` pieces of data in order to store it in the actor instance. Once inside an actor's initializer, non-Sendable values can be freely passed when delegating to another initializer, or calling its methods, *etc*. The following example illustrates this rule:
 
 ```swift
 class NotSendableType { /* ... */ }
 struct Piece: Sendable { /* ... */ }
 
 actor Gene {
-  var ns: NonSendableType?
+  var ns: NotSendableType
 
-  init(with ns: NonSendableType) async {
-    self.init()
+  init(_ ns: NotSendableType) {
     self.ns = ns
+  }
+
+  init(with ns: NotSendableType) async {
+    self.init(ns)   // ✅ non-Sendable is OK during initializer delegation...
+    someMethod(ns)  // ✅ and when calling a method from an initializer, etc.
   }
 
   init(fromPieces ps: (Piece, Piece)) async {
-    let ns = NonSendableType(ps)
-    await self.init(with: ns) // ✅ OK
-    assert(self.ns == ns)
+    let ns = NotSendableType(ps)
+    await self.init(with: ns) // ✅ non-Sendable is OK during initializer delegation
   }
+
+  func someMethod(_: NotSendableType) { /* ... */ }
 }
 
-func someFunc(ns: NonSendableType) async {
-  let ns = NonSendableType()
-  _ = await Gene(with: ns) // ❌ error: cannot pass non-Sendable value across actors
+func someFunc() async {
+  let ns = NotSendableType()
 
-  _ = await Gene(fromPieces: ns.getPieces())
+  _ = Gene(ns) // ❌ error: cannot pass non-Sendable value across actor boundary
+  _ = await Gene(with: ns) // ❌ error: cannot pass non-Sendable value across actor boundary
+  _ = await Gene(fromPieces: ns.getPieces()) // ✅ OK because (Piece, Piece) is Sendable
+
+  _ = await SomeGAIT(isolated: ns) // ❌ error: cannot pass non-Sendable value across actor boundary
+  _ = await SomeGAIT(secondNonIso: ns)  // ❌ error: cannot pass non-Sendable value across actor boundary
 }
 ```
 
-In the example above, both `Gene.init(with:)` and `Gene.init(fromPieces:)` are both delegating initializers that are `isolated self`. The difference is that `init(with:)` takes a non-`Sendable` argument, whereas `init(fromPieces:)` only takes `Sendable` arguments. It would not be safe to permit a call from `someFunc` to `init(with:)` because that would mean passing a non-`Sendable` value across actors. But, it's OK to delegate from `init(fromPieces:)` to `init(with:)` because the isolation is matching!
+For a global-actor isolated type (GAIT), the same rule applies to its `nonisolated` initializers. Thus, upon entering such an initializer from outside of the actor, the values must be `Sendable`. The differences from an `actor` are that:
 
-<!-- 
-Here's another more exhaustive example to show all the different corner-cases:
+1. The caller of the first initializer may already be isolated to the global-actor, so there is no `Sendable` barrier (as usual).
+2. When delegating from a `nonisolated` initializer to one that is isolated to the global actor, the value must be `Sendable`.
+
+The second difference only manifests when a `nonisolated` and `async` initializer delegates to an isolated initializer of the GAIT:
 
 ```swift
-class NotSendableType { /* ... */ }
+@MainActor
+class SomeGAIT {
+  var ns: NotSendableType
 
-actor George {
-  var ns: NonSendableType
-
-  init(anyNonDelegating ns: NonSendableType) { 
+  init(isolated ns: NotSendableType) {
     self.ns = ns
   }
 
-  init(delegatingAsync ns: NonSendableType) async {
-    self.init(anyNonDelegating: ns) // ✅ OK
-    self.ns = ns // ✅ OK
+  nonisolated init(firstNonIso ns: NotSendableType) async {
+    await self.init(isolated: ns) // ❌ error: cannot pass non-Sendable value across actor boundary
   }
 
-  // ^^^ the above can only be delegated to from another init
-  // ---
-  // vvv  the below can be called from outside the actor
-
-  init(delegatingSync ns: NonSendableType) {
-    self.init(anyNonDelegating: ns) // ❌ error: cannot pass non-Sendable value across actors
-    self.ns = ns // ❌ error: cannot mutate isolated property from nonisolated context
+  nonisolated init(secondNonIso ns: NotSendableType) async {
+    await self.init(firstNonIso: ns)  // ✅
   }
-
-  nonisolated init(delegatingNonIsoAsync ns: NonSendableType) async {
-    self.init(anyNonDelegating: ns) // ❌ error: cannot pass non-Sendable value across actors
-    self.ns = ns // ❌ error: cannot mutate isolated property from nonisolated context
-  }
-}
-
-func someUnrelatedCaller(ns: NonSendableType) async {
-  _ = George(anyNonDelegating: ns) // ❌ error: cannot pass non-Sendable value across actors
-    _ = await George(delegatingAsync: ns) // ❌ error: cannot pass non-Sendable value across actors
-  _ = George(delegatingSync: ns) // ✅ OK
-  _ = await George(delegatingNonIsoAsync: ns) // ✅ OK
 }
 ```
--->
 
+The barrier in the example above can be resolved by removing the `nonisolated` attribute, so that the initializer has a matching isolation.
 
 ### Deinitializers
 
@@ -870,6 +852,21 @@ The ability to observe an isolation-change mid-function in _valid_ Swift code is
 One idea for working around the inability to synchronize from a `deinit` with the actor or GAIT's executor prior to destruction is to wrap the body of the `deinit` in a task. This would effectively allow the non-async `deinit` to act as though it were `async` in its body. There is no other way to define an asynchronous `deinit`, since the callers of a deinit are never guaranteed to be in an asynchronous context.
 
 The primary danger here is that it is currently undefined behavior in Swift for a reference to `self` to escape a `deinit` and persist after the `deinit` has completed, which must be possible if the `deinit` were asynchronous. The only other option would be to have `deinit` be blocking, but Swift concurrency is designed to avoid blocking.
+
+### Requiring Sendable arguments only for delegating initializers
+
+Delegating initializers are conceptually a good place to construct a fresh
+instance of a non-Sendable value to pass-along to the actor during initialization.
+This could only work by saying that only `nonisolated self` delegating initializers
+can accept a non-Sendable value from any context. But also, an initializer's 
+delegation status must now be published in the interface of a type, i.e., 
+some annotation like `convenience` is required. Eliminating the need for
+`convenience` was chosen over non-Sendable values for a specific kind of delegating
+initializer for a few reasons:
+
+1. The rules for Sendable values and initializers would become complex, being dependent on three factors: delegation status, isolation of `self`, and the caller's context. The usual Sendable rules only depend on two.
+2. Requiring `convenience` for just one narrow use-case is not worth it.
+3. Static functions, using a factory pattern, can replace the need for initializers with non-Sendable arguments callable from anywhere.
 
 ## Effect on ABI stability
 
