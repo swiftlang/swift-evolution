@@ -3,7 +3,8 @@
 * Proposal: [SE-0333](0333-with-memory-rebound.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (November 30 - December 9, 2021)**
+* Status: **Awaiting implementation**
+* Decision Notes: [Acceptance](https://forums.swift.org/t/54699)
 * Implementation: [draft pull request][draft-pr]
 * Bugs: [SR-11082](https://bugs.swift.org/browse/SR-11082), [SR-11087](https://bugs.swift.org/browse/SR-11087)
 
@@ -17,7 +18,7 @@ executes a closure while temporarily binding a range of memory to a different ty
 We propose to lift some notable limitations of `withMemoryRebound` and enable rebinding to a larger set of types,
 as well as rebinding the memory pointed to by raw memory pointers and buffers.
 
-Swift-evolution thread: [Pitch thread][pitch-thread]
+Swift-evolution threads: [Pitch thread][pitch-thread], [Review thread](https://forums.swift.org/t/53799)
 
 ## Motivation
 
