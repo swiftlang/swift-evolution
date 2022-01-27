@@ -152,7 +152,7 @@ This feature is purely syntactic sugar, and one can switch between using opaque 
 This proposal composes well with idea that allows the use of generic syntax to specify the associated type of a protocol, e.g., where `Collection<String>`is "a `Collection` whose `Element` type is `String`". Combined with this proposal, one can more easily express a function that takes an arbitrary collection of strings:
 
 ```swift
-func takeStrings(_: some CollectionString>) { ... }
+func takeStrings(_: some Collection<String>) { ... }
 ```
 
 Recall the complicated `eagerConcatenate` example from the introduction:
