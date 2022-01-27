@@ -51,7 +51,7 @@ func horizontal(_ v1: some View, _ v2: some View) -> some View {
 
 Semantically, this formulation is identical to the prior one, but is simpler to read and understand because the inessential complexity from the generic parameter lists has been removed. It takes two views (the concrete type does not matter) and returns a view (the concrete type does not matter).
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution threads: [Pitch for this proposal](https://forums.swift.org/t/pitch-opaque-parameter-types/54914), [Easing the learning curve for introducing generic parameters](https://forums.swift.org/t/discussion-easing-the-learning-curve-for-introducing-generic-parameters/52891), [Improving UI of generics pitch](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
 
 ## Proposed solution
 
