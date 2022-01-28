@@ -3,7 +3,7 @@
 * Proposal: [SE-0337](0337-support-incremental-migration-to-concurrency-checking.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Ben Cohen](https://github.com/AirspeedSwift)
-* Status: **Active Review (January 11...21, 2022)**
+* Status: **Accepted**
 * Implementation: [Pull request](https://github.com/apple/swift/pull/40680), [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/761//artifact/branch-main/swift-PR-40680-761-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/1256//artifact/branch-main/swift-PR-40680-1256-osx.tar.gz)
 
 ## Introduction
