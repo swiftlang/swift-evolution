@@ -90,7 +90,7 @@ This is equivalent to:
 func encodeAnyDictionaryOfPairs<_T1: Hashable & Codable, _T2: Codable, _T3: Codable>(_ dict: [_T1: Pair<_T2, _T3>]) -> Data
 ```
 
-Each instance of `some` within the declaration represents a different implicit generic parameter
+Each instance of `some` within the declaration represents a different implicit generic parameter.
 
 ## Detailed design
 
