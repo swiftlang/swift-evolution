@@ -3,18 +3,18 @@
 * Proposal: [SE-0337](0337-support-incremental-migration-to-concurrency-checking.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Ben Cohen](https://github.com/AirspeedSwift)
-* Status: **Active Review (January 11...21, 2022)**
+* Status: **Implemented (Swift 5.6)**
 * Implementation: [Pull request](https://github.com/apple/swift/pull/40680), [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/761//artifact/branch-main/swift-PR-40680-761-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/1256//artifact/branch-main/swift-PR-40680-1256-osx.tar.gz)
 
 ## Introduction
 
-Swift 5.5 introduced mechanisms to eliminate data races from the language, including the `Sendable` protocol ([SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md)) to indicate which types have values that can safely be used across task and actor boundaries, and global actors ([SE-0316](https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md)) to help ensure proper synchronization with (e.g.) the main actor. However, Swift 5.5 does not fully enforce `Sendable` nor all uses of the main actor because interacting with modules which have not been updated for Swift Concurrency was found to be too onerous, . We propose adding features to help developers migrate their code to support concurrency and interoperate with other modules that have not yet adopted it, providing a smooth path for the Swift ecosystem to eliminate data racesT.
+Swift 5.5 introduced mechanisms to eliminate data races from the language, including the `Sendable` protocol ([SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md)) to indicate which types have values that can safely be used across task and actor boundaries, and global actors ([SE-0316](https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md)) to help ensure proper synchronization with (e.g.) the main actor. However, Swift 5.5 does not fully enforce `Sendable` nor all uses of the main actor because interacting with modules which have not been updated for Swift Concurrency was found to be too onerous. We propose adding features to help developers migrate their code to support concurrency and interoperate with other modules that have not yet adopted it, providing a smooth path for the Swift ecosystem to eliminate data races.
 
 Swift-evolution threads: [[Pitch] Staging in `Sendable` checking](https://forums.swift.org/t/pitch-staging-in-sendable-checking/51341), [Pitch #2](https://forums.swift.org/t/pitch-2-staging-in-sendable-checking/52413), [Pitch #3](https://forums.swift.org/t/pitch-3-incremental-migration-to-concurrency-checking/53610)
 
 ## Motivation
 
-Swift Concurrency seeks provide a mechanism for isolating state in concurrent programs to eliminate data races. The primary mechanism is `Sendable` checking. APIs which send data across task or actor boundaries require their inputs to conform to the `Sendable` protocol; types which are safe to send declare conformance, and the compiler checks that these types only contain `Sendable` types, unless the type's author explicitly indicates that the type is implemented so that it uses any un-`Sendable` contents safely.
+Swift Concurrency seeks to provide a mechanism for isolating state in concurrent programs to eliminate data races. The primary mechanism is `Sendable` checking. APIs which send data across task or actor boundaries require their inputs to conform to the `Sendable` protocol; types which are safe to send declare conformance, and the compiler checks that these types only contain `Sendable` types, unless the type's author explicitly indicates that the type is implemented so that it uses any un-`Sendable` contents safely.
 
 This would all be well and good if we were writing Swift 1, a brand-new language which did not need to interoperate with any existing code. Instead, we are writing Swift 6, a new version of an existing language with millions of lines of existing libraries and deep interoperation with C and Objective-C. None of this code specifies any of its concurrency behavior in a way that `Sendable` checking can understand, but until it can be updated, we still want to use it from Swift.
 
@@ -56,7 +56,7 @@ Here, we need:
 
 We propose a suite of features to aid in the adoption of concurrency annotations, especially `Sendable` checking. These features are designed to enable the following workflow for adopting concurrency checking:
 
-1. Enable concurrency checking, by adopting concurrency features (such as `async/await` or actors), enabling Swift 6 mode, or the adding the `-warn-concurrency` flag. This causes new errors or warnings to appear when concurrency constraints are violated.
+1. Enable concurrency checking, by adopting concurrency features (such as `async/await` or actors), enabling Swift 6 mode, or adding the `-warn-concurrency` flag. This causes new errors or warnings to appear when concurrency constraints are violated.
 
 2. Start solving those problems. If they relate to types from another module, a fix-it will suggest using a special kind of import, `@preconcurrency import`, which silences these warnings.
 
@@ -268,7 +268,7 @@ This proposal should not otherwise affect ABI.
 
 ### A "concurrency epoch"
 
-If the evolution of a given module is tied to a version that can be expressed in `@available`, it is likely that there will be some specific version where it retroactively adds concurrency annotations to its public APIs, and that thereafter any new APIs will be "born" with correct concurrency annotations. We could take advantage of this by allowing the module to specify a "concurrency a particular version when it started ensuring that new APIs were annotated and automatically applying `@preconcurrency` to APIs available before this cutoff.
+If the evolution of a given module is tied to a version that can be expressed in `@available`, it is likely that there will be some specific version where it retroactively adds concurrency annotations to its public APIs, and that thereafter any new APIs will be "born" with correct concurrency annotations. We could take advantage of this by allowing the module to specify a particular version when it started ensuring that new APIs were annotated and automatically applying `@preconcurrency` to APIs available before this cutoff.
 
 This would save maintainers from having to manually add `@preconcurrency` to many of the APIs they are retroactively updating. However, it would have a number of limitations:
 
