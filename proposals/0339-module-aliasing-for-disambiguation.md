@@ -3,11 +3,11 @@
 * Proposal: [SE-0339](0339-module-aliasing-for-disambiguation.md)
 * Authors: [Ellie Shin](https://github.com/elsh)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (January 19th...31st, 2022)**
+* Status: **Accepted** (with modifications not yet applied; see acceptance)
 * Pitch: [Module Aliasing](https://forums.swift.org/t/pitch-module-aliasing/51737)
 * Implementation: ([toolchain](https://github.com/apple/swift/pull/40899)),
 [apple/swift-package-manager#4023](https://github.com/apple/swift-package-manager/pull/4023), others
-* Review: ([review](https://forums.swift.org/t/se-0339-module-aliasing-for-disambiguation/54730))
+* Review: ([review](https://forums.swift.org/t/se-0339-module-aliasing-for-disambiguation/54730)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0339-module-aliasing-for-disambiguation/55032))
 
 ## Introduction
 
