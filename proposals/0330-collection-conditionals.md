@@ -74,7 +74,7 @@ let literal = [
 
 ### Empty dictionary literal
 
-A dictionary literal can be empty depending on the conditional compilation directives. In the following case, if the `CONDITION`evaluates to `false`, this is considered an empty dictionary literal. 
+A dictionary literal can be empty depending on the conditional compilation directives. In the following case, if the `CONDITION` evaluates to `false`, this is considered an empty dictionary literal. 
 
 ```swift
 let literal = [
@@ -84,7 +84,7 @@ let literal = [
 ]
 ```
 
-You cannot and don't need to write `:` in a block  to emulate a empty dictionally litral  `[:]`.
+You cannot, and do not need to, write `:` in a block to emulate an empty dictionary literal  `[:]` when another block already determines this.
 
 ```swift
 let literal = [
@@ -129,7 +129,7 @@ let array = [
 ]
 ```
 
-In this example, if `CONDITION_1` evaluates to `true`, this array is inferred `Array<Base>` because `Animal` the best common type between `Dog()` and `Cat()`, otherwise it's `Array<Dog>` because `Dog()` is the only active element.
+In this example, if `CONDITION_1` evaluates to `true`, this array is inferred `Array<Animal>` because `Animal` is the best common type between `Dog()` and `Cat()`, otherwise it's `Array<Dog>` because `Dog()` is the only active element.
 
 ### Muitple conditional compilation directives in a collection literal
 
@@ -166,7 +166,7 @@ let value = [
 
 ### Trailing commas
 
-A trailing comma for the last element in conditional compilation diretive blocks is required, regadless of where the directive appears in the literal. 
+A trailing comma for the last element in conditional compilation directive blocks is required, regardless of where the directive appears in the literal.
 
 ```swift
 let array = [
@@ -219,4 +219,8 @@ N/A. This is not an API.
 
 ### Lexer based preprocessing
 
-Currently, including this proposal, processing of conditional compilation directives is based on parse trees. There is an discussion of doing this with Lexer-based preprocessing. Since Lexer based solution has a significant impact on the current syntax tooling (e.g. swift-format), this proposal doens't consider it, and focuses on expanding the current model to collection literals.
+Currently, processing of conditional compilation directives in Swift is based on parse trees. This proposal continues that approach.
+
+There has been discussion of achieving the goals of this proposal as well as unlocking many other possible uses of `#if` by switching Swift to a Lexer-based preprocessing model.
+
+A lexer-based solution would have significant impact on the current syntax tooling (e.g. `swift-format`). Most notably, a lexer-based model would require source tooling to have knowledge of the build arguments to be used to perform syntax analysis. Therefore, this proposal does not consider it, and focuses on expanding the current model to collection literals. It also does not close off the possibility of a lexer-based approach from being proposed at a later time, but that should be done as a separate initiative to what is proposed here.
