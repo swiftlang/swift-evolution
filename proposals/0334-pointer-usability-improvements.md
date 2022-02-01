@@ -3,7 +3,8 @@
 * Proposal: [SE-0334](0334-pointer-usability-improvements.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (November 30 - December 9, 2021)**
+* Status: **Awaiting implementation**
+* Decision notes: [Acceptance](https://forums.swift.org/t/54700)
 * Implementation: [Draft pull request][draft-pr]
 * Bugs: [rdar://64342031](rdar://64342031), [SR-11156](https://bugs.swift.org/browse/SR-11156) ([rdar://53272880](rdar://53272880)), [rdar://22541346](rdar://22541346)
 
@@ -18,7 +19,7 @@ This proposal introduces some quality-of-life improvements for `UnsafePointer` a
 2. Add an API to obtain a pointer to a stored property of an aggregate `T`, given an `UnsafePointer<T>`.
 3. Add the ability to compare pointers of any two types.
 
-Swift-evolution thread: [Discussion][pitch-thread]
+Swift-evolution threads: [Discussion][pitch-thread], [Review](https://forums.swift.org/t/53800)
 
 ## Motivation
 
