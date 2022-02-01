@@ -3,7 +3,7 @@
 * Proposal: [SE-0329](0329-clock-instant-duration.md)
 * Author: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (January 19th...24th, 2022)**
+* Status: **Active Review (January 19th...February 7th, 2022)**
 * Implementation: [apple/swift#40609](https://github.com/apple/swift/pull/40609)
 * Review: ([first review](https://forums.swift.org/t/se-0329-clock-instant-date-and-duration/53309)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0329-clock-instant-date-and-duration/53635)) ([second review](https://forums.swift.org/t/se-0329-second-review-clock-instant-and-duration/54509)) ([third review](https://forums.swift.org/t/se-0329-third-review-clock-instant-and-duration/54727))
 
@@ -52,6 +52,8 @@
 * **v3.0**
   * Moved `measure` into a category from a protocol requirement
   * Renamed the `nanoseconds` and `seconds` property of `Duration` to `nanosecondsPortion` and `secondsPortion` to indicate their fractional composition to types like `timespec`
+* **v3.1**
+  * Adjust the portion accessors to one singular `components` based accessor and add an initializer for raw value construction from components.
 
 </details>
 
@@ -203,13 +205,14 @@ The naming of `DurationProtocol` was chosen because we feel that the canonical d
 
 Meaningful durations can always be expressed in terms of nanoseconds plus a number of seconds, either a duration before a reference point or after. They can be constructed from meaningful human measured (or machine measured precision) but should not account for any calendrical calculations (e.g., a measure of days, months or years distinctly need a calendar to be meaningful). Durations should able to be serialized, compared, and stored as keys, but also should be able to be added and subtracted (and zero is meaningful). They are distinctly NOT `Numeric` due to the aforementioned issue with regards to multiplying two `TimeInterval` variables. That being said, there is utility for ad-hoc division and multiplication to calculate back-offs.
 
-The `Duration` must be able to account for high scale resolution of calculation; the storage will under the hood ensure proper rounding for division (by likely storing higher precision than exposed) and enough range to span the full range of potential reasonable instants. This means that spanning the full range of +/- thousands of years at a non lossy scale can be accomplished by storing the seconds and nanoseconds. Not all systems will need that full range, however in order to properly represent nanosecond precision across the full range of times expressed in the operating systems that Swift works on a full 128 bit storage is needed to represent these values. That in turn necessitates exposing the conversion to existing types as breaking the duration into two portions. These portions of a duration are exposed for interoperability with existing APIs such as `timespec` as a seconds portion and nanoseconds portion. 
+The `Duration` must be able to account for high scale resolution of calculation; the storage will under the hood ensure proper rounding for division (by likely storing higher precision than exposed) and enough range to span the full range of potential reasonable instants. This means that spanning the full range of +/- thousands of years at a non lossy scale can be accomplished by storing the seconds and nanoseconds. Not all systems will need that full range, however in order to properly represent nanosecond precision across the full range of times expressed in the operating systems that Swift works on a full 128 bit storage is needed to represent these values. That in turn necessitates exposing the conversion to existing types as breaking the duration into two components. These components of a duration are exposed for interoperability with existing APIs such as `timespec` as a seconds portion and an attoseconds portion (used to ensure full precision is not lost). If the Swift language gains a signed integer type that can support 128 bits of storage then `Duration` should be considered to replace the components accessor and initializer with a direct access and initialization to that stored attoseconds value.
 
 ```swift
 public struct Duration: Sendable {
-  public var secondsPortion: Int64 { get }
-  public var nanosecondsPortion: Int64 { get }
+  public var components: (seconds: Int64, attoseconds: Int64) { get }
+  public init(secondsComponent: Int64, attosecondsComponent: Int64)
 }
+
 
 extension Duration {
   public static func seconds<T: BinaryInteger>(_ seconds: T) -> Duration
