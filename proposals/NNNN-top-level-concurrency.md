@@ -65,13 +65,8 @@ let myClosure = {
   countCall += 1
 }
 
-// magicRunAsyncCodeSynchronously<R>(op: () @escaping async throws -> R) rethrows -> R
-magicRunAsyncCodeSynchronously(myClosure)
-
-
 await myClosure() // This `await` will trigger an async top-level
 ```
-
 
 Top-level global variables are implicitly assigned a `@MainActor` global actor
 isolation to prevent data races. To avoid breaking sources, the variable is
@@ -85,6 +80,8 @@ func bar() {
 }
 
 bar()
+
+await something() // make top-level code an asynchronous context
 ```
 
 After Swift 6, full actor-isolation checking will take place. The usage of `a`
@@ -93,45 +90,66 @@ in `bar` will result in an error due to `bar` not being isolated to the
 
 ## Detailed design
 
-### Asynchronous top-level context detection
+### Asynchronous top-level context inference
 
-The top-level context should be an asynchronous context when one of the
-top-level code declarations immediately contains an `await` expression.
-Detecting that the `await` is in the immediate context is modelled as an
-ASTWalker, walking across each expression and statement.
-The walker should not traverse into closure expressions.
-A top-level code declaration will not immediately contain a function
-declaration, though if one were to exist, the body should be skipped.
-An `await` is either detected as an `AwaitExpr`, or as a valid `await` source
-location on a `ForEachStmt`.
-This behaviour is already described by the `FindInnerAsync` ASTWalker.
-Extracting that out and running it across the top-level declarations stored in
-the main source file is sufficient for determining whether the top-level code is
-an asynchronous context.
-A source file contains multiple top-level declarations, if any of them indicate
-that they are an asynchronous context with the presence of the `await`, then all
-of them are asynchronous contexts.
+The top-level
+
+
+The rules for inferring whether the top-level context is an asynchronous context
+are the same for anonymous closures, specified in
+[SE-0296 Async/Await](https://github.com/apple/swift-evolution/blob/master/proposals/0296-async-await.md).
+
+The top-level code is inferred to be an asynchronous context if it contains a
+suspension point in the immediate top-level context.
 
 ```swift
-var a = 10
+func theAnswer() async -> Int { 42 }
 
-Task {
-  return await doSomethingAsync(a) // the `await` is not immediately in the
-                                   // top-level declaration, and therefore the
-                                   // top-level code is not an asynchronous
-                                   // context.
+async let a = theAnswer() // implicit await, top-level is async
+
+await theAnswer() // explicit await, top-level is async
+
+let numbers = AsyncStream(Int.self) { continuation in
+  Task {
+    for number in 0 .. < 10 {
+      continuation.yield(number)
+    }
+    continuation.finish()
+  }
+}
+
+for await number in numbers { // explicit await, top-level is asnyc
+  print(number)
 }
 ```
 
-```swift
-var a = 10
-let t = Task {
-  await doSomethingAsync(a)
-}
+The above example demonstrates each kind of suspension point, triggering an
+asynchronous top-level context.
+Specifically, `async let a = theAnswer()` involves an implicit suspension,
+`await theAnswer()` involves an explicit suspension, as does
+`for await number in numbers`.
+Any one of these is sufficient to trigger the switch to an asynchronous
+top-level context.
 
-await t.value // `await` is in the immeidate top-level context, therefore the
-              // top-level code is an asynchronous context
+Not that the inference of `async` in the top-level does not propagate to
+function and closure bodies, because those contexts are separably asynchronous
+or synchronous.
+
+```swift
+func theAnswer() async -> Int { 42 }
+
+let closure1 = { @MainActor in print(42) }
+let closure2 = { () async -> Int in await theAnswer() }
 ```
+
+The top-level code in the above example is not an asynchronous context because
+the top-level does not contain a suspension point, either explicit or implicit.
+
+The mechanism for inferring whether a closure body is an asynchronous context
+lives in the `FindInnerAsync` ASTWalker. With minimal effort, the
+`FindInnerAsync` walker can be generalized to handle top-level code bodies,
+maintaining the nice parallel inference behaviour between top-level code and
+closure body asynchronous detection.
 
 ### Variables
 
@@ -201,5 +219,4 @@ signature as before.
 ## Acknowledgments
 
 Thank you, Doug, for lots of discussion on how to break this down into something
-that minimizes source breakage to a level where we can introduce this to Swift
-5.
+that minimizes source breakage to a level where we can introduce this to Swift 5.
