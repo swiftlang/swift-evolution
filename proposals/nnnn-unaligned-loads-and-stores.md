@@ -7,15 +7,15 @@
 * Implementation: [draft pull request][draft-pr]
 * Bugs: [SR-10273](https://bugs.swift.org/browse/SR-10273) (rdar://63919502)
 
-[proposal]: https://gist.github.com/glessard/4ebad799cf4bb88769171d0656a45ad1
+[proposal]: https://github.com/apple/swift-evolution/blob/c7652f0cee144bc4f74e0dc1433f682ded05d5c2/proposals/nnnn-unaligned-loads-and-stores.md
 [draft-pr]: https://github.com/apple/swift/pull/41033
-[pitch-thread]: https://forums.swift.org/
+[pitch-thread]: https://forums.swift.org/t/55036/
 
 ## Introduction
 
 Swift does not currently provide a clear way to load data from an arbitrary source of bytes, such as a binary file, in which data may be stored without respect for in-memory alignment. This proposal aims to rectify the situation, making workarounds unnecessary.
 
-Swift-evolution thread: <!-- [Discussion][pitch-thread] -->
+Swift-evolution thread: [Pitch & Discussion][pitch-thread]
 
 ## Motivation
 
