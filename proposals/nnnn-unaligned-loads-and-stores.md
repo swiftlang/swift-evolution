@@ -1,6 +1,6 @@
-# Unaligned Loads & Stores from Raw Memory
+# Unaligned Loads from Raw Memory
 
-* Proposal: [SE-NNNN Unaligned Loads & Stores from Raw Memory][proposal]
+* Proposal: [SE-NNNN Unaligned Loads from Raw Memory][proposal]
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: TBD
 * Status: **pitch phase**
