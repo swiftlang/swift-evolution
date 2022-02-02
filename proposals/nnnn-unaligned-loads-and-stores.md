@@ -74,7 +74,7 @@ extension UnsafeRawPointer {
   ///   any indirection or reference-counting operations. Generally, native
   ///   Swift types that do not contain strong or weak references or other
   ///   forms of indirection are trivial, as are imported C structs and enums.
-	///
+  ///
   /// - Parameters:
   ///   - offset: The offset from this pointer, in bytes. `offset` must be
   ///     nonnegative. The default is zero.
