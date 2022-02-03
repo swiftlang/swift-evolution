@@ -7,7 +7,7 @@
 
 ## Introduction
 
-As a step toward the goal of improving the UI of generics outlined in [Improving the UI of Generics](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints), this porposal introduces a new syntax for conforming a generic parameter and constraining an associated type via a same-type requirement.
+As a step toward the goal of improving the UI of generics outlined in [Improving the UI of Generics](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints), this proposal introduces a new syntax for conforming a generic parameter and constraining an associated type via a same-type requirement.
 
 ## Motivation
 
@@ -122,7 +122,7 @@ In the first set of cases, the new syntax is equivalent to the existing `where` 
   extension Collection<String> { ... }
   
   // Equivalent to:
-  extension Collection where Element : String { ... }
+  extension Collection where Element == String { ... }
   ```
 
 - The inheritance clause of another protocol, for example:
@@ -131,7 +131,7 @@ In the first set of cases, the new syntax is equivalent to the existing `where` 
   protocol TextBuffer : Collection<String> { ... }
   
   // Equivalent to:
-  protocol TextBuffer : Collection where Element : String { ... }
+  protocol TextBuffer : Collection where Element == String { ... }
   ```
   
 - The inheritance clause of a generic parameter, for example:
@@ -141,7 +141,7 @@ In the first set of cases, the new syntax is equivalent to the existing `where` 
 
   // Equivalent to:
   func sortLines<S : Collection>(_ lines: S) -> S
-    where S.Element : String
+    where S.Element == String
   ```
   
 - The inheritance clause of an associated type, for example:
@@ -154,7 +154,7 @@ In the first set of cases, the new syntax is equivalent to the existing `where` 
   // Equivalent to:
   protocol Document {
     associatedtype Lines : Collection
-      where Lines.Element : String
+      where Lines.Element == String
   }
   ```
   
@@ -166,7 +166,7 @@ In the first set of cases, the new syntax is equivalent to the existing `where` 
   
   // Equivalent to:
   func mergeFiles<S : Sequence>(_ files: S)
-    where S.Element : AsyncSequence, S.Element.Element : String
+    where S.Element : AsyncSequence, S.Element.Element == String
   ```
 
 Formally, a conformance requirement `T : P<Arg>` desugars to a pair of requirements:
@@ -183,6 +183,20 @@ func transformElements<S : Sequence<E>, E>(_ lines: S) -> some Sequence<E>
 ```
 
 This example also demonstrates that the argument can itself depend on generic parameters from the outer scope.
+
+Note that since an inheritance clause on a concrete type is not sugar for a generic requirement, we do not allow protocols with generic arguments there, because there is no base type to apply the implied same-type requirement to. For example, the following is not valid:
+
+```swift
+struct Lines : Collection<String> { ... }
+```
+
+It might be possible to assign some alternate meaning to this, for example introduction of an implied typealias, but that is outside of the scope of this proposal:
+
+```swift
+struct Lines : Collection {
+    typealias Element = String
+}
+```
 
 ## Alternatives considered
 
@@ -222,7 +236,7 @@ This change does not impact API resilience. For protocols that adopt this featur
 
 ## Future Directions
 
-This proposal works together with the proposal for [Opaque types in parameters](https://github.com/apple/swift-evolution/pull/1527/files), allowing you to write:
+This proposal works together with the proposal for [Opaque Parameter Declarations](0341-opaque-parameters.md), allowing you to write:
 
 ```swift
 func processStrings(_ lines: some Collection<String>)
@@ -230,12 +244,12 @@ func processStrings(_ lines: some Collection<String>)
 
 Which is equivalent to:
 
-```
+```swift
 func processStrings <S : Collection>(_ lines: S)
-  where S.Element : String
+  where S.Element == String
 ```
 
-Actually adopting primary associated types in the standard library is outside of the scope of this porposal. There are the obvious candidates such as `Sequence`, `Collection` and `AsyncSequence`, and no doubt others that will require additional discussion.
+Actually adopting primary associated types in the standard library is outside of the scope of this proposal. There are the obvious candidates such as `Sequence`, `Collection` and `AsyncSequence`, and no doubt others that will require additional discussion.
 
 A natural generalization is to enable this syntax for existential types, e.g. `any Collection<String>`.
 
