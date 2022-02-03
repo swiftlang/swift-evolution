@@ -275,7 +275,7 @@ extension UnsafeMutableRawPointer {
   /// - Parameters:
   ///   - type: the type to be stored at the returned address.
   /// - Returns: a pointer properly aligned to store a value of type `T`.
-  public func alingedDown<T>(for type: T.Type) -> UnsafeMutableRawPointer
+  public func alignedDown<T>(for type: T.Type) -> UnsafeMutableRawPointer
 
   /// Obtain the next pointer whose bit pattern is a multiple of `alignment`.
   ///
