@@ -1,9 +1,9 @@
 # Opaque Parameter Declarations
 
-* Proposal: [SE-NNNN](nnnn-opaque-parameters.md)
+* Proposal: [SE-0341](0341-opaque-parameters.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/AirspeedSwift)
+* Status: **Active Review (3-14 Feb 2022)**
 
 * Implementation: [apple/swift#40993](https://github.com/apple/swift/pull/40993) with the flag `-Xfrontend -enable-experimental-opaque-parameters`, [Linux toolchain](https://download.swift.org/tmp/pull-request/40993/798/ubuntu20.04/swift-PR-40993-798-ubuntu20.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/1315/artifact/branch-main/swift-PR-40993-1315-osx.tar.gz)
 
