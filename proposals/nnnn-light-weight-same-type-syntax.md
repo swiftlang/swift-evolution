@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/main/proposal-templates/NNNN-filename.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Holly Borla](https://github.com/hborla), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: TBD
-* Status: Implemented on `main` behind the `-enable-parametrized-protocol-types` feature flag; primary associated types are declared with the interim `@_primaryAssociatedType` attribute rather than the proposed syntax.
+* Status: Implemented on `main` behind the `-enable-parameterized-protocol-types` feature flag; primary associated types are declared with the interim `@_primaryAssociatedType` attribute rather than the proposed syntax.
 
 ## Introduction
 
