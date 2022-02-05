@@ -70,7 +70,7 @@ Feel free to reference the following library implementations which implement thi
 
 ## Motivation
 
-With distributed actor-isolation checking laid out in [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) we took the first step towards enabling remote calls being made by invoking `distributed func` declarations on distributed actors. The isolation model and serialization requirement checks in that proposal outline how we can guarantee the soundness of such distributed actor model at compile time.
+With distributed actor-isolation checking laid out in [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md), we took the first step towards enabling remote calls being made by invoking `distributed func` declarations on distributed actors. The isolation model and serialization requirement checks in that proposal outline how we can guarantee the soundness of such distributed actor model at compile time.
 
 Distributed actors enable developers to build their applications and systems using the concept of actors that may be "local" or "remote", and communicate with them regardless of their location. Our goal is to set developers free from having to re-invent ad-hoc approaches to networking, serialization and error handling every time they need to embrace distributed computing. 
 
@@ -78,7 +78,7 @@ Instead, we aim to embrace a co-operative approach to the problem, in which:
 
 1. the Swift language, compiler, and runtime provide the necessary isolation checks and runtime hooks for distributed actor lifecycle management, and distributed method calls that can be turned into "messages" that can be sent to remote peers,
 
-2. `DistributedActorSystem` library implementations, hook into the language provided cut-points, taking care of the actual message interactions, e.g. by sending messages representing remote distributed method calls over the network,
+2. `DistributedActorSystem` library implementations, hook into the language provided cut-points, take care of the actual message interactions, e.g. by sending messages representing remote distributed method calls over the network,
 3. `distributed actor` authors, who want to focus on getting things done, express their distributed API boundaries and communicate using them. They may have opinions about serialization and specifics of message handling, and should be able to configure and use the `DistributedActorSystem` of their choice to get things done.
 
 In general, we propose to embrace the actor style of communication for typical distributed system development, and aim to provide the necessary tools in the language, and runtime to make this a pleasant and nice default go-to experience for developers.
@@ -136,19 +136,19 @@ distributed actor Game {
 }
 ```
 
-This code snippet showcases what kind of distributed actors one might want to implement – they represent addressable identities in a system where players may be hosted on different hosts or devices. And we'd like to communicate with any of them from the `Game` actor which manages the entire game's state. Players may be on the same host as the `Game` actor, or on different ones, but we never have to change the implementation of Game to deal with this – thanks to distributed actors and the concept of location transparency, we can implement this piece of code once, and run it all locally, or distributed without changing the code specifically for either of those cases.
+This code snippet showcases what kind of distributed actors one might want to implement – they represent addressable identities in a system where players may be hosted on different hosts or devices, and we'd like to communicate with any of them from the `Game` actor which manages the entire game's state. Players may be on the same host as the `Game` actor, or on different ones, but we never have to change the implementation of `Game` to deal with this – thanks to distributed actors and the concept of location transparency, we can implement this piece of code once, and run it all locally, or distributed without changing the code specifically for either of those cases.
 
 ### Caveat: Low-level implementation details
 
 This proposal includes low-level implementation details in order to showcase how one can use to build a real, efficient, and extensible distributed actor system using the proposed language runtime. It is primarily written for distributed actor system authors, which need to understand the underlying mechanisms which distributed actors use.
 
-End users, which just want to use _distributed actors_, and not necessarily _implement_ a distributed actor system runtime, do not need to dive deep as deep into this proposal, and may be better served by reading [SE-0366: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) which focuses on how distributed actors are used. Reading this, runtime, proposal however will provide additional insights as to why distributed actors are isolated the way they are.
+End users, who just want to use _distributed actors_, and not necessarily _implement_ a distributed actor system runtime, do not need to dive deep as deep into this proposal, and may be better served by reading [SE-0366: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) which focuses on how distributed actors are used. Reading this, runtime, proposal however will provide additional insights as to why distributed actors are isolated the way they are.
 
 This proposal focuses on how a distributed actor system runtime can be implemented. Because this language feature is extensible, library authors may step in and build their own distributed actor runtimes. It is expected that there will be relatively few, but solid actor system implementations eventually, yet their use would apply to many many more end-users than actor system developers.
 
 ## Detailed design
 
-This proposal's detailed design section is going to deep dive into the runtime details and its interaction with user provided `DistributedActorSystem` implementations. Many of those aspects do are not strictly necessary to fully internalize by the end-user/developer that only wants to write some distributed actors and have them communicate using *some* distributed actor system. 
+This section is going to deep dive into the runtime details and its interaction with user provided `DistributedActorSystem` implementations. Many of these aspects are not strictly necessary to internalize by end-user/developer, who only wants to write some distributed actors and have them communicate using *some* distributed actor system. 
 
 ### The `DistributedActorSystem` protocol
 
@@ -158,7 +158,6 @@ Building a solid actor system implementation is not a trivial task, and we only 
 
 > At the time of writing, we–the proposal authors–have released a work in progress [peer-to-peer cluster actor system implementation](https://www.swift.org/blog/distributed-actors/) that is tracking this evolving language feature. It can be viewed as a reference implementation for the language features and `DistributedActorSystem` protocol discussed in this proposal. 
 >
-> Not everything mentioned in this proposal is implemented yet, the cluster library is lagging behind a little, but will be adopting the new APIs as they become available in the language.
 
 Below we present the full listing of the `DistributedActorSystem` protocol, and we'll be explaining the specific methods one by one as we go:
 
@@ -166,14 +165,18 @@ Below we present the full listing of the `DistributedActorSystem` protocol, and 
 // Module: _Distributed
 
 protocol DistributedActorSystem: Sendable { 
-  /// The type of 'ID' assigned to a 'distributed actor' while initializing with this actor system.
+  /// The type of 'ID' assigned to a distributed actor while initializing with this actor system.
   /// The identity should be meaningfully unique, in the sense that ID equality should mean referring to the
   /// same 
   /// 
-  /// A 'distributed actor' created using a specific actor system, will use the system's 'ActorID' as 
-  /// the 'ID' type it stores and uses for its 'Hashable' implementation.
+  /// The type of 'ID' assigned to a distributed actor while initializing with this actor system.
+  /// The identity should be meaningfully unique, in the sense that ID equality should mean referring to the
+  /// same. 
+  /// 
+  /// A distributed actor created using a specific actor system will use the system's 'ActorID' as 
+  /// the 'ID' type it stores and for its 'Hashable' implementation.
   ///
-  /// ### Implicit 'distribute actor' Codable conformance
+  /// ### Implicit distribute actor Codable conformance
   /// If the 'ActorID' (and therefore also the 'DistributedActor.ID') conforms to 'Codable',
   /// the 'distributed actor' will gain an automatically synthesized conformance to 'Codable' as well.
   associatedtype ActorID: Sendable & Hashable
@@ -217,11 +220,16 @@ protocol DistributedActorSystem: Sendable {
       where Act: DistributedActor, 
             Act.ID == ActorID
 
-  /// Called when the distributed actor has been fully initialized (meaning that all of its,
-  /// stored properties have been assigned an initial value).
+  /// Automatically called by in every distributed actor's non-delegating initializer.
   ///
-  /// The distributed actor will pass its 'self' to 'actorReady(_:)' as it is fully initialized,
-  /// and from that moment onwards it must be possible to resolve it using the 'resolve(_:as:)'
+  /// The call is made specifically before the `self` of such distributed actor is about to
+  /// escape, e.g. via a function call, closure or otherwise. If no such event occurs the
+  /// call is made at the end of the initializer.
+  ///
+  /// The passed `actor` is the `self` of the initialized actor, and its `actor.id` is expected
+  /// to be of the same value that was assigned to it in `assignID`.
+  /// 
+  /// After the ready call returns, it must be possible to resolve it using the 'resolve(_:as:)' 
   /// method on the system.
   func actorReady<Act>(_ actor: Act)
       where Act: DistributedActor, 
@@ -276,8 +284,8 @@ protocol DistributedActorSystem: Sendable {
   // requirement like this:
   /// Invoked by the Swift runtime when making a remote call.
   ///
-  /// The `invocation` are the arguments container that was previously created
-  /// by `makeInvocation` and has been populated with all arguments.
+  /// The `invocation` is the arguments container that was previously created
+  /// by `makeInvocationEncoder` and has been populated with all arguments.
   ///
   /// This method should perform the actual remote function call, and await for its response.
   ///
@@ -289,7 +297,7 @@ protocol DistributedActorSystem: Sendable {
   func remoteCall<Act, Err, Res>(
       on actor: Act,
       target: RemoteCallTarget,
-      arguments: Invocation,
+      invocation: InvocationEncoder,
       throwing: Err.Type,
       returning: Res.Type
   ) async throws -> Res
@@ -306,7 +314,7 @@ protocol DistributedActorSystem: Sendable {
   func remoteCallVoid<Act, Err>(
       on actor: Act,
       target: RemoteCallTarget,
-      arguments: Invocation,
+      invocation: InvocationEncoder,
       throwing: Err.Type
   ) async throws
       where Act: DistributedActor,
@@ -359,11 +367,11 @@ Next, we will discuss how those properties get initialized, and used in effectiv
 
 ### Initializing Distributed Actors
 
-At runtime, a *local* `distributred actor` is effectively the same as a local-only `actor`. The allocated `actor` instance is a normal `actor`, however its initialization is a little special, because it must interact with its associated actor system to make itself available for remote calls.
+At runtime, a *local* `distributed actor` is effectively the same as a local-only `actor`. The allocated `actor` instance is a normal `actor`, however its initialization is a little special, because it must interact with its associated actor system to make itself available for remote calls.
 
 We will focus on non-delegating initializers, as they are the ones where distributed actors cause additional things to happen. 
 
-> Please note that **initializing** a distributed actor always returns a "**local** distributed actor". The only way to obtain a "**remote** distributed actor", i.e. "a remote reference" is by using the `resolve(id:using:)` method which is explained in [Resolving Distributed Actors](#resolving-distributed-actors).
+> Please note that **initializing** a distributed actor with its `init` always returns a **local** reference to a new actor. The only way to obtain a a remote reference is by using the `resolve(id:using:)` method, which is discussed in [Resolving Distributed Actors](#resolving-distributed-actors).
 
 Distributed actor initializers inject a number of calls into specific places of the initializer's body. These calls allow for the associated actor system to manage the actor's identity, and availability to remote calls. Before we dive into the details, the following diagram outlines the various calls that will be explained in this section:
 
@@ -391,7 +399,7 @@ Distributed actor initializers inject a number of calls into specific places of 
 
 ### Distributed Actor initializers
 
-A non-delegating initializer of a type must *fully initialize* it. The place in code where an actor becomes fully initialized has important and specific meaning to actor isolation which is defined in depth in [SE-0327: On Actors and Initialization](https://github.com/apple/swift-evolution/pull/1476). Not only that, but once fully initialized it is possible to escape `self` out of a (distributed) actor's initializer. This aspect is especially important for distributed actors, because it means that once fully initialized they _must_ be registered with the actor system as they may be sent to other distributed actors and even sent messages to.
+A non-delegating initializer of a type must *fully initialize* it. The place in code where an actor becomes fully initialized has important and specific meaning to actor isolation which is defined in depth in [SE-0327: On Actors and Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). Not only that, but once fully initialized it is possible to escape `self` out of a (distributed) actor's initializer. This aspect is especially important for distributed actors, because it means that once fully initialized they _must_ be registered with the actor system as they may be sent to other distributed actors and even sent messages to.
 
 All non-delegating initializers must accept a parameter that conforms to the `DistributedActorSystem` protocol. The type-checking rules of this are explained in depth in [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md). The following are examples of well-formed initializers:
 
@@ -496,17 +504,13 @@ distributed actor DA {
 
 So far, the initialization process was fairly straight forward. We only needed to find a way to initialize the stored properties, and that's it. There is one more step though that is necessary to make distributed actors work: "ready-ing" the actor.
 
-As the actor becomes fully initialized, the type system allows escaping its `self` through method calls or closures. This can lead to unsafe access patterns, but those are discussed and prevented by [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). Distributed actor initializers are subject to the same rules as outlined in that proposal. In addition to that, in order for distributed actors to be able to escape through distributed calls made during their initializer, a system must carefully manage IDs that have been assigned but are not "ready" yet.
+As the actor becomes fully initialized, the type system allows escaping its `self` through method calls or closures. There are a number of rules which govern the isolation state of `self` of any actor during its initializer, which are fully explained in: [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). Distributed actor initializers are subject to the same rules, and in addition to that they inject the an `actorReady(self)` at the point where self would have become nonisolated under the rules explained in SE-0327.
 
-Readying is done automatically by code synthesized into the distributed actor's non-delegating initializers, and takes the shape of an `self.actorSystem.actorReady(self)` call, injected at appropriate spots in the initializer. This call is necessary in order for the distributed actor system to be able to resolve an incoming `ID` (that it knows, since it assigned it) to a specific distributed actor instance (which it does not know, until `actorReady` is called on the system). This means that there is a state between the `assignID` and `actorReady` calls, during which the actor system cannot yet properly resolve the actor. 
+This call is necessary in order for the distributed actor system to be able to resolve an incoming `ID` (that it knows, since it assigned it) to a specific distributed actor instance (which it does not know, until `actorReady` is called on the system). This means that there is a state between the `assignID` and `actorReady` calls, during which the actor system cannot yet properly resolve the actor. 
 
-In this section we will discuss the exact semantics of readying actors, how systems must implement and handle these `actorReady` calls, and where exactly they are invoked during from any distributed actor initializer.
+A distributed actor becomes "ready", and transparently invokes `actorSystem.ready(self)`, during its non-delegating initializer just _before_ the actor's `self` first escaping use, or at the end of the initializer if no explicit escape is found.
 
-Thanks to the flow-based isolation checking in actor initializers implemented in [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) we are able to reuse the same mechanisms to implement where the actor ready call must be made. The simple rule as to where the actor becomes ready is:
-
-- A distributed actor becomes "ready", and transparently invokes `actorSystem.ready(self)`, during its non-delegating initializer just _before_ the actor's `self` first escaping use, or at the end of the initializer if no explicit escape is found.
-
-This rule is not only simple and consistent between synchronous and asynchronous initializers, it is also safe from any local data-races as the self escaped to the ready call is not isolated either. The rule plays also very well with the flow-isolation treatment of self in plain actors.
+This rule is not only simple to remember, but also consistent between synchronous and asynchronous initializers. The rule plays also very well with the flow-isolation treatment of self in plain actors.
 
 The following snippets illustrate where the ready call is emitted by the compiler:
 
@@ -558,39 +562,30 @@ distributed actor DA {
 
 Special care needs to be taken about the distributed actor and actor system interaction in the time between the `assignID` and `actorReady` calls, because during this time the system is unable to *deliver* an invocation to the target actor. However, it is always able to recognize that an ID is known, but just not ready yet – the system did create and assign the ID after all. 
 
-> We suggest using the qualifier "**reserved**" for identifiers between the point in time as they have been assigned, but their respective actors have not become "ready" yet. 
->
-> A reserved identifier is an important concept, because we need to make sure to never assign the same identity to two different actors -- as it would lead to ambiguity as to which actor an incoming message is designated to.
+This should not be an issue for developers using distributed actors, but actor system authors need to be aware of this interval between the actor id being reserved and readies. We suggest "reserving" the ID immediately in `assignID` in order to avoid issuing the same ID to multiple actors which can yield unexpected behavior when handling incoming messages.
 
-This matters even more in **synchronous** distributed actor initializers, because the ready call is performed at the end of the initializer, and before that users are allowed to e.g. escape the `self` into a `Task` and potentially invoke a remote distributed method passing `self` to it, like this:
+Another thing to be aware of is "long" initializers, which take a long time to complete which may sometimes be the case with asynchronous initializers. For example, consider this initializer which performs a lot of work on the passed in items before returning:
 
 ```swift
-init(greeter: Greeter, system: ActorSystem) { // synchronous (!)
- // ...
- // << id = system.assignID(Self.self)
- Task { 
-   try await greeter.hello(from: self)
- }
- // ... 
- // ...
- // ?? what if init "never" returns"
- // ... 
- // ... 
- // << system.actorReady(self)
+init(items: [Item], system: ActorSystem) async {
+  // << self.id = system.assignID(Self.self)
+  for await item in items {
+    await compute(item)
+  }
+  // ... 
+  // ...
+  // ?? what if init "never" returns" ??
+  // ... 
+  // ... 
+  // << system.actorReady(self)
 }
 ```
 
- In the above scenario, there exist a timespan between offering `self` to another distributed actor and the actor itself becoming ready. If the remote `Greeter` were to call a distributed method on that "escaped self" and the originating system would receive that message before the `system.actorReady(self)` call is invoked, the system would be unable to deliver the invocation. 
-
-This thankfully is not a problem unknown to distributed actor runtimes, and can be solved by buffering messages to recipients that have been assigned an ID but are not yet ready. Since this is a synchronous initializer we are talking about, this situation cannot lead to a deadlock since the initializer will continue running and we are unable to suspend it (because it is not async). In theory, a synchronous distributed actor initializer that *never returned* is problematic here, because it will never become ready, but this simply isn't the nature of how initializers should be used, and after careful consideration we decided this is a fair tradeoff. 
-
-Never-returning *synchronous* initializers, which escape self to other distributed actors, may not be able to receive incoming distributed calls. The problem does not necessarily have to lead to deadlocks or never-resumed tasks because remote calls are often associated with deadlines which would avoid an infinite wait. The above situation though quite an edge case though, and the other rules about actor isolation and thread-safety of initializers we feel more than make up for this one weird situation. 
-
-This problem does not manifest with asynchronous initializers, so this is another option availablet to avoid this issue.
+This is arguably problematic for any class, struct or actor, however for distributed actors this also means that the period of time during an ID was assigned and will finally be readied can be potentially quite long. In general we discourage such "long running" initializers as they make making use of the actor in distribution impossible until it is readied. On the other hand though, it can only be used in distribution once the initializer returns in any case so this is a similar problem to any long running initializer.
 
 #### Ready-ing Distributed Actors, exactly once
 
-Another interesting case the synthesis in asynchronous initializers needs to take care of is triggering the `actorReady` call only *once*, as the actor first becomes fully initialized. This issue does not manifest itself in simple init implementations, however the following snippet does a good job showing an example of where it can manifest:
+Another interesting case the `actorReady` synthesis in initializers needs to take care of is triggering the `actorReady` call only *once*, as the actor first becomes fully initialized. The following snippet does a good job showing an example of where it can manifest:
 
 ```swift
 distributed actor DA {
@@ -602,6 +597,8 @@ distributed actor DA {
       // ~ AT THE FIRST ITERATION ~
       // ~ become fully initialized ~
       // ...
+      escape(self)
+      
       loops -= 1
     }
   }
@@ -610,9 +607,7 @@ distributed actor DA {
 
 This actor performs a loop during which it assigns values to `self.int`, the actor becomes fully initialized the first time this loop runs. 
 
-We need to emit the `actorReady(self)` call, only once, as the actor becomes initialized, and we should not repeatedly call the actor system's `actorReady` method which would force system developers into weirdly defensive implementations of this method. Tankfully, this is possible to track in the compiler, and we can emit the ready call only once, based on internal initialization marking mechanisms (that store specific bits for every initialized field). 
-
-> This same mechanism of "do something only once, at full initialization time" is also used to emit "hop to self" in normal actors, where the actor's execution hops to its dedicated executor once it has become fully initialized, but does not need to hop any of the subsequent times in the loop.
+We need to emit the `actorReady(self)` call, only once, and we should not repeatedly call the actor system's `actorReady` method which would force system developers into weirdly defensive implementations of this method. Thankfully, this is possible to track in the compiler, and we can emit the ready call only once, based on internal initialization marking mechanisms (that store specific bits for every initialized field). 
 
 The synthesized (pseudo)-code therefore is something like this:
 
@@ -641,6 +636,7 @@ distributed actor DA {
       //   << system.actorReady(self)
       //   MARK INITMAP[ACTOR_READY] = INITIALIZED
       // }
+      escape(self)
       
       loops -= 1
     }
@@ -648,9 +644,11 @@ distributed actor DA {
 }
 ```
 
-Using this technique we are able to emit the ready call only once, and put off the complexity of dealing with repeated ready calls from distributed actor system library authors. The same technique is used to avoid hopping to the self executor 10 times, but instead the implicit hop-to-self is only performed once, on the initial iteration where the actor became fully initialized.
+Using this technique we are able to emit the ready call only once, and put off the complexity of dealing with repeated ready calls from distributed actor system library authors. 
 
-Things get more complicated in face of failable as well as throwing initializers. Specifically, because we not only have to assign identities, we also need to ensure that they are resigned when the distributed actor is deallocated. In the simple, non-throwing initialization case this is simply done in the distributed actor's `deinit`, however some initialization semantics make this more complicated.
+> The same technique is used to avoid hopping to the self executor 10 times, and the implicit hop-to-self is only performed once, on the initial iteration where the actor became fully initialized.
+
+Things get more complex in face of failable as well as throwing initializers. Specifically, because we not only have to assign identities, we also need to ensure that they are resigned when the distributed actor is deallocated. In the simple, non-throwing initialization case this is simply done in the distributed actor's `deinit`, however some initialization semantics make this more complicated.
 
 ### Resigning Distributed Actor IDs
 
@@ -658,7 +656,7 @@ In addition to assigning `ID` instances to specific actors as they get created, 
 
 Resigning an `ID` allows the actor system to release any resources it might have held in association with this actor. Most often this means removing it from some internal lookup table that was used to implement the `resolve(ID) -> Self` method of a distributed actor, but it could also imply tearing down connections, clearing caches, or even dropping any in-flight messages addressed to the now terminated actor.
 
-In the simple case this is trivially solved by deinitialization: we completely initialize the actor, and once it deinitializes, we invoke resign the ID in the actor's deinitializer:
+In the simple case this is trivially solved by deinitialization: we completely initialize the actor, and once it deinitializes, we invoke `resignID` in the actor's deinitializer:
 
 ```swift
 deinit {
@@ -684,7 +682,8 @@ Let us first discuss [failable initializers](https://docs.swift.org/swift-book/L
 distributed actor DA {
   var int: Int
   
-  init?(int: Int, system: ActorSystem) [async] {
+  init?(int: Int, system: ActorSystem) {
+    // << self.id = actorSystem.assignID(Self.self)
     // ... 
     if int < 10 {
       // ...
@@ -692,7 +691,6 @@ distributed actor DA {
       return nil
     }
     self.int = int
-    // ~~~ become fully initialized ~~~
     // << self.actorSystem.actorReady(self)
   }
   
@@ -706,7 +704,7 @@ Due to rules about actor and class init/deinit, when we `return nil` from a fail
 
 > This does mean that `resignID` may be called without `actorReady` having ever been called! The system should react to this as it would to any usual resignID and free any resources associated with the identifier.
 
-Next, we need to discuss *throwing* initializers, and their multiple paths of execution. Again, rules about class and actor deinitialization, are tightly related to whether or not a types deinit will be executed or not, so let us analyse the following example:
+Next, we need to discuss *throwing* initializers, and their multiple paths of execution. Again, rules about class and actor deinitialization, are tightly related to whether a type's `deinit` will be executed or not, so let us analyse the following example:
 
 ```swift
 distributed actor DA {
@@ -757,15 +755,15 @@ distributed actor DA {
 }
 ```
 
-The actor shown above both has state that it needs to initialize, and it is going to throw. It will trow either before becoming fully initialized `[1]`, or after it has initialized all of its stored properties `[2]`. Swift handles those two executions differently. Only a fully initialized reference type's `deinit` is going to be executed. This means that if the init throws at `[1]` we need to inject a `resignID` call there, while if it throws after becoming fully initialized, e.g. on line `[2]` we do not need to inject the `resignID` call, because the actor's `deinit` along with the injected-there `resignID` will be executed instead.
+The actor shown above both has state that it needs to initialize, and it is going to throw. It will throw either before becoming fully initialized `[1]`, or after it has initialized all of its stored properties `[2]`. Swift handles those two executions differently. Only a fully initialized reference type's `deinit` is going to be executed. This means that if the `init` throws at `[1]` we need to inject a `resignID` call there, while if it throws after becoming fully initialized, e.g. on line `[2]` we do not need to inject the `resignID` call, because the actor's `deinit` along with the injected-there `resignID` will be executed instead.
 
-Both the synchronous and asynchronous initializers deal with this situation well, because the resign call must be paired with the assign, and if the actor was called ready before it calls `resignID` does not really impact the resignation logic.
+Both the synchronous and asynchronous initializers deal with this situation well, because the resign call must be paired with the assign, and if the actor was called ready before it calls `resignID` it does not really impact the resignation logic.
 
 To summarize, the following are rules that distributed actor system implementors can rely on:
 
-- `assignID(_:)` will be called exactly-once, at the very beginning of the initialization of a distributed actor associated with the system,
+- `assignID(_:)` will be called exactly-once, at the very beginning of the initialization of a distributed actor associated with the system.
 - `actorReady(_:)` will be called exactly-once, after all other properties of the distributed actor have been initialized, and it is ready to receive messages from other peers. By construction, it will also always be called after `assignID(_:)`.
-- `resignID(_:)` will be called exactly-once as the actor becomes deinitialized, or fails to finish its initialization. This call will always be made after an `assignID(_:)` call. While there may be ongoing racy calls to the transport as the actor invokes this method, any such calls after `resignID(_:)` was invoked, should be handled as if actor never existed to begin with.
+- `resignID(_:)` will be called exactly-once as the actor becomes deinitialized, or fails to finish its initialization. This call will always be made after an `assignID(_:)` call. While there may be ongoing racy calls to the transport as the actor invokes this method, any such calls after `resignID(_:)` was invoked should be handled as if actor never existed to begin with.
 
 Note that the system usually should not hold the actor with a strong reference, as doing so inhibits its ability to deinit until the system lets go of it.
 
@@ -861,7 +859,7 @@ The local/remote wording which works well with actors in general can get slightl
 
 As was shown earlier, invoking a `distributed func` essentially can follow one of two execution paths:
 
-- if the distributed actor instance was actually **local**:
+- if the distributed actor instance was **local**:
   - the call is made directly, as if it was a plain-old local-only `actor`
 - if the distributed actor was **remote**:
   - the call must be transformed into an invocation that will be offered to the `system.remoteCall(...)` method to execute
@@ -920,7 +918,7 @@ public protocol DistributedTargetInvocationEncoder {
 
 
 ```swift
-public protocol DistributedTargetInvocationDecoder {
+public protocol DistributedTargetInvocationDecoder: AnyObject {
   associatedtype SerializationRequirement
 
   func decodeGenericSubstitutions() throws -> [Any.Type]
@@ -932,7 +930,7 @@ public protocol DistributedTargetInvocationDecoder {
   ///
   /// This method should throw if it has no more arguments available, if decoding the argument failed,
   /// or, optionally, if the argument type we're trying to decode does not match the stored type.
-  mutating func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument
+  func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument
 
   func decodeErrorType() throws -> Any.Type?
 
@@ -1010,7 +1008,7 @@ The synthesized thunk is always throwing and asynchronous, this is correct becau
 
 The thunk is `nonisolated` because it is a method that can actually run on a *remote* instance, and as such is not allowed to touch any other state than other nonisolated stored properties. This is specifically designed such that the thunk (and actor system are able to access the `id` of the actor (and the `actorSystem` property itself) which is necessary to perform the actual remote message send.
 
-The `nonisolated` aspect of the method has another important role to play: if this invocation happens to be  on a local distributed actor, we do not want to "hop" executors twice, but only once we have confirmed the actor is local and hop to it using the same semantics as we would when performing a normal actor method call. If the instance was remote, we don't need to suspend early at all, and we leave it to the `ActorSystem` to decide when exactly the task will suspend. For example, the system may only suspend the call after it has sent the bytes synchronously over some IPC channel etc. Those semantics when to suspend are highly dependent on the specific underlying transport, and thanks to this approach we allow system implementations to do the right thing, whatever that might be: they can suspend early, late, or even not at all if the call is known to be impossible to succeed.
+The `nonisolated` aspect of the method has another important role to play: if this invocation happens to be  on a local distributed actor, we do not want to "hop" executors twice, but only once we have confirmed the actor is local and hop to it using the same semantics as we would when performing a normal actor method call. If the instance was remote, we don't need to suspend early at all, and we leave it to the `ActorSystem` to decide when exactly the task will suspend. For example, the system may only suspend the call after it has sent the bytes synchronously over some IPC channel etc. The semantics when to suspend are highly dependent on the specific underlying transport, and thanks to this approach we allow system implementations to do the right thing, whatever that might be: they can suspend early, late, or even not at all if the call is known to be impossible to succeed.
 
 Note that the compiler will pass the `self` of the distributed *known-to-be-remote* actor to the remoteCall method on the actor system. This allows the system to check the passed type for any potential, future, customization points that the actor may declare as static properties, and/or conformances affecting how a message shall be serialized or delivered. It is impossible for the system to access any of that actor's state, because it is remote after all. The one piece of state it will need to access though is the actor's `id` because that is signifying the *recipient* of the call.
 
@@ -1331,7 +1329,6 @@ The general idea here is that the `Invocation` is *lazy* in its decoding and jus
     }
   }
 }
-```
 
 Decoding arguments is the most interesting here. This is another case where the compiler and Swift runtime enables us to implement things more easily. Since the `Argument` generic type of the `decodeNextArgument` is ensured to conform to the `SerializationRequirement`, actor system implementations can rely on this fact and have a simpler time implementing the decoding steps. For example, with `Codable` the decoding steps becomes a rather simple task of invoking the usual `Decoder` APIs.
 
@@ -1359,7 +1356,7 @@ This logic is the same as the internal implementation of the `resolve(id:as:)` m
 
 Invoking a distributed method is a tricky task, and involves a lot of type demangling, opening existential types, forming specific generic invocations and tightly managing all of that in order to avoid un-necessary heap allocations to pass the decoded arguments to the target function etc. After iterating over with multiple designs, we decided to expose a single `DistributedActorSystem.executeDistributedTarget` entry point which efficiently performs all the above operations. 
 
-Thanks to abstracting the decoding logic into the `DistributedTargetInvocationDecoder` type, all deserialization can be made directly from the buffers that were received from the underlying network transport. The `executeDistributedTarget` method has no opinion about what serialization mechanism is used either, and any mechanism, be it `Codable` or other external serialization systems can be used. allowing distributed actor systems developers to implement whichever coding strategy they choose, potentially directly from the buffers obtained from the transport layer.
+Thanks to abstracting the decoding logic into the `DistributedTargetInvocationDecoder` type, all deserialization can be made directly from the buffers that were received from the underlying network transport. The `executeDistributedTarget` method has no opinion about what serialization mechanism is used either, and any mechanism–be it `Codable` or other external serialization systems–can be used, allowing distributed actor systems developers to implement whichever coding strategy they choose, potentially directly from the buffers obtained from the transport layer.
 
 The `executeDistributedTarget` method is defined as:
 
