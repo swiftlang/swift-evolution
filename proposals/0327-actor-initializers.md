@@ -755,7 +755,24 @@ var y = x + 2
 #### Removing Redundant Isolation
 
 Global-actor isolation on a stored property provides safe concurrent access to the storage occupied by that stored property in the type's instances.
-For example, if `pid` is an actor-isolated stored property (i.e., one without an observer or property wrapper), then the access `p.pid.reset()` only protects the memory read of `pid` from `p`, and not the call to `reset` afterwards. Thus, for value types (enums and structs), global-actor isolation on those stored properties fundamentally serves no use: mutations of the storage occupied by the stored property in a value type are concurrency-safe by default, thanks to copy-on-write semantics. So, we propose to remove the requirement that access to those properties are protected by isolation. That is, reading or writing those stored properties do not require an `await`.
+For example, if `pid` is an actor-isolated stored property (i.e., one without an observer or property wrapper), then the access `p.pid.reset()` only protects the memory read of `pid` from `p`, and not the call to `reset` afterwards. Thus, for value types (enums and structs), global-actor isolation on those stored properties fundamentally serves no use: mutations of the storage occupied by the stored property in a value type are concurrency-safe by default, because mutable variables cannot be shared between tasks. For example, it is error when trying to capture a mutable var in a Sendable closure:
+
+```swift
+@MainActor
+struct StatTracker {
+  var count = 0
+
+  mutating func update() {
+    count += 1
+  }
+}
+
+var st = StatTracker()
+Task { await st.update() } // error: mutation of captured var 'st' in concurrently-executing code
+```
+
+As a result, there is no way to concurrently mutate the memory of a struct, regardless of whether the stored properties of the struct are isolated to a global actor. Whether the instance can be shared only depends on whether it's var-bound or not, and the only kind of sharing permitted is via copying. Any mutations of reference types stored _within_ the struct require the usual actor-isolation applied to that reference type itself. In other words, applying global-actor isolation to a stored property containing a class type does _not_ protect the members of that class instance from concurrent access.
+So, we propose to remove the requirement that access to those properties are protected by isolation. That is, accessing those stored properties do not require an `await`.
 
 The [global actors](0316-global-actors.md) proposal explicitly excludes actor types from having stored properties that are global-actor isolated. But in Swift 5.5, that is not enforced by the compiler. We feel that the rule should be enforced, i.e., the storage of an actor should uniformly be isolated to the actor instance. One benefit of this rule is that it reduces the possibility of [false sharing](https://en.wikipedia.org/wiki/False_sharing) among threads. Specifically, only one thread will have write access the memory occupied by an actor instance at any given time.
 
