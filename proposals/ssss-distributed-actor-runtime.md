@@ -148,7 +148,7 @@ This proposal focuses on how a distributed actor system runtime can be implement
 
 ## Detailed design
 
-This proposal's detailed design section is going to deep dive into the runtime details and its interaction with user provided `DistributedActorSystem` implementations. Many of those aspects do are not strictly necessary to fully internallize by the end-user/developer that only wants to write some distributed actors and have them communicate using *some* distributed actor system. 
+This proposal's detailed design section is going to deep dive into the runtime details and its interaction with user provided `DistributedActorSystem` implementations. Many of those aspects do are not strictly necessary to fully internalize by the end-user/developer that only wants to write some distributed actors and have them communicate using *some* distributed actor system. 
 
 ### The `DistributedActorSystem` protocol
 
@@ -502,16 +502,13 @@ Readying is done automatically by code synthesized into the distributed actor's 
 
 In this section we will discuss the exact semantics of readying actors, how systems must implement and handle these `actorReady` calls, and where exactly they are invoked during from any distributed actor initializer.
 
-> **Note:** It is highly recommended to read [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) before reading the remainder of the initializer discussion of this proposal. As the synchronous and asynchronous rules about initialization directly fall out of SE-0327's initializer isolation rules. The two proposals have been developed in tandem, and we made sure they mesh well together.
+Thanks to the flow-based isolation checking in actor initializers implemented in [SE-0327: On Actor Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) we are able to reuse the same mechanisms to implement where the actor ready call must be made. The simple rule as to where the actor becomes ready is:
 
-Where the `system.actorReady(self)` call is performed depends on whether the initializer is asynchronous. Specifically, these locations fall out of the rules where any such user-defined code would be permitted, and what changes it causes to `self` isolation. 
+- A distributed actor becomes "ready", and transparently invokes `actorSystem.ready(self)`, during its non-delegating initializer just _before_ the actor's `self` first escaping use, or at the end of the initializer if no explicit escape is found.
 
-The `actorReady` call in distributed actors is made:
+This rule is not only simple and consistent between synchronous and asynchronous initializers, it is also safe from any local data-races as the self escaped to the ready call is not isolated either. The rule plays also very well with the flow-isolation treatment of self in plain actors.
 
-- at the _end_ of **synchronous non-delegating initializers**, or
-- where the actor becomes fully-initialized (and the initializer implicitly hops to the actors' execution context) in **asynchronous non-delegating initializers**.
-
-The following snippet illustrates a **synchronous initializer**, and where the ready call is injected in it:
+The following snippets illustrate where the ready call is emitted by the compiler:
 
 ```swift
 distributed actor DA { 
@@ -521,34 +518,22 @@ distributed actor DA {
     // << self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     self.number = 42
-    // ~~~ become fully initialized ~~~
-    // cannot escape `self` without changing initializer semantics
-    // since it is a synchronous one (as dictated by SE-0327)
-    print("Initialized \(\(self.id))")
     // << system.actorReady(self)
   }
-}
-```
-
-The next snippet illustrates an **asynchronous initializer**, for the same actor:
-
-```swift
-distributed actor DA { 
-  let number: Int
-
-  init(async system: ActorSystem) async {
+  
+  init(sync system: ActorSystem) {
     // << self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     self.number = 42
-    // ~~~ become fully initialized ~~~
-    // << <hop to self executor>
     // << system.actorReady(self)
-    print("Initialized \(\(self.id))")
+    Task.detached { // escaping use of `self`
+      await self.hello()
+    }
   }
 }
 ```
 
-The location where the ready call is injected for asynchronous initializer follows the same logic as the implicit hop-to-self injection that is defined by the actor initialization proposal mentioned earlier. i.e. it is done whenever the actor becomes _fully initialized_:
+If the self of the actor were to be escaped on multiple execution paths, the ready call is injected in all apropriate paths, like this:
 
 ```swift
 distributed actor DA {
@@ -559,15 +544,13 @@ distributed actor DA {
     if number % 2 == 0 {
       print("even")
       self.number = number
-      // ~~~ become fully initialized ~~~
-      // << <hop to self executor>
       // << system.actorReady(self)
+      something(self)
     } else {
       print("odd")
       self.number = number
-      // ~~~ become fully initialized ~~~
-      // << <hop to self executor>
       // << system.actorReady(self)
+      something(self)
     }  
   }
 }
@@ -585,7 +568,6 @@ This matters even more in **synchronous** distributed actor initializers, becaus
 init(greeter: Greeter, system: ActorSystem) { // synchronous (!)
  // ...
  // << id = system.assignID(Self.self)
- // ~~~ become fully initialized ~~~
  Task { 
    try await greeter.hello(from: self)
  }
@@ -886,7 +868,7 @@ As was shown earlier, invoking a `distributed func` essentially can follow one o
 
 The first case is governed by normal actor execution rules; There might be a execution context switch onto the actor's executor, and the actor will receive and execute the method call as usual.
 
-In this section, we will explain all the steps invokved in the second, remote, case of a distributed method call. The invocations will be using two very important types that represent the encoding and decoding side of such distributed method invocations. 
+In this section, we will explain all the steps involved in the second, remote, case of a distributed method call. The invocations will be using two very important types that represent the encoding and decoding side of such distributed method invocations. 
 
 The full listing of those types is presented below:
 
@@ -950,12 +932,6 @@ public protocol DistributedTargetInvocationDecoder {
   ///
   /// This method should throw if it has no more arguments available, if decoding the argument failed,
   /// or, optionally, if the argument type we're trying to decode does not match the stored type.
-  ///
-  /// The result of the decoding operation must be stored into the provided 'pointer' rather than
-  /// returning a value. This pattern allows the runtime to use a heavily optimized, pre-allocated
-  /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
-  /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
-  /// performs the actual distributed (local) instance method invocation.
   mutating func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument
 
   func decodeErrorType() throws -> Any.Type?
@@ -1333,6 +1309,29 @@ The general idea here is that the `Invocation` is *lazy* in its decoding and jus
 - 0...n invocations of `decoder.decodeNextArgument<Argument>`,
 - 0...1 invocations of `decodeReturnType`,
 - 0...1 invocations of `decodeErrorType`.
+
+    /// Ad-hoc protocol requirement
+    ///
+    /// Attempt to decode the next argument from the underlying buffers into pre-allocated storage
+    /// pointed at by 'pointer'.
+    ///
+    /// This method should throw if it has no more arguments available, if decoding the argument failed,
+    /// or, optionally, if the argument type we're trying to decode does not match the stored type.
+    ///
+    /// The result of the decoding operation must be stored into the provided 'pointer' rather than
+    /// returning a value. This pattern allows the runtime to use a heavily optimized, pre-allocated
+    /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
+    /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
+    /// performs the actual distributed (local) instance method invocation.
+    mutating func decodeNextArgument<Argument: SerializationRequirement>() throws {
+      try nextDataLength = try bytes.readInt()
+      let nextData = try bytes.readData(bytes: nextDataLength)
+      // again, we are guaranteed the values are Codable, so we can just invoke it:
+      return system.decoder.decode(as: Argument.self, from: bytes)
+    }
+  }
+}
+```
 
 Decoding arguments is the most interesting here. This is another case where the compiler and Swift runtime enables us to implement things more easily. Since the `Argument` generic type of the `decodeNextArgument` is ensured to conform to the `SerializationRequirement`, actor system implementations can rely on this fact and have a simpler time implementing the decoding steps. For example, with `Codable` the decoding steps becomes a rather simple task of invoking the usual `Decoder` APIs.
 
@@ -1787,10 +1786,11 @@ None.
 
 ## Changelog
 
-- 2.0 Update proposal to latest `excecuteDistributedTarget` runtime
-  - Explain how we deal with `: SerializationRequirement` in generics
-  - Explain how we need to use `remoteCallVoid` and how we could get rid of it in the future
-  - Overall reflow and fix various wording
+- 1.3 Larger revision to match latest runtime developments
+  - recording arguments does not need to write into provided pointers; thanks to the calls being made in IRGen, we're able to handle things properly even without the heterogenous buffer approach. Thank you, Pavel Yaskevich
+  - simplify rules of readying actors across synchronous and asynchronous initializers, we can always ready "just before `self` is escaped", in either situation; This is thanks to latest developments in actor initializer semantics. Thank you, Kavon Farvardin
+  - express recording arguments and remote calls as "ad-hoc" requirements which are invoked directly by the compiler
+  - various small cleanups to reflect the latest implementation state
 - 1.2 Drop implicitly distributed methods
 - 1.1 Implicitly distributed methods
 - 1.0 Initial revision
