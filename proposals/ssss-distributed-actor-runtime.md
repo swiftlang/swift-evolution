@@ -855,7 +855,7 @@ This is only the case for local instances though. For remote instances, by desig
 
 Invoking a distributed method (or distributed computed property) involves a number of steps that occur on two "sides" of the call. 
 
-The local/remote wording which works well with actors in general can get slightly confusing here, because every a call made "locally" on a "remote reference", actually results in a "local" invocation execution on the "remote system". Instead, we will be using the terms "**sender**" and "**recipient**" to better explain which side of a distributed call we are focusing on.
+The local/remote wording which works well with actors in general can get slightly confusing here, because every call made "locally" on a "remote reference", actually results in a "local" invocation execution on the "remote system". Instead, we will be using the terms "**sender**" and "**recipient**" to better explain which side of a distributed call we are focusing on.
 
 As was shown earlier, invoking a `distributed func` essentially can follow one of two execution paths:
 
@@ -864,7 +864,7 @@ As was shown earlier, invoking a `distributed func` essentially can follow one o
 - if the distributed actor was **remote**:
   - the call must be transformed into an invocation that will be offered to the `system.remoteCall(...)` method to execute
 
-The first case is governed by normal actor execution rules; There might be a execution context switch onto the actor's executor, and the actor will receive and execute the method call as usual.
+The first case is governed by normal actor execution rules. There might be a execution context switch onto the actor's executor, and the actor will receive and execute the method call as usual.
 
 In this section, we will explain all the steps involved in the second, remote, case of a distributed method call. The invocations will be using two very important types that represent the encoding and decoding side of such distributed method invocations. 
 
@@ -942,7 +942,7 @@ public protocol DistributedTargetInvocationDecoder: AnyObject {
 
 #### Sender: Invoking a distributed method
 
-Calls of a distributed method on a remote distributed actor reference need to be turned into a runtime introspectable representation which will be passed to the `remoteCall` method of a specific distributed actor system implementation.
+A call to a distributed method (or computed property) on a remote distributed actor reference needs to be turned into a runtime introspectable representation which will be passed to the `remoteCall` method of a specific distributed actor system implementation.
 
 In this section, we'll see what happens for the following `greet(name:)` distributed method call:
 
@@ -952,7 +952,7 @@ In this section, we'll see what happens for the following `greet(name:)` distrib
 try await greeter.greet(name: "Alice")
 ```
 
-Such invocation is actually calling a "distributed thunk" for the method, rather than the method directly. The "distributed thunk" is synthesized by the compiler for every `distributed func`, and can be illustrated by the following snippet:
+Such invocation is calling the method via a "distributed thunk" rather than directly. The "distributed thunk" is synthesized by the compiler for every `distributed func`, and can be illustrated by the following snippet:
 
 ```swift
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SYNTHESIZED ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1004,17 +1004,17 @@ extension Greeter {
 }
 ```
 
-The synthesized thunk is always throwing and asynchronous, this is correct because it is only invoked in situations where we might end up calling the `actorSystem.remoteCall(...)` method, which by necessity is asynchronous and throwing.
+The synthesized thunk is always throwing and asynchronous. This is correct because it is only invoked in situations where we might end up calling the `actorSystem.remoteCall(...)` method, which by necessity is asynchronous and throwing.
 
-The thunk is `nonisolated` because it is a method that can actually run on a *remote* instance, and as such is not allowed to touch any other state than other nonisolated stored properties. This is specifically designed such that the thunk (and actor system are able to access the `id` of the actor (and the `actorSystem` property itself) which is necessary to perform the actual remote message send.
+The thunk is `nonisolated` because it is a method that can actually run on a *remote* instance, and as such is not allowed to touch any other state than other nonisolated stored properties. This is specifically designed such that the thunk and actor system are able to access the `id` of the actor (and the `actorSystem` property itself) which is necessary to perform the actual remote message send.
 
-The `nonisolated` aspect of the method has another important role to play: if this invocation happens to be  on a local distributed actor, we do not want to "hop" executors twice, but only once we have confirmed the actor is local and hop to it using the same semantics as we would when performing a normal actor method call. If the instance was remote, we don't need to suspend early at all, and we leave it to the `ActorSystem` to decide when exactly the task will suspend. For example, the system may only suspend the call after it has sent the bytes synchronously over some IPC channel etc. The semantics when to suspend are highly dependent on the specific underlying transport, and thanks to this approach we allow system implementations to do the right thing, whatever that might be: they can suspend early, late, or even not at all if the call is known to be impossible to succeed.
+The `nonisolated` aspect of the method has another important role to play: if this invocation happens to be on a local distributed actor, we do not want to "hop" executors twice. If this invocation were on a local actor, only accessing `nonisolated` state, or for other reasons the hop could be optimized away, we want to keep this ability for the optimizer to do as good of a job as it would for local only actors. If the instance was remote, we don't need to suspend early at all, and we leave it to the `ActorSystem` to decide when exactly the task will suspend. For example, the system may only suspend the call after it has sent the bytes synchronously over some IPC channel etc. The semantics of to suspend are highly dependent on the specific underlying transport, and thanks to this approach we allow system implementations to do the right thing, whatever that might be: they can suspend early, late, or even not at all if the call is known to be impossible to succeed.
 
-Note that the compiler will pass the `self` of the distributed *known-to-be-remote* actor to the remoteCall method on the actor system. This allows the system to check the passed type for any potential, future, customization points that the actor may declare as static properties, and/or conformances affecting how a message shall be serialized or delivered. It is impossible for the system to access any of that actor's state, because it is remote after all. The one piece of state it will need to access though is the actor's `id` because that is signifying the *recipient* of the call.
+Note that the compiler will pass the `self` of the distributed *known-to-be-remote* actor to the `remoteCall` method on the actor system. This allows the system to check the passed type for any potential, future, customization points that the actor may declare as static properties, and/or conformances affecting how a message shall be serialized or delivered. It is impossible for the system to access any of that actor's state, because it is remote after all. The one piece of state it will need to access though is the actor's `id` because that is signifying the *recipient* of the call.
 
-The thunk creates the `invocation` container `[1]` into which it records all arguments. Note that  all these APIs are using only concrete types, so we never pay for any existential wrapping or other indirections. The `record...` calls are expected to serialize the values, using any mechanism they want to, and thanks to the type performing the recording being provided by the specific `ActorSystem`, it also knows that it can rely on the arguments to conform to the system's `SerializationRequirement`.
+The thunk creates the `invocation` container `[1]` into which it records all arguments. Note that all these APIs are using only concrete types, so we never pay for any existential wrapping or other indirections. The `record...` calls are expected to serialize the values, using any mechanism they want to, and thanks to the fact that the type performing the recording is being provided by the specific `ActorSystem`, it also knows that it can rely on the arguments to conform to the system's `SerializationRequirement`.
 
-The first step in the thunk is to record any "generic substitutions" `[1.1] ` if they are necessary. This makes it possible for remote calls to support generic arguments, and even generic distributed actors. The calls are not emitted for calls where the generic context is not necessary for the invocation. For a generic method however, the runtime will invoke the `recordGenericTypeSubstitution` with _concrete_ types of the generic context that is necessary to perform the call. For example, if we declared a generic `echo` method like this:
+The first step in the thunk is to record any "generic substitutions" `[1.1]` if they are necessary. This makes it possible for remote calls to support generic arguments, and even generic distributed actors. The substitutions are not recorded for call where the generic context is not necessary for the invocation. For a generic method however, the runtime will invoke the `recordGenericTypeSubstitution` with _concrete_ generic arguments that are necessary to perform the call. For example, if we declared a generic `echo` method like this:
 
 ```swift
 distributed func echo<T: SerializationRequirement>(_ value: T) -> T
@@ -1026,7 +1026,7 @@ and call it like this:
 try await greeter.echo("Echo!") // typechecks ok; String: SerializationRequirement
 ```
 
-The swift runtime would generate the following call:
+The Swift runtime would generate the following call:
 
 ````swift
 try invocation.recordGenericTypeSubstitution(String.self)
@@ -1034,7 +1034,7 @@ try invocation.recordGenericTypeSubstitution(String.self)
 
 This method is implemented by a distributed actor system library, and can use this information to double check this type against an allow-list of types allowed to be transmitted over the wire, and then store and send it over to the recipient such that it knows what type to decode the argument as.
 
-Next, the runtime will record all arguments of the invocation `[1.2]`. This is done in a series of `recordArgument` calls, which are made in declaration order of the parameters of the function. This method will never be invoked if the target is a distributed computed property. 
+Next, the runtime will record all arguments of the invocation `[1.2]`. This is done in a series of `recordArgument` calls. If the type of actor the target is declared on also includes a generic parameter that is used by the invocation, this also is recorded. 
 
 As the `recordArgument(_:)` method is generic over the argument type (`<Argument: SerializationRequirement>`), and requires the argument to conform to `SerializationRequirement` (which in turn was enforced at compile time by [SE-0336](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md)), the actor system implementation will have an easy time to serialize or validate this argument. For example, if the `SerializationRequirement` was codable -- this is where one could invoke `SomeEncoder().encode(argument)` because `Argument` is a concrete type conforming to `Codable`!
 
@@ -1042,7 +1042,7 @@ Finally, the specific error `[1.3]` and return types `[1.4]` are also recorded. 
 
 Recording the error type is mostly future-proofing and currently will only ever be invoked with the `Error.self` or not at all. It allows informing the system if a throw from the remote side is to be expected, and technically, if Swift were to gain typed throws this method could record specific expected error types as well - although we have no plans with regards to typed throws at this point in time. 
 
-The last encoder call is `remoteCall()` is made, to signal to the invocation encoder that no further record calls will be made. This is useful since with the optional nature of some of the calls, it would be difficult to know for a system implementation when the invocation is fully constructed. Operations which may want to be delayed until completion could include serialization. de-duplicating values or similar operations which benefit from seeing the whole constructed invocation state in the encoder.
+The last encoder call is `doneRecording()` is made, to signal to the invocation encoder that no further record calls will be made. This is useful since with the optional nature of some of the calls, it would be difficult to know for a system implementation when the invocation is fully constructed. Operations which may want to be delayed until completion could include serialization, de-duplicating values or similar operations which benefit from seeing the whole constructed invocation state in the encoder.
 
 Lastly, the populated encoder, along with additional type and function identifying information is passed to the `remoteCall`, or `remoteCallVoid` method on the actor system which should actually perform the message request/response interaction with the remote actor.
 
@@ -1194,13 +1194,13 @@ The overall purpose of this `remoteCall` implementation is to create some form o
 
 In our example implementation, the `Invocation` already serialized the arguments and stored them in the `Envelope`, so the `remoteCall` only needs to add the information about the call recipient `[1]`, and the target (method or computed property) of the call `[2]`. In our example implementation, we just store the target's mangled name `[2]`, which is simple, but it has its challenges in regard to protocol evolution.
 
-One notable issue that mangled names have is that any change in the method signature will result in not being able to resolve the target method anymore, we are very much aware of the issues this may cause to protocol evolution, and we lay out plans in [Future Directions](#future-directions) to improve the lookup mechanisms in ways that will even allow adding parameters (with default values), in wire (and ABI) compatible ways.
+One notable issue that mangled names have is that any change in the method signature will result in not being able to resolve the target method anymore. We are very much aware of the issues this may cause to protocol evolution, and we lay out plans in [Future Work](#future-work) to improve the lookup mechanisms in ways that will even allow adding parameters (with default values), in wire (and ABI) compatible ways.
 
 The final step is handing over the envelope containing the encoded arguments, recipient information etc. to the underlying transport mechanism `[3]`. The transport does not really have to concern itself with any of the specifics of the call, other than transmitting the bytes to the callee and the response data back. As we get the response data back, we have the concrete type of the expected response and can attempt to decode it `[4]`.
 
 > Note on `remoteCallVoid`: One limitation in the current implementation approach is that a remote call signature cannot handle void returning methods, because of the `Res: SerializationRequirement` requirement on the method. 
 >
-> This will be possible to solve using the incoming [Variadic Generics](https://forums.swift.org/t/variadic-generics/54511) language feature that is being currently being worked on and pitched. With this feature, the return type could be represented as variadic generic and the `Void` return type would be modeled as "empty" tuple, whereas a value return would contain the specific type of the return, this way we would not violate the `Res: SerializationRequirement` when we needed to model `Void` calls.
+> This will be possible to solve using the incoming [Variadic Generics](https://forums.swift.org/t/variadic-generics/54511) language feature that is being currently worked on and pitched. With this feature, the return type could be represented as variadic generic and the `Void` return type would be modeled as "empty" tuple, whereas a value return would contain the specific type of the return, this way we would not violate the `Res: SerializationRequirement` when we needed to model `Void` calls.
 
 #### Recipient: Receiving Invocations
 
@@ -1208,7 +1208,7 @@ On the remote side, there usually will be some receive loop or similar mechanism
 
 Since the communication of the sending and receiving side is going to be implemented by the same type of transport and actor system, receiving the envelopes is straightforward: we know the wire protocol, and follow it to receive enough bytes to decode the `Envelope` which we sent a few sections above. 
 
-This part does not have anything specific prescribed in the `DistributedActorSystem` protocol, it is up to every system to implement whichever transport mechanism works for it. While not a "real" snippet, this can be thought of a simple loop over incoming connections, like this:
+This part does not have anything specific prescribed in the `DistributedActorSystem` protocol It is up to every system to implement whichever transport mechanism works for it. While not a "real" snippet, this can be thought of a simple loop over incoming connections, like this:
 
 ```swift
 // simplified pseudo code for illustration purposes
@@ -1244,13 +1244,13 @@ We see that as we decode our wire envelope, we are able to get the header sectio
 Next, we need to prepare for the decoding of the message section. This is done by implementing the remaining protocol requirements on the `ClusterTargetInvocation` type we defined earlier, as well as implementing a decoding iterator of type `DistributedTargetInvocationArgumentDecoder`, as shown below:
 
 ```swift
-final class ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
+class ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
   typealias SerializationRequirement = Codable
       
   let system: ClusterSystem
   var bytes: ByteBuffer
 
-  mutating func decodeGenericSubstitutions() throws -> [Any.Type] {
+  func decodeGenericSubstitutions() throws -> [Any.Type] {
     let subCount = try self.bytes.readInt() 
     
     var subTypes: [Any.Type] = []
@@ -1274,14 +1274,14 @@ final class ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
   /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
   /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
   /// performs the actual distributed (local) instance method invocation.
-  mutating func decodeNext<Argument: SerializationRequirement>() throws {
+  func decodeNextArgument<Argument: SerializationRequirement>() throws {
     try nextDataLength = try bytes.readInt()
     let nextData = try bytes.readData(bytes: nextDataLength)
     // since we are guaranteed the values are Codable, so we can just invoke it:
     return try system.decoder.decode(as: Argument.self, from: bytes)
   }
 
-  mutating func decodeErrorType() throws -> Any.Type? { 
+  func decodeErrorType() throws -> Any.Type? { 
     let length = try self.bytes.readInt() // read the length of the type
     guard length > 0 {
       return nil // we don't always transmit it, 0 length means "none"
@@ -1290,7 +1290,7 @@ final class ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
     return try self.system.summonType(byName: typeName)
   }
 
-  mutating func decodeReturnType() throws -> Any.Type? { 
+  func decodeReturnType() throws -> Any.Type? { 
     let length = try self.bytes.readInt() // read the length of the type
     guard length > 0 {
       return nil // we don't always transmit it, 0 length means "none"
@@ -1301,36 +1301,14 @@ final class ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
 }
 ```
 
-The general idea here is that the `Invocation` is *lazy* in its decoding and just stores the remaining bytes of the envelope. All we need to do for now is to implement the Invocation in such way that it expects the decoding methods be invoked in the following order (which is the same as the order on the sending side):
+The general idea here is that the `InvocationDecoder` is *lazy* in its decoding and just stores the remaining bytes of the envelope. All we need to do for now is to implement the Invocation in such way that it expects the decoding methods be invoked in the following order (which is the same as the order on the sending side):
 
 - 0...1 invocation of `decodeGenericArguments`,
 - 0...n invocations of `decoder.decodeNextArgument<Argument>`,
 - 0...1 invocations of `decodeReturnType`,
 - 0...1 invocations of `decodeErrorType`.
 
-    /// Ad-hoc protocol requirement
-    ///
-    /// Attempt to decode the next argument from the underlying buffers into pre-allocated storage
-    /// pointed at by 'pointer'.
-    ///
-    /// This method should throw if it has no more arguments available, if decoding the argument failed,
-    /// or, optionally, if the argument type we're trying to decode does not match the stored type.
-    ///
-    /// The result of the decoding operation must be stored into the provided 'pointer' rather than
-    /// returning a value. This pattern allows the runtime to use a heavily optimized, pre-allocated
-    /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
-    /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
-    /// performs the actual distributed (local) instance method invocation.
-    mutating func decodeNextArgument<Argument: SerializationRequirement>() throws {
-      try nextDataLength = try bytes.readInt()
-      let nextData = try bytes.readData(bytes: nextDataLength)
-      // again, we are guaranteed the values are Codable, so we can just invoke it:
-      return system.decoder.decode(as: Argument.self, from: bytes)
-    }
-  }
-}
-
-Decoding arguments is the most interesting here. This is another case where the compiler and Swift runtime enables us to implement things more easily. Since the `Argument` generic type of the `decodeNextArgument` is ensured to conform to the `SerializationRequirement`, actor system implementations can rely on this fact and have a simpler time implementing the decoding steps. For example, with `Codable` the decoding steps becomes a rather simple task of invoking the usual `Decoder` APIs.
+Decoding arguments is the most interesting here. This is another case where the compiler and Swift runtime enable us to implement things more easily. Since the `Argument` generic type of the `decodeNextArgument` is ensured to conform to the `SerializationRequirement`, actor system implementations can rely on this fact and have a simpler time implementing the decoding steps. For example, with `Codable` the decoding steps becomes a rather simple task of invoking the usual `Decoder` APIs.
 
 This decoder must be prepared by the actor system and eventually passed to the `executeDistributedTarget` method which we'll discuss next. That, Swift runtime provided, function is the one which will be calling the `decode...` methods and will is able to ensure all the type requirements are actually met and form the correct generic method invocations.
 
@@ -1354,7 +1332,7 @@ This logic is the same as the internal implementation of the `resolve(id:as:)` m
 
 #### Recipient: The `executeDistributedTarget` method
 
-Invoking a distributed method is a tricky task, and involves a lot of type demangling, opening existential types, forming specific generic invocations and tightly managing all of that in order to avoid un-necessary heap allocations to pass the decoded arguments to the target function etc. After iterating over with multiple designs, we decided to expose a single `DistributedActorSystem.executeDistributedTarget` entry point which efficiently performs all the above operations. 
+Invoking a distributed method is a tricky task, and involves a lot of type demangling, opening existential types, forming specific generic invocations and tightly managing all of that in order to avoid un-necessary heap allocations to pass the decoded arguments to the target function etc.. After iterating over multiple designs, we decided to expose a single `DistributedActorSystem.executeDistributedTarget` entry point which efficiently performs all the above operations. 
 
 Thanks to abstracting the decoding logic into the `DistributedTargetInvocationDecoder` type, all deserialization can be made directly from the buffers that were received from the underlying network transport. The `executeDistributedTarget` method has no opinion about what serialization mechanism is used either, and any mechanism–be it `Codable` or other external serialization systems–can be used, allowing distributed actor systems developers to implement whichever coding strategy they choose, potentially directly from the buffers obtained from the transport layer.
 
@@ -1423,14 +1401,18 @@ let invocationDecoder = InvocationDecoder(system: self, bytes: envelope.bytes)
 try await executeDistributedTarget(
   on: recipient, // target instance for the call
   mangledName: envelope.targetName, // target func/var for the call
-  invocation: invocation // will be used to perform decoding arguments,
+  invocation: invocationDecoder // will be used to perform decoding arguments,
   handler: ClusterTargetInvocationResultHandler(system, envelope) // handles replying to the caller (omitted in proposal)
 )
 ```
 
 This call triggers all the decoding that we discussed earlier, and if any of the decoding, or distributed func/var resolution fails this call will throw. Otherwise, once all decoding has successfully been completed, the arguments are passed through the buffer to a distributed method accessor that actually performs the local method invocation. Once the method returns, its results are moved into the handler where the actor system takes over in order to send a reply to the remote caller - completing the remote call!
 
-For sake of completeness, the listing below shows the **distributed method accessor thunk** that is synthesized by the compiler. The thunk is passed the memory buffer into which argument values have just been stored during the `decodeNextArgument` calls on the `Invocation`. The thunk unpacks the well-typed buffer that contains the method call arguments into local variables, and invokes the actual target, like this:
+Internally, the execute distributed thunk heavily relies on the lookup and code generated by the compiler for every `distributed func` which we refer to as **distributed method accessor thunk**. This thunk is able to decode incoming arguments using the `InvocationDecoder` and directly apply the target function, all while properly handling generics and other important aspects of function invocations. It is the distributed method accessor thunk that must be located using the "target identifier" when we handle an incoming the remote call, the thunk then calls the actual target function.
+
+For sake of completeness, the listing below shows the distributed method accessor thunk that is synthesized by the compiler. The thunk contains compiler synthesized logic specific to every distributed function to locate the target function, obtain the expected parameter types and use the passed in decoder to decode the arguments to finally pass them to the final function application. 
+
+The thunk can be thought of in terms of this abstract example, however it cannot be implemented like this because of various interactions with the generic system as well as how emissions (function calls) actually work. Distributed method accessor thunks are implemented directly in IR as it would not be possible to synthesize the necessary emissions in any higher level part of the compiler (!). Thankfully, the logic contained in those accessors is fairly straight forward and can be imagined as:
 
 ```swift
 distributed actor DA {
@@ -1440,32 +1422,31 @@ distributed actor DA {
 }
 
 extension DA {
-  // not user-accessible
-  // compiler synthesized "distributed accessor thunk" for 'myCompute(_:_:_:) -> String'
-  nonisolated func myComputeThunk(buffer: UnsafeMutableRawPointer, 
-                                  result: UnsafeMutablePointer<String>) async throws {
-    var offset = 0
-
-    offset = MemoryLayout<Int8>.nextAlignedOffset(offset)
-    let i = buffer.load(fromByteOffset: offset, as: Int8.self)
-    offset += MemoryLayout<Int>.size
- 
-    offset = MemoryLayout<String>.nextAlignedOffset(offset)
-    let s = buffer.load(fromByteOffset: offset, as: String.self)
-    offset += MemoryLayout<String>.size
-
-    offset = MemoryLayout<Double>.nextAlignedOffset(offset)
-    let d = buffer.load(fromByteOffset: offset, as: Double.self)
-    offset += MemoryLayout<Double>.size
-  
-    // Finally invoke the target method on the actual actor:
-    let result = try await self.myCompute(i, s, d)
-    result.initialize(result)
+  // Distributed accessor thunk" for 'myCompute(_:_:_:) -> String'
+  //
+  // PSEUDO CODE FOR ILLUSTRATION PURPOSES; NOT IMPLEMENTABLE IN PLAIN SWIFT; 
+  // Implemented in directly in IR for expressability reasons, and not user-accessible.
+  nonisolated func $distributedFuncAccessor_myCompute(
+    decoder: UnsafeMutableRawPointer, 
+    argumentTypes: UnsafeRawPointer,
+    resultBuffer: UnsafeRawPointer,
+    genericSubstitutions: UnsafeRawPointer,
+    witnessTables: UnsafeRawPointer,
+    numWitnessTables: Int,
+    actorSelf: UnsafeRawPointer) async {
+    
+    // - get generic signature of 'myCompute'
+    // - create storage 'args' for all the parameters; it will be used directly
+    // - for every argument, get the argumentType
+    //   - invoke 'decoder.decodeArgument<Argument>()'
+    //   - store in 'args'
+    // - deal with the generic substitutions, witness tables and prepare the call
+    // invoke 'myCompute' with 'args', and the prepared 'result' and 'error' buffers
   }
 }
 ```
 
-As we can see, this thunk is "just" taking care of converting the heterogeneous parameters into the well typed counterparts, and finally performing a plain-old method invocation using those parameters.
+As we can see, this thunk is "just" taking care of converting the heterogeneous parameters into the well typed counterparts, and finally performing a plain-old method invocation using those parameters. The actual code emission and handling of generics for all this to work is rather complex and can only be implemented in the IR layer of the compiler. The good part about it is that the compiler is able to prepare and emit good errors in case the types or witness tables seem to be mismatched with the target or other issues are found. Allocations are also kept to a minimum, as no intermediate allocations need to be made for the arguments and they are stored and directly emitted into the call emission of the target.
 
 The thunk again uses the indirect return, so we can avoid any kind of implicit existential boxing even on those layers. Errors are always returned indirectly, so we do not need to do it explicitly.
 
@@ -1643,7 +1624,7 @@ distributed actor Cook: DistributedActorConfiguration {
 }
 ```
 
-This way the assignID can detect the static property and e.g. ensure this actor is possible to look up by this static name:
+This way the `assignID` can detect the static property and e.g. ensure this actor is possible to look up by this static name:
 
 ```swift
 extension SpecificDistributedActorSystem { 
