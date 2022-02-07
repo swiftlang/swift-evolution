@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.7)**
 * Decision Notes: [Acceptance](https://forums.swift.org/t/54699)
-* Implementation: [PR-39529](https://github.com/apple/swift/pull/39529)
+* Implementation: [apple/swift#39529](https://github.com/apple/swift/pull/39529)
 * Bugs: [SR-11082](https://bugs.swift.org/browse/SR-11082), [SR-11087](https://bugs.swift.org/browse/SR-11087)
 
 ## Introduction
