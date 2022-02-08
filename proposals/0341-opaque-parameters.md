@@ -3,9 +3,8 @@
 * Proposal: [SE-0341](0341-opaque-parameters.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Ben Cohen](https://github.com/AirspeedSwift)
-* Status: **Active Review (3-14 Feb 2022)**
-
-* Implementation: [apple/swift#40993](https://github.com/apple/swift/pull/40993) with the flag `-Xfrontend -enable-experimental-opaque-parameters`, [Linux toolchain](https://download.swift.org/tmp/pull-request/40993/798/ubuntu20.04/swift-PR-40993-798-ubuntu20.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/1315/artifact/branch-main/swift-PR-40993-1315-osx.tar.gz)
+* Status: **Active Review (3-14 February 2022)**
+* Implementation: [apple/swift#40993](https://github.com/apple/swift/pull/40993) with the flag `-Xfrontend -enable-experimental-opaque-parameters`, [Linux toolchain](https://download.swift.org/tmp/pull-request/40993/798/ubuntu20.04/swift-PR-40993-798-ubuntu20.04.tar.gz), [macOS toolchain](https://www.swift.org/download/#snapshots)
 
 ## Introduction
 
@@ -149,7 +148,7 @@ This feature is purely syntactic sugar, and one can switch between using opaque 
 
 ## Future Directions
 
-This proposal composes well with idea that allows the use of generic syntax to specify the associated type of a protocol, e.g., where `Collection<String>`is "a `Collection` whose `Element` type is `String`". Combined with this proposal, one can more easily express a function that takes an arbitrary collection of strings:
+This proposal composes well with an idea that allows the use of generic syntax to specify the associated type of a protocol, e.g., where `Collection<String>`is "a `Collection` whose `Element` type is `String`". Combined with this proposal, one can more easily express a function that takes an arbitrary collection of strings:
 
 ```swift
 func takeStrings(_: some Collection<String>) { ... }
@@ -157,9 +156,9 @@ func takeStrings(_: some Collection<String>) { ... }
 
 Recall the complicated `eagerConcatenate` example from the introduction:
 
-```func eagerConcatenate<Sequence1: Sequence, Sequence2: Sequence>(
+```swift
 func eagerConcatenate<Sequence1: Sequence, Sequence2: Sequence>(
-  _ sequence1: Sequence1, _ sequence2: Sequence2
+    _ sequence1: Sequence1, _ sequence2: Sequence2
 ) -> [Sequence1.Element] where Sequence1.Element == Sequence2.Element
 ```
 
@@ -178,10 +177,3 @@ func lazyConcatenate<T>(
     _ sequence1: some Sequence<T>, _ sequence2: some Sequence<T>
 ) -> some Sequence<T>
 ```
-
-## Acknowledgments
-
-If significant changes or improvements suggested by members of the 
-community were incorporated into the proposal as it developed, take a
-moment here to thank them for their contributions. Swift evolution is a 
-collaborative process, and everyone's input should receive recognition!
