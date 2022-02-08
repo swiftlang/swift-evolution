@@ -3,15 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-top-level-concurrency.md)
 * Authors: [Evan Wilde](https://github.com/etcwilde)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-
-*During the review process, add the following fields as needed:*
-
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
+* Status: **Implementation behind `-enable-experimental-async-top-level` flag**
+* Implementation: [Fix top-level global-actor isolation crash](https://github.com/apple/swift/pull/40963), [Add `@MainActor @preconcurrency` to top-level variables](https://github.com/apple/swift/pull/40998), [Concurrent top-level inference](https://github.com/apple/swift/pull/41061)
 
 ## Introduction
 
