@@ -193,6 +193,7 @@ To remedy this, we propose to add the following static functions, scoped to the 
 ```swift
 extension _Pointer {
   public static func == <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool
+  public static func != <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool
 
   public static func <  <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool
   public static func <= <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool
@@ -349,6 +350,26 @@ extension UnsafeMutablePointer {
 #### Allow comparisons of pointers of any type
 
 ```swift
+  /// Returns a Boolean value indicating whether two pointers represent
+  /// the same memory address.
+  ///
+  /// - Parameters:
+  ///   - lhs: A pointer.
+  ///   - rhs: Another pointer.
+  /// - Returns: `true` if `lhs` and `rhs` reference the same memory address;
+  ///            otherwise, `false`.
+  public static func == <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool
+
+  /// Returns a Boolean value indicating whether two pointers represent
+  /// different memory addresses.
+  ///
+  /// - Parameters:
+  ///   - lhs: A pointer.
+  ///   - rhs: Another pointer.
+  /// - Returns: `true` if `lhs` and `rhs` reference different memory addresses;
+  ///            otherwise, `false`.
+  public static func != <Other: _Pointer>(lhs: Self, rhs: Other) -> Bool
+
   /// Returns a Boolean value indicating whether the first pointer references
   /// a memory location earlier than the second pointer references.
   ///
