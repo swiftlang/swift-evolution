@@ -1234,7 +1234,7 @@ It is not possible to declare read/write computed properties, because of underly
 
 Distributed actors can conform to protocols in the same manner as local-only actors can.
 
-As calls "through" protocols are always cross-actor, requirements that are possible to witness by a `distributed actor` must be `async throws`. The following protocol shows a few examples of protocol requirements, and weather they are possible to witness using a distributed actor's distributed function:
+As calls "through" protocols are always cross-actor, requirements that are possible to witness by a `distributed actor` must be `async throws`. The following protocol shows a few examples of protocol requirements, and whether they are possible to witness using a distributed actor's distributed function:
 
 ```swift
 protocol Example { 
