@@ -920,10 +920,10 @@ public protocol DistributedTargetInvocationEncoder {
 
 
 ```swift
-public protocol DistributedTargetInvocationDecoder: AnyObject {
+public protocol DistributedTargetInvocationDecoder {
   associatedtype SerializationRequirement
 
-  func decodeGenericSubstitutions() throws -> [Any.Type]
+  mutating func decodeGenericSubstitutions() throws -> [Any.Type]
 
   /// Ad-hoc protocol requirement
   ///
@@ -932,11 +932,11 @@ public protocol DistributedTargetInvocationDecoder: AnyObject {
   ///
   /// This method should throw if it has no more arguments available, if decoding the argument failed,
   /// or, optionally, if the argument type we're trying to decode does not match the stored type.
-  func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument
+  mutating func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument
 
-  func decodeErrorType() throws -> Any.Type?
+  mutating func decodeErrorType() throws -> Any.Type?
 
-  func decodeReturnType() throws -> Any.Type?
+  mutating func decodeReturnType() throws -> Any.Type?
 }
 ```
 
