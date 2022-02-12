@@ -48,7 +48,13 @@ The `some` keyword binds more loosely than `?` or `!`. An optional of an opaque 
 
 ### Higher order functions
 
-If the result type of a function, the type of a variable, or the result type of a subscript is a function type, that function type can contain arbitrary structural opaque result types. For example, `func f() -> () -> some P` and `func g() -> (some P) -> ()` are valid function definitions.
+If the result type of a function, the type of a variable, or the result type of a subscript is a function type, that function type can only contain structural opaque types in return position. For example, `func f() -> () -> some P` is valid, and `func g() -> (some P) -> ()` produces an error:
+
+```swift
+protocol P {}
+
+func g() -> (some P) -> () { ... } // error: 'some' cannot appear in parameter position in result type '(some P) -> ()'
+```
 
 ### Constraint inference
 
@@ -118,13 +124,9 @@ Furthermore, since `P?` is never a correct constraint, it would be possible to (
 
 ### Higher order functions
 
-Consider the function `func f() -> (some P) -> ()`. The closure value produced by calling `f` has type `(some P) -> ()`, meaning it takes an opaque result type as an argument. That argument has some concrete type, `T`, determined by the body of the closure. Assuming no special structure on `P`, such as `ExpressibleByIntegerLiteral`, the user cannot call the closure. If they were able to, then they would be depending at the source level on the concrete type of `T` to remain fixed, which is one of the things opaque result types are designed to prevent.
+Consider the function `func f() -> (some P) -> ()`. If this were a valid structural opaque result type, the closure value produced by calling `f` has type `(some P) -> ()`, meaning it takes an opaque result type as an argument. That argument has some concrete type, `T`, determined by the body of the closure. Assuming no special structure on `P`, such as `ExpressibleByIntegerLiteral`, the user cannot call the closure. If they were able to, then they would be depending at the source level on the concrete type of `T` to remain fixed, which is one of the things opaque result types are designed to prevent.
 
-We could try to stop the user from defining a higher order function which returns a function any of whose arguments are opaque result types. However, is already possible to define uncallable functions in Swift, for instance a function taking an uninhabited protocol composition, and, in fact, the returned closure might be callable, something it is non-trivial to determine in general.
-
-Another reason one might want to disallow returning functions that take opaque result types as arguments is that top-level functions can never have opaque result types as arguments.
-
-This decision should be considered in the context of generalized `some` syntax, which we are likely to implement in the future. Which approach to higher order functions is more consistent with this generalized syntax is debatable.
+Another reason to disallow returning functions that take opaque result types is that [SE-0341: Opaque Parameter Declarations](https://github.com/apple/swift-evolution/blob/main/proposals/0341-opaque-parameters.md) proposes a different meaning for `some` in parameter position in function declarations, which would cause confusion if opaque parameter types mean something different within a function type.
 
 ### Constraint inference
 
