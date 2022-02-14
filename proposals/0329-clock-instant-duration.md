@@ -3,9 +3,9 @@
 * Proposal: [SE-0329](0329-clock-instant-duration.md)
 * Author: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (January 19th...February 7th, 2022)**
+* Status: **Accepted**
 * Implementation: [apple/swift#40609](https://github.com/apple/swift/pull/40609)
-* Review: ([first review](https://forums.swift.org/t/se-0329-clock-instant-date-and-duration/53309)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0329-clock-instant-date-and-duration/53635)) ([second review](https://forums.swift.org/t/se-0329-second-review-clock-instant-and-duration/54509)) ([third review](https://forums.swift.org/t/se-0329-third-review-clock-instant-and-duration/54727))
+* Review: ([first review](https://forums.swift.org/t/se-0329-clock-instant-date-and-duration/53309)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0329-clock-instant-date-and-duration/53635)) ([second review](https://forums.swift.org/t/se-0329-second-review-clock-instant-and-duration/54509)) ([third review](https://forums.swift.org/t/se-0329-third-review-clock-instant-and-duration/54727)) ([acceptance](https://forums.swift.org/t/accepted-se-0329-clock-instant-and-duration/55324))
 
 <details>
 <summary><b>Revision history</b></summary>
