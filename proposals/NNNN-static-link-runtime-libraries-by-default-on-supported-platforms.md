@@ -39,18 +39,33 @@ However #2 comes at a cost of bigger binaries.
 Stepping outside the Swift ecosystem, deployment of statically linked programs is often the preferred way on server centric platforms such as Linux, as it dramatically simplifies deployment of server workloads.
 For reference, Go and Rust both chose to statically link programs by default for this reason.
 
+### Policy for system shipping with the Swift runtime libraries
+
+At this time, Darwin based systems are the only ones that ship with the Swift runtime libraries.
+In the future, other operating systems may choose to ship with the Swift runtime libraries.
+As pointed out by [John_McCall](https://forums.swift.org/u/John_McCall), in such cases the operating system vendors are likely to choose a default that is optimized for their software distribution model.
+For example, they may choose to distribute a Swift toolchain defaulting to dynamic linking (against the version of the Swift runtime libraries shipped with that system) to optimize binary size and memory consumption on that system.
+To support this, the Swift toolchain build script could include a preset to controls the default linking strategy.
+
+As pointed out by [Joe_Groff](https://forums.swift.org/u/Joe_Groff), even in such cases there is still an argument for defaulting Swift.org distributed Swift toolchains to static linking for distribution, since we want to preserve the freedom to pursue ABI-breaking improvements in top-of-tree for platforms that aren't ABI-constrained. This situation wouldn't be different from other ecosystems: The Python or Ruby that comes with macOS are set up to provide a stable runtime environment compatible with the versions of various Python- and Ruby-based tools and libraries packaged by the distribution, but developers can and do often install their own local Python/Ruby interpreter if they need a language version different from the vendor's, or a package that's incompatible with the vendor's interpreter.
+
 ## Proposed solution
 
-We propose to make statically linking of the Swift runtime libraries SwiftPM's default behavior when building executables in release mode on platforms that support such linking, with an opt-out way to disable this default behavior.
+Given that at this time Darwin based systems are the only ones that ship with the Swift runtime libraries,
+we propose to make statically linking of the Swift runtime libraries SwiftPM's default behavior when building executables in release mode on non-Darwin platforms that support such linking,
+with an opt-out way to disable this default behavior.
 
 Building in debug mode will continue to dynamically link the Swift runtime libraries, given that debugging requires the Swift toolchain to be installed and as such the Swift runtime libraries are by definition present.
 
-Note this does not mean the resulting program is fully statically linked - only the Swift runtime libraries (stdlib, Foundation, Dispatch, etc) would be statically linked into the program, while external dependencies will continue to be dynamically linked and would remain a concern left to the user when deploying Swift based programs.
+Note that SwiftPM's default behavior could change over time as its designed to reflect the state and available options of Swift runtime distribution on that platform. In other words, whether or not a SwiftPM defaults to static linking of the Swift runtime libraries is a by-product of the state of Swift runtime distribution on a platform.
+
+Also note this does not mean the resulting program is fully statically linked - only the Swift runtime libraries (stdlib, Foundation, Dispatch, etc) would be statically linked into the program, while external dependencies will continue to be dynamically linked and would remain a concern left to the user when deploying Swift based programs.
 Such external dependencies include:
 1. Glibc (including `libc.so`, `libm.so`, `libdl.so`, `libutil.so`): On Linux, Swift relies on Glibc to interact with the system and its not possible to fully statically link programs based on Glibc. In practice this is usually not a problem since most/all Linux systems ship with a compatible Glibc.
 2. `libstdc++` and `libgcc_s.so`: Swift on Linux also relies on GNU's C++ standard library as well as GCC's runtime library which much like Glibc is usually not a problem because a compatible version is often already installed on the target system.
 3. At this time, non-Darwin version of Foundation (aka libCoreFoundation) has two modules that rely on system dependencies (`FoundationXML` on `libxml2` and `FoundationNetworking` on `libcurl`) which cannot be statically linked at this time and require to be installed on the target system.
 4. Any system dependencies the program itself brings (e.g. `libsqlite`, `zlib`) would not be statically linked and must be installed on the target system.
+
 
 ## Detailed design
 
@@ -209,13 +224,3 @@ In practice, this proposal does not add new features, it only changes default be
 That said, we believe that changing the default will make using Swift on non-Darwin platforms easier, saving time and costs to Swift users on such platforms.
 
 The spelling of the new flag `--disable-static-swift-runtime` is open to alternative ideas, e.g. `--disable-static-swift-runtime-libraries`.
-
-### Policy for system shipping with the Swift runtime libraries
-
-At this time, Darwin based systems are the only ones that ship with the Swift runtime libraries.
-In the future, other operating systems may choose to ship with the Swift runtime libraries.
-As pointed out by [John_McCall](https://forums.swift.org/u/John_McCall), in such cases the operating system vendors are likely to choose a default that is optimized for their software distribution model.
-For example, they may choose to distribute a Swift toolchain defaulting to dynamic linking (against the version of the Swift runtime libraries shipped with that system) to optimize binary size and memory consumption on that system.
-To support this, the Swift toolchain build script could include a preset to controls the default linking strategy.
-
-As pointed out by [Joe_Groff](https://forums.swift.org/u/Joe_Groff), even in such cases there is still an argument for defaulting Swift.org distributed Swift toolchains to static linking for distribution, since we want to preserve the freedom to pursue ABI-breaking improvements in top-of-tree for platforms that aren't ABI-constrained. This situation wouldn't be different from other ecosystems: The Python or Ruby that comes with macOS are set up to provide a stable runtime environment compatible with the versions of various Python- and Ruby-based tools and libraries packaged by the distribution, but developers can and do often install their own local Python/Ruby interpreter if they need a language version different from the vendor's, or a package that's incompatible with the vendor's interpreter.
