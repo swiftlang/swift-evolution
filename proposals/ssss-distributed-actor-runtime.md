@@ -1358,7 +1358,7 @@ extension DistributedActorSystem {
   func executeDistributedTarget<Act, ResultHandler>(
       on actor: Act,
       mangledName: String,
-      invocation: Self.InvocationDecoder,
+      invocation: inout Self.InvocationDecoder,
       handler: ResultHandler
   ) async throws where Act: DistributedActor,
                        Act.ID == ActorID,
