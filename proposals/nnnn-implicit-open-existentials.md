@@ -132,6 +132,14 @@ func checkFinaleReadinessOpenCoded(costumes: [any Costume]) -> Bool {
 }
 ```
 
+This notion of opening an existential into a value of opaque type provides an explicit opening syntax, e.g.,
+
+```swift
+func explicitlyOpen(p: any P) {
+  let openedP: some P = any P  // open the type of 'p' and capture it via the opaque type of 'openedP'
+}
+```
+
 By generalizing the implicit opening of existentials to arbitrary generic parameters and also variables declared with opaque types (via `some`), this proposal makes it possible to get out of the existential "trap", pulling the dynamic type of the value stored in the existential box out into a static type in the type system.
 
 ## Detailed design
