@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Existential types in Swift allow one to store and reason about a value whose specific type is unknown and may change at runtime. The actual value of that stored value, which we refer to as the existential's *underlying type*, is known only by the set of protocols it conforms to and, potentially its superclass. While existential types are useful for expressing values of dynamic type, they are necessarily restricted because of their dynamic nature. Recent proposals have made [existential types more explicit](https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md) to help developers understand this dynamic nature, as well as [making existential types more expressive](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md). However, a fundamental issue with existential type remains, that once you have an existential type it is *very* hard to then use any generic operations a value of that type. Developers usually encounter this via the error message "protocol 'P' as a type cannot conform to itself":
+Existential types in Swift allow one to store and reason about a value whose specific type is unknown and may change at runtime. The dynamic type of that stored value, which we refer to as the existential's *underlying type*, is known only by the set of protocols it conforms to and, potentially its superclass. While existential types are useful for expressing values of dynamic type, they are necessarily restricted because of their dynamic nature. Recent proposals have made [existential types more explicit](https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md) to help developers understand this dynamic nature, as well as [making existential types more expressive](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md). However, a fundamental issue with existential types remains, that once you have an existential type it is *very* hard to then use any generic operations a value of that type. Developers usually encounter this via the error message "protocol 'P' as a type cannot conform to itself":
 
 ```swift
 protocol P {
@@ -36,7 +36,7 @@ Swift's existentials are a powerful tool for working with a dynamic set of types
 
 ## Proposed solution
 
-To make it easier to move from existentials back to the more strongly-typed generics, we propose to implicitly *open* an existential value when it passed to a parameter of generic type. In such cases, the generic argument refers to the *underlying* type of the existential value rather than the existential "box". Let's start with a protocol `Costume` that involves `Self` requirements, and write a generic function that checks some property of a costume:
+To make it easier to move from existentials back to the more strongly-typed generics, we propose to implicitly *open* an existential value when it is passed to a parameter of generic type. In such cases, the generic argument refers to the *underlying* type of the existential value rather than the existential "box". Let's start with a protocol `Costume` that involves `Self` requirements, and write a generic function that checks some property of a costume:
 
 ```swift
 protocol Costume {
