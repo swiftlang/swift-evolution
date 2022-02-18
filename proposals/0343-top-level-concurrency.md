@@ -1,9 +1,9 @@
 # Concurrency in Top-level Code
 
-* Proposal: [SE-NNNN](NNNN-top-level-concurrency.md)
+* Proposal: [SE-0343](0343-top-level-concurrency.md)
 * Authors: [Evan Wilde](https://github.com/etcwilde)
-* Review Manager: TBD
-* Status: **Implementation behind `-enable-experimental-async-top-level` flag**
+* Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
+* Status: **Scheduled for review (February 21, 2022...March 4, 2022)**
 * Implementation: [Fix top-level global-actor isolation crash](https://github.com/apple/swift/pull/40963), [Add `@MainActor @preconcurrency` to top-level variables](https://github.com/apple/swift/pull/40998), [Concurrent top-level inference](https://github.com/apple/swift/pull/41061)
 
 ## Introduction
