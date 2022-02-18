@@ -288,11 +288,11 @@ protocol Convertible(from: Self, to: Other) {
   static func convert(_: Self) -> Other
 }
 
-extension (String, Int) : Convertible(from: String, to: Int) {
+extension Convertible(from: String, to: Int) {
   static func convert(_: String) -> Int
 }
 
-extension (String, Double) : Convertible(from: String, to: Double) {
+extension Convertible(from: String, to: Double) {
   static func convert(_: String) -> Int
 }
 ```
