@@ -32,7 +32,7 @@ Suppose you are implementing a syntax highlighting library. You might define ano
 ```swift
 func readSyntaxHighlightedLines(_ file: String)
   -> SyntaxTokensAsyncSequence<LinesAsyncSequence> {
-    ...
+  ...
 }
 ```
 
@@ -40,7 +40,7 @@ At this point, the concrete result type is rather complex, and we might wish to 
 
 ```swift
 func readSyntaxHighlightedLines(_ file: String) -> some AsyncSequence {
-    ...
+  ...
 }
 ```
 
@@ -50,7 +50,7 @@ As another example, consider a global function `concatenate` that operates on tw
 
 ```swift
 func concatenate(_ lhs: Array<String>, _ rhs: Array<String>) -> Array<String> {
-   ...
+  ...
 }
 ```
 
@@ -58,7 +58,7 @@ To generalize this function to arbitrary sequences, one might write:
 
 ```swift
 func concatenate<S : Sequence>(_ lhs: S, _ rhs: S) -> S where S.Element == String {
-   ...
+  ...
 }
 ```
 
@@ -66,41 +66,59 @@ However, while `where` clauses are very general and allow complex generic requir
 
 ## Proposed Solution
 
-We’d like to propose a new syntax for declaring a protocol conformance requirement together with a same-type requirement on the protocol's _primary associated type_. This new syntax looks like the application of a concrete generic type to a type argument, allowing you to write `AsyncSequence<String>` or `AsyncSequence<[Lines]>`. This builds on the user's previous intuition and understanding of generic types and is analogous to `Array<String>` and `Array<[Lines]>`.
+We’d like to propose a new syntax for declaring a protocol conformance requirement together with one or more same-type requirements on the protocol's _primary associated types_. This new syntax looks like the application of a concrete generic type to a list of type arguments, allowing you to write `AsyncSequence<String>` or `AsyncSequence<[Lines]>`. This builds on the user's previous intuition and understanding of generic types and is analogous to `Array<String>` and `Array<[Lines]>`.
 
-Protocols can declare a primary associated type using a syntax similar to a generic parameter list of a concrete type:
+Protocols can declare one or more primary associated types using a syntax similar to a generic parameter list of a concrete type:
 
 ```swift
 protocol AsyncSequence<Element> {
-   associatedtype Iterator : AsyncIteratorProtocol
-     where Element == Iterator.Element
-   ...
+  associatedtype Iterator : AsyncIteratorProtocol
+    where Element == Iterator.Element
+  ...
+}
+
+protocol DictionaryProtocol<Key : Hashable, Value> {
+  ...
 }
 ```
 
-A protocol declaring a primary associated type can be written with a generic argument in angle brackets from any position where a protocol conformance requirement was previously allowed:
+A protocol with primary associated types can be referenced from any position where a protocol conformance requirement was previously allowed, with a list of type arguments in angle brackets. 
+
+For example, an opaque result type can now constrain the primary associated type:
 
 ```swift
 func readSyntaxHighlightedLines(_ file: String) -> some AsyncSequence<[Token]> {
-    ...
+  ...
 }
 ```
 
-Or the second example of the `concatenate()` function:
+The `concatenate()` function shown earlier can now be written like this:
 
 ```swift
 func concatenate<S : Sequence<String>>(_ lhs: S, _ rhs: S) -> S {
-   ...
+  ...
 }
 ```
 
 ## Detailed design
 
-At the protocol declaration, only a single primary associated type is allowed. The associated type name may be followed by an optional inheritance clause:
+At the protocol declaration, an optional _primary associated types list_ delimited by angle brackets can follow the protocol name. When present, at least one primary associated type must be declared. Multiple primary associated types are separated by commas. Each primary associated type may optionally declare an inheritance clause. The formal grammar is amended as follows, adding an optional **primary-associated-type-list** production to **protocol-declaration**:
+
+- **protocol-declaration** → attributes<sub>opt</sub> access-level-modifier<sub>opt</sub> `protocol` protocol-name primary-associated-type-list<sub>opt</sub> type-inheritance-clause<sub>opt</sub> generic-where-clause<sub>opt</sub> protocol-body
+- **primary-associated-type-list** → `<` primary-associated-type | primary-associated-type `,` primary-associated-type-list `>`
+- **primary-associated-type** → type-name
+- **primary-associated-type** → type-name `:` type-identifier
+- **primary-associated-type** → type-name `:` protocol-composition-type
+
+Some examples:
 
 ```swift
 protocol SetProtocol<Element : Hashable> {
-    ...
+  ...
+}
+
+protocol PersistentSortedMap<Key : Comparable & Codable, Value : Codable> {
+  ...
 }
 ```
 
@@ -108,13 +126,15 @@ Additional requirements on the primary associated type can be written with a `wh
 
 ```swift
 protocol SetProtocol<Element> where Element : Hashable {
-    ...
+  ...
 }
 ```
 
-Declaring a primary associated type on a protocol is a backwards-compatible change; the protocol can still be written without angle brackets as before. Once a primary associated type has been declared on a protocol `P`, the type representation `P<Arg>` can be used anywhere that a conformance requirement is written.
+At the usage site, a _constrained protocol_ may now be written with one or more type arguments, like `P<Arg1, Arg2...>`. Specifying fewer type arguments than the number of primary associated types is allowed; subsequent primary associated types remain unconstrained. Adding a list of primary associated types to a protocol is a source-compatible change; the protocol can still be referenced without angle brackets as before.
 
-In the first set of cases, the new syntax is equivalent to the existing `where` clause syntax for constraining the primary associated type.
+### Constrained protocols in desugared positions
+
+An exhaustive list of positions where the constrained protocol syntax may appear follows. In the first set of cases, the new syntax is equivalent to the existing `where` clause syntax with a same-type requirement constraining the primary associated types.
 
 - The extended type of an extension, for example:
 
@@ -169,14 +189,31 @@ In the first set of cases, the new syntax is equivalent to the existing `where` 
     where S.Element : AsyncSequence, S.Element.Element == String
   ```
 
-Formally, a conformance requirement `T : P<Arg>` desugars to a pair of requirements:
+- An opaque parameter declaration (see [Opaque Parameter Declarations](0341-opaque-parameters.md)):
+
+  ```swift
+  func sortLines(_ lines: some Collection<String>)
+
+  // Equivalent to:
+  func sortLines <S : Collection<String>>(_ lines: S)
+
+  // In turn equivalent to:
+  func sortLines <S : Collection>(_ lines: S)
+    where S.Element == String
+  ```
+
+When referenced from one of the above positions, a conformance requirement `T : P<Arg1, Arg2...>` desugars to a conformance requirement `T : P` followed by one or more same-type requirements:
 
 ```swift
 T : P
-T.PrimaryType : Arg
+T.PrimaryType1 : Arg1
+T.PrimaryType2 : Arg2
+...
 ```
 
-The final location where the type representation `P<Arg>` may appear is in an opaque result type prefixed by the `some` keyword. In this case, the syntax actually allows you to express something that was previously not possible to write, since we do not allow `where` clauses on opaque result types:
+### Constrained protocols in opaque result types
+
+The final location where a constrained protocol may appear is in an opaque result type prefixed by the `some` keyword. In this case, the syntax actually allows you to express something that was previously not possible to write, since we do not allow `where` clauses on opaque result types:
 
 ```swift
 func transformElements<S : Sequence<E>, E>(_ lines: S) -> some Sequence<E>
@@ -194,7 +231,7 @@ It might be possible to assign some alternate meaning to this, for example intro
 
 ```swift
 struct Lines : Collection {
-    typealias Element = String
+  typealias Element = String
 }
 ```
 
@@ -222,6 +259,44 @@ There are also a number of drawbacks to this approach:
 * The use-site may become onerous. For protocols with only one primary associated type, having to specify the name of it is unnecessarily repetitive.
 * This more verbose syntax is not as clear of an improvement over the existing syntax today, because most of the where clause is still explicitly written. This may also encourage users to specify most or all generic constraints in angle brackets at the front of a generic signature instead of in the `where` clause, which goes against [SE-0081](https://github.com/apple/swift-evolution/blob/main/proposals/0081-move-where-expression.md).
 
+Note that nothing in this proposal _precludes_ adding the above syntax in the future; the presence of a leading dot (or some other signifier) should allow unambiguous parsing in either case.
+
+### Generic protocols
+
+This proposal uses the angle-bracket syntax for constraining primary associated types, instead of a hypothetical "generic protocols" feature modeled after Haskell's multi-parameter typeclasses or Rust's generic traits. The idea is that such a "generic protocol" can be parametrized over multiple types, not just a single `Self` conforming type:
+
+```swift
+protocol ConvertibleTo<Other> {
+  static func convert(_: Self) -> Other
+}
+
+extension String : ConvertibleTo<Int> {
+  static func convert(_: String) -> Int
+}
+
+extension String : ConvertibleTo<Double> {
+  static func convert(_: String) -> Double
+}
+```
+
+We believe that constraining primary associated types is a more generally useful feature than generic protocols, and using angle-bracket syntax for constraining primary associated types gives users what they generally expect, with the clear analogy between `Array<Int>` and `Collection<Int>`.
+
+Nothing in this proposal precludes introducing generic protocols in the future under a different syntax, perhaps something that does not privilege the `Self` type over other types to make it clear there is no functional dependency between the type parameters like there is with associated types:
+
+```swift
+protocol Convertible(from: Self, to: Other) {
+  static func convert(_: Self) -> Other
+}
+
+extension (String, Int) : Convertible(from: String, to: Int) {
+  static func convert(_: String) -> Int
+}
+
+extension (String, Double) : Convertible(from: String, to: Double) {
+  static func convert(_: String) -> Int
+}
+```
+
 ## Source compatibility
 
 This proposal has no impact on existing source compatibility for existing code. For protocols that adopt this feature, removing or changing the primary associated type will be a source breaking change for clients.
@@ -232,26 +307,29 @@ This change does not impact ABI stability for existing code. The new feature doe
 
 ## Effect on API resilience
 
-This change does not impact API resilience. For protocols that adopt this feature, adding or removing a primary associated type is a binary-compatible change. Removing a primary associated type is also a binary-compatible change, but is not recommended since it is source-breaking.
+This change does not impact API resilience. For protocols that adopt this feature, adding or removing a primary associated type list is a binary-compatible change. Changing or removing a primary associated type list is also a binary-compatible change, but is not recommended since it is source-breaking.
 
 ## Future Directions
 
-This proposal works together with the proposal for [Opaque Parameter Declarations](0341-opaque-parameters.md), allowing you to write:
-
-```swift
-func processStrings(_ lines: some Collection<String>)
-```
-
-Which is equivalent to:
-
-```swift
-func processStrings <S : Collection>(_ lines: S)
-  where S.Element == String
-```
+### Standard library adoption
 
 Actually adopting primary associated types in the standard library is outside of the scope of this proposal. There are the obvious candidates such as `Sequence`, `Collection` and `AsyncSequence`, and no doubt others that will require additional discussion.
 
-A natural generalization is to enable this syntax for existential types, e.g. `any Collection<String>`.
+### Constrained existentials
+
+A natural generalization is to enable this syntax for existential types, e.g. `any Collection<String>`. This is a larger feature that requires careful consideration of type conversion behavior. It will also require runtime support for metadata and dynamic casts. For this reason it should be covered by a separate proposal.
+
+### Named opaque result types and `where` clauses
+
+A future generalization would add named "output generic parameters" that can be referenced from a `where` clause. If this capability were introduced, then constrained protocol types appearing in opaque result type position would desugar to requirements in a `where` clause, just like they do in all other positions:
+
+```swift
+func readLines(_ file: String) -> some AsyncSequence<String> { ... }
+
+// Equivalent to:
+func readLines(_ file: String) -> <S> S
+  where S : AsyncSequence, S.Element == String { ... }
+ ```
 
 ## Acknowledgments
 
