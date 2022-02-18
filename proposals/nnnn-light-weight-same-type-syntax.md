@@ -157,49 +157,49 @@ An exhaustive list of positions where the constrained protocol syntax may appear
 - The inheritance clause of a generic parameter, for example:
 
   ```swift
-  func sortLines<S : Collection<String>>(_ lines: S) -> S
+    func sortLines<S : Collection<String>>(_ lines: S) -> S
 
-  // Equivalent to:
-  func sortLines<S : Collection>(_ lines: S) -> S
-    where S.Element == String
+    // Equivalent to:
+    func sortLines<S : Collection>(_ lines: S) -> S
+      where S.Element == String
   ```
   
 - The inheritance clause of an associated type, for example:
 
   ```swift
-  protocol Document {
-    associatedtype Lines : Collection<String>
-  }
+    protocol Document {
+      associatedtype Lines : Collection<String>
+    }
   
-  // Equivalent to:
-  protocol Document {
-    associatedtype Lines : Collection
-      where Lines.Element == String
-  }
+    // Equivalent to:
+    protocol Document {
+      associatedtype Lines : Collection
+        where Lines.Element == String
+    }
   ```
   
 - The right-hand side of a conformance requirement in a `where` clause, for example:
 
   ```swift
-  func mergeFiles<S : Sequence>(_ files: S)
-    where S.Element : AsyncSequence<String>
+    func mergeFiles<S : Sequence>(_ files: S)
+      where S.Element : AsyncSequence<String>
   
-  // Equivalent to:
-  func mergeFiles<S : Sequence>(_ files: S)
-    where S.Element : AsyncSequence, S.Element.Element == String
+    // Equivalent to:
+    func mergeFiles<S : Sequence>(_ files: S)
+      where S.Element : AsyncSequence, S.Element.Element == String
   ```
 
 - An opaque parameter declaration (see [Opaque Parameter Declarations](0341-opaque-parameters.md)):
 
   ```swift
-  func sortLines(_ lines: some Collection<String>)
+    func sortLines(_ lines: some Collection<String>)
 
-  // Equivalent to:
-  func sortLines <S : Collection<String>>(_ lines: S)
+    // Equivalent to:
+    func sortLines <S : Collection<String>>(_ lines: S)
 
-  // In turn equivalent to:
-  func sortLines <S : Collection>(_ lines: S)
-    where S.Element == String
+    // In turn equivalent to:
+    func sortLines <S : Collection>(_ lines: S)
+      where S.Element == String
   ```
 
 When referenced from one of the above positions, a conformance requirement `T : P<Arg1, Arg2...>` desugars to a conformance requirement `T : P` followed by one or more same-type requirements:
@@ -250,13 +250,29 @@ This would make source order load bearing in a way that hasn’t been in the pas
 Explicitly writing associated type names to constrain them in angle brackets has a number of benefits:
 
 * Doesn’t require any special syntax at the protocol declaration.
-* Explicit associated type names allows constraining only a subset of the associated types.
-* The constraint syntax generalizes for all kinds of constraints e.g. `<.Element: SomeProtocol>`
+* Explicit associated type names allows constraining arbitrary associated types.
+* The constraint syntax generalizes to non-same type requirements e.g. `<.Element: SomeProtocol>`
 
 There are also a number of drawbacks to this approach:
 
 * No visual clues at the protocol declaration about what associated types are useful.
 * The use-site may become onerous. For protocols with only one primary associated type, having to specify the name of it is unnecessarily repetitive.
+* The syntax can be confusing when the constrained associated type has the same name as a generic parameter of the declaration. For example, the following:
+
+  ```swift
+    func adjacentPairs<Element>(_: some Sequence<Element>,
+                                _: some Sequence<Element>)
+      -> some Sequence<(Element, Element)> {}
+  ```
+  
+  reads better than the hypothetical alternative:
+  
+  ```swift
+    func adjacentPairs<Element>(_: some Sequence<.Element == Element>,
+                                _: some Sequence<.Element == Element>)
+      -> some Sequence<.Element == (Element, Element)> {}
+   ```
+   
 * This more verbose syntax is not as clear of an improvement over the existing syntax today, because most of the where clause is still explicitly written. This may also encourage users to specify most or all generic constraints in angle brackets at the front of a generic signature instead of in the `where` clause, which goes against [SE-0081](https://github.com/apple/swift-evolution/blob/main/proposals/0081-move-where-expression.md).
 
 Note that nothing in this proposal _precludes_ adding the above syntax in the future; the presence of a leading dot (or some other signifier) should allow unambiguous parsing in either case.
@@ -317,7 +333,7 @@ Actually adopting primary associated types in the standard library is outside of
 
 ### Constrained existentials
 
-A natural generalization is to enable this syntax for existential types, e.g. `any Collection<String>`. This is a larger feature that requires careful consideration of type conversion behavior. It will also require runtime support for metadata and dynamic casts. For this reason it should be covered by a separate proposal.
+A natural generalization is to enable this syntax for existential types, e.g. `any Collection<String>`. This is a larger feature that needs careful consideration of type conversion behaviors. It will also require runtime support for metadata and dynamic casts. For this reason it should be covered by a separate proposal.
 
 ### Named opaque result types and `where` clauses
 
@@ -329,7 +345,7 @@ func readLines(_ file: String) -> some AsyncSequence<String> { ... }
 // Equivalent to:
 func readLines(_ file: String) -> <S> S
   where S : AsyncSequence, S.Element == String { ... }
- ```
+```
 
 ## Acknowledgments
 
