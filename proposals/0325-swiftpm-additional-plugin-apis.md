@@ -3,7 +3,7 @@
 * Proposal: [SE-0325](0325-swiftpm-additional-plugin-apis.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.6)**
 * Implementation: [apple/swift-package-manager#3758](https://github.com/apple/swift-package-manager/pull/3758)
 * Pitch: [Forum discussion](https://forums.swift.org/t/pitch-additional-api-available-to-swiftpm-plugins/)
 * Review: [Forum discussion](https://forums.swift.org/t/se-0325-additional-package-plugin-apis/)
