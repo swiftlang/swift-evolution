@@ -1,6 +1,6 @@
 # Distributed Actor Runtime
 
-* Proposal: [SE-NNNN](NNNN-distributed-actor-runtime.md)
+* Proposal: [SE-0344](0344-distributed-actor-runtime.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](https://github.com/xedin), [Doug Gregor](https://github.com/DougGregor), [Kavon Farvardin](https://github.com/kavon), [Dario Rexin](https://github.com/drexin), [Tomer Doron](https://github.com/tomerd)
 * Review Manager: [Joe Groff](https://github.com/jckarter/)
 * Status: **Active review (Feb 22...Mar 8, 2022)**
