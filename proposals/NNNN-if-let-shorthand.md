@@ -116,6 +116,35 @@ is transformed into:
 if let foo: Foo = foo { ... }
 ```
 
+Since the pattern following the `let` serves as both an evaluated expression _and_ an identifier for the newly-defined non-optional variable, only valid identifiers would be permitted. For example, this example would not be permitted:
+
+```swift
+if let foo.bar { ... } // 🛑
+```
+
+### Interaction with implicit self
+
+Like with existing optional bindings, this new syntax would support implifict self references to unwrap optional members of `self`. For example, the usage in this example would be permitted:
+
+```swift
+struct UserView: View {
+  let name: String
+  let emailAddress: String?
+
+  var body: some View {
+    VStack {
+      Text(user.name)
+
+      // Equivalent to `if let emailAddress = emailAddress { ... }`,
+      // unwraps `self.emailAddress`.
+      if let emailAddress {
+        Text(emailAddress)
+      }
+    }
+  }
+}
+```
+
 ## Source compatibility
 
 This change is purely additive and does not break source compatibility of any valid existing Swift code.
@@ -127,6 +156,70 @@ This change is purely additive, and is a syntactic transformation to existing va
 ## Effect on API resilience
 
 This change is purely additive, and is a syntactic transformation to existing valid code, so has no effect on ABI stability.
+
+## Future directions
+
+### Optional casting
+
+A natural extension of this new syntax could be to support shorthand for optional casting. For example:
+
+`if let foo as? Bar { ... }`
+
+could be equivalent to:
+
+`if let foo = foo as? Bar { ... }`
+
+This is not included in this proposal, but is a reasonable feature that could be added in the future.
+
+### Interaction with future borrow introducers
+
+["A roadmap for improving Swift performance predictability"](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206#borrow-variables-7) discusses potential new `ref` and `inout` introducers for creating variables that "borrow" existing variables without making a copy (by enforcing exclusive access). For consistency with `let` / `var`, it will likely make sense to support optional binding conditions for these new introducers:
+
+```swift
+if ref foo = foo {
+  // if `foo` is not nil, it is borrowed and made available as a non-optional, immutable variable
+}
+
+if inout foo = &foo {
+  // if `foo` is not nil, it is borrowed and made available as a non-optional, mutable variable
+}
+```
+
+The shorthand syntax for `let` / `var` optional bindings would extend fairly naturally to these new introducers:
+
+```swift
+if ref foo {
+  // if `foo` is not nil, it is borrowed and made available as a non-optional, immutable variable
+}
+
+if inout &foo {
+  // if `foo` is not nil, it is borrowed and made available as a non-optional, mutable variable
+}
+```
+
+### Unwrapping nested members of objects
+
+This proposal doesn't permit shorthand unwrapping for members nested in other objects. For example:
+
+`if let foo.bar { ... } // 🛑`
+
+There are a few different options that could allow us to support this type of syntax in the future.
+
+One approach could be to automatically synthesize the identifier name for the unwrapped variable in the inner scope. For example. `if let foo.bar` could introduce a new non-optional variable named `bar` or `fooBar`. 
+
+Another approach could be to permit this for potential future borrow introducers `ref` and `inout` (from ["A roadmap for improving Swift performance predictability"](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206#borrow-variables-7)). These borrows would have compiler-enforced exclusive access to the underlying storage, so they technically do not require a unique identifier name for the inner scope. This could allow us to unwrap members of objects without any new variables or copies. For example:
+
+```swift
+// `mother.father.sister` is optional
+
+if ref mother.father.sister {
+  // with shorthand: `mother.father.sister` is non-optional and immutable
+}
+
+if inout &mother.father.sister {
+  // with shorthand: `mother.father.sister` is non-optional and mutable
+}
+```
 
 ## Alternatives considered
 
@@ -174,6 +267,19 @@ Other benefits of using the `let` keyword here include:
 
       if user?, let defaultAddress = user.shippingAddresses.first { ... }
       ```
+
+Another important aspect to consider is that using a new syntax like `if unwrap foo` could allow this feature to behave _differently_ from existing optional binding conditions. For example, instead of making a copy like `if let foo = foo`, a new `if unwrap foo` syntax could leverage upcoming support for exclusive variable access and perform a [_borrow_](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206#borrow-variables-7) of `foo`. This could make `if unwrap foo` behave like shorthand for `if ref foo = foo`.
+
+It would be very useful for this shorthand to support borrows, once that feature is added to Swift. That doesn't mean, however, that the shorthand syntax _shouldn't_ support optional binding that make copies (`let` / `var`). Borrows introduce conceptual overhead since they require exclusive access to the variable being borrowed, which brings with it a whole new class of potential exclusivity violation errors that would need to be reasoned about. It is plausible that using copy introducers or using borrow introducers will be a tradeoff between conveience and performance. It likely makes sense for this syntax to support both classes of variables / introducers, so the use can choose the one that best suits their specific use case.
+
+Additionally, this syntax should support the distinction between immutable and mutable variables. That gives us the same set of options as normal variables (immutable copy, mutable copy, immutable borrow, mutable borrow). Since we already have syntax for these concepts (`let`, `var`, and potentially `ref` and `inout` in the future) it would be preferable to reuse that syntax in optional binding conditions:
+
+```swift
+if let foo { /* foo is an immutable copy */ }
+if var foo { /* foo is a mutable copy */ }
+if ref foo { /* foo is an immutable borrow */ }
+if inout &foo { /* foo is a mutable borrow */ }
+```
 
 ### `if let foo?`
 
@@ -227,10 +333,12 @@ Since `let` and `var` are interchangable elsewhere in the language, that should 
 
 Many thanks to Craig Hockenberry, who recently wrote about this topic in [Let’s fix `if let` syntax](https://forums.swift.org/t/lets-fix-if-let-syntax/48188) which directly informed this proposal.
 
-Thanks to Ben Cohen for suggesting the alternative `if let foo?` spelling.
+Thanks to Ben Cohen for suggesting the alternative `if let foo?` spelling, and for providing valuable feedback on this proposal.
 
-Thanks to Chris Lattner for suggesting to consider whether or not we should support `if var foo`.
+Thanks to Chris Lattner for suggesting to consider how this proposal should interact with upcoming language features like potential `ref` and `inout` borrow introducers.
 
 Thanks to [tera](https://forums.swift.org/u/tera/summary) for suggesting the alternative `if foo` spelling.
 
 Thanks to James Dempsey for providing the "consistency with existing optional binding conditions" example.
+
+Thanks to Jon Shier for providing the SwiftUI optional binding example.
