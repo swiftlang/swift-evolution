@@ -55,7 +55,7 @@
 
 With the recent introduction of [actors](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md) to the language, Swift gained powerful and foundational building blocks for expressing *thread-safe* concurrent programs. Actors guarantee thread-safety thanks to actor-isolation of mutable state they encapsulate.
 
-In [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) we took it a step further, guaranteeing complete isolation of state with distributed actor-isolation, and setting the stage for `distributed` method calls to be performed across process and node boundaries.
+In [SE-0336: Distributed Actor Isolation][isolation] we took it a step further, guaranteeing complete isolation of state with distributed actor-isolation, and setting the stage for `distributed` method calls to be performed across process and node boundaries.
 
 This proposal focuses on the runtime aspects of making such remote calls possible, their exact semantics and how developers can provide their own `DistributedActorSystem` implementations to hook into the same language mechanisms, extending Swift's distributed actor model to various environments (such as cross-process communication, clustering, or even client/server communication).
 
@@ -63,7 +63,7 @@ This proposal focuses on the runtime aspects of making such remote calls possibl
 
 It is recommended, though not required, to familiarize yourself with the prior proposals before reading this one:
 
-- [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) — a detailed proposal
+- [SE-0336: Distributed Actor Isolation][isolation] — a detailed proposal
 - Distributed Actor Runtime (this proposal)
 
 Feel free to reference the following library implementations which implement this proposal's library side of things:
@@ -72,7 +72,7 @@ Feel free to reference the following library implementations which implement thi
 
 ## Motivation
 
-With distributed actor-isolation checking laid out in [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md), we took the first step towards enabling remote calls being made by invoking `distributed func` declarations on distributed actors. The isolation model and serialization requirement checks in that proposal outline how we can guarantee the soundness of such distributed actor model at compile time.
+With distributed actor-isolation checking laid out in [SE-0336: Distributed Actor Isolation][isolation], we took the first step towards enabling remote calls being made by invoking `distributed func` declarations on distributed actors. The isolation model and serialization requirement checks in that proposal outline how we can guarantee the soundness of such distributed actor model at compile time.
 
 Distributed actors enable developers to build their applications and systems using the concept of actors that may be "local" or "remote", and communicate with them regardless of their location. Our goal is to set developers free from having to re-invent ad-hoc approaches to networking, serialization and error handling every time they need to embrace distributed computing.
 
@@ -88,7 +88,7 @@ Distributed actors may not serve *all* possible use-cases where networking is in
 
 #### Example scenario
 
-In this proposal we will focus only on the runtime aspects of distributed actors and methods, i.e. what happens in order to create, send, and receive messages formed when a distributed method is called on a remote actor. For more details on distributed actor isolation and other compile-time checks, please refer to [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md).
+In this proposal we will focus only on the runtime aspects of distributed actors and methods, i.e. what happens in order to create, send, and receive messages formed when a distributed method is called on a remote actor. For more details on distributed actor isolation and other compile-time checks, please refer to [SE-0336: Distributed Actor Isolation][isolation].
 
 We need to pass around distributed actors in order to invoke methods on them at some later point in time. We need those actors to declare `distributed` methods such that we have something we can message them with, and there must be some lifecycle and registration mechanisms related to them.
 
@@ -143,7 +143,7 @@ This code snippet showcases what kind of distributed actors one might want to im
 
 This proposal includes low-level implementation details in order to showcase how one can use to build a real, efficient, and extensible distributed actor system using the proposed language runtime. It is primarily written for distributed actor system authors, which need to understand the underlying mechanisms which distributed actors use.
 
-End users, who just want to use _distributed actors_, and not necessarily _implement_ a distributed actor system runtime, do not need to dive deep as deep into this proposal, and may be better served by reading [SE-0366: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md) which focuses on how distributed actors are used. Reading this — runtime — proposal, however, will provide additional insights as to why distributed actors are isolated the way they are.
+End users, who just want to use _distributed actors_, and not necessarily _implement_ a distributed actor system runtime, do not need to dive deep as deep into this proposal, and may be better served by reading [SE-0366: Distributed Actor Isolation][isolation] which focuses on how distributed actors are used. Reading this — runtime — proposal, however, will provide additional insights as to why distributed actors are isolated the way they are.
 
 This proposal focuses on how a distributed actor system runtime can be implemented. Because this language feature is extensible, library authors may step in and build their own distributed actor runtimes. It is expected that there will be relatively few, but solid actor system implementations eventually, yet their use would apply to many many more end-users than actor system developers.
 
@@ -342,7 +342,7 @@ Distributed actors have two properties that are crucial for the inner workings o
 
 These properties are synthesized by the compiler, in every `distributed actor` instance, and they witness the `nonisolated` property requirements defined on the `DistributedActor` protocol.
 
-The `DistributedActor` protocol (defined in SE-0336), defines those requirements:
+The `DistributedActor` protocol (defined in [SE-0336][isolation]), defines those requirements:
 
 ```swift
 protocol DistributedActor {
@@ -398,7 +398,7 @@ Distributed actor initializers inject a number of calls into specific places of 
 
 A non-delegating initializer of a type must *fully initialize* it. The place in code where an actor becomes fully initialized has important and specific meaning to actor isolation which is defined in depth in [SE-0327: On Actors and Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). Not only that, but once fully initialized it is possible to escape `self` out of a (distributed) actor's initializer. This aspect is especially important for distributed actors, because it means that once fully initialized they _must_ be registered with the actor system as they may be sent to other distributed actors and even sent messages to.
 
-All non-delegating initializers must accept a parameter that conforms to the `DistributedActorSystem` protocol. The type-checking rules of this are explained in depth in [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md). The following are examples of well-formed initializers:
+All non-delegating initializers must accept a parameter that conforms to the `DistributedActorSystem` protocol. The type-checking rules of this are explained in depth in [SE-0336: Distributed Actor Isolation][isolation]. The following are examples of well-formed initializers:
 
 ```swift
 distributed actor DA {
@@ -434,7 +434,7 @@ distributed actor DA {
 }
 ```
 
-To learn more about the specific restrictions, please refer to [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md).
+To learn more about the specific restrictions, please refer to [SE-0336: Distributed Actor Isolation][isolation].
 
 Now in the next sections, we will explore in depth why this parameter was necessary to enforce to begin with.
 
@@ -1035,7 +1035,7 @@ This method is implemented by a distributed actor system library, and can use th
 
 Next, the runtime will record all arguments of the invocation `[1.2]`. This is done in a series of `recordArgument` calls. If the type of actor the target is declared on also includes a generic parameter that is used by the invocation, this also is recorded.
 
-As the `recordArgument(_:)` method is generic over the argument type (`<Argument: SerializationRequirement>`), and requires the argument to conform to `SerializationRequirement` (which in turn was enforced at compile time by [SE-0336](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md)), the actor system implementation will have an easy time to serialize or validate this argument. For example, if the `SerializationRequirement` was codable — this is where one could invoke `SomeEncoder().encode(argument)` because `Argument` is a concrete type conforming to `Codable`!
+As the `recordArgument(_:)` method is generic over the argument type (`<Argument: SerializationRequirement>`), and requires the argument to conform to `SerializationRequirement` (which in turn was enforced at compile time by [SE-0336][isolation]), the actor system implementation will have an easy time to serialize or validate this argument. For example, if the `SerializationRequirement` was codable — this is where one could invoke `SomeEncoder().encode(argument)` because `Argument` is a concrete type conforming to `Codable`!
 
 Finally, the specific error `[1.3]` and return types `[1.4]` are also recorded. If the function is not throwing, `recordErrorType` is not called. Likewise, if the return type is `Void` the `recordReturnType` is not called.
 
@@ -1775,3 +1775,5 @@ None.
 - 1.0 Initial revision
 - [Pitch: Distributed Actors](https://forums.swift.org/t/pitch-distributed-actors/51669)
   - Which focused on the general concept of distributed actors, and will from here on be cut up in smaller, reviewable pieces that will become their own independent proposals; Similar to how Swift Concurrency is a single coherent feature, however was introduced throughout many interconnected Swift Evolution proposals.
+
+[isolation]: https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md
