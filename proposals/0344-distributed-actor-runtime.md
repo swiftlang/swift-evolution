@@ -296,17 +296,17 @@ protocol DistributedActorSystem: Sendable {
   /// as well as by re-throwing the error received from the remote callee (if able to).
   //
   // Ad-hoc protocol requirement
-  func remoteCall<Actor, Error, Result>(
+  func remoteCall<Actor, Failure, Success>(
       on actor: Actor,
       target: RemoteCallTarget,
       invocation: InvocationEncoder,
-      throwing: Error.Type,
-      returning: Result.Type
-  ) async throws -> Result
+      throwing: Failure.Type,
+      returning: Success.Type
+  ) async throws -> Success
       where Actor: DistributedActor,
             Actor.ID == ActorID,
-            Error: Swift.Error,
-            Result: Self.SerializationRequirement
+            Failure: Error,
+            Success: Self.SerializationRequirement
   
   /// Invoked by the Swift runtime when making a remote call to a 'Void' returning function.
   ///
@@ -317,11 +317,11 @@ protocol DistributedActorSystem: Sendable {
       on actor: Actor,
       target: RemoteCallTarget,
       invocation: InvocationEncoder,
-      throwing: Error.Type
+      throwing: Failure.Type
   ) async throws
       where Actor: DistributedActor,
             Actor.ID == ActorID,
-            Error: Swift.Error
+            Failure: Error
 }
 
 /// A distributed 'target' can be a `distributed func` or `distributed` computed property.
@@ -1161,17 +1161,17 @@ Once that is complete, the runtime will pass the constructed `InvocationEncoder`
   // remoteCall is not a protocol requirement, however its signature is well known to the compiler,
   // and it will invoke the method. We also are guaranteed that the 'Res: Codable' requirement is correct,
   // since the type-system will enforce this conformance thanks to the type-level checks on distributed funcs.
-  func remoteCall<Actor, Error, Result>(
+  func remoteCall<Actor, Failure, Success>(
       on actor: Actor,
       target: RemoteCallTarget,
       invocation: Self.InvocationEncoder,
-      throwing: Error.Type,
-      returning: Result.Type
-  ) async throws -> Result
+      throwing: Failure.Type,
+      returning: Success.Type
+  ) async throws -> Success
       where Actor: DistributedActor,
             Actor.ID == ActorID.
-            Error: Swift.Error,
-            Result: Self.SerializationRequirement {
+            Failure: Error,
+            Success: Self.SerializationRequirement {
     var envelope = invocation.envelope
     
     // [1] the recipient is transferred over the wire as its id
@@ -1378,10 +1378,10 @@ The `DistributedTargetInvocationResultHandler` is defined as follows:
 protocol DistributedTargetInvocationResultHandler {
   associatedtype SerializationRequirement
   
-  func onReturn<Result>(value: Result) async throws
-    where Result: SerializationRequirement
+  func onReturn<Success>(value: Success) async throws
+    where Success: SerializationRequirement
   func onThrow<Error>(error: Error) async throws
-    where Error: Swift.Error
+    where Failure: Error
 }
 ```
 
@@ -1680,21 +1680,21 @@ This section summarizes various points in the design space for this proposal tha
 The proposal includes the fairly special `remoteCall` method that is expected to be present on a distributed actor system, however is not part of the protocol requirements because it cannot be nicely expressed in today's Swift, and it suffers from the lack of variadic generics (which are being worked on, see: [Pitching The Start of Variadic Generics](https://forums.swift.org/t/pitching-the-start-of-variadic-generics/51467)), however until they are complete, expressing `remoteCall` in the type-system is fairly painful, and we resort to providing multiple overloads of the method:
 
 ```swift
-  func remoteCall<Actor, P1, Error, Result>(
+  func remoteCall<Actor, P1, Failure, Success>(
     on recipient: Actor,
     method: DistributedMethodName,
     _ arg1: P1,
-    throwing errorType: Error.Type,
-    returning returnType: Result.Type
-  ) async throws -> Result where Actor: DistributedActor, Actor.ID = ActorID { ... }
+    throwing errorType: Failure.Type,
+    returning returnType: Success.Type
+  ) async throws -> Success where Actor: DistributedActor, Actor.ID = ActorID { ... }
   
-  func remoteCall<Actor, P1, P2, Error, Result>(
+  func remoteCall<Actor, P1, P2, Failure, Success>(
     on recipient: Actor,
     method: DistributedMethodName,
     _ arg1: P1, _ arg2: P2,
-    throwing errorType: Error.Type,
-    returning returnType: Result.Type
-  ) async throws -> Result where Actor: DistributedActor, Actor.ID = ActorID { ... }
+    throwing errorType: Failure.Type,
+    returning returnType: Success.Type
+  ) async throws -> Success where Actor: DistributedActor, Actor.ID = ActorID { ... }
 
   // ... 
 ```
@@ -1704,13 +1704,13 @@ This is annoying for the few distributed actor system developers, however it all
 We are also able to avoid any heap allocations during the `remoteCall` thanks to this approach, as we do not have to construct type erased `arguments: [Any]` which would have been the alternative:
 
 ```swift
-  func remoteCall<Actor, Error, Result>(
+  func remoteCall<Actor, Failure, Success>(
     on recipient: Actor,
     method: DistributedMethodIdentifier,
     _ args: [Any], // BAD
-    throwing errorType: Error.Type,
-    returning returnType: Result.Type
-  ) async throws -> Result where Actor: DistributedActor, Actor.ID = ActorID { ... }
+    throwing errorType: Failure.Type,
+    returning returnType: Success.Type
+  ) async throws -> Success where Actor: DistributedActor, Actor.ID = ActorID { ... }
 ```
 
 Not only that, but passing arguments as `[Any]` would force developers into using internal machinery to open the existentials (the not officially supported `_openExistential` feature), in order to obtain their specific types, and e.g. use `Codable` with them.
@@ -1720,13 +1720,13 @@ Not only that, but passing arguments as `[Any]` would force developers into usin
 Looking at the signature, one might be tempted to also include a `where` clause to statically enforce that all parameters and return type, conform to the `Self.SerializationRequirement`, like so:
 
 ```swift
-  func remoteCall<Actor, P1, Error, Result>(
+  func remoteCall<Actor, P1, Failure, Success>(
     on recipient: Actor,
     method: DistributedMethodName,
     _ arg1: P1,
-    throwing errorType: Error.Type,
-    returning returnType: Result.Type
-  ) async throws -> Result where Actor: DistributedActor,
+    throwing errorType: Failure.Type,
+    returning returnType: Success.Type
+  ) async throws -> Success where Actor: DistributedActor,
                     Actor.ID = ActorID,
                     P1: SerializationRequirement { ... }
 // ❌ error: type 'P1' constrained to non-protocol, non-class type 'Self.R'  
