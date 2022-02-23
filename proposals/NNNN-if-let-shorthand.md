@@ -213,11 +213,11 @@ Another approach could be to permit this for potential future borrow introducers
 // `mother.father.sister` is optional
 
 if ref mother.father.sister {
-  // with shorthand: `mother.father.sister` is non-optional and immutable
+  // `mother.father.sister` is non-optional and immutable
 }
 
 if inout &mother.father.sister {
-  // with shorthand: `mother.father.sister` is non-optional and mutable
+  // `mother.father.sister` is non-optional and mutable
 }
 ```
 
@@ -268,11 +268,11 @@ Other benefits of using the `let` keyword here include:
       if user?, let defaultAddress = user.shippingAddresses.first { ... }
       ```
 
-Another important aspect to consider is that using a new syntax like `if unwrap foo` could allow this feature to behave _differently_ from existing optional binding conditions. For example, instead of making a copy like `if let foo = foo`, a new `if unwrap foo` syntax could leverage upcoming support for exclusive variable access and perform a [_borrow_](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206#borrow-variables-7) of `foo`. This could make `if unwrap foo` behave like shorthand for `if ref foo = foo`.
+Another important aspect to consider is that using a new syntax like `if unwrap foo` could allow this feature to behave _differently_ from existing optional binding conditions. For example, instead of making a copy like `if let foo = foo`, a new `if unwrap foo` syntax could instead perform a [_borrow_](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206#borrow-variables-7) of `foo`. This could make `if unwrap foo` behave like shorthand for `if ref foo = foo`.
 
-It would be very useful for this shorthand to support borrows, once that feature is added to Swift. That doesn't mean, however, that the shorthand syntax _shouldn't_ support optional binding that make copies (`let` / `var`). Borrows introduce conceptual overhead since they require exclusive access to the variable being borrowed, which brings with it a whole new class of potential exclusivity violation errors that would need to be reasoned about. It is plausible that using copy introducers or using borrow introducers will be a tradeoff between conveience and performance. It likely makes sense for this syntax to support both classes of variables / introducers, so the use can choose the one that best suits their specific use case.
+It would be very useful for this shorthand to support borrows, once that feature is added to Swift. That doesn't mean, however, that the shorthand syntax _shouldn't_ support making copies (e.g. with `let` / `var`). Borrows introduce conceptual overhead since they require exclusive access to the variable being borrowed, which brings with it a whole new class of potential exclusivity violation errors that would need to be reasoned about. This implies that using copy introducers or using borrow introducers will be a tradeoff between convenience and performance. It likely makes sense for this syntax to support both classes of variables / introducers, so the user can choose the option that best suits their specific use case.
 
-Additionally, this syntax should support the distinction between immutable and mutable variables. That gives us the same set of options as normal variables (immutable copy, mutable copy, immutable borrow, mutable borrow). Since we already have syntax for these concepts (`let`, `var`, and potentially `ref` and `inout` in the future) it would be preferable to reuse that syntax in optional binding conditions:
+Additionally, this syntax should support the distinction between immutable and mutable variables. Combined with the disctinction between copies and borrows, that would give us the same set of options as normal variables (immutable copy, mutable copy, immutable borrow, mutable borrow). Since we already have syntax for these concepts (`let`, `var`, and potentially `ref` and `inout` in the future) it would be preferable to reuse that syntax in optional binding conditions:
 
 ```swift
 if let foo { /* foo is an immutable copy */ }
