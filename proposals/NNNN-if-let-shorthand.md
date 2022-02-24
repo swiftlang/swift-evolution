@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Optional binding using `if let foo = foo { ... }`, to create an unwrapped variable that shadows an existing optional variable, is an extremely common pattern. This pattern requires the author to repeat the referenced identifier twice, which can cause these optional binding conditions to be verbose, especialy when using lengthy variable names. We should introduce a shorthand syntax for optional binding when shadowing an existing variable:
+Optional binding using `if let foo = foo { ... }`, to create an unwrapped variable that shadows an existing optional variable, is an extremely common pattern. This pattern requires the author to repeat the referenced identifier twice, which can cause these optional binding conditions to be verbose, especially when using lengthy variable names. We should introduce a shorthand syntax for optional binding when shadowing an existing variable:
 
 ```swift
 let foo: Foo? = ...
