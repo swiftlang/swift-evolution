@@ -244,42 +244,59 @@ if foo == true, bar == true {
 
 To avoid this abiguity, we need some sort of distinct syntax for optional bindings.
 
-### `if foo?`, `if unwrap foo`
+### `if unwrap foo`
 
-Another option is to introduce a new keyword or sigil for this purpose, like `if foo?`, `if unwrap foo` or `if have foo`.
+Another option is to introduce a new keyword or sigil for this purpose, like `if unwrap foo`, `if foo?` or `if have foo`.
 
-One of the key behaviors of optional unwrapping is that it creates a new variable defined within the inner scope. We use `let` / `var` to introduce new variables elsewhere in the language, so `if let foo` should make the variable scoping behavior reasonably clear and unabiguous. For `if foo?` and `if unwrap foo`, it is not inherently obvious whether or not a new variable is defined for the inner scope. This has the potential to be confusing, and likely reduces clarity compared to the existing syntax.
+A key benefit of introducing a completely new syntax like `if unwrap foo` is that it gives us the opportunity to also revisit the _semantics_ of how optional binding conditions actually work. Today, optional binding conditions always make a copy of the value. From a performance perspective, it would be more efficient to perform a _borrow_ instead of a copy. 
 
-Another downside of introducing a new keyword / sigil is that the limitations of this shorthand syntax become less intutive. For example, it is not necessarily obvious that `if foo.bar?` or `if unwrap foo.bar` would be invalid. On the other hand, it is somewhat intuitive that `if let foo.bar` would be invalid (e.g. that `let` can only be followed by an identifier and not an expression) since this is the case elsewhere in the language.
-
-Other benefits of using the `let` keyword here include:
-
- - supporting `var` (like in `if var foo = foo`) is trivial since we already have the `let` introducer for the more common immutable case.
-
- - consistency with existing optional binding conditions, which is useful in mixed-expression `if` statements:
-
-      ```swift
-      // Consistent
-      if let user, let defaultAddress = user.shippingAddresses.first { ... }
-
-      // Inconsistent
-      if unwrap user, let defaultAddress = user.shippingAddresses.first { ... }
-
-      if user?, let defaultAddress = user.shippingAddresses.first { ... }
-      ```
-
-Another important aspect to consider is that using a new syntax like `if unwrap foo` could allow this feature to behave _differently_ from existing optional binding conditions. For example, instead of making a copy like `if let foo = foo`, a new `if unwrap foo` syntax could instead perform a [_borrow_](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206#borrow-variables-7) of `foo`. This could make `if unwrap foo` behave like shorthand for `if ref foo = foo`.
-
-It would be very useful for this shorthand to support borrows, once that feature is added to Swift. That doesn't mean, however, that the shorthand syntax _shouldn't_ support making copies (e.g. with `let` / `var`). Borrows introduce conceptual overhead since they require exclusive access to the variable being borrowed, which brings with it a whole new class of potential exclusivity violation errors that would need to be reasoned about. This implies that using copy introducers or using borrow introducers will be a tradeoff between convenience and performance. It likely makes sense for this syntax to support both classes of variables / introducers, so the user can choose the option that best suits their specific use case.
-
-Additionally, this syntax should support the distinction between immutable and mutable variables. Combined with the disctinction between copies and borrows, that would give us the same set of options as normal variables (immutable copy, mutable copy, immutable borrow, mutable borrow). Since we already have syntax for these concepts (`let`, `var`, and potentially `ref` and `inout` in the future) it would be preferable to reuse that syntax in optional binding conditions:
+["A roadmap for improving Swift performance predictability"](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206#borrow-variables-7) discusses potential future introducers `ref` (to perform an immutable borrow) and `inout` (to perform a mutable borrow). For consistency with `let` / `var`, it will likely make sense to support optional binding conditions for these new introducers:
 
 ```swift
+if ref foo = foo {
+  // if `foo` is not nil, it is borrowed and made available as a non-optional, immutable variable
+}
+
+if inout foo = &foo {
+  // if `foo` is not nil, it is borrowed and made available as a non-optional, mutable variable
+}
+```
+
+Instead of being shorthand for `if let`, this new shorthand syntax could instead be shorthand for `if ref`. This would improve performance in general, and could nudge users towards using borrows instead of copies (since only the borrow form would receive shorthand sugar).
+
+A key downside of borrows, however, is that they require exclusive access to the borrowed variable. Memory exclusivity violations will result in compiler errors in some cases, but can also manifest as runtime errors in more complex cases. For example:
+
+```swift
+var x: Int? = 1
+
+func increment(by number: Int) {
+    x? += number
+}
+
+if ref x = x {
+    increment(by: x)
+}
+```
+
+This would trap at runtime, because `increment(by:)` would attempt to modify the value of `x` while it is already being borrowed by the `if ref x = x` optional binding condition. 
+
+Once borrow introducers are added to the language, seeing `ref x` or `inout x` anywhere in Swift will serve as an important visual marker about the exclusivity requirements of the code. On the other hand, a new syntax like `if unwrap x` doesn't explicitly indicate that the variable is being borrowed. This could lead to users being surprised by unexpected exclusivity violations, which could cause confusing compile-time errors or runtime crashes.
+
+Borrow introducers will be very useful, but adopting them is a tradeoff between performance and conceptual overhead. Borrows are cheap but come with high conceptual overhead. Copies can be expensive but always work as expected without much extra thought. Given this tradeoff, it likely makes sense for this shorthand syntax to provide a way for users to choose between performing a copy or performing a borrow, rather than limiting users to one or the other.
+
+Additionally, for consistency with existing optional binding conditions, this new shorthand should support the distinction between immutable and mutable variables. Combined with the disctinction between copies and borrows, that would give us the same set of options as normal variables:
+
+```swift
+// Included in this proposal:
 if let foo { /* foo is an immutable copy */ }
 if var foo { /* foo is a mutable copy */ }
+
+// Potentially added in the future:
 if ref foo { /* foo is an immutable borrow */ }
 if inout &foo { /* foo is a mutable borrow */ }
 ```
+
+Since we already have syntax for these concepts, we should reuse that syntax in this shorthand rather than create a new syntax that is less expressive (e.g. only supports a subset of the available options) and less explicit (e.g. that users would have to memorize whether this new shorthand performs a copy or a borrow).
 
 ### `if let foo?`
 
@@ -325,7 +342,7 @@ This is different from Swift's optional binding conditions (`if let foo = foo`),
 
 Since `if var foo = foo` is significantly less common that `if let foo = foo`, we could potentially choose to _not_ support `var` in this shorthand syntax. 
 
-`var` shadowing has the potential to be more confusing than `let` shadowing -- `var` introduces a new _mutable_ variable, and any mutations to the new variable are not shared with the original optional variable. `if var foo = foo` already exists, and it seems unlikely that `if var foo` would be more confusing / less clear than the existing syntax.
+`var` shadowing has the potential to be more confusing than `let` shadowing -- `var` introduces a new _mutable_ variable, and any mutations to the new variable are not shared with the original optional variable. On the other hand, `if var foo = foo` already exists, and it seems unlikely that `if var foo` would be more confusing / less clear than the existing syntax.
 
 Since `let` and `var` are interchangable elsewhere in the language, that should also be the case here -- disallowing `if var foo` would be inconsistent with existing optional binding condition syntax. If we were using an alternative spelling that _did not_ use `let`, it may be reasonable to exclude `var` -- but since we are using `let` here, `var` should also be allowed.
 
@@ -333,12 +350,10 @@ Since `let` and `var` are interchangable elsewhere in the language, that should 
 
 Many thanks to Craig Hockenberry, who recently wrote about this topic in [Let’s fix `if let` syntax](https://forums.swift.org/t/lets-fix-if-let-syntax/48188) which directly informed this proposal.
 
-Thanks to Ben Cohen for suggesting the alternative `if let foo?` spelling, and for providing valuable feedback on this proposal.
+Thanks to Ben Cohen for suggesting the alternative `if let foo?` spelling, and for providing valuable feedback on this proposal during the pitch phase.
 
 Thanks to Chris Lattner for suggesting to consider how this proposal should interact with upcoming language features like potential `ref` and `inout` borrow introducers.
 
 Thanks to [tera](https://forums.swift.org/u/tera/summary) for suggesting the alternative `if foo` spelling.
-
-Thanks to James Dempsey for providing the "consistency with existing optional binding conditions" example.
 
 Thanks to Jon Shier for providing the SwiftUI optional binding example.
