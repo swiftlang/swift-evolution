@@ -158,7 +158,7 @@ At the core of everything distributed actors do, is the `DistributedActorSystem`
 Building a solid actor system implementation is not a trivial task, and we only expect a handful of mature implementations to take the stage eventually.
 
 > At the time of writing, we–the proposal authors–have released a work in progress [peer-to-peer cluster actor system implementation](https://www.swift.org/blog/distributed-actors/) that is tracking this evolving language feature. It can be viewed as a reference implementation for the language features and `DistributedActorSystem` protocol discussed in this proposal.
-> 
+>
 
 Below we present the full listing of the `DistributedActorSystem` protocol, and we'll be explaining the specific methods one by one as we go:
 
@@ -207,15 +207,11 @@ protocol DistributedActorSystem: Sendable {
 
   /// Called by a distributed when it begins its initialization (in a non-delegating init).
   ///
-  /// The returned `ID` stored by the distributed actor and is used to uniquely identify and
-  /// locate the actor within the system. Once `actorReady` is called resolving this `ID`
-  /// with `resolve(_:as:)` should return the same instance was just assigned this identity.
-  ///
   /// The system should take special care to not assign two actors the same `ID`, and the `ID`
   /// must remain valid until it is resigned (see `resignID(_:)`).
-  func assignID<Act>(_ actorType: Act.Type) -> ActorID
-      where Act: DistributedActor,
-            Act.ID == ActorID
+  func assignID<Actor>(_ actorType: Actor.Type) -> ActorID
+      where Actor: DistributedActor,
+            Actor.ID == ActorID
 
   /// Automatically called by in every distributed actor's non-delegating initializer.
   ///
@@ -228,9 +224,9 @@ protocol DistributedActorSystem: Sendable {
   ///
   /// After the ready call returns, it must be possible to resolve it using the 'resolve(_:as:)'
   /// method on the system.
-  func actorReady<Act>(_ actor: Act)
-      where Act: DistributedActor,
-            Act.ID == ActorID
+  func actorReady<Actor>(_ actor: Actor)
+      where Actor: DistributedActor,
+            Actor.ID == ActorID
 
   /// Called when the distributed actor is deinitialized (or has failed to finish initializing).
   ///
@@ -261,10 +257,10 @@ protocol DistributedActorSystem: Sendable {
   ///
   /// Detecting liveness of such remote actors shall be offered / by transport libraries
   /// by other means, such as "watching an actor for termination" or similar.
-  func resolve<Act>(_ id: ActorID, as actorType: Act.Type) throws -> Act?
-      where Act: DistributedActor,
-            Act.ID: ActorID,
-            Act.SerializationRequirement == Self.SerializationRequirement
+  func resolve<Actor>(_ id: ActorID, as actorType: Actor.Type) throws -> Actor?
+      where Actor: DistributedActor,
+            Actor.ID: ActorID,
+            Actor.SerializationRequirement == Self.SerializationRequirement
 
   // ==== ---------------------------------------------------------------------
   // - MARK: Remote Target Invocations
@@ -291,32 +287,32 @@ protocol DistributedActorSystem: Sendable {
   /// as well as by re-throwing the error received from the remote callee (if able to).
   //
   // Ad-hoc protocol requirement
-  func remoteCall<Act, Err, Res>(
-      on actor: Act,
+  func remoteCall<Actor, Failure, Success>(
+      on actor: Actor,
       target: RemoteCallTarget,
       invocation: InvocationEncoder,
-      throwing: Err.Type,
-      returning: Res.Type
-  ) async throws -> Res
-      where Act: DistributedActor,
-            Act.ID == ActorID,
-            Err: Error,
-            Res: Self.SerializationRequirement
+      throwing: Failure.Type,
+      returning: Success.Type
+  ) async throws -> Success
+      where Actor: DistributedActor,
+            Actor.ID == ActorID,
+            Failure: Error,
+            Success: Self.SerializationRequirement
 
   /// Invoked by the Swift runtime when making a remote call to a `Void` returning function.
   ///
   /// ( ... Same as `remoteCall` ... )
   //
   // Ad-hoc protocol requirement
-  func remoteCallVoid<Act, Err>(
-      on actor: Act,
+  func remoteCallVoid<Actor, Error>(
+      on actor: Actor,
       target: RemoteCallTarget,
       invocation: InvocationEncoder,
-      throwing: Err.Type
+      throwing: Failure.Type
   ) async throws
-      where Act: DistributedActor,
-            Act.ID == ActorID,
-            Err: Error
+      where Actor: DistributedActor,
+            Actor.ID == ActorID,
+            Failure: Error
 }
 
 /// A distributed 'target' can be a `distributed func` or `distributed` computed property.
@@ -816,10 +812,10 @@ final class ClusterSystem: DistributedActorSystem {
   private var localActors: [ActorID: AnyWeaklyHeldDistributedActor] // stored into during actorReady
 
   // example implementation; more sophisticated ones can exist, but boil down to the same idea
-  func resolve<ID, Act>(id: ID, as actorType: Act.Type)
-      throws -> Act? where Act: DistributedActor,
-                           Act.ID == Self.ActorID,
-                           Act.SerializationRequirement == Self.SerializationRequirement {
+  func resolve<ID, Actor>(id: ID, as actorType: Actor.Type)
+      throws -> Actor? where Actor: DistributedActor,
+                           Actor.ID == Self.ActorID,
+                           Actor.SerializationRequirement == Self.SerializationRequirement {
     if validate(id) == .illegal {
       throw IllegalActorIDError(id)
     }
@@ -829,7 +825,7 @@ final class ClusterSystem: DistributedActorSystem {
         return nil // not local actor, but we can allocate a remote reference for it
       }
 
-      return try known.as(Act.self) // known managed local instance
+      return try known.as(Actor.self) // known managed local instance
     }
   }
 }
@@ -1085,15 +1081,15 @@ final struct ClusterSystem: DistributedActorSystem {
 Note that `method` property is enough to identify the target of the call, we do not need to carry any extra type information explicitly in the call. The method identifier is sufficient to resolve the target method on the recipient, however in order to support generic distributed methods, we need to carry additional (mangled) type information for any of the generic parameters of this specific method invocation. Thankfully, these are readily provided to us by the Swift runtime, so we'll only need to store and send them over.
 
 > **Note:** An implementation may choose to define any shape of "envelope" (or none at all) that suits its needs. It may choose to transport mangled names of involved types for validation purposes, or choose to not transfer them at all and impose other limitations on the system and its users for the sake of efficiency.
-> 
+>
 > While advanced implementations may apply compression and other techniques to minimize the overhead of these envelopes — this is a deep topic by itself, and we won't be going in depth on it in this proposal — rest assured though, we have focused on making different kinds of implementations possible with this approach.
 
 Next, we will discuss how the `InvocationEncoder` can be implemented in order to create such `WireEnvelope`.
 
 > Note on ad-hoc requirements: Some of the protocol requirements on the encoder, as well as actor system protocols, are so-called "ad-hoc" requirements. This means that they are not directly expressed in Swift source, but instead the compiler is aware of the signatures and specifically enforces that a type conforming to such protocol implements these special methods.
-> 
+>
 > Specifically, methods which fall into this category are functions which use the `SerializationRequirement` as generic type requirement. This is currently not expressible in plain Swift, due to limitations in the type system which are difficult to resolve immediately, but in time as this could become implementable these requirements could become normal protocol requirements.
-> 
+>
 > This tradeoff was discussed at length and we believe it is worth taking, because it allows us to avoid numerous un-necessary type-casts, both inside the runtime and actor system implementations. It also allows us to avoid any existential boxing  and thus lessens the allocation footprint of making remote calls which is an important aspect of the design and use cases we are targeting.
 
 The following listing illustrates how one _could_ implement a `DistributedTargetInvocationEncoder`:
@@ -1158,17 +1154,17 @@ Once that is complete, the runtime will pass the constructed `InvocationEncoder`
   // 'remoteCall' is not a protocol requirement, however its signature is well known to the compiler,
   // and it will invoke the method. We also are guaranteed that the 'Res: Codable' requirement is correct,
   // since the type-system will enforce this conformance thanks to the type-level checks on distributed funcs.
-  func remoteCall<Act, Err, Res>(
-      on actor: Act,
+  func remoteCall<Actor, Failure, Success>(
+      on actor: Actor,
       target: RemoteCallTarget,
       invocation: Self.InvocationEncoder,
-      throwing: Err.Type,
-      returning: Res.Type
-  ) async throws -> Res
-      where Act: DistributedActor,
-            Act.ID == ActorID.
-            Err: Error,
-            Res: Self.SerializationRequirement {
+      throwing: Failure.Type,
+      returning: Success.Type
+  ) async throws -> Success
+      where Actor: DistributedActor,
+            Actor.ID == ActorID.
+            Failure: Error,
+            Success: Self.SerializationRequirement {
     var envelope = invocation.envelope
 
     // [1] the recipient is transferred over the wire as its id
@@ -1198,7 +1194,7 @@ One notable issue that mangled names have is that any change in the method signa
 The final step is handing over the envelope containing the encoded arguments, recipient information, etc., to the underlying transport mechanism `[3]`. The transport does not really have to concern itself with any of the specifics of the call, other than transmitting the bytes to the callee and the response data back. As we get the response data back, we have the concrete type of the expected response and can attempt to decode it `[4]`.
 
 > Note on `remoteCallVoid`: One limitation in the current implementation approach is that a remote call signature cannot handle void returning methods, because of the `Res: SerializationRequirement` requirement on the method.
-> 
+>
 > This will be possible to solve using the incoming [Variadic Generics](https://forums.swift.org/t/variadic-generics/54511) language feature that is being currently worked on and pitched. With this feature, the return type could be represented as variadic generic and the `Void` return type would be modeled as "empty" tuple, whereas a value return would contain the specific type of the return, this way we would not violate the `Res: SerializationRequirement` when we needed to model `Void` calls.
 
 #### Recipient: Receiving Invocations
@@ -1352,13 +1348,13 @@ extension DistributedActorSystem {
   /// The reason for this API using a `ResultHandler` rather than returning values directly,
   /// is that thanks to this approach it can avoid any existential boxing, and can serve the most
   /// latency sensitive-use-cases.
-  func executeDistributedTarget<Act, ResultHandler>(
-      on actor: Act,
+  func executeDistributedTarget<Actor, ResultHandler>(
+      on actor: Actor,
       mangledName: String,
       invocation: inout Self.InvocationDecoder,
       handler: ResultHandler
-  ) async throws where Act: DistributedActor,
-                       Act.ID == ActorID,
+  ) async throws where Actor: DistributedActor,
+                       Actor.ID == ActorID,
                        ResultHandler: DistributedTargetInvocationResultHandler {
     // implemented by the _Distributed library
   }
@@ -1375,10 +1371,10 @@ The `DistributedTargetInvocationResultHandler` is defined as follows:
 protocol DistributedTargetInvocationResultHandler {
   associatedtype SerializationRequirement
 
-  func onReturn<Res>(value: Res) async throws
-    where Res: SerializationRequirement
-  func onThrow<Err>(error: Err) async throws
-    where Err: Error
+  func onReturn<Success>(value: Success) async throws
+    where Success: SerializationRequirement
+  func onThrow<Error>(error: Error) async throws
+    where Failure: Error
 }
 ```
 
@@ -1629,7 +1625,7 @@ This way the `assignID` can detect the static property and e.g. ensure this acto
 
 ```swift
 extension SpecificDistributedActorSystem {
-  func assignID<Act>(_ type: Act.Type) -> Act.ID where Act: DistributedActor {
+  func assignID<Actor>(_ type: Actor.Type) -> Actor.ID where Actor: DistributedActor {
     let id = <<make up some id>>
     if let C = type as ConfiguredDistributedActor.Type {
       // for example, we could make sure the actor is discoverable using the service name:
@@ -1650,7 +1646,7 @@ passed to the actor initializer, and would be passed along to the actor system l
 ```swift
 extension SpecificDistributedActorSystem {
   // associatedtype ActorConfiguration
-  func assignID<Act>(_ type: Act.Type, _ properties: Self.ActorConfiguration) -> Act.ID where Act: DistributedActor {
+  func assignID<Actor>(_ type: Actor.Type, _ properties: Self.ActorConfiguration) -> Actor.ID where Actor: DistributedActor {
     if let name = properties.name {
       return makeID(withName: name)
     }
@@ -1679,21 +1675,21 @@ This section summarizes various points in the design space for this proposal tha
 The proposal includes the fairly special `remoteCall` method that is expected to be present on a distributed actor system, however is not part of the protocol requirements because it cannot be nicely expressed in today's Swift, and it suffers from the lack of variadic generics (which are being worked on, see: [Pitching The Start of Variadic Generics](https://forums.swift.org/t/pitching-the-start-of-variadic-generics/51467)), however until they are complete, expressing `remoteCall` in the type-system is fairly painful, and we resort to providing multiple overloads of the method:
 
 ```swift
-  func remoteCall<Act, P1, Result>(
-    on recipient: Act,
+  func remoteCall<Actor, P1, Failure, Success>(
+    on recipient: Actor,
     method: DistributedMethodName,
     _ arg1: P1,
-    throwing errorType: Err.Type,
-    returning returnType: Res.Type
-  ) async throws -> Res where Act: DistributedActor, Act.ID = ActorID { ... }
+    throwing errorType: Failure.Type,
+    returning returnType: Success.Type
+  ) async throws -> Success where Actor: DistributedActor, Actor.ID = ActorID { ... }
 
-  func remoteCall<Act, P1, P2, Result>(
-    on recipient: Act,
+  func remoteCall<Actor, P1, P2, Failure, Success>(
+    on recipient: Actor,
     method: DistributedMethodName,
     _ arg1: P1, _ arg2: P2,
-    throwing errorType: Err.Type,
-    returning returnType: Res.Type
-  ) async throws -> Res where Act: DistributedActor, Act.ID = ActorID { ... }
+    throwing errorType: Failure.Type,
+    returning returnType: Success.Type
+  ) async throws -> Success where Actor: DistributedActor, Actor.ID = ActorID { ... }
 
   // ...
 ```
@@ -1703,13 +1699,13 @@ This is annoying for the few distributed actor system developers. However, it al
 We are also able to avoid any heap allocations during the `remoteCall` thanks to this approach, as we do not have to construct type erased `arguments: [Any]` which would have been the alternative:
 
 ```swift
-  func remoteCall<Act, Result>(
-    on recipient: Act,
+  func remoteCall<Actor, Failure, Success>(
+    on recipient: Actor,
     method: DistributedMethodIdentifier,
     _ args: [Any], // BAD
-    throwing errorType: Err.Type,
-    returning returnType: Res.Type
-  ) async throws -> Res where Act: DistributedActor, Act.ID = ActorID { ... }
+    throwing errorType: Failure.Type,
+    returning returnType: Success.Type
+  ) async throws -> Success where Actor: DistributedActor, Actor.ID = ActorID { ... }
 ```
 
 Not only that, but passing arguments as `[Any]` would force developers into using internal machinery to open the existentials (the not officially supported `_openExistential` feature), in order to obtain their specific types, and e.g. use `Codable` with them.
@@ -1719,14 +1715,14 @@ Not only that, but passing arguments as `[Any]` would force developers into usin
 Looking at the signature, one might be tempted to also include a `where` clause to statically enforce that all parameters and return type, conform to the `Self.SerializationRequirement`, like so:
 
 ```swift
-  func remoteCall<Act, P1, Result>(
-    on recipient: Act,
+  func remoteCall<Actor, P1, Failure, Success>(
+    on recipient: Actor,
     method: DistributedMethodName,
     _ arg1: P1,
-    throwing errorType: Err.Type,
-    returning returnType: Res.Type
-  ) async throws -> Res where Act: DistributedActor,
-                    Act.ID = ActorID,
+    throwing errorType: Failure.Type,
+    returning returnType: Success.Type
+  ) async throws -> Success where Actor: DistributedActor,
+                    Actor.ID = ActorID,
                     P1: SerializationRequirement { ... }
 // ❌ error: type 'P1' constrained to non-protocol, non-class type 'Self.R'
 ```
