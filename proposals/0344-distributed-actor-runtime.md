@@ -158,7 +158,6 @@ At the core of everything distributed actors do, is the `DistributedActorSystem`
 Building a solid actor system implementation is not a trivial task, and we only expect a handful of mature implementations to take the stage eventually.
 
 > At the time of writing, we–the proposal authors–have released a work in progress [peer-to-peer cluster actor system implementation](https://www.swift.org/blog/distributed-actors/) that is tracking this evolving language feature. It can be viewed as a reference implementation for the language features and `DistributedActorSystem` protocol discussed in this proposal.
->
 
 Below we present the full listing of the `DistributedActorSystem` protocol, and we'll be explaining the specific methods one by one as we go:
 
@@ -181,7 +180,7 @@ protocol DistributedActorSystem: Sendable {
   /// The specific type of the invocation encoder that will be created and populated
   /// with details about the invocation when a remote call is about to be made.
   ///
-  /// The populated instance will be passed to the remote call from where it can be
+  /// The populated instance will be passed to the `remoteCall` from where it can be
   /// used to serialize into a message format in order to perform the remote invocation.
   associatedtype InvocationEncoder: DistributedTargetInvocationEncoder
 
@@ -285,8 +284,8 @@ protocol DistributedActorSystem: Sendable {
   /// ## Errors
   /// This method is allowed to throw because of underlying transport or serialization errors,
   /// as well as by re-throwing the error received from the remote callee (if able to).
-  //
-  // Ad-hoc protocol requirement
+  ///
+  /// Ad-hoc protocol requirement.
   func remoteCall<Actor, Failure, Success>(
       on actor: Actor,
       target: RemoteCallTarget,
@@ -302,8 +301,8 @@ protocol DistributedActorSystem: Sendable {
   /// Invoked by the Swift runtime when making a remote call to a `Void` returning function.
   ///
   /// ( ... Same as `remoteCall` ... )
-  //
-  // Ad-hoc protocol requirement
+  ///
+  /// Ad-hoc protocol requirement.
   func remoteCallVoid<Actor, Error>(
       on actor: Actor,
       target: RemoteCallTarget,
@@ -890,20 +889,20 @@ public protocol DistributedTargetInvocationEncoder {
   mutating func recordGenericSubstitution<T>(_ type: T.Type) throws
 
   /// Record an argument of `Argument` type in this arguments storage.
-  //
-  // Ad-hoc requirement.
+  ///
+  /// Ad-hoc protocol requirement.
   mutating func recordArgument<Argument: SerializationRequirement>(_ argument: Argument) throws
 
   /// Record the error type thrown by the distributed invocation target.
   /// If the target does not throw, this method will not be called and the error type can be assumed `Never`.
-  //
-  // Ad-hoc requirement.
+  ///
+  /// Ad-hoc protocol requirement.
   mutating func recordErrorType<E: Error>(_ type: E.Type) throws
 
   /// Record the return type of the distributed method.
   /// If the target does not return any specific value, this method will not be called and the return type can be assumed `Void`.
-  //
-  // Ad-hoc requirement.
+  ///
+  /// Ad-hoc protocol requirement.
   mutating func recordReturnType<R: SerializationRequirement>(_ type: R.Type) throws
 
   /// All values and types have been recorded.
@@ -925,8 +924,8 @@ public protocol DistributedTargetInvocationDecoder {
   ///
   /// This method should throw if it has no more arguments available, if decoding the argument failed,
   /// or, optionally, if the argument type we're trying to decode does not match the stored type.
-  //
-  // Ad-hoc protocol requirement
+  ///
+  /// Ad-hoc protocol requirement.
   mutating func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument
 
   mutating func decodeErrorType() throws -> Any.Type?
@@ -1152,7 +1151,7 @@ Once that is complete, the runtime will pass the constructed `InvocationEncoder`
 ```swift
  extension ClusterSystem {
   // 'remoteCall' is not a protocol requirement, however its signature is well known to the compiler,
-  // and it will invoke the method. We also are guaranteed that the 'Res: Codable' requirement is correct,
+  // and it will invoke the method. We also are guaranteed that the 'Success: Codable' requirement is correct,
   // since the type-system will enforce this conformance thanks to the type-level checks on distributed funcs.
   func remoteCall<Actor, Failure, Success>(
       on actor: Actor,
@@ -1193,9 +1192,9 @@ One notable issue that mangled names have is that any change in the method signa
 
 The final step is handing over the envelope containing the encoded arguments, recipient information, etc., to the underlying transport mechanism `[3]`. The transport does not really have to concern itself with any of the specifics of the call, other than transmitting the bytes to the callee and the response data back. As we get the response data back, we have the concrete type of the expected response and can attempt to decode it `[4]`.
 
-> Note on `remoteCallVoid`: One limitation in the current implementation approach is that a remote call signature cannot handle void returning methods, because of the `Res: SerializationRequirement` requirement on the method.
+> Note on `remoteCallVoid`: One limitation in the current implementation approach is that a remote call signature cannot handle void returning methods, because of the `Success: SerializationRequirement` requirement on the method.
 >
-> This will be possible to solve using the incoming [Variadic Generics](https://forums.swift.org/t/variadic-generics/54511) language feature that is being currently worked on and pitched. With this feature, the return type could be represented as variadic generic and the `Void` return type would be modeled as "empty" tuple, whereas a value return would contain the specific type of the return, this way we would not violate the `Res: SerializationRequirement` when we needed to model `Void` calls.
+> This will be possible to solve using the incoming [Variadic Generics](https://forums.swift.org/t/variadic-generics/54511) language feature that is being currently worked on and pitched. With this feature, the return type could be represented as variadic generic and the `Void` return type would be modeled as "empty" tuple, whereas a value return would contain the specific type of the return, this way we would not violate the `Success: SerializationRequirement` when we needed to model `Void` calls.
 
 #### Recipient: Receiving Invocations
 
@@ -1455,7 +1454,7 @@ The implementation could look as follows:
 
 ```swift
 extension ExampleDistributedMethodInvocationHandler {
-  func onReturn<Res: SerializationRequirement>(result: Res) throws {
+  func onReturn<Success: SerializationRequirement>(result: Success) throws {
     do {
       let replyData = system.encoder.encode(result)
       self.reply(replyData)
@@ -1464,11 +1463,11 @@ extension ExampleDistributedMethodInvocationHandler {
     }
   }
 
-  func onError<Err: Error>(error: Err) {
-    guard Err is Encodable else {
+  func onError<Failure: Error>(error: Failure) {
+    guard Failure is Encodable else {
       // best effort error reporting just sends back the type string
       // we don't want to send back string repr since it could leak sensitive information
-      self.replyError("\(Err.self)")
+      self.replyError("\(Failure.self)")
     }
 
     // ... if possible, `as?` cast to Encodable and return an actual error,
@@ -1487,7 +1486,7 @@ Once the `onError` or `onReturn` methods complete, the `executeDistributedTarget
 
 ### Variadic generics removing the need for `remoteCallVoid`
 
-Once [variadic generics](https://forums.swift.org/t/variadic-generics/54511/2) are fully implemented, we will be able to remove the limitation that we cannot express the `remoteCall<..., Res: SerializationRequirement>(..., returning returnType: Res.Type)` function for the `Void` type, since it cannot always conform to `SerializationRequirement`.
+Once [variadic generics](https://forums.swift.org/t/variadic-generics/54511/2) are fully implemented, we will be able to remove the limitation that we cannot express the `remoteCall<..., Success: SerializationRequirement>(..., returning returnType: Success.Type)` function for the `Void` type, since it cannot always conform to `SerializationRequirement`.
 
 With variadic generics, it would be natural to conform an "empty tuple" to the `SerializationRequirement` and we'd this way be able to implement only a single method (`remoteCall`) rather than having to provide an additional special case implementation for `Void` return types.
 
