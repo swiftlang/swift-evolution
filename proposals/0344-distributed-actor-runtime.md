@@ -19,33 +19,33 @@
     - [Caveat: Low-level implementation details](#caveat-low-level-implementation-details)
   - [Detailed design](#detailed-design)
     - [The `DistributedActorSystem` protocol](#the-distributedactorsystem-protocol)
-    - [Implicit Distributed Actor Properties](#implicit-distributed-actor-properties)
-    - [Initializing Distributed Actors](#initializing-distributed-actors)
-    - [Distributed Actor initializers](#distributed-actor-initializers)
+    - [Implicit distributed actor properties](#implicit-distributed-actor-properties)
+    - [Initializing distributed actors](#initializing-distributed-actors)
+    - [Distributed actor initializers](#distributed-actor-initializers)
       - [Initializing `actorSystem` and `id` properties](#initializing-actorsystem-and-id-properties)
-    - [Ready-ing Distributed Actors](#ready-ing-distributed-actors)
-      - [Ready-ing Distributed Actors, exactly once](#ready-ing-distributed-actors-exactly-once)
-    - [Resigning Distributed Actor IDs](#resigning-distributed-actor-ids)
-    - [Resolving Distributed Actors](#resolving-distributed-actors)
-    - [Invoking Distributed Methods](#invoking-distributed-methods)
+    - [Ready-ing distributed actors](#ready-ing-distributed-actors)
+      - [Ready-ing distributed actors, exactly once](#ready-ing-distributed-actors-exactly-once)
+    - [Resigning distributed actor IDs](#resigning-distributed-actor-ids)
+    - [Resolving distributed actors](#resolving-distributed-actors)
+    - [Invoking distributed methods](#invoking-distributed-methods)
       - [Sender: Invoking a distributed method](#sender-invoking-a-distributed-method)
-      - [Sender: Serializing and Sending Invocations](#sender-serializing-and-sending-invocations)
-      - [Recipient: Receiving Invocations](#recipient-receiving-invocations)
-      - [Recipient: Deserializing incoming Invocations](#recipient-deserializing-incoming-invocations)
+      - [Sender: Serializing and sending invocations](#sender-serializing-and-sending-invocations)
+      - [Recipient: Receiving invocations](#recipient-receiving-invocations)
+      - [Recipient: Deserializing incoming invocations](#recipient-deserializing-incoming-invocations)
       - [Recipient: Resolving the recipient actor instance](#recipient-resolving-the-recipient-actor-instance)
       - [Recipient: The `executeDistributedTarget` method](#recipient-the-executedistributedtarget-method)
       - [Recipient: Executing the distributed target](#recipient-executing-the-distributed-target)
-      - [Recipient: Collecting result/error from the Invocation](#recipient-collecting-resulterror-from-the-invocation)
-  - [Future Work](#future-work)
+      - [Recipient: Collecting result/error from invocations](#recipient-collecting-resulterror-from-invocations)
+  - [Future work](#future-work)
     - [Variadic generics removing the need for `remoteCallVoid`](#variadic-generics-removing-the-need-for-remotecallvoid)
     - [Stable names and more API evolution features](#stable-names-and-more-api-evolution-features)
     - [Resolving `DistributedActor` protocols](#resolving-distributedactor-protocols)
     - [Passing parameters to `assignID`](#passing-parameters-to-assignid)
-  - [Alternatives Considered](#alternatives-considered)
+  - [Alternatives considered](#alternatives-considered)
     - [Define `remoteCall` as protocol requirement, and accept `[Any]` arguments](#define-remotecall-as-protocol-requirement-and-accept-any-arguments)
     - [Constraining arguments, and return type with of `remoteCall` with `SerializationRequirement`](#constraining-arguments-and-return-type-with-of-remotecall-with-serializationrequirement)
     - [Hardcoding the distributed runtime to make use of `Codable`](#hardcoding-the-distributed-runtime-to-make-use-of-codable)
-  - [Acknowledgments & Prior Art](#acknowledgments--prior-art)
+  - [Acknowledgments & Prior art](#acknowledgments--prior-art)
   - [Source compatibility](#source-compatibility)
   - [Effect on ABI stability](#effect-on-abi-stability)
   - [Effect on API resilience](#effect-on-api-resilience)
@@ -331,7 +331,7 @@ public struct RemoteCallTarget: Hashable {
 
 In the following sections, we will be explaining how the various methods of a distributed system are invoked by the Swift runtime.
 
-### Implicit Distributed Actor Properties
+### Implicit distributed actor properties
 
 Distributed actors have two properties that are crucial for the inner workings of actors that we'll explore during this proposal: the `id` and `actorSystem`.
 
@@ -357,7 +357,7 @@ which are witnessed by *synthesized properties* in every specific distributed ac
 
 Next, we will discuss how those properties get initialized, and used in effectively all aspects of a distributed actor's lifecycle.
 
-### Initializing Distributed Actors
+### Initializing distributed actors
 
 At runtime, a *local* `distributed actor` is effectively the same as a local-only `actor`. The allocated `actor` instance is a normal `actor`. However, its initialization is a little special, because it must interact with its associated actor system to make itself available for remote calls.
 
@@ -389,7 +389,7 @@ Distributed actor initializers inject a number of calls into specific places of 
                                                           ...
 ```
 
-### Distributed Actor initializers
+### Distributed actor initializers
 
 A non-delegating initializer of a type must *fully initialize* it. The place in code where an actor becomes fully initialized has important and specific meaning to actor isolation which is defined in depth in [SE-0327: On Actors and Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). Not only that, but once fully initialized it is possible to escape `self` out of a (distributed) actor's initializer. This aspect is especially important for distributed actors, because it means that once fully initialized they _must_ be registered with the actor system as they may be sent to other distributed actors and even sent messages to.
 
@@ -494,7 +494,7 @@ distributed actor DA {
 }
 ```
 
-### Ready-ing Distributed Actors
+### Ready-ing distributed actors
 
 So far, the initialization process was fairly straightforward. We only needed to find a way to initialize the stored properties, and that's it. There is one more step though that is necessary to make distributed actors work: "ready-ing" the actor.
 
@@ -577,7 +577,7 @@ init(items: [Item], system: ActorSystem) async {
 
 This is arguably problematic for any class, struct or actor, however for distributed actors this also means that the period of time during an ID was assigned and will finally be readied can be potentially quite long. In general, we discourage such "long running" initializers as they make use of the actor in distribution impossible until it is readied. On the other hand, though, it can only be used in distribution once the initializer returns in any case so this is a similar problem to any long running initializer.
 
-#### Ready-ing Distributed Actors, exactly once
+#### Ready-ing distributed actors, exactly once
 
 Another interesting case the `actorReady` synthesis in initializers needs to take care of is triggering the `actorReady` call only *once*, as the actor first becomes fully initialized. The following snippet does a good job showing an example of where it can manifest:
 
@@ -644,7 +644,7 @@ Using this technique we are able to emit the ready call only once, and put off t
 
 Things get more complex in face of failable as well as throwing initializers. Specifically, because we not only have to assign identities, we also need to ensure that they are resigned when the distributed actor is deallocated. In the simple, non-throwing initialization case this is simply done in the distributed actor's `deinit`. However, some initialization semantics make this more complicated.
 
-### Resigning Distributed Actor IDs
+### Resigning distributed actor IDs
 
 In addition to assigning `ID` instances to specific actors as they get created, we must also *always* ensure the `ID`s assigned are resigned as their owning actors get destroyed.
 
@@ -763,7 +763,7 @@ To summarize, the following are rules that distributed actor system implementors
 
 Note that the system usually should not hold the actor with a strong reference, as doing so inhibits its ability to deinit until the system lets go of it.
 
-### Resolving Distributed Actors
+### Resolving distributed actors
 
 Every distributed actor type has a static "resolve" method with the following signature:
 
@@ -847,7 +847,7 @@ try Two.resolve(id: one.id, using: cluster)
 
 This is only the case for local instances, though. For remote instances, by design, the local actor system does not track any information about them and as any remote call can fail anyway, the failures surface at call-site (as the remote recipient will fail to be resolved).
 
-### Invoking Distributed Methods
+### Invoking distributed methods
 
 Invoking a distributed method (or distributed computed property) involves a number of steps that occur on two "sides" of the call.
 
@@ -1040,7 +1040,7 @@ The last encoder call is `doneRecording()` is made, to signal to the invocation 
 
 Lastly, the populated encoder, along with additional type and function identifying information is passed to the `remoteCall`, or `remoteCallVoid` method on the actor system which should actually perform the message request/response interaction with the remote actor.
 
-#### Sender: Serializing and Sending Invocations
+#### Sender: Serializing and sending invocations
 
 The next step in making a remote call is serializing a representation of the distributed method (or computed property) invocation. This is done through a series of compiler, runtime, and distributed actor system interactions. These interactions are designed to be highly efficient and customizable. Thanks to the `DistributedTargetInvocationEncoder`, we are able to never resort to existential boxing of values, allow serializers to manage and directly write into their destination buffers (i.e. allowing for zero copies to be performed between the message serialization and the underlying networking layer), and more.
 
@@ -1196,7 +1196,7 @@ The final step is handing over the envelope containing the encoded arguments, re
 >
 > This will be possible to solve using the incoming [Variadic Generics](https://forums.swift.org/t/variadic-generics/54511) language feature that is being currently worked on and pitched. With this feature, the return type could be represented as variadic generic and the `Void` return type would be modeled as "empty" tuple, whereas a value return would contain the specific type of the return, this way we would not violate the `Success: SerializationRequirement` when we needed to model `Void` calls.
 
-#### Recipient: Receiving Invocations
+#### Recipient: Receiving invocations
 
 On the remote side, there usually will be some receive loop or similar mechanism that is implemented in the transport layer of the actor system. In practice this often means binding a port and receiving TCP (or UDP) packets, applying some form of framing and eventually decoding the incoming message envelope.
 
@@ -1215,7 +1215,7 @@ func receiveLoop(with node: Node) async throws {
 
 In a real server implementation we'd likely use a [Swift NIO](https://github.com/apple/swift-nio) `ChannelPipeline` to perform this networking, framing and emitting of `Envelope`s, but this is beyond the scope of what we need to explain in this proposal to get the general idea of how this is going to work.
 
-#### Recipient: Deserializing incoming Invocations
+#### Recipient: Deserializing incoming invocations
 
 Now that we have received all the bytes for one specific envelope, we need to perform a two-step deserialization on it.
 
@@ -1312,7 +1312,7 @@ This decoder must be prepared by the actor system and eventually passed to the `
 
 Now that we have prepared our `InvocationDecoder` we are ready to make the next step, and resolve the recipient actor which the invocation shall be made on.
 
-We already discussed how resolving actors works in [Resolving Distributed Actors](#resolving-distributed-actors), however in this section we can tie it into the real process of invoking the target function as well.
+We already discussed how resolving actors works in [Resolving distributed actors](#resolving-distributed-actors), however in this section we can tie it into the real process of invoking the target function as well.
 
 In the example we're following so far, the recipient resolution is simple because we have the recipient ID available in the `Envelope.recipientID`, so we only need to resolve that using the system that is receiving the message:
 
@@ -1444,7 +1444,7 @@ As we can see, this thunk is "just" taking care of converting the heterogeneous 
 
 The thunk again uses the indirect return, so we can avoid any kind of implicit existential boxing even on those layers. Errors are always returned indirectly, so we do not need to do it explicitly.
 
-#### Recipient: Collecting result/error from the Invocation
+#### Recipient: Collecting result/error from invocations
 
 Now that the distributed method has been invoked, it eventually returns or throws an error.
 
@@ -1482,7 +1482,7 @@ The general pattern here is the same as with decoding parameters, however in the
 
 Once the `onError` or `onReturn` methods complete, the `executeDistributedTarget` method returns, and its caller knows the distributed request/response has completed – at least, as far as this peer is concerned. We omit the implementation of the `reply` and `replyError` methods that the actor system would implement here, because they are pretty much the same process as sending the request, except that the message must be sent as a response to a specific request, rather than target a specific actor and method. How this is achieved can differ wildly between transport implementations: some have built-in request/reply mechanisms, while others are uni-directional and rely on tagging replies with identifiers such as "this is a reply for request 123456".
 
-## Future Work
+## Future work
 
 ### Variadic generics removing the need for `remoteCallVoid`
 
@@ -1665,7 +1665,7 @@ Worker(actorSystem: system, actorProperties: .name("worker-1234"))
 
 Which can be *very* helpful since now IDs can have user provided information that are meaningful in the user's domain.
 
-## Alternatives Considered
+## Alternatives considered
 
 This section summarizes various points in the design space for this proposal that have been considered, but ultimately rejected from this proposal.
 
@@ -1738,7 +1738,7 @@ In practice this is not a problem, because the parameters are guaranteed to succ
 
 The additional complexity of the configurable `SerializationRequirement` is pulling its weight, and we are not interested in closing down the system to just use Codable.
 
-## Acknowledgments & Prior Art
+## Acknowledgments & Prior art
 
 We would like to acknowledge the prior art in the space of distributed actor systems which have inspired our design and thinking over the years. Most notably we would like to thank the Akka and Orleans projects, each showing independent innovation in their respective ecosystems and implementation approaches. As these are library-only solutions, they have to rely on wrapper types to perform the hiding of information, and/or source generation; we achieve the same goal by expanding the actor-isolation checking mechanisms  already present in Swift.
 
