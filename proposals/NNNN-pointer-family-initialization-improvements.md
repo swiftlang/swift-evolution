@@ -1,6 +1,6 @@
-# Buffer Family Initialization Improvements & Better Buffer Slices
+# Pointer Family Initialization Improvements & Better Buffer Slices
 
-* Proposal: [SE-NNNN Buffer Family Initialization Improvements & Better Buffer Slices][proposal]
+* Proposal: [SE-NNNN Pointer Family Initialization Improvements & Better Buffer Slices][proposal]
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: TBD
 * Status: pending
@@ -8,9 +8,9 @@
 * Bugs: rdar://51817146
 * Previous Revision: [pitch A](https://gist.github.com/glessard/3bb47dce974aa483fd6df072d265005c ), [pitch B](https://gist.github.com/glessard/cefa5686696b0e30ac18eb4899213c65)
 
-[proposal]: https://gist.github.com/glessard/cefa5686696b0e30ac18eb4899213c65
-[draft-pr]: https://github.com/apple/swift/pull/40337
-[pitch-thread]: https://forums.swift.org/t/53795
+[proposal]: https://github.com/apple/swift-evolution/blob/e95cf588a2f3c0a52f5ff4de780dc1e30c7fb303/proposals/NNNN-buffer-family-initialization-improvements.md
+[draft-pr]: https://github.com/apple/swift/pull/41608
+<!-- [pitch-thread]: https://forums.swift.org/t/53795 -->
 
 
 ## Introduction
