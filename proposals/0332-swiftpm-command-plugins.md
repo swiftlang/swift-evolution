@@ -133,11 +133,6 @@ public protocol CommandPlugin: Plugin {
         /// directories, etc.
         context: PluginContext,
         
-        /// The targets to which the command should be applied. If the invoker of
-        /// the command has not specified particular targets, this will be a list
-        /// of all the targets in the package to which the command is applied.
-        targets: [Target],
-        
         /// Any literal arguments passed after the verb in the command invocation.
         arguments: [String],
     ) async throws
@@ -148,7 +143,7 @@ public protocol CommandPlugin: Plugin {
 }
 ```
 
-This defines a basic entry point for a command plugin, passing it information about the context in which the plugin is invoked (including information about the package graph), the set of targets on which the command should operate, and the arguments passed by the user after the verb in the `swift` `package` invocation.
+This defines a basic entry point for a command plugin, passing it information about the context in which the plugin is invoked (including information about the package graph) and the arguments passed by the user after the verb in the `swift` `package` invocation.
 
 The `context` parameter provides access to the package to which the user applies the plugin, including any dependencies, and it also provides access to a working directory that the plugin can use for any purposes, as well as a way to look up command line tools with a given name. This is the same as the support that is available to all plugins via SE-0325.
 
@@ -157,6 +152,8 @@ An opaque reference to a proxy for the Package Manager services in SwiftPM or th
 Many command plugins will invoke tools using subprocesses in order to do the actual work. A plugin can use the Foundation module’s `Process` API to invoke executables, after using the PackagePlugin module's `PluginContext.tool(named:)` API to obtain the full path of the command line tool in the local file system.
 
 Plugins can also use Foundation APIs for reading and writing files, encoding and decoding JSON, and other actions.
+
+The arguments are a literal array of strings that the user specified when invoking the plugin. Plugins that operate on individual targets or products would typically support a `--target` or `--product` option that allows users to specify the names of targets or products to operate on in the package to which the plugin command is applied.
 
 #### Accessing Package Manager Services
 
@@ -414,19 +411,13 @@ In the SwiftPM CLI, command plugins provided by a package or its direct dependen
 
 This will invoke the plugin and only return when it completes. Since no other options were provided, this will pass all regular targets in the package to the plugin ("special" targets such as those that define plugins will be excluded).
 
-To pass a subset of the targets to the plugin, one or more `--target` options can be used in the invocation:
+Any parameters passed after the name of the plugin command are passed verbatim to the entry point of the plugin. For example, if a plugin accepts a `--target` option, a subset of the targets to operate on can be passed on the command line that invokes the plugin:
 
 ```shell
-❯ swift package --target Foo --target Bar do-something
+❯ swift package do-something --target Foo --target Bar --someOtherFlag
 ```
 
-This will pass the `Foo` and `Bar` targets to the plugin (assuming those are names of regular targets defined in the package — if they are not, an error is emitted).
-
-The user can also provide additional arguments that are passed directly to the plugin. In the following example, the plugin will receive the arguments `aParam` and `-aFlag`, in addition to the targets named `Foo` and `Bar`.
-
-```shell
-❯ swift package --target Foo --target Bar do-something aParam -aFlag
-```
+It is the responsibility of the plugin to interpret any command line arguments passed to it.
 
 Arguments are currently passed to the plugin exactly as they are written after the command’s verb. A future proposal could allow the plugin to define parameters (using SwiftArgumentParser) that SwiftPM could interpret and that would integrate better with SwiftPM’s own command line arguments.
 
@@ -503,7 +494,6 @@ import Foundation
 struct MyDocCPlugin: CommandPlugin {
     func performCommand(
         context: PluginContext,
-        targets: [Target],
         arguments: [String]
     ) async throws {
         // We'll be creating commands that invoke `docc`, so start by locating it.
@@ -512,8 +502,8 @@ struct MyDocCPlugin: CommandPlugin {
         // Construct the path of the directory in which to emit documentation.
         let outputDir = context.pluginWorkDirectory.appending("Outputs")
 
-        // Iterate over the targets we were given.
-        for target in targets {
+        // Iterate over the targets in the package.
+        for target in context.package.targets {
             // Only consider those kinds of targets that can have source files.
             guard let target = target as? SourceModuleTarget else { continue }
 
@@ -582,8 +572,6 @@ Users can then invoke this command plugin using the `swift` `package` invocation
 ❯ swift package generate-documentation
 ```
 
-Since no `--target` options are provided, SwiftPM passes all the package’s regular targets to the plugin (in this simple example, just the `MyLibrary` target).
-
 The plugin would usually print the path at which it generated the documentation.
 
 ## Example 2: Formatting Source Code
@@ -603,7 +591,7 @@ let package = Package(
     ],
     targets: [
         .plugin(
-            "MyFormatterPlugin",
+            name: "MyFormatterPlugin",
             capability: .command(
                 intent: .sourceCodeFormatting(),
                 permissions: [
@@ -628,7 +616,6 @@ import Foundation
 struct MyFormatterPlugin: CommandPlugin {
     func performCommand(
         context: PluginContext,
-        targets: [Target],
         arguments: [String]
     ) async throws {
         // We'll be invoking `swift-format`, so start by locating it.
@@ -637,8 +624,8 @@ struct MyFormatterPlugin: CommandPlugin {
         // By convention, use a configuration file in the package directory.
         let configFile = context.package.directory.appending(".swift-format.json")
 
-        // Iterate over the targets we've been asked to format.
-        for target in targets {
+        // Iterate over the targets in the package.
+        for target in context.package.targets {
             // Skip any type of target that doesn't have source files.
             // Note: We could choose to instead emit a warning or error here.
             guard let target = target as? SourceModuleTarget else { continue }
@@ -694,17 +681,17 @@ let package = Package(
     targets: [
         // This is the hypothetical executable we want to distribute.
         .executableTarget(
-            "MyExec"
+            name: "MyExec"
         ),
         // This is the plugin that defines a custom command to distribute the executable.
         .plugin(
-            "MyDistributionArchiveCreator",
+            name: "MyDistributionArchiveCreator",
             capability: .command(
                 intent: .custom(
                     verb: "create-distribution-archive",
                     description: "Creates a .zip containing release builds of products"
                 )
-            ),
+            )
         )
     ]
 )
@@ -720,7 +707,6 @@ import Foundation
 struct MyDistributionArchiveCreator: CommandPlugin {
     func performCommand(
         context: PluginContext,
-        targets: [Target],
         arguments: [String]
     ) async throws {
         // Check that we were given the name of a product as the first argument
