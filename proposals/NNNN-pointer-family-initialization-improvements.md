@@ -10,7 +10,7 @@
 
 [proposal]: https://github.com/apple/swift-evolution/blob/pointer-family-initialization/proposals/NNNN-pointer-family-initialization-improvements.md
 [draft-pr]: https://github.com/apple/swift/pull/41608
-<!-- [pitch-thread]: https://forums.swift.org/t/53795 -->
+[pitch-thread]: https://forums.swift.org/t/55689
 
 
 ## Introduction
