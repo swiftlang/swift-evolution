@@ -15,9 +15,7 @@
 
 ## Introduction
 
-The types in the `UnsafeMutablePointer` family typically require manual management of memory allocations,
-including the management of their initialization state.
-The states involved are, after allocation:
+The types in the `UnsafeMutablePointer` family typically require manual management of memory allocations, including the management of their initialization state. Unfortunately, not every relevant type in the family has the necessary functionality to fully manage the initialization state of the memory it represents. The states involved are, after allocation:
 
 1. Unbound and uninitialized (as returned from `UnsafeMutableRawPointer.allocate()`)
 2. Bound to a type, and uninitialized (as returned from `UnsafeMutablePointer<T>.allocate()`)
@@ -25,18 +23,13 @@ The states involved are, after allocation:
 
 Memory can be safely deallocated whenever it is uninitialized.
 
-Unfortunately, not every relevant type in the family has the necessary functionality to fully manage the initialization state of the memory it represents.
-We intend to round out initialization functionality for every relevant member of that family:`UnsafeMutablePointer`, `UnsafeMutableRawPointer`, `UnsafeMutableBufferPointer`, `UnsafeMutableRawBufferPointer`,  `Slice<UnsafeMutableBufferPointer>` and `Slice<UnsafeMutableRawBufferPointer>`. The functionality will allow managing initialization state in a much greater variety of situations, including easier partial initialization of buffers.
+We intend to round out initialization functionality for every relevant member of that family: `UnsafeMutablePointer`, `UnsafeMutableRawPointer`, `UnsafeMutableBufferPointer`, `UnsafeMutableRawBufferPointer`,  `Slice<UnsafeMutableBufferPointer>` and `Slice<UnsafeMutableRawBufferPointer>`. The functionality will allow managing initialization state in a much greater variety of situations, including easier handling of partially-initialized buffers.
 
 Swift-evolution thread: [Pitch thread][pitch-thread]
 
 ## Motivation
 
-Memory allocated using `UnsafeMutablePointer`, `UnsafeMutableRawPointer`,
-`UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer` is passed to the user in an uninitialized state.
-In the general case, such memory needs to be initialized before it is used in Swift.
-Memory can be "initialized" or "uninitialized".
-We hereafter refer to this as a memory region's "initialization state".
+Memory allocated using `UnsafeMutablePointer`, `UnsafeMutableRawPointer`, `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer` is passed to the user in an uninitialized state. In the general case, such memory needs to be initialized before it is used in Swift. Memory can be "initialized" or "uninitialized". We hereafter refer to this as a memory region's "initialization state".
 
 The methods of `UnsafeMutablePointer` that interact with initialization state are:
 
@@ -61,9 +54,7 @@ This is a fairly complete set.
 
 Unfortunately, `UnsafeMutablePointer` is the only one of the list of types listed in the introduction to allow full control of initialization state, and this means that complex use cases such as partial initialization of a buffer become overly complicated.
 
-An example of partial initialization is the insertion of elements in the middle of a collection. This is
-one of the possible operations needed in an implementation of `RangeReplaceableCollection.replaceSubrange(_:with:)`.
-Given a `RangeReplaceableCollection` whose unique storage can be represented by a partially-initialized `UnsafeMutableBufferPointer`:
+An example of partial initialization is the insertion of elements in the middle of a collection. This is one of the possible operations needed in an implementation of `RangeReplaceableCollection.replaceSubrange(_:with:)`. Given a `RangeReplaceableCollection` whose unique storage can be represented by a partially-initialized `UnsafeMutableBufferPointer`:
 
 ```
 mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C)
@@ -100,10 +91,7 @@ mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C)
 }
 ```
 
-Here, we had to convert to `UnsafeMutablePointer` to use some of its API,
-as well as resort to element-by-element copying and initialization.
-With API enabling buffer operations on the slices of buffers,
-we could simplify things greatly:
+Here, we had to convert to `UnsafeMutablePointer` to use some of its API, as well as resort to element-by-element copying and initialization. With API enabling buffer operations on the slices of buffers, we could simplify things greatly:
 ```
 mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C)
   where C: Collection, Element == C.Element {
@@ -131,9 +119,7 @@ mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C)
   ...
 }
 ```
-In addition to simplifying the implementation,
-the new methods have the advantage of having the same bounds-checking behaviour as `UnsafeMutableBufferPointer`,
-relieving the implementation from being required to do its own bounds checking.
+In addition to simplifying the implementation, the new methods have the advantage of having the same bounds-checking behaviour as `UnsafeMutableBufferPointer`, relieving the implementation from being required to do its own bounds checking.
 
 This proposal aims to add API to control initialization state and improve multiple-element copies for `UnsafeMutableBufferPointer`, `UnsafeMutableRawBufferPointer`,  `Slice<UnsafeMutableBufferPointer>` and `Slice<UnsafeMutableRawBufferPointer>`.
 
@@ -172,17 +158,9 @@ extension UnsafeMutableBufferPointer {
 
 We would like to use the verb `update` instead of `assign`, in order to better communicate the intent of the API. It is currently a common programmer error to use one of the existing `assign` functions for uninitialized memory; using the verb `update` instead would express the precondition in the API itself.
 
-The methods that initialize or update from a `Collection` will have forgiving semantics,
-and copy the number of elements that they can, be that every available element or none,
-and then return the index in the buffer that follows the last element copied, which is cheaper than returning an iterator and a count. Unlike the existing `Sequence` functions,
-they include no preconditions beyond having a valid `Collection` and valid buffer,
-with the understanding that if a user needs stricter behaviour,
-it can be composed from these functions.
+The methods that initialize or update from a `Collection` will have forgiving semantics, and copy the number of elements that they can, be that every available element or none, and then return the index in the buffer that follows the last element copied, which is cheaper than returning an iterator and a count. Unlike the existing `Sequence` functions, they include no preconditions beyond having a valid `Collection` and valid buffer, with the understanding that if a user needs stricter behaviour, it can be composed from these functions.
 
-The above changes include a method to update a single element.
-Evidently that is a synonym for the `subscript(_ i: Index)` setter.
-We hope that documenting the update action specifically will help clarify the requirements of that action, namely that the buffer element must already be initialized.
-Experience shows that the initialization requirement of the subscript setter is frequently missed by users in the current situation, where it is only documented along with the subscript getter.
+The above changes include a method to update a single element. Evidently that is a synonym for the `subscript(_ i: Index)` setter. We hope that documenting the update action specifically will help clarify the requirements of that action, namely that the buffer element must already be initialized. Experience shows that the initialization requirement of the subscript setter is frequently missed by users in the current situation, where it is only documented along with the subscript getter.
 
 ##### `UnsafeMutablePointer`
 
@@ -1444,68 +1422,42 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
 
 This proposal consists mostly of additions, which are by definition source compatible.
 
-The proposal includes the renaming of four existing functions from `assign` to `update`.
-The existing function names would be deprecated, producing a warning.
-A fixit will support an easy transition to the renamed versions of these functions.
+The proposal includes the renaming of four existing functions from `assign` to `update`. The existing function names would be deprecated, producing a warning. A fixit will support an easy transition to the renamed versions of these functions.
 
 
 ## Effect on ABI stability
 
-The functions proposed here are generally small wrappers around existing functionality.
-We expect to implement them as `@_alwaysEmitIntoClient` functions,
-which means they would have no ABI impact.
+The functions proposed here are generally small wrappers around existing functionality. We expect to implement them as `@_alwaysEmitIntoClient` functions, which means they would have no ABI impact.
 
-The renamed functions can reuse the existing symbol,
-while the deprecated functions can forward using an `@_alwaysEmitIntoClient` stub to support the functionality under its previous name. This means they would have no ABI impact.
+The renamed functions can reuse the existing symbol, while the deprecated functions can forward using an `@_alwaysEmitIntoClient` stub to support the functionality under its previous name. This means they would have no ABI impact.
 
 
 ## Effect on API resilience
 
-All functionality implemented as `@_alwaysEmitIntoClient` will back-deploy.
-Renamed functions that reuse a previous symbol will also back-deploy.
+All functionality implemented as `@_alwaysEmitIntoClient` will back-deploy. Renamed functions that reuse a previous symbol will also back-deploy.
 
 
 ## Alternatives considered
 
 ##### Single element update functions
 
-The single-element update functions,
-`UnsafeMutablePointer.update(to:)` and `UnsafeMutableBufferPointer.updateElement(at:to:)`,
-are synonyms for the setters of `UnsafeMutablePointer.pointee` and `UnsafeMutableBufferPointer.subscript(_ i: Index)`, respectively.
-Clearly we can elect to not add them.
-The setters in question, like the update functions,
-have a required precondition that the memory they refer to must be initialized.
-Somehow this precondition is often overlooked and leads to bug reports.
-The proposed names and cross-references should help clarify the requirements to users.
+The single-element update functions, `UnsafeMutablePointer.update(to:)` and `UnsafeMutableBufferPointer.updateElement(at:to:)`, are synonyms for the setters of `UnsafeMutablePointer.pointee` and `UnsafeMutableBufferPointer.subscript(_ i: Index)`, respectively. Clearly we can elect to not add them.
+
+The setters in question, like the update functions, have a required precondition that the memory they refer to must be initialized. Somehow this precondition is often overlooked and leads to bug reports. The proposed names and cross-references should help clarify the requirements to users.
 
 ##### Renaming `assign` to `update`
 
-The renaming of `assign` to `update` could be omitted entirely,
-although we believe that `update` communicates intent much better than `assign` does.
-In _The Swift Programming Language_, the `=` symbol is named "the assignment operator", and its function is described as to either initialize or to update a value. The current name (`assign`) is not as clear as the documentation in *TSPL*, while the proposed name (`update`) builds on it.
+The renaming of `assign` to `update` could be omitted entirely, although we believe that `update` communicates intent much better than `assign` does. In _The Swift Programming Language_, the `=` symbol is named "the assignment operator", and its function is described as to either initialize or to update a value. The current name (`assign`) is not as clear as the documentation in *TSPL*, while the proposed name (`update`) builds on it.
 
-There are only four current symbols to be renamed by this proposal,
-and their replacements are easily migrated by a fixit.
-For context, this renaming would change only 6 lines of code in the standard library, outside of the function definitions.
-If the renaming is omitted, the four new functions proposed in the family should use the name `assign` as well.
-The two single-element versions would be `assign(_ value:)` and `assignElement(at:_ value:)`.
+There are only four current symbols to be renamed by this proposal, and their replacements are easily migrated by a fixit. For context, this renaming would change only 6 lines of code in the standard library, outside of the function definitions. If the renaming is omitted, the four new functions proposed in the family should use the name `assign` as well. The two single-element versions would be `assign(_ value:)` and `assignElement(at:_ value:)`.
 
 ##### Element-by-element copies from `Collection` inputs
 
-The initialization and updating functions that copy from `Collection` inputs use the argument label `fromElements`.
-This is different from the pre-existing functions that copy from `Sequence` inputs.
-We could use the same argument label (`from`) as with the `Sequence` inputs,
-but that would mean that we must return the `Iterator` for the `Collection` versions,
-and that is generally not desirable, especially if a particular `Iterator` cannot be copied cheaply.
-If we did not return `Iterator`, then the `Sequence` and `Collection` versions of the `initialize(from:)` would be overloaded by their return type,
-and that would be source-breaking:
-an existing use of the current function that doesn't destructure the returned tuple on assignment could now pick up the `Collection` overload,
-which would have a return value incompatible with the existing code which assumes that the return value is of type `(Iterator, Int)`.
+The initialization and updating functions that copy from `Collection` inputs use the argument label `fromElements`. This is different from the pre-existing functions that copy from `Sequence` inputs. We could use the same argument label (`from`) as with the `Sequence` inputs, but that would mean that we must return the `Iterator` for the `Collection` versions, and that is generally not desirable, especially if a particular `Iterator` cannot be copied cheaply. If we did not return `Iterator`, then the `Sequence` and `Collection` versions of the `initialize(from:)` would be overloaded by their return type, and that would be source-breaking:
+an existing use of the current function that doesn't destructure the returned tuple on assignment could now pick up the `Collection` overload, which would have a return value incompatible with the existing code which assumes that the return value is of type `(Iterator, Int)`.
 
 ## Acknowledgments
 
-[Kelvin Ma](https://github.com/kelvin13) (aka [Taylor Swift](https://forums.swift.org/u/taylorswift/summary))'s initial versions of the pitch that became SE-0184 included more functions to manipulate initialization state.
-These were deferred, but much of the deferred functionality has not been pitched again until now.
+[Kelvin Ma](https://github.com/kelvin13) (aka [Taylor Swift](https://forums.swift.org/u/taylorswift/summary))'s initial versions of the pitch that became SE-0184 included more functions to manipulate initialization state. These were deferred, but much of the deferred functionality has not been pitched again until now.
 
 Members of the Swift Standard Library team for valuable discussions.
-
