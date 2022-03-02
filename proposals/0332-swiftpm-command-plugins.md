@@ -591,7 +591,7 @@ let package = Package(
     ],
     targets: [
         .plugin(
-            "MyFormatterPlugin",
+            name: "MyFormatterPlugin",
             capability: .command(
                 intent: .sourceCodeFormatting(),
                 permissions: [
@@ -681,17 +681,17 @@ let package = Package(
     targets: [
         // This is the hypothetical executable we want to distribute.
         .executableTarget(
-            "MyExec"
+            name: "MyExec"
         ),
         // This is the plugin that defines a custom command to distribute the executable.
         .plugin(
-            "MyDistributionArchiveCreator",
+            name: "MyDistributionArchiveCreator",
             capability: .command(
                 intent: .custom(
                     verb: "create-distribution-archive",
                     description: "Creates a .zip containing release builds of products"
                 )
-            ),
+            )
         )
     ]
 )
