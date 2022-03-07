@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/main/proposal-templates/NNNN-filename.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Holly Borla](https://github.com/hborla), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: TBD
-* Status: Implemented on `main` behind the `-enable-parameterized-protocol-types` feature flag; primary associated types are declared with the interim `@_primaryAssociatedType` attribute rather than the proposed syntax.
+* Status: Implemented on `main` behind the `-enable-parameterized-protocol-types` feature flag.
 
 ## Introduction
 
@@ -64,7 +64,7 @@ func concatenate<S : Sequence>(_ lhs: S, _ rhs: S) -> S where S.Element == Strin
 
 However, while `where` clauses are very general and allow complex generic requirements to be expressed, they also introduce cognitive overhead when reading and writing the declaration, and looks quite different than the concrete implementation where the type was simply written as `Array<String>`. It would be nice to have a simpler solution for cases where there is only a single same-type requirement, as above.
 
-## Proposed Solution
+## Proposed solution
 
 We’d like to propose a new syntax for declaring a protocol conformance requirement together with one or more same-type requirements on the protocol's _primary associated types_. This new syntax looks like the application of a concrete generic type to a list of type arguments, allowing you to write `AsyncSequence<String>` or `AsyncSequence<[Lines]>`. This builds on the user's previous intuition and understanding of generic types and is analogous to `Array<String>` and `Array<[Lines]>`.
 
@@ -100,15 +100,18 @@ func concatenate<S : Sequence<String>>(_ lhs: S, _ rhs: S) -> S {
 }
 ```
 
+Primary associated types are intended to be used for associated types which are usually provided by the caller. These associated types are often witnessed by generic parameters of the conforming type. For example, `Element` is a natural candidate for the primary associated type of `Sequence`, since `Array<Element>` and `Set<Element>` both conform to `Sequence`, with the `Element` associated type witnessed by a generic parameter. This introduces a clear analogy between the type `Sequence<Int>` on one hand and the types `Array<Int>`, `Set<Int>` on the other hand.
+
 ## Detailed design
 
 At the protocol declaration, an optional _primary associated types list_ delimited by angle brackets can follow the protocol name. When present, at least one primary associated type must be declared. Multiple primary associated types are separated by commas. Each primary associated type may optionally declare an inheritance clause. The formal grammar is amended as follows, adding an optional **primary-associated-type-list** production to **protocol-declaration**:
 
 - **protocol-declaration** → attributes<sub>opt</sub> access-level-modifier<sub>opt</sub> `protocol` protocol-name primary-associated-type-list<sub>opt</sub> type-inheritance-clause<sub>opt</sub> generic-where-clause<sub>opt</sub> protocol-body
 - **primary-associated-type-list** → `<` primary-associated-type | primary-associated-type `,` primary-associated-type-list `>`
-- **primary-associated-type** → type-name
-- **primary-associated-type** → type-name `:` type-identifier
-- **primary-associated-type** → type-name `:` protocol-composition-type
+- **primary-associated-type** → type-name typealias-assignment<sub>opt</sub>
+- **primary-associated-type** → type-name `:` type-identifier typealias-assignment<sub>opt</sub>
+- **primary-associated-type** → type-name `:` protocol-composition-type default-witness<sub>opt</sub>
+- **default-witness** → `=` type
 
 Some examples:
 
@@ -122,6 +125,12 @@ protocol PersistentSortedMap<Key : Comparable & Codable, Value : Codable> {
 }
 ```
 
+A default type witness can be provided, as with ordinary associated type declarations:
+
+```swift
+protocol GraphProtocol<Vertex : Equatable = String> {}
+```
+
 Additional requirements on the primary associated type can be written with a `where` clause on the protocol or another associated type; the inheritance clause syntax is equivalent to the following:
 
 ```swift
@@ -131,6 +140,8 @@ protocol SetProtocol<Element> where Element : Hashable {
 ```
 
 At the usage site, a _constrained protocol_ may now be written with one or more type arguments, like `P<Arg1, Arg2...>`. Specifying fewer type arguments than the number of primary associated types is allowed; subsequent primary associated types remain unconstrained. Adding a list of primary associated types to a protocol is a source-compatible change; the protocol can still be referenced without angle brackets as before.
+
+Note that default associated type witnesses pertain to the conformance, and do not provide a default at the usage site. For example, with `GraphProtocol` above, the constraint type `GraphProtocol` leaves `Vertex` unspecified, instead of constraining it to `String`.
 
 ### Constrained protocols in desugared positions
 
@@ -202,6 +213,12 @@ An exhaustive list of positions where the constrained protocol syntax may appear
       where S.Element == String
   ```
 
+- The protocol arguments can contain nested opaque parameter declarations. For example,
+
+  ```swift
+  func sort(elements: inout some Collection<some Equatable>) {}
+  ```
+
 When referenced from one of the above positions, a conformance requirement `T : P<Arg1, Arg2...>` desugars to a conformance requirement `T : P` followed by one or more same-type requirements:
 
 ```swift
@@ -241,9 +258,42 @@ struct Lines : Collection {
 
 Adding some kind of modifier to `associatedtype` declaration shifts complexity to the users of an API because it’s still distinct from how generic types declare their parameters, which goes against the progressive disclosure principle, and, if we choose to generalize this proposal to multiple primary associated types in the future, requires an understanding of ordering on the use-site.
 
-### Use the first declared `associatedtype` as the primary associated type.
+This would also make declaration order significant, in a way that is not currently true for the members of a protocol definition.
 
-This would make source order load bearing in a way that hasn’t been in the past, and would only support one associated type, which might not be sufficient in the future.
+Annotation of associated type declarations could make it easier to conditionally declare a protocol which defines primary associated types in newer compiler versions only. The syntax described in this proposal applies to the protocol declaration itself. As a consequence, a library wishing to adopt this feature in a backwards-compatible manner must duplicate entire protocol definitions behind `#if` blocks:
+
+```swift
+#if swift(>=5.7)
+protocol SetProtocol<Element : Hashable> {
+  var count: Int { get }
+  ...
+}
+#else
+protocol SetProtocol {
+  associatedtype Element : Hashable
+
+  var count: Int { get }
+  ...
+}
+#endif
+```
+
+With a hypothetical `primary` keyword, only the primary associated types must be duplicated:
+
+```swift
+protocol SetProtocol {
+#if swift(>=5.7)
+  primary associatedtype Element : Hashable
+#else
+  associatedtype Element : Hashable
+#if
+
+  var count: Int { get }
+  ...
+}
+```
+
+However, duplicating the associated type declaration in this manner is still an error-prone form of code duplication, and it makes the code harder to read. We feel that this use case should not unnecessarily hinder the evolution of the language syntax. The concerns of libraries adopting new language features while remaining compatible with older compilers is not unique to this proposal, and would be best addressed with a third-party pre-processor tool.
 
 ### Require associated type names, e.g. `Collection<.Element == String>`
 
