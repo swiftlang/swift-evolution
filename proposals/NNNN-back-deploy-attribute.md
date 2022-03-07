@@ -59,7 +59,7 @@ While `@_alwaysEmitIntoClient` can be used to back deploy APIs, there are some d
 1. The API implemention from the original library is preferred at runtime when it is available.
 2. Fallback copies of the API implementation are absent from clients binaries when they would never be used.
 
-Swift-evolution thread: TBD
+Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-function-back-deployment/55769)
 
 ## Proposed solution
 
