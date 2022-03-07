@@ -1268,7 +1268,7 @@ class ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
   /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
   /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
   /// performs the actual distributed (local) instance method invocation.
-  func decodeNextArgument<Argument: SerializationRequirement>() throws {
+  func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument {
     try nextDataLength = try bytes.readInt()
     let nextData = try bytes.readData(bytes: nextDataLength)
     // since we are guaranteed the values are Codable, so we can just invoke it:
