@@ -36,6 +36,8 @@
       - [Recipient: The `executeDistributedTarget` method](#recipient-the-executedistributedtarget-method)
       - [Recipient: Executing the distributed target](#recipient-executing-the-distributed-target)
       - [Recipient: Collecting result/error from invocations](#recipient-collecting-resulterror-from-invocations)
+  - [Amendments](#amendments)
+    - [Initializers no longer need to accept a single `DistributedActorSystem`](#initializers-no-longer-need-to-accept-a-single-distributedactorsystem)
   - [Future work](#future-work)
     - [Variadic generics removing the need for `remoteCallVoid`](#variadic-generics-removing-the-need-for-remotecallvoid)
     - [Stable names and more API evolution features](#stable-names-and-more-api-evolution-features)
@@ -393,96 +395,68 @@ Distributed actor initializers inject a number of calls into specific places of 
 
 A non-delegating initializer of a type must *fully initialize* it. The place in code where an actor becomes fully initialized has important and specific meaning to actor isolation which is defined in depth in [SE-0327: On Actors and Initialization](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). Not only that, but once fully initialized it is possible to escape `self` out of a (distributed) actor's initializer. This aspect is especially important for distributed actors, because it means that once fully initialized they _must_ be registered with the actor system as they may be sent to other distributed actors and even sent messages to.
 
-All non-delegating initializers must accept a parameter that conforms to the `DistributedActorSystem` protocol. The type-checking rules of this are explained in depth in [SE-0336: Distributed Actor Isolation][isolation]. The following are examples of well-formed initializers:
+All non-delegating initializers must store an instance of a `DistributedActorSystem` conforming type into their `self.actorSystem` property. 
+
+This is an improvement over the initially proposed semantics in [SE-0336: Distributed Actor Isolation][isolation], where the initializers must have accepted a _single_ distributed actor system argument and would initialize the synthesized stored property automatically. 
+
+This proposal amends this behavior to the following semantics:
+
+- the default initializer gains a `actorSystem: Self.ActorSystem` parameter.
+- other non-delegating initializers must initialize the `self.actorSystem` property explicitly.
+  - it is recommended to accept an actor system argument and store it 
+  - it technically it is also possible to store a global actor system to this property, however this is generally an anti-pattern as it hurts testability of such actor (i.e. it becomes impossible to swapr the actor system for a "for testing" one during test execution).
 
 ```swift
 distributed actor DA {
   // synthesized:
-  // init(system: Self.ActorSystem) {} // ✅ no user defined init, so we synthesize a default one
+  // init(actorSystem: Self.ActorSystem) {} // ✅ no user defined init, so we synthesize a default one
 }
 
 distributed actor DA2 {
-  init(system: Self.ActorSystem) {} // ✅ ok, accepting the appropriate system type
+  init(system: Self.ActorSystem) { // ⚠️ ok declaration, but self.actorSystem was not initialized
+    // ❌ error: implicit stored property 'actorSystem' was not initialized
+  }
 
-  init(other: Int, system: Self.ActorSystem) {} // ✅ ok, other parameters are fine, in any order
-  init(on system: Self.ActorSystem, with number: Int) {} // ✅ ok, other parameters are fine, in any order
-
-  init(node: ClusterSystem) {} // ✅ ok, labels don't matter
-}
-
-distributed actor DA3 {
-  convenience init() {
-    self.init(system: someGlobalSystem) {} // ✅ ok to delegate with default value, but generally a bad idea
+  init(other: Int, actorSystem system: Self.ActorSystem) { // ✅ ok
+    self.actorSystem = system
   }
 }
 ```
-
-These initializers are ill-formed since they are missing the necessary parameter:
-
-```swift
-distributed actor DA {
-  init(system: SomeActorSystem, too many: SomeActorSystem) { ... }
-  // ❌ error: designated distributed actor initializer 'init(transport:too:)' must accept exactly one ActorTransport parameter, found 2
-
-  init(x: String) {}
-  // ❌ error: designated distributed actor initializer 'init(x:)' is missing required ActorTransport parameter
-}
-```
-
-To learn more about the specific restrictions, please refer to [SE-0336: Distributed Actor Isolation][isolation].
 
 Now in the next sections, we will explore in depth why this parameter was necessary to enforce to begin with.
 
 #### Initializing `actorSystem` and `id` properties
 
-The first reason is that we need to initialize the `actorSystem` stored property.
+The two properties (`actorSystem` and `id`) are synthesized _stored_ properties in the body of every actor.
 
-This is also necessary for any distributed actor's default initializer, which is synthesized when no user-defined initializer is provided. It is similar to the no-argument default initializer that is synthesized for classes and actors:
+Users must initialize the `actorSystem`, however management of the `id` is left up to the compiler to synthesize. All properties of an actor have to be initialized for the type to become fully initialized, same as with any other type. However, the initialization of `id` is left to the compiler in order to streamline the initialization, as well as keep the _strict_ contract between the stored actor system and that the `ID` _must_ be assigned by that exact actor system. It would be illegal to just assign an `id` from some other source because of how tightly it relates to the actors lifecycle.
 
-```swift
-// user defined:
-distributed actor DA {}
-
-// ~~~ synthesized ~~~
-distributed actor DA: DistributedActor {
-  init(system: Self.ActorSystem) { ... }
-}
-// ~~~ end of synthesized ~~~
-```
-
-The `system` argument is necessary to initialize the actors synthesized `id` and `actorSystem` properties. Let us now discuss how this is done.
-
-The `actorSystem` property is the simpler one of the two, because we just need to store the passed-in `system` into the local property. The compiler synthesizes code that does this in any designated initializer of distributed actors:
+The compiler synthesizes code that does this in any designated initializer of distributed actors:
 
 ```swift
 distributed actor DA {
   // let id: ID
   // let actorSystem: ActorSystem
 
-  init(system: Self.ActorSystem) {
+  init(actorSystem: Self.ActorSystem) {
+    self.actorSystem = actorSystem
     // ~~~ synthesized ~~~
-    self.actorSystem = system
     // ...
     // ~~~ end of synthesized ~~~
   }
 }
 ```
 
-The initialization of the `id` property is a little more involved. We need to communicate with the `system` used to initialize the distributed actor, for it is the `ActorSystem` that allocates and manages identifiers. In order to obtain a fresh `ID` for the actor being initialized, we need to call `system`'s `assignID` method. This is done before any user-defined code is allowed to run in the actors designated initializer, like this:
+Synthesizing the id assignment means that we need to communicate with the `system` used to initialize the distributed actor, for it is the `ActorSystem` that allocates and manages identifiers. In order to obtain a fresh `ID` for the actor being initialized, we need to call `system`'s `assignID` method. This is done before any user-defined code is allowed to run in the actors designated initializer, like this:
 
 ```swift
 distributed actor DA {
   let number: Int
-  // user defined:
-  init(system: ActorSystem) {
-    self.number = 42
-  }
 
-  // ~~~ synthesized ~~~
   init(system: ActorSystem) {
-    // ~~ injected property initialization ~~
     self.actorSystem = system
-    self.id = system.assignID(Self.self)
+    // ~~ injected property initialization ~~
+    // self.id = system.assignID(Self.self)
     // ~~ end of injected property initialization ~~
 
     // user-defined code follows...
@@ -490,7 +464,6 @@ distributed actor DA {
 
     // ...
   }
-  // ~~~ end of synthesized ~~~
 }
 ```
 
@@ -513,14 +486,14 @@ distributed actor DA {
   let number: Int
 
   init(sync system: ActorSystem) {
-    // << self.actorSystem = system
+    self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     self.number = 42
     // << system.actorReady(self)
   }
 
   init(sync system: ActorSystem) {
-    // << self.actorSystem = system
+    self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     self.number = 42
     // << system.actorReady(self)
@@ -537,7 +510,7 @@ If the self of the actor were to be escaped on multiple execution paths, the rea
 distributed actor DA {
   let number: Int
   init(number: Int, system: ActorSystem) async {
-    // << self.actorSystem = system
+    self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     if number % 2 == 0 {
       print("even")
@@ -562,6 +535,7 @@ Another thing to be aware of is "long" initializers, which take a long time to c
 
 ```swift
 init(items: [Item], system: ActorSystem) async {
+  self.actorSystem = system
   // << self.id = system.assignID(Self.self)
   for await item in items {
     await compute(item)
@@ -585,6 +559,7 @@ Another interesting case the `actorReady` synthesis in initializers needs to tak
 distributed actor DA {
   var int: Int
   init(system: ActorSystem) async {
+    self.actorSystem = system
     var loops = 10
     while loops > 0 {
       self.int = loops
@@ -609,9 +584,7 @@ The synthesized (pseudo-)code therefore is something like this:
 distributed actor DA {
   var int: Int
   init(system: ActorSystem) {
-    // initialized properties bitmap: INITMAP
-    // << self.actorSystem = system
-    // MARK INITMAP[actorSystem] = INITIALIZED
+     self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     // MARK INITMAP[id] = INITIALIZED
 
@@ -677,7 +650,7 @@ distributed actor DA {
   var int: Int
 
   init?(int: Int, system: ActorSystem) {
-    // << self.actorSystem = system
+    self.actorSystem = system
     // << self.id = actorSystem.assignID(Self.self)
     // ...
     if int < 10 {
@@ -706,7 +679,7 @@ distributed actor DA {
   var int: Int
 
   init(int: Int, system: ActorSystem) throws {
-    // << self.actorSystem = system
+    self.actorSystem = system
     // << self.id = system.assignID(Self.self)
     // ...
     if int <= 1 {
@@ -1481,6 +1454,54 @@ We omit the implementations of `replyError` and `reply` because they are more of
 The general pattern here is the same as with decoding parameters, however in the opposite direction.
 
 Once the `onError` or `onReturn` methods complete, the `executeDistributedTarget` method returns, and its caller knows the distributed request/response has completed – at least, as far as this peer is concerned. We omit the implementation of the `reply` and `replyError` methods that the actor system would implement here, because they are pretty much the same process as sending the request, except that the message must be sent as a response to a specific request, rather than target a specific actor and method. How this is achieved can differ wildly between transport implementations: some have built-in request/reply mechanisms, while others are uni-directional and rely on tagging replies with identifiers such as "this is a reply for request 123456".
+
+## Amendments
+
+### Initializers no longer need to accept a single DistributedActorSystem
+
+During this review, feedback was received and addressed with regards to the previous implementation limitation that user defined designated actor initializers must have always accepted a single `DistributedActorSystem` conforming parameter. This was defined in [SE-0336: Distributed Actor Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md).
+
+The limitation used to be that one had to accept such parameter or the system would fail to synthesize the initializer an offer a compile-time error:
+
+```swift
+// PREVIOUSLY, as defined by SE-0336
+init(x: String) {}
+// ❌ error: designated distributed actor initializer 'init(x:)' is missing required 'DistributedActorSystem' parameter
+
+init(system: AnyDistributedActorSystem) {} 
+// ✅ used to be ok; though the "unused" parameter looks confusing and is actually necessary
+```
+
+This system argument, picked by type, would have been picked up by the compiler and used in synthesis of necessary calls during a distributed actor's initialization. This led to a weird "dangling" parameter that is not used by visible code, but is crucial for the correctness of the program.
+
+This implementation restriction is now lifted, and is rephrased as requiring an assignment to the `self.actorSystem` property in non-delegating initializers. This is in line with how normal Swift works, and can be explained to users more intuitively, because every `distributed actor` has a synthesized `let actorSystem: ActorSystem` property, it clearly must be initialized to something as implied by normal initializer rules.
+
+The checks therefore are now plain property assignment checks, and the compiler is able to pick up the assigned property and synthesize the necessary `assignID` and `actorReady` calls based on the property, e.g.:
+
+```swift
+distributed actor Example {  
+  init(x: String) {
+    // ❌ error: property 'actorSystem' was not initialized
+    // more educational notes to be produced here (e.g. what type it expects etc)
+  }
+  
+  init (x: String, cluster: ClusterSystem) {
+    self.actorSystem = cluster // ✅ ok
+  }
+}
+```
+
+This means that it is also possible to assign a "global" or static actor system, however it is **strongly discouraged** to do so because it hurts reusability and testability, e.g. by swapping a test instance of an actor system during unit tests.
+
+```swift
+// Possible, but considered an anti-pattern as it hurts testability of such actor
+// DON'T DO THIS.
+distributed actor NotGoodIdea {
+  init() {
+    self.actorSystem = SomeSystem.global // anti-pattern, always accept an actor system via initializer.
+  }
+}
+```
 
 ## Future work
 
