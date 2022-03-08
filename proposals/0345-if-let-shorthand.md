@@ -1,9 +1,9 @@
 # `if let` shorthand for shadowing an existing optional variable 
 
-* Proposal: [SE-NNNN](NNNN-if-let-shorthand.md)
+* Proposal: [SE-0345](0345-if-let-shorthand.md)
 * Authors: [Cal Stephens](https://github.com/calda)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active Review (March 8...22, 2022)**
 * Implementation: [apple/swift#40694](https://github.com/apple/swift/pull/40694)
 
 ## Introduction
