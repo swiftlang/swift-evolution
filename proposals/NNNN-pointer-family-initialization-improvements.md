@@ -635,11 +635,13 @@ extension UnsafeMutableRawBufferPointer {
   ///   - type: The type of element to which this buffer's memory will be bound.
   ///   - fromElements: A collection of elements to be used to
   ///     initialize the buffer's storage.
-  /// - Returns: A typed buffer of the initialized elements. The returned
-  ///   buffer references memory starting at the same base address as this
-  ///   buffer, and its count indicates the number of elements copied from
-  ///   the collection `elements`.
-  func initializeMemory<C>(as: C.Element.Type, fromElements: C) -> UnsafeMutableBufferPointer<C.Element>
+  /// - Returns: A typed buffer containing the initialized elements.
+  ///     The returned buffer references memory starting at the same
+  ///     base address as this buffer, and its count indicates
+  ///     the number of elements copied from the collection `elements`.
+  func initializeMemory<C>(
+    as: C.Element.Type, fromElements: C
+  ) -> UnsafeMutableBufferPointer<C.Element>
     where C: Collection
 
   /// Moves instances from an initialized source buffer into the
