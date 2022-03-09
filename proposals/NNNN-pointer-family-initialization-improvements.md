@@ -580,7 +580,7 @@ extension UnsafeMutablePointer {
   public func moveUpdate(from source: UnsafeMutablePointer, count: Int)
 ```
 
-```
+```swift
 extension UnsafeMutableRawPointer {
   /// Initializes the memory referenced by this pointer with the given value,
   /// binds the memory to the value's type, and returns a typed pointer to the
