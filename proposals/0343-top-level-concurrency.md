@@ -156,6 +156,14 @@ alleviate the source break, the variable is implicitly annotated with the
 once the language mode is updated to Swift 6, these data races will become hard
 errors.
 
+If `-warn-concurrency` is passed to the compiler and there is an `await` in
+top-level code, the warnings are hard errors in Swift 5, as they would in any
+other asynchronous context. If there is no `await` and the flag is passed,
+variables are implicitly protected by the main actor and concurrency checking is
+strictly enforced, even though the top-level is not an asynchronous context.
+Since the top-level is not an asynchronous context, no run-loops are created
+implicitly and the overload resolution behavior does not change.
+
 In summary, top-level variable declarations behave as though they were declared
 with `@MainActor @preconcurrency` in order to strike a nice balance between
 data-race safety and reducing source breaks.
