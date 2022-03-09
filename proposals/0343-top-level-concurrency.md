@@ -81,6 +81,12 @@ After Swift 6, full actor-isolation checking will take place. The usage of `a`
 in `bar` will result in an error due to `bar` not being isolated to the
 `MainActor`. In Swift 5, this will compile without errors.
 
+Alternatively, passing `-async-top-level` will make the top-level context an
+asynchronous context with the semantic changes to variables without an explicit
+`await`. Please note that this will have an effect on the overload resolution
+behavior of the type system, favoring asynchronous overloads due to the
+now-asynchronous top-level context.
+
 ## Detailed design
 
 ### Asynchronous top-level context inference
