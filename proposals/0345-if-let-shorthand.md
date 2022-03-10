@@ -1,7 +1,7 @@
 # `if let` shorthand for shadowing an existing optional variable 
 
 * Proposal: [SE-0345](0345-if-let-shorthand.md)
-* Authors: [Cal Stephens](https://github.com/calda)
+* Author: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (March 8...22, 2022)**
 * Implementation: [apple/swift#40694](https://github.com/apple/swift/pull/40694)
@@ -116,7 +116,16 @@ is transformed into:
 if let foo: Foo = foo { ... }
 ```
 
-Since the pattern following the `let` serves as both an evaluated expression _and_ an identifier for the newly-defined non-optional variable, only valid identifiers would be permitted. For example, this example would not be permitted:
+The pattern following the introducer serves as both an evaluated expression _and_ an identifier for the newly-defined non-optional variable. Existing precedent for this type of syntax includes closure capture lists, which work the same way:
+
+```swift
+let foo: Foo
+let closure = { [foo] in // `foo` is both an expression and the identifier 
+    ...                  // for a new variable defined within the closure
+}
+```
+
+Because of this, only valid identifiers would be permitted with this syntax. For example, this example would not be valid:
 
 ```swift
 if let foo.bar { ... } // 🛑
@@ -304,9 +313,17 @@ Another option is to include a `?` to explicitly indicate that this is unwrappin
 
 `if let foo = foo` (the most common existing syntax for this) unwraps optionals without an explicit `?`. This implies that a conditional optional binding is sufficiently clear without a `?` to indicate the presence of an optional. If this is the case, then an additional `?` is likely not strictly necessary in the shorthand `if let foo` case.
 
-While the symmetry of `if let foo?` with `case let foo?` is quite nice, the symmetry of `if let foo` with `if let foo = foo` is even more important. Pattern matching is a somewhat advanced feature — `if let foo = foo` bindings are much more fundamental. 
+While the symmetry of `if let foo?` with `case let foo?` is nice, consistency with `if let foo = foo` is even more important condiering they will more frequently appear within the same statement:
 
-Additionally, the `?` makes it trickier to support explicit type annotations like in `if let foo: Foo = foo`. `if let foo: Foo` is a natural consequence of the existing grammar. It's less clear how this would work with an additional `?`. `if let foo?: Foo` likely makes the most sense, but doesn't match any existing language constructs.
+```swift
+// Consistent
+if let user, let defaultAddress = user.shippingAddresses.first { ... }
+
+// Inconsistent
+if let user?, let defaultAddress = user.shippingAddresses.first { ... }
+```
+
+Additionally, the `?` symbol makes it trickier to support explicit type annotations like in `if let foo: Foo = foo`. `if let foo: Foo` is a natural consequence of the existing grammar. It's less clear how this would work with an additional `?`. `if let foo?: Foo` likely makes the most sense, but doesn't match any existing language constructs.
 
 ### `if foo != nil`
 
@@ -357,3 +374,7 @@ Thanks to Chris Lattner for suggesting to consider how this proposal should inte
 Thanks to [tera](https://forums.swift.org/u/tera/summary) for suggesting the alternative `if foo` spelling.
 
 Thanks to Jon Shier for providing the SwiftUI optional binding example.
+
+Thanks to James Dempsey for providing the "consistency with existing optional binding conditions" example.
+
+Thanks to Frederick Kellison-Linn for pointing out that variables in closure capture lists are an existing precedent for this type of syntax.
