@@ -3,7 +3,7 @@
 * Proposal: [SE-0303](0303-swiftpm-extensible-build-tools.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Implemented in 5.6**
+* Status: **Implemented (5.6)**
 * Amendment status: **Accepted**
 * Revision Pitch and Discussion: [Pitch: Amend SE-0303 Plugin API to Use `@main` for Plugin Entry Point](https://forums.swift.org/t/pitch-amend-se-0303-plugin-api-to-use-main-for-plugin-entry-point/51250)
 * Original Pitch and Discussion: [Pitch: SwiftPM Extensible Build Tools](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)
