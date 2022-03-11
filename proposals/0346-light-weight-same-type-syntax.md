@@ -279,7 +279,7 @@ There are three more places where constrained protocols may appear:
   
   The typealias may be used in any position where the constrained protocol type itself would be used.
   
-- As a member of a protocol composition in any position where a constrained protocol type is itself valid:
+- As a member of a protocol composition, when the protocol composition appears in any position where a constrained protocol type would be valid:
 
   ```swift
   func takeEquatableSequence(_ seqs: some Sequence<Int> & Equatable) {}
