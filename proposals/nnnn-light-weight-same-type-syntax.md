@@ -206,53 +206,130 @@ An exhaustive list of positions where the constrained protocol syntax may appear
     func sortLines(_ lines: some Collection<String>)
 
     // Equivalent to:
-    func sortLines <S : Collection<String>>(_ lines: S)
+    func sortLines <C : Collection<String>>(_ lines: C)
 
     // In turn equivalent to:
-    func sortLines <S : Collection>(_ lines: S)
-      where S.Element == String
+    func sortLines <C : Collection>(_ lines: C)
+      where C.Element == String
   ```
 
 - The protocol arguments can contain nested opaque parameter declarations. For example,
 
   ```swift
   func sort(elements: inout some Collection<some Equatable>) {}
+  
+  // Equivalent to:
+  func sort<C : Collection, E : Equatable>(elements: inout C) {}
+      where C.Element == E
   ```
 
 When referenced from one of the above positions, a conformance requirement `T : P<Arg1, Arg2...>` desugars to a conformance requirement `T : P` followed by one or more same-type requirements:
 
 ```swift
 T : P
-T.PrimaryType1 : Arg1
-T.PrimaryType2 : Arg2
+T.PrimaryType1 == Arg1
+T.PrimaryType2 == Arg2
 ...
 ```
 
+If the right hand side `Arg1` is itself an opaque parameter type, a fresh generic parameter is introduced for use as the right-hand side of the same-type requirement. See [SE-0341 Opaque Parameter Declarations](https://github.com/apple/swift-evolution/blob/main/proposals/0341-opaque-parameters.md) for details.
+
 ### Constrained protocols in opaque result types
 
-The final location where a constrained protocol may appear is in an opaque result type prefixed by the `some` keyword. In this case, the syntax actually allows you to express something that was previously not possible to write, since we do not allow `where` clauses on opaque result types:
+- A constrained protocol may appear in an opaque result type specified by the `some` keyword. In this case, the syntax actually allows you to express something that was previously not possible to write, since we do not allow `where` clauses on opaque result types:
 
-```swift
-func transformElements<S : Sequence<E>, E>(_ lines: S) -> some Sequence<E>
-```
+  ```swift
+  func transformElements<S : Sequence<E>, E>(_ lines: S) -> some Sequence<E>
+  ```
 
-This example also demonstrates that the argument can itself depend on generic parameters from the outer scope.
+  This example also demonstrates that the argument can itself depend on generic parameters from the outer scope.
 
-Note that since an inheritance clause on a concrete type is not sugar for a generic requirement, we do not allow protocols with generic arguments there, because there is no base type to apply the implied same-type requirement to. For example, the following is not valid:
+  The [SE-0328 Structural Opaque Result Types](https://github.com/apple/swift-evolution/blob/main/proposals/0328-structural-opaque-result-types.md) pitch allows multiple occurrences of `some` in a return type. This generalizes to constrained protocol types, whose constraint can be another opaque result type:
 
-```swift
-struct Lines : Collection<String> { ... }
-```
+  ```swift
+  func transform(_: some Sequence<some Equatable>) -> some Sequence<some Equatable>
+  ```
 
-It might be possible to assign some alternate meaning to this, for example introduction of an implied typealias, but that is outside of the scope of this proposal:
+  Note that in the above, the opaque result type `some Sequence<some Equatable>` is unrelated to the opaque _parameter_ type `some Sequence<some Equatable>`. The parameter type is provided by the caller. The opaque result type is a (possibly different) homogeneous sequence of elements, where the element type is known to conform to `some Equatable` but is otherwise opaque to the caller.
 
-```swift
-struct Lines : Collection {
-  typealias Element = String
-}
-```
+### Other positions
+
+- A constrained protocol type may appear in the inheritance clause of a concrete type, for example:
+
+  ```swift
+  struct Lines : Collection<String> { ... }
+  ```
+
+  In this position it is sugar for specifying the associated type witness, similar to explicitly declaring a typealias:
+
+  ```swift
+    struct Lines : Collection {
+      typealias Element = String
+    }
+  ```
+
+- A constrained protocol type may appear as a member of a protocol composition in any position where a constrained protocol type is itself valid:
+
+  ```swift
+  func takeEquatableSequence(_ seqs: some Sequence<Int> & Equatable) {}
+  ```
+
+### Unsupported positions
+
+A natural generalization is to enable this syntax for existential types, e.g. `any Collection<String>`. This is a larger feature that needs careful consideration of type conversion behaviors. It will also require runtime support for metadata and dynamic casts. For this reason it will be covered by a separate proposal.
 
 ## Alternatives considered
+
+### Require associated type names, e.g. `Collection<.Element == String>`
+
+Explicitly writing associated type names to constrain them in angle brackets has a number of benefits:
+
+* Doesn’t require any special syntax at the protocol declaration.
+* Explicit associated type names allows constraining arbitrary associated types.
+
+There are also a number of drawbacks to this approach:
+
+* No visual clues at the protocol declaration about what associated types are useful.
+* The use-site may become onerous. For protocols with only one primary associated type, having to specify the name of it is unnecessarily repetitive.
+* The syntax can be confusing when the constrained associated type has the same name as a generic parameter of the declaration. For example, the following:
+
+  ```swift
+    func adjacentPairs<Element>(_: some Sequence<Element>,
+                                _: some Sequence<Element>)
+      -> some Sequence<(Element, Element)> {}
+  ```
+  
+  reads better than the hypothetical alternative:
+  
+  ```swift
+    func adjacentPairs<Element>(_: some Sequence<.Element == Element>,
+                                _: some Sequence<.Element == Element>)
+      -> some Sequence<.Element == (Element, Element)> {}
+   ```
+   
+* This more verbose syntax is not as clear of an improvement over the existing syntax today, because most of the where clause is still explicitly written. This may also encourage users to specify most or all generic constraints in angle brackets at the front of a generic signature instead of in the `where` clause, violates a core tenet of [SE-0081 Move where clause to end of declaration](https://github.com/apple/swift-evolution/blob/main/proposals/0081-move-where-expression.md).
+
+* Finally, this syntax lacks the symmetry between concrete types and generic types; generalizing from `Array<Int>` requires learning and writing the novel syntax `some Collection<.Element == Int>` instead of simply `some Collection<Int>`.
+
+Note that nothing in this proposal _precludes_ adding the above syntax in the future; the presence of a leading dot (or some other signifier) should allow unambiguous parsing in either case.
+
+### Implement more general syntax for opaque result type requirements first
+
+As previously mentioned, in the case of opaque result types, this proposal introduces new expressive power, since opaque result types cannot have a `where` clause where a same-type requirement on a primary associated type could otherwise be written.
+
+It would be possible to first introduce a language feature allowing general requirements on opaque result types. One such possibility is "named opaque result types", which can have requirements imposed upon them in a `where` clause:
+
+```swift
+func readLines(_ file: String) -> some AsyncSequence<String> { ... }
+
+// Equivalent to:
+func readLines(_ file: String) -> <S> S
+  where S : AsyncSequence, S.Element == String { ... }
+```
+
+However, the goal of this proposal is to make generics more approachable by introducing a symmetry between concrete types and generics, and make generics feel more like a generalization of what programmers coming from other languages are already familiar with.
+
+A more general syntax for opaque result types can be considered on its own merits, and as with the `some Collection<.Element == Int>` syntax discussed in the previous section, nothing in this proposal precludes opaque result types from being generalized further in the future.
 
 ### Annotate regular `associatedtype` declarations with `primary`
 
@@ -294,38 +371,6 @@ protocol SetProtocol {
 ```
 
 However, duplicating the associated type declaration in this manner is still an error-prone form of code duplication, and it makes the code harder to read. We feel that this use case should not unnecessarily hinder the evolution of the language syntax. The concerns of libraries adopting new language features while remaining compatible with older compilers is not unique to this proposal, and would be best addressed with a third-party pre-processor tool.
-
-### Require associated type names, e.g. `Collection<.Element == String>`
-
-Explicitly writing associated type names to constrain them in angle brackets has a number of benefits:
-
-* Doesn’t require any special syntax at the protocol declaration.
-* Explicit associated type names allows constraining arbitrary associated types.
-* The constraint syntax generalizes to non-same type requirements e.g. `<.Element: SomeProtocol>`
-
-There are also a number of drawbacks to this approach:
-
-* No visual clues at the protocol declaration about what associated types are useful.
-* The use-site may become onerous. For protocols with only one primary associated type, having to specify the name of it is unnecessarily repetitive.
-* The syntax can be confusing when the constrained associated type has the same name as a generic parameter of the declaration. For example, the following:
-
-  ```swift
-    func adjacentPairs<Element>(_: some Sequence<Element>,
-                                _: some Sequence<Element>)
-      -> some Sequence<(Element, Element)> {}
-  ```
-  
-  reads better than the hypothetical alternative:
-  
-  ```swift
-    func adjacentPairs<Element>(_: some Sequence<.Element == Element>,
-                                _: some Sequence<.Element == Element>)
-      -> some Sequence<.Element == (Element, Element)> {}
-   ```
-   
-* This more verbose syntax is not as clear of an improvement over the existing syntax today, because most of the where clause is still explicitly written. This may also encourage users to specify most or all generic constraints in angle brackets at the front of a generic signature instead of in the `where` clause, which goes against [SE-0081](https://github.com/apple/swift-evolution/blob/main/proposals/0081-move-where-expression.md).
-
-Note that nothing in this proposal _precludes_ adding the above syntax in the future; the presence of a leading dot (or some other signifier) should allow unambiguous parsing in either case.
 
 ### Generic protocols
 
@@ -379,23 +424,11 @@ This change does not impact API resilience. For protocols that adopt this featur
 
 ### Standard library adoption
 
-Actually adopting primary associated types in the standard library is outside of the scope of this proposal. There are the obvious candidates such as `Sequence`, `Collection` and `AsyncSequence`, and no doubt others that will require additional discussion.
+Actually adopting primary associated types in the standard library is outside of the scope of this proposal. There are the obvious candidates such as `Sequence` and `Collection`, and no doubt others that will require additional discussion.
 
 ### Constrained existentials
 
-A natural generalization is to enable this syntax for existential types, e.g. `any Collection<String>`. This is a larger feature that needs careful consideration of type conversion behaviors. It will also require runtime support for metadata and dynamic casts. For this reason it should be covered by a separate proposal.
-
-### Named opaque result types and `where` clauses
-
-A future generalization would add named "output generic parameters" that can be referenced from a `where` clause. If this capability were introduced, then constrained protocol types appearing in opaque result type position would desugar to requirements in a `where` clause, just like they do in all other positions:
-
-```swift
-func readLines(_ file: String) -> some AsyncSequence<String> { ... }
-
-// Equivalent to:
-func readLines(_ file: String) -> <S> S
-  where S : AsyncSequence, S.Element == String { ... }
-```
+As stated above, this proposal alone does not enable constrained protocol existential types, such as `any Collection<String>`.
 
 ## Acknowledgments
 
