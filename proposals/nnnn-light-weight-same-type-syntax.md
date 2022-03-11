@@ -200,7 +200,7 @@ An exhaustive list of positions where the constrained protocol syntax may appear
       where S.Element : AsyncSequence, S.Element.Element == String
   ```
 
-- An opaque parameter declaration (see [Opaque Parameter Declarations](0341-opaque-parameters.md)):
+- An opaque parameter declaration (see [SE-0341 Opaque Parameter Declarations](0341-opaque-parameters.md)):
 
   ```swift
     func sortLines(_ lines: some Collection<String>)
@@ -254,7 +254,9 @@ If the right hand side `Arg1` is itself an opaque parameter type, a fresh generi
 
 ### Other positions
 
-- A constrained protocol type may appear in the inheritance clause of a concrete type, for example:
+There are three more places where constrained protocols may appear:
+
+- In the inheritance clause of a concrete type, for example:
 
   ```swift
   struct Lines : Collection<String> { ... }
@@ -268,7 +270,15 @@ If the right hand side `Arg1` is itself an opaque parameter type, a fresh generi
     }
   ```
 
-- A constrained protocol type may appear as a member of a protocol composition in any position where a constrained protocol type is itself valid:
+- As the underlying type of a typealias:
+
+  ```swift
+  typealias SequenceOfInt = Sequence<Int>
+  ```
+  
+  The typealias may be used in any position where the constrained protocol type itself would be used.
+  
+- As a member of a protocol composition in any position where a constrained protocol type is itself valid:
 
   ```swift
   func takeEquatableSequence(_ seqs: some Sequence<Int> & Equatable) {}
