@@ -5,6 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (March 11...29, 2022)**
 * Implementation: Principally [#40714](https://github.com/apple/swift/pull/40714), [#41640](https://github.com/apple/swift/pull/41640); in `main`, enabled by the experimental `-Xfrontend -enable-parameterized-protocol-types` flag
+* Review: ([firsst pitch](https://forums.swift.org/t/pitch-light-weight-same-type-constraint-syntax/52889)) ([second pitch](https://forums.swift.org/t/pitch-2-light-weight-same-type-requirement-syntax/55081)) ([review](https://forums.swift.org/t/se-0346-lightweight-same-type-requirements-for-primary-associated-types/55869))
 
 ## Introduction
 
