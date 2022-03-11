@@ -3,7 +3,7 @@
 * Proposal: [SE-0346](https://github.com/apple/swift-evolution/blob/main/proposal-templates/0346-filename.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Holly Borla](https://github.com/hborla), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (March 11...22, 2022)**
+* Status: **Active Review (March 11...29, 2022)**
 * Implementation: Principally [#40714](https://github.com/apple/swift/pull/40714), [#41640](https://github.com/apple/swift/pull/41640); in `main`, enabled by the experimental `-Xfrontend -enable-parameterized-protocol-types` flag
 
 ## Introduction
