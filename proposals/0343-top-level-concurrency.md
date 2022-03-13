@@ -3,7 +3,7 @@
 * Proposal: [SE-0343](0343-top-level-concurrency.md)
 * Authors: [Evan Wilde](https://github.com/etcwilde)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Active Review (February 21, 2022...March 4, 2022)**
+* Status: **Accepted (2022-03-13)**
 * Implementation: [Fix top-level global-actor isolation crash](https://github.com/apple/swift/pull/40963), [Add `@MainActor @preconcurrency` to top-level variables](https://github.com/apple/swift/pull/40998), [Concurrent top-level inference](https://github.com/apple/swift/pull/41061)
 
 ## Introduction
