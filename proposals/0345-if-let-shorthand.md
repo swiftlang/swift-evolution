@@ -128,7 +128,7 @@ let closure = { [foo] in // `foo` is both an expression and the identifier
 Because of this, only valid identifiers would be permitted with this syntax. For example, this example would not be valid:
 
 ```swift
-if let foo.bar { ... } // 🛑 conditonal unwrapping requires a valid identifier
+if let foo.bar { ... } // 🛑 unwrap condition requires a valid identifier
        ^               // fix-it: insert `<#identifier#> = `
 ```
 
