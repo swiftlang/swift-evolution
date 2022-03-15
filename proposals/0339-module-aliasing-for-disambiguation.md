@@ -64,7 +64,7 @@ Since `App` depends on these two `Utils` modules, we have a conflict, thus we ne
   .executableTarget(
     name: "App",
     dependencies: [
-     .product(name: "Game", *moduleAliases*: ["Utils": "GameUtils"], package: "swift-game"), 
+     .product(name: "Game", moduleAliases: ["Utils": "GameUtils"], package: "swift-game"), 
      .product(name: "Utils", package: "swift-draw"), 
    ])
  ]
@@ -87,9 +87,9 @@ Module aliasing relies on being able to change the namespace of all declarations
 
 Most use cases should just require setting `moduleAliases` in a package manifest.  However, it may be helpful to understand how that setting changes the compiler invocations under the hood. In our example scenario, those invocations will change as follows:
 
-1. First, we need to take the `Utils` module from `swift-game` and rename it `GameUtils`. To do this, we will compile the module as if it was actually named `GameUtils`, while treating any references to `Utils` in its source files as references to `GameUtils`.  
-    a. The first part (renaming) can be achieved by passing the new module name (`GameUtils`) to `-module-name`. The new module name will also need to be used in any flags specifying output paths, such as `-o`,  `-emit-module-path`, or `-emit-module-interface-path`.  For example, the binary module file should be built as `GameUtils.swiftmodule` instead of `Utils.swiftmodule`.
-    b. The second part (treating references to `Utils` in source files as `GameUtils`) can be achieved with a new compiler flag `-module-alias [name]=[new_name]`. Here, `name` is the module name that appears in source files (`Utils`), while `new_name` is the new, unique name (`GameUtils`).  So in our example, we will pass `-module-alias Utils=GameUtils`.
+1. First, we need to take the `Utils` module from `swift-game` and rename it `GameUtils`. To do this, we will compile the module as if it was actually named `GameUtils`, while treating any references to `Utils` in its source files as references to `GameUtils`.
+    1. The first part (renaming) can be achieved by passing the new module name (`GameUtils`) to `-module-name`. The new module name will also need to be used in any flags specifying output paths, such as `-o`,  `-emit-module-path`, or `-emit-module-interface-path`.  For example, the binary module file should be built as `GameUtils.swiftmodule` instead of `Utils.swiftmodule`.
+    2. The second part (treating references to `Utils` in source files as `GameUtils`) can be achieved with a new compiler flag `-module-alias [name]=[new_name]`. Here, `name` is the module name that appears in source files (`Utils`), while `new_name` is the new, unique name (`GameUtils`).  So in our example, we will pass `-module-alias Utils=GameUtils`.
     
     Putting these steps together, the compiler invocation command would be `swiftc -module-name GameUtils -emit-module-path /path/to/GameUtils.swiftmodule -module-alias Utils=GameUtils ...`.
     
@@ -120,7 +120,7 @@ The module aliasing arguments will be used during dependency scan for both impli
 
 ### Changes to SwiftPM
 
-To allow module aliasing more accessible, we will introduce new build configs which can map to the compiler flags for aliasing described above. Let’s go over how they can be adopted by SwiftPM with the above scenario (copied below). 
+To make module aliasing more accessible, we will introduce new build configs which can map to the compiler flags for aliasing described above. Let’s go over how they can be adopted by SwiftPM with the above scenario (copied below). 
 ```
 App 
   |— Module Game (from package ‘swift-game’)
@@ -173,7 +173,7 @@ The `App` manifest needs to explicitly define unique names for the conflicting m
   .executableTarget(
     name: "App",
     dependencies: [
-     .product(name: "Game", *moduleAliases*: ["Utils": "GameUtils"], package: "swift-game"), 
+     .product(name: "Game", moduleAliases: ["Utils": "GameUtils"], package: "swift-game"), 
      .product(name: "Utils", package: "swift-draw"), 
    ])
  ]
