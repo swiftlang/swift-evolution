@@ -27,5 +27,5 @@ This repository tracks the ongoing evolution of Swift. It contains:
 | Swift 4.1 | [2017-10-17](https://swift.org/blog/swift-4-1-release-process/)          | [2018-03-29](https://swift.org/blog/swift-4-1-released/) |
 | Swift 4.0 | [2017-02-16](https://swift.org/blog/swift-4-0-release-process/)          | [2017-09-19](https://swift.org/blog/swift-4-0-released/) |
 | Swift 3.1 | [2016-12-09](https://swift.org/blog/swift-3-1-release-process/)          | [2017-03-27](https://swift.org/blog/swift-3-1-released/) |
-| Swift 3.0 | [2016-05-06](https://swift.org/blog/swift-3-0-release-process/)          | [2016-09-13](https://swift.org/blog/swift-3-0-released/) |
+| Swift 3.0 | [2016-05-06](https://swift.org/blog/swift-3.0-release-process/)          | [2016-09-13](https://swift.org/blog/swift-3.0-released/) |
 | Swift 2.2 | [2016-01-05](https://swift.org/blog/swift-2.2-release-process/)          | [2016-03-21](https://swift.org/blog/swift-2.2-released/) |
