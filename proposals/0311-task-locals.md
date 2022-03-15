@@ -416,7 +416,7 @@ As expected, because the *detached task* completely discards any contextual info
 If necessary, it is possible is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
 
 ```swift
-let preference = Lib.sugar                      // store the sugar preference in task-1
+let sugarPreference = Lib.sugar                 // store the sugar preference in task-1
 detach(priority: Task.currentPriority) {        // manually propagate priority
   await Lib.$sugar.withValue(sugarPreference) { // restore the sugar preference in detached-task
     assert(Lib.sugar == preference)
@@ -473,7 +473,7 @@ withTaskGroup(of: String.self) { group in
 }
 ```
 
-This is an an un-supported pattern because the purpose of `group.spawn` (and `group.spawnUnlessCancelled`) is explicitly to spawn off a child-task and return immediately. While the _structure_ of these child-tasks is upheld by no child-task being allowed to escape the task group, the tasks do it does "escape" the scope of the `withValue` — which causes trouble for the internal workings of task locals, which are allocated using an efficient task-local allocation mechanism.
+This is an an un-supported pattern because the purpose of `group.spawn` (and `group.spawnUnlessCancelled`) is explicitly to spawn off a child-task and return immediately. While the _structure_ of these child-tasks is upheld by no child-task being allowed to escape the task group, the child-tasks do "escape" the scope of the `withValue` — which causes trouble for the internal workings of task locals, which are allocated using an efficient task-local allocation mechanism.
 
 At the same time, the just shown pattern can be seen as simply wrong usage of the API and programmer error, violating the structured nature of child-tasks. Instead, what the programmer should do in this case is either, set the value for the entire task group, such that all children inherit it:
 
@@ -516,11 +516,11 @@ Task-local variables are semantically _inherited_ the same way by _child tasks_ 
 
 This implies that stored values may be accessed from different tasks executing concurrently. In order to guarantee safety, task-local values must conform to the `Sendable` protocol, introduced in [SE-0302](0302-concurrent-value-and-concurrent-closures.md).
 
-The function synchronous and may be called from any context. If no task is available in the calling context, the default value for the task-local will be returned. The same default value is returned if the function is invoked from a context in which a task is present, however the task-local was never bound in this, or any of its parent tasks.
+Accessing task-local values is synchronous and may be done from any context. If no task is available in the calling context, the default value for the task-local will be returned. The same default value is returned if the accessor is invoked from a context in which a task is present, however the task-local was never bound in this, or any of its parent tasks.
 
-The specific lookup mechanism used by this function will be explained in detail in the next sections.
+The specific lookup mechanism used by this accessor will be explained in detail in the next sections.
 
-The example below explains how the contextual awareness of task locals functions:
+The example below explains the contextual awareness of task-local accessors when evaluated as a parameter for a synchronous function call (i.e. `print`):
 
 ```swift
 func simple() async {
@@ -692,7 +692,7 @@ struct OvenKey: EnvironmentKey {
   static let defaultValue: Oven = DefaultOven()
 }
 extension EnvironmentValues {
-  var Oven: Oven {
+  var oven: Oven {
     get {
       return self[OvenKey.self]
     }
@@ -850,7 +850,7 @@ Go Concurrency Patterns: Context](https://blog.golang.org/context).
 
 ### Surface API: Type-based key definitions
 
-The initially pitched approach to define task-local keys was impossible to get wrong thanks to the type always being unique. However declaring and using the keys was deemed to tiresome by the community during review, thus the proposal currently is pitching `@TaskLocal` property wrapper.
+The initially pitched approach to define task-local keys was impossible to get wrong thanks to the type always being unique. However declaring and using the keys was deemed too tiresome by the community during review, thus the proposal currently is pitching `@TaskLocal` property wrapper.
 
 The previous design required this boilerplate to declare a key:
 
