@@ -3,10 +3,9 @@
 * Proposal: [SE-0326](0326-extending-multi-statement-closure-inference.md)
 * Author: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted (2021-11-15)**
-* Implementation: [apple/swift#38577](https://github.com/apple/swift/pull/38577), [apple/swift#39989](https://github.com/apple/swift/pull/39989)
+* Status: **Implemented (Swift 5.7)**
+* Implementation: [apple/swift#38577](https://github.com/apple/swift/pull/38577), [apple/swift#40397](https://github.com/apple/swift/pull/40397), [apple/swift#41730](https://github.com/apple/swift/pull/41730)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0326-multi-statement-closure-parameter-result-type-inference/53502)
-* Toolchain: Please use a [nightly snapshot of trunk development](https://swift.org/download/#snapshots) with `-Xfrontend -experimental-multi-statement-closures` flags to enable the feature.
 
 ## Introduction
 
