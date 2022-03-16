@@ -411,7 +411,7 @@ This proposal amends this behavior to the following semantics:
 - the default initializer gains a `actorSystem: Self.ActorSystem` parameter.
 - other non-delegating initializers must initialize the `self.actorSystem` property explicitly.
   - it is recommended to accept an actor system argument and store it 
-  - it technically it is also possible to store a global actor system to this property, however this is generally an anti-pattern as it hurts testability of such actor (i.e. it becomes impossible to swapr the actor system for a "for testing" one during test execution).
+  - technically it is also possible to store a global actor system to this property, however this is generally an anti-pattern as it hurts testability of such actor (i.e. it becomes impossible to swap the actor system for a "for testing" one during test execution).
 
 ```swift
 distributed actor DA {
