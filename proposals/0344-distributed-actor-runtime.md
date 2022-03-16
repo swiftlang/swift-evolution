@@ -7,6 +7,9 @@
 * Implementation:
   * Partially available in [recent `main` toolchain snapshots](https://swift.org/download/#snapshots) behind the `-enable-experimental-distributed` feature flag.
   * This flag also implicitly enables `-enable-experimental-concurrency`.
+* Review threads
+  * [First Review](https://forums.swift.org/t/se-0344-distributed-actor-runtime/55525) ([summary](https://forums.swift.org/t/returned-for-revision-se-0344-distributed-actor-runtime/55836))
+
 
 ## Table of Contents
 
@@ -863,13 +866,16 @@ public protocol DistributedTargetInvocationEncoder {
 
   /// Record an argument of `Argument` type in this arguments storage.
   ///
+  /// The argument name is provided to the `name` argument and can either be stored or ignored.
+  /// The value of the argument is passed as the `argument`.
+  ///
   /// Ad-hoc protocol requirement.
-  mutating func recordArgument<Argument: SerializationRequirement>(_ argument: Argument) throws
+  mutating func recordArgument<Value: SerializationRequirement>(
+    _ argument: RemoteCallArgument<Value>
+  ) throws
 
   /// Record the error type thrown by the distributed invocation target.
   /// If the target does not throw, this method will not be called and the error type can be assumed `Never`.
-  ///
-  /// Ad-hoc protocol requirement.
   mutating func recordErrorType<E: Error>(_ type: E.Type) throws
 
   /// Record the return type of the distributed method.
@@ -881,6 +887,37 @@ public protocol DistributedTargetInvocationEncoder {
   /// All values and types have been recorded.
   /// Optionally "finalize" the recording, if necessary.
   mutating func doneRecording() throws
+}
+
+/// Represents an argument passed to a distributed call target.
+public struct RemoteCallArgument<Value> {
+  /// The "argument label" of the argument.
+  /// The label is the name visible name used in external calls made to this
+  /// target, e.g. for `func hello(label name: String)` it is `label`.
+  ///
+  /// If no label is specified (i.e. `func hi(name: String)`), the `label`,
+  /// value is empty, however `effectiveLabel` is equal to the `name`.
+  ///
+  /// In most situations, using `effectiveLabel` is more useful to identify
+  /// the user-visible name of this argument.
+  let label: String?
+  var effectiveLabel: String {
+    return label ?? name
+  }
+
+  /// The internal name of parameter this argument is accessible as in the
+  /// function body. It is not part of the functions API and may change without
+  /// breaking the target identifier.
+  ///
+  /// If the method did not declare an explicit `label`, it is used as the
+  /// `effectiveLabel`.
+  let name: String
+
+  /// The value of the argument being passed to the call.
+  /// As `RemoteCallArgument` is always used in conjunction with
+  /// `recordArgument` and populated by the compiler, this Value will generally
+  /// conform to a distributed actor system's `SerializationRequirement`.
+  let value: Value
 }
 ```
 
@@ -943,7 +980,7 @@ extension Greeter {
     // << invocation.recordGenericSubstitution(<runtime type of b>)
 
     // [1.2] for each argument, synthesize a specialized recordArgument call:
-    try invocation.recordArgument(name)
+    try invocation.recordArgument(RemoteCallArgument(label: nil, name: "name", value: name))
 
     // [1.3] if the target was throwing, record Error.self,
     // otherwise do not invoke recordErrorType at all.
@@ -979,7 +1016,13 @@ The `nonisolated` aspect of the method has another important role to play: if th
 
 Note that the compiler will pass the `self` of the distributed *known-to-be-remote* actor to the `remoteCall` method on the actor system. This allows the system to check the passed type for any potential, future, customization points that the actor may declare as static properties, and/or conformances affecting how a message shall be serialized or delivered. It is impossible for the system to access any of that actor's state, because it is remote after all. The one piece of state it will need to access though is the actor's `id` because that is signifying the *recipient* of the call.
 
-The thunk creates the `invocation` container `[1]` into which it records all arguments. Note that all these APIs are using only concrete types, so we never pay for any existential wrapping or other indirections. The `record...` calls are expected to serialize the values, using any mechanism they want to, and thanks to the fact that the type performing the recording is being provided by the specific `ActorSystem`, it also knows that it can rely on the arguments to conform to the system's `SerializationRequirement`.
+The thunk creates the `invocation` container `[1]` into which it records all arguments. Note that all these APIs are using only concrete types, so we never pay for any existential wrapping or other indirections. Arguments are wrapped in a `RemoteCallArgument` which also provides additional information about the argument, such as the labels used in its declaration. This can be useful for transports which wish to encode values in named dictionaries, e.g. such as JSON dictionaries. It is important to recognize that storing names or labels is _not_ required or recommended for the majority of transports, however for those which need it, they are free to use this additional information.
+
+Since the strings created are string literals, known at compile time, there is no allocation impact for this argument wrapper type and this additional label information.
+
+> It may seem tempting to simply record arguments into a dictionary using their effective labels, however this can lead to issues due to labels being allowed to be reused. For example, `func sum(a a1: Int, a a2: Int)` is a legal, athough not very readable, function declaration. A naive encoding scheme could risk overriding the "first `a`" value with the "second `a` if it strongly relied on the labels only. A distributed actor system implementation should decide how to deal with such situations and may choose to throw at runtime if such risky signature is detected, or apply some mangling, e.g. use the parameter names to clarify which value was encoded.
+
+The `record...` calls are expected to serialize the values, using any mechanism they want to, and thanks to the fact that the type performing the recording is being provided by the specific `ActorSystem`, it also knows that it can rely on the arguments to conform to the system's `SerializationRequirement`.
 
 The first step in the thunk is to record any "generic substitutions" `[1.1]` if they are necessary. This makes it possible for remote calls to support generic arguments, and even generic distributed actors. The substitutions are not recorded for call where the generic context is not necessary for the invocation. For a generic method, however, the runtime will invoke the `recordGenericTypeSubstitution` with _concrete_ generic arguments that are necessary to perform the call. For example, if we declared a generic `echo` method like this:
 
@@ -1511,29 +1554,65 @@ Once [variadic generics](https://forums.swift.org/t/variadic-generics/54511/2) a
 
 With variadic generics, it would be natural to conform an "empty tuple" to the `SerializationRequirement` and we'd this way be able to implement only a single method (`remoteCall`) rather than having to provide an additional special case implementation for `Void` return types.
 
-### Stable names and more API evolution features
+### Identifying, evolving and versioning remote calls
 
-The default mangling scheme used for distributed methods is problematic for API evolution. Since distributed function identity is just its mangled name, it includes information about all of its parameters, and changing any of those pieces will make the function not resolve with the old identity anymore.
+At present remote calls use an opaque string identifier (wrapped as `RemoteCallTarget`) to refer to, and invoke remote call targets. This identifier is populated by default using the mangled name of the distributed thunk of the target function. 
 
-This makes it impossible to _add_ parameters in a wire-compatible way, once a signature is published. In some deployment scenarios this isn't a big problem, e.g. when distributed actors are used to communicate between an app and a daemon process that are deployed at the same time. However, when components of a cluster are deployed in a rolling deploy style, it gets harder to manage such things. One cannot just easily swap a single node, and keep calling the "new" node's code, but the rollout has to be painfully and carefully managed...
+#### Default distributed call target identification scheme
 
-In order to solve this, we need to detach the *exact* function mangled name from the general concept of "the function I want to invoke", even if keep changing its signature in *compatible ways*. Interestingly, the same pattern emerges in ABI stable libraries, such as those shipping with the OS, developers today have to add new functions with "one more argument", like this:
+Distributed actor system implementations shall treat the identifier as opaque value that they shall ship from the sender to the recipient node, without worrying too much about their contents. The identification scheme though has a large and important impact on the versioning story of distributed calls, so in this section we'd like to discuss and outline the general plans we foresee here as we will introduce proper and more versioning friendly schemes in the future.
+
+Swift's default mangling scheme is used for distributed methods is problematic for API evolution, however, it is a great "default" to pick until we devise a different scheme in the future. The mangling scheme is good default because:
+
+- it allows callers to use all of the richness of Swift's calling semantics, including:
+  - overloads by type (e.g. we can call `receive(_:Int)` as well as `receive(_:String)`) and invoke the correct target based on the type.
+- it allows us to evolve APIs manually by adding overloads, deprecate methods etc, and we will continue to work towards a feature rich versioning story while adopting limited use-cases where these limitations are not a problem.
+
+This is also avoids a well-known problem from objective-c, where selectors must not accidentally be the same, otherwise bad-things-happen™.
+
+One potential alternative would be to use the full names of methods, i.e. `hello(name:surname:)`, similar to objective-c selectors to identify methods. However, this means the lose of any and all type-safety and _intent_ of target methods being used accoring to their appropriate types. It also means identifiers must be unique and overloads must be banned at compile time, or we risk reusing identifiers and not knowing which function to invoke. This again could be solved by separately shipping type identifiers, but this would mean reinventing what Swift's mangling scheme already does, but in a worse way. Instead, we propose to start with the simple mangling scheme, and in a subsequent proposal, address the versioning story more hollistically, in a way that addressess ABI concerns of normal libraries, as well as distributed calls.
+
+We are aware that the mangling scheme makes the following, what should be possible to evolve without breaking APIs situations not work, that a different scheme could handle well:
+
+- adding parameters even with default parameters,
+- changing a type of argument from struct to class (or enum etc), is also breaking through it need not be.
+  - We could address this by omitting the kind information from the mangled names.
+
+The robust versioning and evolution scheme we have in mind for the future must be able to handle these cases, and we will be able to roll out a new identification scheme that handles those in the future, without breaking API or breaking existing remote calls. The metadata to lookup distributed method accessors would still be available using the "most precise" mangled format, even as we introduce a lossy, more versioning friendly format. APIs would remain unchanged, because from the perspective of `DistributedActorSystem` all it does is ship around an opaque String `identifier` of a remote call target.
+
+There are numerous other versioning and rollout topics to cover, such as "rolling deployments", "green/blue deployments" and other techniques that both the versioning scheme _and_ the specific actor system implementation must be able to handle eventually. However, based on experience implementing other actor systems in the past, we are confident that those are typical to add in later phases of such endavor, not as the first thing in the first iteration of the project.
+
+#### Compression techniques to avoid repeatedly sending large identifiers
+
+One of the worries brought up with regards to mangled names and string identifiers in general during the review has been that they can impose a large overhead when the actual messages are small. Specifically, as the `RemoteCallTarget.identifier` often can be quite large, and for distributed methods which e.g. accept only a few integers, or even no values at all, the identifiers often can dominate the entire message payload.
+
+This is not a novel problem – we have seen and solved such issues in the past in other actor runtimes (i.e. Akka). One potential solution is to establish a compression mechanism between peers where message exchanges establish shared knowlage about "long identifiers" and mapping them to unique numbers. The sender in such system at first pessimistically sends the "long" String-based identifier, and in return may get additional metadata in the response "the next time you want to call this target, send the ID 12345". The sender system then stores in a cache that when invoking the "X...Z" target it does not need to send the long string identifier, but instead can send the number 12345. This solves the long string identifiers problem, as they need not be sent repeatedly over the wire. (There are a lot of details to how such scheme can be implemented that we do not need to dive into here, however we are confident those work well, because we have seen them solve this exact issue before).
+
+Given the need, and assuming other shared knowlage, we could even implement other identification schemes, which can also avoid that "initial" long string identifier sending. We will be exploring those as specific use-cases and requirements from adopters arise. We are confident in our ability to fit such techniques into this design because of the flexibility APIs based around `RemoteCallTarget` gives us, without requiring to actually send the entire target object over the wire.
+
+Such optimization techniques, are entirely implementable in concrete distributed actor system implementations. However, if necessary, we would be able to even extend the capabilities of `executeDistributedTarget` to accomodate other concrete needs and designs.
+
+#### Overlap with general ABI and versioning needs in normal Swift code
+
+The general concept binary/wire-compatible evolution of APIs by _adding_ new parameters to methods is not unique to distribution. In fact, this is a feature that would benefit ABI-stable libraries like the ones shipping with the SDK. It is often the case that new APIs are introduced that accept _more_ arguments, perhaps to enable or extend functionality of an existing feature. Developers today have to add new functions with "one more argument", like this:
 
 ```swift
 public func f() {
   f(x: 0)
 }
 
-@available(macOS 13.0)
+@available(macOS 9999)
 public func f(x: Int) {
   // new implementation
 }
 ```
 
-Instead, developers would want to be able to say this:
+Where the new function is going to ship with a new OS, yet actually contains implementation that is compatible with the old definition of `f()`. In such situations, developers are forced to manually write forwarding methods. While this seems simple on small APIs, it can easily become rather complex and easy to introduce subtle bugs in the forwarding logic.
+
+Instead, developers would want to be able to introduce new parameters, with a default value that would be used when the function is invoked on older platforms, like this:
 
 ```swift
-public func f(@available(macOS 13.0) x: Int = 0) {
+public func f(@available(macOS 9999) x: Int = 0) {
   // new implementation
 }
 
@@ -1541,29 +1620,19 @@ public func f(@available(macOS 13.0) x: Int = 0) {
 //
 //   public func f() { self.f(x: 0) }
 //
-//   @available(macOS 13.0)
+//   @available(macOS 9999)
 //   public func f( x: Int = 0) {
 ```
 
-Where the compiler would synthesize versions of the methods for the various availabilities, and delegate, in an ABI-compatible way to the new implementation. This is very similar to what would be necessary to help wire-compatible evolution of distributed methods. We would likely need to decide on a stable name, and then allow calling into the most recent one, thanks to it having default values for "new" parameters:
+Where the compiler would synthesize versions of the methods for the various availabilities, and delegate, in an ABI-compatible way to the new implementation. This is very similar to what would be necessary to help wire-compatible evolution of distributed methods. So the same mechanisms could be used for distributed calls, if instead of OS versions, we could also allow application/node versions in the availability perhaps? This is not completely designed, but definitely a direction we are interested in exploring.
 
-```swift
-// "OLD" code on Client:
-distributed actor Worker {
-  @_stableName("hello") // must be unique in the actor
-  distributed func hello() { ... }
-}
+#### Discussion: User provided target identities
 
-// "NEW" code on Server:
-distributed actor Worker {
-  @_stableName("hello") // must be unique in the actor
-  distributed func hello(@available(version: 1.1) next: Int = 0) { ... }
-}
-```
+We also are considering, though are not yet convienced that these would be the optimal way to address some of the evolution concerns, the possibility to use "stable names". This mechanism would allow users to give full control over target identity to developers, where the `RemoteCallTarget.identifier` offered to the `remoteCall` implemented by a distributed actor system library, could be controlled by end users of the library, i.e. those who define distributed methods.
 
-Since the envelope carries the arguments (in this case `[]`) and the `envelope.method` is the stable name, we're able to look up the `hello(next:)` method on the "new" server code.
+On one hand, this gives great power to end-users, as they may use specific and minimal identifiers, even using `"A"` and other short names to minimize the impact of the identifiers to the payload size. On the other thand though, it opens up developers to a lot of risks, including conflicts in identifier use – a problem all to well known to objective-c developers where selectors could end up in similar problematic situations.
 
-The same ABI-compatibility mechanism that we just described would ensure the ability to invoke the old functions here.
+We want to take time to design a proper system rather than just open up full control over the remote call target `identifier` to developers. We will aim to provide a flexible, and powerful mechanism, that does not risk giving developers easy ways to get shoot themselfes in the foot. The design proposed here, is flexible enough to evolve
 
 ### Resolving `DistributedActor` protocols
 
@@ -1781,6 +1850,26 @@ None.
 
 ## Changelog
 
+- 2.0 Adjustments after first round of review
+  - Expanded discussion on current semantics, and **future directions for versioning** and wire compatibility of remote calls.
+  - Amendment to **non-delegating distributed actor initializer semantics**
+    - Non-delegating Initializers no longer require a single `DistributedActorSystem` conforming argument to be passed, and automatically store and initialize the `self.id` with it.
+    - Instead, users must initialize the `self.actorSystem` property themselfes. 
+      - This should generally be done using the same pattern, by passing _in_ an actor system from the outside which helps in testing and stubbing out systems, however if one wanted to.
+      - However the actorSystem property is initialized, from an initializer parameter or some global value, task-local etc, the general initialization logic remains the same, and the compiler will inject the assignment of the `self.id` property. 
+      - Useful error messages explaining this decisions are reported if users attempt to assign to the `id` property directly.
+  
+    - Thanks to YR Chen for recognizing this limitation and helping arrive at a better design here.
+  
+  - **Removal of explicit use of mangled names** in the APIs, and instead all APIs use an opaque `RemoteCallTarget` that carries an opaque String `identifier`
+    - The `RemoteCallTarget` is populated by the compiler using mangled names by default, but other schemes can be used in the future
+    - The `RemoteCallTarget` now pretty prints as "`hello(name:surname:)`" if able to decode the target from the identifier, otherwise it prints the identifier directly. This can be used to include pretty names of call targets in tracing systems etc.
+    - This design future-proofs the APIs towards potential new encoding schemed we might come up in the future as we tackle a proper and feature complete versioning story for distributed calls.
+  
+  - `recordArgument` is passed a **`RemoteCallArgument<Value>`** which carries additional information about the argument in question
+    - This parameter can be either ignored, or stored along the serialized format which may be useful for e.g. non swift targets of invocations. E.g. it is possible to store an invocation as JSON object where the argument names are used as labels or similar patterms.
+    - Thanks to Slava Pestov for suggesting this improvement.
+  
 - 1.3 Larger revision to match the latest runtime developments
   - recording arguments does not need to write into provided pointers; thanks to the calls being made in IRGen, we're able to handle things properly even without the heterogenous buffer approach. Thank you, Pavel Yaskevich
   - simplify rules of readying actors across synchronous and asynchronous initializers, we can always ready "just before `self` is escaped", in either situation; This is thanks to the latest developments in actor initializer semantics. Thank you, Kavon Farvardin
