@@ -191,6 +191,11 @@ extension RegexComponentBuilder {
 }
 ```
 
+### Early adoption feedback
+
+- In the [regex builder DSL](https://forums.swift.org/t/pitch-regex-builder-dsl/56007), `buildPartialBlock` reduced the number of required overloads from millions (`O(arity!)`) down to hundreds (`O(arity^2)`).
+- In the pitch thread, [pointfreeco/swift-parsing reported](https://forums.swift.org/t/pitch-buildpartialblock-for-result-builders/55561/10) that `buildPartialBlock` enabled the deletion of 21K lines of generated code, increased arity support, and reduced compile times from 20 seconds to <2 seconds in debug mode.
+
 ## Detailed design
 
 When a type is marked with `@resultBuilder`, the type was previously required to have at least one static `buildBlock` method. With this proposal, such a type is now required to have either at least one static `buildBlock` method, or both `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)`.
