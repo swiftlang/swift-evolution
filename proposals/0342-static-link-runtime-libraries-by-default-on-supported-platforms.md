@@ -202,6 +202,12 @@ The new behavior will take effect with a new version of SwiftPM, and packages bu
 * Deployment of applications using explicit static linking (#2 above) will continue to work and emit a warning that its redundant.
 * Deployment of applications using docker "runtime" images (#3 above) will continue to work as before (though would be redundant).
 
+### Additional validation when linking libraries
+
+SwiftPM currently performs no validation when linking libraries into an executable that statically links the Swift runtime libraries. 
+This means that users can mistakinly link a library that already has the Swift runtime libraries statically linked into the executable that will also statically link the Swift runtime libraries, which could lead to runtime errors if the versions of the Swift runtime libraries do not match.
+As part of this proposal, SwiftPM will gain a new post build validation checking for this condition and warning the user accordingly.
+
 ## Alternatives considered and future directions
 
 The most obvious question this proposal brings is why not fully statically link the program instead of statically linking only the runtime libraries.
