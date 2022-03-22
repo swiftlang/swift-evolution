@@ -1,6 +1,6 @@
 # `buildPartialBlock` for result builders
 
-* Proposal: [SE-0348](NNNN-filename.md)
+* Proposal: [SE-0348](0348-buildpartialblock.md)
 * Author: [Richard Wei](https://github.com/rxwei)
 * Implementation: [apple/swift#41576](https://github.com/apple/swift/pull/41576)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
