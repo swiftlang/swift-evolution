@@ -1,10 +1,11 @@
 # `buildPartialBlock` for result builders
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0348](NNNN-filename.md)
 * Author: [Richard Wei](https://github.com/rxwei)
 * Implementation: [apple/swift#41576](https://github.com/apple/swift/pull/41576)
-* Review Manager: TBD
-* Status: Implemented under `-Xfrontend -enable-experimental-pairwise-build-block`
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (March 22-30 2022)**
+* Usage: Implemented under `-Xfrontend -enable-experimental-pairwise-build-block`
 
 ## Overview
 
