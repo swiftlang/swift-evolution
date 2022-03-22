@@ -20,7 +20,7 @@ Interaction between generic parameters and default expressions is confusing when
 
 For example, let's define a `Flags` protocol and a container type for default set of flags:
 
-```
+```swift
 protocol Flags {
   ...
 }
@@ -32,8 +32,7 @@ struct DefaultFlags : Flags {
 
 Now, let's declare a type that accepts a set of flags to act upon during initialization.
 
-```
-
+```swift
 struct Box<F: Flags> {
   init(dimensions: ..., flags: F) {
     ...
@@ -54,7 +53,7 @@ To avoid having to pass flags, it's possible to "specialize" the initializer ove
 
 Let’s start with a direct `where` clause:
 
-```
+```swift
 struct Box<F: Flags> {
   init(dimensions: ..., flags: F = DefaultFlags()) where F == DefaultFlags {
     ...
@@ -66,7 +65,7 @@ This `init` declaration results in a loss of memberwise initializers for `Box`.
 
 Another possibility is a constrained extension which makes `F` concrete `DefaultFlags` like so:
 
-```
+```swift
 extension Box where F == DefaultFlags {
   init(dimensions: ..., flags: F = DefaultFlags()) {
     ...
@@ -78,7 +77,7 @@ Initialization of `Box` without `flags:` is now well-formed and implicit memberw
 
 Let’s consider that there is an operation on our `Box` type that requires passing a different set of flags:
 
-```
+```swift
 extension Box {
   func ship<F: ShippingFlags>(_ flags: F) {
     ...
@@ -91,7 +90,7 @@ The aforementioned approach that employs constrained extension doesn’t work in
 
  New method would have to have a concrete type for `flags:` like so:
 
-```
+```swift
 extension Box {
   func ship(_ flags: DefaultShippingFlags = DefaultShippingFlags()) {
     ...
@@ -101,7 +100,7 @@ extension Box {
 
 This is a usability pitfall - what works for some generic parameters, doesn’t work for others, depending on whether the parameter is declared. This inconsistency sometimes leads to API authors reaching for existential types, potentially without realizing all of the consequences that might entail, because a declaration like this would be accepted by the compiler:
 
-```
+```swift
 extension Box {
   func ship(_ flags: any Flags = DefaultShippingFlags()) {
     ...
@@ -111,7 +110,7 @@ extension Box {
 
  Also, there is no other way to associate default value `flags:` parameter without using existential types for enum declarations:
 
-```
+```swift
 enum Box<F: Flags> {
 }
 
@@ -158,7 +157,7 @@ Type inference from default expressions would be allowed if:
 
 With these semantic updates, both the initializer and `ship` method of the `Box` type could be expressed in a concise and easily understandable way that doesn’t require any constrained extensions or overloading:
 
-```
+```swift
 struct Box<F: Flags> {
   init(dimensions: ..., flags: F = DefaultFlags()) {
     ...
@@ -172,7 +171,7 @@ struct Box<F: Flags> {
 
 `Box` could also be converted to an enum without any loss of expressivity:
 
-```
+```swift
 enum Box<D: Dimensions, F: Flags> {
 case flatRate(dimensions: D = [...], flags: F = DefaultFlags())
 case overnight(dimentions: D = [...], flags: F = DefaultFlags())
@@ -182,7 +181,7 @@ case overnight(dimentions: D = [...], flags: F = DefaultFlags())
 
 At the call site, if the defaulted parameter doesn’t have an argument, the type-checker will form an argument conversion constraint from the default expression type to the parameter type, which guarantees that all of the generic parameter types are always inferred.
 
-```
+```swift
 let myBox = Box(dimensions: ...) // F is inferred as DefaultFlags
 
 myBox.ship() // F is inferred as DefaultShippingFlags
@@ -190,7 +189,7 @@ myBox.ship() // F is inferred as DefaultShippingFlags
 
 Note that it is important to establish association between the type of a default expression and a corresponding parameter type not just for inference sake, but to guarantee that there are not generic parameter type clashes with a result type (which is allowed to mention the same generic parameters):
 
-```
+```swift
 func compute<T: Collection>(initialValues: T = [0, 1, 2, 3]) -> T {
   // A complex computation that uses initial values
 }
