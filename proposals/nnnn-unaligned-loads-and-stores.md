@@ -4,11 +4,11 @@
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: TBD
 * Status: **pitch phase**
-* Implementation: [draft pull request][draft-pr]
+* Implementation: [implementation pull request][implementation-pr]
 * Bugs: [SR-10273](https://bugs.swift.org/browse/SR-10273) (rdar://63919502)
 
 [proposal]: https://github.com/apple/swift-evolution/blob/c7652f0cee144bc4f74e0dc1433f682ded05d5c2/proposals/nnnn-unaligned-loads-and-stores.md
-[draft-pr]: https://github.com/apple/swift/pull/41033
+[implementation-pr]: https://github.com/apple/swift/pull/41033
 [pitch-thread]: https://forums.swift.org/t/55036/
 
 ## Introduction
