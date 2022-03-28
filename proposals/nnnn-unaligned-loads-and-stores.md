@@ -38,10 +38,10 @@ However, that will currently crash at runtime, because in this case `load` requi
 ```swift
 let result = data.dropFirst(3).withUnsafeBytes { buffer -> UInt32 in
   var storage = UInt32.zero
-  return withUnsafeMutableBytes(of: &storage) { scratch -> UInt32 in
-    scratch.copyBytes(from: buffer.prefix(MemoryLayout<UInt32>.size))
-    return scratch.load(as: UInt32.self)
+  withUnsafeMutableBytes(of: &storage) {
+    $0.copyBytes(from: buffer.prefix(MemoryLayout<UInt32>.size))
   }
+  return storage
 }
 ```
 
