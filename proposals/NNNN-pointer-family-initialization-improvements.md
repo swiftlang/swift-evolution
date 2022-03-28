@@ -700,30 +700,11 @@ extension UnsafeMutableRawBufferPointer {
 
 
 
-For `Slice`, some underscored protocols are necessary in order to generalize over the element type of `Unsafe[Mutable]BufferPointer`.
-These are necessary because "parameterized extensions" do not exist yet.
-
-```swift
-protocol _RebasableCollection: Collection {
-  init(rebasing slice: SubSequence)
-}
-
-extension UnsafeBufferPointer: _RebasableCollection {}
-extension UnsafeMutableBufferPointer: _RebasableCollection {}
-```
-
-```swift
-protocol _MutableBaseAddressProtocol: MutableCollection {
-  var baseAddress: UnsafeMutablePointer<Element>? { get }
-}
-
-extension UnsafeMutableBufferPointer: _MutableBaseAddressProtocol {}
-```
+For `Slice`, the functions need to add an additional generic parameter, which is immediately restricted in the `where` clause. This is necessary because "parameterized extensions" are not yet a Swift feature. Eventually, these functions should be able to have exactly the same generic signatures as the counterpart function on their `UnsafeBufferPointer`-family base. This change will be neither source-breaking nor ABI-breaking.
 
 Changes to `Slice<UnsafeBufferPointer<T>`:
 ```swift
-extension Slice where Base: _RebasableCollection, Base.SubSequence == Self {
-
+extension Slice {
   /// Executes the given closure while temporarily binding the memory referenced
   /// by this buffer slice to the given type.
   ///
@@ -779,17 +760,16 @@ extension Slice where Base: _RebasableCollection, Base.SubSequence == Self {
   ///     method.
   ///   - buffer: The buffer temporarily bound to `T`.
   /// - Returns: The return value, if any, of the `body` closure parameter.
-  public func withMemoryRebound<T, Result>(
+  public func withMemoryRebound<T, Result, Element>(
     to type: T.Type, _ body: (UnsafeBufferPointer<T>) throws -> Result
-  ) rethrows -> Result  
+  ) rethrows -> Result
+    where Base == UnsafeBufferPointer<Element>
 }
 ```
 
 Changes for `Slice<UnsafeMutableBufferPointer<T>>`:
 ```swift
-extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
-                      Base.SubSequence == Self {
-
+extension Slice {
   /// Initializes every element in this buffer slice's memory to
   /// a copy of the given value.
   ///
@@ -799,7 +779,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///
   /// - Parameter repeatedValue: The value with which to initialize this
   ///   buffer slice's memory.
-  public func initialize(repeating repeatedValue: Base.Element)
+  public func initialize<Element>(repeating repeatedValue: Element)
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Initializes the buffer slice's memory with the given elements.
   ///
@@ -824,7 +805,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///   buffer, and an index to the next uninitialized element in the buffer.
   public func initialize<S>(
     from source: S
-  ) -> (S.Iterator, Index) where S: Sequence, Base.Element == S.Element
+  ) -> (S.Iterator, Index)
+    where S: Sequence, Base == UnsafeMutableBufferPointer<S.Element>
   
   /// Initializes the buffer slice's memory with the given elements.
   ///
@@ -847,7 +829,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///   or `endIndex`.
   public func initialize<C>(
     fromElements source: C
-  ) -> Int where C : Collection, Base.Element == C.Element
+  ) -> Index
+    where C : Collection, Base == UnsafeMutableBufferPointer<C.Element>
 
   /// Updates every element of this buffer slice's initialized memory.
   ///
@@ -858,7 +841,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///
   /// - Parameters:
   ///   - repeatedValue: The value used when updating this pointer's memory.
-  public func update(repeating repeatedValue: Base.Element)
+  public func update<Element>(repeating repeatedValue: Element)
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Updates the buffer slice's initialized memory with the given elements.
   ///
@@ -869,9 +853,10 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///   the buffer's contents.
   /// - Returns: An iterator to any elements of `source` that didn't fit in the
   ///   buffer, and the index one past the last updated element in the buffer.
-  public func update<S: Sequence>(
+  public func update<S>(
     from source: S
-  ) -> (iterator: S.Iterator, updated: Index) where S.Element == Element
+  ) -> (unwritten: S.Iterator, updated: Index)
+    where S: Sequence, Base == UnsafeMutableBufferPointer<S.Element>
 
   /// Updates the buffer slice's initialized memory with the given elements.
   ///
@@ -882,9 +867,10 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///   the buffer's contents.
   /// - Returns: An index one past the last updated element in the buffer,
   ///   or `endIndex`.
-  public func update<C: Collection>(
+  public func update<C>(
     fromElements source: C
-  ) -> Index where C.Element == Element
+  ) -> Index
+    where C: Collection, Base == UnsafeMutableBufferPointer<C.Element>
   
   /// Moves every element of an initialized source buffer into the
   /// uninitialized memory referenced by this buffer slice, leaving the
@@ -901,8 +887,11 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///   referenced by `source` and this buffer may overlap.
   /// - Returns: An index to the next uninitialized element in the buffer,
   ///   or `endIndex`.
-  public func moveInitialize(from source: Self) -> Index
-  
+  public func moveInitialize<Element>(
+    fromElements source: UnsafeMutableBufferPointer<Element>
+  ) -> Index
+    where Base == UnsafeMutableBufferPointer<Element>
+
   /// Moves every element of an initialized source buffer slice into the
   /// uninitialized memory referenced by this buffer slice, leaving the
   /// source memory uninitialized and this buffer slice's memory initialized.
@@ -918,7 +907,10 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///   referenced by `source` and this buffer may overlap.
   /// - Returns: An index one past the last replaced element in the buffer,
   ///   or `endIndex`.
-  public func moveInitialize(from source: Slice<Self>) -> Index
+  public func moveInitialize<Element>(
+    fromElements source: Slice<UnsafeMutableBufferPointer<Element>>
+  ) -> Index
+    where Base == UnsafeMutableBufferPointer<Element>
   
   /// Updates this buffer slice's initialized memory initialized memory by
   /// moving every element from the source buffer,
@@ -935,9 +927,10 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///   memory regions referenced by `source` and this pointer must not overlap.
   /// - Returns: An index one past the last updated element in the buffer,
   ///   or `endIndex`.
-  public func moveUpdate(
-    fromElements source: UnsafeMutableBufferPointer<Base.Element>
+  public func moveUpdate<Element>(
+    fromElements source: UnsafeMutableBufferPointer<Element>
   ) -> Index
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Updates this buffer slice's initialized memory initialized memory by
   /// moving every element from the source buffer slice,
@@ -954,9 +947,10 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///   memory regions referenced by `source` and this pointer must not overlap.
   /// - Returns: An index one past the last updated element in the buffer,
   ///   or `endIndex`.
-  public func moveUpdate(
-    fromElements source: Slice<UnsafeMutableBufferPointer<Base.Element>>
+  public func moveUpdate<Element>(
+    fromElements source: Slice<UnsafeMutableBufferPointer<Element>>
   ) -> Index
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Deinitializes every instance in this buffer slice.
   ///
@@ -968,7 +962,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///
   /// - Returns: A raw buffer to the same range of memory as this buffer.
   ///   The range of memory is still bound to `Element`.
-  public func deinitialize() -> UnsafeMutableRawBufferPointer
+  public func deinitialize<Element>() -> UnsafeMutableRawBufferPointer
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Initializes the element at `index` to the given value.
   ///
@@ -979,7 +974,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   /// - Parameters:
   ///   - value: The value used to initialize the buffer element's memory.
   ///   - index: The index of the element to initialize
-  public func initializeElement(at index: Int, to value: Element)
+  public func initializeElement<Element>(at index: Int, to value: Element)
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Updates the initialized element at `index` to the given value.
   ///
@@ -991,7 +987,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   /// - Parameters:
   ///   - value: The value used to update the buffer element's memory.
   ///   - index: The index of the element to update
-  public func updateElement(at index: Index, to value: Element)
+  public func updateElement<Element>(at index: Index, to value: Element)
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Retrieves and returns the element at `index`,
   /// leaving that element's underlying memory uninitialized.
@@ -1003,7 +1000,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   /// - Parameters:
   ///   - index: The index of the buffer element to retrieve and deinitialize.
   /// - Returns: The instance referenced by this index in this buffer.
-  public func moveElement(at index: Index) -> Element
+  public func moveElement<Element>(from index: Index) -> Element
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Deinitializes the memory underlying the element at `index`.
   ///
@@ -1013,7 +1011,8 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///
   /// - Parameters:
   ///   - index: The index of the buffer element to deinitialize.
-  public func deinitializeElement(at index: Base.Index)
+  public func deinitializeElement<Element>(at index: Base.Index)
+    where Base == UnsafeMutableBufferPointer<Element>
 
   /// Executes the given closure while temporarily binding the memory referenced
   /// by this buffer slice to the given type.
@@ -1070,9 +1069,10 @@ extension Slice where Base: _RebasableCollection & _MutableBaseAddressProtocol,
   ///     method.
   ///   - buffer: The buffer temporarily bound to `T`.
   /// - Returns: The return value, if any, of the `body` closure parameter.
-  public func withMemoryRebound<T, Result>(
+  public func withMemoryRebound<T, Result, Element>(
     to type: T.Type, _ body: (UnsafeMutableBufferPointer<T>) throws -> Result
   ) rethrows -> Result
+    where Base == UnsafeMutableBufferPointer<Element>
 }
 ```
 
@@ -1225,7 +1225,9 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   /// - Returns: A typed buffer of the memory referenced by this raw buffer.
   ///     The typed buffer contains `self.count / MemoryLayout<T>.stride`
   ///     instances of `T`.
-  func initializeMemory<T>(as type: T.Type, repeating repeatedValue: T) -> UnsafeMutableBufferPointer<T>
+  func initializeMemory<T>(
+    as type: T.Type, repeating repeatedValue: T
+  ) -> UnsafeMutableBufferPointer<T>
 
   /// Initializes the buffer's memory with the given elements, binding the
   /// initialized memory to the elements' type.
