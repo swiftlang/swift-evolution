@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Existential types in Swift allow one to store and reason about a value whose specific type is unknown and may change at runtime. The dynamic type of that stored value, which we refer to as the existential's *underlying type*, is known only by the set of protocols it conforms to and, potentially its superclass. While existential types are useful for expressing values of dynamic type, they are necessarily restricted because of their dynamic nature. Recent proposals have made [existential types more explicit](https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md) to help developers understand this dynamic nature, as well as [making existential types more expressive](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md). However, a fundamental issue with existential types remains, that once you have an existential type it is *very* hard to then use any generic operations a value of that type. Developers usually encounter this via the error message "protocol 'P' as a type cannot conform to itself":
+Existential types in Swift allow one to store a value whose specific type is unknown and may change at runtime. The dynamic type of that stored value, which we refer to as the existential's *underlying type*, is known only by the set of protocols it conforms to and, potentially, its superclass. While existential types are useful for expressing values of dynamic type, they are necessarily restricted because of their dynamic nature. Recent proposals have made [existential types more explicit](https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md) to help developers understand this dynamic nature, as well as [making existential types more expressive](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md) by removing a number of limitations. However, a fundamental issue with existential types remains, that once you have a value of existential type it is *very* hard to then use any generic operations a value of that type. Developers usually encounter this via the error message "protocol 'P' as a type cannot conform to itself":
 
 ```swift
 protocol P {
@@ -26,13 +26,9 @@ func test(p: any P) {
 
 This interaction with the generics system makes existentials a bit of a trap in Swift: it's easy to go from generics to existentials, but once you have an existential it is very hard to go back to using it generically. At worst, you need to go back through many levels of functions, changing their parameters or results from `any P` to being generic over `P`, or writing a custom [type eraser](https://www.swiftbysundell.com/articles/different-flavors-of-type-erasure-in-swift/). 
 
-This proposal addresses this existential trap by allowing one to "open" an existential value, binding a generic parameter to its underlying type. Doing so allows us to call a generic function with an existential value, such that the generic function operations on the underlying value of the existential rather than on the existential box itself, making it possible to get out of the existential trap without major refactoring.
+This proposal addresses this existential trap by allowing one to "open" an existential value, binding a generic parameter to its underlying type. Doing so allows us to call a generic function with an existential value, such that the generic function operates on the underlying value of the existential rather than on the existential box itself, making it possible to get out of the existential trap without major refactoring. This capability already exists in the language when accessing a member of an existential (e.g., `p.getA()`), and this proposal extends that behavior to all call arguments in a manner that is meant to be largely invisible: calls to generic functions that would have failed (like `takeP(p)` above) will now succeed. Smoothing out this interaction between existentials and generics can simplify Swift code and make the language more approachable.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
-
-## Motivation
-
-Swift's existentials are a powerful tool for working with a dynamic set of types dynamically, but their inability to interoperate well with Swift's generics is limiting and often leads developers into an existential "trap" where one has a value of existential type but cannot access necessary generic operations on that value.  Designs that fall into the existential trap aren't necessarily bad designs, but the workarounds needed for them involve a lot of refactoring (e.g., turning everything generic) or building custom type eraser types. These involve advanced language features and techniques, resulting in a significant amount of boilerplate as well as creating a steep learning curve for the language. Smoothing out this interaction between existentials and generics can simplify Swift code and make the language more approachable.
 
 ## Proposed solution
 
@@ -45,7 +41,7 @@ protocol Costume {
 }
 
 // Okay: generic function to check whether adding bells changes anything
-func hasBells<C: Costume>(_ costume: Costume) -> Bool {
+func hasBells<C: Costume>(_ costume: C) -> Bool {
   return costume.hasSameAdornments(as: costume.withBells())
 }
 ```
@@ -100,7 +96,7 @@ func checkFinaleReadinessMember(costumes: [any Costume]) -> Bool {
 }
 ```
 
-In that sense, implicitly opening existentials for calls to generic functions is a generalization of this existing behavior to all generic parameters. It isn't strictly more expressive: as the `hasBellsMember` example shows, one *can* always write a member in a protocol extension to get this opening behavior, and trampoline over to another language feature. This proposal aims to make implicit opening of existentials more uniform and more ergonomic, by making it more general.
+In that sense, implicitly opening existentials for calls to generic functions is a generalization of this existing behavior to all generic parameters. It isn't strictly more expressive: as the `hasBellsMember` example shows, one *can* always write a member in a protocol extension to get this opening behavior. This proposal aims to make implicit opening of existentials more uniform and more ergonomic, by making it more general.
 
 Let's consider one last implementation of our "readiness" check, where want to "open code" the check for bells without putting the logic into a separatae generic function `hasBells`:
 
@@ -117,36 +113,13 @@ func checkFinaleReadinessOpenCoded(costumes: [any Costume]) -> Bool {
 }
 ```
 
-There are two things to notice here. First, the method `withBells()` returns type `Self`. When calling that method on a value of type `any Costume`, the concrete result type is not known, so it is type-erased to `any Costume` (which becomes the type of `costumeWithBells`). Second, on the next line, the call to `hasSameAdornments` produces a type error because the function expects a value of type `Self`, but there is no statically-typed link between `costume` and `costumeWithBells`: both are of type `any Costume`. Again, implicit opening of existentials can address this issue by allowing a variable specified with a `some` type to refer to the underlying type of the expression that initializes it, e.g.
-
-```swift
-func checkFinaleReadinessOpenCoded(costumes: [any Costume]) -> Bool {
-  for costume: some Costume in costumes {   // implicit generic parameter binds to underlying type of each costume
-    let costumeWithBells = costume.withBells() // returned type is the same 'some Costume' as 'costume'
-    if !costume.hasSameAdornments(costumeWithBells) { // okay, 'costume' and 'costumeWithBells' have the same type
-      return false
-    }
-  }
-  
-  return true
-}
-```
-
-This notion of opening an existential into a value of opaque type provides an explicit opening syntax, e.g.,
-
-```swift
-func explicitlyOpen(p: any P) {
-  let openedP: some P = any P  // open the type of 'p' and capture it via the opaque type of 'openedP'
-}
-```
-
-By generalizing the implicit opening of existentials to arbitrary generic parameters and also variables declared with opaque types (via `some`), this proposal makes it possible to get out of the existential "trap", pulling the dynamic type of the value stored in the existential box out into a static type in the type system.
+There are two things to notice here. First, the method `withBells()` returns type `Self`. When calling that method on a value of type `any Costume`, the concrete result type is not known, so it is type-erased to `any Costume` (which becomes the type of `costumeWithBells`). Second, on the next line, the call to `hasSameAdornments` produces a type error because the function expects a value of type `Self`, but there is no statically-typed link between `costume` and `costumeWithBells`: both are of type `any Costume`. 
 
 ## Detailed design
 
-Fundamentally, opening an existential means looking into the existential value, producing a unique "name" describing the type of the value that's within that existential, and then operating on that value directly. That "name" needs to be captured somewhere---whether in a generic parameter or an opaque type somewhere---or the opened existential value has to be erased again into another existential value.
+Fundamentally, opening an existential means looking into the existential box to find the dynamic type stored within the box, then giving a "name" to that dynamic type. That dynamic type name needs to be captured in a generic parameter somewhere, so it can be reasonable about statically, and the value with that type can be passed along to the generic function being called. The result of such a call might also refer to that dynamic type name, in which case it has to be erased back to an existential type. The After the call, any values described in terms of that dynamic type opened existential type has to be type-erased back to an existential so that the opened type name doesn't escape into the user-visible type system. This both matches the existing language feature (opening an existential value when accessing one of its members) and also prevents this feature from constituting a major extension to the type system itself.
 
-This section describes the details of opening an existential and then type-erasing back to an existential. Most of these details of this change should be invisible to the user, and manifest only as the ability to use existentials with generics in places where the code would currently be rejected.
+This section describes the details of opening an existential and then type-erasing back to an existential. These details of this change should be invisible to the user, and manifest only as the ability to use existentials with generics in places where the code would currently be rejected. However, there are a *lot* of details, because moving from dynamically-typed existential boxes to statically-typed generic values must be carefully done to maintain type identity and the expected evaluation semantics.
 
 ### When can we open an existential?
 
@@ -169,14 +142,14 @@ func testOpenSimple(p: any P) {
 It's also possible to open an `inout` parameter. The generic function will operate on the underlying type, and can (e.g.) call `mutating` methods on it, but cannot change its *dynamic* type because it doesn't have access to the existential box:
 
 ```swift
-func openInOut<T: P>?(_ value: inout T) { }
+func openInOut<T: P>(_ value: inout T) { }
 func testOpenInOut(p: any P) {
   var mutableP: any P = p
   openInOut(&mutableP) // okay, opens to 'mutableP' and binds 'T' to its underlying type
 }
 ```
 
-However, we cannot open when there might be more than one value of existential type or no values at all, because we need to be guaranteed to have a single underlying type to infer. Here are several such examples where the generic parameter is in a structural position:
+However, we cannot open when there might be more than one value of existential type or no values at all, because we need to be guaranteed to have a single underlying type to infer. Here are several such examples where the generic parameter is used in multiple places in a manner that prevents opening the existential argument:
 
 ```swift
 func cannotOpen1<T: P>(_ array: [T]) { .. }
@@ -196,7 +169,7 @@ func testCannotOpenMultiple(array: [any P], p1: any P, p2: any P, xp: X<any P>, 
   cannotOpen3(p1, p2)        // similar to the case above, p1 and p2 have different types, so we cannot open them
   cannotOpen4(xp)            // cannot open the existential in 'X<any P>' there isn't a specific value there.
   cannotOpen5(p1, p2.getA()) // cannot open either argument because 'T' is used in both parameters
-  cannotOpen6(pOpt)         // cannot open the existential in '(any P)?' because it might be nil, so there would not be an underlying type
+  cannotOpen6(pOpt)          // cannot open the existential in '(any P)?' because it might be nil, so there would not be an underlying type
 }
 ```
 
@@ -268,9 +241,117 @@ func covariantReturns(q: any Q){
 }
 ```
 
+### Contravariant erasure for parameters of function type
+
+While covariant erasure applies to the result type of a generic function, the opposite applies to other parameters of the generic function. This affects parameters of function type that reference the generic parameter binding to the opened existential, which will be type-erased to their upper bounds . For example:
+
+```swi
+func acceptValueAndFunction<T: P>(_ value: T, body: (T) -> Void) { ... }
+
+func testContravariantErasure(p: any P) {
+  acceptValueAndFunction(p) { innerValue in        // innerValue has type 'any P'
+    // ... 
+  }
+}
+```
+
+Like the covariant type erasure applied to result types, this type erasure ensures that the "name" assigned to the dynamic type doesn't escape into the user-visible type system through the inferred closure parameter. It effectively maintains the illusion that the generic type parameter `T` is binding to `any P`, while in fact it is binding to the underlying type of that specific value.
+
+There is one exception to this rule: if the argument to such a parameter is a reference to a generic function, the type erasure does not occur. In such cases, the dynamic type name is bound directly to the generic parameter of this second generic function, effectively doing the same implicit opening of existentials again. This is best explained by example:
+
+```swift
+func takeP<U: P>(_: U) -> Void { ... }
+
+func implicitOpeningArguments(p: any P) {
+  acceptValueAndFunction(p, body: takeP) // okay: T and U both bind to the underlying type of p
+}
+```
+
+This behavior subsumes that of the hidden `_openExistential` operation, which specifically only supports opening one existential value and passing it to a generic function. All uses of `_openExistential` can be replaced by the proposed feature.
+
+ ### Order of evaluation restrictions
+
+Opening an existential box requires evaluating that the expression that produces that box and then peering inside it to extract its underlying type. The evaluation of the expression might have side effects, for example, if one calls the following `getP()` function to produce a value of existential box type `any P`:
+
+```swift
+extension Int: P { }
+
+func getP() -> any P {
+  print("getP()")
+  return 17
+}
+```
+
+Now consider a generic function for which we want open an existential argument:
+
+```swift
+func acceptFunctionStringAndValue<T: P>(body: (T) -> Void, string: String, value: T) { ... }
+
+func hello() -> String {
+  print("hello()")
+}
+
+func implicitOpeningArgumentsBackwards() {
+  acceptFunctionStringAndValue(body: takeP, string: hello(), value: getP()) // will be an error, see later
+}
+```
+
+Opening the argument to the `value` parameter requires performing the call to `getP()`. This has to occur *before* the argument to the `body` parameter can be formed, because `takeP`'s generic type parameter `U` is bound to the underlying type of that existential box. Doing so means that the program would produce side effects in the following order:
+
+```
+getP()
+hello()
+```
+
+However, this would contradict Swift's longstanding left-to-right evaluation order. Rather than do this, we instead place another limitation on the implicit opening of existentials: an existential argument cannot be opened if the generic type parameter bound to its underlying type is used in any function parameter preceding the one corresponding to the existential argument. In the `implicitOpeningArgumentsBackwards` above, the call to `acceptFunctionStringAndValue` does not permit opening the existential argument to the `value` parameter because its generic type parameter, `T`, is also used in the `body` parameter that precedes `value`. This ensures that the underlying type  is not needed for any argument prior to the opened existential argument, so the left-to-right evaluation order is maintained.
+
+### Avoid opening when all protocol requirements are self-conforming
+
+As presented thus far, opening of existential values can change the behavior of existing programs that relied on passing the existential box to a generic function. For example, consider the effect of passing an existential box to an unconstrained generic function:
+
+```swift
+func acceptsBox<T>(_ value: T) -> Any { [value] }
+
+func passBox(p: any P) {
+  let result = acceptsBox(p) // currently infers 'T' to be 'any P', returns [any P]
+      // unrestricted existential opening would infer 'T' to be the underlying type of 'p', return [T]
+}
+```
+
+Here, the dynamic type of the result of `acceptsBox` will change if the existential box is opened as part of the call. The change itself is subtle, and would not be detected until runtime. A change in runtime behavior of this kind and magnitude could cause significant problems for existing Swift programs that rely on binding generic type parameters to existential boxes, so this proposal prevents 
+
+Our approach is to prevent opening an existential value when the generic type parameter that would bind to its underlying type only has *self-conforming* protocol requirements. A protocol `Q` is *self-conforming* when the corresponding existential type `any Q` conforms to the protocol `Q`. Most protocols are not self-conforming, but there are two exceptions:
+
+* The `Error` protocol is self-conforming, as specified in [SE-0235](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#adding-swifterror-self-conformance).
+* `@objc` protocols that contain no `static` requirements are self-conforming.
+
+When all of the protocol requirements on a generic type parameter are self-conforming protocols, an existential type can successfully fulfill the requirements of that generic parameter, so we disable the implicit opening of existential values for that generic type parameter. This maintains the semantics of existing well-formed code that passes existential values to generic functions.
+
+### Subsuming behavior of `type(of:)`
+
+The proposed implicit opening of existentials subsumes the implicit opening behavior of the [`type(of:)` operator](https://developer.apple.com/documentation/swift/2885064-type), which is currently handled via special type checking rules that determine the underlying type of the value and then erase the result to an existential metatype:
+
+> The dynamic type returned from `type(of:)` is a *concrete metatype* (`T.Type`) for a class, structure, enumeration, or other nonprotocol type `T`, or an *existential metatype* (`P.Type`) for a protocol or protocol composition `P`.
+
+### Suppressing explicit opening with `as any P` / `as! any P`
+
+If for some reason one wants to suppress the implicit opening of an existential value, one can explicitly write a coercion or forced cast to an existential type. For example:
+
+```swift
+func f1<T: P>(_: T) { }   // #1
+func f1<T>(_: T) { }      // #2
+
+func test(p: any P) {
+  f1(p)          // opens p and calls #1, which is more specific
+  f1(p as any P) // suppresses opening of 'p', calls #2 which is the only valid candidate
+}
+```
+
+Given that implicit opening of existentials is defined to occur in those cases where a generic function would not otherwise be callable, this suppression mechanism should not be required often.
+
 ## Source compatibility
 
-This proposal has two effects on source compatibility. The first is that calls to generic functions that would previously have been ill-formed (e.g., they would fail because `any P` does not conform to `P`) but now become well-formed. For the most part, this makes ill-formed code well-formed, so it doesn't affect existing source code. As with any such change, it's possible that overload resolution that would have succeeded before will now pick a different function. For example:
+This proposal is defined specifically to avoid most impacts on source compatibility. Some calls to generic functions that would previously have been ill-formed (e.g., they would fail because `any P` does not conform to `P`) will now become well-formed, and existing code will behavior in the same manner as before. As with any such change, it's possible that overload resolution that would have succeeded before will continue to succeed but will now pick a different function. For example:
 
 ```swift
 protocol P { }
@@ -279,24 +360,11 @@ func overloaded1<T: P, U>(_: T, _: U) { } // A
 func overloaded1<U>(_: Any, _: U) { }     // B
 
 func changeInResolution(p: any P) {
-  overloaded1(p) // used to choose B, will choose A with this proposal
+  overloaded1(p, 1) // used to choose B, will choose A with this proposal
 }
 ```
 
-The second effect on source compatibility involves generic calls that *do* succeed prior to this change by binding the generic parameter to the existential box. For example:
-
-```swift
-func acceptsBox<T>(_ value: T) { /* ... */ }
-
-func passBox(p: any P) {
-  acceptsBox(p) // currently infers 'T' to be 'any P'
-                // with this proposal, infers 'T' to be the underlying type of 'p'
-}
-```
-
-Given that `acceptsBox` cannot *do* very much with a value of type `T`, since there are no requirements on it, there aren't many ways in which the function could distinguish between the existential box and its underlying value. Adding any requirements on `T` to the generic function (e.g., `where T: P`) makes this code ill-formed prior to this proposal, because `any P` does not conform to `P`. There are some exceptions to this for *self-conforming protocols*, i.e., protocols for which "`any P` does conform to `P`". The only self-conforming protocols currently in Swift are `Error` (as introduced in [SE-0235](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#adding-swifterror-self-conformance)) and some `@objc` protocols.
-
-For the cases where binding the generic parameter to the existential box currently succeeds, the semantics change in this proposal to bind to the underlying value is most likely a win: it eliminates an extra level of indirection, because the generic function can work directly on values of the underlying type (requires one level of indirection) rather than working with the box indirectly (requires two levels of indirection). Initial testing of this feature has found that code generally does not change in semantics when opening existentials. The only exception we've encountered is that the Swift standard library uses specific compiler builtins and runtime queries to establish when it is working directly with an existential box; code outside the standard library can't generally perform these queries so is unlikely to be affected.
+Such examples are easy to construct in the abstract for any feature that makes ill-formed code well-formed, but these examples rarely cause problems in practice.
 
 ## Effect on ABI stability
 
@@ -312,7 +380,7 @@ This proposal opts to open existentials implicitly and locally, type-erasing bac
 
 ### Explicitly opening existentials
 
-This proposal implicitly opens existentials at a call or when initializing a variable with opaque type. Instead, we could provide an explicit syntax for opening an existential, always requiring one to (e.g.) introduce a new name for the opened type. For example, we could choose to only allow initializing a variable with opaque type, so that code like the following (which is ill-formed today):
+This proposal implicitly opens existentials at a call. Instead, we could provide an explicit syntax for opening an existential, e.g., via an `as` coercion to `some P`. For example,
 
 ```swift
 protocol P {
@@ -330,11 +398,14 @@ could be written to explicitly open the existential, e.g.,
 
 ```swift
 func hasExistentialP(p: any P) {
-  let openedP: some P = p // allow opening only when creating a binding to 'some P'
   takesP(p)               // error today ('any P' does not conform to 'P'), would still be an error
-  takesP(openedP)         // okay
+  takesP(p as some P)     // explicitly open the existential
 }
 ```
+
+The primary advantage of this approach is that it is purely additive, so it has no source compatibility impact, while still allowing one to (explicitly) get out of the "existential trap". It 
+
+TODO: talk more about the pros and cons here
 
 Because this approach is more explicit than the proposed one, it has less impact on source compatibility: binding property of opaque type to an existential rarely succeeds (because `any P` almost never conforms to `P`). So, this approach is a more conservative one that the proposed approach that nonetheless still makes it possible to get out of the existential trap.
 
@@ -381,6 +452,15 @@ func identityTricks(p: any Equatable) {
 ```
 
 This approach is much more complex because it introduces value tracking into the type system (where was this existential value produced?), at which point mutations to variables can affect the static types in the system. 
+
+## Revisions
+
+First revision
+
+* Describe contravariant erasure for parameters
+* Describe the limitation on implicit existential opening to maintain order of evaluation
+* Avoid opening an argument when all protocol requirements of the correspinding parameter are self-conforming
+* Introduce `as any P` and `as? any P` as syntaxes to suppress the implicit opening of an existential value.
 
 ## Acknowledgments
 
