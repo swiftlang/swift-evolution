@@ -56,7 +56,7 @@ The `@_alwaysEmitIntoClient` attribute is an unofficial Swift language feature t
 
 While `@_alwaysEmitIntoClient` can be used to back deploy APIs, there are some drawbacks to using it. Since a copy of the function is always emitted, there is code size overhead for every client even if the client's deployment target is new enough that the library API would always be available at runtime. Additionally, if the implementation of the API were to change in order to improve performance, fix a bug, or close a security hole then the client would need to be recompiled against a new SDK before users benefit from those changes. An attribute designed specifically to support back deployment should avoid these drawbacks by ensuring that:
 
-1. The API implemention from the original library is preferred at runtime when it is available.
+1. The API implementation from the original library is preferred at runtime when it is available.
 2. Fallback copies of the API implementation are absent from clients binaries when they would never be used.
 
 Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-function-back-deployment/55769)
@@ -127,14 +127,16 @@ extension Toaster {
 }
 ```
 
-When the deployment target of the client app is at least toasterOS 2.0, the optimizer can eliminate the branch in `makeBatchOfToast_thunk(_:)` and make `makeBatchOfToast_fallback(_:)` an unused function.
+Developers familiar with JavaScript may recognize these generated compatibility functions as [polyfills](https://remysharp.com/2010/10/08/what-is-a-polyfill).
+
+When the deployment target of the client app is at least toasterOS 2.0, the optimizer can eliminate the branch in `makeBatchOfToast_thunk(_:)` and therefore make `makeBatchOfToast_fallback(_:)` an unused function, which reduces the unnecessary bloat that could otherwise result from referencing a back deployed API.
 
 ### Restrictions on declarations that may be back deployed
 
 There are rules that limit which declarations may have a `@backDeploy` attribute:
 
 * The declaration must be `public` or `@usableFromInline` since it only makes sense to offer back deployment for declarations that would be used by other modules.
-* Only functions that can be invoked with static dispatch are eligible to back deploy, so back deployed instance and class methods must be `final`. The `@objc` attribute also implies dynamic dispatch and therfore is incompatible with `@backDeploy`.
+* Only functions that can be invoked with static dispatch are eligible to back deploy, so back deployed instance and class methods must be `final`. The `@objc` attribute also implies dynamic dispatch and therefore is incompatible with `@backDeploy`.
 * Explicit availability must be specified with `@available` on the same declaration for each of the platforms that the declaration is back deployed on.
 * The declaration should be available earlier than the platform versions specified in `@backDeploy` (otherwise the fallback functions would never be called).
 * The `@_alwaysEmitIntoClient` and `@_transparent` attributes are incompatible with `@backDeploy` because they require that the function body to always be emitted into the client, defeating the purpose of `@backDeploy`. Declarations with `@inlinable` are also restricted from using `@backDeploy` since inlining behavior is dictated by the optimizer and use of the library function when it is available could be inconsistent as a result.
@@ -149,7 +151,7 @@ The introduction of this attribute to the language is an additive change and the
 
 ## Effect on ABI stability
 
-The `@backDeploy` attribute has no effect on the ABI of Swift libraries. A Swift function with and without a `@backDeploy` attribute has the same ABI; the attribute simply controls whether the compiler automatically generates additional logic in the client module. The thunk and fallback functions that are emitted into the client do have a special mangling to disambiguate them from the original function in the library, but these symbols are never referenced accross separately compiled modules.
+The `@backDeploy` attribute has no effect on the ABI of Swift libraries. A Swift function with and without a `@backDeploy` attribute has the same ABI; the attribute simply controls whether the compiler automatically generates additional logic in the client module. The thunk and fallback functions that are emitted into the client do have a special mangling to disambiguate them from the original function in the library, but these symbols are never referenced across separately compiled modules.
 
 ## Effect on API resilience
 
@@ -159,7 +161,7 @@ By itself, adding a `@backDeploy` attribute to a declaration does not affect sou
 
 ### Extend @available
 
-Another possible design for this feature would be to augment the existing `@available` attribute with the ability to control back deployment:
+Another possible design for this feature would be to augment the existing `@available` attribute. In the following example, a `backDeployBefore:` label is added to the `@available` attribute:
 
 ```swift
 extension Toaster {
@@ -168,13 +170,28 @@ extension Toaster {
 }
 ```
 
-This design has the advantage of grouping the introduction and back deployment versions together in a single attribute. The `@available` attribute already has quite a few responsibilities, though, and this design does not call as much attention to the fact that the declaration has important new behaviors, like exposing the function body to clients. It would also be more awkward to emit clear compiler diagnostics when there are issues related to back deployment since an individual component of an attribute would need to be identified in the messages, instead of an entire attribute.
+This design has the advantage of grouping the introduction and back deployment versions together in a single attribute, which may be easier to understand for library authors who want to adopt this capability. However, there are drawbacks:
+
+- The `@available` attribute's existing responsibilities relate to constraining the contexts in which a declaration can be used. The version in which the declaration became ABI is not an availability constraint, but rather information that the library author provides to the compiler in order to give the declaration extended availability. A client of the library does not need this information in order to understand where the API may be used. It seems wise to avoid further complicating the already complex `@available` attribute with additional responsibilities that do not relate to its core purpose.
+- This design would require library authors to use the long form of `@available`, which would lead to increased verbosity for APIs that are available on many different OSes.
+
+A variant of this alternative design would be to add a `backDeployTo:` label instead and change the meaning of the `introduced:` label to indicate the version of OS that the declaration became ABI stable:
+
+```swift
+extension Toaster {
+  @available(toasterOS, backDeployTo: 1.0, introduced: 2.0)
+  public func makeBatchOfToast(_ breadSlices: [BreadSlice]) -> [Toast]
+}
+```
+
+This has the same drawbacks documented above and also further contradicts the principle of progressive disclosure by making it necessary to learn about back deployment as a concept in order to understand where an API declaration may be used.
+
 
 ## Future directions
 
 ### Back deployment for other kinds of declarations
 
-It would also be useful to be able to back deploy other types of declarations, like entire enums or structs. Exploring the feasability of such a feature is out of scope for this proposal, but it does seem like the attribute should be designed to allow it to be used for this purpose.
+It would also be useful to be able to back deploy the implementations of other types of declarations, such as entire enums, structs, or even protocol conformances. Exploring the feasibility of such a feature is out of scope for this proposal, but whether or not the design can accommodate being extended to other kinds of declarations is important to consider.
 
 ## Acknowledgments
 
