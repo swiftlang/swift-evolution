@@ -113,7 +113,35 @@ func checkFinaleReadinessOpenCoded(costumes: [any Costume]) -> Bool {
 }
 ```
 
-There are two things to notice here. First, the method `withBells()` returns type `Self`. When calling that method on a value of type `any Costume`, the concrete result type is not known, so it is type-erased to `any Costume` (which becomes the type of `costumeWithBells`). Second, on the next line, the call to `hasSameAdornments` produces a type error because the function expects a value of type `Self`, but there is no statically-typed link between `costume` and `costumeWithBells`: both are of type `any Costume`. 
+There are two things to notice here. First, the method `withBells()` returns type `Self`. When calling that method on a value of type `any Costume`, the concrete result type is not known, so it is type-erased to `any Costume` (which becomes the type of `costumeWithBells`). Second, on the next line, the call to `hasSameAdornments` produces a type error because the function expects a value of type `Self`, but there is no statically-typed link between `costume` and `costumeWithBells`: both are of type `any Costume`. Implicit opening of existential arguments only occurs in calls, so that its effects can be type-erased at the end of the call. To have the effects of opening persist over multiple statements, factor that code out into a generic function that gives a name to the generic parameter, as with `hasBells`.
+
+### Moving between `any` and `some`
+
+One of the interesting aspects of this proposal is that it allows one to refactor `any` parameters into `some` parameters (as introduced by [SE-0341](https://github.com/apple/swift-evolution/blob/main/proposals/0341-opaque-parameters.md)) without a significant effect on client code. Let's rewrite our generic `hasBells` function using `some`:
+
+```swift
+func hasBells(_ costume: some Costume) -> Bool {
+  return costume.hasSameAdornments(as: costume.withBells())
+}
+```
+
+With this proposal, we can now call `hasBells` given a value of type `any Costume`:
+
+```swift
+func isReadyForFinale(_ costume: any Costume) -> Bool {
+  return hasBells(costume) // implicit opening of the existential value
+}
+```
+
+It's always the case that one can go from a statically-typed `some Costume` to an `any Costume`. This proposal also allows one to go the other way, opening up an `any Costume` into a `some Costume` parameter. Therefore, with this proposal, we could refactor `isReadyForFinale` to make it generic via `some`:
+
+```swift
+func isReadyForFinale(_ costume: some Costume) -> Bool {
+  return hasBells(costume) // okay, `T` binds to the generic argument
+}
+```
+
+Any callers to `isReadyForFinale` that provided concrete types now avoid the overhead of "boxing" their type in an `any Costume`, and any callers that provided an `any Costume` will now implicitly open up that existential in the call to `isReadyForFinale`. This allows existential operations to be migrated to generic ones without having to also make all clients generic at the same time, offering an incremental way out of the "existential trap".
 
 ## Detailed design
 
