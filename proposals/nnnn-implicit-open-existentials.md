@@ -418,7 +418,7 @@ This proposal opts to open existentials implicitly and locally, type-erasing bac
 
 ### Explicitly opening existentials
 
-This proposal implicitly opens existentials at a call. Instead, we could provide an explicit syntax for opening an existential, e.g., via an `as` coercion to `some P`. For example,
+This proposal implicitly opens existentials at call sites. Instead, we could provide an explicit syntax for opening an existential, e.g., via [an `as` coercion to `some P`](https://forums.swift.org/t/pitch-implicitly-opening-existentials/55412/8). For example,
 
 ```swift
 protocol P {
@@ -441,13 +441,42 @@ func hasExistentialP(p: any P) {
 }
 ```
 
-The primary advantage of this approach is that it is purely additive, so it has no source compatibility impact, while still allowing one to (explicitly) get out of the "existential trap". It 
+There are two advantages to this approach over the implicit opening in this proposal. The first is that it is a purely additive feature and completely opt-in feature, which one can read and reason about when it is encountered in source code. The second is that the opened existential could persist throughout the body of the function. This would allow one to write the "open-coded" finale check from earlier in the proposal without having to factor the code into a separate (generic) function:
 
-TODO: talk more about the pros and cons here
+```swift
+func checkFinaleReadinessOpenCoded(costumes: [any Costume]) -> Bool {
+  for costume in costumes {
+    let openedCostume = costume as some Costume             // type is "opened type of costume at this point"
+    let costumeWithBells = openedCostume.withBells()        // returned type is the same as openedCostume
+    if !openedCostume.hasSameAdornments(costumeWithBells) { // okay, both types are known to be the same
+      return false
+    }
+  }
 
-Because this approach is more explicit than the proposed one, it has less impact on source compatibility: binding property of opaque type to an existential rarely succeeds (because `any P` almost never conforms to `P`). So, this approach is a more conservative one that the proposed approach that nonetheless still makes it possible to get out of the existential trap.
+  return true
+}
+```
 
-On the other hand, this narrower approach fails to take away the friction when moving from existentials to generics. A programmer who has an existential and wishes to use a generic function would need to learn about opaque result types and their differences with existentials to do so, which is instructive but may steepen the learning curve too early. 
+The type of `openedCostume` is based on the dynamic type of the the value in the variable `costume` at the point where the `as some Costume` expression occurred. That type must not be allowed to "escape" the scope where the value is created, which implies several restrictions:
+
+* Only non-`static` local variables can have opened existential type. Any other kind of variable can be referenced at some later point in time where the dynamic type might have changed.
+* A value of opened existential type cannot be returned from a function that has an opaque result type (e.g., `some P`), because then the underlying type of the opaque type would be dependent on runtime values provided to the function.
+
+Additionally, having an explicit opening expression means that opened existential types become part of the user-visible type system: the type of `openedCostume` can only be reasoned about based on its constraints (`P`) and the location in the source code where the expression occurred. Two subsequent openings of the same variable would produce two different types:
+
+```swift
+func f(eq: any Equatable) {
+  let x1 = eq as some Equatable
+  if x1 == x1 { ... }  // okay
+
+  let x2 = eq as some Equatable
+  if x1 == x2 { ... } // error: "eq as some Equatable" produces different types in x1 and x2
+}
+```
+
+An explicit opening syntax is more expressive within a single function than the proposed implicit opening, because one can work with different values that are statically known to be derived from the same opened existential without having to introduce a new generic function to do so. However, this explicitness comes with a corresponding increase in the surface area of the language: not only the expression that performs the explicit opening (`as some P`), but the notion of opened types in the type system, which has heretofore been an implementation detail of the compiler not exposed to users.
+
+In contrast, the proposed implicit opening improves the expressivity of the language without increasing it's effective surface area. The opening is implicit, and the opened types remain an implementation detail.
 
 ### Value-dependent opening of existentials
 
@@ -478,7 +507,6 @@ func identityTricks(p: any Equatable) {
   let openedQ1: some P = identity(q) // openedQ1 has the underlying type of 'q' and therefore 'p'
   if openedP1 == openedQ1 { ... }    // okay because both values have the underlying type of 'p'
 
-
   if condition {
     q = 17   // different underlying type for 'q'
   }
@@ -500,6 +528,7 @@ First revision
 * Avoid opening an existential argument when the existential type already satisfies the conformance requirements of the corresponding generic parameter, to better maintain source compatibility 
 * Introduce `as any P` and `as? any P` as syntaxes to suppress the implicit opening of an existential value.
 * Added discussion on the relationship with `some` parameters ([SE-0341](https://github.com/apple/swift-evolution/blob/main/proposals/0341-opaque-parameters.md)).
+* Expand discussion of an explicit opening syntax.
 
 ## Acknowledgments
 
