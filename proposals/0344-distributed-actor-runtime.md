@@ -511,7 +511,7 @@ distributed actor DA {
 }
 ```
 
-If the self of the actor were to be escaped on multiple execution paths, the ready call is injected in all apropriate paths, like this:
+If the self of the actor were to be escaped on multiple execution paths, the ready call is injected in all appropriate paths, like this:
 
 ```swift
 distributed actor DA {
@@ -622,7 +622,7 @@ Using this technique we are able to emit the ready call only once, and put off t
 
 > The same technique is used to avoid hopping to the self executor 10 times, and the implicit hop-to-self is only performed once, on the initial iteration where the actor became fully initialized.
 
-Things get more complex in face of failable as well as throwing initializers. Specifically, because we not only have to assign identities, we also need to ensure that they are resigned when the distributed actor is deallocated. In the simple, non-throwing initialization case this is simply done in the distributed actor's `deinit`. However, some initialization semantics make this more complicated.
+Things get more complex in the face of failable as well as throwing initializers. Specifically, because we not only have to assign identities, we also need to ensure that they are resigned when the distributed actor is deallocated. In the simple, non-throwing initialization case this is simply done in the distributed actor's `deinit`. However, some initialization semantics make this more complicated.
 
 ### Resigning distributed actor IDs
 
@@ -675,11 +675,11 @@ distributed actor DA {
 }
 ```
 
-Due to rules about actor and class init/deinit, when we `return nil` from a failable initializer, its deinitializer *does not run* (!). Because of this, we cannot rely on the deinit to resign the ID as we'd leave an un-used, but still registered identity hanging in the actor system, and the `resignID` is injected just before the "failing return" from such initializer. This is done transparently, and neither distributed actor developers nor actor system developers need to worry about this: the ID is always resigned properly.
+Due to rules about actor and class init/deinit, when we `return nil` from a failable initializer, its deinitializer *does not run* (!). Because of this, we cannot rely on the deinit to resign the ID as we'd leave an un-used, but still registered identity hanging in the actor system, and the `resignID` is injected just before the "failing return" from such an initializer. This is done transparently, and neither distributed actor developers nor actor system developers need to worry about this: the ID is always resigned properly.
 
 > This does mean that `resignID` may be called without `actorReady` having ever been called! The system should react to this as it would to any usual resignID and free any resources associated with the identifier.
 
-Next, we need to discuss *throwing* initializers, and their multiple paths of execution. Again, rules about class and actor deinitialization, are tightly related to whether a type's `deinit` will be executed or not, so let us analyse the following example:
+Next, we need to discuss *throwing* initializers, and their multiple paths of execution. Again, rules about class and actor deinitialization, are tightly related to whether a type's `deinit` will be executed or not, so let us analyze the following example:
 
 ```swift
 distributed actor DA {
@@ -812,7 +812,7 @@ final class ClusterSystem: DistributedActorSystem {
 
 The types work out correctly since it is the specific actor system that has _assigned_ the `ID`, and stored the specific distributed actor instance for the specific `ID`.
 
-> **Note:** Errors thrown by actor systems should conform to the `protocol DistributedActorSystemError: Error {}` protocol. While it is just a marker protocol, but it helps end users understand where an error originated.
+> **Note:** Errors thrown by actor systems should conform to the `protocol DistributedActorSystemError: Error {}` protocol. While it is just a marker protocol, it helps end users understand where an error originated.
 
 Attempting to ready using one type, and resolve using another will cause a throw to happen during the resolve, e.g. like this:
 
@@ -840,7 +840,7 @@ As was shown earlier, invoking a `distributed func` essentially can follow one o
 - if the distributed actor was **remote**:
   - the call must be transformed into an invocation that will be offered to the `system.remoteCall(...)` method to execute
 
-The first case is governed by normal actor execution rules. There might be a execution context switch onto the actor's executor, and the actor will receive and execute the method call as usual.
+The first case is governed by normal actor execution rules. There might be a context switch onto the actor's executor, and the actor will receive and execute the method call as usual.
 
 In this section, we will explain all the steps involved in the second, remote, case of a distributed method call. The invocations will be using two very important types that represent the encoding and decoding side of such distributed method invocations.
 
@@ -1024,7 +1024,7 @@ The thunk creates the `invocation` container `[1]` into which it records all arg
 
 Since the strings created are string literals, known at compile time, there is no allocation impact for this argument wrapper type and this additional label information.
 
-> It may seem tempting to simply record arguments into a dictionary using their effective labels, however this can lead to issues due to labels being allowed to be reused. For example, `func sum(a a1: Int, a a2: Int)` is a legal, athough not very readable, function declaration. A naive encoding scheme could risk overriding the "first `a`" value with the "second `a` if it strongly relied on the labels only. A distributed actor system implementation should decide how to deal with such situations and may choose to throw at runtime if such risky signature is detected, or apply some mangling, e.g. use the parameter names to clarify which value was encoded.
+> It may seem tempting to simply record arguments into a dictionary using their effective labels, however this can lead to issues due to labels being allowed to be reused. For example, `func sum(a a1: Int, a a2: Int)` is a legal, although not very readable, function declaration. A naive encoding scheme could risk overriding the "first `a`" value with the "second `a` if it strongly relied on the labels only. A distributed actor system implementation should decide how to deal with such situations and may choose to throw at runtime if such a risky signature is detected, or apply some mangling, e.g. use the parameter names to clarify which value was encoded.
 
 The `record...` calls are expected to serialize the values, using any mechanism they want to, and thanks to the fact that the type performing the recording is being provided by the specific `ActorSystem`, it also knows that it can rely on the arguments to conform to the system's `SerializationRequirement`.
 
@@ -1056,7 +1056,7 @@ Finally, the specific error `[1.3]` and return types `[1.4]` are also recorded. 
 
 Recording the error type is mostly future-proofing and currently will only ever be invoked with the `Error.self` or not at all. It allows informing the system if a throw from the remote side is to be expected, and technically, if Swift were to gain typed throws this method could record specific expected error types as well — although we have no plans with regards to typed throws at this point in time.
 
-The last encoder call is `doneRecording()` is made, to signal to the invocation encoder that no further record calls will be made. This is useful since with the optional nature of some of the calls, it would be difficult to know for a system implementation when the invocation is fully constructed. Operations which may want to be delayed until completion could include serialization, de-duplicating values or similar operations which benefit from seeing the whole constructed invocation state in the encoder.
+The last encoder call `doneRecording()` is made, to signal to the invocation encoder that no further record calls will be made. This is useful since with the optional nature of some of the calls, it would be difficult to know for a system implementation when the invocation is fully constructed. Operations which may want to be delayed until completion could include serialization, de-duplicating values or similar operations which benefit from seeing the whole constructed invocation state in the encoder.
 
 Lastly, the populated encoder, along with additional type and function identifying information is passed to the `remoteCall`, or `remoteCallVoid` method on the actor system which should actually perform the message request/response interaction with the remote actor.
 
@@ -1253,7 +1253,7 @@ Before we dive deeper into this, let us visualize how this two-step process is i
 +-------------------------------------------------------------------------------+
 ```
 
-We see that as we decode our wire envelope, we are able to get the header section, and all values contained within it eagerly and let the remaining slice of the buffer untouched. It will be consumed during performing of the invocation soon enough. The nice thing about this design is that we're still able to hold onto the actual buffer handed us from the networking library, and we never had to copy the buffer to our own local copies.
+We see that as we decode our wire envelope, we are able to get the header section, and all values contained within it eagerly and leave the remaining slice of the buffer untouched. It will be consumed during performing of the invocation soon enough. The nice thing about this design is that we're still able to hold onto the actual buffer handed us from the networking library, and we never had to copy the buffer to our own local copies.
 
 Next, we need to prepare for the decoding of the message section. This is done by implementing the remaining protocol requirements on the `ClusterTargetInvocation` type we defined earlier, as well as implementing a decoding iterator of type `DistributedTargetInvocationArgumentDecoder`, as shown below:
 
@@ -1439,7 +1439,7 @@ extension DA {
   // Distributed accessor thunk" for 'myCompute(_:_:_:) -> String'
   //
   // PSEUDO CODE FOR ILLUSTRATION PURPOSES; NOT IMPLEMENTABLE IN PLAIN SWIFT;
-  // Implemented in directly in IR for expressability reasons, and not user-accessible.
+  // Implemented in directly in IR for expressibility reasons, and not user-accessible.
   nonisolated func $distributedFuncAccessor_myCompute(
     decoder: UnsafeMutableRawPointer,
     argumentTypes: UnsafeRawPointer,
@@ -1486,7 +1486,7 @@ extension ExampleDistributedMethodInvocationHandler {
   func onError<Failure: Error>(error: Failure) {
     guard Failure is Encodable else {
       // best effort error reporting just sends back the type string
-      // we don't want to send back string repr since it could leak sensitive information
+      // we don't want to send back string representation since it could leak sensitive information
       self.replyError("\(Failure.self)")
     }
 
@@ -1566,7 +1566,7 @@ At present remote calls use an opaque string identifier (wrapped as `RemoteCallT
 
 Distributed actor system implementations shall treat the identifier as opaque value that they shall ship from the sender to the recipient node, without worrying too much about their contents. The identification scheme though has a large and important impact on the versioning story of distributed calls, so in this section we'd like to discuss and outline the general plans we foresee here as we will introduce proper and more versioning friendly schemes in the future.
 
-Swift's default mangling scheme is used for distributed methods is problematic for API evolution, however, it is a great "default" to pick until we devise a different scheme in the future. The mangling scheme is good default because:
+Swift's default mangling scheme is used for distributed methods is problematic for API evolution, however, it is a great "default" to pick until we devise a different scheme in the future. The mangling scheme is a good default because:
 
 - it allows callers to use all of the richness of Swift's calling semantics, including:
   - overloads by type (e.g. we can call `receive(_:Int)` as well as `receive(_:String)`) and invoke the correct target based on the type.
@@ -1574,27 +1574,27 @@ Swift's default mangling scheme is used for distributed methods is problematic f
 
 This is also avoids a well-known problem from objective-c, where selectors must not accidentally be the same, otherwise bad-things-happen™.
 
-One potential alternative would be to use the full names of methods, i.e. `hello(name:surname:)`, similar to objective-c selectors to identify methods. However, this means the lose of any and all type-safety and _intent_ of target methods being used accoring to their appropriate types. It also means identifiers must be unique and overloads must be banned at compile time, or we risk reusing identifiers and not knowing which function to invoke. This again could be solved by separately shipping type identifiers, but this would mean reinventing what Swift's mangling scheme already does, but in a worse way. Instead, we propose to start with the simple mangling scheme, and in a subsequent proposal, address the versioning story more hollistically, in a way that addressess ABI concerns of normal libraries, as well as distributed calls.
+One potential alternative would be to use the full names of methods, i.e. `hello(name:surname:)`, similar to objective-c selectors to identify methods. However, this means the loss of any and all type-safety and _intent_ of target methods being used according to their appropriate types. It also means identifiers must be unique and overloads must be banned at compile time, or we risk reusing identifiers and not knowing which function to invoke. This again could be solved by separately shipping type identifiers, but this would mean reinventing what Swift's mangling scheme already does, but in a worse way. Instead, we propose to start with the simple mangling scheme, and in a subsequent proposal, address the versioning story more holistically, in a way that addresses ABI concerns of normal libraries, as well as distributed calls.
 
 We are aware that the mangling scheme makes the following, what should be possible to evolve without breaking APIs situations not work, that a different scheme could handle well:
 
 - adding parameters even with default parameters,
-- changing a type of argument from struct to class (or enum etc), is also breaking through it need not be.
+- changing a type of argument from struct to class (or enum etc), is also breaking though it need not be.
   - We could address this by omitting the kind information from the mangled names.
 
 The robust versioning and evolution scheme we have in mind for the future must be able to handle these cases, and we will be able to roll out a new identification scheme that handles those in the future, without breaking API or breaking existing remote calls. The metadata to lookup distributed method accessors would still be available using the "most precise" mangled format, even as we introduce a lossy, more versioning friendly format. APIs would remain unchanged, because from the perspective of `DistributedActorSystem` all it does is ship around an opaque String `identifier` of a remote call target.
 
-There are numerous other versioning and rollout topics to cover, such as "rolling deployments", "green/blue deployments" and other techniques that both the versioning scheme _and_ the specific actor system implementation must be able to handle eventually. However, based on experience implementing other actor systems in the past, we are confident that those are typical to add in later phases of such endavor, not as the first thing in the first iteration of the project.
+There are numerous other versioning and rollout topics to cover, such as "rolling deployments", "green/blue deployments" and other techniques that both the versioning scheme _and_ the specific actor system implementation must be able to handle eventually. However, based on experience implementing other actor systems in the past, we are confident that those are typical to add in later phases of such an endeavor, not as the first thing in the first iteration of the project.
 
 #### Compression techniques to avoid repeatedly sending large identifiers
 
 One of the worries brought up with regards to mangled names and string identifiers in general during the review has been that they can impose a large overhead when the actual messages are small. Specifically, as the `RemoteCallTarget.identifier` often can be quite large, and for distributed methods which e.g. accept only a few integers, or even no values at all, the identifiers often can dominate the entire message payload.
 
-This is not a novel problem – we have seen and solved such issues in the past in other actor runtimes (i.e. Akka). One potential solution is to establish a compression mechanism between peers where message exchanges establish shared knowlage about "long identifiers" and mapping them to unique numbers. The sender in such system at first pessimistically sends the "long" String-based identifier, and in return may get additional metadata in the response "the next time you want to call this target, send the ID 12345". The sender system then stores in a cache that when invoking the "X...Z" target it does not need to send the long string identifier, but instead can send the number 12345. This solves the long string identifiers problem, as they need not be sent repeatedly over the wire. (There are a lot of details to how such scheme can be implemented that we do not need to dive into here, however we are confident those work well, because we have seen them solve this exact issue before).
+This is not a novel problem – we have seen and solved such issues in the past in other actor runtimes (i.e. Akka). One potential solution is to establish a compression mechanism between peers where message exchanges establish shared knowledge about "long identifiers" and mapping them to unique numbers. The sender in such a system at first pessimistically sends the "long" String-based identifier, and in return may get additional metadata in the response "the next time you want to call this target, send the ID 12345". The sender system then stores in a cache that when invoking the "X...Z" target it does not need to send the long string identifier, but instead can send the number 12345. This solves the long string identifiers problem, as they need not be sent repeatedly over the wire. (There are a lot of details to how such schemes can be implemented that we do not need to dive into here, however we are confident those work well, because we have seen them solve this exact issue before).
 
-Given the need, and assuming other shared knowlage, we could even implement other identification schemes, which can also avoid that "initial" long string identifier sending. We will be exploring those as specific use-cases and requirements from adopters arise. We are confident in our ability to fit such techniques into this design because of the flexibility APIs based around `RemoteCallTarget` gives us, without requiring to actually send the entire target object over the wire.
+Given the need, and assuming other shared knowledge, we could even implement other identification schemes, which can also avoid that "initial" long string identifier sending. We will be exploring those as specific use-cases and requirements from adopters as they arise. We are confident in our ability to fit such techniques into this design because of the flexibility that APIs based around `RemoteCallTarget` gives us, without requiring us to actually send the entire target object over the wire.
 
-Such optimization techniques, are entirely implementable in concrete distributed actor system implementations. However, if necessary, we would be able to even extend the capabilities of `executeDistributedTarget` to accomodate other concrete needs and designs.
+Such optimization techniques, are entirely implementable in concrete distributed actor system implementations. However, if necessary, we would be able to even extend the capabilities of `executeDistributedTarget` to accommodate other concrete needs and designs.
 
 #### Overlap with general ABI and versioning needs in normal Swift code
 
@@ -1611,7 +1611,7 @@ public func f(x: Int) {
 }
 ```
 
-Where the new function is going to ship with a new OS, yet actually contains implementation that is compatible with the old definition of `f()`. In such situations, developers are forced to manually write forwarding methods. While this seems simple on small APIs, it can easily become rather complex and easy to introduce subtle bugs in the forwarding logic.
+Where the new function is going to ship with a new OS, yet actually contains an implementation that is compatible with the old definition of `f()`. In such situations, developers are forced to manually write forwarding methods. While this seems simple on small APIs, it can easily become rather complex and easy to introduce subtle bugs in the forwarding logic.
 
 Instead, developers would want to be able to introduce new parameters, with a default value that would be used when the function is invoked on older platforms, like this:
 
@@ -1632,11 +1632,11 @@ Where the compiler would synthesize versions of the methods for the various avai
 
 #### Discussion: User provided target identities
 
-We also are considering, though are not yet convienced that these would be the optimal way to address some of the evolution concerns, the possibility to use "stable names". This mechanism would allow users to give full control over target identity to developers, where the `RemoteCallTarget.identifier` offered to the `remoteCall` implemented by a distributed actor system library, could be controlled by end users of the library, i.e. those who define distributed methods.
+We also are considering, though are not yet convinced that these would be the optimal way to address some of the evolution concerns, the possibility to use "stable names". This mechanism would allow users to give full control over target identity to developers, where the `RemoteCallTarget.identifier` offered to the `remoteCall` implemented by a distributed actor system library, could be controlled by end users of the library, i.e. those who define distributed methods.
 
-On one hand, this gives great power to end-users, as they may use specific and minimal identifiers, even using `"A"` and other short names to minimize the impact of the identifiers to the payload size. On the other thand though, it opens up developers to a lot of risks, including conflicts in identifier use – a problem all to well known to objective-c developers where selectors could end up in similar problematic situations.
+On one hand, this gives great power to end-users, as they may use specific and minimal identifiers, even using `"A"` and other short names to minimize the impact of the identifiers to the payload size. On the other hand though, it opens up developers to a lot of risks, including conflicts in identifier use – a problem all to well known to objective-c developers where selectors could end up in similar problematic situations.
 
-We want to take time to design a proper system rather than just open up full control over the remote call target `identifier` to developers. We will aim to provide a flexible, and powerful mechanism, that does not risk giving developers easy ways to get shoot themselfes in the foot. The design proposed here, is flexible enough to evolve
+We want to take time to design a proper system rather than just open up full control over the remote call target `identifier` to developers. We will aim to provide a flexible, and powerful mechanism, that does not risk giving developers easy ways to get shoot themselves in the foot. The design proposed here, is flexible enough to evolve.
 
 ### Resolving `DistributedActor` protocols
 
@@ -1657,7 +1657,7 @@ A "client" peer does not have to know what distributed actor exactly implements 
 
 In order to facilitate this capability, we need to:
 
-- implement ad-hoc synthesis of a type that effectively works like a "stub" that other RPC systems generally source-generate, yet thanks to our actor model we're able to synthesise it in the compiler on demand;
+- implement ad-hoc synthesis of a type that effectively works like a "stub" that other RPC systems generally source-generate, yet thanks to our actor model we're able to synthesize it in the compiler on demand;
 - find a way to invoke `resolve` on such protocol, for example we could offer a global function `resolveDistributedActorProtocol(Greeter.self, using: websocketActorSystem)`
 
 The `resolveDistributedActorProtocol` method has to be able to check the serialization requirement at compile-time where we invoke the resolve, because the distributed actor protocols don't have to declare a serialization requirement — they can, but they don't have to (and this is by design).
@@ -1822,7 +1822,7 @@ Looking at the signature, one might be tempted to also include a `where` clause 
 
 However, this is not expressible today in Swift, because we cannot prove the `associatedtype SerializationRequirement` can be used as constraint.
 
-Fixing this would require introducing new very advanced type system features, and after consultation with the core team we decided to accept this as current implementation limitation.
+Fixing this would require introducing new very advanced type system features, and after consultation with the core team we decided to accept this as a current implementation limitation.
 
 In practice this is not a problem, because the parameters are guaranteed to succeed being cast to `SerializationRequirement` at runtime thanks to the compile-time guarantee about parameters of distributed methods.
 
@@ -1858,10 +1858,10 @@ None.
   - Expanded discussion on current semantics, and **future directions for versioning** and wire compatibility of remote calls.
   - Amendment to **non-delegating distributed actor initializer semantics**
     - Non-delegating Initializers no longer require a single `DistributedActorSystem` conforming argument to be passed, and automatically store and initialize the `self.id` with it.
-    - Instead, users must initialize the `self.actorSystem` property themselfes. 
+    - Instead, users must initialize the `self.actorSystem` property themselves. 
       - This should generally be done using the same pattern, by passing _in_ an actor system from the outside which helps in testing and stubbing out systems, however if one wanted to.
       - However the actorSystem property is initialized, from an initializer parameter or some global value, task-local etc, the general initialization logic remains the same, and the compiler will inject the assignment of the `self.id` property. 
-      - Useful error messages explaining this decisions are reported if users attempt to assign to the `id` property directly.
+      - Useful error messages explaining this decision are reported if users attempt to assign to the `id` property directly.
   
     - Thanks to YR Chen for recognizing this limitation and helping arrive at a better design here.
   
@@ -1871,7 +1871,7 @@ None.
     - This design future-proofs the APIs towards potential new encoding schemed we might come up in the future as we tackle a proper and feature complete versioning story for distributed calls.
   
   - `recordArgument` is passed a **`RemoteCallArgument<Value>`** which carries additional information about the argument in question
-    - This parameter can be either ignored, or stored along the serialized format which may be useful for e.g. non swift targets of invocations. E.g. it is possible to store an invocation as JSON object where the argument names are used as labels or similar patterms.
+    - This parameter can be either ignored, or stored along the serialized format which may be useful for non swift targets of invocations. E.g. it is possible to store an invocation as JSON object where the argument names are used as labels or similar patterns.
     - Thanks to Slava Pestov for suggesting this improvement.
   
 - 1.3 Larger revision to match the latest runtime developments
@@ -1883,6 +1883,6 @@ None.
 - 1.1 Implicitly distributed methods
 - 1.0 Initial revision
 - [Pitch: Distributed Actors](https://forums.swift.org/t/pitch-distributed-actors/51669)
-  - Which focused on the general concept of distributed actors, and will from here on be cut up in smaller, reviewable pieces that will become their own independent proposals; Similar to how Swift Concurrency is a single coherent feature, however was introduced throughout many interconnected Swift Evolution proposals.
+  - Which focused on the general concept of distributed actors, and will from here on be cut up in smaller, reviewable pieces that will become their own independent proposals. Similar to how Swift Concurrency is a single coherent feature, however was introduced throughout many interconnected Swift Evolution proposals.
 
 [isolation]: https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md
