@@ -216,7 +216,7 @@ func testDecomposeQ(q: any Q) {
 
 This is identical to the [covariant erasure of associated types described in SE-0309](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md#covariant-erasure-for-associated-types), and the rules specified there apply equally here. We can restate those requirements more generally for an arbitrary generic parameter as:
 
-When binding a generic parameter `T` to an opened existential, `T`, `T` and  `T`-rooted associated types that
+When binding a generic parameter `T` to an opened existential, `T`, `T` and `T`-rooted associated types that
 
 - are **not** bound to a concrete type, and
 - appear in covariant position within the result type of the generic function
@@ -305,27 +305,37 @@ hello()
 
 However, this would contradict Swift's longstanding left-to-right evaluation order. Rather than do this, we instead place another limitation on the implicit opening of existentials: an existential argument cannot be opened if the generic type parameter bound to its underlying type is used in any function parameter preceding the one corresponding to the existential argument. In the `implicitOpeningArgumentsBackwards` above, the call to `acceptFunctionStringAndValue` does not permit opening the existential argument to the `value` parameter because its generic type parameter, `T`, is also used in the `body` parameter that precedes `value`. This ensures that the underlying type  is not needed for any argument prior to the opened existential argument, so the left-to-right evaluation order is maintained.
 
-### Avoid opening when all protocol requirements are self-conforming
+### Avoid opening when the existential type satisfies requirements
 
-As presented thus far, opening of existential values can change the behavior of existing programs that relied on passing the existential box to a generic function. For example, consider the effect of passing an existential box to an unconstrained generic function:
+As presented thus far, opening of existential values can change the behavior of existing programs that relied on passing the existential box to a generic function. For example, consider the effect of passing an existential box to an unconstrained generic function that puts the parameter into the returned array:
 
 ```swift
 func acceptsBox<T>(_ value: T) -> Any { [value] }
 
 func passBox(p: any P) {
   let result = acceptsBox(p) // currently infers 'T' to be 'any P', returns [any P]
-      // unrestricted existential opening would infer 'T' to be the underlying type of 'p', return [T]
+      // unrestricted existential opening would infer 'T' to be the underlying type of 'p', returns [T]
 }
 ```
 
-Here, the dynamic type of the result of `acceptsBox` will change if the existential box is opened as part of the call. The change itself is subtle, and would not be detected until runtime. A change in runtime behavior of this kind and magnitude could cause significant problems for existing Swift programs that rely on binding generic type parameters to existential boxes, so this proposal prevents 
+Here, the dynamic type of the result of `acceptsBox` would change if the existential box is opened as part of the call. The change itself is subtle, and would not be detected until runtime, which could cause significant problems for existing Swift programs that rely on binding generic parameters. Therefore, this proposal prevents opening of existential values when the existential types themselves would satisfy the conformance requirements of the corresponding generic parameter, making it a strictly additive change: calls to generic functions with existential values that previously worked will continue to work with the same semantics, but calls that didn't work before will open the existential and can therefore succeed.
 
-Our approach is to prevent opening an existential value when the generic type parameter that would bind to its underlying type only has *self-conforming* protocol requirements. A protocol `Q` is *self-conforming* when the corresponding existential type `any Q` conforms to the protocol `Q`. Most protocols are not self-conforming, but there are two exceptions:
+Most of the cases in today's Swift where a generic parameter binds to an existential type succeed because there are no conformance requirements on the generic parameter, as with the `T` generic parameter to `acceptsBox`. For most protocols, an existential referencing the corresponding type does not conform to that protocol, i.e., `any Q` does not conform to `Q`. However, there are a small number of exceptions:
 
-* The `Error` protocol is self-conforming, as specified in [SE-0235](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#adding-swifterror-self-conformance).
-* `@objc` protocols that contain no `static` requirements are self-conforming.
+* The existential type `any Error` conforms to the `Error` protocol, as specified in [SE-0235](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#adding-swifterror-self-conformance).
+* An existential type `any Q` of an `@objc` protocol `Q`, where `Q` contains no `static` requirements, conforms to `Q`.
 
-When all of the protocol requirements on a generic type parameter are self-conforming protocols, an existential type can successfully fulfill the requirements of that generic parameter, so we disable the implicit opening of existential values for that generic type parameter. This maintains the semantics of existing well-formed code that passes existential values to generic functions.
+For example, consider an operation that takes an error. Passing a value of type `any Error` to it succeeds without opening the existential:
+
+```swift
+func takeError<E: Error>(_ error: E) { }
+
+func passError(error: any Error) {
+  takeError(error)  // okay without opening: 'E' binds to 'any Error' because 'any Error' conforms to 'Error'
+}
+```
+
+This proposal preserves the semantics of the call above by not opening the existential argument in cases where the existential type satisfies the corresponding generic parameter's conformance requirements. Should Swift eventually grow a mechanism to make existential types conform to protocols (e.g., so that `any Hashable` conforms to `Hashable`), then such conformances will also be considerd to suppress implicit opening.
 
 ### Subsuming behavior of `type(of:)`
 
@@ -459,7 +469,7 @@ First revision
 
 * Describe contravariant erasure for parameters
 * Describe the limitation on implicit existential opening to maintain order of evaluation
-* Avoid opening an argument when all protocol requirements of the correspinding parameter are self-conforming
+* Avoid opening an existential argument when the existential type already satisfies the conformance requirements of the corresponding generic parameter, to better maintain source compatibility 
 * Introduce `as any P` and `as? any P` as syntaxes to suppress the implicit opening of an existential value.
 
 ## Acknowledgments
