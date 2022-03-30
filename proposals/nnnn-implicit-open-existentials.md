@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 
-* Implementation: [apple/swift#41183](https://github.com/apple/swift/pull/41183)
+* Implementation: [apple/swift#41996](https://github.com/apple/swift/pull/41996), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-macos/120/artifact/branch-main/swift-PR-41996-120-osx.tar.gz)
 
 ## Introduction
 
@@ -499,6 +499,7 @@ First revision
 * Describe the limitation on implicit existential opening to maintain order of evaluation
 * Avoid opening an existential argument when the existential type already satisfies the conformance requirements of the corresponding generic parameter, to better maintain source compatibility 
 * Introduce `as any P` and `as? any P` as syntaxes to suppress the implicit opening of an existential value.
+* Added discussion on the relationship with `some` parameters ([SE-0341](https://github.com/apple/swift-evolution/blob/main/proposals/0341-opaque-parameters.md)).
 
 ## Acknowledgments
 
