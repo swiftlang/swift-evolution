@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (March 31...April 12, 2022)**
 * Implementation: [apple/swift#41033](https://github.com/apple/swift/pull/41033)
-* Pitch: ([thread](https://forums.swift.org/t/55036/))
+* Review: ([pitch](https://forums.swift.org/t/55036/)) ([review](https://forums.swift.org/t/se-0349-unaligned-loads-and-stores-from-raw-memory/56423))
 
 ## Introduction
 
