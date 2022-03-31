@@ -83,7 +83,7 @@ protocol Sequence<Element> {
 
 protocol DictionaryProtocol<Key, Value> {
   associatedtype Key : Hashable
-  associatedtype Element
+  associatedtype Value
   ...
 }
 ```
