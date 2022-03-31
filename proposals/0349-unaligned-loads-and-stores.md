@@ -1,9 +1,9 @@
-# Unaligned Loads from Raw Memory
+# Unaligned Loads and Stores from Raw Memory
 
 * Proposal: [SE-0349](0349-unaligned-loads-and-stores.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Awaiting review**
+* Status: **Active Review (March 31...April 12, 2022)**
 * Implementation: [apple/swift#41033](https://github.com/apple/swift/pull/41033)
 * Pitch: ([thread](https://forums.swift.org/t/55036/))
 
