@@ -1,6 +1,6 @@
 # Unaligned Loads from Raw Memory
 
-* Proposal: [SE-0349](https://github.com/apple/swift-evolution/blob/main/proposals/0349-unaligned-loads-and-stores.md)
+* Proposal: [SE-0349](0349-unaligned-loads-and-stores.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Awaiting review**
