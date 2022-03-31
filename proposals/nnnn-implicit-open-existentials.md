@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Existential types in Swift allow one to store a value whose specific type is unknown and may change at runtime. The dynamic type of that stored value, which we refer to as the existential's *underlying type*, is known only by the set of protocols it conforms to and, potentially, its superclass. While existential types are useful for expressing values of dynamic type, they are necessarily restricted because of their dynamic nature. Recent proposals have made [existential types more explicit](https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md) to help developers understand this dynamic nature, as well as [making existential types more expressive](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md) by removing a number of limitations. However, a fundamental issue with existential types remains, that once you have a value of existential type it is *very* hard to then use any generic operations a value of that type. Developers usually encounter this via the error message "protocol 'P' as a type cannot conform to itself":
+Existential types in Swift allow one to store a value whose specific type is unknown and may change at runtime. The dynamic type of that stored value, which we refer to as the existential's *underlying type*, is known only by the set of protocols it conforms to and, potentially, its superclass. While existential types are useful for expressing values of dynamic type, they are necessarily restricted because of their dynamic nature. Recent proposals have made [existential types more explicit](https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md) to help developers understand this dynamic nature, as well as [making existential types more expressive](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md) by removing a number of limitations. However, a fundamental issue with existential types remains, that once you have a value of existential type it is *very* hard to use generics with it. Developers usually encounter this via the error message "protocol 'P' as a type cannot conform to itself":
 
 ```swift
 protocol P {
@@ -295,7 +295,7 @@ func implicitOpeningArguments(p: any P) {
 }
 ```
 
-This behavior subsumes that of the hidden `_openExistential` operation, which specifically only supports opening one existential value and passing it to a generic function. All uses of `_openExistential` can be replaced by the proposed feature.
+This behavior subsumes most of the behavior of the hidden `_openExistential` operation, which specifically only supports opening one existential value and passing it to a generic function. `_openExistential` might still have a few scattered use cases when opening an existential that doesn't have conformance requirements on it.
 
  ### Order of evaluation restrictions
 
@@ -364,28 +364,6 @@ func passError(error: any Error) {
 ```
 
 This proposal preserves the semantics of the call above by not opening the existential argument in cases where the existential type satisfies the corresponding generic parameter's conformance requirements. Should Swift eventually grow a mechanism to make existential types conform to protocols (e.g., so that `any Hashable` conforms to `Hashable`), then such conformances will also be considerd to suppress implicit opening.
-
-### Subsuming behavior of `type(of:)`
-
-The proposed implicit opening of existentials subsumes the implicit opening behavior of the [`type(of:)` operator](https://developer.apple.com/documentation/swift/2885064-type), which is currently handled via special type checking rules that determine the underlying type of the value and then erase the result to an existential metatype:
-
-> The dynamic type returned from `type(of:)` is a *concrete metatype* (`T.Type`) for a class, structure, enumeration, or other nonprotocol type `T`, or an *existential metatype* (`P.Type`) for a protocol or protocol composition `P`.
-
-### Suppressing explicit opening with `as any P` / `as! any P`
-
-If for some reason one wants to suppress the implicit opening of an existential value, one can explicitly write a coercion or forced cast to an existential type. For example:
-
-```swift
-func f1<T: P>(_: T) { }   // #1
-func f1<T>(_: T) { }      // #2
-
-func test(p: any P) {
-  f1(p)          // opens p and calls #1, which is more specific
-  f1(p as any P) // suppresses opening of 'p', calls #2 which is the only valid candidate
-}
-```
-
-Given that implicit opening of existentials is defined to occur in those cases where a generic function would not otherwise be callable, this suppression mechanism should not be required often.
 
 ## Source compatibility
 
@@ -521,12 +499,17 @@ This approach is much more complex because it introduces value tracking into the
 
 ## Revisions
 
-First revision
+Second revision:
+
+* Remove the discussion about `type(of:)`, whose special behavior is no longer subsumed by this proposal. Weaken statements about fully subsuming `_openExistential`.
+* Removed `as any P` and `as! any P` as syntaxes to suppress the implicit opening of an existential value. It isn't needed given that we only open when the existential type doesn't meet the generic function's constraints.
+
+First revision:
 
 * Describe contravariant erasure for parameters
 * Describe the limitation on implicit existential opening to maintain order of evaluation
 * Avoid opening an existential argument when the existential type already satisfies the conformance requirements of the corresponding generic parameter, to better maintain source compatibility 
-* Introduce `as any P` and `as? any P` as syntaxes to suppress the implicit opening of an existential value.
+* Introduce `as any P` and `as! any P` as syntaxes to suppress the implicit opening of an existential value.
 * Added discussion on the relationship with `some` parameters ([SE-0341](https://github.com/apple/swift-evolution/blob/main/proposals/0341-opaque-parameters.md)).
 * Expand discussion of an explicit opening syntax.
 
