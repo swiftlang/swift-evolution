@@ -13,27 +13,27 @@ As a step toward the goal of improving the UI of generics outlined in [Improving
 
 ## Motivation
 
-Consider a function that returns an `AsyncSequence` of lines in a source file:
+Consider a function that returns a `Sequence` of lines in a source file:
 
 ```swift
-struct LinesAsyncSequence : AsyncSequence {
-  struct AsyncIterator : AsyncIteratorProtocol {
-    mutating func next() async -> String? { ... }
+struct LineSequence : Sequence {
+  struct Iterator : IteratorProtocol {
+    mutating func next() -> String? { ... }
   }
   
-  func makeAsyncIterator() -> AsyncIterator {
-    return AsyncIterator()
+  func makeIterator() -> Iterator {
+    return Iterator()
   }
 }
 
-func readLines(_ file: String) -> LinesAsyncSequence { ... }
+func readLines(_ file: String) -> LineSequence { ... }
 ```
 
-Suppose you are implementing a syntax highlighting library. You might define another function which wraps the result in a `SyntaxTokensAsyncSequence`, whose element type is `[Token]`, representing an array of syntax-highlighted tokens on each line:
+Suppose you are implementing a syntax highlighting library. You might define another function which wraps the result in a `SyntaxTokenSequence`, whose element type is `[Token]`, representing an array of syntax-highlighted tokens on each line:
 
 ```swift
 func readSyntaxHighlightedLines(_ file: String)
-  -> SyntaxTokensAsyncSequence<LinesAsyncSequence> {
+  -> SyntaxTokenSequence<LineSequence> {
   ...
 }
 ```
@@ -41,12 +41,12 @@ func readSyntaxHighlightedLines(_ file: String)
 At this point, the concrete result type is rather complex, and we might wish to hide it behind an opaque result type using the `some` keyword:
 
 ```swift
-func readSyntaxHighlightedLines(_ file: String) -> some AsyncSequence {
+func readSyntaxHighlightedLines(_ file: String) -> some Sequence {
   ...
 }
 ```
 
-However, the resulting definition of `readSyntaxHighlightedLines()` is not as useful as the original, because the requirement that the `Element` associated type of the resulting `AsyncSequence` is equal to `[Token]` cannot be expressed.
+However, the resulting definition of `readSyntaxHighlightedLines()` is not as useful as the original, because the requirement that the `Element` associated type of the resulting `Sequence` is equal to `[Token]` cannot be expressed.
 
 As another example, consider a global function `concatenate` that operates on two arrays of `String`:
 
@@ -68,28 +68,31 @@ However, while `where` clauses are very general and allow complex generic requir
 
 ## Proposed solution
 
-We’d like to propose a new syntax for declaring a protocol conformance requirement together with one or more same-type requirements on the protocol's _primary associated types_. This new syntax looks like the application of a concrete generic type to a list of type arguments, allowing you to write `AsyncSequence<String>` or `AsyncSequence<[Lines]>`. This builds on the user's previous intuition and understanding of generic types and is analogous to `Array<String>` and `Array<[Lines]>`.
+We’d like to propose a new syntax for declaring a protocol conformance requirement together with one or more same-type requirements on the protocol's _primary associated types_. This new syntax looks like the application of a concrete generic type to a list of type arguments, allowing you to write `Sequence<String>` or `Sequence<[Token]>`. This builds on the user's previous intuition and understanding of generic types and is analogous to `Array<String>` and `Array<[Token]>`.
 
 Protocols can declare one or more primary associated types using a syntax similar to a generic parameter list of a concrete type:
 
 ```swift
-protocol AsyncSequence<Element> {
-  associatedtype Iterator : AsyncIteratorProtocol
+protocol Sequence<Element> {
+  associatedtype Element
+  associatedtype Iterator : IteratorProtocol
     where Element == Iterator.Element
   ...
 }
 
-protocol DictionaryProtocol<Key : Hashable, Value> {
+protocol DictionaryProtocol<Key, Value> {
+  associatedtype Key : Hashable
+  associatedtype Element
   ...
 }
 ```
 
-A protocol with primary associated types can be referenced from any position where a protocol conformance requirement was previously allowed, with a list of type arguments in angle brackets. 
+A protocol with primary associated types can be written with a list of type arguments in angle brackets, from any position where a protocol conformance requirement was previously allowed. 
 
 For example, an opaque result type can now constrain the primary associated type:
 
 ```swift
-func readSyntaxHighlightedLines(_ file: String) -> some AsyncSequence<[Token]> {
+func readSyntaxHighlightedLines(_ file: String) -> some Sequence<[Token]> {
   ...
 }
 ```
@@ -102,48 +105,39 @@ func concatenate<S : Sequence<String>>(_ lhs: S, _ rhs: S) -> S {
 }
 ```
 
-Primary associated types are intended to be used for associated types which are usually provided by the caller. These associated types are often witnessed by generic parameters of the conforming type. For example, `Element` is a natural candidate for the primary associated type of `Sequence`, since `Array<Element>` and `Set<Element>` both conform to `Sequence`, with the `Element` associated type witnessed by a generic parameter. This introduces a clear analogy between the type `Sequence<Int>` on one hand and the types `Array<Int>`, `Set<Int>` on the other hand.
+Primary associated types are intended to be used for associated types which are usually provided by the caller. These associated types are often witnessed by generic parameters of the conforming type. For example, `Element` is a natural candidate for the primary associated type of `Sequence`, since `Array<Element>` and `Set<Element>` both conform to `Sequence`, with the `Element` associated type witnessed by a generic parameter in the corresponding concrete types. This introduces a clear correspondence between the constrained protocol type `Sequence<Int>` on one hand and the concrete types `Array<Int>`, `Set<Int>` on the other hand.
 
 ## Detailed design
 
-At the protocol declaration, an optional _primary associated types list_ delimited by angle brackets can follow the protocol name. When present, at least one primary associated type must be declared. Multiple primary associated types are separated by commas. Each primary associated type may optionally declare an inheritance clause. The formal grammar is amended as follows, adding an optional **primary-associated-type-list** production to **protocol-declaration**:
+At the protocol declaration, an optional _primary associated types list_ delimited by angle brackets can follow the protocol name. When present, at least one primary associated type must be named. Multiple primary associated types are separated by commas. Each entry in the primary associated type list must name an existing associated type declared in the body of the protocol or one of its inherited protocols. The formal grammar is amended as follows, adding an optional **primary-associated-type-list** production to **protocol-declaration**:
 
 - **protocol-declaration** → attributes<sub>opt</sub> access-level-modifier<sub>opt</sub> `protocol` protocol-name primary-associated-type-list<sub>opt</sub> type-inheritance-clause<sub>opt</sub> generic-where-clause<sub>opt</sub> protocol-body
-- **primary-associated-type-list** → `<` primary-associated-type | primary-associated-type `,` primary-associated-type-list `>`
-- **primary-associated-type** → type-name typealias-assignment<sub>opt</sub>
-- **primary-associated-type** → type-name `:` type-identifier typealias-assignment<sub>opt</sub>
-- **primary-associated-type** → type-name `:` protocol-composition-type default-witness<sub>opt</sub>
-- **default-witness** → `=` type
+- **primary-associated-type-list** → `<` primary-associated-type-entry `>`
+- **primary-associated-type-entry** → primary-associated-type | primary-associated-type `,` primary-associated-type-entry
+- **primary-associated-type** → type-name
 
 Some examples:
 
 ```swift
-protocol SetProtocol<Element : Hashable> {
+// Primary associated type 'Element' is declared inside the protocol
+protocol SetProtocol<Element> {
+  associatedtype Element : Hashable
   ...
 }
 
-protocol PersistentSortedMap<Key : Comparable & Codable, Value : Codable> {
-  ...
+protocol SortedMap {
+  associatedtype Key
+  associatedtype Value
 }
-```
 
-A default type witness can be provided, as with ordinary associated type declarations:
-
-```swift
-protocol GraphProtocol<Vertex : Equatable = String> {}
-```
-
-Additional requirements on the primary associated type can be written with a `where` clause on the protocol or another associated type; the inheritance clause syntax is equivalent to the following:
-
-```swift
-protocol SetProtocol<Element> where Element : Hashable {
+// Primary associated types 'Key' and 'Value' are declared inside
+// the inherited 'SortedMap' protocol
+protocol PersistentSortedMap<Key, Value> : SortedMap {
   ...
 }
 ```
 
-At the usage site, a _constrained protocol_ may now be written with one or more type arguments, like `P<Arg1, Arg2...>`. Specifying fewer type arguments than the number of primary associated types is allowed; subsequent primary associated types remain unconstrained. Adding a list of primary associated types to a protocol is a source-compatible change; the protocol can still be referenced without angle brackets as before.
-
-Note that default associated type witnesses pertain to the conformance, and do not provide a default at the usage site. For example, with `GraphProtocol` above, the constraint type `GraphProtocol` leaves `Vertex` unspecified, instead of constraining it to `String`.
+At the usage site, a _constrained protocol type_ may be written with one or more type arguments, like `P<Arg1, Arg2...>`. Omitting the list of type arguments altogether is permitted, and leaves the protocol unconstrained. Specifying fewer or more type arguments than the number of primary associated types is an error. Adding a primary associated type list to a protocol is a source-compatible change; the protocol can still be referenced without angle brackets as before.
 
 ### Constrained protocols in desugared positions
 
@@ -194,12 +188,12 @@ An exhaustive list of positions where the constrained protocol syntax may appear
 - The right-hand side of a conformance requirement in a `where` clause, for example:
 
   ```swift
-    func mergeFiles<S : Sequence>(_ files: S)
-      where S.Element : AsyncSequence<String>
+    func merge<S : Sequence>(_ sequences: S)
+      where S.Element : Sequence<String>
   
     // Equivalent to:
-    func mergeFiles<S : Sequence>(_ files: S)
-      where S.Element : AsyncSequence, S.Element.Element == String
+    func merge<S : Sequence>(_ sequences: S)
+      where S.Element : Sequence, S.Element.Element == String
   ```
 
 - An opaque parameter declaration (see [SE-0341 Opaque Parameter Declarations](0341-opaque-parameters.md)):
@@ -208,10 +202,10 @@ An exhaustive list of positions where the constrained protocol syntax may appear
     func sortLines(_ lines: some Collection<String>)
 
     // Equivalent to:
-    func sortLines <C : Collection<String>>(_ lines: C)
+    func sortLines<C : Collection<String>>(_ lines: C)
 
     // In turn equivalent to:
-    func sortLines <C : Collection>(_ lines: C)
+    func sortLines<C : Collection>(_ lines: C)
       where C.Element == String
   ```
 
@@ -292,6 +286,42 @@ A natural generalization is to enable this syntax for existential types, e.g. `a
 
 ## Alternatives considered
 
+### Treat primary associated type list entries as declarations
+
+In an earlier revision of this proposal, the associated type list entries would declare new associated types, instead of naming associated types declared in the body. That is, you would write
+
+```swift
+protocol SetProtocol<Key : Hashable> {
+  ...
+}
+```
+
+instead of
+
+```swift
+protocol SetProtocol<Key> {
+  associatedtype Key : Hashable
+  ...
+}
+```
+
+We felt that allowing declaration of associated types in the primary associated type list promotes confusion that what’s actually happening here is a generic declaration, when it is semantically different in important ways. Another potential source of confusion would be if a primary associated type declared a default type witness:
+
+```swift
+protocol SetProtocol<Key : Hashable = String> {
+  ...
+}
+```
+
+This makes it look like a "defaulted generic parameter", which it is not; writing `SetProtocol` means leaving `Key` unconstrained, and is not the same as `SetProtocol<Int>`. The new form makes it clearer that what is going on here is that a default is being declared for conformances to the protocol, and not for the usage site of the generic constraint:
+
+```swift
+protocol SetProtocol<Key> {
+  associatedtype Key : Hashable = String
+  ...
+}
+```
+
 ### Require associated type names, e.g. `Collection<.Element == String>`
 
 Explicitly writing associated type names to constrain them in angle brackets has a number of benefits:
@@ -332,11 +362,11 @@ As previously mentioned, in the case of opaque result types, this proposal intro
 It would be possible to first introduce a language feature allowing general requirements on opaque result types. One such possibility is "named opaque result types", which can have requirements imposed upon them in a `where` clause:
 
 ```swift
-func readLines(_ file: String) -> some AsyncSequence<String> { ... }
+func readLines(_ file: String) -> some Sequence<String> { ... }
 
 // Equivalent to:
 func readLines(_ file: String) -> <S> S
-  where S : AsyncSequence, S.Element == String { ... }
+  where S : Sequence, S.Element == String { ... }
 ```
 
 However, the goal of this proposal is to make generics more approachable by introducing a symmetry between concrete types and generics, and make generics feel more like a generalization of what programmers coming from other languages are already familiar with.
@@ -353,7 +383,9 @@ Annotation of associated type declarations could make it easier to conditionally
 
 ```swift
 #if swift(>=5.7)
-protocol SetProtocol<Element : Hashable> {
+protocol SetProtocol<Element> {
+  associatedtype Element : Hashable
+
   var count: Int { get }
   ...
 }
@@ -383,6 +415,8 @@ protocol SetProtocol {
 ```
 
 However, duplicating the associated type declaration in this manner is still an error-prone form of code duplication, and it makes the code harder to read. We feel that this use case should not unnecessarily hinder the evolution of the language syntax. The concerns of libraries adopting new language features while remaining compatible with older compilers is not unique to this proposal, and would be best addressed with a third-party pre-processor tool.
+
+With the current proposed syntax, it is sufficient for the pre-processor to strip out everything between angle brackets after the protocol name to produce a backward-compatible declaration. A minimal implementation of such a pre-processor is a simple sed invocation, like `sed -e 's/\(protocol .*\)<.*> {/\1 {/'`.
 
 ### Generic protocols
 
@@ -422,15 +456,30 @@ extension Convertible(from: String, to: Double) {
 
 ## Source compatibility
 
-This proposal has no impact on existing source compatibility for existing code. For protocols that adopt this feature, removing or changing the primary associated type will be a source breaking change for clients.
+This proposal does not impact source compatibility for existing code.
+
+Adding a primary associated type list to an existing protocol is a source-compatible change.
+
+The following are **source-breaking** changes:
+
+- Removing the primary associated type list from an existing protocol.
+- Changing the order or contents of a primary associated type list of an existing protocol.
 
 ## Effect on ABI stability 
 
-This change does not impact ABI stability for existing code. The new feature does not require runtime support and can be backward-deployed to existing Swift runtimes.
+This proposal does not impact ABI stability for existing code. The new feature does not require runtime support and can be backward-deployed to existing Swift runtimes.
+
+The primary associated type list is not part of the ABI, so all of the following are binary-compatible changes:
+
+- Adding a primary associated type list to an existing protocol.
+- Removing the primary associated type list from a existing protocol.
+- Changing the primary associated type list of an existing protocol.
+
+The last two are source-breaking however, so are not recommended.
 
 ## Effect on API resilience
 
-This change does not impact API resilience. For protocols that adopt this feature, adding or removing a primary associated type list is a binary-compatible change. Changing or removing a primary associated type list is also a binary-compatible change, but is not recommended since it is source-breaking.
+This change does not impact API resilience for existing code.
 
 ## Future Directions
 
