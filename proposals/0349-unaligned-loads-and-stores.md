@@ -1,25 +1,19 @@
 # Unaligned Loads from Raw Memory
 
-* Proposal: [SE-NNNN Unaligned Loads from Raw Memory][proposal]
+* Proposal: [SE-0349][https://github.com/apple/swift-evolution/blob/main/proposals/0349-unaligned-loads-and-stores.md]
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
-* Review Manager: TBD
-* Status: **pitch phase**
-* Implementation: [implementation pull request][implementation-pr]
-* Bugs: [SR-10273](https://bugs.swift.org/browse/SR-10273) (rdar://63919502)
-
-[proposal]: https://github.com/apple/swift-evolution/blob/c7652f0cee144bc4f74e0dc1433f682ded05d5c2/proposals/nnnn-unaligned-loads-and-stores.md
-[implementation-pr]: https://github.com/apple/swift/pull/41033
-[pitch-thread]: https://forums.swift.org/t/55036/
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Awaiting review**
+* Implementation: [apple/swift#41033][https://github.com/apple/swift/pull/41033]
+* Pitch: ([thread](https://forums.swift.org/t/55036/))
 
 ## Introduction
 
 Swift does not currently provide a clear way to load data from an arbitrary source of bytes, such as a binary file, in which data may be stored without respect for in-memory alignment. This proposal aims to rectify the situation, making workarounds unnecessary.
 
-Swift-evolution thread: [Pitch & Discussion][pitch-thread]
-
 ## Motivation
 
-The method `UnsafeRawPointer.load<T>(fromByteOffset offset: Int, as type: T.Type) -> T` requires the address at `self+offset` to be properly aligned to access an instance of type `T`. Attempts to use a combination of pointer and byte offset that is not aligned for `T` results in a runtime crash. Unfortunately, in general, data saved to files or network streams does not adhere to the same restrictions as in-memory layouts do, and tends to not be properly aligned. When copying data from such sources to memory, Swift  users therefore frequently encounter aligment mismatches that require using a workaround.
+The method `UnsafeRawPointer.load<T>(fromByteOffset offset: Int, as type: T.Type) -> T` requires the address at `self+offset` to be properly aligned to access an instance of type `T`. Attempts to use a combination of pointer and byte offset that is not aligned for `T` results in a runtime crash. Unfortunately, in general, data saved to files or network streams does not adhere to the same restrictions as in-memory layouts do, and tends to not be properly aligned. When copying data from such sources to memory, Swift users therefore frequently encounter aligment mismatches that require using a workaround. This is a longstanding issue reported in e.g. [SR-10273](https://bugs.swift.org/browse/SR-10273).
 
 For example, given an arbitrary data stream in which a 4-byte value is encoded between byte offsets 3 through 7:
 
