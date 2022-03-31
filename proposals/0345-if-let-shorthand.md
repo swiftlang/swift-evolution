@@ -3,7 +3,7 @@
 * Proposal: [SE-0345](0345-if-let-shorthand.md)
 * Author: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0345-if-let-shorthand-for-shadowing-an-existing-optional-variable/56364)
 * Implementation: [apple/swift#40694](https://github.com/apple/swift/pull/40694)
 
