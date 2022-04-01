@@ -26,7 +26,7 @@ protocols.
 
 **Swift-evolution thread:**<br>[[Pitch] Primary associated types in the Standard Library][thread]
 
-[thread]: https://forums.swift.org/
+[thread]: https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426
 
 ## Motivation
 
