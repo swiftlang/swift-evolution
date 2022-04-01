@@ -77,7 +77,7 @@ to the Standard Library:
 | `AsyncSequence`                      | -- (1)              |
 | `AsyncIteratorProtocol`              | -- (1)              |
 | `Actor`                              | --                  |
-| `AnyActor                            | --                  |
+| `AnyActor`                           | --                  |
 | `GlobalActor`                        | --                  |
 | `Executor`                           | --                  |
 | `SerialExecutor`                     | --                  |
