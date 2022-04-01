@@ -47,7 +47,7 @@ The kinds of types for which it is important to improve loads from arbitrary ali
 
 We propose to add an API `UnsafeRawPointer.loadUnaligned(frombyteOffset:as:)` to support unaligned loads from `UnsafeRawPointer`, `UnsafeRawBufferPointer` and their mutable counterparts. These will be explicitly restricted to POD types. Loading a non-POD type remains meaningful only when the source memory is another live object where the memory is, by construction, already correctly aligned. The original API (`load`) will continue to support this case. The new API (`loadUnaligned`) will assert that the return type is POD when run in debug mode.
 
-`UnsafeMutableRawPointer.storeBytes(of:toByteOffset:)` is documented to only be meaningful for POD types. However, it enforces storage to a correctly-aligned offset at runtime. We propose to lift the alignment restriction while leaving the API unchanged and lightly updating its documentation. Please see the ABI stability section for a discussion of binary compatibility with this approach.
+`UnsafeMutableRawPointer.storeBytes(of:toByteOffset:)` is documented to only be meaningful for POD types. However, at runtime it enforces storage to an offset correctly aligned to the source type. We propose to remove that alignment restriction and instead enforce the documented POD restriction. The API will otherwise be unchanged, though its documentation will be updated. Please see the ABI stability section for a discussion of binary compatibility with this approach.
 
 The `UnsafeRawBufferPointer` and `UnsafeMutableRawBufferPointer` types will receive matching changes.
 
