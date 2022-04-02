@@ -71,8 +71,8 @@ associated type, as well as a list of other associated types.
 | `AsyncIteratorProtocol`                              | -- (1)     | `Element`                                                                                                                                                                                                            |
 | `AsyncSequence`                                      | -- (1)     | `AsyncIterator`, `Element`                                                                                                                                                                                           |
 | `GlobalActor`                                        | --         | `ActorType`                                                                                                                                                                                                          |
-| `KeyedEncodingContainerProtocol`                     | `Key`      | --                                                                                                                                                                                                                   |
-| `KeyedDecodingContainerProtocol`                     | `Key`      | --                                                                                                                                                                                                                   |
+| `KeyedEncodingContainerProtocol`                     | --         | `Key`                                                                                                                                                                                                                |
+| `KeyedDecodingContainerProtocol`                     | --         | `Key`                                                                                                                                                                                                                |
 | `ExpressibleByIntegerLiteral`                        | --         | `IntegerLiteralType`                                                                                                                                                                                                 |
 | `ExpressibleByFloatLiteral`                          | --         | `FloatLiteralType`                                                                                                                                                                                                   |
 | `ExpressibleByBooleanLiteral`                        | --         | `BooleanLiteralType`                                                                                                                                                                                                 |
@@ -142,9 +142,6 @@ public protocol SIMD<Scalar>: ...
 
 public protocol Clock<Instant>: Sendable
 public protocol InstantProtocol<Duration>: Comparable, Hashable, Sendable
-
-public protocol KeyedEncodingContainerProtocol<Key>
-public protocol KeyedDecodingContainerProtocol<Key>
 ```
 
 ## Source compatibility
