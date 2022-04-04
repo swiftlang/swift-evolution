@@ -67,7 +67,7 @@ This interaction with the generics system makes existentials a bit of a trap in 
 
 This proposal addresses this existential trap by allowing one to "open" an existential value, binding a generic parameter to its underlying type. Doing so allows us to call a generic function with an existential value, such that the generic function operates on the underlying value of the existential rather than on the existential box itself, making it possible to get out of the existential trap without major refactoring. This capability already exists in the language when accessing a member of an existential (e.g., `p.getA()`), and this proposal extends that behavior to all call arguments in a manner that is meant to be largely invisible: calls to generic functions that would have failed (like `takeP(p)` above) will now succeed. Smoothing out this interaction between existentials and generics can simplify Swift code and make the language more approachable.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/pitch-implicitly-opening-existentials/55412), [Pitch #2](https://forums.swift.org/t/pitch-2-implicitly-opening-existentials/56360)
 
 ## Proposed solution
 
