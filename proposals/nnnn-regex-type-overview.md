@@ -2,10 +2,11 @@
 # Regex Type and Overview
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-- Authors: [Michael Ilseman](https://github.com/milseman) and the Standard Library Team
+- Authors: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
+
 
 ## Introduction
 
@@ -18,7 +19,7 @@ We propose addressing this basic shortcoming through an effort we are calling re
 3. A literal for compile-time construction of a regex with statically-typed captures, enabling powerful source tools.
 4. An expressive and composable result-builder DSL, with support for capturing strongly-typed values.
 5. A modern treatment of Unicode semantics and string processing.
-6. A treasure trove of string processing algorithms, along with library-extensible protocols enabling industrial-strength parsers to be used seamlessly as regex components.
+6. A slew of regex-powered string processing algorithms, along with library-extensible protocols enabling industrial-strength parsers to be used seamlessly as regex components.
 
 This proposal provides details on \#1, the `Regex` type and captures, and gives an overview of how each of the other proposals fit into regex in Swift.
 
@@ -549,4 +550,4 @@ Regexes are often used for tokenization and tokens can be represented with Swift
 
 -->
 
-[pitches]: https://github.com/apple/swift-experimental-string-processing/issues/107
+[pitches]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md
