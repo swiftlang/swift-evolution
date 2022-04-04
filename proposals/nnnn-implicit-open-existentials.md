@@ -367,6 +367,22 @@ This proposal preserves the semantics of the call above by not opening the exist
 
 Swift 6 will be a major language version change that can incorporate some semantics- and source-breaking changes. In Swift 6, the suppression mechanism described in this section will *not* apply, so the `passBox` example above would open the value of `p` and bind `T` to that opened existential type. This provides a more consistent semantics that, additionally, subsumes all of the behavior of `type(of:)` and the hidden `_openExistential` operation.
 
+### Suppressing explicit opening with `as any P` / `as! any P`
+
+If for some reason one wants to suppress the implicit opening of an existential value, one can explicitly write a coercion or forced cast to an existential type. For example:
+
+```swift
+func f1<T: P>(_: T) { }   // #1
+func f1<T>(_: T) { }      // #2
+
+func test(p: any P) {
+  f1(p)          // opens p and calls #1, which is more specific
+  f1(p as any P) // suppresses opening of 'p', calls #2 which is the only valid candidate
+}
+```
+
+Given that implicit opening of existentials is defined to occur in those cases where a generic function would not otherwise be callable, this suppression mechanism should not be required often in Swift 5. In Swift 6, where implicit opening will be more eagerly performed, it can be used to provide the Swift 5 semantics.
+
 ## Source compatibility
 
 This proposal is defined specifically to avoid most impacts on source compatibility, especially in Swift 5. Some calls to generic functions that would previously have been ill-formed (e.g., they would fail because `any P` does not conform to `P`) will now become well-formed, and existing code will behavior in the same manner as before. As with any such change, it's possible that overload resolution that would have succeeded before will continue to succeed but will now pick a different function. For example:
@@ -405,7 +421,7 @@ protocol P {
   associatedtype A
 }
 
-func takesP<T: P>(_ value: P) { }
+func takesP<T: P>(_ value: T) { }
 
 func hasExistentialP(p: any P) {
   takesP(p) // error today ('any P' does not conform to 'P'), would be well-formed with implicit opening
@@ -458,6 +474,22 @@ An explicit opening syntax is more expressive within a single function than the 
 
 In contrast, the proposed implicit opening improves the expressivity of the language without increasing it's effective surface area. The opening is implicit, and the opened types remain an implementation detail.
 
+This "alternative Considered" could perhaps be expressed as a potential future direction. Nothing in this proposal prevents us from adding explicitly opened existentials in the future, should they prove to be useful, and we would still want the implicitly opening with type erasure as described in this proposal. Should that happen, the implicit behavior in this proposal could be retroactively understood as inferring something that could be written in the explicit syntax:
+
+```swift
+protocol Q { }
+
+protocol P {
+  associatedtype A: Q
+}
+
+func getA<T: P>(_ value: T) -> T.A { ... }
+
+func unwrap(p: any P) {
+  let a = getA(p) // implicitly the same as "getA(p as some P) as any Q"
+}
+```
+
 ### Value-dependent opening of existentials
 
 Implicit opening in this proposal is always scoped to a particular binding of a specific generic parameter (`T`) and is erased thereafter. For example, this means that two invocations of the same generic function on the same existential value will return values of existential type that are not (statically) known to be equivalent:
@@ -504,6 +536,8 @@ This approach is much more complex because it introduces value tracking into the
 Third revision:
 
 * Only apply the source-compatibility rule, which avoids opening an existential argument when the existential box would have sufficed, in Swift 5. In Swift 6, we will open the existential argument whenever we can, providing a consistent and desirable semantics.
+* Re-introduce `as any P` and `as! any P` , now that they will be useful in Swift 6.
+* Clarify more about the relationship to the explicit opening syntax, which could also be a future direction.
 
 Second revision:
 
