@@ -98,6 +98,8 @@ extension StaticBigInt {
 
 ## Alternatives considered
 
+Xiaodi Wu [suggested](https://forums.swift.org/t/staticbigint/54545/23) that a different naming scheme and API design be chosen to accommodate other similar types, such as IEEE 754 interchange formats.
+
 A *mutable* `BigInt: SignedInteger` type could (eventually) be implemented in the standard library.
 
 ## Future directions
