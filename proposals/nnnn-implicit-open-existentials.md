@@ -4,8 +4,47 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status: **Awaiting review**
-
 * Implementation: [apple/swift#41996](https://github.com/apple/swift/pull/41996), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-macos/120/artifact/branch-main/swift-PR-41996-120-osx.tar.gz)
+
+
+
+## Table of Contents
+
+   \* [Introduction](#introduction)
+
+   \* [Proposed solution](#proposed-solution)
+
+​     \* [Moving between any and some](#moving-between-any-and-some)
+
+   \* [Detailed design](#detailed-design)
+
+​     \* [When can we open an existential?](#when-can-we-open-an-existential)
+
+​     \* [Type-erasing resulting values](#type-erasing-resulting-values)
+
+​     \* [Contravariant erasure for parameters of function type](#contravariant-erasure-for-parameters-of-function-type)
+
+​     \* [Order of evaluation restrictions](#order-of-evaluation-restrictions)
+
+​     \* [Avoid opening when the existential type satisfies requirements (in Swift 5)](#avoid-opening-when-the-existential-type-satisfies-requirements-in-swift-5)
+
+​     \* [Suppressing explicit opening with as any P / as! any P](#suppressing-explicit-opening-with-as-any-p--as-any-p)
+
+   \* [Source compatibility](#source-compatibility)
+
+   \* [Effect on ABI stability](#effect-on-abi-stability)
+
+   \* [Effect on API resilience](#effect-on-api-resilience)
+
+   \* [Alternatives considered](#alternatives-considered)
+
+​     \* [Explicitly opening existentials](#explicitly-opening-existentials)
+
+​     \* [Value-dependent opening of existentials](#value-dependent-opening-of-existentials)
+
+   \* [Revisions](#revisions)
+
+   \* [Acknowledgments](#acknowledgments)
 
 ## Introduction
 
