@@ -333,7 +333,7 @@ hello()
 
 However, this would contradict Swift's longstanding left-to-right evaluation order. Rather than do this, we instead place another limitation on the implicit opening of existentials: an existential argument cannot be opened if the generic type parameter bound to its underlying type is used in any function parameter preceding the one corresponding to the existential argument. In the `implicitOpeningArgumentsBackwards` above, the call to `acceptFunctionStringAndValue` does not permit opening the existential argument to the `value` parameter because its generic type parameter, `T`, is also used in the `body` parameter that precedes `value`. This ensures that the underlying type  is not needed for any argument prior to the opened existential argument, so the left-to-right evaluation order is maintained.
 
-### Avoid opening when the existential type satisfies requirements
+### Avoid opening when the existential type satisfies requirements (in Swift 5)
 
 As presented thus far, opening of existential values can change the behavior of existing programs that relied on passing the existential box to a generic function. For example, consider the effect of passing an existential box to an unconstrained generic function that puts the parameter into the returned array:
 
@@ -346,7 +346,7 @@ func passBox(p: any P) {
 }
 ```
 
-Here, the dynamic type of the result of `acceptsBox` would change if the existential box is opened as part of the call. The change itself is subtle, and would not be detected until runtime, which could cause significant problems for existing Swift programs that rely on binding generic parameters. Therefore, this proposal prevents opening of existential values when the existential types themselves would satisfy the conformance requirements of the corresponding generic parameter, making it a strictly additive change: calls to generic functions with existential values that previously worked will continue to work with the same semantics, but calls that didn't work before will open the existential and can therefore succeed.
+Here, the dynamic type of the result of `acceptsBox` would change if the existential box is opened as part of the call. The change itself is subtle, and would not be detected until runtime, which could cause problems for existing Swift programs that rely on binding generic parameters. Therefore, in Swift 5, this proposal prevents opening of existential values when the existential types themselves would satisfy the conformance requirements of the corresponding generic parameter, making it a strictly additive change: calls to generic functions with existential values that previously worked will continue to work with the same semantics, but calls that didn't work before will open the existential and can therefore succeed.
 
 Most of the cases in today's Swift where a generic parameter binds to an existential type succeed because there are no conformance requirements on the generic parameter, as with the `T` generic parameter to `acceptsBox`. For most protocols, an existential referencing the corresponding type does not conform to that protocol, i.e., `any Q` does not conform to `Q`. However, there are a small number of exceptions:
 
@@ -363,11 +363,13 @@ func passError(error: any Error) {
 }
 ```
 
-This proposal preserves the semantics of the call above by not opening the existential argument in cases where the existential type satisfies the corresponding generic parameter's conformance requirements. Should Swift eventually grow a mechanism to make existential types conform to protocols (e.g., so that `any Hashable` conforms to `Hashable`), then such conformances will also be considerd to suppress implicit opening.
+This proposal preserves the semantics of the call above by not opening the existential argument in cases where the existential type satisfies the corresponding generic parameter's conformance requirements according to the results above. Should Swift eventually grow a mechanism to make existential types conform to protocols (e.g., so that `any Hashable` conforms to `Hashable`), then such conformances will **not** suppress implicit opening, because any code that made use of these conformances would be newly-valid code and would start with implicit-opening semantics.
+
+Swift 6 will be a major language version change that can incorporate some semantics- and source-breaking changes. In Swift 6, the suppression mechanism described in this section will *not* apply, so the `passBox` example above would open the value of `p` and bind `T` to that opened existential type. This provides a more consistent semantics that, additionally, subsumes all of the behavior of `type(of:)` and the hidden `_openExistential` operation.
 
 ## Source compatibility
 
-This proposal is defined specifically to avoid most impacts on source compatibility. Some calls to generic functions that would previously have been ill-formed (e.g., they would fail because `any P` does not conform to `P`) will now become well-formed, and existing code will behavior in the same manner as before. As with any such change, it's possible that overload resolution that would have succeeded before will continue to succeed but will now pick a different function. For example:
+This proposal is defined specifically to avoid most impacts on source compatibility, especially in Swift 5. Some calls to generic functions that would previously have been ill-formed (e.g., they would fail because `any P` does not conform to `P`) will now become well-formed, and existing code will behavior in the same manner as before. As with any such change, it's possible that overload resolution that would have succeeded before will continue to succeed but will now pick a different function. For example:
 
 ```swift
 protocol P { }
@@ -498,6 +500,10 @@ func identityTricks(p: any Equatable) {
 This approach is much more complex because it introduces value tracking into the type system (where was this existential value produced?), at which point mutations to variables can affect the static types in the system. 
 
 ## Revisions
+
+Third revision:
+
+* Only apply the source-compatibility rule, which avoids opening an existential argument when the existential box would have sufficed, in Swift 5. In Swift 6, we will open the existential argument whenever we can, providing a consistent and desirable semantics.
 
 Second revision:
 
