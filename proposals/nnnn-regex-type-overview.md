@@ -3,9 +3,9 @@
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 - Authors: [Michael Ilseman](https://github.com/milseman)
-* Review Manager: TBD
-* Status: **Awaiting review**
-* Implementation: https://github.com/apple/swift-experimental-string-processing
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (4 - 13 April 2022)**
+* Implementation: https://github.com/apple/swift-experimental-string-processing, available in nightly toolchain when importing `_StringProcessing`
 
 
 ## Introduction
