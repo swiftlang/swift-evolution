@@ -2,7 +2,7 @@
 # Regex Type and Overview
 
 * Proposal: [SE-0350](0350-filename.md)
-- Authors: [Michael Ilseman](https://github.com/milseman)
+* Authors: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active Review (4 - 15 April 2022)**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
