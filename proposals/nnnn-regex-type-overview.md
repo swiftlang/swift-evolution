@@ -283,14 +283,14 @@ func processEntry(_ line: String) -> Transaction? {
 *Note*: Details on how references work is discussed in [Regex Builders][pitches]. `Regex.Match` supports referring to _all_ captures by position (`match.1`, etc.) whether named or referenced or neither. Due to compiler limitations, result builders do not support forming labeled tuples for named captures.
 
 
-### Algorithms, algorithms everywhere
+### Algorithms
 
 Regexes can be used right out of the box with a variety of powerful and convenient algorithms, including trimming, splitting, and finding/replacing all matches within a string.
 
 These algorithms are discussed in [String Processing Algorithms][pitches].
 
 
-### Onward Unicode
+### Unicode
 
 A regex describes an algorithm to be ran over some model of string, and Swift's `String` has a rather unique Unicode-forward model. `Character` is an [extended grapheme cluster](https://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries) and equality is determined under [canonical equivalence](https://www.unicode.org/reports/tr15/#Canon_Compat_Equivalence).
 
