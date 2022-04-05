@@ -229,7 +229,7 @@ func processEntry(_ line: String) -> Transaction? {
 
 The result builder allows for inline failable value construction, which participates in the overall string processing algorithm: returning `nil` signals a local failure and the engine backtracks to try an alternative. This not only relieves the use site from post-processing, it enables new kinds of processing algorithms, allows for search-space pruning, and enhances debuggability.
 
-Swift regexes describe an unambiguous algorithm, were choice is ordered and effects can be reliably observed. For example, a `print()` statement inside the `TryCapture`'s transform function will run whenever the overall algorithm naturally dictates an attempt should be made. Optimizations can only elide such calls if they can prove it is behavior-preserving (e.g. "pure").
+Swift regexes describe an unambiguous algorithm, where choice is ordered and effects can be reliably observed. For example, a `print()` statement inside the `TryCapture`'s transform function will run whenever the overall algorithm naturally dictates an attempt should be made. Optimizations can only elide such calls if they can prove it is behavior-preserving (e.g. "pure").
 
 `CustomMatchingRegexComponent`, discussed in [String Processing Algorithms][pitches], allows industrial-strength parsers to be used a regex components. This allows us to drop the overly-permissive pre-parsing step:
 
