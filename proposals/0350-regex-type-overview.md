@@ -487,6 +487,13 @@ We're also looking for more community discussion on what the default type system
 
 The actual `Match` struct just stores ranges: the `Substrings` are lazily created on demand. This avoids unnecessary ARC traffic and memory usage.
 
+
+### `Regex<Match, Captures>` instead of `Regex<Output>`
+
+The generic parameter `Output` is proposed to contain both the whole match (the `.0` element if `Output` is a tuple) and captures. One alternative we have considered is separating `Output` into the entire match and the captures, i.e. `Regex<Match, Captures>`, and using `Void` for for `Captures` when there are no captures.
+
+The biggest issue with this alternative design is that the numbering of `Captures` elements misaligns with the numbering of captures in textual regexes, where backreference `\0` refers to the entire match and captures start at `\1`. This design would sacrifice familarity and have the pitfall of introducing off-by-one errors.
+
 ### Future work: static optimization and compilation
 
 Swift's support for static compilation is still developing, and future work here is leveraging that to compile regex when profitable. Many regex describe simple [DFAs](https://en.wikipedia.org/wiki/Deterministic_finite_automaton) and can be statically compiled into very efficient programs. Full static compilation needs to be balanced with code size concerns, as a matching-specific bytecode is typically far smaller than a corresponding program (especially since the bytecode interpreter is shared).
