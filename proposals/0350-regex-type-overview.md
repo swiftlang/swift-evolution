@@ -4,9 +4,9 @@
 * Proposal: [SE-0350](0350-filename.md)
 - Authors: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (4 - 13 April 2022)**
-* Implementation: https://github.com/apple/swift-experimental-string-processing, available in nightly toolchain when importing `_StringProcessing`
-
+* Status: **Active Review (4 - 15 April 2022)**
+* Implementation: https://github.com/apple/swift-experimental-string-processing
+  * Available in nightly toolchain snapshots with `import _StringProcessing`
 
 ## Introduction
 
