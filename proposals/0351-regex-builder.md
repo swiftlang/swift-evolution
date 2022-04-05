@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/tree/main/Sources/_StringProcessing/RegexDSL)
   * Available in nightly toolchain snapshots with `import _StringProcessing`
-* Status: **Active Review (4 - 15 April 2020)**
+* Status: **Active Review (4 - 15 April 2022)**
 
 **Table of Contents**
 - [Introduction](#introduction)
@@ -281,11 +281,8 @@ Example:
 Regex {
    regex0 // Regex<Substring>
    regex1 // Regex<(Substring, Int)>
-   if condition {
-     regex2 // Regex<(Substring, Float)>
-   } else {
-     regex3 // Regex<(Substring, Substring)>
-   }
+   regex2 // Regex<(Substring, Float)>
+   regex3 // Regex<(Substring, Substring)>
 } // Regex<(Substring, Int, Float, Substring)>
 ```
 
@@ -295,16 +292,13 @@ This above regex will be transformed to:
 Regex {
   let e0 = RegexComponentBuilder.buildExpression(regex0) // Regex<Substring>
   let e1 = RegexComponentBuilder.buildExpression(regex1) // Regex<(Substring, Int)>
-  let e2: Regex<Substring>
-  if condition {
-    e2 = RegexComponentBuilder.buildEither(first: regex2) // Regex<(Substring, Float)>
-  } else {
-    e2 = RegexComponentBuilder.buildEither(second: regex3) // Regex<(Substring, Substring)>
-  }
+  let e2 = RegexComponentBuilder.buildExpression(regex2) // Regex<(Substring, Float)>
+  let e3 = RegexComponentBuilder.buildExpression(regex3) // Regex<(Substring, Substring)>
   let r0 = RegexComponentBuilder.buildPartialBlock(first: e0)
-  let r1 = RegexComponentBuilder.buildPartialBlock(accumulated: r0, next: r1)
-  let r2 = RegexComponentBuilder.buildPartialBlock(accumulated: r1, next: r2)
-  return r2
+  let r1 = RegexComponentBuilder.buildPartialBlock(accumulated: r0, next: e1)
+  let r2 = RegexComponentBuilder.buildPartialBlock(accumulated: r1, next: e2)
+  let r3 = RegexComponentBuilder.buildPartialBlock(accumulated: r2, next: e3)
+  return r3
 } // Regex<(Substring, Int, Float, Substring)>
 ```
 
