@@ -5,7 +5,6 @@
 * Implementation: [apple/swift#41576](https://github.com/apple/swift/pull/41576)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.7)**
-* Usage: Implemented under `-Xfrontend -enable-experimental-pairwise-build-block`
 
 ## Overview
 
