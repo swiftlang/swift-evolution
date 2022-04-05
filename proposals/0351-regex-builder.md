@@ -1,11 +1,11 @@
 # Regex builder DSL
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0351](0351-regex-builder.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Michael Ilseman](https://github.com/milseman), [Nate Cook](https://github.com/natecook1000)
-* Review Manager: TBD
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/tree/main/Sources/_StringProcessing/RegexDSL)
-  * Available in trunk development snapshots with `import _StringProcessing`
-* Status: **Pitch**
+  * Available in nightly toolchain snapshots with `import _StringProcessing`
+* Status: **Active Review (4 - 15 April 2020)**
 
 **Table of Contents**
 - [Introduction](#introduction)
