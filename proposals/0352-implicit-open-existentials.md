@@ -1,12 +1,10 @@
 # Implicitly Opened Existentials
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0352](0352-implicit-open-existentials.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active Review (April 5...18, 2022)**
 * Implementation: [apple/swift#41996](https://github.com/apple/swift/pull/41996), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-macos/120/artifact/branch-main/swift-PR-41996-120-osx.tar.gz)
-
-
 
 ## Table of Contents
 
