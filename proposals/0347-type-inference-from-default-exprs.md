@@ -3,9 +3,9 @@
 * Proposal: [SE-0347](0347-type-inference-from-default-exprs.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (March 22...April 5, 2022)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0347-type-inference-from-default-expressions/56558)
 * Implementation: [apple/swift#41436](https://github.com/apple/swift/pull/41436)
-* Toolchain: [macOS](https://ci.swift.org/job/swift-PR-toolchain-macos/25/artifact/branch-main/swift-PR-41436-25-osx.tar.gz)
 
 ## Introduction
 
