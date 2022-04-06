@@ -9,7 +9,35 @@
 
 ## Introduction
 
-I propose to allow type inference for generic parameters from concretely-typed default parameter values (referred as default expressions in the proposal) when the call-site omits an explicit argument. Concretely-typed default expressions would still be rejected by the compiler if generic parameters associated with a defaulted parameter could be inferred _at a call site_ from any other location in a parameter list by an implicit or explicit argument. For example, declaration `func compute<T, U>(_:T = 42, _: U) where U: Collection, U.Element == T` is going to be rejected by the compiler because it's possible to infer a type of `T` from the first argument, but declaration `func compute<T, U>(_: T = 42, _: U = []) where U: Collection, U.Element == Int` is going to be accepted because `T` and `U` are independent.
+It's currently impossible to use a default value expression with a generic parameter type to default the argument and its type:
+
+```swift
+func compute<C: Collection>(_ values: C = [0, 1, 2]) { ❌
+  ...
+}
+```
+
+An attempt to compile this declaration results in the following compiler error - `default argument value of type '[Int]' cannot be converted to type 'C'` because, under the current semantic rules, the type of a default expression has to work for every possible concrete type replacement of `C` inferred at a call site. There are couple of ways to work around this expressivity limitation, but all of them require overloading which complicates APIs:
+
+```
+func compute<C: Collection>(_ values: C) { // original declaration without default
+  ...
+}
+
+func compute(_ values: [Int] = [0, 1, 2]) { // concretely typed overload of `compute` with default value
+  ...
+}
+```
+
+I propose to allow type inference for generic parameters from concretely-typed default parameter values (referred to as default expressions in the proposal) when the call-site omits an explicit argument. Concretely-typed default expressions would still be rejected by the compiler if generic parameters associated with a defaulted parameter could be inferred _at a call site_ from any other location in a parameter list by an implicit or explicit argument. For example, declaration `func compute<T, U>(_: T = 42, _: U) where U: Collection, U.Element == T` is going to be rejected by the compiler because it's possible to infer a type of `T` from the second argument, but declaration `func compute<T, U>(_: T = 42, _: U = []) where U: Collection, U.Element == Int` is going to be accepted because `T` and `U` are independent.
+
+Under the proposed rules, the original `compute` declaration becomes well formed and doesn't require any additional overloads:
+
+```swift
+func compute<C: Collection>(_ values: C = [0, 1, 2]) { ✅
+  ...
+}
+```
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-type-inference-from-default-expressions/55585)
 
