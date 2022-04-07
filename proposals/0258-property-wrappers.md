@@ -16,7 +16,6 @@
 + [Examples](#examples)
   - [Delayed Initialization](#delayed-initialization)
   - [`NSCopying`](#nscopying)
-  - [`Atomic`](#atomic)
   - [Thread-specific storage](#thread-specific-storage)
   - [User defaults](#user-defaults)
   - [Copy-on-write](#copy-on-write)
@@ -51,6 +50,7 @@
   - [Referencing the enclosing 'self' in a wrapper type](#referencing-the-enclosing-self-in-a-wrapper-type)
   - [Delegating to an existing property](#delegating-to-an-existing-property)
 + [Revisions](#revisions)
+  - [Changes from the accepted proposal](#changes-from-the-accepted-proposal)
   - [Changes from the third reviewed version](#changes-from-the-third-reviewed-version)
   - [Changes from the second reviewed version](#changes-from-the-second-reviewed-version)
   - [Changes from the first reviewed version](#changes-from-the-first-reviewed-version)
@@ -448,63 +448,6 @@ struct Copying<Value: NSCopying> {
 
 This implementation would address the problem detailed in
 [SE-0153](https://github.com/apple/swift-evolution/blob/master/proposals/0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md). Leaving the `copy()` out of `init(wrappedValue:)` implements the pre-SE-0153 semantics.
-
-### `Atomic`
-
-Support for atomic operations (load, store, increment/decrement, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property wrapper type:
-
-
-```swift
-@propertyWrapper
-struct Atomic<Value> {
-  private var _value: Value
-  
-  init(wrappedValue: Value) {
-    self._value = wrappedValue
-  }
-
-  var wrappedValue: Value {
-    get { return load() }
-    set { store(newValue: newValue) }
-  }
-  
-  func load(order: MemoryOrder = .relaxed) { ... }
-  mutating func store(newValue: Value, order: MemoryOrder = .relaxed) { ... }
-  mutating func increment() { ... }
-  mutating func decrement() { ... }
-}
-
-extension Atomic where Value: Equatable {
-  mutating func compareAndExchange(oldValue: Value, newValue: Value, order: MemoryOrder = .relaxed)  -> Bool { 
-    ...
-  }
-}  
-
-enum MemoryOrder {
-  case relaxed, consume, acquire, release, acquireRelease, sequentiallyConsistent
-};
-```
-
-Here are some simple uses of `Atomic`. With atomic types, it's fairly common
-to weave lower-level atomic operations (`increment`, `load`, `compareAndExchange`) where we need specific semantics (such as memory ordering) with simple queries, so both the property and the synthesized storage property are used often:
-
-```swift
-@Atomic var counter: Int
-
-if thingHappened {
-  _counter.increment()
-}
-print(counter)
-
-@Atomic var initializedOnce: Int?
-if initializedOnce == nil {
-  let newValue: Int = /*computeNewValue*/
-  if !_initializedOnce.compareAndExchange(oldValue: nil, newValue: newValue) {
-    // okay, someone else initialized it. clean up if needed
-  }
-}
-print(initializedOnce)
-```
 
 ### Thread-specific storage
 
@@ -1541,6 +1484,39 @@ lazy var fooBacking: SomeWrapper<Int>
 One could express this either by naming the property directly (as above) or, for an even more general solution, by providing a keypath such as `\.someProperty.someOtherProperty`.
 
 ## Revisions
+
+### Changes from the accepted proposal
+
+This proposal originally presented an example of implementing atomic operations using a property wrapper interface. This example was misleading because it would require additional compiler and library features to work correctly.
+
+Programmers looking for atomic operations can use the [Swift Atomics](https://github.com/apple/swift-atomics) package.
+
+For those who have already attempted to implement something similar, here is the original example, and why it is incorrect:
+
+```swift
+@propertyWrapper
+class Atomic<Value> {
+  private var _value: Value
+
+  init(wrappedValue: Value) {
+    self._value = wrappedValue
+  }
+
+  var wrappedValue: Value {
+    get { return load() }
+    set { store(newValue: newValue) }
+  }
+
+  func load(order: MemoryOrder = .relaxed) { ... }
+  func store(newValue: Value, order: MemoryOrder = .relaxed) { ... }
+  func increment() { ... }
+  func decrement() { ... }
+}
+```
+
+As written, this property wrapper does not access its wrapped value atomically. `wrappedValue.getter` reads the entire `_value` property nonatomically, *before* calling the atomic `load` operation on the copied value. Similarly, `wrappedValue.setter` writes the entire `_value` property nonatomically *after* calling the atomic `store` operation. So, in fact, there is no atomic access to the shared class property, `_value`.
+
+Even if the getter and setter could be made atomic, useful atomic operations, like increment, cannot be built from atomic load and store primitives. The property wrapper in fact encourages race conditions by allowing mutating methods, such as `atomicInt += 1`, to be directly invoked on the nonatomic copy of the wrapped value.
 
 ### Changes from the third reviewed version
 
