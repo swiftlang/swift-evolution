@@ -66,13 +66,15 @@ aid in migration?
 ## Effect on ABI stability
 
 The ABI comprises all aspects of how code is generated for the
-language and how that code interacts with the Swift runtime library.
-It includes the basic rules of the language ABI, such as calling
-conventions, the layout of data types, and the behavior of dynamic
-features in the language like reflection, dynamic dispatch, and
-dynamic casting.  It also includes applications of those basic
-rules to ABI-exposed declarations, such as the `public` functions
-and types of ABI-stable libraries like the Swift standard library.
+language, how that code interacts with other code that has been
+compiled separately, and how that code interacts with the Swift
+runtime library.  It includes the basic rules of the language ABI,
+such as calling conventions, the layout of data types, and the
+behavior of dynamic features in the language like reflection,
+dynamic dispatch, and dynamic casting.  It also includes applications
+of those basic rules to ABI-exposed declarations, such as the `public`
+functions and types of ABI-stable libraries like the Swift standard
+library.
 
 Many language proposals have no direct impact on the ABI.  For
 example, a proposal to add the `typealias` declaration to Swift
@@ -97,7 +99,7 @@ For example, the feature above might only be enabled for parameters
 marked a special way, and then adding that marking to an existing
 function parameter would change the ABI of that function.
 
-Proposals are acceptable if they can be thought of as merely
+Proposals may be acceptable if they can be thought of as merely
 *adding* to the ABI, such as by adding new kinds of declarations,
 adding new modifiers or attributes, or adding new types or methods
 to the Swift standard library.  On platforms with stable ABIs, such
