@@ -93,7 +93,7 @@ Each instance of `some` within the declaration represents a different implicit g
 
 ## Detailed design
 
-Opaque parameter types can only be used in parameters of a function, initializer, or subscript declaration. They cannot be used in ot in (e.g.) a typealias or any value of function type. For example:
+Opaque parameter types can only be used in parameters of a function, initializer, or subscript declaration. They cannot be used in (e.g.) a typealias or any value of function type. For example:
 
 ```swift
 typealias Fn = (some P) -> Void    // error: cannot use opaque types in a typealias
