@@ -65,24 +65,58 @@ aid in migration?
 
 ## Effect on ABI stability
 
-Does the proposal change the ABI of existing language features? The
-ABI comprises all aspects of the code generation model and interaction
-with the Swift runtime, including such things as calling conventions,
-the layout of data types, and the behavior of dynamic features in the
-language (reflection, dynamic dispatch, dynamic casting via `as?`,
-etc.). Purely syntactic changes rarely change existing ABI. Additive
-features may extend the ABI but, unless they extend some fundamental
-runtime behavior (such as the aforementioned dynamic features), they
-won't change the existing ABI.
+The ABI comprises all aspects of how code is generated for the
+language and how that code interacts with the Swift runtime library.
+It includes such things as calling conventions, function signatures,
+the layout of data types, and the behavior of dynamic features in
+the language ssuch as reflection, dynamic dispatch, and dynamic
+casting.  It also includes things such as the addition of functions
+and types to the public symbols of a library.
 
-Features that don't change the existing ABI are considered out of
-scope for [Swift 4 stage 1](README.md). However, additive features
-that would reshape the standard library in a way that changes its ABI,
-such as [where clauses for associated
-types](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md),
-can be in scope. If this proposal could be used to improve the
-standard library in ways that would affect its ABI, describe them
-here.
+Many language proposals have no direct impact on the ABI.  For
+example, a proposal to add the `typealias` declaration would have
+no effect on the ABI because type aliases are not represented
+dynamically and uses of them in code can be straightforwardly
+translated into uses of the aliased type.  Such proposals can
+simply state in this section that they have no impact on the ABI.
+However, if *using* the feature in code that must maintain a stable
+ABI can have a surprising ABI impact, that should be discussed
+in this section.
+
+Because Swift has a stable ABI on some platforms, proposals are
+generally not acceptable if they would require changes to the ABI
+of existing language features or declarations.  For example,
+Swift could not accept a feature which, in order to work, would
+require parameters with certain types to always be passed as owned
+values, because parameters are not always passed as owned values
+in the ABI.  Proposals must be designed to avoid the need for this.
+For example, the feature above might only be enabled for parameters
+marked a special way, and then adding that marking to an existing
+function parameter would change the ABI of that function.
+
+Proposals are acceptable if they can be thought of as merely
+*adding* to the ABI, such as by adding new kinds of declarations,
+adding new modifiers or attributes that can be used on existing
+kinds of declarations, or adding new types or methods to the Swift
+standard library.  On platforms with stable ABIs, such features
+will by default require a new release of the platform in order
+to work, and so their use in code that may deploy to older
+releases will have to be availability-guarded.  If this limitation
+applies to any part of this proposal, that should be discussed
+in this section.
+
+Adding a function to the standard library does not always require
+an addition to the ABI if it can be implemented using other
+library functions.  Library maintainers may be able to help you
+with this during the code review of your implementation.  Adding
+a type or protocol always requires an addition to the ABI.
+
+If a feature does require additions to the ABI, platforms with
+stable ABIs may sometimes be able to back-deploy those additions
+to existing releases of the platform.  This is not always possible,
+and in any case, it is outside the scope of the evolution process.
+Proposals should usually discuss ABI stability concerns as if
+it was not possible to back-deploy the necessary ABI additions.
 
 ## Effect on API resilience
 
