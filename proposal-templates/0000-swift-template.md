@@ -67,20 +67,23 @@ aid in migration?
 
 The ABI comprises all aspects of how code is generated for the
 language and how that code interacts with the Swift runtime library.
-It includes such things as calling conventions, function signatures,
-the layout of data types, and the behavior of dynamic features in
-the language ssuch as reflection, dynamic dispatch, and dynamic
-casting.  It also includes things such as the addition of functions
-and types to the public symbols of a library.
+It includes the basic rules of the language ABI, such as calling
+conventions, the layout of data types, and the behavior of dynamic
+features in the language like reflection, dynamic dispatch, and
+dynamic casting.  It also includes applications of those basic
+rules to ABI-exposed declarations, such as the `public` functions
+and types of ABI-stable libraries like the Swift standard library.
 
 Many language proposals have no direct impact on the ABI.  For
-example, a proposal to add the `typealias` declaration would have
-no effect on the ABI because type aliases are not represented
-dynamically and uses of them in code can be straightforwardly
-translated into uses of the aliased type.  Such proposals can
-simply state in this section that they have no impact on the ABI.
-However, if *using* the feature in code that must maintain a stable
-ABI can have a surprising ABI impact, that should be discussed
+example, a proposal to add the `typealias` declaration to Swift
+would have no effect on the ABI because type aliases are not
+represented dynamically and uses of them in code can be
+straightforwardly translated into uses of the aliased type.
+Proposals like this can simply state in this section that they
+have no impact on the ABI.  However, if *using* the feature in code
+that must maintain a stable ABI can have a surprising ABI impact,
+for example by changing a function signature to be different from
+how it would be without using the feature, that should be discussed
 in this section.
 
 Because Swift has a stable ABI on some platforms, proposals are
@@ -96,20 +99,19 @@ function parameter would change the ABI of that function.
 
 Proposals are acceptable if they can be thought of as merely
 *adding* to the ABI, such as by adding new kinds of declarations,
-adding new modifiers or attributes that can be used on existing
-kinds of declarations, or adding new types or methods to the Swift
-standard library.  On platforms with stable ABIs, such features
-will by default require a new release of the platform in order
-to work, and so their use in code that may deploy to older
+adding new modifiers or attributes, or adding new types or methods
+to the Swift standard library.  On platforms with stable ABIs, such
+features will by default require a new release of the platform in
+order to work, and so their use in code that may deploy to older
 releases will have to be availability-guarded.  If this limitation
 applies to any part of this proposal, that should be discussed
 in this section.
 
 Adding a function to the standard library does not always require
-an addition to the ABI if it can be implemented using other
-library functions.  Library maintainers may be able to help you
-with this during the code review of your implementation.  Adding
-a type or protocol always requires an addition to the ABI.
+an addition to the ABI if it can be implemented using existing
+functions.  Library maintainers may be able to help you with this
+during the code review of your implementation.  Adding a type or
+protocol currently always requires an addition to the ABI.
 
 If a feature does require additions to the ABI, platforms with
 stable ABIs may sometimes be able to back-deploy those additions
