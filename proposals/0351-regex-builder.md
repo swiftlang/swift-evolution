@@ -1008,12 +1008,16 @@ let regex = Regex {
 Variants of `Capture` and `TryCapture` accept a `Reference` argument. References can be used to achieve named captures and named backreferences from textual regexes.
 
 ```swift
+/// A reference to a regex capture.
 public struct Reference<Capture>: RegexComponent {
   public init(_ captureType: Capture.Type = Capture.self)
   public var regex: Regex<Capture>
 }
 
 extension Regex.Match {
+  /// Returns the capture referenced by the given reference.
+  ///
+  /// - Precondition: The reference must have been captured in the regex that produced this match.
   public subscript<Capture>(_ reference: Reference<Capture>) -> Capture { get }
 }
 ```
@@ -1036,7 +1040,7 @@ if let result = input.firstMatch(of: regex) {
 }
 ```
 
-A regex is considered invalid when it contains a use of reference without it ever being captured in the regex. When this occurs in the regex builder DSL, an runtime error will be reported.
+A regex is considered invalid when it contains a use of reference without it ever being captured in the regex. When this occurs in the regex builder DSL, a runtime error will be reported. Similarly, the use of a reference in a `Regex.Match.subscript(_:)` must have been captured in the regex that produced the match.
 
 ### Subpattern
 
@@ -1056,54 +1060,21 @@ With regex builder, there is no special API required to reuse existing subpatter
 
 ```swift
 Regex {
-   let subject = ChoiceOf {
-     "I"
-     "you"
-   }
-   let object = ChoiceOf {
-     "goodbye"
-     "hello"
-   }
-   subject
-   "say"
-   object
-   ";"
-   subject
-   "say"
-   object
-}
-```
-
-Sometimes, a textual regex may also use `(?R)` or `(?0)` to recusively evaluate the entire regex. For example, the following textual regex matches "I say you say I say you say hello".
-
-```
-(you|I) say (goodbye|hello|(?R))
-```
-
-For this, `Regex` offers a special initializer that allows its pattern to recursively reference itself. This is somewhat akin to a fixed-point combinator.
-
-```swift
-extension Regex {
-  public init<R: RegexComponent>(
-    @RegexComponentBuilder _ content: (Regex<Substring>) -> R
-  ) where R.Output == Match
-}
-```
-
-With this initializer, the above regex can be expressed as the following using regex builder.
-
-```swift
-Regex { wholeSentence in
-  ChoiceOf {
-   "I"
-   "you"
+  let subject = ChoiceOf {
+    "I"
+    "you"
   }
-  "say"
-  ChoiceOf {
+  let object = ChoiceOf {
     "goodbye"
     "hello"
-    wholeSentence
   }
+  subject
+  "say"
+  object
+  ";"
+  subject
+  "say"
+  object
 }
 ```
 
@@ -1165,6 +1136,59 @@ The proposed feature does not change the ABI of existing features.
 ## Effect on API resilience
 
 The proposed feature relies heavily upon overloads of `buildBlock` and `buildPartialBlock(accumulated:next:)` to work for different capture arities. In the fullness of time, we are hoping for variadic generics to supercede existing overloads. Such a change should not involve ABI-breaking modifications as it is merely a change of overload resolution.
+
+## Future directions
+
+### Conversion to textual regex
+
+Sometimes it may be useful to convert a regex created using regex builder to textual regex. This may be achieved in the future by extending `RegexComponent` with a computed property.
+
+```swift
+extension RegexComponent {
+  public func makeTextualRegex() -> String?
+}
+```
+
+It is worth noting that the internal representation of a `Regex` is _not_ textual regex, but an efficient pattern matching bytecode compiled from an abstract syntax tree. Moreover, not every `Regex` can be converted to textual regex. Regex builder supports arbitrary types that conform to the `RegexComponent` protocol, including `CustomMatchingRegexComponent` (pitched in [String Processing Algorithms]) which can be implemented with arbitrary code. If a `Regex` contains a `CustomMatchingRegexComponent`, it cannot be converted to textual regex.
+
+### Recursive subpatterns
+
+Sometimes, a textual regex may also use `(?R)` or `(?0)` to recusively evaluate the entire regex. For example, the following textual regex matches "I say you say I say you say hello".
+
+```
+(you|I) say (goodbye|hello|(?R))
+```
+
+For this, `Regex` offers a special initializer that allows its pattern to recursively reference itself. This is somewhat akin to a fixed-point combinator.
+
+```swift
+extension Regex {
+  public init<R: RegexComponent>(
+    @RegexComponentBuilder _ content: (Regex<Substring>) -> R
+  ) where R.Output == Match
+}
+```
+
+With this initializer, the above regex can be expressed as the following using regex builder.
+
+```swift
+Regex { wholeSentence in
+  ChoiceOf {
+   "I"
+   "you"
+  }
+  "say"
+  ChoiceOf {
+    "goodbye"
+    "hello"
+    wholeSentence
+  }
+}
+```
+
+There are some concerns with this design which we need to consider:
+- Due to the lack of labeling, the argument to the builder closure can be arbitrarily named and cause confusion.
+- When there is an initializer that accepts a result builder closure, overloading that initializer with the same argument labels could lead to bad error messages upon interor type errors.
 
 ## Alternatives considered
 
@@ -1385,3 +1409,4 @@ This is cool, but it adds extra complexity to regex builder and it isn't as clea
 [Declarative String Processing]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/DeclarativeStringProcessing.md
 [Strongly Typed Regex Captures]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StronglyTypedCaptures.md
 [Regex Syntax]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntax.md
+[String Processing Algorithms]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StringProcessingAlgorithms.md

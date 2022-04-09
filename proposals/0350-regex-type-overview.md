@@ -339,7 +339,7 @@ public struct Regex<Output> {
   /// Find the first match in a substring
   ///
   /// Returns `nil` if no match is found and throws on abort
-  public func firstMatch(_ s: Substring) throws -> Regex<Output>.Match?
+  public func firstMatch(in s: Substring) throws -> Regex<Output>.Match?
 
   /// The result of matching a regex against a string.
   ///
@@ -348,19 +348,19 @@ public struct Regex<Output> {
   @dynamicMemberLookup
   public struct Match {
     /// The range of the overall match
-    public let range: Range<String.Index>
+    public var range: Range<String.Index> { get }
   
     /// The produced output from the match operation
-    public var output: Output
+    public var output: Output { get }
   
     /// Lookup a capture by name or number
-    public subscript<T>(dynamicMember keyPath: KeyPath<Output, T>) -> T
+    public subscript<T>(dynamicMember keyPath: KeyPath<Output, T>) -> T { get }
   
     /// Lookup a capture by number
     @_disfavoredOverload
     public subscript(
       dynamicMember keyPath: KeyPath<(Output, _doNotUse: ()), Output>
-    ) -> Output
+    ) -> Output { get }
     // Note: this allows `.0` when `Match` is not a tuple.
   
   }
