@@ -314,12 +314,12 @@ public struct Regex<Output> {
   /// Match a string in its entirety.
   ///
   /// Returns `nil` if no match and throws on abort
-  public func matchWhole(_ s: String) throws -> Regex<Output>.Match?
+  public func wholeMatch(in s: String) throws -> Regex<Output>.Match?
 
   /// Match part of the string, starting at the beginning.
   ///
   /// Returns `nil` if no match and throws on abort
-  public func matchPrefix(_ s: String) throws -> Regex<Output>.Match?
+  public func prefixMatch(in s: String) throws -> Regex<Output>.Match?
 
   /// Find the first match in a string
   ///
@@ -329,12 +329,12 @@ public struct Regex<Output> {
   /// Match a substring in its entirety.
   ///
   /// Returns `nil` if no match and throws on abort
-  public func matchWhole(_ s: Substring) throws -> Regex<Output>.Match?
+  public func wholeMatch(in s: Substring) throws -> Regex<Output>.Match?
 
   /// Match part of the string, starting at the beginning.
   ///
   /// Returns `nil` if no match and throws on abort
-  public func matchPrefix(_ s: Substring) throws -> Regex<Output>.Match?
+  public func prefixMatch(in s: Substring) throws -> Regex<Output>.Match?
 
   /// Find the first match in a substring
   ///
