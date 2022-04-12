@@ -54,6 +54,8 @@
   * Renamed the `nanoseconds` and `seconds` property of `Duration` to `nanosecondsPortion` and `secondsPortion` to indicate their fractional composition to types like `timespec`
 * **v3.1**
   * Adjust the portion accessors to one singular `components` based accessor and add an initializer for raw value construction from components.
+* **v3.2**
+  * Add `Duration` as an associated type requirement of `Clock`, so that it can be marked as the primary associated type.
 
 </details>
 
@@ -117,7 +119,8 @@ The base protocol for defining a clock requires two primitives; a way to wake up
 
 ```swift
 public protocol Clock: Sendable {
-  associatedtype Instant: InstantProtocol
+  associatedtype Duration: DurationProtocol
+  associatedtype Instant: InstantProtocol where Instant.Duration == Duration
   
   var now: Instant { get }
   
