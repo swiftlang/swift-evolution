@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/tree/main/Sources/_StringProcessing/RegexDSL)
   * Available in nightly toolchain snapshots with `import _StringProcessing`
-* Status: **Active Review (4 - 15 April 2022)**
+* Status: **Active Review (4 - 18 April 2022)**
 
 **Table of Contents**
 - [Introduction](#introduction)
