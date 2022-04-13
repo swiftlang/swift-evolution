@@ -90,24 +90,31 @@ in this section.
 
 Because Swift has a stable ABI on some platforms, proposals are
 generally not acceptable if they would require changes to the ABI
-of existing language features or declarations.  For example,
-Swift could not accept a feature which, in order to work, would
-require parameters with certain types to always be passed as owned
-values, because parameters are not always passed as owned values
-in the ABI.  Proposals must be designed to avoid the need for this.
-For example, the feature above might only be enabled for parameters
-marked a special way, and then adding that marking to an existing
-function parameter would change the ABI of that function.
+of existing language features or declarations.  Proposals must be
+designed to avoid the need for this.
 
-Proposals may be acceptable if they can be thought of as merely
-*adding* to the ABI, such as by adding new kinds of declarations,
-adding new modifiers or attributes, or adding new types or methods
-to the Swift standard library.  On platforms with stable ABIs, such
-features will by default require a new release of the platform in
-order to work, and so their use in code that may deploy to older
-releases will have to be availability-guarded.  If this limitation
-applies to any part of this proposal, that should be discussed
-in this section.
+For example, Swift could not accept a proposal for a feature which,
+in order to work, would require parameters of certain (existing)
+types to always be passed as owned values, because parameters are
+not always passed as owned values in the ABI.  This feature could
+be fixed by only enabling it for parameters marked a special new way.
+Adding that marking to an existing function parameter would change
+the ABI of that specific function, which programmers can make good,
+context-aware decisions about: adding the marking to an existing
+function with a stable ABI would not be acceptable, but adding it
+to a new function or to a function with no stable ABI restrictions
+would be fine.
+
+Proposals that change the ABI may be acceptable if they can be thought
+of as merely *adding* to the ABI, such as by adding new kinds of
+declarations, adding new modifiers or attributes, or adding new types
+or methods to the Swift standard library.  The key principle is
+that the ABI must not change for code that does not use the new
+feature.  On platforms with stable ABIs, uses of such features will
+by default require a new release of the platform in order to work,
+and so their use in code that may deploy to older releases will have
+to be availability-guarded.  If this limitation applies to any part
+of this proposal, that should be discussed in this section.
 
 Adding a function to the standard library does not always require
 an addition to the ABI if it can be implemented using existing
