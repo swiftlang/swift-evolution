@@ -42,7 +42,7 @@ Similarly to Implicitly-Unwrapped Optionals, the mental model for semantics of t
 A function parameter can be marked with a `@const`  keyword to indicate that values passed to this parameter at the call-site must be compile-time-known values.
 
 ```
-func foo(input: @**const** Int) {...}
+func foo(@**const** input: Int) {...}
 ```
 
 ### Supported Types
