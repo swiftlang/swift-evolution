@@ -2,9 +2,10 @@
 
 * Proposal: [SE-NNNN](NNNN-staticbigint.md)
 * Author: [Ben Rimmington](https://github.com/benrimmington)
-* Review Manager: TBD
+* Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Pitch**
 * Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722)
+* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545))
 
 ## Introduction
 
