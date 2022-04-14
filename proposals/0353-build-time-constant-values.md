@@ -158,7 +158,7 @@ Enforcing compile-time constant nature of the parameters is also the first step 
 
 ### Enforcement of Non-Failable Initializers
 
-Ergonomics of the recently-pitched `Foundation.URL` [insert link here] would benefit greatly from the ability to require the string argument to be compile-time constant. With evolving compile-time evaluation facilities, Swift may even gain an ability to perform compile-time validation of such URLs  even though the user may never be able to express a fully compile-time constant `Foundation.URL` type because this type is a part of an ABI-stable SDK. While a type like `StaticString` may be used to require that the argument string must be static, which string is chosen can still be determined at runtime, e.g.:
+Ergonomics of the recently-pitched [Foundation.URL](https://forums.swift.org/t/foundation-url-improvements/54057) would benefit greatly from the ability to require the string argument to be compile-time constant. With evolving compile-time evaluation facilities, Swift may even gain an ability to perform compile-time validation of such URLs  even though the user may never be able to express a fully compile-time constant `Foundation.URL` type because this type is a part of an ABI-stable SDK. While a type like `StaticString` may be used to require that the argument string must be static, which string is chosen can still be determined at runtime, e.g.:
 
 ```
 URL(Bool.random() ? "https://valid.url.com" : "invalid url . com")
