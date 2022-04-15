@@ -3,7 +3,7 @@
 * Proposal: [SE-0351](0351-regex-builder.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Michael Ilseman](https://github.com/milseman), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/tree/main/Sources/_StringProcessing/RegexDSL)
+* Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/tree/main/Sources/RegexBuilder)
   * Available in nightly toolchain snapshots with `import _StringProcessing`
 * Status: **Active Review (4 - 18 April 2022)**
 
@@ -55,7 +55,7 @@ let emailPattern = Regex {
 let email = "My email is my.name@mail.swift.org."
 if let match = email.firstMatch(of: emailPattern) {
   let (wholeMatch, name, domain) = match.output
-  // wholeMatch: "My email is my.name@mail.swift.org."
+  // wholeMatch: "my.name@mail.swift.org"
   //       name: "my.name"
   //     domain: "mail.swift.org"
 }
@@ -332,7 +332,7 @@ public enum RegexComponentBuilder {
 }
 ```
 
-When it comes to concatenation, `RegexComponentBuilder` utilizes the [recently proposed `buildPartialBlock` feature](https://forums.swift.org/t/pitch-buildpartialblock-for-result-builders/55561/1) to be able to concatenate all components' capture types to a single result tuple. `buildPartialBlock(first:)` provides support for creating a regex from a single component, and `buildPartialBlock(accumulated:next:)` support for creating a regex from multiple results.
+When it comes to concatenation, `RegexComponentBuilder` utilizes the [recently proposed `buildPartialBlock` feature](0348-buildpartialblock.md) to be able to concatenate all components' capture types to a single result tuple. `buildPartialBlock(first:)` provides support for creating a regex from a single component, and `buildPartialBlock(accumulated:next:)` support for creating a regex from multiple results.
 
 Before Swift supports variadic generics, `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` must be overloaded to support concatenating regexes of supported capture quantities (arities).
 - `buildPartialBlock(first:)` is overloaded `arity` times such that a unary block with a component of any supported capture arity will produce a regex with capture type `Substring` followed by the component's capture types. The base overload, `buildPartialBlock<R>(first:) -> Regex<Substring>`, must be marked with `@_disfavoredOverload` to prevent it from shadowing other overloads.
@@ -563,8 +563,6 @@ extension AlternationBuilder {
 ```
 
 ### Quantification
-
-Quantifiers are free functions that take a regex or a `@RegexComponentBuilder` closure that produces a regex. The result is a regex whose `Output` type is the same as the argument's, when the lower bound of quantification is greater than `0`; otherwise, it is an `Optional` thereof.
 
 Quantifiers are generic types that can be created from a regex component. Their `Output` type is inferred from initializers. Each of these types corresponds to a quantifier in the textual regex.
 
