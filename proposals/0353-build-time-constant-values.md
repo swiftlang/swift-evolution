@@ -62,7 +62,7 @@ A protocol author may require conforming types to default initialize a given pro
 
 ```
 protocol NeedsConstGreeting {
-    @const static let greeting: String
+    @const static var greeting: String
 }
 ```
 
@@ -146,9 +146,9 @@ struct Foo {
   var someSpecialTitleProperty: String
 }
 
-@PropertyWrapper
+@propertyWrapper
 struct SpecialSerializationSauce {
-  init(key: const String) {...}
+  init(@const key: String) {...}
 }
 ```
 
