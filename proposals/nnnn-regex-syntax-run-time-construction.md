@@ -411,7 +411,7 @@ For non-Unicode properties, only a value is required. These include:
 - The special PCRE2 properties `Xan`, `Xps`, `Xsp`, `Xuc`, `Xwd`.
 - The special Java properties `javaLowerCase`, `javaUpperCase`, `javaWhitespace`, `javaMirrored`.
 
-Note that the internal `PropertyContents` syntax is shared by both the `\p{...}` and POSIX-style `[:...:]` syntax, allowing e.g `[:script=Latin:]` as well as `\p{alnum}`.
+Note that the internal `PropertyContents` syntax is shared by both the `\p{...}` and POSIX-style `[:...:]` syntax, allowing e.g `[:script=Latin:]` as well as `\p{alnum}`. Both spellings may be used inside and outside of a custom character class.
 
 #### `\K`
 
@@ -553,6 +553,7 @@ These operators have a lower precedence than the implicit union of members, e.g 
 
 To avoid ambiguity between .NET's subtraction syntax and range syntax, .NET specifies that a subtraction will only be parsed if the right-hand-side is a nested custom character class. We propose following this behavior.
 
+Note that a custom character class may begin with the `:` character, and only becomes a POSIX character property if a closing `:]` is present. For example, `[:a]` is the character class of `:` and `a`.
 
 ### Matching options
 
@@ -882,7 +883,23 @@ PCRE supports `\N` meaning "not a newline", however there are engines that treat
 
 ### Extended character property syntax
 
-ICU unifies the character property syntax `\p{...}` with the syntax for POSIX character classes `[:...:]`, such that they follow the same internal grammar, which allows referencing any Unicode character property in addition to the POSIX properties. We propose supporting this, though it is a purely additive feature, and therefore should not conflict with regex engines that implement a more limited POSIX syntax.
+ICU unifies the character property syntax `\p{...}` with the syntax for POSIX character classes `[:...:]`. This has two effects:
+
+- They share the same internal grammar, which allows the use of any Unicode character properties in addition to the POSIX properties.
+- The POSIX syntax may be used outside of custom character classes, unlike in PCRE and Oniguruma.
+
+We propose following both of these rules. The former is purely additive, and therefore should not conflict with regex engines that implement a more limited POSIX syntax. The latter does conflict with other engines, but we feel it is much more likely that a user would expect e.g `[:space:]` to be a character property rather than the character class `[:aceps]`. We do however feel that a warning might be warranted in order to avoid confusion.
+
+### POSIX character property disambiguation
+
+PCRE, Oniguruma and ICU allow `[:` to be part of a custom character class if a closing `:]` is not present. For example, `[:a]` is the character class of `:` and `a`. However they each have different rules for detecting the closing `:]`:
+
+- PCRE will scan ahead until it hits either `:]`, `]`, or `[:`.
+- Oniguruma will scan ahead until it hits either `:]`, `]`, or the length exceeds 20 characters.
+- ICU will scan ahead until it hits a known escape sequence (e.g `\a`, `\e`, `\Q`, ...), or `:]`. Note this excludes character class escapes e.g `\d`. It also excludes `]`, meaning that even `[:a][:]` is parsed as a POSIX character property.
+
+We propose unifying these behaviors by scanning ahead until we hit either `[`, `]`, `:]`, or `\`. Additionally, we will stop on encountering `}` or a second occurrence of `=`. These fall out the fact that they would be invalid contents of the alternative `\p{...}` syntax.
+
 
 ### Script properties
 
