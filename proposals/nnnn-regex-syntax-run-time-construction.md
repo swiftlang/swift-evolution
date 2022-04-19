@@ -161,6 +161,20 @@ extension Regex.Match where Output == AnyRegexOutput {
 }
 ```
 
+We propose adding API to query and access captures by name in an existentially typed regex match:
+
+```swift
+extension Regex.Match where Output == AnyRegexOutput {
+  /// If a named-capture with `name` is present, returns its value. Otherwise `nil`.
+  public subscript(_ name: String) -> AnyRegexOutput.Element? { get }
+}
+
+extension AnyRegexOutput {
+  /// If a named-capture with `name` is present, returns its value. Otherwise `nil`.
+  public subscript(_ name: String) -> AnyRegexOutput.Element? { get }
+}
+```
+
 The rest of this proposal will be a detailed and exhaustive definition of our proposed regex syntax.
 
 <details><summary>Grammar Notation</summary>
