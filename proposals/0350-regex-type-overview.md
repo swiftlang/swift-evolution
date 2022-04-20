@@ -139,11 +139,11 @@ Regexes can be created at run time from a string containing familiar regex synta
 
 ```swift
 let pattern = #"(\w+)\s\s+(\S+)\s\s+((?:(?!\s\s).)*)\s\s+(.*)"#
-let regex = try! Regex(compiling: pattern)
+let regex = try! Regex(pattern)
 // regex: Regex<AnyRegexOutput>
 
 let regex: Regex<(Substring, Substring, Substring, Substring, Substring)> =
-  try! Regex(compiling: pattern)
+  try! Regex(pattern)
 ```
 
 *Note*: The syntax accepted and further details on run-time compilation, including `AnyRegexOutput` and extended syntaxes, are discussed in [Run-time Regex Construction][pitches].
@@ -212,7 +212,7 @@ func processEntry(_ line: String) -> Transaction? {
   //    amount: Substring
   //  )>
 
-  guard let match = regex.matchWhole(line),
+  guard let match = regex.wholeMatch(line),
         let kind = Transaction.Kind(match.kind),
         let date = try? Date(String(match.date), strategy: dateParser),
         let amount = try? Decimal(String(match.amount), format: decimalParser)
@@ -305,7 +305,7 @@ Regex targets [UTS\#18 Level 2](https://www.unicode.org/reports/tr18/#Extended_U
 ```swift
 /// A regex represents a string processing algorithm.
 ///
-///     let regex = try Regex(compiling: "a(.*)b")
+///     let regex = try Regex("a(.*)b")
 ///     let match = "cbaxb".firstMatch(of: regex)
 ///     print(match.0) // "axb"
 ///     print(match.1) // "x"
@@ -389,11 +389,11 @@ extension Regex.Match {
 // Run-time compilation interfaces
 extension Regex {
   /// Parse and compile `pattern`, resulting in a strongly-typed capture list.
-  public init(compiling pattern: String, as: Output.Type = Output.self) throws
+  public init(_ pattern: String, as: Output.Type = Output.self) throws
 }
 extension Regex where Output == AnyRegexOutput {
   /// Parse and compile `pattern`, resulting in an existentially-typed capture list.
-  public init(compiling pattern: String) throws
+  public init(_ pattern: String) throws
 }
 ```
 
