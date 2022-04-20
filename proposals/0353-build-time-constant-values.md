@@ -49,9 +49,10 @@ func foo(@**const** input: Int) {...}
 
 The requirement that values of `@const` properties and parameters be known at compile-time restricts the allowable types for such declarations. The current scope of the proposal includes:
 
-* Integer and floating-point literals.
+* Integer and floating-point and boolean literals.
 * String literals (excluding interpolated strings).
 * Enum cases with no associated values.
+* Tuple literals consisting of the above list items.
 * Array and dictionary literals consisting of the above list items.
 
 This list will expand in the future to include more literal-value kinds or potential new compile-time valued constructs.
