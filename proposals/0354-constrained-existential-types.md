@@ -1,11 +1,10 @@
 # Constrained Existential Types
 
-(Pitched on the forums here: https://forums.swift.org/t/pitch-constrained-existential-types/56361)
-
-* Proposal: [SE-0354](0354-constrained-existential-types.md)
+* Proposal: [SE-0353](0353-constrained-existential-types.md)
 * Authors: [Robert Widmann](https://github.com/codafi)
-* Review Manager: TBD
-* Status: **Implemented under** `-enable-parameterized-existential-types`
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (April 20...May 3, 2022)**
+* Implementation: implemented in `main` branch, under flag `-enable-parameterized-existential-types`
 
 ## Introduction
 
@@ -16,6 +15,8 @@ any Collection<String>
 ```
 
 In essence, this proposal seeks to provide the same expressive power that [SE-0346](https://github.com/apple/swift-evolution/blob/main/proposals/0346-light-weight-same-type-syntax.md) gives to `some` types to `any` types.
+
+Swift-evolution pitch thread: https://forums.swift.org/t/pitch-constrained-existential-types/56361
 
 ## Motivation
 
