@@ -397,12 +397,16 @@ extension Regex where Output == AnyRegexOutput {
 }
 ```
 
+### Cancellation
+
+Regex is somewhat different from existing standard library operations in that regex processing can be a long-running task.
+For this reason regex algorithms may check if the parent task has been cancelled and end execution.
+
 ### On severability and related proposals
 
 The proposal split presented is meant to aid focused discussion, while acknowledging that each is interconnected. The boundaries between them are not completely cut-and-dry and could be refined as they enter proposal phase.
 
 Accepting this proposal in no way implies that all related proposals must be accepted. They are severable and each should stand on their own merit.
-
 
 ## Source compatibility
 
@@ -492,6 +496,16 @@ The actual `Match` struct just stores ranges: the `Substrings` are lazily create
 The generic parameter `Output` is proposed to contain both the whole match (the `.0` element if `Output` is a tuple) and captures. One alternative we have considered is separating `Output` into the entire match and the captures, i.e. `Regex<Match, Captures>`, and using `Void` for for `Captures` when there are no captures.
 
 The biggest issue with this alternative design is that the numbering of `Captures` elements misaligns with the numbering of captures in textual regexes, where backreference `\0` refers to the entire match and captures start at `\1`. This design would sacrifice familarity and have the pitfall of introducing off-by-one errors.
+
+### Encoding `Regex`es into the type system
+
+During the initial review period the following comment was made:
+
+> I think the goal should be that, at least for regex literals (and hopefully for the DSL to some extent), one day we might not even need a bytecode or interpreter. I think the ideal case is if each literal was its own function or type that gets generated and optimised as if you wrote it in Swift.
+
+This is an approach that has been tried a few times in a few different languages (including by a few members of the Swift Standard Library and Core teams), and while it can produce attractive microbenchmarks, it has almost always proved to be a bad idea at the macro scale. In particular, even if we set aside witness tables and other associated swift generics overhead, optimizing a fixed pipeline for each pattern you want to match causes significant codesize expansion when there are multiple patterns in use, as compared to a more flexible byte code interpreter. A bytecode interpreter makes better use of instruction caches and memory, and can also benefit from micro architectural resources that are shared across different patterns. There is a tradeoff w.r.t. branch prediction resources, where separately compiled patterns may have more decisive branch history data, but a shared bytecode engine has much more data to use; this tradeoff tends to fall on the side of a bytecode engine, but it does not always do so.
+
+It should also be noted that nothing prevents AOT or JIT compiling of the bytecode if we believe it will be advantageous, but compiling or interpreting arbitrary Swift code at runtime is rather more unattractive, since both the type system and language are undecidable. Even absent this rationale, we would probably not encode regex programs directly into the type system simply because it is unnecessarily complex.
 
 ### Future work: static optimization and compilation
 
