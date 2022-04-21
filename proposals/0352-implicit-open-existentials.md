@@ -346,7 +346,7 @@ Due to overloading, the source-compatibility impacts of improving the upper boun
 getBFromQ(q) as any P
 ```
 
-This way, if the upper bound changes due to increased expressiveness of existential types in the language, the overall express will still produce a value of the same type---`any P`---as it always has. A developer would be free to remove the `as any P` at the point where Swift can fully capture all of the information known about the type in an existential.
+This way, if the upper bound changes due to increased expressiveness of existential types in the language, the overall expression will still produce a value of the same type---`any P`---as it always has. A developer would be free to remove the `as any P` at the point where Swift can fully capture all of the information known about the type in an existential.
 
 Note that this requirement for an explicit type coercion also applies to all type erasure due to existential opening, including ones that existed prior to this proposal. For example, `getBFromQ` could be written as a member of a protocol extension. The code below has the same issues (and the same resolution) as our example, as was first made well-formed with [SE-0309](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md):
 
