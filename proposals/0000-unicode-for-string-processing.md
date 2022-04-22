@@ -6,6 +6,34 @@
 * Status: **Draft**
 * Implementation: [apple/swift-experimental-string-processing][repo]  
 
+### Table of Contents
+
+  - [Introduction](#introduction)
+  - [Motivation](#motivation)
+  - [Proposed solution](#proposed-solution)
+  - [Detailed design](#detailed-design)
+    - [Options](#options)
+      - [Case insensitivity](#case-insensitivity)
+      - [Single line mode (`.` matches newlines)](#single-line-mode--matches-newlines)
+      - [Multiline mode](#multiline-mode)
+      - [ASCII-only character classes](#ascii-only-character-classes)
+      - [Unicode word boundaries](#unicode-word-boundaries)
+      - [Matching semantic level](#matching-semantic-level)
+      - [Default repetition behavior](#default-repetition-behavior)
+    - [Character Classes](#character-classes)
+      - [“Any”](#any)
+      - [Digits](#digits)
+      - ["Word" characters](#word-characters)
+      - [Whitespace and newlines](#whitespace-and-newlines)
+      - [Unicode properties](#unicode-properties)
+      - [POSIX character classes: `[:NAME:]`](#posix-character-classes-name)
+      - [Custom classes](#custom-classes)
+  - [Source compatibility](#source-compatibility)
+  - [Effect on ABI stability](#effect-on-abi-stability)
+  - [Effect on API resilience](#effect-on-api-resilience)
+  - [Future directions](#future-directions)
+  - [Alternatives considered](#alternatives-considered)
+
 ## Introduction
 
 This proposal describes `Regex`'s rich Unicode support during regex matching, along with the character classes and options that define and modify that behavior.
