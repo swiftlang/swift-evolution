@@ -55,11 +55,11 @@ We propose run-time construction of `Regex` from a best-in-class treatment of fa
 
 ```swift
 let pattern = #"(\w+)\s\s+(\S+)\s\s+((?:(?!\s\s).)*)\s\s+(.*)"#
-let regex = try! Regex(compiling: pattern)
+let regex = try! Regex(pattern)
 // regex: Regex<AnyRegexOutput>
 
 let regex: Regex<(Substring, Substring, Substring, Substring, Substring)> =
-  try! Regex(compiling: pattern)
+  try! Regex(pattern)
 ```
 
 ### Syntax
@@ -86,11 +86,11 @@ We propose initializers to declare and compile a regex from syntax. Upon failure
 ```swift
 extension Regex {
   /// Parse and compile `pattern`, resulting in a strongly-typed capture list.
-  public init(compiling pattern: String, as: Output.Type = Output.self) throws
+  public init(_ pattern: String, as: Output.Type = Output.self) throws
 }
 extension Regex where Output == AnyRegexOutput {
   /// Parse and compile `pattern`, resulting in an existentially-typed capture list.
-  public init(compiling pattern: String) throws
+  public init(_ pattern: String) throws
 }
 ```
 
