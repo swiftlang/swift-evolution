@@ -81,6 +81,21 @@ struct Bar: NeedsConstGreeting {
 }
 ```
 
+## Forward-looking design aspects
+
+### Propagation Rules
+Though this proposal does not itself introduce propagation rules of `@const`-ness, their future existence is worth discussing in this design. Consider the example:
+```
+@const let i = 1
+let j = i
+```
+Our intent is to allow the use of `i` where `@const` values are expected in the future, for example`@const let k = i` or `f(i)` where `f` is `func f(@const _: Int)`. It is therefore important to consider whether `@const` is propagated to values like `j` in the above example, which determines whether or not statements like `f(j)` and `@const let k = j` are valid code. While it is desreable to allow such uses of the value within the same compilation unit, if `j` is `public`, automatically inferring it to be `@const` is problematic at the module boundary: it creates a contract with the module's clients that the programmer may not have indended. Therefore, `public` properties must explicitly be marked `@const` in order to be accessible as such outside the defining module. This is similar in nature to `Sendable` inference - `internal` or `private` entities can automatically be inferred by the compiler as `Sendable`, while `public` types must explicitly opt-in.
+
+### Memory placement
+Effect on runtime placement of `@const` values is an implementation detail that this proposal does not cover beyond indicating that today this attribute has no effect on memory layout of such values at runtime. It is however a highly desireable future direction for the implementation of this feature to allow the use read-only memory for `@const` values. With this in mind, it is important to allow semantics of this attribute to allow such implementation in the future. For example, a global `@const let`, by being placed into read-only memory removes the need for synchronization on access to such data. Moreover, using read-only memory reduces memory pressure that comes from having to maintain all mutable state in-memory at a given program point - read-only data can be evicted on-demand to be read back later. These are desireable traits for optimization of existing programs which become increasingly important for enabling of low-level system programs to be written in Swift.
+
+In order to allow such implementation in the future, this proposal makes the *value* of `public` `@const` values/properties a part of a module's ABI. That is, a resilient library that vends `@const let x = 11` changing the value of `x` is considered an ABI break. This treatment allows `public` `@const` data to exist in a single read-only location shared by all library clients, without each client having to copy the value or being concerned with possible inconsistency in behavior across library versions. 
+
 ## Motivating Example Use-Cases
 
 ### Facilitate Compile-time Extraction of Values
@@ -175,7 +190,7 @@ This is a purely additive change and has no source compatibility impacts.
 
 ## Effect on ABI stability and API resilience
 
-The new function parameter attribute is a part of name mangling.
+The new function parameter attribute is a part of name mangling. The *value* of `public @const` properties is a part of a module's ABI. See discussion on *Memory placement* for details.
 
 ## Effect on SwiftPM packages
 
@@ -189,7 +204,21 @@ There is no impact on SwiftPM packages.
 ### Difference to `StaticString`-like types
 As described in the **Enforcement of Non-Failable Initializers**, the key difference to types like `StaticString` that require a literal value is the `@const` attribute's requirement that the exact value be known at compile-time. `StaticString` allows for a runtime selection of multiple compile-time known values.
 
-### 
+### Placing `@const` on the declaration type
+One altenative to declaring compile-time known values as proposed here with the declaration attribute:
+```
+@const let x = 11
+```
+Is to instead shift the annotation to declared property's type:
+```
+let x: @const Int = 11
+```
+This shifts the information conveyed to the compiler about this declaration to be carried by the declaration's type. Semantically, this departs from, and widely broadens the scope from what we intend to capture: the knowability of the declared *value*. Encoding the compile-time property into the type system would force us to reckon with a great deal of complexity and unintended consequences. Consider the following example:
+```
+typealias CI = @const Int
+let x: CI?
+```
+What is the type of `x`? It appears to be Optional<@const Int>, which is not a meaningful or useful type, and the programmer most likely intended to have a @const Optional<Int>. And although today Implicitly-Unwrapped optional syntax conveys an additional bit of information about the declared value using a syntactic indicator on the declared type, without affecting the declaration's type, the [historical context](https://www.swift.org/blog/iuo/) of that feature makes it a poor example to justify requiring consistency with it. 
 
 ## Future Directions
 * Constant-propogation - allow default-initialization of `@const` properties using other `@const` values and allow passing `@const` values to `@const` parameters.
