@@ -114,9 +114,9 @@ By default, literal characters and Unicode scalar values (e.g. `\u{301}`) are co
 For example, these matches fail, because by the time the parser encounters the "`\u{301}`" Unicode scalar literal, the full `"é"` character has been matched:
 
 ```swift
-str.contains(/Caf.\u{301})    // false - `.` matches "é" character
-str.contains(/Caf\w\u{301})   // false - `\w` matches "é" character
-str.contains(/.+\u{301})      // false - `.+` matches each character
+str.contains(/Caf.\u{301}/)    // false - `.` matches "é" character
+str.contains(/Caf\w\u{301}/)   // false - `\w` matches "é" character
+str.contains(/.+\u{301}/)      // false - `.+` matches each character
 ```
 
 Alternatively, we can drop down to use Unicode scalar semantics if we want to match specific Unicode sequences. For example, these regexes matches an `"e"` followed by any modifier with the specified parameters:
@@ -151,7 +151,7 @@ Options can be enabled and disabled in two different ways: as part of [regex int
 let regex1 = /(?i)banana/
 let regex2 = Regex {
     "banana"
-}.ignoresCase()`
+}.ignoresCase()
 ```
 
 Note that the `ignoresCase()` is available on any type conforming to `RegexComponent`, which means that you can always use the more readable option-setting interface in conjunction with regex literals or run-time compiled `Regex`es:
@@ -699,7 +699,7 @@ To invert a Unicode property character class, use `\P{...}`.
 
 #### POSIX character classes: `[:NAME:]`
 
-**POSIX character classes** represent concepts that we'd like to define at all semantic levels. We propose the following definitions, some of which have been described above. When matching with grapheme cluster semantics, Unicode properties are extended to `Character`s as descrived in the rationale above, and as shown in the table below. That is, for POSIX class `[:word:]`, any `Character` that starts with a matching scalar is a match, while for `[:digit:]`, a matching `Character` must only comprise a single Unicode scalar value.
+**POSIX character classes** represent concepts that we'd like to define at all semantic levels. We propose the following definitions, some of which have been described above. When matching with grapheme cluster semantics, Unicode properties are extended to `Character`s as described in the rationale above, and as shown in the table below. That is, for POSIX class `[:word:]`, any `Character` that starts with a matching scalar is a match, while for `[:digit:]`, a matching `Character` must only comprise a single Unicode scalar value.
 
 | POSIX class  | Unicode property class            | Character behavior   | ASCII mode value              |
 |--------------|-----------------------------------|----------------------|-------------------------------|
