@@ -12,7 +12,7 @@
 
 A regex declares a string processing algorithm using syntax familiar across a variety of languages and tools throughout programming history. We propose the ability to create a regex at run time from a string containing regex syntax (detailed here), API for accessing the match and captures, and a means to convert between an existential capture representation and concrete types.
 
-The overall story is laid out in [Regex Type and Overview][overview] and each individual component is tracked in [Pitch and Proposal Status](https://github.com/apple/swift-experimental-string-processing/issues/107).
+The overall story is laid out in [SE-0350 Regex Type and Overview][overview] and each individual component is tracked in [Pitch and Proposal Status][pitches].
 
 ## Motivation
 
@@ -341,7 +341,7 @@ BuiltinCharClass -> '.' | '\C' | '\d' | '\D' | '\h' | '\H' | '\N' | '\O' | '\R' 
 - `\W`: Non-word character.
 - `\X`: Any extended grapheme cluster.
 
-Precise definitions of character classes is discussed in [Character Classes for String Processing](https://forums.swift.org/t/pitch-character-classes-for-string-processing/52920).
+Precise definitions of character classes is discussed in [Unicode for String Processing][pitches].
 
 #### Unicode scalars
 
@@ -1009,9 +1009,8 @@ This proposal regards _syntactic_ support, and does not necessarily mean that ev
 [unicode-scripts]: https://www.unicode.org/reports/tr24/#Script
 [unicode-script-extensions]: https://www.unicode.org/reports/tr24/#Script_Extensions
 [balancing-groups]: https://docs.microsoft.com/en-us/dotnet/standard/base-types/grouping-constructs-in-regular-expressions#balancing-group-definitions
-[overview]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexTypeOverview.md
-[pitches]: https://github.com/apple/swift-experimental-string-processing/issues/107
-
+[overview]: https://github.com/apple/swift-evolution/blob/main/proposals/0350-regex-type-overview.md
+[pitches]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md
 
 
 
