@@ -194,6 +194,16 @@ extension AnyRegexOutput {
 }
 ```
 
+Finally, we propose API for creating a regex containing literal string content. This produces an equivalent regex to a string literal embededd in the result builder DSL. As this is much less common than run-time compilation or an embedded literal in the DSL, it has an explicit argument label.
+
+```swift
+extension Regex {
+  /// Produces a regex that matches `literal` exactly, as though every
+  /// metacharacter in it was escaped.
+  public init(quoting literal: String)
+}
+```
+
 The rest of this proposal will be a detailed and exhaustive definition of our proposed regex syntax.
 
 <details><summary>Grammar Notation</summary>
