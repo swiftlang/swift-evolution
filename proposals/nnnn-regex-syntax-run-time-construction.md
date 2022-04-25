@@ -176,9 +176,13 @@ extension Regex where Output == AnyRegexOutput {
 }
 ```
 
-We propose adding API to query and access captures by name in an existentially typed regex match:
+We propose adding API to query and access captures by name in an existentially typed regex and match:
 
 ```swift
+extension Regex where Output == AnyRegexOutput {
+  /// Returns whether a named-capture with `name` is present.
+  public func contains(namedCapture name: String) -> Bool
+}
 extension Regex.Match where Output == AnyRegexOutput {
   /// If a named-capture with `name` is present, returns its value. Otherwise `nil`.
   public subscript(_ name: String) -> AnyRegexOutput.Element? { get }
