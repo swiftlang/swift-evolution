@@ -116,13 +116,13 @@ public struct AnyRegexOutput {
 extension AnyRegexOutput: RandomAccessCollection {
   public struct Element {
     /// The range over which a value was captured. `nil` for no-capture.
-    public var range: Range<String.Index>?
+    public var range: Range<String.Index>? { get }
 
     /// The slice of the input over which a value was captured. `nil` for no-capture.
-    public var substring: Substring?
+    public var substring: Substring? { get }
 
     /// The captured value. `nil` for no-capture.
-    public var value: Any?    
+    public var value: Any?  { get }
   }
 
   // Trivial collection conformance requirements
