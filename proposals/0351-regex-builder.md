@@ -1,7 +1,7 @@
 # Regex builder DSL
 
 * Proposal: [SE-0351](0351-regex-builder.md)
-* Authors: [Richard Wei](https://github.com/rxwei), [Michael Ilseman](https://github.com/milseman), [Nate Cook](https://github.com/natecook1000)
+* Authors: [Richard Wei](https://github.com/rxwei), [Michael Ilseman](https://github.com/milseman), [Nate Cook](https://github.com/natecook1000), [Alejandro Alonso](https://github.com/azoy)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/tree/main/Sources/RegexBuilder)
   * Available in nightly toolchain snapshots with `import _StringProcessing`
@@ -14,11 +14,13 @@
 - [Detailed design](#detailed-design)
   - [`RegexComponent` protocol](#regexcomponent-protocol)
   - [Concatenation](#concatenation)
+  - [Capture](#capture)
+  - [Reference](#reference)
   - [Alternation](#alternation)
-  - [Quantification](#quantification)
-  - [Capture and reference](#capture-and-reference)
+  - [Repetition](#repetition)
   - [Subpattern](#subpattern)
   - [Scoping](#scoping)
+  - [Composability](#composability)
 - [Source compatibility](#source-compatibility)
 - [Effect on ABI stability](#effect-on-abi-stability)
 - [Effect on API resilience](#effect-on-api-resilience)
@@ -53,7 +55,7 @@ let emailPattern = Regex {
 } // => Regex<(Substring, Substring, Substring)>
 
 let email = "My email is my.name@mail.swift.org."
-if let match = email.firstMatch(of: emailPattern) {
+if let match = try emailPattern.firstMatch(in: email) {
   let (wholeMatch, name, domain) = match.output
   // wholeMatch: "my.name@mail.swift.org"
   //       name: "my.name"
@@ -132,10 +134,7 @@ let statementPattern = Regex {
   OneOrMore(.whitespace)
   // Parse the transaction description, e.g. "ACH transfer".
   Capture {
-    OneOrMore(.custom([
-      .characterClass(.word),
-      .characterClass(.whitespace)
-    ]))
+    OneOrMore(CharacterClass(.word, .whitespace))
     CharacterClass.word
   } transform: { String($0) }
   OneOrMore(.whitespace)
@@ -172,17 +171,25 @@ Regex builder addresses all of textual regexes' shortcomings presented in the [M
 
 ### `RegexComponent` protocol
 
-One of the goals of the regex builder DSL is allowing the developers to easily compose regexes from common currency types and literals, or even define custom patterns to use for matching. We introduce `RegexComponent`, a protocol that unifies all types that can represent a component of a regex.
+One of the goals of the regex builder DSL is allowing the developers to easily compose regexes from common currency types and literals, or even define custom patterns to use for matching. We introduce `RegexComponent` in the implicitly-imported `Swift` module, a protocol that unifies all types that can represent a component of a regex. Since regexes are composable, the `Regex` type itself conforms to `RegexComponent`.
 
 ```swift
-public protocol RegexComponent {
-  associatedtype Output
-  @RegexComponentBuilder
+public protocol RegexComponent<RegexOutput> {
+  associatedtype RegexOutput
   var regex: Regex<Output> { get }
+}
+
+extension Regex: RegexComponent {
+  public typealias RegexOutput = Output
+  public var regex: Regex<Output> { self }
 }
 ```
 
-By conforming standard library types to `RegexComponent`, we allow them to be used inside the regex builder DSL as a match target.
+Note:
+- `RegexComponent` and `Regex`'s conformance to `RegexComponent` are available without importing `RegexBuilder`. All other types and conformances introduced in this proposal are in the `RegexBuilder` module.
+- The associated type `RegexOutput` intentionally has a `Regex` prefix. `Output` would cause confusion in standard library conforming types such as `String`, i.e. `String.Output`.
+
+By conforming standard library types to `RegexComponent`, we allow them to be used inside the regex builder DSL as a match target. These conformances are available in the `RegexBuilder` module.
 
 ```swift
 // A string represents a regex that matches the string.
@@ -208,14 +215,6 @@ extension UnicodeScalar: RegexComponent {
 // To be introduced in a future pitch.
 extension CharacterClass: RegexComponent {
   public var regex: Regex<Substring> { get }
-}
-```
-
-Since regexes are composable, the `Regex` type itself also conforms to `RegexComponent`.
-
-```swift
-extension Regex: RegexComponent {
-  public var regex: Self { self }
 }
 ```
 
@@ -271,7 +270,7 @@ We introduce a new initializer `Regex.init(_:)` which accepts a `@RegexComponent
 extension Regex {
   public init<R: RegexComponent>(
     @RegexComponentBuilder _ content: () -> R
-  ) where R.Output == Output
+  ) where R.RegexOutput == Output
 }
 ```
 
@@ -279,10 +278,10 @@ Example:
 
 ```swift
 Regex {
-   regex0 // Regex<Substring>
-   regex1 // Regex<(Substring, Int)>
-   regex2 // Regex<(Substring, Float)>
-   regex3 // Regex<(Substring, Substring)>
+  regex0 // Regex<Substring>
+  regex1 // Regex<(Substring, Int)>
+  regex2 // Regex<(Substring, Float)>
+  regex3 // Regex<(Substring, Substring)>
 } // Regex<(Substring, Int, Float, Substring)>
 ```
 
@@ -301,6 +300,21 @@ Regex {
   return r3
 } // Regex<(Substring, Int, Float, Substring)>
 ```
+
+The following example creates a regex by concatenating subpatterns.
+
+```swift
+let regex = Regex {
+  "regex builder "
+  "is "
+  "so easy"
+}
+let match = try regex.prefixMatch(in: "regex builder is so easy!")
+match?.0 // => "regex builder is so easy"
+```
+
+<details>
+<summary>API definition</summary>
 
 Basic methods in `RegexComponentBuilder`, e.g. `buildBlock()`, provides support for creating the most fundamental blocks. The `buildExpression` method wraps a user-provided component in a `RegexComponentBuilder.Component` structure, before passing the component to other builder methods. This is used for saving the source location of the component so that runtime errors can be reported with an accurate location.
 
@@ -332,7 +346,7 @@ public enum RegexComponentBuilder {
 }
 ```
 
-When it comes to concatenation, `RegexComponentBuilder` utilizes the [recently proposed `buildPartialBlock` feature](0348-buildpartialblock.md) to be able to concatenate all components' capture types to a single result tuple. `buildPartialBlock(first:)` provides support for creating a regex from a single component, and `buildPartialBlock(accumulated:next:)` support for creating a regex from multiple results.
+`RegexComponentBuilder` utilizes `buildPartialBlock` to be able to concatenate all components' capture types to a single result tuple. `buildPartialBlock(first:)` provides support for creating a regex from a single component, and `buildPartialBlock(accumulated:next:)` support for creating a regex from multiple results.
 
 Before Swift supports variadic generics, `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` must be overloaded to support concatenating regexes of supported capture quantities (arities).
 - `buildPartialBlock(first:)` is overloaded `arity` times such that a unary block with a component of any supported capture arity will produce a regex with capture type `Substring` followed by the component's capture types. The base overload, `buildPartialBlock<R>(first:) -> Regex<Substring>`, must be marked with `@_disfavoredOverload` to prevent it from shadowing other overloads.
@@ -350,7 +364,7 @@ extension RegexComponentBuilder {
   //   >(
   //     first component: Component<R>
   //   ) -> Regex<(Substring, Capture...)>
-  //   where Component.Output == (WholeMatch, Capture...),
+  //   where Component.RegexOutput == (WholeMatch, Capture...),
 
   @_disfavoredOverload
   public static func buildPartialBlock<R: RegexComponent>(
@@ -359,11 +373,11 @@ extension RegexComponentBuilder {
 
   public static func buildPartialBlock<W, C0, R: RegexComponent>(
     first r: Component<R>
-  ) -> Regex<(Substring, C0)> where R.Output == (W, C0)
+  ) -> Regex<(Substring, C0)> where R.RegexOutput == (W, C0)
 
   public static func buildPartialBlock<W, C0, C1, R: RegexComponent>(
     first r: Component<R>
-  ) -> Regex<(Substring, C0, C1)> where R.Output == (W, C0, C1)
+  ) -> Regex<(Substring, C0, C1)> where R.RegexOutput == (W, C0, C1)
 
   // ... `O(arity)` overloads of `buildPartialBlock(first:)`
 
@@ -377,20 +391,20 @@ extension RegexComponentBuilder {
   //   >(
   //     accumulated: Accumulated, next: Component<Next>
   //   ) -> Regex<(Substring, AccumulatedCapture..., NextCapture...)>
-  //   where Accumulated.Output == (AccumulatedWholeMatch, AccumulatedCapture...),
-  //         Next.Output == (NextWholeMatch, NextCapture...)
+  //   where Accumulated.RegexOutput == (AccumulatedWholeMatch, AccumulatedCapture...),
+  //         Next.RegexOutput == (NextWholeMatch, NextCapture...)
   
   public static func buildPartialBlock<W0, W1, C0, R0: RegexComponent, R1: RegexComponent>(
     accumulated: R0, next: Component<R1>
-  ) -> Regex<(Substring, C0)> where R0.Output == W0, R1.Output == (W1, C0)
+  ) -> Regex<(Substring, C0)> where R0.RegexOutput == W0, R1.RegexOutput == (W1, C0)
   
   public static func buildPartialBlock<W0, W1, C0, C1, R0: RegexComponent, R1: RegexComponent>(
     accumulated: R0, next: Component<R1>
-  ) -> Regex<(Substring, C0, C1)> where R0.Output == W0, R1.Output == (W1, C0, C1)
+  ) -> Regex<(Substring, C0, C1)> where R0.RegexOutput == W0, R1.RegexOutput == (W1, C0, C1)
   
   public static func buildPartialBlock<W0, W1, C0, C1, C2, R0: RegexComponent, R1: RegexComponent>(
     accumulated: R0, next: Component<R1>
-  ) -> Regex<(Substring, C0, C1, C2)> where R0.Output == W0, R1.Output == (W1, C0, C1, C2)
+  ) -> Regex<(Substring, C0, C1, C2)> where R0.RegexOutput == W0, R1.RegexOutput == (W1, C0, C1, C2)
 
   // ... `O(arity^2)` overloads of `buildPartialBlock(accumulated:next:)`
 }
@@ -407,7 +421,7 @@ extension RegexComponentBuilder {
   //     Component, WholeMatch, Capture...
   //   >(
   //     _ component: Component
-  //   ) where Component.Output == (WholeMatch, Capture...)
+  //   ) where Component.RegexOutput == (WholeMatch, Capture...)
 
   @_disfavoredOverload
   public static func buildLimitedAvailability<R: RegexComponent>(
@@ -428,16 +442,226 @@ extension RegexComponentBuilder {
 
 `buildOptional` and `buildEither` are intentionally not supported due to ergonomic issues and fundamental semantic differences between regex conditionals and result builder conditionals. Please refer to the [alternatives considered](#support-buildoptional-and-buildeither) section for detailed rationale.
 
+</details>
+
+### Capture
+
+Capture is a common regex feature that saves a portion of the input upon match. In regex builder, `Capture` and `TryCapture` are regex components that produce a new regex by inserting the captured pattern's whole match (`.0`) to the `.1` position of `RegexOutput`. When a transform closure is provided, the whole match (`.0`) of the captured content will be transformed to using the closure.
+
+```swift
+public struct Capture<Output>: RegexComponent { ... }
+public struct TryCapture<Output>: RegexComponent { ... }
+```
+
+To do a simple capture, you provide `Capture` with a regex component or a regex component builder closure.
+
+```swift
+// Equivalent: '(CREDIT|DEBIT)'
+Capture {
+  ChoiceOf {
+    "CREDIT"
+    "DEBIT"
+  }
+} // `.RegexOutput == (Substring, Substring)`
+```
+
+A capture will be represented in the type signature as a slice of the input, i.e. `Substring`. To transform the captured substring into another value during matching, specify a `transform:` closure.
+
+```
+// This example is similar to the one above, however in this example we
+// transform the result of the capture into:
+// "Transaction Kind: CREDIT" or "Transaction Kind: DEBIT"
+Capture {
+  ChoiceOf {
+    "CREDIT"
+    "DEBIT"
+  }
+} transform: {
+  "Transaction Kind: \($0)"
+} // `.RegexOutput == (Substring, String)`
+```
+
+The transform closure can throw. When a transform closure throws during matching, the matching will abort and the error will be propagated directly to the top-level matching API that's being called, e.g. `Regex.wholeMatch(in:)` and `Regex.prefixMatch(in:)`. Aborting is useful for cases where you know that matching can never succeed or when you detect that an important invariant has been violated and the matching procedure needs to be aborted.
+
+An alternative version of capture is called `TryCapture`, which works in cases where you want to transform the capture, but the transformation may return nil. When a nil is returned, the regex engine backtracks and tries an alternative. For example, `TryCapture` makes it easy to directly transform a capture by calling a failable initializer during matching.
+
+```swift
+enum TransactionKind: String {
+  case credit = "CREDIT"
+  case debit = "DEBIT"
+}
+
+TryCapture {
+  ChoiceOf {
+    "CREDIT"
+    "DEBIT"
+  }
+} transform: {
+  // This initializer may return nil which is why we used TryCapture.
+  TransactionKind(rawValue: String($0))
+}
+```
+
+<details>
+<summary>API definition</summary>
+
+```swift
+public struct Capture<Output>: RegexComponent {
+  public var regex: Regex<Output> { get }
+}
+
+public struct TryCapture<Output>: RegexComponent {
+  public var regex: Regex<Output> { get }
+}
+```
+
+Below are `Capture` and `TryCapture` initializer variants on capture arity 0. Higher capture arities are omitted for simplicity.
+
+```swift
+extension Capture {
+  public init<R: RegexComponent, W>(
+    _ component: R
+  ) where Output == (Substring, W), R.RegexOutput == W
+  
+  public init<R: RegexComponent, W>(
+    _ component: R, as reference: Reference<W>
+  ) where Output == (Substring, W), R.RegexOutput == W
+  
+  public init<R: RegexComponent, W, NewCapture>(
+    _ component: R,
+    transform: @escaping (Substring) throws -> NewCapture
+  ) where Output == (Substring, NewCapture), R.RegexOutput == W
+  
+  public init<R: RegexComponent, W>(
+    @RegexComponentBuilder _ component: () -> R
+  ) where Output == (Substring, W), R.RegexOutput == W
+
+  // ... `O(arity)` overloads
+}
+  
+extension TryCapture {
+  public init<R: RegexComponent, W, NewCapture>(
+    _ component: R,
+    transform: @escaping (Substring) throws -> NewCapture?
+  ) where Output == (Substring, NewCapture), R.RegexOutput == W
+  
+  public init<R: RegexComponent, W, NewCapture>(
+    @RegexComponentBuilder _ component: () -> R,
+    transform: @escaping (Substring) throws -> NewCapture?
+  ) where Output == (Substring, NewCapture), R.RegexOutput == W
+
+  // ... `O(arity)` overloads
+}
+```
+
+</details>
+
+### Reference
+
+Reference is a feature that can be used to achieve named captures and named backreferences from textual regexes. Simply state what type the reference will hold on to and you can use it later once you've matched a string to get back a specific capture. Note the type you pass to reference will be whatever the result of a capture's transform is. A capture with no transform always has a reference type of `Substring`.
+
+```swift
+let kind = Reference(Substring.self)
+
+let regex = Capture(as: kind) {
+  ChoiceOf {
+    "CREDIT"
+    "DEBIT"
+  }
+}
+
+let input = "CREDIT"
+if let result = regex.firstMatch(in: input) {
+  print(result[kind]) // Optional("CREDIT")
+}
+```
+
+Capturing stores the most recently captured content, and references can be used as a name to look up the result of matching. The reference itself can also be used within a regex (commonly called a "backreference") to match the most recently captured content during matching.
+
+```swift
+let a = Reference(Substring.self)
+let b = Reference(Substring.self)
+let c = Reference(Substring.self)
+let regex = Regex {
+  Capture("abc", as: a)
+  Capture("def", as: b)
+  ZeroOrMore {
+    Capture("hij", as: c)
+  }
+  a
+  Capture(b)
+}
+
+if let result = regex.firstMatch(in: "abcdefabcdef") {
+  print(result[a]) // => Optional("abc")
+  print(result[b]) // => Optional("def")
+  print(result[c]) // => nil
+}
+```
+
+A regex is considered invalid when it contains a use of reference without it ever being captured as (used as `Capture(..., as: ...)` or `Capture(as: ...) { ... }`) in the regex. When this occurs in the regex builder DSL, a runtime error will be reported. Similarly, the argument to a `Regex.Match.subscript(_:)` must have been captured as in the regex that produced the match.
+
+<details>
+<summary>API definition</summary>
+  
+```swift
+/// A reference to a regex capture.
+public struct Reference<Capture>: RegexComponent {
+  public init(_ captureType: Capture.Type = Capture.self)
+  public var regex: Regex<Capture>
+}
+
+extension Capture {
+  public init<R: RegexComponent, W, NewCapture>(
+    _ component: R,
+    as reference: Reference<NewCapture>,
+    transform: @escaping (Substring) throws -> NewCapture
+  ) where Output == (Substring, NewCapture), R.RegexOutput == W
+  
+  public init<R: RegexComponent, W>(
+    as reference: Reference<W>,
+    @RegexComponentBuilder _ component: () -> R
+  ) where Output == (Substring, W), R.RegexOutput == W
+
+  // ... `O(arity)` overloads
+}
+  
+extension TryCapture {
+  public init<R: RegexComponent, W, NewCapture>(
+    _ component: R,
+    as reference: Reference<NewCapture>,
+    transform: @escaping (Substring) throws -> NewCapture?
+  ) where Output == (Substring, NewCapture), R.RegexOutput == W
+  
+  public init<R: RegexComponent, W, NewCapture>(
+    as reference: Reference<NewCapture>,
+    @RegexComponentBuilder _ component: () -> R,
+    transform: @escaping (Substring) throws -> NewCapture?
+  ) where Output == (Substring, NewCapture), R.RegexOutput == W
+
+  // ... `O(arity)` overloads
+}
+
+extension Regex.Match {
+  /// Returns the capture referenced by the given reference.
+  ///
+  /// - Precondition: The reference must have been captured in the regex that produced this match.
+  public subscript<Capture>(_ reference: Reference<Capture>) -> Capture? { get }
+}
+```
+
+</details>
+
 ### Alternation
 
-Alternations are used to match one of multiple patterns. An alternation wraps its underlying patterns' capture types in an `Optional` and concatenates them together, first to last.
+An alternation is used to match one of multiple patterns. When one pattern in an alternation does not match successfully, the regex engine tries the next pattern until there's a successful match. An alternation wraps its underlying patterns' capture types in an `Optional` and concatenates them together, first to last.
 
 ```swift
 let choice = ChoiceOf {
+  regex0 // Regex<Substring>
   regex1 // Regex<(Substring, Int)>
   regex2 // Regex<(Substring, Float)>
   regex3 // Regex<(Substring, Substring)>
-  regex0 // Regex<Substring>
 } // => Regex<(Substring, Int?, Float?, Substring?)>
 ```
 
@@ -452,12 +676,28 @@ To the developer, the top-level API is a type named `ChoiceOf`. This type has an
 
 ```swift
 public struct ChoiceOf<Output>: RegexComponent {
-  public var regex: Regex<Output> { get }
+  ...
   public init<R: RegexComponent>(
     @AlternationBuilder builder: () -> R
-  ) where R.Output == Output
+  ) where R.RegexOutput == Output
 }
 ```
+
+For example, the following code creates an alternation of two subpatterns.
+
+```swift
+let regex = Regex {
+  ChoiceOf {
+    "CREDIT"
+    "DEBIT"
+  }
+}
+let match = try regex.prefixMatch(in: "DEBIT    04032020    Payroll $69.73")
+match?.0 // => "DEBIT"
+```
+
+<details>
+<summary>API definition</summary>
 
 `AlternationBuilder` is mostly similar to `RegexComponent` with the following distinctions:
 - Empty blocks are not supported.
@@ -465,6 +705,13 @@ public struct ChoiceOf<Output>: RegexComponent {
 - `buildEither(first:)` and `buildEither(second:)` are overloaded for each supported capture arity because they need to wrap capture types in `Optional`.
 
 ```swift
+public struct ChoiceOf<Output>: RegexComponent {
+  public var regex: Regex<Output> { get }
+  public init<R: RegexComponent>(
+    @AlternationBuilder builder: () -> R
+  ) where R.RegexOutput == Output
+}
+
 @resultBuilder
 public enum AlternationBuilder {
   public typealias Component<Value> = RegexComponentBuilder.Component<Value>
@@ -487,7 +734,7 @@ public enum AlternationBuilder {
   //   >(
   //     first component: Component<R>
   //   ) -> Regex<(Substring, Capture?...)>
-  //   where Component.Output == (WholeMatch, Capture...),
+  //   where Component.RegexOutput == (WholeMatch, Capture...),
 
   @_disfavoredOverload
   public static func buildPartialBlock<R: RegexComponent>(
@@ -496,11 +743,11 @@ public enum AlternationBuilder {
 
   public static func buildPartialBlock<W, C0, R: RegexComponent>(
     first r: Component<R>
-  ) -> Regex<(Substring, C0?)> where R.Output == (W, C0)
+  ) -> Regex<(Substring, C0?)> where R.RegexOutput == (W, C0)
 
   public static func buildPartialBlock<W, C0, C1, R: RegexComponent>(
     first r: Component<R>
-  ) -> Regex<(Substring, C0?, C1?)> where R.Output == (W, C0, C1)
+  ) -> Regex<(Substring, C0?, C1?)> where R.RegexOutput == (W, C0, C1)
 
   // The following builder methods implement what would be possible with
   // variadic generics (using imaginary syntax) as a single method:
@@ -512,20 +759,20 @@ public enum AlternationBuilder {
   //   >(
   //     accumulated: Accumulated, next: Component<Next>
   //   ) -> Regex<(Substring, AccumulatedCapture..., NextCapture...)>
-  //   where Accumulated.Output == (AccumulatedWholeMatch, AccumulatedCapture...),
-  //         Next.Output == (NextWholeMatch, NextCapture...)
+  //   where Accumulated.RegexOutput == (AccumulatedWholeMatch, AccumulatedCapture...),
+  //         Next.RegexOutput == (NextWholeMatch, NextCapture...)
   
   public static func buildPartialBlock<W0, W1, C0, R0: RegexComponent, R1: RegexComponent>(
     accumulated: R0, next: Component<R1>
-  ) -> Regex<(Substring, C0?)>  where R0.Output == W0, R1.Output == (W1, C0)
+  ) -> Regex<(Substring, C0?)>  where R0.RegexOutput == W0, R1.RegexOutput == (W1, C0)
   
   public static func buildPartialBlock<W0, W1, C0, C1, R0: RegexComponent, R1: RegexComponent>(
     accumulated: R0, next: Component<R1>
-  ) -> Regex<(Substring, C0?, C1?)>  where R0.Output == W0, R1.Output == (W1, C0, C1)
+  ) -> Regex<(Substring, C0?, C1?)>  where R0.RegexOutput == W0, R1.RegexOutput == (W1, C0, C1)
   
   public static func buildPartialBlock<W0, W1, C0, C1, C2, R0: RegexComponent, R1: RegexComponent>(
     accumulated: R0, next: Component<R1>
-  ) -> Regex<(Substring, C0?, C1?, C2?)> where R0.Output == W0, R1.Output == (W1, C0, C1, C2)
+  ) -> Regex<(Substring, C0?, C1?, C2?)> where R0.RegexOutput == W0, R1.RegexOutput == (W1, C0, C1, C2)
 
   // ... `O(arity^2)` overloads of `buildPartialBlock(accumulated:next:)`
 }
@@ -539,7 +786,7 @@ extension AlternationBuilder {
   //   >(
   //     _ component: Component
   //   ) -> Regex<(Substring, Capture?...)>
-  //   where Component.Output == (WholeMatch, Capture...)
+  //   where Component.RegexOutput == (WholeMatch, Capture...)
 
   @_disfavoredOverload
   public static func buildLimitedAvailability<R: RegexComponent>(
@@ -558,22 +805,43 @@ extension AlternationBuilder {
   
   public static func buildLimitedAvailability<W, C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, R: RegexComponent>(
     _ component: Component<R>
-  ) -> Regex<(Substring, C0?, C1?, C2?, C3?, C4?, C5?, C6?, C7?, C8, C9?)> where R.Output == (W, C0, C1, C2, C3, C4, C5, C6, C7, C8, C9)
+  ) -> Regex<(Substring, C0?, C1?, C2?, C3?, C4?, C5?, C6?, C7?, C8, C9?)> where R.RegexOutput == (W, C0, C1, C2, C3, C4, C5, C6, C7, C8, C9)
 }
 ```
 
-### Quantification
+</details>
 
-Quantifiers are generic types that can be created from a regex component. Their `Output` type is inferred from initializers. Each of these types corresponds to a quantifier in the textual regex.
+### Repetition
 
-| Quantifier in regex builder | Quantifier in textual regex |
-|-----------------------------|-----------------------------|
-| `OneOrMore(...)`            | `...+`                      |
-| `ZeroOrMore(...)`           | `...*`                      |
-| `Optionally(...)`           | `...?`                      |
-| `Repeat(..., count: n)`     | `...{n}`                    |
-| `Repeat(..., n...)`         | `...{n,}`                   |
-| `Repeat(..., n...m)`        | `...{n,m}`                  |
+One of the most useful features of regex is repetition, aka. quantification, as it allows you to match a specific range of number of occurrences of a subpattern. Regex builder provides 4 repetition components: `OneOrMore`, `ZeroOrMore`, `Optionally`, and `Repeat`.
+
+```swift
+public struct OneOrMore<Output>: RegexComponent { ... }
+public struct ZeroOrMore<Output>: RegexComponent { ... }
+public struct Optionally<Output>: RegexComponent { ... }
+public struct Repeat<Output>: RegexComponent { ... }
+```
+
+| Repetition in regex builder | Textual regex equivalent |
+|-----------------------------|--------------------------|
+| `OneOrMore(...)`            | `...+`                   |
+| `ZeroOrMore(...)`           | `...*`                   |
+| `Optionally(...)`           | `...?`                   |
+| `Repeat(..., count: n)`     | `...{n}`                 |
+| `Repeat(..., n...)`         | `...{n,}`                |
+| `Repeat(..., n...m)`        | `...{n,m}`               |
+
+`OneOrMore` and count-based `Repeat` are quantifiers that produce a new regex with the original capture types. Their `Output` type is `Substring` followed by the component's capture types. `ZeroOrMore`, `Optionally`, and range-based `Repeat` are quantifiers that produce a new regex with optional capture types. Their `Output` type is `Substring` followed by the component's capture types wrapped in `Optional`.
+
+| Quantifier                                           | Component `Output`         | Result `Output`            |
+|------------------------------------------------------|----------------------------|----------------------------|
+| `OneOrMore`<br>`Repeat(..., count: ...)`             | `(WholeMatch, Capture...)` | `(Substring, Capture...)`  |
+| `OneOrMore`<br>`Repeat(..., count: ...)`             | `WholeMatch` (non-tuple)   | `Substring`                |
+| `ZeroOrMore`<br>`Optionally`<br>`Repeat(..., n...m)` | `(WholeMatch, Capture...)` | `(Substring, Capture?...)` |
+| `ZeroOrMore`<br>`Optionally`<br>`Repeat(..., n...m)` | `WholeMatch` (non-tuple)   | `Substring`                |
+
+<details>
+<summary>API definition</summary>
 
 ```swift
 public struct OneOrMore<Output>: RegexComponent {
@@ -593,42 +861,7 @@ public struct Repeat<Output>: RegexComponent {
 }
 ```
 
-Like quantifiers in textual regexes, the developer can specify how eager the pattern should be matched against using `QuantificationBehavior`. Static properties in `QuantificationBehavior` are named like adverbs for fluency at a quantifier call site.
-
-```swift
-/// Specifies how much to attempt to match when using a quantifier.
-public struct QuantificationBehavior {
-  /// Match as much of the input string as possible, backtracking when
-  /// necessary.
-  public static var eagerly: QuantificationBehavior { get }
-  
-  /// Match as little of the input string as possible, expanding the matched
-  /// region as necessary to complete a match.
-  public static var reluctantly: QuantificationBehavior { get }
-  
-  /// Match as much of the input string as possible, performing no backtracking.
-  public static var possessively: QuantificationBehavior { get }
-}
-```
-
-Each quantification behavior corresponds to a quantification behavior in the textual regex.
-
-| Quantifier behavior in regex builder | Quantifier behavior in textual regex |
-|--------------------------------------|--------------------------------------|
-| `.eagerly`                           | no suffix                            |
-| `.reluctantly`                       | suffix `?`                           |
-| `.possessively`                      | suffix `+`                           |
-
-`OneOrMore` and count-based `Repeat` are quantifiers that produce a new regex with the original capture types. Their `Output` type is `Substring` followed by the component's capture types. `ZeroOrMore`, `Optionally`, and range-based `Repeat` are quantifiers that produce a new regex with optional capture types. Their `Output` type is `Substring` followed by the component's capture types wrapped in `Optional`.
-
-| Quantifier                                           | Component `Output`         | Result `Output`            |
-|------------------------------------------------------|----------------------------|----------------------------|
-| `OneOrMore`<br>`Repeat(..., count: ...)`             | `(WholeMatch, Capture...)` | `(Substring, Capture...)`  |
-| `OneOrMore`<br>`Repeat(..., count: ...)`             | `WholeMatch` (non-tuple)   | `Substring`                |
-| `ZeroOrMore`<br>`Optionally`<br>`Repeat(..., n...m)` | `(WholeMatch, Capture...)` | `(Substring, Capture?...)` |
-| `ZeroOrMore`<br>`Optionally`<br>`Repeat(..., n...m)` | `WholeMatch` (non-tuple)   | `Substring`                |
-
-Due to the lack of variadic generics, these functions must be overloaded for every supported capture arity.
+Due to the lack of variadic generics, initializers must be overloaded for every supported capture arity.
 
 ```swift
 extension OneOrMore {
@@ -639,41 +872,41 @@ extension OneOrMore {
   //     Component: RegexComponent, WholeMatch, Capture...
   //   >(
   //     _ component: Component,
-  //     _ behavior: QuantificationBehavior = .eagerly
+  //     _ behavior: RegexRepetitionBehavior = .eager
   //   )
   //   where Output == (Substring, Capture...)>,
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
   //
   //   public init<
   //     Component: RegexComponent, WholeMatch, Capture...
   //   >(
-  //     _ behavior: QuantificationBehavior = .eagerly,
+  //     _ behavior: RegexRepetitionBehavior = .eager,
   //     @RegexComponentBuilder _ component: () -> Component
   //   )
   //   where Output == (Substring, Capture...),
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
 
   @_disfavoredOverload
   public init<Component: RegexComponent>(
     _ component: Component,
-    _ behavior: QuantificationBehavior = .eagerly
+    _ behavior: RegexRepetitionBehavior? = nil
   ) where Output == Substring
   
   @_disfavoredOverload
   public init<Component: RegexComponent>(
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
   ) where Output == Substring
   
   public init<W, C0, Component: RegexComponent>(
     _ component: Component,
-    _ behavior: QuantificationBehavior = .eagerly
-  ) where Output == (Substring, C0), Component.Output == (W, C0)
+    _ behavior: RegexRepetitionBehavior? = nil
+  ) where Output == (Substring, C0), Component.RegexOutput == (W, C0)
   
   public init<W, C0, Component: RegexComponent>(
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
-  ) where Output == (Substring, C0), Component.Output == (W, C0)
+  ) where Output == (Substring, C0), Component.RegexOutput == (W, C0)
   
   // ... `O(arity)` overloads
 }
@@ -686,41 +919,41 @@ extension ZeroOrMore {
   //     Component: RegexComponent, WholeMatch, Capture...
   //   >(
   //     _ component: Component,
-  //     _ behavior: QuantificationBehavior = .eagerly
+  //     _ behavior: RegexRepetitionBehavior = nil
   //   )
   //   where Output == (Substring, Capture?...)>,
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
   //
   //   public init<
   //     Component: RegexComponent, WholeMatch, Capture...
   //   >(
-  //     _ behavior: QuantificationBehavior = .eagerly,
+  //     _ behavior: RegexRepetitionBehavior? = nil,
   //     @RegexComponentBuilder _ component: () -> Component
   //   )
   //   where Output == (Substring, Capture?...),
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
 
   @_disfavoredOverload
   public init<Component: RegexComponent>(
     _ component: Component,
-    _ behavior: QuantificationBehavior = .eagerly
+    _ behavior: RegexRepetitionBehavior? = nil
   ) where Output == Substring
   
   @_disfavoredOverload
   public init<Component: RegexComponent>(
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
   ) where Output == Substring
   
   public init<W, C0, Component: RegexComponent>(
     _ component: Component,
-    _ behavior: QuantificationBehavior = .eagerly
-  ) where Output == (Substring, C0?), Component.Output == (W, C0)
+    _ behavior: RegexRepetitionBehavior? = nil
+  ) where Output == (Substring, C0?), Component.RegexOutput == (W, C0)
   
   public init<W, C0, Component: RegexComponent>(
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
-  ) where Output == (Substring, C0?), Component.Output == (W, C0)
+  ) where Output == (Substring, C0?), Component.RegexOutput == (W, C0)
   
   // ... `O(arity)` overloads
 }
@@ -733,41 +966,41 @@ extension Optionally {
   //     Component: RegexComponent, WholeMatch, Capture...
   //   >(
   //     _ component: Component,
-  //     _ behavior: QuantificationBehavior = .eagerly
+  //     _ behavior: RegexRepetitionBehavior? = nil
   //   )
   //   where Output == (Substring, Capture?...),
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
   //
   //   public init<
   //     Component: RegexComponent, WholeMatch, Capture...
   //   >(
-  //     _ behavior: QuantificationBehavior = .eagerly,
+  //     _ behavior: RegexRepetitionBehavior? = nil,
   //     @RegexComponentBuilder _ component: () -> Component
   //   )
   //   where Output == (Substring, Capture?...)>,
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
   
   @_disfavoredOverload
   public init<Component: RegexComponent>(
     _ component: Component,
-    _ behavior: QuantificationBehavior = .eagerly
+    _ behavior: RegexRepetitionBehavior? = nil
   ) where Output == Substring
   
   @_disfavoredOverload
   public init<Component: RegexComponent>(
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
   ) where Output == Substring
   
   public init<W, C0, Component: RegexComponent>(
     _ component: Component,
-    _ behavior: QuantificationBehavior = .eagerly
-  ) where Output == (Substring, C0?), Component.Output == (W, C0)
+    _ behavior: RegexRepetitionBehavior? = nil
+  ) where Output == (Substring, C0?), Component.RegexOutput == (W, C0)
   
   public init<W, C0, Component: RegexComponent>(
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
-  ) where Output == (Substring, C0?), Component.Output == (W, C0)
+  ) where Output == (Substring, C0?), Component.RegexOutput == (W, C0)
   
   // ... `O(arity)` overloads
 }
@@ -781,40 +1014,40 @@ extension Repeat {
   //   >(
   //     _ component: Component,
   //     count: Int,
-  //     _ behavior: QuantificationBehavior = .eagerly
+  //     _ behavior: RegexRepetitionBehavior? = nil
   //   )
   //   where Output == (Substring, Capture...),
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
   //
   //   public init<
   //     Component: RegexComponent, WholeMatch, Capture...
   //   >(
   //     count: Int,
-  //     _ behavior: QuantificationBehavior = .eagerly,
+  //     _ behavior: RegexRepetitionBehavior? = nil,
   //     @RegexComponentBuilder _ component: () -> Component
   //   )
   //   where Output == (Substring, Capture...),
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
   //
   //   public init<
   //     Component: RegexComponent, WholeMatch, Capture..., RE: RangeExpression
   //   >(
   //     _ component: Component,
   //     _ expression: RE,
-  //     _ behavior: QuantificationBehavior = .eagerly
+  //     _ behavior: RegexRepetitionBehavior? = nil
   //   )
   //   where Output == (Substring, Capture?...),
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
   //
   //   public init<
   //     Component: RegexComponent, WholeMatch, Capture..., RE: RangeExpression
   //   >(
   //     _ expression: RE,
-  //     _ behavior: QuantificationBehavior = .eagerly,
+  //     _ behavior: RegexRepetitionBehavior? = nil,
   //     @RegexComponentBuilder _ component: () -> Component
   //   )
   //   where Output == (Substring, Capture?...),
-  //         Component.Output == (WholeMatch, Capture...)
+  //         Component.RegexOutput == (WholeMatch, Capture...)
   
   // Nullary
 
@@ -822,13 +1055,13 @@ extension Repeat {
   public init<Component: RegexComponent>(
     _ component: Component,
     count: Int,
-    _ behavior: QuantificationBehavior = .eagerly
+    _ behavior: RegexRepetitionBehavior? = nil
   ) where Output == Substring, R.Bound == Int
   
   @_disfavoredOverload
   public init<Component: RegexComponent>(
     count: Int,
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
   ) where Output == Substring, R.Bound == Int
   
@@ -836,13 +1069,13 @@ extension Repeat {
   public init<Component: RegexComponent, RE: RangeExpression>(
     _ component: Component,
     _ expression: RE,
-    _ behavior: QuantificationBehavior = .eagerly
+    _ behavior: RegexRepetitionBehavior? = nil
   ) where Output == Substring, R.Bound == Int
   
   @_disfavoredOverload
   public init<Component: RegexComponent, RE: RangeExpression>(
     _ expression: RE,
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
   ) where Output == Substring, R.Bound == Int
   
@@ -852,193 +1085,100 @@ extension Repeat {
   public init<W, C0, Component: RegexComponent>(
     _ component: Component,
     count: Int,
-    _ behavior: QuantificationBehavior = .eagerly
+    _ behavior: RegexRepetitionBehavior? = nil
   )
   where Output == (Substring, C0),
-        Component.Output == (Substring, C0),
+        Component.RegexOutput == (Substring, C0),
         R.Bound == Int
   
   public init<W, C0, Component: RegexComponent>(
     count: Int,
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
   )
   where Output == (Substring, C0),
-        Component.Output == (Substring, C0),
+        Component.RegexOutput == (Substring, C0),
         R.Bound == Int
   
   public init<W, C0, Component: RegexComponent, RE: RangeExpression>(
     _ component: Component,
     _ expression: RE,
-    _ behavior: QuantificationBehavior = .eagerly
+    _ behavior: RegexRepetitionBehavior? = nil
   )
   where Output == (Substring, C0?),
-        Component.Output == (W, C0),
+        Component.RegexOutput == (W, C0),
         R.Bound == Int
   
   public init<W, C0, Component: RegexComponent, RE: RangeExpression>(
     _ expression: RE,
-    _ behavior: QuantificationBehavior = .eagerly,
+    _ behavior: RegexRepetitionBehavior? = nil,
     @RegexComponentBuilder _ component: () -> Component
   )
   where Output == (Substring, C0?),
-        Component.Output == (W, C0),
+        Component.RegexOutput == (W, C0),
         R.Bound == Int
   
   // ... `O(arity)` overloads
 }
 ```
 
-### Capture and reference
+</details>
 
-`Capture` and `TryCapture` produce a new `Regex` by inserting the captured pattern's whole match (`.0`) to the `.1` position of `Output`. When a transform closure is provided, the whole match of the captured content will be transformed to using the closure.
+#### Repetition behavior
+
+Repetition behavior defines how eagerly a repetition component should match the input. Behavior can be unspecified, in which case it will default to `.eager` unless an option is provided to change the default (see [Unicode for String Processing](https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md#unicode-for-string-processing)).
 
 ```swift
-public struct Capture<Output>: RegexComponent {
-  public var regex: Regex<Output> { get }
-}
-
-public struct TryCapture<Output>: RegexComponent {
-  public var regex: Regex<Output> { get }
+/// Specifies how much to attempt to match when using a quantifier.
+public struct RegexRepetitionBehavior {
+  /// Match as much of the input string as possible, backtracking when
+  /// necessary.
+  public static var eager: RegexRepetitionBehavior { get }
+  
+  /// Match as little of the input string as possible, expanding the matched
+  /// region as necessary to complete a match.
+  public static var reluctant: RegexRepetitionBehavior { get }
+  
+  /// Match as much of the input string as possible, performing no backtracking.
+  public static var possessive: RegexRepetitionBehavior { get }
 }
 ```
 
-The difference between `Capture` and `TryCapture` is that `TryCapture` works better with transform closures that can return `nil` or throw, whereas `Capture` relies on the user to handle errors within a transform closure. With `TryCapture`, when the closure returns `nil` or throws, the failure becomes a no-match.
-  
-```swift
-// Below are `Capture` and `TryCapture` initializer variants on capture arity 0.
-// Higher capture arities are omitted for simplicity.
-  
-extension Capture {
-  public init<R: RegexComponent, W>(
-    _ component: R
-  ) where Output == (Substring, W), R.Output == W
-  
-  public init<R: RegexComponent, W>(
-    _ component: R, as reference: Reference<W>
-  ) where Output == (Substring, W), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    _ component: R,
-    transform: @escaping (Substring) -> NewCapture
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    _ component: R,
-    as reference: Reference<NewCapture>,
-    transform: @escaping (Substring) -> NewCapture
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W>(
-    @RegexComponentBuilder _ component: () -> R
-  ) where Output == (Substring, W), R.Output == W
-  
-  public init<R: RegexComponent, W>(
-    as reference: Reference<W>,
-    @RegexComponentBuilder _ component: () -> R
-  ) where Output == (Substring, W), R.Output == W
-}
-  
-extension TryCapture {
-  public init<R: RegexComponent, W, NewCapture>(
-    _ component: R,
-    transform: @escaping (Substring) throws -> NewCapture
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    _ component: R,
-    as reference: Reference<NewCapture>,
-    transform: @escaping (Substring) throws -> NewCapture
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    _ component: R,
-    transform: @escaping (Substring) -> NewCapture?
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    _ component: R,
-    as reference: Reference<NewCapture>,
-    transform: @escaping (Substring) -> NewCapture?
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    @RegexComponentBuilder _ component: () -> R,
-    transform: @escaping (Substring) -> NewCapture
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    as reference: Reference<NewCapture>,
-    @RegexComponentBuilder _ component: () -> R,
-    transform: @escaping (Substring) throws -> NewCapture
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    @RegexComponentBuilder _ component: () -> R,
-    transform: @escaping (Substring) -> NewCapture?
-  ) where Output == (Substring, NewCapture), R.Output == W
-  
-  public init<R: RegexComponent, W, NewCapture>(
-    as reference: Reference<NewCapture>,
-    @RegexComponentBuilder _ component: () -> R,
-    transform: @escaping (Substring) -> NewCapture?
-  ) where Output == (Substring, NewCapture), R.Output == W
+| Repetition behavior in regex builder | Textual regex equivalent |
+|--------------------------------------|--------------------------|
+| `.eager`                             | no suffix                |
+| `.reluctant`                         | suffix `?`               |
+| `.possessive`                        | suffix `+`               |
 
-  // ... `O(arity)` overloads
-}
-```
+To demonstrate how each repetition behavior works, let's look at the following
+example. Suppose we want to make a regex that wants to capture an html tag, e.g.
+`<code>`. We might start with something like the following:
 
-Example:
 
 ```swift
-let regex = Regex {
-  OneOrMore("a")
-  Capture {
-    TryCapture("b") { Int($0) }
-    ZeroOrMore {
-      TryCapture("c") { Double($0) }
-    }
-    Optionally("e")
+let tag = Reference(Substring.self)
+
+let htmlRegex = Regex {
+  "<"
+  Capture(as: tag) {
+    // Remember, the default behavior is .eager here!
+    OneOrMore(.any)
   }
+  ">"
+}
+
+let input = #"<code>print("hello world!")</code>"#
+
+if let result = htmlRegex.firstMatch(in: input) {
+  print(result[tag])
 }
 ```
 
-Variants of `Capture` and `TryCapture` accept a `Reference` argument. References can be used to achieve named captures and named backreferences from textual regexes.
+The code above prints `code>print("hello world!")</code`, which is unexpected. This is because `OneOrMore(.any)` has eager behavior by default, and it matched as many characters as possible.
 
-```swift
-/// A reference to a regex capture.
-public struct Reference<Capture>: RegexComponent {
-  public init(_ captureType: Capture.Type = Capture.self)
-  public var regex: Regex<Capture>
-}
+If we change `OneOrMore(.any)` to `OneOrMore(.any, .possessive)`, matching fails. What happened in this case was that the regex found our starting "<", but the repetition regex component `OneOrMore(.any, .possessive)` ran all the way to the end of the string (because we're asking for any character). After reaching the end, we couldn't find a match for the end `">"` because our string was out of characters. This is intended for `.possessive` because it doesn't backtrack the string to find a match for the ending `">"`.
 
-extension Regex.Match {
-  /// Returns the capture referenced by the given reference.
-  ///
-  /// - Precondition: The reference must have been captured in the regex that produced this match.
-  public subscript<Capture>(_ reference: Reference<Capture>) -> Capture { get }
-}
-```
-
-When capturing some regex with a reference specified, the reference will refer to the most recently captured content. The reference itself can be used as a regex to match the most recently captured content, or as a name to look up the result of matching.
-
-```swift
-let a = Reference(Substring.self)
-let b = Reference(Substring.self)
-let regex = Regex {
-  Capture("abc", as: a)
-  Capture("def", as: b)
-  a
-  Capture(b)
-}
-
-if let result = input.firstMatch(of: regex) {
-  print(result[a]) // => "abc"
-  print(result[b]) // => "def"
-}
-```
-
-A regex is considered invalid when it contains a use of reference without it ever being captured in the regex. When this occurs in the regex builder DSL, a runtime error will be reported. Similarly, the use of a reference in a `Regex.Match.subscript(_:)` must have been captured in the regex that produced the match.
+The desired behavior in this case is `.reluctant`, where the repetition will match as little of the input string as possible. If we use `OneOrMore(.any, .reluctant)`, the code prints expected output `<code>`.
 
 ### Subpattern
 
@@ -1078,34 +1218,12 @@ Regex {
 
 ### Scoping
 
-In textual regexes, atomic groups (`(?>...)`) can be used to define a backtracking scope. That is, when the regex engine exits from the scope successfully, it throws away all backtracking positions from the scope. In regex builder, the `Local` type serves this purpose.
+Because the regex engine backtracks by default when trying to match on a string, sometimes this backtracking can be wasted performance because we don't want to try various possibilities to eventually (maybe) find a match.
+
+In textual regexes, atomic groups (`(?>...)`) solve this problem by informing the regex engine to actually discard the backtrack location of a group, that is, defining a scope for backtracking. In regex builder, the `Local` type serves this purpose.
 
 ```swift
-public struct Local<Output>: RegexComponent {
-  public var regex: Regex<Output>
-
-  // The following builder methods implement what would be possible with
-  // variadic generics (using imaginary syntax) as a single set of methods:
-  //
-  //   public init<WholeMatch, Capture..., Component: RegexComponent>(
-  //     @RegexComponentBuilder _ component: () -> Component
-  //   ) where Output == (Substring, Capture...), Component.Output == (WholeMatch, Capture...)
-
-  @_disfavoredOverload
-  public init<Component: RegexComponent>(
-    @RegexComponentBuilder _ component: () -> Component
-  ) where Output == Substring
-
-  public init<W, C0, Component: RegexComponent>(
-    @RegexComponentBuilder _ component: () -> Component
-  ) where Output == (Substring, C0), Component.Output == (W, C0)
-  
-  public init<W, C0, C1, Component: RegexComponent>(
-    @RegexComponentBuilder _ component: () -> Component
-  ) where Output == (Substring, C0, C1), Component.Output == (W, C0, C1)
-  
-  // ... `O(arity)` overloads
-}
+public struct Local<Output>: RegexComponent { ... }
 ```
 
 For example, the following regex matches string `abcc` but not `abc`.
@@ -1120,6 +1238,126 @@ Regex {
     }
   }
   "c"
+}
+```
+
+If our input is `abcc`, we'll successfully find a match, however if we try to match against `abc` we won't get a match. The reason behind this is that in the `ChoiceOf` we actually matched the "bc" case first, but due to the local group we immediately disregard the backtracking location and continue to try and the rest of the regex. Since we matched the "bc", we don't have anymore string left to match the "c" and our local group will not try and attempt to match the other option, "b".
+
+<details>
+<summary>API definition</summary>
+
+```swift
+public struct Local<Output>: RegexComponent {
+  public var regex: Regex<Output>
+
+  // The following builder methods implement what would be possible with
+  // variadic generics (using imaginary syntax) as a single set of methods:
+  //
+  //   public init<WholeMatch, Capture..., Component: RegexComponent>(
+  //     @RegexComponentBuilder _ component: () -> Component
+  //   ) where Output == (Substring, Capture...), Component.RegexOutput == (WholeMatch, Capture...)
+
+  @_disfavoredOverload
+  public init<Component: RegexComponent>(
+    @RegexComponentBuilder _ component: () -> Component
+  ) where Output == Substring
+
+  public init<W, C0, Component: RegexComponent>(
+    @RegexComponentBuilder _ component: () -> Component
+  ) where Output == (Substring, C0), Component.RegexOutput == (W, C0)
+  
+  public init<W, C0, C1, Component: RegexComponent>(
+    @RegexComponentBuilder _ component: () -> Component
+  ) where Output == (Substring, C0, C1), Component.RegexOutput == (W, C0, C1)
+  
+  // ... `O(arity)` overloads
+}
+```
+
+</details>
+
+### Composability
+
+Let's put everything together now and parse this example bank statement.
+
+```
+CREDIT    04062020    PayPal transfer    $4.99
+CREDIT    04032020    Payroll            $69.73
+DEBIT     04022020    ACH transfer       $38.25
+DEBIT     03242020    IRS tax payment    $52249.98
+```
+
+Here we have 2 types of transaction kinds, CREDIT and DEBIT, we have a date
+denoted by mmddyyyy, a description, and the amount paid.
+
+```swift
+enum TransactionKind: String {
+  case credit = "CREDIT"
+  case debit = "DEBIT"
+}
+
+struct Date {
+  var month: Int
+  var day: Int
+  var year: Int
+
+  init?(mmddyyyy: String) {
+    ...
+  }
+}
+
+let statementRegex = Regex {
+  // First, let's capture the transaction kind by wrapping our `ChoiceOf` in a
+  // `TryCapture` because our initializer can return nil on failure.
+  TryCapture {
+    ChoiceOf {
+      "CREDIT"
+      "DEBIT"
+    }
+  } transform: {
+    TransactionKind(rawValue: String($0))
+  }
+
+  OneOrMore(.whitespace)
+
+  // Next, lets represent our date as 3 separate repeat quantifiers. The first
+  // two will require 2 digit characters, and the last will require 4. Then
+  // we'll take the entire substring and try to parse a date out.
+  TryCapture {
+    Repeat(.digit, count: 2)
+    Repeat(.digit, count: 2)
+    Repeat(.digit, count: 4)
+  } transform: {
+    Date(mmddyyyy: String($0))
+  }
+
+  OneOrMore(.whitespace)
+
+  // Next, grab the description which can be any combination of word characters,
+  // digits, etc.
+  Capture {
+    OneOrMore(.any, .reluctant)
+  }
+
+  OneOrMore(.whitespace)
+
+  "$"
+
+  // Finally, we'll grab one or more digits which will represent the whole
+  // dollars, match the decimal point, and finally get 2 digits which will be
+  // our cents.
+  TryCapture {
+    OneOrMore(.digit)
+    "."
+    Repeat(.digit, count: 2)
+  } transform: {
+    Double($0)
+  }
+}
+
+for match in statement.matches(of: statementRegex) {
+  let (line, kind, date, description, amount) = match.output
+  ...
 }
 ```
 
@@ -1163,7 +1401,7 @@ For this, `Regex` offers a special initializer that allows its pattern to recurs
 extension Regex {
   public init<R: RegexComponent>(
     @RegexComponentBuilder _ content: (Regex<Substring>) -> R
-  ) where R.Output == Match
+  ) where R.RegexOutput == Match
 }
 ```
 
@@ -1206,15 +1444,15 @@ While `ChoiceOf` and quantifier types provide a general way of creating alternat
 //     _ r0: RegexComponent,
 //     _ r1: RegexComponent
 //   ) -> Regex<(Substring, Capture0?..., Capture1?...)>
-//     where R0.Output == (WholeMatch0, Capture0...),
-//           R1.Output == (WholeMatch1, Capture1...)
+//     where R0.RegexOutput == (WholeMatch0, Capture0...),
+//           R1.RegexOutput == (WholeMatch1, Capture1...)
 
 @_disfavoredOverload
 public func | <R0, R1>(lhs: R0, rhs: R1) -> Regex<Substring> where R0: RegexComponent, R1: RegexComponent {
 
-public func | <R0, R1, W1, C0>(lhs: R0, rhs: R1) -> Regex<(Substring, C0?)> where R0: RegexComponent, R1: RegexComponent, R1.Output == (W1, C0)
+public func | <R0, R1, W1, C0>(lhs: R0, rhs: R1) -> Regex<(Substring, C0?)> where R0: RegexComponent, R1: RegexComponent, R1.RegexOutput == (W1, C0)
 
-public func | <R0, R1, W1, C0, C1>(lhs: R0, rhs: R1) -> Regex<(Substring, C0?, C1?)> where R0: RegexComponent, R1: RegexComponent, R1.Output == (W1, C0, C1)
+public func | <R0, R1, W1, C0, C1>(lhs: R0, rhs: R1) -> Regex<(Substring, C0?, C1?)> where R0: RegexComponent, R1: RegexComponent, R1.RegexOutput == (W1, C0, C1)
 
 // ... `O(arity^2)` overloads.
 ```
@@ -1338,20 +1576,20 @@ extension RegexComponentBuilder {
   >(
     first component: Component
   ) -> Regex<(Substring, Capture...)>
-  where Component.Output == (WholeMatch, Capture...)
+  where Component.RegexOutput == (WholeMatch, Capture...)
 
   public static func buildEither<
     Component, WholeMatch, Capture...
   >(
     second component: Component
   ) -> Regex<(Substring, Capture...)>
-  where Component.Output == (WholeMatch, Capture...)
+  where Component.RegexOutput == (WholeMatch, Capture...)
 
   public static func buildOptional<
     Component, WholeMatch, Capture...
   >(
     _ component: Component?
-  ) where Component.Output == (WholeMatch, Capture...)
+  ) where Component.RegexOutput == (WholeMatch, Capture...)
 }
 ```
 
@@ -1365,12 +1603,12 @@ With the proposed design, `ChoiceOf` with `AlternationBuilder` wraps every compo
 
 ```swift
 ChoiceOf {
-  OneOrMore(Capture(.digit)) // Output == (Substring, Substring)
+  OneOrMore(Capture(.digit)) // RegexOutput == (Substring, Substring)
   Optionally {
-    ZeroOrMore(Capture(.word)) // Output == (Substring, Substring?)
+    ZeroOrMore(Capture(.word)) // RegexOutput == (Substring, Substring?)
     "a"
-  } // Output == (Substring, Substring??)
-} // Output == (Substring, Substring?, Substring???)
+  } // RegexOutput == (Substring, Substring??)
+} // RegexOutput == (Substring, Substring?, Substring???)
 ```
 
 One way to improve this could be overloading quantifier initializers (e.g. `ZeroOrMore.init(_:)`) and `AlternationBuilder.buildPartialBlock` to flatten any optionals upon composition. However, this would be non-trivial. Quantifier initializers would need to be overloaded `O(2^arity)` times to account for all possible positions of `Optional` that may appear in the `Output` tuple. Even worse, `AlternationBuilder.buildPartialBlock` would need to be overloaded `O(arity!)` times to account for all possible combinations of two `Output` tuples with all possible positions of `Optional` that may appear in one of the `Output` tuples.
@@ -1393,16 +1631,58 @@ OneOrMore {
 }
 
 // Flat capture types:
-// => `Output == (Substring, Substring, Substring)>`
+// => `RegexOutput == (Substring, Substring, Substring)>`
 
 // Structured capture types:
-// => `Output == (Substring, (Substring, Substring))`
+// => `RegexOutput == (Substring, (Substring, Substring))`
 ```
 
 Similarly, an alternation of multiple or nested captures could produce a structured alternation type (or an anonymous sum type) rather than flat optionals.
 
 This is cool, but it adds extra complexity to regex builder and it isn't as clear because the generic type no longer aligns with the traditional regex backreference numbering. We think the consistency of the flat capture types trumps the added safety and ergonomics of the structured capture types.
 
+### Unify `Capture` with `TryCapture`
+
+The primary difference between `Capture` and `TryCapture` at the API level is that `TryCapture`'s transform closure returns an `Optional` of the target type, whereas `Capture`'s transform closure returns the target type. `TryCapture` would cause the regex engine to backtrack when the transform closure returns nil, whereas `Capture` does not backtrack.
+
+It has been argued in the review thread that the distinction between `Capture` and `TryCapture` need not be reflected at the type name level, but could be differentiated by argument label, e.g. `transform:`/`tryTransform:` or `map:`/`compactMap:`. However, doing so may cause ambiguity in cases where the transform closure is not the second, but the first, trailing closure in the initializer.
+
+```swift
+extension Capture {
+  public init<R: RegexComponent, W, NewCapture>(
+    _ component: R,
+    map: @escaping (Substring) throws -> NewCapture
+  ) where Output == (Substring, NewCapture), R.RegexOutput == W
+
+  public init<R: RegexComponent, W, NewCapture>(
+    _ component: R,
+    compactMap: @escaping (Substring) throws -> NewCapture?
+  ) where Output == (Substring, NewCapture), R.RegexOutput == W
+}
+```
+
+In this case, since the argument label will not be specfied for the first trailing closure, using `Capture` where the component is a non-builder-closure may cause type-checking ambiguity.
+
+```swift
+Regex {
+  Capture(OneOrMore(.digit)) {
+    Int($0)
+  } // Which output type, `(Substring, Substring)` or `(Substring, Substring?)`?
+}
+```
+
+Spelling out `TryCapture` also has the benefit of clarity, as it makes clear that a capture's transform closure can cause the regex engine to backtrack. Since backtracking can be expensive, one could choose to throw errors instead and use a normal `Capture`.
+
+```swift
+Regex {
+  Capture(OneOrMore(.digit)) {
+    guard let number = Int($0) else {
+      throw MyCustomParsingError.invalidNumber($0)
+    }
+    return number
+  }
+}
+```
 
 [Declarative String Processing]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/DeclarativeStringProcessing.md
 [Strongly Typed Regex Captures]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StronglyTypedCaptures.md
