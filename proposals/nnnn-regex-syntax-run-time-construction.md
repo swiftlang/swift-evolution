@@ -459,7 +459,7 @@ Note there are additional constructs that may syntactically appear similar to gr
 
 Capturing groups produce captures, which remember the range of input matched for the scope of that group.
 
-A capturing group may be named using any of the `NamedGroup` syntax. The characters of the group name may be any letter or number characters or the character `_`. However the name must not start with a number. This restriction follows the behavior of other regex engines and avoids ambiguities when it comes to named and numeric group references.
+A capturing group may be named using any of the `NamedGroup` syntax. The characters of the group name may be any letter or number characters or the character `_`. However the name must not start with a number. This restriction follows the behavior of other regex engines and avoids ambiguities when it comes to named and numeric group references. Duplicate group names are only permitted when either `(?J)` is set, or when the captures share the same numbering, e.g within a branch reset alternation `(?|)`. Otherwise, they are considered invalid.
 
 #### Atomic groups
 
@@ -512,6 +512,14 @@ Branch reset groups can alter this numbering, as they reset the numbering in the
 ^ ^    ^  ^         ^    ^
 1 2    3  4         3    5
 ```
+
+Because this construct allows multiple capture groups to share the same number, it allows a capture to share the same name in both branches. For example:
+
+```
+(?|(?<x>a)|(?<x>b))
+```
+
+which produces a single capture result named `x`. This would be otherwise be invalid in a regular alternation, as the captures would have distinct numberings.
 
 ### Custom character classes
 
@@ -939,6 +947,15 @@ The `(z)` group gets numbered before the named groups get numbered.
 
 We propose matching the PCRE behavior where groups are numbered purely based on order.
 
+### Duplicate group names
+
+By default, Oniguruma, Perl, and .NET allow duplicate capture group names for differently numbered captures. PCRE also allows this when `(?J)` is set. However, each engine has a different backreference behavior to such captures:
+
+- PCRE and Perl refer to the first matched group with that name.
+- .NET refers to the last matched group with that name.
+- Oniguruma allows a reference to any of the previously matched values of the groups with that name.
+
+We feel that this behavior can be unintuitive, and therefore intend to make duplicate group names invalid by default for differently numbered captures. This follows the behavior of ICU, Java, and PCRE's default behavior.
 
 ## Swift canonical syntax
 
