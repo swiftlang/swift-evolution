@@ -141,7 +141,7 @@ extension AnyRegexOutput: RandomAccessCollection {
 }
 ```
 
-We propose adding an API to `Regex<AnyRegexOutput>.Match` to cast the output type to a concrete one. A regex match will lazily create a `Substring` on demand, so casting the match itself saves ARC traffic vs extracting and casting the output.
+We propose adding an API to `Regex<AnyRegexOutput>` and `Regex<AnyRegexOutput>.Match` to cast the output type to a concrete one. A regex match will lazily create a `Substring` on demand, so casting the match itself saves ARC traffic vs extracting and casting the output.
 
 ```swift
 extension Regex.Match where Output == AnyRegexOutput {
@@ -158,6 +158,21 @@ extension Regex.Match where Output == AnyRegexOutput {
   /// - Returns: A match generic over the output type if the underlying values can be converted to the
   ///   output type. Returns `nil` otherwise.
   public func `as`<Output>(_ type: Output.Type) -> Regex<Output>.Match?
+}
+
+extension Regex where Output == AnyRegexOutput {
+  /// Creates a type-erased regex from an existing regex.
+  ///
+  /// Use this initializer to fit a regex with strongly typed captures into the
+  /// use site of a dynamic regex, i.e. one that was created from a string.
+  public init<Output>(_ match: Regex<Output>)
+
+  /// Returns a typed regex by converting the underlying types.
+  ///
+  /// - Parameter type: The expected output type.
+  /// - Returns: A regex generic over the output type if the underlying types can be converted.
+  ///   Returns `nil` otherwise.
+  public func `as`<Output>(_ type: Output.Type) -> Regex<Output>?
 }
 ```
 
