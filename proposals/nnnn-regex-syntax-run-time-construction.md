@@ -137,7 +137,7 @@ extension AnyRegexOutput: RandomAccessCollection {
 
   public func index(before i: Int) -> Int
 
-  public subscript(position: Int) -> Element
+  public subscript(position: Int) -> Element { get }
 }
 ```
 
