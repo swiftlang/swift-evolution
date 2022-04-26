@@ -1057,6 +1057,45 @@ extension RangeReplaceableCollection where Element: Equatable {
 }
 ```
 
+#### Searching for empty strings and matches
+
+Empty matches and inputs are an important edge case for several of the algorithms proposed above. For example, what is the result of `"123.firstRange(of: /[a-z]*/)`? How do you split a collection separated by an empty collection, as in `"1234".split(separator: "")`? For the Swift standard library, this is a new consideration, as current algorithms are `Element`-based and cannot be passed an empty input.
+
+Languages and libraries are nearly unanimous about finding the location of an empty string, with Ruby, Python, C#, Java, Javascript, etc, finding an empty string at each index in the target. Notably, Foundation's `NSString.range(of:)` does _not_ find an empty string at all.
+
+The methods proposed here follow the consensus behavior, which makes sense if you think of `a.firstRange(of: b)` as returning the first subrange `r` where `a[r] == b`. If a regex can match an empty substring, like `/[a-z]*/`, the behavior is the same.
+
+```swift
+let hello = "Hello"
+let emptyRange = hello.firstRange(of: "")
+// emptyRange is equivalent to '0..<0' (integer ranges shown for readability)
+```
+
+Because searching again at the same index would yield that same empty string, we advance one position after finding an empty string or matching an empty pattern when finding all ranges. This yields the position of every valid index in the string.
+
+```swift
+let allRanges = hello.ranges(of: "")
+// allRanges is equivalent to '[0..<0, 1..<1, 2..<2, 3..<3, 4..<4, 5..<5]'
+```
+
+Splitting with an empty separator (or a pattern that matches empty string), uses this same behavior, resulting in a collection of single-element substrings. Interestingly, a couple languages make different choices here. C# returns the original string instead of its parts, and Python rejects an empty separator (though it permits regexes that match empty strings).
+
+```swift
+let parts = hello.split(separator: "")
+// parts == ["h", "e", "l", "l", "o"]
+
+let moreParts = hello.split(separator: "", omittingEmptySubsequences: false)
+// parts == ["", "h", "e", "l", "l", "o", ""]
+```
+
+Finally, searching for an empty string within an empty string yields, as you might imagine, the empty string:
+
+```swift
+let empty = ""
+let range = empty.firstRange(of: empty)
+// empty == empty[range]
+```
+
 ### Language-level pattern matching via `~=`
 
 We propose allowing any regex component be used in case statements by overloading the `~=` operator for matching against the entire input:
@@ -1069,7 +1108,6 @@ extension RegexComponent {
 }
 ```
 
-
 [SE-0346]: https://github.com/apple/swift-evolution/blob/main/proposals/0346-light-weight-same-type-syntax.md
 [stdlib-pitch]: https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426
 
@@ -1077,7 +1115,7 @@ extension RegexComponent {
 
 ### Extend `Sequence` instead of `Collection`
 
-Most of the proposed algorithms are necessarily on `Collection` due to the use of indices or mutation.  `Sequence` does not support multi-pass iteration, so even `trimPrefix` would problematic on `Sequence` because it needs to look 1 `Element` ahead to know when to stop trimming.
+Most of the proposed algorithms are necessarily on `Collection` due to the use of indices or mutation. `Sequence` does not support multi-pass iteration, so even `trimmingPrefix` would problematic on `Sequence` because it needs to look one `Element` ahead to know when to stop trimming and would need to return a wrapper for the in-progress iterator instead of a subsequence.
 
 ### Cross-proposal API naming consistency
 
