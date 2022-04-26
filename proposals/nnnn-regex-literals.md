@@ -69,33 +69,22 @@ Due to the existing use of `/` in comment syntax and operators, there are some s
 
 ### Typed captures
 
-Regex literals have their capture types statically determined by the capture groups present. This follows the same inference behavior as [the DSL][regex-dsl], and is explored in more detail in *[Strongly Typed Captures][strongly-typed-captures]*. We are therefore proposing the following inference behavior for regex literals:
+Regex literals have their capture types statically determined by the capture groups present. This follows a similar inference behavior to [the DSL][regex-dsl], and is explored in more detail in *[Strongly Typed Captures][strongly-typed-captures]*. We are proposing the following inference behavior for regex literals:
 
 - A `Substring` is always present for the entire match.
 - If any captures are present, a tuple is formed with the `Substring`, with subsequent elements representing the capture types. Captures are ordered according to [their numbering][capture-numbering].
 
-The type of a capture is `Substring` by default, however it gets wrapped in an optional if it is not guaranteed to have a value on a successful match. This occurs when it is nested within a quantification that may be zero, e.g `?`, `*`, and `{0,n}`:
+The type of a capture is `Substring` by default, however it gets wrapped in an optional if it is not guaranteed to have a value on a successful match. This occurs when it is nested within a quantification that may be zero, which includes `?`, `*`, and any range quantifier with a `0` lower bound, e.g `{0,n}`. It also occurs when it appears in a branch of an alternation. For example:
 
 ```swift
-let regex = /([ab]+)?/
-// regex: Regex<(Substring, Substring?)>
+let regex1 = /([ab])?/
+// regex1: Regex<(Substring, Substring?)>
+
+let regex2 = /([ab])|\d+/
+// regex2: Regex<(Substring, Substring?)>
 ```
 
-it also occurs when it appears as a child of an alternation:
-
-```swift
-let regex = /([ab]+)|\d+/
-// regex: Regex<(Substring, Substring?)>
-```
-
-The optional wrapping will nest arbitrarily if the capture is nested within multiple zero-quantifiers or alternations:
-
-```swift
-let regex = /(.)*|\d/
-// regex: Regex<(Substring, Substring??)>
-``` 
-
-Note that optionality does not affect cases where the capture surrounds the zero quantifier or alternation:
+This does not affect cases where the capture surrounds the zero quantifier or alternation:
 
 ```swift
 let regex = /([ab]*)cd/
@@ -104,9 +93,18 @@ let regex = /([ab]*)cd/
 
 In this case, if the `*` quantifier is matched zero times, the resulting capture will be an empty string.
 
+The optional wrapping does not become nested, at most one layer of optionality is applied. For example:
+
+```swift
+let regex = /(.)*|\d/
+// regex: Regex<(Substring, Substring?)>
+```
+
+This behavior differs from that of the DSL, which does apply multiple layers of optionality in such cases due to a current limitation of result builders.
+
 ### Named captures
 
-One aspect of typed captures that is currently unique to the literal is the ability to infer labeled tuple elements for named capture groups. For example:
+One additional feature of typed captures that is currently unique to the literal is the ability to infer labeled tuple elements for named capture groups. For example:
 
 ```swift
 func matchHexAssignment(_ input: String) -> (String, Int)? {
