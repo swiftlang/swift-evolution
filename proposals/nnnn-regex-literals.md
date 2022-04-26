@@ -371,6 +371,14 @@ We could support a more modern Swift-like syntax in regex literals. For example,
 
 However, such a syntax would lose out on the familiarity benefits of standard regex, and as such may lead to an "uncanny valley" effect. It's also possible that the ability to use regex literals in the DSL lessens the benefit that this syntax would bring.
 
+### Typed captures for duplicate named group
+
+PCRE allows duplicate capture group names when `(?J)` is set. However this would be incompatible with labeled tuple elements for the captures, as tuples may not have duplicate names. Given we do not currently support `(?J)` in regex literals, the handling of typed captures here is left as future work. 
+
+### Typed captures for branch reset alternations
+
+PCRE and Perl support a branch reset construct `(?|(a)|(b))` where a child alternation resets the capture numbering for each branch, allowing `(a)` and `(b)` to share the same capture number. This would require unifying their types for the purposes of typed captures. Given we do not currently support this construct, the handling of typed captures here is left as future work.
+
 ## Alternatives Considered
 
 Given the fact that `/.../` is an existing term of art for regular expressions, we feel it should be the preferred delimiter syntax. It should be noted that the syntax has become less popular in some communities such as Perl, however we still feel that it is a compelling choice, especially with extended delimiters `#/.../#`. Additionally, while there are some syntactic ambiguities, we do not feel they are sufficient to disqualify the syntax. To evaluate this trade-off, below is a list of alternative delimiters that would not have the same ambiguities, and would not therefore require source breaking changes.
