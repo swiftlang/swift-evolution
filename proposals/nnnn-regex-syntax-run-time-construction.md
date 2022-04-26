@@ -181,7 +181,7 @@ We propose adding API to query and access captures by name in an existentially t
 ```swift
 extension Regex where Output == AnyRegexOutput {
   /// Returns whether a named-capture with `name` is present.
-  public func contains(namedCapture name: String) -> Bool
+  public func contains(captureNamed name: String) -> Bool
 }
 extension Regex.Match where Output == AnyRegexOutput {
   /// If a named-capture with `name` is present, returns its value. Otherwise `nil`.
