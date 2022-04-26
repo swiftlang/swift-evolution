@@ -173,6 +173,31 @@ We also propose the following regex-powered algorithms as well as their generic 
 |`prefixMatch(of:)`| Matches the specified `RegexComponent` against the collection at the beginning |
 |`matches(of:)`| Returns a collection containing all matches of the specified `RegexComponent` |
 
+We also propose an overload of `~=` allowing regexes to be used in `case` expressions:
+
+```swift
+  switch "abcde" {
+  case /a.*f/:  // never taken
+  case /abc/:   // never taken
+  case /ab.*e/: return "success"
+  default:      // never taken
+  }
+
+  switch "2022-04-22" {
+  case decimalParser: // never taken
+
+  case OneOrMore {
+    CharacterClass.whitespace
+  }: // never taken
+
+  case #/\d{2}/\d{2}/\d{4}/# // never taken
+
+  case dateParser: return "success"
+
+  default: // never taken
+  }
+```
+
 
 ## Detailed design
 
@@ -1031,6 +1056,19 @@ extension RangeReplaceableCollection where Element: Equatable {
     ) -> Self
 }
 ```
+
+### Language-level pattern matching via `~=`
+
+We propose allowing any regex component be used in case statements by overloading the `~=` operator for matching against the entire input:
+
+```swift
+extension RegexComponent {
+  public static func ~=(regex: Self, input: String) -> Bool
+
+  public static func ~=(regex: Self, input: Substring) -> Bool
+}
+```
+
 
 [SE-0346]: https://github.com/apple/swift-evolution/blob/main/proposals/0346-light-weight-same-type-syntax.md
 [stdlib-pitch]: https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426
