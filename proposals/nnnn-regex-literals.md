@@ -77,28 +77,28 @@ Regex literals have their capture types statically determined by the capture gro
 The type of a capture is `Substring` by default, however it gets wrapped in an optional if it is not guaranteed to have a value on a successful match. This occurs when it is nested within a quantification that may be zero, e.g `?`, `*`, and `{0,n}`:
 
 ```swift
-let r = /([ab]+)?/
+let regex = /([ab]+)?/
 // regex: Regex<(Substring, Substring?)>
 ```
 
 it also occurs when it appears as a child of an alternation:
 
 ```swift
-let r = /([ab]+)|\d+/
+let regex = /([ab]+)|\d+/
 // regex: Regex<(Substring, Substring?)>
 ```
 
 The optional wrapping will nest arbitrarily if the capture is nested within multiple zero-quantifiers or alternations:
 
 ```swift
-let r = /(.)*|\d/
+let regex = /(.)*|\d/
 // regex: Regex<(Substring, Substring??)>
 ``` 
 
 Note that optionality does not affect cases where the capture surrounds the zero quantifier or alternation:
 
 ```swift
-let r = /([ab]*)cd/
+let regex = /([ab]*)cd/
 // regex: Regex<(Substring, Substring)>
 ```
 
