@@ -84,7 +84,7 @@ let regex2 = /([ab])|\d+/
 // regex2: Regex<(Substring, Substring?)>
 ```
 
-This does not affect cases where the capture surrounds the zero quantifier or alternation:
+A zero quantifier or alternation nested within a capture do not produce an optional capture, unless the capture itself is inside a zero quantifier or alternation:
 
 ```swift
 let regex = /([ab]*)cd/
