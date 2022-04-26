@@ -198,9 +198,9 @@ Finally, we propose API for creating a regex containing literal string content. 
 
 ```swift
 extension Regex {
-  /// Produces a regex that matches `literal` exactly, as though every
+  /// Produces a regex that matches `verbatim` exactly, as though every
   /// metacharacter in it was escaped.
-  public init(quoting literal: String)
+  public init(quoting verbatim: String)
 }
 ```
 
