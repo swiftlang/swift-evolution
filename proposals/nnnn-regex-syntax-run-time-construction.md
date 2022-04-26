@@ -200,7 +200,7 @@ Finally, we propose API for creating a regex containing literal string content. 
 extension Regex {
   /// Produces a regex that matches `verbatim` exactly, as though every
   /// metacharacter in it was escaped.
-  public init(quoting verbatim: String)
+  public init(verbatim: String)
 }
 ```
 
