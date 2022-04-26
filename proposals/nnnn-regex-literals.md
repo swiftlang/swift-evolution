@@ -253,7 +253,7 @@ let regex = Regex {
 In addition to ambiguity listed above, there are also a couple of parsing ambiguities that require the following language changes in a new language mode:
 
 - Deprecation of prefix operators containing the `/` character.
-- Parsing an unapplied infix operator starting with `/` as the start of a regex literal if a closing `/` is found. For example, `fn(/, /)`, `fn(/^, /)`, and `fn(/^/)` all become regex literals rather than unapplied operator arguments.
+- Parsing an unapplied infix operator containing `/` as the start of a regex literal if a closing `/` is found, and the starting character is valid.
   
 #### Prefix operators containing `/`
 
@@ -274,7 +274,7 @@ Today, this is interpreted as the prefix operator `!/` on `y`. With the banning 
 
 Postfix `/` operators do not require banning, as they'd only be treated as regex literal delimiters if we are already trying to lex as a regex literal.
 
-#### Unapplied infix operators starting with `/`
+#### Unapplied infix operators containing `/`
 
 An ambiguity arises with Swift's ability to pass an unapplied operator reference as an argument to a function or subscript, for example:
 
@@ -283,38 +283,35 @@ let arr: [Double] = [2, 3, 4]
 let x = arr.reduce(1, /) / 5
 ```
 
-The `/` in the call to `reduce` is in a valid expression context, and as such could be parsed as a regex literal. This is also applicable to operators in tuples and parentheses. To help mitigate this ambiguity, a regex literal will not be parsed if the first character is `)`. This should have minimal impact, as this would not be valid regex syntax anyway.
+The `/` in the call to `reduce` is in a valid expression context, and as such could be parsed as a regex literal. This is also applicable to operators in tuples and parentheses. To help mitigate this ambiguity, a regex literal will not be parsed if the first character is `)`. This should have minimal impact, as this would not be valid regex syntax anyway. This joins the existing space and tab starting character rule.
 
-However this is also applicable to cases where the next character is not `)`. It could instead be `,`, `]`, or another valid operator character such as `^`. These are all valid regex starting characters, with comma and `^` in particular being quite common. In these cases, we will parse a regex literal if a closing `/` is found.
+However this does not mitigate the ambiguity when the next character is a comma, `]`, or another valid operator character such as `^`. These are all valid regex starting characters, with comma and `^` in particular being quite common. In these cases, a regex literal will be parsed if a closing `/` is found.
 
-For example:
+For example, all of the following will be parsed as regex literals instead of unapplied operators:
 
 ```swift
-// Ambiguity with comma:
 func foo(_ x: (Int, Int) -> Int, _ y: (Int, Int) -> Int) {}
-foo(/, /)
 
-// Ambiguity with operator characters:
-foo(/^, /)
+foo(/, /)  // Will become the regex literal `/, /`
+foo(/^, /) // Will become the regex literal `/^, /`
+foo(!/, /) // Will become prefix `!` on the regex literal `/, /`
 
 // Also affects cases where the closing '/' is outside the argument list.
 func bar(_ fn: (Int, Int) -> Int, _ x: Int) -> Int { 0 }
-bar(/, 2) + bar(/, 3)
+bar(/, 2) + bar(/, 3) // Will become the (invalid) regex literal `/, 2) + bar(/`
 
 // Ambiguity with right square bracket:
 struct S {
   subscript(_ fn: (Int, Int) -> Int) -> Int { 0 }
 }
 func baz(_ x: S) -> Int {
-  x[/] + x[/]
+  x[/] + x[/] // Will become the (invalid) regex literal `/] + x[/`
 }
 
 // Ambiguity with an unapplied operator with two `/` characters:
 func baz(_ x: (Int, Int) -> Int) {}
-baz(/^/)
+baz(/^/) // Will become the regex literal `/^/`
 ```
-
-`foo(/, /)` is currently parsed as 2 unapplied operator arguments. `bar(/, 2) + bar(/, 3)` is currently parsed as two independent calls that each take an unapplied `/` operator reference. Both of these will become regex literals arguments, `/, /` and `/, 2) + bar(/` respectively (though the latter will produce a regex error).
 
 To disambiguate the cases with the `/` operator, you may surround at least the opening `/` with parentheses, e.g:
 
@@ -329,14 +326,29 @@ func baz(_ x: S) -> Int {
 
 This takes advantage of the fact that a regex literal will not be parsed if the first character is `)`.
 
-To disambiguate other operator cases, e.g `/^` and `/^/`, you may turn the expression into a closure, e.g:
+To disambiguate other operator cases, e.g `/^`, `!/`, and `/^/`, you may either turn the expression into a closure, e.g:
 
 ```swift
 foo({ $0 /^ $1 }, /)
+foo({ $0 !/ $1 }, /)
 baz({ $0 /^/ $1 })
 ```
 
 This takes advantage of the fact that a regex literal will not be parsed in an infix operator position.
+
+In most cases, you may also factor the operator out of the call, e.g:
+
+```swift
+let op = (/^)
+foo(op, /)
+```
+
+Or even split the argument list over multiple lines, e.g:
+
+```swift
+foo(/^, 
+    /)
+```
 
 ### Summary of `/.../` parsing
 
@@ -350,16 +362,16 @@ let i = 0 /^/ 1
 
 But `let r = /^/` will be parsed as a regex.
 
-In many cases, we have sufficient context to know that an opening `/` must be a regex literal. In these cases, an error will be emitted if either a closing `/` is not found or an invalid starting character is present. However, within parentheses, tuples, and argument lists, there is an ambiguity with unapplied infix operators. In these cases, a regex literal will only be parsed if a closing `/` is present, and the starting character is valid.
+A regex literal may not begin with space, tab or `)`. Though the latter is already invalid regex syntax. In many cases, we have sufficient context to know that an opening `/` must be a regex literal. In these cases, an error will be emitted if either a closing `/` is not found or an invalid starting character is present. However, within parentheses, tuples, and argument lists, there is an ambiguity with unapplied infix operators. In these cases, a regex literal will only be parsed if a closing `/` is present, and the starting character is valid.
 
-A regex literal may be used with a prefix operator, e.g `let r = ^^/x/` is parsed as `let r = ^^(/x/)`. In this case, when encountering operator characters containing `/`, the characters up to the first `/` are split into a prefix operator, and regex literal parsing continues as normal.
+A regex literal may be used with a prefix operator, e.g `let r = ^^/x/` is parsed as `let r = ^^(/x/)`. In this case, when encountering operator characters containing `/` in an expression position, the characters up to the first `/` are split into a prefix operator, and regex literal parsing continues as normal.
 
 ## Source Compatibility
 
 As explored above, two source breaking changes are needed for `/.../` syntax:
 
 - Deprecation of prefix operators containing the `/` character.
-- Parsing an unapplied infix operator containing `/` as the start of a regex literal if a closing `/` is found. For example, `fn(/, /)`, `fn(/^, /)`, and `fn(/^/)` all become regex literals rather than unapplied operator arguments.
+- Parsing an unapplied infix operator containing `/` as the start of a regex literal if a closing `/` is found, and the starting character is valid.
 
 As such, both these changes and the `/.../` syntax will be introduced in Swift 6 mode. However, projects will be able to adopt the syntax earlier by passing the compiler flag `-enable-bare-regex-syntax`. Note this does not affect the extended delimiter syntax `#/.../#`, which will be usable immediately.
 
