@@ -324,7 +324,7 @@ func baz(_ x: S) -> Int {
 
 This takes advantage of the fact that a regex literal will not be parsed if the first character is `)`.
 
-To disambiguate other operator cases, e.g `/^`, `!/`, and `/^/`, you may either turn the expression into a closure, e.g:
+To disambiguate other operator cases, e.g `/^`, `!/`, and `/^/`, you may turn the expression into a closure, e.g:
 
 ```swift
 foo({ $0 /^ $1 }, /)
