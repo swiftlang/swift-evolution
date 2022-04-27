@@ -38,68 +38,58 @@ The table below lists all public protocols in the Standard Library
 with associated type requirements, along with their proposed primary
 associated type, as well as a list of other associated types.
 
-| Protocol                                             | Primary    | Others                                                                                                                                                                                                               |
-|------------------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Identifiable`                                       | `ID`       | --                                                                                                                                                                                                                   |
-| `Sequence`                                           | `Element`  | `Iterator`                                                                                                                                                                                                           |
-| `IteratorProtocol`                                   | `Element`  | --                                                                                                                                                                                                                   |
-| `Collection`                                         | `Element`  | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
-| `MutableCollection`                                  | `Element`  | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
-| `BidirectionalCollection`                            | `Element`  | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
-| `RandomAccessCollection`                             | `Element`  | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
-| `RangeReplaceableCollection`                         | `Element`  | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
-| `LazySequenceProtocol`                               | `Elements` | `Element`, `Iterator`                                                                                                                                                                                                |
-| `LazyCollectionProtocol`                             | `Elements` | `Element`, `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                             |
-| `SetAlgebra`                                         | `Element`  | `ArrayLiteralElement`                                                                                                                                                                                                |
-| `OptionSet`                                          | `Element`  | `ArrayLiteralElement`, `RawValue`                                                                                                                                                                                    |
-| `RawRepresentable`                                   | `RawValue` | --                                                                                                                                                                                                                   |
-| `RangeExpression`                                    | `Bound`    | --                                                                                                                                                                                                                   |
-| `Strideable`                                         | `Stride`   | --                                                                                                                                                                                                                   |
-| `Numeric`                                            | --         | `IntegerLiteralType`, `Magnitude`                                                                                                                                                                                    |
-| `SignedNumeric`                                      | --         | `IntegerLiteralType`, `Magnitude`                                                                                                                                                                                    |
-| `BinaryInteger`                                      | --         | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
-| `UnsignedInteger`                                    | --         | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
-| `SignedInteger`                                      | --         | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
-| `FixedWidthInteger`                                  | --         | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
-| `FloatingPoint`                                      | --         | `IntegerLiteralType`, `Magnitude`, `Stride`, `Exponent`                                                                                                                                                              |
-| `BinaryFloatingPoint`                                | --         | `IntegerLiteralType`, `FloatLiteralType`, `Magnitude`, `Stride`, `Exponent`, `RawSignificand`, `RawExponent`                                                                                                         |
-| `SIMD`                                               | `Scalar`   | `ArrayLiteralElement`, `MaskStorage`                                                                                                                                                                                 |
-| `SIMDStorage`                                        | --         | `Scalar`                                                                                                                                                                                                             |
-| `SIMDScalar`                                         | --         | `SIMDMaskScalar`, `SIMD2Storage`, `SIMD4Storage`, ..., `SIMD64Storage`                                                                                                                                               |
-| `Clock`                                              | `Instant`  | --                                                                                                                                                                                                                   |
-| `InstantProtocol`                                    | `Duration` | --                                                                                                                                                                                                                   |
-| `AsyncIteratorProtocol`                              | -- (1)     | `Element`                                                                                                                                                                                                            |
-| `AsyncSequence`                                      | -- (1)     | `AsyncIterator`, `Element`                                                                                                                                                                                           |
-| `GlobalActor`                                        | --         | `ActorType`                                                                                                                                                                                                          |
-| `KeyedEncodingContainerProtocol`                     | --         | `Key`                                                                                                                                                                                                                |
-| `KeyedDecodingContainerProtocol`                     | --         | `Key`                                                                                                                                                                                                                |
-| `ExpressibleByIntegerLiteral`                        | --         | `IntegerLiteralType`                                                                                                                                                                                                 |
-| `ExpressibleByFloatLiteral`                          | --         | `FloatLiteralType`                                                                                                                                                                                                   |
-| `ExpressibleByBooleanLiteral`                        | --         | `BooleanLiteralType`                                                                                                                                                                                                 |
-| `ExpressibleByUnicodeScalarLiteral`                  | --         | `UnicodeScalarLiteralType`                                                                                                                                                                                           |
-| `ExpressibleByExtended-`<br>`GraphemeClusterLiteral` | --         | `UnicodeScalarLiteralType`, `ExtendedGraphemeClusterLiteralType`                                                                                                                                                     |
-| `ExpressibleByStringLiteral`                         | --         | `UnicodeScalarLiteralType`, `ExtendedGraphemeClusterLiteralType`, `StringLiteralType`                                                                                                                                |
-| `ExpressibleByStringInterpolation`                   | --         | `UnicodeScalarLiteralType`, `ExtendedGraphemeClusterLiteralType`, `StringLiteralType`, `StringInterPolation`                                                                                                         |
-| `ExpressibleByArrayLiteral`                          | --         | `ArrayLiteralElement`                                                                                                                                                                                                |
-| `ExpressibleByDictionaryLiteral`                     | --         | `Key`, `Value`                                                                                                                                                                                                       |
-| `StringInterpolationProtocol`                        | --         | `StringLiteralType`                                                                                                                                                                                                  |
-| `Unicode.Encoding`                                   | --         | `CodeUnit`, `EncodedScalar`, `ForwardParser`, `ReverseParser`                                                                                                                                                        |
-| `UnicodeCodec`                                       | --         | `CodeUnit`, `EncodedScalar`, `ForwardParser`, `ReverseParser`                                                                                                                                                        |
-| `Unicode.Parser`                                     | --         | `Encoding`                                                                                                                                                                                                           |
-| `StringProtocol`                                     | --         | `Element`, `Index`, `Iterator`, `SubSequence`, `Indices`, `UnicodeScalarLiteralType`, `ExtendedGraphemeClusterLiteralType`, `StringLiteralType`, `StringInterPolation`, `UTF8View`, `UTF16View`, `UnicodeScalarView` |
-| `CaseIterable`                                       | --         | `AllCases`                                                                                                                                                                                                           |
+[note]: #alternatives-considered
 
-Notes:
-
-(1) `AsyncSequence` and `AsyncIteratorProtocol` logically ought to
-have `Element` as their primary associated type. However, we have
-[ongoing evolution discussions][rethrows] about adding a precise error
-type to these. If those discussions bear fruit, then the new `Error`
-associated type would need to also be marked primary. To prevent
-source compatibility complications, adding primary associated types to
-these two protocols is deferred to a future proposal.
-
-[rethrows]: https://forums.swift.org/t/se-0346-lightweight-same-type-requirements-for-primary-associated-types/55869/70
+| Protocol                                             | Primary        | Others                                                                                                                                                                                                               |
+|------------------------------------------------------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Identifiable`                                       | `ID`           | --                                                                                                                                                                                                                   |
+| `Sequence`                                           | `Element`      | `Iterator`                                                                                                                                                                                                           |
+| `IteratorProtocol`                                   | `Element`      | --                                                                                                                                                                                                                   |
+| `Collection`                                         | `Element`      | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
+| `MutableCollection`                                  | `Element`      | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
+| `BidirectionalCollection`                            | `Element`      | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
+| `RandomAccessCollection`                             | `Element`      | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
+| `RangeReplaceableCollection`                         | `Element`      | `Index`, `Iterator`, `SubSequence`, `Indices`                                                                                                                                                                        |
+| `LazySequenceProtocol`                               | -- [(1)][note] | `Element`, `Iterator`, `Elements`                                                                                                                                                                                    |
+| `LazyCollectionProtocol`                             | -- [(1)][note] | `Element`, `Index`, `Iterator`, `SubSequence`, `Indices`, `Elements`                                                                                                                                                 |
+| `SetAlgebra`                                         | `Element`      | `ArrayLiteralElement`                                                                                                                                                                                                |
+| `OptionSet`                                          | `Element`      | `ArrayLiteralElement`, `RawValue`                                                                                                                                                                                    |
+| `RawRepresentable`                                   | `RawValue`     | --                                                                                                                                                                                                                   |
+| `RangeExpression`                                    | `Bound`        | --                                                                                                                                                                                                                   |
+| `Strideable`                                         | `Stride`       | --                                                                                                                                                                                                                   |
+| `Numeric`                                            | --             | `IntegerLiteralType`, `Magnitude`                                                                                                                                                                                    |
+| `SignedNumeric`                                      | --             | `IntegerLiteralType`, `Magnitude`                                                                                                                                                                                    |
+| `BinaryInteger`                                      | --             | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
+| `UnsignedInteger`                                    | --             | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
+| `SignedInteger`                                      | --             | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
+| `FixedWidthInteger`                                  | --             | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
+| `FloatingPoint`                                      | --             | `IntegerLiteralType`, `Magnitude`, `Stride`, `Exponent`                                                                                                                                                              |
+| `BinaryFloatingPoint`                                | --             | `IntegerLiteralType`, `FloatLiteralType`, `Magnitude`, `Stride`, `Exponent`, `RawSignificand`, `RawExponent`                                                                                                         |
+| `SIMD`                                               | `Scalar`       | `ArrayLiteralElement`, `MaskStorage`                                                                                                                                                                                 |
+| `SIMDStorage`                                        | --             | `Scalar`                                                                                                                                                                                                             |
+| `SIMDScalar`                                         | --             | `SIMDMaskScalar`, `SIMD2Storage`, `SIMD4Storage`, ..., `SIMD64Storage`                                                                                                                                               |
+| `Clock`                                              | `Duration`     | `Instant`                                                                                                                                                                                                            |
+| `InstantProtocol`                                    | `Duration`     | --                                                                                                                                                                                                                   |
+| `AsyncIteratorProtocol`                              | -- [(2)][note] | `Element`                                                                                                                                                                                                            |
+| `AsyncSequence`                                      | -- [(2)][note]   | `AsyncIterator`, `Element`                                                                                                                                                                                           |
+| `GlobalActor`                                        | --             | `ActorType`                                                                                                                                                                                                          |
+| `KeyedEncodingContainerProtocol`                     | --             | `Key`                                                                                                                                                                                                                |
+| `KeyedDecodingContainerProtocol`                     | --             | `Key`                                                                                                                                                                                                                |
+| `ExpressibleByIntegerLiteral`                        | --             | `IntegerLiteralType`                                                                                                                                                                                                 |
+| `ExpressibleByFloatLiteral`                          | --             | `FloatLiteralType`                                                                                                                                                                                                   |
+| `ExpressibleByBooleanLiteral`                        | --             | `BooleanLiteralType`                                                                                                                                                                                                 |
+| `ExpressibleByUnicodeScalarLiteral`                  | --             | `UnicodeScalarLiteralType`                                                                                                                                                                                           |
+| `ExpressibleByExtended-`<br>`GraphemeClusterLiteral` | --             | `UnicodeScalarLiteralType`, `ExtendedGraphemeClusterLiteralType`                                                                                                                                                     |
+| `ExpressibleByStringLiteral`                         | --             | `UnicodeScalarLiteralType`, `ExtendedGraphemeClusterLiteralType`, `StringLiteralType`                                                                                                                                |
+| `ExpressibleByStringInterpolation`                   | --             | `UnicodeScalarLiteralType`, `ExtendedGraphemeClusterLiteralType`, `StringLiteralType`, `StringInterPolation`                                                                                                         |
+| `ExpressibleByArrayLiteral`                          | --             | `ArrayLiteralElement`                                                                                                                                                                                                |
+| `ExpressibleByDictionaryLiteral`                     | --             | `Key`, `Value`                                                                                                                                                                                                       |
+| `StringInterpolationProtocol`                        | --             | `StringLiteralType`                                                                                                                                                                                                  |
+| `Unicode.Encoding`                                   | --             | `CodeUnit`, `EncodedScalar`, `ForwardParser`, `ReverseParser`                                                                                                                                                        |
+| `UnicodeCodec`                                       | --             | `CodeUnit`, `EncodedScalar`, `ForwardParser`, `ReverseParser`                                                                                                                                                        |
+| `Unicode.Parser`                                     | --             | `Encoding`                                                                                                                                                                                                           |
+| `StringProtocol`                                     | --             | `Element`, `Index`, `Iterator`, `SubSequence`, `Indices`, `UnicodeScalarLiteralType`, `ExtendedGraphemeClusterLiteralType`, `StringLiteralType`, `StringInterPolation`, `UTF8View`, `UTF16View`, `UnicodeScalarView` |
+| `CaseIterable`                                       | --             | `AllCases`                                                                                                                                                                                                           |
 
 As of Swift 5.6, the following public protocols don't have associated type requirements, so they are outside of the scope of this proposal.
 
@@ -128,9 +118,6 @@ public protocol BidirectionalCollection<Element>: Collection
 public protocol RandomAccessCollection<Element>: BidirectionalCollection
 public protocol RangeReplaceableCollection<Element>: Collection
 
-public protocol LazySequenceProtocol<Elements>: Sequence
-public protocol LazyCollectionProtocol<Elements>: Collection, LazySequenceProtocol
-
 public protocol RawRepresentable<RawValue>
 public protocol RangeExpression<Bound>
 public protocol Strideable<Stride>: Comparable
@@ -140,7 +127,7 @@ public protocol OptionSet<Element>: SetAlgebra, RawRepresentable
 
 public protocol SIMD<Scalar>: ...
 
-public protocol Clock<Instant>: Sendable
+public protocol Clock<Duration>: Sendable
 public protocol InstantProtocol<Duration>: Comparable, Hashable, Sendable
 ```
 
@@ -170,31 +157,8 @@ this proposal once this ships in a Standard Library release.
 
 ## Alternatives considered
 
-We tried to only add primary associated types in cases where (1) the
-protocol is likely to be often involved in same-type requirements, and
-(2) where the role of the associated type is relatively obvious.
+(1) It is tempting to declare `Element` as the primary associated type for `LazySequenceProtocol` and `LazyCollectionProtocol`, for consistency with other protocols in the collection hierarchy. However, in actual use, `Elements` seems just as useful (if not more) to be easily constrained. We left the matter of selecting one of these as primary unresolved for now; as we get more experience with lightweight same-type requirements, we may revisit these protocols.
 
-For example, we did not add `IntegerLiteralType` as a primary
-associated type of `ExpressibleByIntegerLiteral`, because that
-protocol is not expected to be often used in same-type requirements.
-We don't mark `Magnitude` as a primary associated type on `protocol
-Numeric`, because although it might sometimes be mentioned in
-same-type requirements, it would not be obvious what `UInt` means
-in `Numeric<UInt>`.
+(2) `AsyncSequence` and `AsyncIteratorProtocol` logically ought to have `Element` as their primary associated type. However, we have [ongoing evolution discussions][rethrows] about adding a precise error type to these. If those discussions bear fruit, then it's possible we may want to _also_ mark the potential new `Error` associated type as primary. To prevent source compatibility complications, adding primary associated types to these two protocols is deferred to a future proposal.
 
-As noted above, even though `AsyncSequence` and
-`AsyncIteratorProtocol` would greatly benefit from marking `Element`
-as a primary associated type, we decided to leave these out of this
-proposal, to prevent interfering with ongoing discussions about
-improving error handling in these protocols. Once the dust settles on
-these discussions, we'll be able to define primary associated types
-for these in a followup proposal.
-
-<!--
-## Acknowledgments
-
-If significant changes or improvements suggested by members of the 
-community were incorporated into the proposal as it developed, take a
-moment here to thank them for their contributions. Swift evolution is a 
-collaborative process, and everyone's input should receive recognition!
--->
+[rethrows]: https://forums.swift.org/t/se-0346-lightweight-same-type-requirements-for-primary-associated-types/55869/70
