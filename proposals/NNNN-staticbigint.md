@@ -172,11 +172,11 @@ The integer literal type has to be selected statically as the associated type. T
 
 ## Alternatives considered
 
-- We could somehow try to unify this feature with the handling of floating-point literals, but the complexities of floating-point would be an unnecessary burden on integers.
+- Modeling the original source text instead of a mathematical value would allow this type to support a wide range of use cases, such as fractional values, decimal values, and other things such as arbitrary binary strings expressed in hexadecimal. However, it is not a goal of Swift's integer literals design to support these use cases. Supporting them would burden integer types with significant code size, dynamic performance, and complexity overheads. For example, either the emitted code would need to contain both the original source text and a more optimized representation used by ordinary integer types, or ordinary integer types would need to fall back on parsing numeric values from source at runtime.
+
+- Along similar lines, it is intentional that `StaticBigInt` cannot represent fractional values. Integer types should not be constructible with fractional literals, and allowing that simply adds unnecessary costs and introduces a new way for construction to fail. It is still a language goal for Swift to someday support dynamically flexible floating-point literals the way it does for integer literals, but that is a separable project from introducing `StaticBigInt`.
 
 - A prior design had a `words` property, initially as a contiguous unsafe buffer, subsequently as a custom random-access collection. John McCall [requested](https://forums.swift.org/t/staticbigint/54545/4) an "ABI-neutral" abstraction, and suggested the current "infinitely-sign-extended" model.
-
-- Kelvin Ma [suggested](https://forums.swift.org/t/staticbigint/54545/15) that the textual representation be preserved to support fixed-point literals.
 
 - Xiaodi Wu [suggested](https://forums.swift.org/t/staticbigint/54545/23) that a different naming scheme and API design be chosen to accommodate other similar types, such as IEEE 754 interchange formats.
 
