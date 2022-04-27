@@ -15,14 +15,14 @@
 * Previous Proposal: [SE-XXXX](XXXX-filename.md)
 -->
 
-## Introduction
-
-[SE-0346] introduced the concept of primary associated types to the
-language. This document proposes to adopt this feature in the Swift
-Standard Library, adding primary associated types to select existing
-protocols.
+* Related Proposals:
+   - [SE-0346] Lightweight same-type requirements for primary associated types
 
 [SE-0346]: https://github.com/apple/swift-evolution/blob/main/proposals/0346-light-weight-same-type-syntax.md
+
+## Introduction
+
+[SE-0346] introduced the concept of primary associated types to the language. This document proposes to adopt this feature in the Swift Standard Library, adding primary associated types to select existing protocols. Additionally, we provide some general API design recommendations that protocol authors may find helpful when adding support for this language feature.
 
 **Swift-evolution thread:**<br>[[Pitch] Primary associated types in the Standard Library][thread]
 
@@ -30,7 +30,65 @@ protocols.
 
 ## Motivation
 
+In order for the lightweight same-type requirement syntax introduced in [SE-0346] to be actually usable, protocol definitions inside and outside the Standard Library need to be extended with primary associated type declarations.
+
 See [SE-0346] for several motivating examples for these changes.
+
+## General API Design Guidelines
+
+Primary associated types add a new facet to the design of protocols. For every public protocol with associated type requirements, we need to carefully consider which of them (if any) we want to mark as primary. On the one hand, we want to allow people to use the shorthand syntax whenever possible; on the other hand, we only get one chance to decide this: once a protocol gains a primary associated type annotation, most subsequent changes would be source-breaking.
+
+1. **Let usage inform your design.**
+
+   If you are considering adding a primary associated type declaration to a preexisting protocol, then look at its existing clients to discover which associated types get typically mentioned in same-type requirements. Is there one particular type that is used overwhelmingly more than any other? If so, then it will probably be a good choice for the primary.
+
+   For example, in the case of `Sequence`, use sites overwhelmingly tend to constrain `Element` -- `Iterator` is almost never mentioned in `where` clauses. This makes it fairly clear that `Element` is the right choice for the primary type.
+
+   If you're designing a new protocol, think about which type people will most likely want to constrain. Sometimes it may not even be one you planned to have as an associated type!
+
+   For example, protocol `Clock` in [SE-0329] initially only had `Instant` as an associated type. As it turns out, in actual use cases, people are far more likely to want to constrain `Instant.Duration` rather than `Instant` itself. Clocks tend to be far too closely coupled to their instants for it to serve as a useful constraint target -- `some Clock<ContinuousClock.Instant>` is effectively just a circuitous way of spelling `ContinuousClock`. On the other hand, `some Clock<Swift.Duration>` captures all clocks that measure elapsed time in physical seconds -- a far more useful abstraction. Therefore, we decided to add `Clock.Duration` for the express purpose to serve as the primary associated type.
+
+2. **Consider clarity at the point of use.** To prevent persistent confusion, _people familiar with the protocol_ ought to be able to correctly intuit the meaning of a same-type constraint such as `some Sequence<Int>`.
+
+   Lightweight same-type requirements share the same angle-bracketed syntax as generic type arguments, including the same limitations. In particular, the language does not support argument labels in such lists, which prevents us from clarifying the role of the type names provided. A type name such as `Foo<Int, String>` on its own provides no hints about the role of its generic arguments `Int` and `String`; likewise, it isn't possible to decipher the role of `Character` in a same-type requirement such as `some Bar<Character>`, unless the reader is already somewhat familiar with the protocol `Bar`.
+
+   The best candidates for primary associated types tend to be those that have a simple, obvious relationship to the protocol itself. A good heuristic is that if the relationship can be described using a simple preposition, then the associated type will probably make a viable primary:
+
+   - `Collection` *of* `Int`
+   - `Identifiable` *by* `String`
+   - `SIMD` *of* `Float`
+   - `RawRepresentable` *by* `Int32`
+
+   Associated types that don't support this tend to have a more complex / idiosyncratic role in their protocol, and often make poor choices for a primary associated type.
+
+   For example, `Numeric` has an associated type called `Magnitude` that does sometimes appear in same-type constraints. However, its role seems too subtle and non-obvious to consider marking it as primary. The meaning of `Int` in `some Numeric<Int>` is unlikely to be clear to readers, even if they are deeply familiar with Swift's numeric protocol hierarchy.
+
+3. **Not every protocol needs primary associated types.** Don't feel obligated to add a primary associated type just because it is possible to do so. If you don't expect people will want to put same-type constraints on a type, there is little reason to mark it as a primary. Similarly, if there are multiple possible choices that seem equally useful, it might be best not to select one. (See point 2 above.)
+
+   For example, `ExpressibleByIntegerLiteral` is not expected to be mentioned in generic function declarations, so there is no reason to mark its sole associated type (`IntegerLiteral`) as the primary.
+
+4. **Limit yourself to just one primary associated type.** In most cases, it's best not to declare more than one primary associated type on any protocol.
+
+   While the language does allow this, [SE-0346] requires clients using the lightweight syntax to always explicitly constrain all primary associated types, which may become an obstacle. Clients don't have an easy way to indicate that they want to leave one of the types unconstrained -- to do that, they need to revert to classic generic syntax, partially or entirely giving up on the lightweight variant:
+
+   ```swift
+   protocol MyDictionaryProtocol<Key, Value> {
+     associatedtype Key: Equatable
+     associatedtype Value
+     ...
+   }
+
+   // This function is happy to work on any dictionary-like thing
+   // as long as it has string keys.
+   func twiddle(_ items: some MyDictionaryProtocol<String, ???>) -> Int { ... }
+
+   // Possible approaches:
+   func twiddle<Value>(_ items: some MyDictionaryProtocol<String, Value>) -> Int { ... }
+   func twiddle<D: MyDictionaryProtocol>(_ items: S) -> Int where S.Key == String { ... }
+   ```
+    
+   Of course, if the majority of clients actually do want to constrain both `Key` and `Value`, then having them both marked primary can be an appropriate choice.
+
 
 ## Proposed solution
 
