@@ -1,10 +1,10 @@
 
 # Regex Syntax and Run-time Construction
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0355](0355-regex-syntax-run-time-construction.md)
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Awaiting review**
+* Status: **Active Review (April 28 – May 10 2022)**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
   * Available in nightly toolchain snapshots with `import _StringProcessing`
 
