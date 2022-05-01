@@ -38,7 +38,9 @@ let regex = /(?<identifier>[[:alpha:]]\w*) = (?<hex>[0-9A-F]+)/
 // regex: Regex<(Substring, identifier: Substring, hex: Substring)>
 ```
 
-Forward slashes are a regex term of art. They are used as the delimiters for regex literals in, e.g., Perl, JavaScript and Ruby. Perl and Ruby additionally allow for [user-selected delimiters](https://perldoc.perl.org/perlop#Quote-and-Quote-like-Operators) to avoid having to escape any slashes inside a regex. For that purpose, we propose the extended literal `#/.../#`.
+Forward slashes are a regex term of art, predating their use in modern languages literals. They are also used in, e.g., Perl, JavaScript and Ruby. They have clear aesthetic value for use cases where there are no contained unescaped `/`s present.
+
+Perl and Ruby additionally allow for [user-selected delimiters](https://perldoc.perl.org/perlop#Quote-and-Quote-like-Operators) to avoid having to escape any slashes inside a regex. For that purpose, we propose the extended literal `#/.../#`.
 
 An extended literal, `#/.../#`, avoids the need to escape forward slashes within the regex. It allows an arbitrary number of balanced `#` characters around the literal and escape. When the opening delimiter is followed by a new line, it supports a multi-line literal where whitespace is non-semantic and line-ending comments are ignored.
 
@@ -389,6 +391,18 @@ PCRE allows duplicate capture group names when `(?J)` is set. However this would
 
 PCRE and Perl support a branch reset construct `(?|(a)|(b))` where a child alternation resets the capture numbering for each branch, allowing `(a)` and `(b)` to share the same capture number. This would require unifying their types for the purposes of typed captures. Given we do not currently support this construct, the handling of typed captures here is left as future work.
 
+### Library-extensible protocol support
+
+A regex literal describes a string processing algorithm which can be ran over some model of String. The precise semantics of running over extended grapheme clusters vs Unicode scalar values is part of [Unicode for String Processing][regex-unicode]. Libraries may wish to extend this behavior, but the approach presented by various `ExpressibleBy*` protocols is underpowered as libraries would need access to the structure of the algorithm itself.
+
+A better (and future) approach is to open up the regex parser's AST, API, and AST actions to libraries. Here's some examples of why a library might want to customize regex:
+
+A library may wish to provide support for a different or higher level model of string. For example, using localized comparison or tailored grapheme-cluster breaks. Such a use case would need access to the structure of the string processing algorithm literal.
+
+A library may wish to provide support for running over another engine, such as ICU, PCRE, or Javascript. Such a use case would want to pretty-print Swift's regex syntax into one of these syntax variants.
+
+A library may wish to provide their own higher-level structure around which regex literals can be embedded for the purpose of multi-tier processing. For example, processing URLs where regex literal-character portions would be converted into percent-encoded equivalents (with some kind of character class customization/mapping as well). Additionally, a library may have the desire to explicitly delineate patterns that evaluate within a component vs patterns spanning multiple components. Such an approach would benefit from access to the real AST and rich semantic API.
+
 ## Alternatives Considered
 
 Given the fact that `/.../` is an existing term of art for regular expressions, we feel it should be the preferred delimiter syntax. It should be noted that the syntax has become less popular in some communities such as Perl, however we still feel that it is a compelling choice, especially with extended delimiters `#/.../#`. Additionally, while there are some syntactic ambiguities, we do not feel they are sufficient to disqualify the syntax. To evaluate this trade-off, below is a list of alternative delimiters that would not have the same ambiguities, and would not therefore require source breaking changes.
@@ -487,12 +501,21 @@ Instead of adding a custom regex literal, we could require users to explicitly w
 
 We therefore feel this would be a much less compelling feature without first class literal support.
 
+### Restrict feature set to that of the builder DSL
+
+The regex builder DSL is unable to provide some of the features presented such as named captures as tuble labels. An alternative could be to cut those features from the literal out of concern they may lead to an over-use of the literals. However, to do so would remove the clearest demonstration of the need for better type-level operations including working with labeled tuples.
+
+Additionally, regex literals should not be outright avoided, they should be used well. Artifically hampering their usage doesn't provide any benefit and we wouldn't want to lock these limitations into Swift's ABI.
+
+
+
 [SE-0168]: https://github.com/apple/swift-evolution/blob/main/proposals/0168-multi-line-string-literals.md
 [SE-0200]: https://github.com/apple/swift-evolution/blob/main/proposals/0200-raw-string-escaping.md
 
 [pitch-status]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md
 [regex-type]: https://github.com/apple/swift-evolution/blob/main/proposals/0350-regex-type-overview.md
 [strongly-typed-captures]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StronglyTypedCaptures.md
+[regex-unicode]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md#unicode-for-string-processing
 
 [internal-syntax]: https://github.com/apple/swift-experimental-string-processing/blob/39cb22d96d90ee7cb308b1153e106e50598afdd9/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md
 [extended-regex-syntax]: https://github.com/apple/swift-experimental-string-processing/blob/39cb22d96d90ee7cb308b1153e106e50598afdd9/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#extended-syntax-modes
