@@ -505,7 +505,9 @@ We therefore feel this would be a much less compelling feature without first cla
 
 The regex builder DSL is unable to provide some of the features presented such as named captures as tuble labels. An alternative could be to cut those features from the literal out of concern they may lead to an over-use of the literals. However, to do so would remove the clearest demonstration of the need for better type-level operations including working with labeled tuples.
 
-Additionally, regex literals should not be outright avoided, they should be used well. Artifically hampering their usage doesn't provide any benefit and we wouldn't want to lock these limitations into Swift's ABI.
+Similarly, there is no literal equivalent for some of the regex builder features, but that isn't an argument against them. The regex builder DSL has references which serves this role (though not as concisely) and they are useful beyond just naming captures.
+
+Regex literals should not be outright avoided, they should be used well. Artifically hampering their usage doesn't provide any benefit and we wouldn't want to lock these limitations into Swift's ABI.
 
 
 
