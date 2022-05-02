@@ -17,7 +17,8 @@
     * Swift DocC Plugin
         * [Swift DocC Plugin Snippets](https://github.com/apple/swift-docc-plugin/pull/7)
 * Review threads
-    * [Swift Snippets](https://forums.swift.org/t/pitch-swift-snippets/56348)
+    * [Pitch](https://forums.swift.org/t/pitch-swift-snippets/56348)
+    
 
 ## Introduction
 
