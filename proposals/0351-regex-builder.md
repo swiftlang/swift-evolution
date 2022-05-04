@@ -582,9 +582,9 @@ let semverRegex = Regex {
 }
 
 let semver1 = "1.11.4".firstMatch(of: semverRegex)?.output
-// semver == SemanticVersion(major: 1, minor: 11, patch: 4)
+// semver1 == SemanticVersion(major: 1, minor: 11, patch: 4)
 let semver2 = "0.6".firstMatch(of: semverRegex)?.output
-// semver == SemanticVersion(major: 0, minor: 6, patch: 0)
+// semver2 == SemanticVersion(major: 0, minor: 6, patch: 0)
 ```
 
 <details>
@@ -593,7 +593,7 @@ let semver2 = "0.6".firstMatch(of: semverRegex)?.output
 Note: This extension is defined in the standard library, not the `RegexBuilder` module.
 
 ```swift
-extension RegexComponent {
+extension Regex {
   /// Returns a regex that transforms its matches using the given closure.
   ///
   /// When you call `mapOutput(_:)` on a regex, you change the type of
@@ -603,7 +603,7 @@ extension RegexComponent {
   /// - Parameter body: A closure for transforming the output of this
   ///   regex. 
   /// - Returns: A regex that has `NewOutput` as its output type.
-  func mapOutput<NewOutput>(_ body: @escaping (RegexOutput) -> NewOutput) -> Regex<NewOutput>
+  func mapOutput<NewOutput>(_ body: @escaping (Output) -> NewOutput) -> Regex<NewOutput>
 }
 ```
 </details>
