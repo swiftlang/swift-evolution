@@ -132,7 +132,7 @@ let regex = #/usr/lib/modules/([^/]+)/vmlinuz/#
 // regex: Regex<(Substring, Substring)>
 ```
 
-The number of `#` characters may be further increased to allow the use of e.g `/#` within the literal. This is similar in style to the raw string literal syntax introduced by [SE-0200], however it has a couple of key differences. Backslashes do not become literal characters. Additionally, a multi-line mode, where whitespace and line-ending comments are ignored, is entered when the opening delimiter is followed by a newline.
+The number of `#` characters may be further increased to allow the use of e.g `/#` within the literal. This is similar in style to the raw string literal syntax introduced by [SE-0200], however it has a couple of key differences. Backslashes do not become literal characters. Additionally, a multi-line literal, where whitespace and line-ending comments are ignored, is supported when the opening delimiter is followed by a newline.
 
 ```swift
 let regex = #/
@@ -167,9 +167,9 @@ let regex = /\\\w\s*=\s*\d+/
 
 Backslashes still require escaping to be treated as literal, however we don't expect this to be as common of an occurrence as needing to write a regex escape sequence such as `\s`, `\w`, or `\p{...}`, within a regex literal with extended delimiters `#/.../#`.
 
-#### Multi-line mode
+#### Multi-line literals
 
-Extended regex delimiters additionally support a multi-line mode when the opening delimiter is followed by a new line. For example:
+Extended regex delimiters additionally support a multi-line literal when the opening delimiter is followed by a new line. For example:
 
 ```swift
 let regex = #/
@@ -181,7 +181,7 @@ let regex = #/
   /#
 ```
 
-In this mode, [extended regex syntax][extended-regex-syntax] `(?x)` is enabled by default. This means that whitespace becomes non-semantic, and end-of-line comments are supported with `# comment` syntax.
+In such a literal, [extended regex syntax][extended-regex-syntax] `(?x)` is enabled by default. This means that whitespace in the regex becomes non-semantic, and end-of-line comments are supported with `# comment` syntax.
 
 This mode is supported with any (non-zero) number of `#` characters in the delimiter. Similar to multi-line strings introduced by [SE-0168], the closing delimiter must appear on a new line. To avoid parsing confusion, such a literal will not be parsed if a closing delimiter is not present. This avoids inadvertently treating the rest of the file as regex if you only type the opening.
 
@@ -407,7 +407,7 @@ A library may wish to provide their own higher-level structure around which rege
 
 Given the fact that `/.../` is an existing term of art for regular expressions, we feel it should be the preferred delimiter syntax. It should be noted that the syntax has become less popular in some communities such as Perl, however we still feel that it is a compelling choice, especially with extended delimiters `#/.../#`. Additionally, while there are some syntactic ambiguities, we do not feel they are sufficient to disqualify the syntax. To evaluate this trade-off, below is a list of alternative delimiters that would not have the same ambiguities, and would not therefore require source breaking changes.
 
-### Extended syntax only `#/.../#`
+### Extended literal delimiters only `#/.../#`
 
 We could choose to avoid adding the bare forward slash syntax, and instead require at least one `#` character to be present in the delimiter. This would retain some of the familiarity of `/.../` while avoiding the parsing ambiguities and source breaking changes.
 
@@ -524,10 +524,10 @@ Regex literals should not be outright avoided, they should be used well. Artific
 [strongly-typed-captures]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StronglyTypedCaptures.md
 [regex-unicode]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md#unicode-for-string-processing
 
-[internal-syntax]: https://github.com/apple/swift-experimental-string-processing/blob/39cb22d96d90ee7cb308b1153e106e50598afdd9/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md
-[extended-regex-syntax]: https://github.com/apple/swift-experimental-string-processing/blob/39cb22d96d90ee7cb308b1153e106e50598afdd9/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#extended-syntax-modes
+[internal-syntax]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md
+[extended-regex-syntax]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#extended-syntax-modes
 
-[capture-numbering]: https://github.com/apple/swift-experimental-string-processing/blob/9e09bf8c8ee5aebe43be9ba6a9a73a0970eebbfc/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#group-numbering
+[capture-numbering]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#group-numbering
 
 [regex-dsl]: https://github.com/apple/swift-evolution/blob/main/proposals/0351-regex-builder.md
 [dsl-captures]: https://github.com/apple/swift-evolution/blob/main/proposals/0351-regex-builder.md#capture-and-reference
