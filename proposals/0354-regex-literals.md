@@ -38,7 +38,7 @@ let regex = /(?<identifier>[[:alpha:]]\w*) = (?<hex>[0-9A-F]+)/
 // regex: Regex<(Substring, identifier: Substring, hex: Substring)>
 ```
 
-Forward slashes are a regex term of art, predating their use in modern languages literals. They are also used in, e.g., Perl, JavaScript and Ruby. They have clear aesthetic value for use cases where there are no contained unescaped `/`s present.
+Forward slashes are a regex term of art. The association between forward slashes and regexes dates back to 1969's ed, the first Unix editor, and it was inherited by subsequent interactive text tools like less and vim. The syntax was also adopted by the sed language; from there it passed to Perl, and then to Ruby and Javascript. Forward slash is instantly recognizable as a regex; the only common alternative is an ordinary string literal passed to a library API, which usually has extra overhead, requires more escaping, and defers regex syntax errors to runtime. The proposed Swift regex literals do not have these limitations, so forward slash provides the right behavioral cues to developers. There are over fifty years of precedents for forward slash and very little for anything else. 
 
 Perl and Ruby additionally allow for [user-selected delimiters](https://perldoc.perl.org/perlop#Quote-and-Quote-like-Operators) to avoid having to escape any slashes inside a regex. For that purpose, we propose the extended literal `#/.../#`.
 
