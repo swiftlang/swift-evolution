@@ -15,6 +15,7 @@
   - [`RegexComponent` protocol](#regexcomponent-protocol)
   - [Concatenation](#concatenation)
   - [Capture](#capture)
+  - [Mapping Output](#mapping-output)
   - [Reference](#reference)
   - [Alternation](#alternation)
   - [Repetition](#repetition)
@@ -555,6 +556,56 @@ extension TryCapture {
 }
 ```
 
+</details>
+
+### Mapping Output
+
+In addition to transforming individual captures within a regex, you can also map the output of an entire regex to a different output type. You can use the `mapOutput(_:)` methods to reorder captures, flatten nested optionals, or create instances of a custom type.
+
+This example shows how you can transform the output of a regex with three capture groups into an instance of a custom `SemanticVersion` type, matching strings such as `"1.0.0"` or `"1.0"`:
+
+```swift
+struct SemanticVersion: Equatable {
+  var major, minor, patch: Int
+}
+
+let semverRegex = Regex {
+  TryCapture(OneOrMore(.digit)) { Int($0) }
+  "."
+  TryCapture(OneOrMore(.digit)) { Int($0) }
+  Optionally {
+    "."
+    TryCapture(OneOrMore(.digit)) { Int($0) }
+  }
+}.map { _, c1, c2, c3 in
+  SemanticVersion(major: c1, minor: c2, patch: c3 ?? 0)
+}
+
+let semver1 = "1.11.4".firstMatch(of: semverRegex)?.output
+// semver1 == SemanticVersion(major: 1, minor: 11, patch: 4)
+let semver2 = "0.6".firstMatch(of: semverRegex)?.output
+// semver2 == SemanticVersion(major: 0, minor: 6, patch: 0)
+```
+
+<details>
+<summary>API definition</summary>
+
+Note: This extension is defined in the standard library, not the `RegexBuilder` module.
+
+```swift
+extension Regex {
+  /// Returns a regex that transforms its matches using the given closure.
+  ///
+  /// When you call `mapOutput(_:)` on a regex, you change the type of
+  /// output available on each match result. The `body` closure is called 
+  /// when each match is found to transform the result of the match.
+  ///
+  /// - Parameter body: A closure for transforming the output of this
+  ///   regex. 
+  /// - Returns: A regex that has `NewOutput` as its output type.
+  func mapOutput<NewOutput>(_ body: @escaping (Output) -> NewOutput) -> Regex<NewOutput>
+}
+```
 </details>
 
 ### Reference
