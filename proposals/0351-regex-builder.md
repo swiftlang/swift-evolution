@@ -565,7 +565,7 @@ In addition to transforming individual captures within a regex, you can also map
 This example shows how you can transform the output of a regex with three capture groups into an instance of a custom `SemanticVersion` type, matching strings such as `"1.0.0"` or `"1.0"`:
 
 ```swift
-struct SemanticVersion: Equatable {
+struct SemanticVersion: Hashable {
   var major, minor, patch: Int
 }
 
@@ -577,7 +577,7 @@ let semverRegex = Regex {
     "."
     TryCapture(OneOrMore(.digit)) { Int($0) }
   }
-}.map { _, c1, c2, c3 in
+}.mapOutput { _, c1, c2, c3 in
   SemanticVersion(major: c1, minor: c2, patch: c3 ?? 0)
 }
 
@@ -623,7 +623,7 @@ let regex = Capture(as: kind) {
 }
 
 let input = "CREDIT"
-if let result = regex.firstMatch(in: input) {
+if let result = try regex.firstMatch(in: input) {
   print(result[kind]) // Optional("CREDIT")
 }
 ```
@@ -644,14 +644,14 @@ let regex = Regex {
   Capture(b)
 }
 
-if let result = regex.firstMatch(in: "abcdefabcdef") {
+if let result = try regex.firstMatch(in: "abcdefabcdef") {
   print(result[a]) // => Optional("abc")
   print(result[b]) // => Optional("def")
   print(result[c]) // => nil
 }
 ```
 
-A regex is considered invalid when it contains a use of reference without it ever being captured as (used as `Capture(..., as: ...)` or `Capture(as: ...) { ... }`) in the regex. When this occurs in the regex builder DSL, a runtime error will be reported. Similarly, the argument to a `Regex.Match.subscript(_:)` must have been captured as in the regex that produced the match.
+A regex is considered invalid when it contains a use of reference without it ever being used as the `as:` argument to an initializer of `Capture` or `TryCapture` in the regex. When this occurs in the regex builder DSL, a runtime error will be reported. Similarly, the argument to a `Regex.Match.subscript(_:)` must have been used as the `as:` argument to an initializer of `Capture` or `TryCapture` in the regex that produced the match.
 
 <details>
 <summary>API definition</summary>
