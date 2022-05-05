@@ -38,7 +38,9 @@ let regex = /(?<identifier>[[:alpha:]]\w*) = (?<hex>[0-9A-F]+)/
 // regex: Regex<(Substring, identifier: Substring, hex: Substring)>
 ```
 
-Forward slashes are a regex term of art. They are used as the delimiters for regex literals in, e.g., Perl, JavaScript and Ruby. Perl and Ruby additionally allow for [user-selected delimiters](https://perldoc.perl.org/perlop#Quote-and-Quote-like-Operators) to avoid having to escape any slashes inside a regex. For that purpose, we propose the extended literal `#/.../#`.
+Forward slashes are a regex term of art. The association between forward slashes and regexes dates back to 1969's ed, the first Unix editor, and it was inherited by subsequent interactive text tools like less and vim. The syntax was also adopted by the sed language; from there it passed to Perl, and then to Ruby and Javascript. Forward slash is instantly recognizable as a regex; the only common alternative is an ordinary string literal passed to a library API, which usually has extra overhead, requires more escaping, and defers regex syntax errors to runtime. The proposed Swift regex literals do not have these limitations, so forward slash provides the right behavioral cues to developers. There are over fifty years of precedents for forward slash and very little for anything else. 
+
+Perl and Ruby additionally allow for [user-selected delimiters](https://perldoc.perl.org/perlop#Quote-and-Quote-like-Operators) to avoid having to escape any slashes inside a regex. For that purpose, we propose the extended literal `#/.../#`.
 
 An extended literal, `#/.../#`, avoids the need to escape forward slashes within the regex. It allows an arbitrary number of balanced `#` characters around the literal and escape. When the opening delimiter is followed by a new line, it supports a multi-line literal where whitespace is non-semantic and line-ending comments are ignored.
 
@@ -130,7 +132,7 @@ let regex = #/usr/lib/modules/([^/]+)/vmlinuz/#
 // regex: Regex<(Substring, Substring)>
 ```
 
-The number of `#` characters may be further increased to allow the use of e.g `/#` within the literal. This is similar in style to the raw string literal syntax introduced by [SE-0200], however it has a couple of key differences. Backslashes do not become literal characters. Additionally, a multi-line mode, where whitespace and line-ending comments are ignored, is entered when the opening delimiter is followed by a newline.
+The number of `#` characters may be further increased to allow the use of e.g `/#` within the literal. This is similar in style to the raw string literal syntax introduced by [SE-0200], however it has a couple of key differences. Backslashes do not become literal characters. Additionally, a multi-line literal, where whitespace and line-ending comments are ignored, is supported when the opening delimiter is followed by a newline.
 
 ```swift
 let regex = #/
@@ -165,9 +167,9 @@ let regex = /\\\w\s*=\s*\d+/
 
 Backslashes still require escaping to be treated as literal, however we don't expect this to be as common of an occurrence as needing to write a regex escape sequence such as `\s`, `\w`, or `\p{...}`, within a regex literal with extended delimiters `#/.../#`.
 
-#### Multi-line mode
+#### Multi-line literals
 
-Extended regex delimiters additionally support a multi-line mode when the opening delimiter is followed by a new line. For example:
+Extended regex delimiters additionally support a multi-line literal when the opening delimiter is followed by a new line. For example:
 
 ```swift
 let regex = #/
@@ -179,7 +181,7 @@ let regex = #/
   /#
 ```
 
-In this mode, [extended regex syntax][extended-regex-syntax] `(?x)` is enabled by default. This means that whitespace becomes non-semantic, and end-of-line comments are supported with `# comment` syntax.
+In such a literal, [extended regex syntax][extended-regex-syntax] `(?x)` is enabled by default. This means that whitespace in the regex becomes non-semantic, and end-of-line comments are supported with `# comment` syntax.
 
 This mode is supported with any (non-zero) number of `#` characters in the delimiter. Similar to multi-line strings introduced by [SE-0168], the closing delimiter must appear on a new line. To avoid parsing confusion, such a literal will not be parsed if a closing delimiter is not present. This avoids inadvertently treating the rest of the file as regex if you only type the opening.
 
@@ -389,11 +391,23 @@ PCRE allows duplicate capture group names when `(?J)` is set. However this would
 
 PCRE and Perl support a branch reset construct `(?|(a)|(b))` where a child alternation resets the capture numbering for each branch, allowing `(a)` and `(b)` to share the same capture number. This would require unifying their types for the purposes of typed captures. Given we do not currently support this construct, the handling of typed captures here is left as future work.
 
+### Library-extensible protocol support
+
+A regex literal describes a string processing algorithm which can be ran over some model of String. The precise semantics of running over extended grapheme clusters vs Unicode scalar values is part of [Unicode for String Processing][regex-unicode]. Libraries may wish to extend this behavior, but the approach presented by various `ExpressibleBy*` protocols is underpowered as libraries would need access to the structure of the algorithm itself.
+
+A better (and future) approach is to open up the regex parser's AST, API, and AST actions to libraries. Here's some examples of why a library might want to customize regex:
+
+A library may wish to provide support for a different or higher level model of string. For example, using localized comparison or tailored grapheme-cluster breaks. Such a use case would need access to the structure of the string processing algorithm literal.
+
+A library may wish to provide support for running over another engine, such as ICU, PCRE, or Javascript. Such a use case would want to pretty-print Swift's regex syntax into one of these syntax variants.
+
+A library may wish to provide their own higher-level structure around which regex literals can be embedded for the purpose of multi-tier processing. For example, processing URLs where regex literal-character portions would be converted into percent-encoded equivalents (with some kind of character class customization/mapping as well). Additionally, a library may have the desire to explicitly delineate patterns that evaluate within a component vs patterns spanning multiple components. Such an approach would benefit from access to the real AST and rich semantic API.
+
 ## Alternatives Considered
 
 Given the fact that `/.../` is an existing term of art for regular expressions, we feel it should be the preferred delimiter syntax. It should be noted that the syntax has become less popular in some communities such as Perl, however we still feel that it is a compelling choice, especially with extended delimiters `#/.../#`. Additionally, while there are some syntactic ambiguities, we do not feel they are sufficient to disqualify the syntax. To evaluate this trade-off, below is a list of alternative delimiters that would not have the same ambiguities, and would not therefore require source breaking changes.
 
-### Extended syntax only `#/.../#`
+### Extended literal delimiters only `#/.../#`
 
 We could choose to avoid adding the bare forward slash syntax, and instead require at least one `#` character to be present in the delimiter. This would retain some of the familiarity of `/.../` while avoiding the parsing ambiguities and source breaking changes.
 
@@ -435,6 +449,11 @@ Such a syntax would require the containing regex to correctly balance parenthese
 We could avoid the parenthesis balancing issue by requiring an additional internal delimiter such as `#regex(/.../)`. However this is even more heavyweight, and it may be unclear that `/` is part of the delimiter rather than part of an argument. Alternatively, we could replace the internal delimiter with another character such as ```#regex`...` ```, `#regex{...}`, or `#regex/.../`. However those would be inconsistent with the existing `#literal(...)` syntax and the first two would overload the existing meanings for the ``` `` ``` and `{}` delimiters.
 
 It should also be noted that `#regex(...)` would introduce a syntactic inconsistency where the argument of a `#literal(...)` is no longer necessarily valid Swift syntax, despite being written in the form of an argument.
+
+#### On future extensibility to other foreign language snippets
+
+One of the benefits of `#regex(...)` or `re'...'` is the extensibility to other kinds of foreign langauge snippets, such as SQL. Nothing in this proposal precludes a scalable approach to foreign language snippets using `#lang(...)` or `lang'...'`. If or when that happens, regex could participate as well, but the proposed syntax would still be valuable as regex literals *are* unique in their prevalence as fragments passed directly to API, as well as components of a result builder DSL.
+
 
 ### Shortened magic literal `#(...)`
 
@@ -487,17 +506,28 @@ Instead of adding a custom regex literal, we could require users to explicitly w
 
 We therefore feel this would be a much less compelling feature without first class literal support.
 
+### Restrict feature set to that of the builder DSL
+
+The regex builder DSL is unable to provide some of the features presented such as named captures as tuble labels. An alternative could be to cut those features from the literal out of concern they may lead to an over-use of the literals. However, to do so would remove the clearest demonstration of the need for better type-level operations including working with labeled tuples.
+
+Similarly, there is no literal equivalent for some of the regex builder features, but that isn't an argument against them. The regex builder DSL has references which serves this role (though not as concisely) and they are useful beyond just naming captures.
+
+Regex literals should not be outright avoided, they should be used well. Artifically hampering their usage doesn't provide any benefit and we wouldn't want to lock these limitations into Swift's ABI.
+
+
+
 [SE-0168]: https://github.com/apple/swift-evolution/blob/main/proposals/0168-multi-line-string-literals.md
 [SE-0200]: https://github.com/apple/swift-evolution/blob/main/proposals/0200-raw-string-escaping.md
 
 [pitch-status]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md
 [regex-type]: https://github.com/apple/swift-evolution/blob/main/proposals/0350-regex-type-overview.md
 [strongly-typed-captures]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StronglyTypedCaptures.md
+[regex-unicode]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md#unicode-for-string-processing
 
-[internal-syntax]: https://github.com/apple/swift-experimental-string-processing/blob/39cb22d96d90ee7cb308b1153e106e50598afdd9/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md
-[extended-regex-syntax]: https://github.com/apple/swift-experimental-string-processing/blob/39cb22d96d90ee7cb308b1153e106e50598afdd9/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#extended-syntax-modes
+[internal-syntax]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md
+[extended-regex-syntax]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#extended-syntax-modes
 
-[capture-numbering]: https://github.com/apple/swift-experimental-string-processing/blob/9e09bf8c8ee5aebe43be9ba6a9a73a0970eebbfc/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#group-numbering
+[capture-numbering]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#group-numbering
 
 [regex-dsl]: https://github.com/apple/swift-evolution/blob/main/proposals/0351-regex-builder.md
 [dsl-captures]: https://github.com/apple/swift-evolution/blob/main/proposals/0351-regex-builder.md#capture-and-reference
