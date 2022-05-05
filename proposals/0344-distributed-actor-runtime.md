@@ -299,7 +299,7 @@ protocol DistributedActorSystem: Sendable {
   func remoteCall<Actor, Failure, Success>(
       on actor: Actor,
       target: RemoteCallTarget,
-      invocation: InvocationEncoder,
+      invocation: inout InvocationEncoder,
       throwing: Failure.Type,
       returning: Success.Type
   ) async throws -> Success
@@ -316,7 +316,7 @@ protocol DistributedActorSystem: Sendable {
   func remoteCallVoid<Actor, Error>(
       on actor: Actor,
       target: RemoteCallTarget,
-      invocation: InvocationEncoder,
+      invocation: inout InvocationEncoder,
       throwing: Failure.Type
   ) async throws
       where Actor: DistributedActor,
