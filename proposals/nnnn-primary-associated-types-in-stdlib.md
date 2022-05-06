@@ -6,16 +6,6 @@
 * Status: **Pitch**
 * Implementation: [apple/swift#41843](https://github.com/apple/swift/pull/41843)
 * Review: ([pitch](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/))
-
-<!--
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
-
 * Related Proposals:
    - [SE-0346] Lightweight same-type requirements for primary associated types
 
@@ -24,10 +14,6 @@
 ## Introduction
 
 [SE-0346] introduced the concept of primary associated types to the language. This document proposes to adopt this feature in the Swift Standard Library, adding primary associated types to select existing protocols. Additionally, we provide some general API design recommendations that protocol authors may find helpful when adding support for this language feature.
-
-**Swift-evolution thread:**<br>[[Pitch] Primary associated types in the Standard Library][thread]
-
-[thread]: https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426
 
 ## Motivation
 
