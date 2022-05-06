@@ -33,7 +33,7 @@ Primary associated types add a new facet to the design of protocols. For every p
 
    If you're designing a new protocol, think about which type people will most likely want to constrain. Sometimes it may not even be one you planned to have as an associated type!
 
-   For example, protocol `Clock` in [SE-0329] initially only had `Instant` as an associated type. As it turns out, in actual use cases, people are far more likely to want to constrain `Instant.Duration` rather than `Instant` itself. Clocks tend to be far too closely coupled to their instants for it to serve as a useful constraint target -- `some Clock<ContinuousClock.Instant>` is effectively just a circuitous way of spelling `ContinuousClock`. On the other hand, `some Clock<Swift.Duration>` captures all clocks that measure elapsed time in physical seconds -- a far more useful abstraction. Therefore, we decided to add `Clock.Duration` for the express purpose to serve as the primary associated type.
+   For example, protocol `Clock` in [SE-0329](0329-clock-instant-duration.md) initially only had `Instant` as an associated type. As it turns out, in actual use cases, people are far more likely to want to constrain `Instant.Duration` rather than `Instant` itself. Clocks tend to be far too closely coupled to their instants for it to serve as a useful constraint target -- `some Clock<ContinuousClock.Instant>` is effectively just a circuitous way of spelling `ContinuousClock`. On the other hand, `some Clock<Swift.Duration>` captures all clocks that measure elapsed time in physical seconds -- a far more useful abstraction. Therefore, we decided to add `Clock.Duration` for the express purpose to serve as the primary associated type.
 
 2. **Consider clarity at the point of use.** To prevent persistent confusion, _people familiar with the protocol_ ought to be able to correctly intuit the meaning of a same-type constraint such as `some Sequence<Int>`.
 
@@ -71,7 +71,7 @@ Primary associated types add a new facet to the design of protocols. For every p
 
    // Possible approaches:
    func twiddle<Value>(_ items: some MyDictionaryProtocol<String, Value>) -> Int { ... }
-   func twiddle<D: MyDictionaryProtocol>(_ items: S) -> Int where S.Key == String { ... }
+   func twiddle<T: MyDictionaryProtocol>(_ items: T) -> Int where T.Key == String { ... }
    ```
     
    Of course, if the majority of clients actually do want to constrain both `Key` and `Value`, then having them both marked primary can be an appropriate choice.
