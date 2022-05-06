@@ -1,10 +1,11 @@
 # Primary Associated Types in the Standard Library
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-primary-associated-types-in-stdlib.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
-* Review Manager: TBD
+* Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Pitch**
 * Implementation: [apple/swift#41843](https://github.com/apple/swift/pull/41843)
+* Review: ([pitch](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/))
 
 <!--
 *During the review process, add the following fields as needed:*
