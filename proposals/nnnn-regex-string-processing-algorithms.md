@@ -1162,6 +1162,13 @@ A `Substring` slice requirement allows the regex engine to produce indicies in t
 
 A new protocol for types that can produce a `Substring` on request (e.g. from UTF-8 contents) would have to eagerly produce a `String` copy first and would need requirements to translate indices. When higher-level algorithms are implemented via multiple calls to the lower-level algorithms, these copies could happen many times. Shared strings are future work but a much better solution to this.
 
+   
+### Matches-anywhere semantics for `~=`
+   
+Some scripting languages use semantics akin to `contains` for this purpose. But in Swift, this would deviate from how switch normally behaves, such as when switching over an Array.
+   
+Matches-anywhere can be perilous when the input is dynamic and unpredictable: new inputs might just happen to trigger an earlier case in non-obvious ways. Matches-anywhere can be opted into by quantifying around the regex, and a modifier on regex to make this more convenient is future work.
+   
 
 ## Future directions
 
