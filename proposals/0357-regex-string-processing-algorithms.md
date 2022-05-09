@@ -1,9 +1,9 @@
 # Regex-powered string processing algorithms
 
-* Proposal: [SE-NNNN](nnnn-regex-string-processing-algorithms.md)
+* Proposal: [SE-0357](0357-regex-string-processing-algorithms.md)
 * Authors: [Tina Liu](https://github.com/itingliu), [Michael Ilseman](https://github.com/milseman), [Nate Cook](https://github.com/natecook1000), [Tim Vermeulen](https://github.com/timvermeulen)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Awaiting review**
+* Status: **Active Review (9 - 23 May 2022)**
 * Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/)
     * Available in nightly toolchain snapshots with `import _StringProcessing`
 
