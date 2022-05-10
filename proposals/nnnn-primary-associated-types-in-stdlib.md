@@ -83,9 +83,7 @@ Primary associated types add a new facet to the design of protocols. For every p
 
 ## Proposed solution
 
-The table below lists all public protocols in the Standard Library
-with associated type requirements, along with their proposed primary
-associated type, as well as a list of other associated types.
+The table below lists all public protocols in the Standard Library with associated type requirements, along with their proposed primary associated type, as well as a list of other associated types.
 
 [note]: #alternatives-considered
 
@@ -187,27 +185,19 @@ public protocol InstantProtocol<Duration>: Comparable, Hashable, Sendable
 
 ## Source compatibility
 
-None. The new annotations enable new ways to use these protocols, but
-they are tied to new syntax, and they do not affect existing code.
+None. The new annotations enable new ways to use these protocols, but they are tied to new syntax, and they do not affect existing code.
 
 ## Effect on ABI stability
 
-None. The annotations aren't ABI impacting, and the new capabilities
-deploy back to any previous Swift Standard Library release.
+None. The annotations aren't ABI impacting, and the new capabilities deploy back to any previous Swift Standard Library release.
 
 ## Effect on API resilience
 
-Once introduced, primary associated types cannot be removed from a
-protocol or reordered without breaking source compatibility.
+Once introduced, primary associated types cannot be removed from a protocol or reordered without breaking source compatibility.
 
-[SE-0346] requires usage sites to always list every primary associated
-type defined by a protocol. Until/unless this restriction is lifted,
-adding a new primary associated type to a protocol that already has
-some will also be a source breaking change.
+[SE-0346] requires usage sites to always list every primary associated type defined by a protocol. Until/unless this restriction is lifted, adding a new primary associated type to a protocol that already has some will also be a source breaking change.
 
-Therefore, we will not be able to make any changes to the list of
-primary associated types of any of the protocols that are affected by
-this proposal once this ships in a Standard Library release.
+Therefore, we will not be able to make any changes to the list of primary associated types of any of the protocols that are affected by this proposal once this ships in a Standard Library release.
 
 ## Alternatives considered
 
