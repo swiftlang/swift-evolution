@@ -221,7 +221,7 @@ public protocol CustomConsumingRegexComponent: RegexComponent {
         _ input: String,
         startingAt index: String.Index,
         in bounds: Range<String.Index>
-    ) throws -> (upperBound: String.Index, match: Match)?
+    ) throws -> (upperBound: String.Index, match: RegexOutput)?
 }
 ```
 
