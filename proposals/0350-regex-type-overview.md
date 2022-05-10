@@ -3,7 +3,7 @@
 * Proposal: [SE-0350](0350-regex-type-overview.md)
 * Authors: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (4 - 15 April 2022)**
+* Status: **Accepted**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
   * Available in nightly toolchain snapshots with `import _StringProcessing`
 
@@ -139,11 +139,11 @@ Regexes can be created at run time from a string containing familiar regex synta
 
 ```swift
 let pattern = #"(\w+)\s\s+(\S+)\s\s+((?:(?!\s\s).)*)\s\s+(.*)"#
-let regex = try! Regex(compiling: pattern)
+let regex = try! Regex(pattern)
 // regex: Regex<AnyRegexOutput>
 
 let regex: Regex<(Substring, Substring, Substring, Substring, Substring)> =
-  try! Regex(compiling: pattern)
+  try! Regex(pattern)
 ```
 
 *Note*: The syntax accepted and further details on run-time compilation, including `AnyRegexOutput` and extended syntaxes, are discussed in [Run-time Regex Construction][pitches].
@@ -212,7 +212,7 @@ func processEntry(_ line: String) -> Transaction? {
   //    amount: Substring
   //  )>
 
-  guard let match = regex.matchWhole(line),
+  guard let match = try? regex.wholeMatch(line),
         let kind = Transaction.Kind(match.kind),
         let date = try? Date(String(match.date), strategy: dateParser),
         let amount = try? Decimal(String(match.amount), format: decimalParser)
@@ -305,7 +305,7 @@ Regex targets [UTS\#18 Level 2](https://www.unicode.org/reports/tr18/#Extended_U
 ```swift
 /// A regex represents a string processing algorithm.
 ///
-///     let regex = try Regex(compiling: "a(.*)b")
+///     let regex = try Regex("a(.*)b")
 ///     let match = "cbaxb".firstMatch(of: regex)
 ///     print(match.0) // "axb"
 ///     print(match.1) // "x"
@@ -314,12 +314,12 @@ public struct Regex<Output> {
   /// Match a string in its entirety.
   ///
   /// Returns `nil` if no match and throws on abort
-  public func matchWhole(_ s: String) throws -> Regex<Output>.Match?
+  public func wholeMatch(in s: String) throws -> Regex<Output>.Match?
 
   /// Match part of the string, starting at the beginning.
   ///
   /// Returns `nil` if no match and throws on abort
-  public func matchPrefix(_ s: String) throws -> Regex<Output>.Match?
+  public func prefixMatch(in s: String) throws -> Regex<Output>.Match?
 
   /// Find the first match in a string
   ///
@@ -329,17 +329,17 @@ public struct Regex<Output> {
   /// Match a substring in its entirety.
   ///
   /// Returns `nil` if no match and throws on abort
-  public func matchWhole(_ s: Substring) throws -> Regex<Output>.Match?
+  public func wholeMatch(in s: Substring) throws -> Regex<Output>.Match?
 
   /// Match part of the string, starting at the beginning.
   ///
   /// Returns `nil` if no match and throws on abort
-  public func matchPrefix(_ s: Substring) throws -> Regex<Output>.Match?
+  public func prefixMatch(in s: Substring) throws -> Regex<Output>.Match?
 
   /// Find the first match in a substring
   ///
   /// Returns `nil` if no match is found and throws on abort
-  public func firstMatch(_ s: Substring) throws -> Regex<Output>.Match?
+  public func firstMatch(in s: Substring) throws -> Regex<Output>.Match?
 
   /// The result of matching a regex against a string.
   ///
@@ -348,19 +348,19 @@ public struct Regex<Output> {
   @dynamicMemberLookup
   public struct Match {
     /// The range of the overall match
-    public let range: Range<String.Index>
+    public var range: Range<String.Index> { get }
   
     /// The produced output from the match operation
-    public var output: Output
+    public var output: Output { get }
   
     /// Lookup a capture by name or number
-    public subscript<T>(dynamicMember keyPath: KeyPath<Output, T>) -> T
+    public subscript<T>(dynamicMember keyPath: KeyPath<Output, T>) -> T { get }
   
     /// Lookup a capture by number
     @_disfavoredOverload
     public subscript(
       dynamicMember keyPath: KeyPath<(Output, _doNotUse: ()), Output>
-    ) -> Output
+    ) -> Output { get }
     // Note: this allows `.0` when `Match` is not a tuple.
   
   }
@@ -389,20 +389,24 @@ extension Regex.Match {
 // Run-time compilation interfaces
 extension Regex {
   /// Parse and compile `pattern`, resulting in a strongly-typed capture list.
-  public init(compiling pattern: String, as: Output.Type = Output.self) throws
+  public init(_ pattern: String, as: Output.Type = Output.self) throws
 }
 extension Regex where Output == AnyRegexOutput {
   /// Parse and compile `pattern`, resulting in an existentially-typed capture list.
-  public init(compiling pattern: String) throws
+  public init(_ pattern: String) throws
 }
 ```
+
+### Cancellation
+
+Regex is somewhat different from existing standard library operations in that regex processing can be a long-running task.
+For this reason regex algorithms may check if the parent task has been cancelled and end execution.
 
 ### On severability and related proposals
 
 The proposal split presented is meant to aid focused discussion, while acknowledging that each is interconnected. The boundaries between them are not completely cut-and-dry and could be refined as they enter proposal phase.
 
 Accepting this proposal in no way implies that all related proposals must be accepted. They are severable and each should stand on their own merit.
-
 
 ## Source compatibility
 
@@ -492,6 +496,16 @@ The actual `Match` struct just stores ranges: the `Substrings` are lazily create
 The generic parameter `Output` is proposed to contain both the whole match (the `.0` element if `Output` is a tuple) and captures. One alternative we have considered is separating `Output` into the entire match and the captures, i.e. `Regex<Match, Captures>`, and using `Void` for for `Captures` when there are no captures.
 
 The biggest issue with this alternative design is that the numbering of `Captures` elements misaligns with the numbering of captures in textual regexes, where backreference `\0` refers to the entire match and captures start at `\1`. This design would sacrifice familarity and have the pitfall of introducing off-by-one errors.
+
+### Encoding `Regex`es into the type system
+
+During the initial review period the following comment was made:
+
+> I think the goal should be that, at least for regex literals (and hopefully for the DSL to some extent), one day we might not even need a bytecode or interpreter. I think the ideal case is if each literal was its own function or type that gets generated and optimised as if you wrote it in Swift.
+
+This is an approach that has been tried a few times in a few different languages (including by a few members of the Swift Standard Library and Core teams), and while it can produce attractive microbenchmarks, it has almost always proved to be a bad idea at the macro scale. In particular, even if we set aside witness tables and other associated swift generics overhead, optimizing a fixed pipeline for each pattern you want to match causes significant codesize expansion when there are multiple patterns in use, as compared to a more flexible byte code interpreter. A bytecode interpreter makes better use of instruction caches and memory, and can also benefit from micro architectural resources that are shared across different patterns. There is a tradeoff w.r.t. branch prediction resources, where separately compiled patterns may have more decisive branch history data, but a shared bytecode engine has much more data to use; this tradeoff tends to fall on the side of a bytecode engine, but it does not always do so.
+
+It should also be noted that nothing prevents AOT or JIT compiling of the bytecode if we believe it will be advantageous, but compiling or interpreting arbitrary Swift code at runtime is rather more unattractive, since both the type system and language are undecidable. Even absent this rationale, we would probably not encode regex programs directly into the type system simply because it is unnecessarily complex.
 
 ### Future work: static optimization and compilation
 

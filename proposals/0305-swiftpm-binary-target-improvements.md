@@ -181,7 +181,7 @@ Each bundle dictionary contains:
 
 The individual `.zip` files are expected to be located next to the `.artifactbundleindex` file, and thus only their filenames are listed in the index.
 
-The checksum for each `.zip` file in the index is computed in the same manner as for other binary `.zip` files, i.e. using `swift` `package` `checmsum`. The checksum in the binary target that references the `.artifactbundleindex` is the checksum of the `.artifactbundleindex` file itself. In this way, SwiftPM can validate the integrity of any of the `.zip` archives referenced by the index file.
+The checksum for each `.zip` file in the index is computed in the same manner as for other binary `.zip` files, i.e. using `swift package compute-checksum`. The checksum in the binary target that references the `.artifactbundleindex` is the checksum of the `.artifactbundleindex` file itself. In this way, SwiftPM can validate the integrity of any of the `.zip` archives referenced by the index file.
 
 ## Example
 

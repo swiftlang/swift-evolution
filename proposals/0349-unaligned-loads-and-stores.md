@@ -3,9 +3,9 @@
 * Proposal: [SE-0349](0349-unaligned-loads-and-stores.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (March 31...April 12, 2022)**
+* Status: **Accepted**
 * Implementation: [apple/swift#41033](https://github.com/apple/swift/pull/41033)
-* Review: ([pitch](https://forums.swift.org/t/55036/)) ([review](https://forums.swift.org/t/se-0349-unaligned-loads-and-stores-from-raw-memory/56423))
+* Review: ([pitch](https://forums.swift.org/t/55036/)) ([review](https://forums.swift.org/t/se-0349-unaligned-loads-and-stores-from-raw-memory/56423)) ([acceptance](https://forums.swift.org/t/accepted-se-0349-unaligned-loads-and-stores-from-raw-memory/56748))
 
 ## Introduction
 
@@ -45,7 +45,7 @@ The kinds of types for which it is important to improve loads from arbitrary ali
 
 ## Proposed solution
 
-We propose to add an API `UnsafeRawPointer.loadUnaligned(frombyteOffset:as:)` to support unaligned loads from `UnsafeRawPointer`, `UnsafeRawBufferPointer` and their mutable counterparts. These will be explicitly restricted to POD types. Loading a non-POD type remains meaningful only when the source memory is another live object where the memory is, by construction, already correctly aligned. The original API (`load`) will continue to support this case. The new API (`loadUnaligned`) will assert that the return type is POD when run in debug mode.
+We propose to add an API `UnsafeRawPointer.loadUnaligned(fromByteOffset:as:)` to support unaligned loads from `UnsafeRawPointer`, `UnsafeRawBufferPointer` and their mutable counterparts. These will be explicitly restricted to POD types. Loading a non-POD type remains meaningful only when the source memory is another live object where the memory is, by construction, already correctly aligned. The original API (`load`) will continue to support this case. The new API (`loadUnaligned`) will assert that the return type is POD when run in debug mode.
 
 `UnsafeMutableRawPointer.storeBytes(of:toByteOffset:)` is documented to only be meaningful for POD types. However, at runtime it enforces storage to an offset correctly aligned to the source type. We propose to remove that alignment restriction and instead enforce the documented POD restriction. The API will otherwise be unchanged, though its documentation will be updated. Please see the ABI stability section for a discussion of binary compatibility with this approach.
 
