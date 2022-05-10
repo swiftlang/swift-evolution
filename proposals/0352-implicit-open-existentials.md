@@ -79,7 +79,7 @@ func checkFinaleReadiness(costumes: [any Costume]) -> Bool {
     }
   }
   
-  return false
+  return true
 }
 ```
 
