@@ -125,6 +125,56 @@ But this turns out to be quite a technical feat. There is a naive implementation
 
 Constrained existential types will behave as normal generic types with respect to variance - that is, they are *invariant -* and the code above will be rejected.
 
+### Covariant Erasure with Constrained Existentials
+
+[SE-0309](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md) specifies that one can use a member on a value of existential type only when references to `Self` or its associated types are in *covariant* positions, such as the return type of a method defined a protocol. In such positions, its associated type is *erased* to its upper bound, which is the type that most closely describes the capabilities of that associated type. For example, consider a use of the `first` property on a collection.
+
+```swift
+extension Collection {}
+  var first: Element? { get }
+}
+
+func test(collection: any Collection, stringCollection: any Collection<String>) {
+  let x = collection.first       // Previously an error. With SE-0309, erases to 'Any?'
+  let y = stringCollection.first // With SE-0309, relies on Element == String to produce 'String?''
+}
+```
+
+However, when `Self` or its associated type occurs in an *invariant* position (defined in SE-0309), one cannot use the member of an existential type unless the concrete type is known. SE-0309 provides the following example:
+
+```swift
+var collection: any RangeReplaceableCollection = [1, 2, 3]
+// error: member 'append' cannot be used on value of protocol type 'RangeReplaceableCollection'
+// because it references associated type 'Element' in contravariant position; use a conformance
+// constraint instead.
+collection.append(4)
+```
+
+With constrained existentials, one could append to a `RangeReplaceableCollection<Int>`:
+
+```swift
+var intCollection: any RangeReplaceableCollection<Int> = [1, 2, 3]
+collection.append(4)  // okay: the Element type is concrete (Int) within the existential
+```
+
+The principle here is that a use of an associated type in the member is not considered invariant if that associated type has been made concrete by the existential type. This allows the use of `append` above, because `Element` has been made concrete by the type `any RangeReplaceableCollection<Int>`. Additionally, this means that the existential type that results from erasing an associated type can make use of constrained existentials. For example:
+
+```swift
+extension Sequence {
+  func eagerFilter(_ isIncluded: @escaping (Element) -> Bool) -> [Element] { ... }
+  func lazyFilter(_ isIncluded: @escaping (Element) -> Bool) -> some Sequence<Element> { ... }
+}
+
+func doFilter(sequence: any Sequence, intSequence: any Sequence<Int>) {
+  let e1 = sequence.eagerFilter { _ in true }    // error: 'Element' is used in an invariant position
+  let e2 = intSequence.eagerFilter { _ in true } // okay, returns '[Int]'
+  let l1 = sequence.lazyFilter { _ in true }    // error: 'Element' is used in an invariant position
+  let l2 = intSequence.lazyFilter { _ in true } // okay, returns 'any Sequence<Int>''
+}
+```
+
+The same erasure effects with the implicitly opened existentials introduced in [SE-0352](https://github.com/apple/swift-evolution/blob/main/proposals/0352-implicit-open-existentials.md).
+
 ## Effect on ABI stability
 
 As constrained existential types are an entirely additive concept, there is no impact upon ABI stability.
