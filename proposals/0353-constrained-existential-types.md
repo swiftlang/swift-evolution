@@ -136,7 +136,7 @@ extension Collection {}
 
 func test(collection: any Collection, stringCollection: any Collection<String>) {
   let x = collection.first       // Previously an error. With SE-0309, erases to 'Any?'
-  let y = stringCollection.first // With SE-0309, relies on Element == String to produce 'String?''
+  let y = stringCollection.first // With SE-0309, relies on Element == String to produce 'String?'
 }
 ```
 
@@ -169,7 +169,7 @@ func doFilter(sequence: any Sequence, intSequence: any Sequence<Int>) {
   let e1 = sequence.eagerFilter { _ in true }    // error: 'Element' is used in an invariant position
   let e2 = intSequence.eagerFilter { _ in true } // okay, returns '[Int]'
   let l1 = sequence.lazyFilter { _ in true }    // error: 'Element' is used in an invariant position
-  let l2 = intSequence.lazyFilter { _ in true } // okay, returns 'any Sequence<Int>''
+  let l2 = intSequence.lazyFilter { _ in true } // okay, returns 'any Sequence<Int>'
 }
 ```
 
