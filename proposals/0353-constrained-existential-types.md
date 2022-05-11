@@ -3,7 +3,7 @@
 * Proposal: [SE-0353](0353-constrained-existential-types.md)
 * Authors: [Robert Widmann](https://github.com/codafi)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (April 20...May 3, 2022)**
+* Status: **Active review (April 20...May 18, 2022)**
 * Implementation: implemented in `main` branch, under flag `-enable-parameterized-existential-types`
 
 ## Introduction
