@@ -246,10 +246,11 @@ Alternation has a lower precedence than concatenation or other operations, so e.
 ### Concatenated subexpressions
 
 ```
-ConcatComponent -> Trivia | Quote | Quantification
+ConcatComponent -> Trivia | Quote | Interpolation | Quantification
 
 Trivia  -> Comment | NonSemanticWhitespace
 Comment -> '(?#' (!')')* ')' | EndOfLineComment
+Interpolation -> '<{' (!'}>')* '}>'
 
 (extended syntax only) EndOfLineComment      -> '#' (!<EOL> .)* <EOL>
 (extended syntax only) NonSemanticWhitespace -> <Space>+
@@ -263,6 +264,8 @@ Each component of a concatenation may be "trivia" (comments and non-semantic whi
 In-line comments, similarly to C, are lexical and are not recursively nested like normal groups are. A closing `)` cannot be escaped. Quotes are similarly lexical, non-nested, and the `\` before a `\E` cannot be escaped.
 
 For example, `\Q^[xy]+$\E`, is treated as the literal characters `^[xy]+$` rather than an anchored quantified character class. `\Q\\E` is a literal `\`.
+
+An interpolation sequence `<{...}>` is syntax that is reserved for a potential future interpolation feature. As such, the details surrounding it are future work, and it will currently be rejected for both literals and run-time compiled patterns. It may however be made available in the future as the literal characters.
 
 ### Quantified subexpressions
 
@@ -309,7 +312,7 @@ Atom -> Anchor
       | '\'? <Character>
 ```
 
-Atoms are the smallest units of regex syntax. They include escape sequences, metacharacters, backreferences, etc. The most basic form of atom is a literal character. A metacharacter may be treated as literal by preceding it with a backslash. Other literal characters may also be preceded by a backslash, in which case it has no effect, e.g `\%` is literal `%`. However this does not apply to either non-whitespace Unicode characters, or to unknown ASCII letter character escapes, e.g `\I` is invalid and would produce an error.
+Atoms are the smallest units of regex syntax. They include escape sequences, metacharacters, backreferences, etc. The most basic form of atom is a literal character. A metacharacter may be treated as literal by preceding it with a backslash. Other literal characters may also be preceded by a backslash, in which case it has no effect, e.g `\%` is literal `%`. However this does not apply to either non-whitespace Unicode characters, or to unknown ASCII letter and number character escapes, e.g `\I` is invalid and would produce an error. `(...)[\1]` is similarly invalid, as a backreference may not appear in a custom character class.
 
 #### Anchors
 
@@ -375,13 +378,16 @@ Precise definitions of character classes is discussed in [Unicode for String Pro
 #### Unicode scalars
 
 ```
-UnicodeScalar -> '\u{' HexDigit{1...} '}'
+UnicodeScalar -> '\u{' UnicodeScalarSequence '}'
                | '\u'  HexDigit{4}
                | '\x{' HexDigit{1...} '}'
                | '\x'  HexDigit{0...2}
                | '\U'  HexDigit{8}
                | '\o{' OctalDigit{1...} '}'
                | '\0' OctalDigit{0...3}
+
+UnicodeScalarSequence   -> <Space>* UnicodeScalarSequencElt+
+UnicodeScalarSequencElt -> HexDigit{1...} <Space>*
 
 HexDigit   -> [0-9a-fA-F]
 OctalDigit -> [0-7]
@@ -391,6 +397,8 @@ ScalarName -> 'U+' HexDigit{1...8} | [\s\w-]+
 ```
 
 These sequences define a unicode scalar value using hexadecimal or octal notation.
+
+In addition to a regular scalar literal e.g `\u{65}`, `\u{...}` also supports a scalar sequence syntax. This is syntactic sugar that implicitly expands a whitespace separated list of scalars e.g `\u{A B C}` into `\u{A}\u{B}\u{C}`. Such a sequence is currently only valid outside of a custom character class, their behavior within a custom character class is left as future work.
 
 `\x`, when not followed by any hexadecimal digit characters, is treated as `\0`, matching PCRE's behavior.
 
@@ -573,7 +581,7 @@ Custom characters classes introduce their own sublanguage, in which most regular
 
 Atoms may be used to compose other character class members, including ranges, quoted sequences, and even nested custom character classes `[[ab]c\d]`. Adjacent members form an implicit union of character classes, e.g `[[ab]c\d]` is the union of the characters `a`, `b`, `c`, and digit characters.
 
-Custom character classes may not be empty, e.g `[]` is forbidden. A custom character class may begin with the `]` character, in which case it is treated as literal, e.g `[]a]` is the custom character class of `]` and `a`.
+Custom character classes may not be empty, e.g `[]` is forbidden.
 
 Quoted sequences may be used to escape the contained characters, e.g `[a\Q]\E]` is also the character class of `[` and `a`.
 
