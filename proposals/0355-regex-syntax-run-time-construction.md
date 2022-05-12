@@ -194,7 +194,7 @@ extension AnyRegexOutput {
 }
 ```
 
-Finally, we propose API for creating a regex containing literal string content. This produces an equivalent regex to a string literal embededd in the result builder DSL. As this is much less common than run-time compilation or an embedded literal in the DSL, it has an explicit argument label.
+Finally, we propose API for creating a regex containing literal string content. This produces an equivalent regex to a string literal embedded in the result builder DSL. As this is much less common than run-time compilation or an embedded literal in the DSL, it has an explicit argument label.
 
 ```swift
 extension Regex {
@@ -239,7 +239,7 @@ Concatenation -> (!'|' !')' ConcatComponent)*
 
 A regex may be prefixed with a sequence of [global matching options](#pcre-global-matching-options). Its contents can be empty or a sequence of alternatives separated by `|`.
 
-Alternatives are a series of expressions concatenated together. The concatentation ends with either a `|` denoting the end of the alternative or a `)` denoting the end of a recursively parsed group.
+Alternatives are a series of expressions concatenated together. The concatenation ends with either a `|` denoting the end of the alternative or a `)` denoting the end of a recursively parsed group.
 
 Alternation has a lower precedence than concatenation or other operations, so e.g `abc|def` matches against `abc` or `def`.
 
@@ -950,7 +950,7 @@ Various regex engines offer an "extended syntax" where whitespace is treated as 
 
 Oniguruma, Java, and ICU however enable the more broad behavior under `(?x)`. We therefore propose following this behavior, with `(?x)` and `(?xx)` being treated the same.
 
-Different regex engines also have different rules around what characters are considered non-semantic whitespace. When compiled with Unicode support, PCRE considers the following whitespace:
+Different regex engines also have different rules around what characters are considered non-semantic whitespace. When compiled with Unicode support, PCRE follows the `Pattern_White_Space` Unicode property, which consists of the following scalars:
 
 - The space character `U+20`
 - Whitespace characters `U+9...U+D`
@@ -960,7 +960,7 @@ Different regex engines also have different rules around what characters are con
 - Line separator `U+2028`
 - Paragraph separator `U+2029`
 
-This is a subset of the scalars matched by `UnicodeScalar.isWhitespace`. Additionally, in a custom character class, PCRE only considers the space and tab characters as whitespace. Other engines do not differentiate between whitespace characters inside and outside custom character classes, and appear to follow a subset of this list. Therefore we propose supporting exactly the characters in this list for the purposes of non-semantic whitespace parsing.
+This is the same set of scalars matched by `UnicodeScalar.Properties.isPatternWhitespace`. Additionally, in a custom character class, PCRE only considers the space and tab characters as whitespace. Other engines do not differentiate between whitespace characters inside and outside custom character classes, and appear to follow a subset of this list. Therefore we propose supporting exactly the characters in this list for the purposes of non-semantic whitespace parsing.
 
 ### Group numbering
 
