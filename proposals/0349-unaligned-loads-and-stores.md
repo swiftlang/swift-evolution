@@ -3,7 +3,7 @@
 * Proposal: [SE-0349](0349-unaligned-loads-and-stores.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Implementation: [apple/swift#41033](https://github.com/apple/swift/pull/41033)
 * Review: ([pitch](https://forums.swift.org/t/55036/)) ([review](https://forums.swift.org/t/se-0349-unaligned-loads-and-stores-from-raw-memory/56423)) ([acceptance](https://forums.swift.org/t/accepted-se-0349-unaligned-loads-and-stores-from-raw-memory/56748))
 
