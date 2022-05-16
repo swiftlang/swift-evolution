@@ -17,7 +17,7 @@ Related forum threads:
 
 ## Motivation
 
-Compile-time constant values are values that can be known or computed during compilation and are guaranteed to not change after compilation. Use of such values can have many purposes, from enforcing desirable invariants and safety guarantees to enabling users to express arbitrarily complex compile-time algorithms. 
+Compile-time constant values are values that can be known or computed during compilation and are guaranteed to not change after compilation. Use of such values can have many purposes, from enforcing desirable invariants and safety guarantees to enabling users to express arbitrarily-complex compile-time algorithms. 
 
 The first step towards building out support for compile-time constructs in Swift is a basic primitives consisting of an attribute to declare function parameters and properties to require being known at *compile-time*. While this requirement explicitly calls out the compiler as having additional guaranteed information about such declarations, it can be naturally extended into a broader sense of *build-time* known values - with the compiler being able to inform other tools with type-contextual value information. For an example of the latter, see the “Declarative Package Manifest” motivating use-case below.
 
@@ -25,19 +25,50 @@ The first step towards building out support for compile-time constructs in Swift
 
 The Swift compiler will recognize declarations of properties, local variables, and function parameters declared with a `@const` attribute as having an additional requirement to be known at compile-time. If a `@const` property or variable is initialized with a runtime value, the compiler will emit an error. Similarly, if a runtime value is passed as an argument to a `@const` function parameter, the compiler will emit an error. Aside from participating in name mangling, the attribute has no runtime effect.
 
+For example, an `@const` property can provide the compiler and relevant tooling build-time knowledge of a type-specific value:
+```
+struct DatabaseParams {
+  @const let encoding: String = "utf-8"
+  @const let max_num_entries: Int = 256
+}
+```
+
+An `@const` parameter provides a guarantee of a build-time-known argument being specified at all function call-sites, allowing future APIs to enforce invariants and provide build-time correctness guarantees:
+```
+func acceptingURLString(@const _ url: String)
+```
+
+And an `@const static var` protocol property requirement allows protocol authors to enforce get the benefits of build-time known properties for all conforming types:
+```
+protocol DatabaseSerializableWithKey {
+    @const static var key: String
+}
+```
+
 ## Detailed Design
 
 ### Property `@const` attribute
 
-A stored property on a `struct` or a `class` can be marked with a `@const` attribute to indicate that its value is known at compile-time. 
-
+A stored property on a `struct` or a `class` can be marked with a `@const` attribute to indicate that its value is known at compile-time.
 ```
 struct Foo {
   @const let title: String = "foo"
 }
 ```
+The value of such property must be default-initialized with a compile-time-known value, unlike a plain `let` property, which can also be assigned a value in the type's initialzier. 
 
-Similarly to Implicitly-Unwrapped Optionals, the mental model for semantics of this attribute is that it is a flag on the declaration that  guarantees that the compiler is able to know its value as shared by all instance of the type. For now, `@const let` and `@const static let` are equivalent in what information the `@const` attribute conveys to the compiler. Unlike a plain `static let` stored property, a `@const static let` property does not need to refer to a location in memory shared by all instances of the type, and can be elided by the compiler entirely. Default-initializing a `@const` property with a runtime value or not default-initializing it at all results in an compilation error.
+```
+struct Foo {
+  // 👍
+  @const let superTitle: String = "Encyclopedia"
+  // ❌ error: `title` must be initialized with a const value
+  @const let title: String
+  // ❌ error: `title` must be initialized with a const value
+  @const let subTitle: String = bar() 
+}
+```
+
+Similarly to Implicitly-Unwrapped Optionals, the mental model for semantics of this attribute is that it is a flag on the declaration that  guarantees that the compiler is able to know its value as shared by all instance of the type. For now, `@const let` and `@const static let` are equivalent in what information the `@const` attribute conveys to the compiler. 
 
 ### Parameter `@const` attribute
 
@@ -47,27 +78,23 @@ A function parameter can be marked with a `@const`  keyword to indicate that val
 func foo(@const input: Int) {...}
 ```
 
-### Supported Types
+Passing in a runtime value as an argument to `foo` will result in a compilation error:
+```
+foo(11) // 👍
 
-The requirement that values of `@const` properties and parameters be known at compile-time restricts the allowable types for such declarations. The current scope of the proposal includes:
-
-* Integer and floating-point and boolean literals.
-* String literals (excluding interpolated strings).
-* Enum cases with no associated values.
-* Tuple literals consisting of the above list items.
-* Array and dictionary literals consisting of the above list items.
-
-This list will expand in the future to include more literal-value kinds or potential new compile-time valued constructs.
+let x: Int = computeRuntimeCount()
+foo(x) // ❌ error: 'greeting' must be initialized with a const value
+```
 
 ### Protocol `@const` property requirement 
 
-A protocol author may require conforming types to default initialize a given property with a compile-time-known value by specifying it as `@const static` in the protocol definition. For example:
-
+A protocol author may require conforming types to default initialize a given property with a compile-time-known value by specifying it as `@const static let` in the protocol definition. For example:
 ```
 protocol NeedsConstGreeting {
-    @const static var greeting: String
+    @const static let greeting: String
 }
 ```
+Unlike other property declarations on protocols that require the use of `var` and explicit specification of whether the property must provide a getter `{ get }` or also a setter `{ get set }`, using `var` for build-time-known properties whose values are known to be fixed at runtime is counter-intuitive. Moreover, `@const` implies the lack of a run-time setter and an implicit presence of the value getter.
 
 If a conforming type initializes `greeting` with something other than a compile-time-known value, a compilation error is produced:
 
@@ -76,12 +103,22 @@ struct Foo: NeedsConstGreeting {
   // 👍
   static let greeting = "Hello, Foo"
 }
-
 struct Bar: NeedsConstGreeting {
-  // error: 'greeting' must be initialized with a const value
+  // error: ❌ 'greeting' must be initialized with a const value
   static let greeting = "\(Bool.random ? "Hello" : "Goodbye"), Bar"
 }
 ```
+
+### Supported Types
+
+The requirement that values of `@const` properties and parameters be known at compile-time restricts the allowable types for such declarations. The current scope of the proposal includes:
+* Enum cases with no associated values
+* Certain standard library types that are expressible with literal values
+          * Integer and Floating-Point types (`(U)?Int(\d*)`, `Float`, `Double`, `Half`), `String` (excluding interpolated strings), `Bool`.
+          * `Array` and `Dictionary` literals consisting of literal values of above types.
+* Tuple literals consisting of the above list items.
+
+This list will expand in the future to include more literal-value kinds or potential new compile-time valued constructs.
 
 ## Forward-looking design aspects
 
@@ -99,6 +136,53 @@ Effect on runtime placement of `@const` values is an implementation detail that 
 In order to allow such implementation in the future, this proposal makes the *value* of `public` `@const` values/properties a part of a module's ABI. That is, a resilient library that vends `@const let x = 11` changing the value of `x` is considered an ABI break. This treatment allows `public` `@const` data to exist in a single read-only location shared by all library clients, without each client having to copy the value or being concerned with possible inconsistency in behavior across library versions. 
 
 ## Motivating Example Use-Cases
+
+### Enforcement of Compile-Time Attribute Parameters
+
+Attribute definitions can benefit from additional guarantees of compile-time constant values.
+For example, a `@const` version of the [@Clamping](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#clamping-a-value-within-bounds) property wrapper that requires that lower and upper bounds be compile-time-known values can ensure that the clamp values are fixed and cannot change for different instantiations of wrapped properties which may occur if runtime values are used to specify the bounds:
+```
+@propertyWrapper
+struct Clamping<V: Comparable> {
+  var value: V
+  let min: V
+  let max: V
+
+  init(wrappedValue: V, @const min: V, @const max: V) {
+    value = wrappedValue
+    self.min = min
+    self.max = max
+    assert(value >= min && value <= max)
+  }
+  ...
+```
+It could also allow the compiler to generate more-efficient comparison and clamping code, in the future.
+
+Or imagine a property wrapper that declares a property is to be serialized and that it must be stored/retrieved using a specific string key. `Codable` requires users to provide a `CodingKeys` `enum` boilerplate, relying on the `enum`’s `String` raw values. Alternatively, such key can be specified on the property wrapper itself:
+
+```
+struct Foo {
+  @SpecialSerializationSauce(key: "title") 
+  var someSpecialTitleProperty: String
+}
+
+@propertyWrapper
+struct SpecialSerializationSauce {
+  init(@const key: String) {...}
+}
+```
+
+Having the compiler enforce the compile-time constant property of the `key` parameter eliminates the possibility of an error where a run-time value is specified which can cause serialized data to not be able to be deserialized, for example. 
+
+Enforcing compile-time constant nature of the parameters is also the first step to allowing attribute/library authors to be able to check uses by performing compile-time sanity checking and having the capability to emit custom build-time error messages.
+
+### Enforcement of Non-Failable Initializers
+
+Ergonomics of the recently-pitched [Foundation.URL](https://forums.swift.org/t/foundation-url-improvements/54057) would benefit greatly from the ability to require the string argument to be compile-time constant. With evolving compile-time evaluation facilities, Swift may even gain an ability to perform compile-time validation of such URLs  even though the user may never be able to express a fully compile-time constant `Foundation.URL` type because this type is a part of an ABI-stable SDK. While a type like `StaticString` may be used to require that the argument string must be static, which string is chosen can still be determined at runtime, e.g.:
+
+```
+URL(Bool.random() ? "https://valid.url.com" : "invalid url . com")
+```
 
 ### Facilitate Compile-time Extraction of Values
 
@@ -153,34 +237,6 @@ struct External {
 ```
 
 This could, in theory, allow SwiftPM to build such packages without executing their manifest. Some packages, of course, could still require run-time (execution at package build-time) Swift constructs. More-generally, providing the possibility of declarative APIs that can express build-time-knowable abstractions can both eliminate (in some cases) the need for code execution - reducing the security surface area - and allow for further novel use-cases of Swift’s DSL capabilities (e.g. build-time extractable database schema, etc.). 
-
-### Enforcement of Compile-Time Attribute Parameters
-
-Attribute definitions can benefit from additional guarantees of compile-time constant values. Imagine a property wrapper that declares a property is to be serialized and that it must be stored/retrieved using a specific string key. `Codable` requires users to provide a `CodingKeys` `enum` boilerplate, relying on the `enum`’s `String` raw values. Alternatively, such key can be specified on the property wrapper itself:
-
-```
-struct Foo {
-  @SpecialSerializationSauce(key: "title") 
-  var someSpecialTitleProperty: String
-}
-
-@propertyWrapper
-struct SpecialSerializationSauce {
-  init(@const key: String) {...}
-}
-```
-
-Having the compiler enforce the compile-time constant property of `key` parameter eliminates the possibility of an error where a run-time value is specified which can cause serialized data to not be able to be deserialized, for example. 
-
-Enforcing compile-time constant nature of the parameters is also the first step to allowing attribute/library authors to be able to check uses by performing compile-time sanity checking and having the capability to emit custom build-time error messages.
-
-### Enforcement of Non-Failable Initializers
-
-Ergonomics of the recently-pitched [Foundation.URL](https://forums.swift.org/t/foundation-url-improvements/54057) would benefit greatly from the ability to require the string argument to be compile-time constant. With evolving compile-time evaluation facilities, Swift may even gain an ability to perform compile-time validation of such URLs  even though the user may never be able to express a fully compile-time constant `Foundation.URL` type because this type is a part of an ABI-stable SDK. While a type like `StaticString` may be used to require that the argument string must be static, which string is chosen can still be determined at runtime, e.g.:
-
-```
-URL(Bool.random() ? "https://valid.url.com" : "invalid url . com")
-```
 
 ### Guaranteed Optimization Hints
 
