@@ -3,7 +3,7 @@
 * Proposal: [SE-0354](0354-regex-literals.md)
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Michael Ilseman](https://github.com/milseman), [David Ewing](https://github.com/DaveEwing)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (April 28 – May 10 2022)**
+* Status: **Active Review (May 16 – May 23 2022)**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
   * Available in nightly toolchain snapshots with `-enable-bare-slash-regex`
 
