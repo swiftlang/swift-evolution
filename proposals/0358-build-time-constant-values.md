@@ -26,7 +26,8 @@ The first step towards building out support for compile-time constructs in Swift
 The Swift compiler will recognize declarations of properties, local variables, and function parameters declared with a `@const` attribute as having an additional requirement to be known at compile-time. If a `@const` property or variable is initialized with a runtime value, the compiler will emit an error. Similarly, if a runtime value is passed as an argument to a `@const` function parameter, the compiler will emit an error. Aside from participating in name mangling, the attribute has no runtime effect.
 
 For example, an `@const` property can provide the compiler and relevant tooling build-time knowledge of a type-specific value:
-```
+
+```swift
 struct DatabaseParams {
   @const let encoding: String = "utf-8"
   @const let max_num_entries: Int = 256
@@ -34,12 +35,14 @@ struct DatabaseParams {
 ```
 
 An `@const` parameter provides a guarantee of a build-time-known argument being specified at all function call-sites, allowing future APIs to enforce invariants and provide build-time correctness guarantees:
-```
+
+```swift
 func acceptingURLString(@const _ url: String)
 ```
 
 And an `@const static var` protocol property requirement allows protocol authors to enforce get the benefits of build-time known properties for all conforming types:
-```
+
+```swift
 protocol DatabaseSerializableWithKey {
     @const static var key: String
 }
@@ -89,7 +92,8 @@ foo(x) // ❌ error: 'greeting' must be initialized with a const value
 ### Protocol `@const` property requirement 
 
 A protocol author may require conforming types to default initialize a given property with a compile-time-known value by specifying it as `@const static let` in the protocol definition. For example:
-```
+
+```swift
 protocol NeedsConstGreeting {
     @const static let greeting: String
 }
@@ -112,10 +116,11 @@ struct Bar: NeedsConstGreeting {
 ### Supported Types
 
 The requirement that values of `@const` properties and parameters be known at compile-time restricts the allowable types for such declarations. The current scope of the proposal includes:
+
 * Enum cases with no associated values
 * Certain standard library types that are expressible with literal values
-          * Integer and Floating-Point types (`(U)?Int(\d*)`, `Float`, `Double`, `Half`), `String` (excluding interpolated strings), `Bool`.
-          * `Array` and `Dictionary` literals consisting of literal values of above types.
+      * Integer and Floating-Point types (`(U)?Int(\d*)`, `Float`, `Double`, `Half`), `String` (excluding interpolated strings), `Bool`.
+      * `Array` and `Dictionary` literals consisting of literal values of above types.
 * Tuple literals consisting of the above list items.
 
 This list will expand in the future to include more literal-value kinds or potential new compile-time valued constructs.
@@ -126,7 +131,8 @@ This list will expand in the future to include more literal-value kinds or poten
 
 Attribute definitions can benefit from additional guarantees of compile-time constant values.
 For example, a `@const` version of the [@Clamping](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#clamping-a-value-within-bounds) property wrapper that requires that lower and upper bounds be compile-time-known values can ensure that the clamp values are fixed and cannot change for different instantiations of wrapped properties which may occur if runtime values are used to specify the bounds:
-```
+
+```swift
 @propertyWrapper
 struct Clamping<V: Comparable> {
   var value: V
@@ -145,7 +151,7 @@ It could also allow the compiler to generate more-efficient comparison and clamp
 
 Or imagine a property wrapper that declares a property is to be serialized and that it must be stored/retrieved using a specific string key. `Codable` requires users to provide a `CodingKeys` `enum` boilerplate, relying on the `enum`’s `String` raw values. Alternatively, such key can be specified on the property wrapper itself:
 
-```
+```swift
 struct Foo {
   @SpecialSerializationSauce(key: "title") 
   var someSpecialTitleProperty: String
@@ -165,7 +171,7 @@ Enforcing compile-time constant nature of the parameters is also the first step 
 
 Ergonomics of the recently-pitched [Foundation.URL](https://forums.swift.org/t/foundation-url-improvements/54057) would benefit greatly from the ability to require the string argument to be compile-time constant. With evolving compile-time evaluation facilities, Swift may even gain an ability to perform compile-time validation of such URLs  even though the user may never be able to express a fully compile-time constant `Foundation.URL` type because this type is a part of an ABI-stable SDK. While a type like `StaticString` may be used to require that the argument string must be static, which string is chosen can still be determined at runtime, e.g.:
 
-```
+```swift
 URL(Bool.random() ? "https://valid.url.com" : "invalid url . com")
 ```
 
@@ -173,7 +179,7 @@ URL(Bool.random() ? "https://valid.url.com" : "invalid url . com")
 
 The [Result Builder-based SwiftPM Manifest](https://forums.swift.org/t/pre-pitch-swiftpm-manifest-based-on-result-builders/53457) pre-pitch outlines a proposal for a manifest format that encodes package model/structure using Swift’s type system via Result Builders. Extending the idea to use the builder pattern throughout can result in a declarative specification that exposes the entire package structure to build-time tools, for example:
 
-```
+```swift
 let package = Package {
   Modules {
     Executable("MyExecutable", public: true, include: {
@@ -200,16 +206,15 @@ A key property of this specification is that all the information required to kno
 
 To *ensure* build-time extractability of the relevant manifest structure, a form of the above API can be provided that guarantees the compile-time known properties. For example, the following snippet can guarantee the ability to extract complete required knowledge at build time:
 
-```
+```swift
 Test("MyExecutableTests", for: "MyExecutable", include: {
         Internal("MyTestUtilities")
         External("SomeModule", from: "some-package") 
       })
 ```
-
 By providing a specialized version of the relevant types (`Test`, `Internal`, `External`) that rely on parameters relevant to extracting the package structure being `const`:
 
-```
+```swift
 struct Test {
   init(@const _ title: String, @const for: String, @DependencyBuilder include: ...) {...} 
 }
@@ -220,7 +225,6 @@ struct External {
   init(@const _ title: String, @const from: String)
 }
 ```
-
 This could, in theory, allow SwiftPM to build such packages without executing their manifest. Some packages, of course, could still require run-time (execution at package build-time) Swift constructs. More-generally, providing the possibility of declarative APIs that can express build-time-knowable abstractions can both eliminate (in some cases) the need for code execution - reducing the security surface area - and allow for further novel use-cases of Swift’s DSL capabilities (e.g. build-time extractable database schema, etc.). 
 
 ### Guaranteed Optimization Hints
@@ -249,39 +253,70 @@ As described in the **Enforcement of Non-Failable Initializers**, the key differ
 
 ### Placing `@const` on the declaration type
 One altenative to declaring compile-time known values as proposed here with the declaration attribute:
-```
+
+```swift
 @const let x = 11
 ```
 Is to instead shift the annotation to declared property's type:
-```
+
+```swift
 let x: @const Int = 11
 ```
 This shifts the information conveyed to the compiler about this declaration to be carried by the declaration's type. Semantically, this departs from, and widely broadens the scope from what we intend to capture: the knowability of the declared *value*. Encoding the compile-time property into the type system would force us to reckon with a great deal of complexity and unintended consequences. Consider the following example:
-```
+
+```swift
 typealias CI = @const Int
 let x: CI?
 ```
 What is the type of `x`? It appears to be Optional<@const Int>, which is not a meaningful or useful type, and the programmer most likely intended to have a @const Optional<Int>. And although today Implicitly-Unwrapped optional syntax conveys an additional bit of information about the declared value using a syntactic indicator on the declared type, without affecting the declaration's type, the [historical context](https://www.swift.org/blog/iuo/) of that feature makes it a poor example to justify requiring consistency with it. 
 
-## Forward-looking design aspects
+## Forward-Looking Design Aspects and Future Directions
 
 ### Future Inference/Propagation Rules
 Though this proposal does **not** itself introduce rules of `@const` inference, their future existence is worth discussing in this design. Consider the example:
-```
+
+```swift
 @const let i = 1
 let j = i
 ```
 While not valid under this proposal, our intent is to allow the use of `i` where `@const` values are expected in the future, for example`@const let k = i` or `f(i)` where `f` is `func f(@const _: Int)`. It is therefore important to consider whether `@const` is propagated to values like `j` in the above example, which determines whether or not statements like `f(j)` and `@const let k = j` are valid code. While it is desreable to allow such uses of the value within the same compilation unit, if `j` is `public`, automatically inferring it to be `@const` is problematic at the module boundary: it creates a contract with the module's clients that the programmer may not have indended. Therefore, `public` properties must explicitly be marked `@const` in order to be accessible as such outside the defining module. This is similar in nature to `Sendable` inference - `internal` or `private` entities can automatically be inferred by the compiler as `Sendable`, while `public` types must explicitly opt-in.
 
-### Memory placement/implementation
+### Memory placement and runtime initialization
 Effect on runtime placement of `@const` values is an implementation detail that this proposal does not cover beyond indicating that today this attribute has no effect on memory layout of such values at runtime. It is however a highly desireable future direction for the implementation of this feature to allow the use read-only memory for `@const` values. With this in mind, it is important to allow semantics of this attribute to allow such implementation in the future. For example, a global `@const let`, by being placed into read-only memory removes the need for synchronization on access to such data. Moreover, using read-only memory reduces memory pressure that comes from having to maintain all mutable state in-memory at a given program point - read-only data can be evicted on-demand to be read back later. These are desireable traits for optimization of existing programs which become increasingly important for enabling of low-level system programs to be written in Swift.
 
 In order to allow such implementation in the future, this proposal makes the *value* of `public` `@const` values/properties a part of a module's ABI. That is, a resilient library that vends `@const let x = 11` changing the value of `x` is considered an ABI break. This treatment allows `public` `@const` data to exist in a single read-only location shared by all library clients, without each client having to copy the value or being concerned with possible inconsistency in behavior across library versions.
 
 ## Future Directions
-* Constant-propogation - allow default-initialization of `@const` properties using other `@const` values and allow passing `@const` values to `@const` parameters.
-* Toolchain support for extracting compile-time values at build time.
-* Compile-time expressions - allow expressions that operate on compile-time-known values, from binary operators to control flow.
-* Compile-time types - allow types consisting of `const` properties to be treated as compile-time-known values.
-* Compile-time functions - consisting of expressions operating on compile-time-known values and `const` parameters.
+
+### Constant-propogation
+Allow default-initialization of `@const` properties using other `@const` values and allow passing `@const` values to `@const` parameters. The [Future Inference/Propagation Rules](#Future Inference/Propagation Rules) section discusses a direction for enabling inference of the attribute on values. This is a necessary next building-block to generalizing the use of compile-time values.
+```
+func foo(@const i: Int) {
+     @const let j = i
+}
+```
+
+### Toolchain support for extracting compile-time values at build time.
+The current proposal covers an attribute that allows clients to build an API surface that is capable of carrying semantic build-time information that may be very useful to build-time tooling, such as [SwiftPM plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md). The next step towards this goal would include toolchain support for tooling that extracts such information in a client-agnostic fashion so that it can be adopted equally by use-cases like the manifest example in [Facilitate Compile-time Extraction of Values](#Facilitate Compile-time Extraction of Values) and others.
+
+### Compile-time expressions and functions
+Building on propagation and inference of `@const`, some of the most interesting use-cases for compile-time-known values emerge with the ability to perform operations on them that result in other compile-time-known values. For example, the [Compiler Diagnostic Directives](https://github.com/apple/swift-evolution/blob/main/proposals/0196-diagnostic-directives.md) could be expanded to trigger conditionally based on a value of a compile-time-known input expression:
+
+```swift
+func foo(@const input: Int) {
+   #const_assert(input <= 0, "'foo()' expects a positive input")
+}
+```
+Which would require that it is possible to evaluate the `input <= 0` expression at compile-time, which would also require that certain functions can be evaluated at compile-time if their arguments are known at compile-time. For example:
+
+
+```swift
+func <=(@const lhs: Int, @const rhs: Int) -> Bool
+```
+Inference on which functions can or cannot be evaluated at compile time will be defined in a future proposal and can follow similar ideas to those described in [Future Inference/Propagation Rules](#Future Inference/Propagation Rules) section.
+
+### Compile-time expressions
+Allow expressions that operate on compile-time-known values, from binary operators to control flow.
+### Compile-time types
+Allow types consisting of `const` properties to be treated as compile-time-known values.
 
