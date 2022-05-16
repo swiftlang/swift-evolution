@@ -1,9 +1,10 @@
 # Build-Time Constant Values
 
-* Proposal: [SE-0353](build-time-constant-values.md)
+* Proposal: [SE-0358](build-time-constant-values.md)
 * Authors: [Artem Chikin](https://github.com/artemcm), [Ben Cohen](https://github.com/airspeedswift), [Xi Ge](https://github.com/nkcsgexi)
-* Review Manager: TBD
-* Status: **Implemented**
+* Review Manager: Doug Gregor
+* Status: **Awaiting Review**
+* Implementation: Implemented on `main` as `_const`
 
 ## Introduction
 
@@ -12,6 +13,7 @@ A Swift language feature for requiring certain values to be knowable at compile-
 Related forum threads:
 
 * [[Pitch] Compile-Time Constant Values](https://forums.swift.org/t/pitch-compile-time-constant-values/53606)
+* [[Pitch #2] Build-Time Constant Values](https://forums.swift.org/t/pitch-2-build-time-constant-values/56762)
 
 ## Motivation
 
@@ -35,14 +37,14 @@ struct Foo {
 }
 ```
 
-Similarly to Implicitly-Unwrapped Optionals, the mental model for semantics of this attribute is that it is a flag on the declaration that  guarantees that the compiler is able to know its value as shared by all instance of the type. For now, `@const let` and `@const static let` are equivalent in what information the `@const` attribute conveys to the compiler.(*AC: Worth mentioning here that in the future,* `@const let` *properties will gain an ability to be initialized with compile-time expressions*). Unlike a plain `static let` stored property, a `@const static let` property does not need to refer to a location in memory shared by all instances of the type, and can be elided by the compiler entirely. Default-initializing a `@const` property with a runtime value or not default-initializing it at all results in an compilation error.
+Similarly to Implicitly-Unwrapped Optionals, the mental model for semantics of this attribute is that it is a flag on the declaration that  guarantees that the compiler is able to know its value as shared by all instance of the type. For now, `@const let` and `@const static let` are equivalent in what information the `@const` attribute conveys to the compiler. Unlike a plain `static let` stored property, a `@const static let` property does not need to refer to a location in memory shared by all instances of the type, and can be elided by the compiler entirely. Default-initializing a `@const` property with a runtime value or not default-initializing it at all results in an compilation error.
 
 ### Parameter `@const` attribute
 
 A function parameter can be marked with a `@const`  keyword to indicate that values passed to this parameter at the call-site must be compile-time-known values.
 
 ```
-func foo(@**const** input: Int) {...}
+func foo(@const input: Int) {...}
 ```
 
 ### Supported Types
@@ -140,13 +142,13 @@ By providing a specialized version of the relevant types (`Test`, `Internal`, `E
 
 ```
 struct Test {
-  init(_ title: const String, for: const String, @DependencyBuilder include: ...) {...} 
+  init(@const _ title: String, @const for: String, @DependencyBuilder include: ...) {...} 
 }
 struct Internal {
-  init(_ title: const String)
+  init(@const _ title: String)
 }
 struct External {
-  init(_ title: const String, from: const String)
+  init(@const _ title: String, @const from: String)
 }
 ```
 
