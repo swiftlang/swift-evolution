@@ -25,7 +25,7 @@ The first step towards building out support for compile-time constructs in Swift
 
 The Swift compiler will recognize declarations of properties, local variables, and function parameters declared with a `@const` attribute as having an additional requirement to be known at compile-time. If a `@const` property or variable is initialized with a runtime value, the compiler will emit an error. Similarly, if a runtime value is passed as an argument to a `@const` function parameter, the compiler will emit an error. Aside from participating in name mangling, the attribute has no runtime effect.
 
-For example, an `@const` property can provide the compiler and relevant tooling build-time knowledge of a type-specific value:
+For example, a `@const` property can provide the compiler and relevant tooling build-time knowledge of a type-specific value:
 
 ```swift
 struct DatabaseParams {
@@ -34,17 +34,17 @@ struct DatabaseParams {
 }
 ```
 
-An `@const` parameter provides a guarantee of a build-time-known argument being specified at all function call-sites, allowing future APIs to enforce invariants and provide build-time correctness guarantees:
+A `@const` parameter provides a guarantee of a build-time-known argument being specified at all function call-sites, allowing future APIs to enforce invariants and provide build-time correctness guarantees:
 
 ```swift
 func acceptingURLString(@const _ url: String)
 ```
 
-And an `@const static var` protocol property requirement allows protocol authors to enforce get the benefits of build-time known properties for all conforming types:
+And a `@const static let` protocol property requirement allows protocol authors to enforce get the benefits of build-time known properties for all conforming types:
 
 ```swift
 protocol DatabaseSerializableWithKey {
-    @const static var key: String
+    @const static let key: String
 }
 ```
 
@@ -268,7 +268,14 @@ This shifts the information conveyed to the compiler about this declaration to b
 typealias CI = @const Int
 let x: CI?
 ```
-What is the type of `x`? It appears to be Optional<@const Int>, which is not a meaningful or useful type, and the programmer most likely intended to have a @const Optional<Int>. And although today Implicitly-Unwrapped optional syntax conveys an additional bit of information about the declared value using a syntactic indicator on the declared type, without affecting the declaration's type, the [historical context](https://www.swift.org/blog/iuo/) of that feature makes it a poor example to justify requiring consistency with it. 
+What is the type of `x`? It appears to be Optional<@const Int>, which is not a meaningful or useful type, and the programmer most likely intended to have a @const Optional<Int>. And although today Implicitly-Unwrapped optional syntax conveys an additional bit of information about the declared value using a syntactic indicator on the declared type, without affecting the declaration's type, the [historical context](https://www.swift.org/blog/iuo/) of that feature makes it a poor example to justify requiring consistency with it.
+
+### Alternative attribute names
+More-explicit spellings of the attribute's intent were proposed in the form of `@buildTime`/`@compileTime`/`@comptime`, and the use of `const` was also examined as a holdover from its use in C++.
+
+While build-time knowability of values this attribute covers is one of the intended semantic takeaways, the potential use of this attribute for various optimization purposes also lends itself to indicate the additional immutability guarantees on top of a plain `let` (which can be initialized with a dynamic value), as well as capturing the build-time evaluation/knowledge signal. For example, in the case of global variables, thread-safe lazy initialization of `@const` variables may no longer be necessary, in which case the meaning of the term `const` becomes even more explicit.
+
+Similarly with the comparison to C++, where the language uses the term `const` to describe a runtime behaviour concept, rather than convey information about the actual value. The use of the term `const` is more in line with the mathematical meaning of having the value be a **defined** constant. 
 
 ## Forward-Looking Design Aspects and Future Directions
 
@@ -290,7 +297,8 @@ In order to allow such implementation in the future, this proposal makes the *va
 
 ### Constant-propogation
 Allow default-initialization of `@const` properties using other `@const` values and allow passing `@const` values to `@const` parameters. The [Future Inference/Propagation Rules](#Future Inference/Propagation Rules) section discusses a direction for enabling inference of the attribute on values. This is a necessary next building-block to generalizing the use of compile-time values.
-```
+
+```swift
 func foo(@const i: Int) {
      @const let j = i
 }
@@ -315,8 +323,5 @@ func <=(@const lhs: Int, @const rhs: Int) -> Bool
 ```
 Inference on which functions can or cannot be evaluated at compile time will be defined in a future proposal and can follow similar ideas to those described in [Future Inference/Propagation Rules](#Future Inference/Propagation Rules) section.
 
-### Compile-time expressions
-Allow expressions that operate on compile-time-known values, from binary operators to control flow.
 ### Compile-time types
-Allow types consisting of `const` properties to be treated as compile-time-known values.
-
+Finally, the flexibility of build-time values and code that operates on them can be greatly expanded by allowing entire user-defined types to form compile-time-known values via either custom literal syntax or having a `@const` initializer.
