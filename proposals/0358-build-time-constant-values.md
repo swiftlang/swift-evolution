@@ -120,21 +120,6 @@ The requirement that values of `@const` properties and parameters be known at co
 
 This list will expand in the future to include more literal-value kinds or potential new compile-time valued constructs.
 
-## Forward-looking design aspects
-
-### Propagation Rules
-Though this proposal does not itself introduce propagation rules of `@const`-ness, their future existence is worth discussing in this design. Consider the example:
-```
-@const let i = 1
-let j = i
-```
-Our intent is to allow the use of `i` where `@const` values are expected in the future, for example`@const let k = i` or `f(i)` where `f` is `func f(@const _: Int)`. It is therefore important to consider whether `@const` is propagated to values like `j` in the above example, which determines whether or not statements like `f(j)` and `@const let k = j` are valid code. While it is desreable to allow such uses of the value within the same compilation unit, if `j` is `public`, automatically inferring it to be `@const` is problematic at the module boundary: it creates a contract with the module's clients that the programmer may not have indended. Therefore, `public` properties must explicitly be marked `@const` in order to be accessible as such outside the defining module. This is similar in nature to `Sendable` inference - `internal` or `private` entities can automatically be inferred by the compiler as `Sendable`, while `public` types must explicitly opt-in.
-
-### Memory placement
-Effect on runtime placement of `@const` values is an implementation detail that this proposal does not cover beyond indicating that today this attribute has no effect on memory layout of such values at runtime. It is however a highly desireable future direction for the implementation of this feature to allow the use read-only memory for `@const` values. With this in mind, it is important to allow semantics of this attribute to allow such implementation in the future. For example, a global `@const let`, by being placed into read-only memory removes the need for synchronization on access to such data. Moreover, using read-only memory reduces memory pressure that comes from having to maintain all mutable state in-memory at a given program point - read-only data can be evicted on-demand to be read back later. These are desireable traits for optimization of existing programs which become increasingly important for enabling of low-level system programs to be written in Swift.
-
-In order to allow such implementation in the future, this proposal makes the *value* of `public` `@const` values/properties a part of a module's ABI. That is, a resilient library that vends `@const let x = 11` changing the value of `x` is considered an ABI break. This treatment allows `public` `@const` data to exist in a single read-only location shared by all library clients, without each client having to copy the value or being concerned with possible inconsistency in behavior across library versions. 
-
 ## Motivating Example Use-Cases
 
 ### Enforcement of Compile-Time Attribute Parameters
@@ -277,6 +262,21 @@ typealias CI = @const Int
 let x: CI?
 ```
 What is the type of `x`? It appears to be Optional<@const Int>, which is not a meaningful or useful type, and the programmer most likely intended to have a @const Optional<Int>. And although today Implicitly-Unwrapped optional syntax conveys an additional bit of information about the declared value using a syntactic indicator on the declared type, without affecting the declaration's type, the [historical context](https://www.swift.org/blog/iuo/) of that feature makes it a poor example to justify requiring consistency with it. 
+
+## Forward-looking design aspects
+
+### Future Inference/Propagation Rules
+Though this proposal does **not** itself introduce rules of `@const` inference, their future existence is worth discussing in this design. Consider the example:
+```
+@const let i = 1
+let j = i
+```
+While not valid under this proposal, our intent is to allow the use of `i` where `@const` values are expected in the future, for example`@const let k = i` or `f(i)` where `f` is `func f(@const _: Int)`. It is therefore important to consider whether `@const` is propagated to values like `j` in the above example, which determines whether or not statements like `f(j)` and `@const let k = j` are valid code. While it is desreable to allow such uses of the value within the same compilation unit, if `j` is `public`, automatically inferring it to be `@const` is problematic at the module boundary: it creates a contract with the module's clients that the programmer may not have indended. Therefore, `public` properties must explicitly be marked `@const` in order to be accessible as such outside the defining module. This is similar in nature to `Sendable` inference - `internal` or `private` entities can automatically be inferred by the compiler as `Sendable`, while `public` types must explicitly opt-in.
+
+### Memory placement/implementation
+Effect on runtime placement of `@const` values is an implementation detail that this proposal does not cover beyond indicating that today this attribute has no effect on memory layout of such values at runtime. It is however a highly desireable future direction for the implementation of this feature to allow the use read-only memory for `@const` values. With this in mind, it is important to allow semantics of this attribute to allow such implementation in the future. For example, a global `@const let`, by being placed into read-only memory removes the need for synchronization on access to such data. Moreover, using read-only memory reduces memory pressure that comes from having to maintain all mutable state in-memory at a given program point - read-only data can be evicted on-demand to be read back later. These are desireable traits for optimization of existing programs which become increasingly important for enabling of low-level system programs to be written in Swift.
+
+In order to allow such implementation in the future, this proposal makes the *value* of `public` `@const` values/properties a part of a module's ABI. That is, a resilient library that vends `@const let x = 11` changing the value of `x` is considered an ABI break. This treatment allows `public` `@const` data to exist in a single read-only location shared by all library clients, without each client having to copy the value or being concerned with possible inconsistency in behavior across library versions.
 
 ## Future Directions
 * Constant-propogation - allow default-initialization of `@const` properties using other `@const` values and allow passing `@const` values to `@const` parameters.
