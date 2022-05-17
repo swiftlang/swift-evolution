@@ -54,7 +54,7 @@ extension String.UTF8View {
   
   @_alwaysEmitIntoClient
   public func hash(into hasher: inout Hasher) {
-    hasher.combine(count)
+    hasher.combine(0xFF as UInt8)
     for element in self {
       hasher.combine(element)
     }
@@ -77,7 +77,7 @@ extension String.UTF8View: Hashable {}
 
 The `Equatable` conformance leverages the already-optimized `elementsEqual()` function for collections. Since the String views are all collections, this will work just fine. 
 
-The `Hashable` conformance also leverages collection functionality and uses the collection's contents and count to generate a hash, consistent with other Standard Library collection types. 
+The `Hashable` conformance also leverages collection functionality and uses the collection's contents and a terminator to generate a unique hash, consistent with other Standard Library collection types. 
 
 **The implementation above does not work as of writing (Swift 5.6):**
 
