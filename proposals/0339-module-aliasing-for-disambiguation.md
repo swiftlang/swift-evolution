@@ -3,7 +3,7 @@
 * Proposal: [SE-0339](0339-module-aliasing-for-disambiguation.md)
 * Authors: [Ellie Shin](https://github.com/elsh)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted** (with modifications not yet applied; see acceptance)
+* Status: **Accepted**
 * Pitch: [Module Aliasing](https://forums.swift.org/t/pitch-module-aliasing/51737)
 * Implementation: ([toolchain](https://github.com/apple/swift/pull/40899)),
 [apple/swift-package-manager#4023](https://github.com/apple/swift-package-manager/pull/4023), others
