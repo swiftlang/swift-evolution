@@ -49,7 +49,7 @@ When `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` are 
 }
 ```
 
-The primary goal of this feature is to reduce the code bloat casued by overloading `buildBlock` for multiple arities, allowing libraries to define builder-based generic DSLs with joy and ease.
+The primary goal of this feature is to reduce the code bloat caused by overloading `buildBlock` for multiple arities, allowing libraries to define builder-based generic DSLs with joy and ease.
 
 ## Motivation
 
