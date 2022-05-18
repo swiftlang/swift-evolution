@@ -1,9 +1,9 @@
 # Primary Associated Types in the Standard Library
 
-* Proposal: [SE-NNNN](NNNN-primary-associated-types-in-stdlib.md)
+* Proposal: [SE-0358](0358-primary-associated-types-in-stdlib.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Pitch**
+* Status: **Active review (May 18...30, 2022)**
 * Implementation: [apple/swift#41843](https://github.com/apple/swift/pull/41843)
 * Review: ([pitch](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/))
 * Related Proposals:
