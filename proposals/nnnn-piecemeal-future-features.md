@@ -136,7 +136,7 @@ func f() async -> String
 #endif
 ```
 
-The primary advantage to the `$` syntax is that all Swift compilers already treat `$` as an acceptable leading character for an identifier. The compiler can define names with a leading `$`, but developers cannot, so it's effectively a reserved space for "magic" names. This means that, unlike the `hasFeature` formulation of the above, older compilers can process the code above without producing an error.
+The primary advantage to the `$` syntax is that all Swift compilers already treat `$` as an acceptable leading character for an identifier. The compiler can define names with a leading `$`, but developers aren't technically supposed to, so it's effectively a reserved space for "magic" names. This means that, unlike the `hasFeature` formulation of the above, older compilers can process the code above without producing an error.
 
 However, this proposal introduces `hasFeature` because it's a clearer in the code, and makes the forward-looking changes to the way `#if` conditions are processed to make it easier for additional `hasFeature`-like features to be introduced in the future without having this problem with older compilers.
 
