@@ -575,7 +575,7 @@ Atoms may be used to compose other character class members, including ranges, qu
 
 Custom character classes may not be empty, e.g `[]` is forbidden. A custom character class may begin with the `]` character, in which case it is treated as literal, e.g `[]a]` is the custom character class of `]` and `a`.
 
-Quoted sequences may be used to escape the contained characters, e.g `[a\Q]\E]` is also the character class of `[` and `a`.
+Quoted sequences may be used to escape the contained characters, e.g `[a\Q]\E]` is also the character class of `]` and `a`.
 
 Ranges of characters may be specified with `-`, e.g `[a-z]` matches against the letters from `a` to `z`. Only unicode scalars and literal characters are valid range operands. If `-` cannot be used to form a range, it is interpreted as literal, e.g `[-a-]` is the character class of `-` and `a`. `[a-c-d]` is the character class of `a`...`c`, `-`, and `d`.
 
