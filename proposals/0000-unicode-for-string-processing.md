@@ -111,7 +111,7 @@ For compatibility with other regex engines and the flexibility to match at both 
 
 By default, literal characters and Unicode scalar values (e.g. `\u{301}`) are coalesced into characters in the same way as a normal string, as shown above. Metacharacters, like `.` and `\w`, and custom character classes each match a single element at the current matching level.
 
-For example, these matches fail, because by the time the parser encounters the "`\u{301}`" Unicode scalar literal, the full `"é"` character has been matched:
+For example, these matches fail, because by the time the engine attempts to match the "`\u{301}`" Unicode scalar literal in the regex, the full `"é"` character in `str` has been matched, even though that character is made up of two Unicode scalar values:
 
 ```swift
 str.contains(/Caf.\u{301}/)    // false - `.` matches "é" character
@@ -291,9 +291,9 @@ extension RegexComponent {
 
 With one or more of these options enabled, the default character classes match only ASCII values instead of the full Unicode range of characters. Four options are included in this group:
 
-* `D`: Match only ASCII members for `\d`, `\p{Digit}`, `[:digit:]`, and the `CharacterClass.digit`.
-* `S`: Match only ASCII members for `\s`, `\p{Space}`, `[:space:]`.
-* `W`: Match only ASCII members for `\w`, `\p{Word}`, `[:word:]`, `\b`, `CharacterClass.word`, and `Anchor.wordBoundary`.
+* `D`: Match only ASCII members for `\d`, `\p{Digit}`, `\p{HexDigit}`, `[:digit:]`, and `CharacterClass.digit`.
+* `S`: Match only ASCII members for `\s`, `\p{Space}`, `[:space:]`, and any of the whitespace-representing `CharacterClass` members.
+* `W`: Match only ASCII members for `\w`, `\p{Word}`, `[:word:]`, and `CharacterClass.word`. Also only considers ASCII characters for `\b`, `\B`, and `Anchor.wordBoundary`.
 * `P`: Match only ASCII members for all POSIX properties (including `digit`, `space`, and `word`).
 
 **Regex syntax:** `(?DSWP)...` or `(?DSWP...)`
@@ -682,7 +682,7 @@ _ASCII mode_: Matches either a space (`" "`) or a horizontal tab.
 
 The **vertical whitespace** character class is matched by `\v` and `CharacterClass.verticalWhitespace`. Additionally, `\R` and `CharacterClass.newline` provide a way to include the `CR`+`LF` pair, even when matching with Unicode scalar semantics.
 
-_Unicode scalar semantics:_ Matches a Unicode scalar that has the Unicode general category `Zl`/`Line_Separator` as well as any of the following control characters: `LINE FEED (LF)` (U+000A), `LINE TABULATION` (U+000B), `FORM FEED (FF)` (U+000C), `CARRIAGE RETURN (CR)` (U+000D), and `NEWLINE (NEL)` (U+0085). Only when specified as `\R` or `CharacterClass.newline` does this match the whole `CR`+`LF` pair.
+_Unicode scalar semantics:_ Matches a Unicode scalar that has the Unicode general category `Zl`/`Line_Separator` or `Zp`/`Paragraph_Separator`, as well as any of the following control characters: `LINE FEED (LF)` (U+000A), `LINE TABULATION` (U+000B), `FORM FEED (FF)` (U+000C), `CARRIAGE RETURN (CR)` (U+000D), and `NEWLINE (NEL)` (U+0085). Only when specified as `\R` or `CharacterClass.newline` does this match the whole `CR`+`LF` pair.
 
 _Grapheme cluster semantics:_ Matches a character that begins with a Unicode scalar value that fits the criteria above.
 
