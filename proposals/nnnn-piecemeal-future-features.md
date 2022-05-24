@@ -59,7 +59,7 @@ SwiftPM targets should be able to specify the future language features they requ
         futureFeatures: ["ConciseMagicFile", "ExistentialAny"])
 ```
 
-SwiftPM would then pass each of the future features listed there to the compiler via the  `-enable-future-feature` flag when building the module for this target. Other targets that depend on this one do not need to pass the features when they build, because the effect of feature places does not cross module boundaries.
+SwiftPM would then pass each of the future features listed there to the compiler via the  `-enable-future-feature` flag when building the module for this target. Other targets that depend on this one do not need to pass the features when they build, because the effect of future features does not cross module boundaries.
 
 The features are provided as strings here so that SwiftPM's manifest format doesn't need to change each time a new feature is added to the compiler. Package authors can add to the `futureFeatures` list while still supporting older tools without creating a new, versioned manifest.
 
