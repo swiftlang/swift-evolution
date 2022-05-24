@@ -334,6 +334,27 @@ An important part of snippets’ utility is the shared convention and terminolog
 
 **Multi-file snippets.** This could manifest in a couple ways. First, requiring several files to build a snippet already exists in the form sample target or project, so this is probably not a future goal. However, for snippets embedded within existing multi-file projects, it may be possible extract those snippets during build time. This will likely require that the snippet extraction move down to the compiler.
 
+**Snippet slices.** In order to support prose that explains a snippet a small bit at a time, snippets in the future could be cut into multiple named slices. Each slice could then be inlined and author would be free to put prose in between slices. For example:
+
+```markdown
+Paragraph discussing setup...
+...
+
+@Snippet(path: "snippets/ErrorHandling", slice: "setup")
+
+Paragraph describing throwing an error...
+...
+
+@Snippet(path: "snippets/ErrorHandling", slice: "throw")
+
+Paragraph describing catching an error...
+...
+
+@Snippet(path: "snippets/ErrorHandling", slice: "catch")
+```
+
+This would be achieved by adding a start/end marker with a slice name in the snippet itself, likely with a new comment marker. The snippet would still build and run as a single unit, but this would allow authors to insert tangential discussions and links in between slices.
+
 **Extract snippets while building.** To facilitate some of the above future possibilities and others, the `snippet-build` tool may move down to the `SymbolGraphGen` library that coverts modules into Symbol Graph JSON. Since snippets are communicated with the same Symbol Graph format, moving the implementation down to the compiler will allow utilizing shared implementation and semantic information for future enhancements. This would allow snippets to be pulled from different kinds of sources: from libraries, unit tests, larger sample projects, etc.
 
 **Build snippets when building documentation.** The current Swift-DocC implementation only requires reading snippet source files when rendering documentation, so building is not required. Depending on whether the implementation is moved down to the compiler, this could be implemented by having the Swift-DocC plugin request snippet builds before generating documentation, or implicitly as the compiler builds snippets to generate symbol graphs.

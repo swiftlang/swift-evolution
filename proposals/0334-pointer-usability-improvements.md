@@ -3,7 +3,7 @@
 * Proposal: [SE-0334](0334-pointer-usability-improvements.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Decision notes: [Acceptance](https://forums.swift.org/t/54700)
 * Implementation: [Draft pull request][draft-pr]
 * Bugs: [rdar://64342031](rdar://64342031), [SR-11156](https://bugs.swift.org/browse/SR-11156) ([rdar://53272880](rdar://53272880)), [rdar://22541346](rdar://22541346)
