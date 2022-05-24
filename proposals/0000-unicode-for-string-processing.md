@@ -217,7 +217,7 @@ Case insensitive matching uses case folding to ensure that canonical equivalence
 ```swift
 extension RegexComponent {
     /// Returns a regular expression that ignores casing when matching.
-    public func ignoresCase(_ ignoresCase: Bool = true) -> Regex<Output>
+    public func ignoresCase(_ ignoresCase: Bool = true) -> Regex<RegexOutput>
 }
 ```
 
@@ -246,7 +246,7 @@ This option also affects the behavior of `CharacterClass.any`, which is designed
 extension RegexComponent {
   /// Returns a regular expression where the start and end of input
   /// anchors (`^` and `$`) also match against the start and end of a line.
-  public func dotMatchesNewlines(_ dotMatchesNewlines: Bool = true) -> Regex<Output>
+  public func dotMatchesNewlines(_ dotMatchesNewlines: Bool = true) -> Regex<RegexOutput>
 }
 ```
 
@@ -284,7 +284,7 @@ str.firstMatch(of: Regex { Anchor.startOfLine  ; "def" }) // "def"
 extension RegexComponent {
   /// Returns a regular expression where the start and end of input
   /// anchors (`^` and `$`) also match against the start and end of a line.
-  public func anchorsMatchLineEndings(_ matchLineEndings: Bool = true) -> Regex<Output>
+  public func anchorsMatchLineEndings(_ matchLineEndings: Bool = true) -> Regex<RegexOutput>
 }
 ```
 
@@ -304,19 +304,33 @@ With one or more of these options enabled, the default character classes match o
 ```swift
 extension RegexComponent {
   /// Returns a regular expression that only matches ASCII characters as digits.
-  public func asciiOnlyDigits(_ asciiOnly: Bool = true) -> Regex<Output>
-	
-  /// Returns a regular expression that only matches ASCII characters as space
-  /// characters.
-  public func asciiOnlyWhitespace(_ asciiOnly: Bool = true) -> Regex<Output>
-	
-  /// Returns a regular expression that only matches ASCII characters as "word
-  /// characters".
-  public func asciiOnlyWordCharacters(_ asciiOnly: Bool = true) -> Regex<Output>
-	
-  /// Returns a regular expression that only matches ASCII characters when
-  /// matching character classes.
-  public func asciiOnlyCharacterClasses(_ asciiOnly: Bool = true) -> Regex<Output>
+  public func asciiOnlyClasses(_ kinds: RegexCharacterClassKind = .all) -> Regex<RegexOutput>
+}
+
+/// A built-in regex character class kind.
+///
+/// Pass one or more `RegexCharacterClassKind` classes to `asciiOnlyClasses(_:)`
+/// to control whether character classes match any character or only members
+/// of the ASCII character set.
+public struct RegexCharacterClassKind: OptionSet, Hashable {
+  public var rawValue: Int { get }
+
+  /// Regex digit-matching character classes, like `\d`, `[:digit:]`, and
+  /// `\p{HexDigit}`.
+  public static var digit: RegexCharacterClassKind { get }
+
+  /// Regex whitespace-matching character classes, like `\s`, `[:space:]`,
+  /// and `\p{Whitespace}`.
+  public static var whitespace: RegexCharacterClassKind { get }
+
+  /// Regex word character-matching character classes, like `\w`.
+  public static var wordCharacter: RegexCharacterClassKind { get }
+
+  /// All built-in regex character classes.
+  public static var all: RegexCharacterClassKind { get }
+
+  /// No built-in regex character classes.
+  public static var none: RegexCharacterClassKind { get }
 }
 ```
 
@@ -369,7 +383,7 @@ extension RegexComponent {
   /// The default word boundaries use a Unicode algorithm that handles some cases
   /// better than simple word boundaries, such as words with internal
   /// punctuation, changes in script, and Emoji.
-  public func wordBoundaryKind(_ wordBoundaryKind: RegexWordBoundaryKind) -> Regex<Output>
+  public func wordBoundaryKind(_ wordBoundaryKind: RegexWordBoundaryKind) -> Regex<RegexOutput>
 }
 
 public struct RegexWordBoundaryKind: Hashable {
@@ -380,7 +394,7 @@ public struct RegexWordBoundaryKind: Hashable {
   /// that match `/\w\W/` or `/\W\w/`, or between the start or end of the input
   /// and a `\w` character. Word boundaries therefore depend on the option-
   /// defined behavior of `\w`.
-  public static var unicodeLevel1: Self { get }
+  public static var simple: Self { get }
 
   /// A word boundary algorithm that implements the "default word boundary"
   /// Unicode recommendation.
@@ -388,7 +402,7 @@ public struct RegexWordBoundaryKind: Hashable {
   /// Default word boundaries use a Unicode algorithm that handles some cases
   /// better than simple word boundaries, such as words with internal
   /// punctuation, changes in script, and Emoji.
-  public static var unicodeLevel2: Self { get }
+  public static var default: Self { get }
 }
 ```
 
@@ -462,7 +476,7 @@ family.contains(/^\X\s/)    // true
 extension RegexComponent {
   /// Returns a regular expression that matches with the specified semantic
   /// level.
-  public func matchingSemantics(_ semanticLevel: RegexSemanticLevel) -> Regex<Output>
+  public func matchingSemantics(_ semanticLevel: RegexSemanticLevel) -> Regex<RegexOutput>
 }
 	
 public struct RegexSemanticLevel: Hashable {
@@ -508,7 +522,7 @@ The `repetitionBehavior(_:)` method lets you set the default behavior for all qu
 extension RegexComponent {
   /// Returns a regular expression where quantifiers are reluctant by default
   /// instead of eager.
-  public func repetitionBehavior(_ behavior: RegexRepetitionBehavior) -> Regex<Output>
+  public func repetitionBehavior(_ behavior: RegexRepetitionBehavior) -> Regex<RegexOutput>
 }
 
 public struct RegexRepetitionBehavior {
@@ -696,6 +710,20 @@ Unicode property matching is extended to `Character`s with a goal of consistency
 
 To invert a Unicode property character class, use `\P{...}`.
 
+When using `RegexBuilder` syntax, Unicode property classes are available through the following methods on  `CharacterClass`:
+
+- `static func generalCategory(_: Unicode.GeneralCategory) -> CharacterClass`
+- `static func binaryProperty(_: KeyPath<UnicodeScalar.Properties, Bool>, value: Bool = true) -> CharacterClass`
+- `static func named(_: String) -> CharacterClass`
+- `static func age(_: Unicode.Version) -> CharacterClass`
+- `static func numericType(_: Unicode.NumericType) -> CharacterClass`
+- `static func numericValue(_: Double) -> CharacterClass`
+- `static func lowercaseMapping(_: String) -> CharacterClass`
+- `static func uppercaseMapping(_: String) -> CharacterClass`
+- `static func titlecaseMapping(_: String) -> CharacterClass`
+- `static func canonicalCombiningClass(_: Unicode.CanonicalCombiningClass) -> CharacterClass`
+
+You can see the full `CharacterClass` API with documentation comments in the **Custom Classes** section, below.
 
 #### POSIX character classes: `[:NAME:]`
 
@@ -744,33 +772,64 @@ let octoDecimalRegex: Regex<(Substring, Int?)> = Regex {
 The full `CharacterClass` API is as follows:
 
 ```swift
+/// A class of characters that match in a regex.
+///
+/// A character class can represent individual characters, a group of
+/// characters, the set of character that match some set of criteria, or
+/// a set algebraic combination of all of the above.
 public struct CharacterClass: RegexComponent {
   public var regex: Regex<Substring> { get }
 
+  /// A character class that matches any character that does not match this
+  /// character class.
   public var inverted: CharacterClass { get }
 }
 
+// MARK: Built-in character classes
+
 extension RegexComponent where Self == CharacterClass {
+  /// A character class that matches any element.
+  ///
+  /// This character class is unaffected by the `dotMatchesNewlines()` method.
   public static var any: CharacterClass { get }
 
+  /// A character class that matches any element that isn't a newline.
+  public static var anyNonNewline: CharacterClass {
+
+  /// A character class that matches any single `Character`, or extended
+  /// grapheme cluster, regardless of the current semantic level.
   public static var anyGraphemeCluster: CharacterClass { get }
 
+  /// A character class that matches any single Unicode scalar, regardless
+  /// of the current semantic level.
   public static var anyUnicodeScalar: CharacterClass { get }
 
+  /// A character class that matches any decimal digit.
   public static var digit: CharacterClass { get }
   
+  /// A character class that matches any hexadecimal digit.
   public static var hexDigit: CharacterClass { get }
 
-  public static var word: CharacterClass { get }
+  /// A character class that matches any element that is a "word character".
+  public static var wordCharacter: CharacterClass { get }
 
+  /// A character class that matches any element that is classified as
+  /// whitespace.
   public static var whitespace: CharacterClass { get }
   
+  /// A character class that matches any element that is classified as
+  /// horizontal whitespace.
   public static var horizontalWhitespace: CharacterClass { get }
 
-  public static var newlineSequence: CharacterClass { get }
-
+  /// A character class that matches any element that is classified as
+  /// vertical whitespace.
   public static var verticalWhitespace: CharacterClass { get }
+
+  /// A character class that matches any newline sequence.
+  public static var newlineSequence: CharacterClass { get }
 }
+
+// MARK: anyOf(_:) / noneOf(_:)
 
 extension RegexComponent where Self == CharacterClass {
   /// Returns a character class that matches any character in the given string
@@ -782,16 +841,28 @@ extension RegexComponent where Self == CharacterClass {
   /// sequence.
   public static func anyOf<S: Sequence>(_ s: S) -> CharacterClass
     where S.Element == UnicodeScalar
+
+  /// Returns a character class that matches none of the characters in the given
+  /// string or sequence.
+  public static func noneOf<S: Sequence>(_ s: S) -> CharacterClass
+    where S.Element == Character
+  
+  /// Returns a character class that matches none of the Unicode scalars in the
+  /// given sequence.
+  public static func noneOf<S: Sequence>(_ s: S) -> CharacterClass
+    where S.Element == UnicodeScalar
 }
 
-// Unicode properties
+// MARK: Unicode properties
+
 extension CharacterClass {
   /// Returns a character class that matches elements in the given Unicode
   /// general category.
   public static func generalCategory(_ category: Unicode.GeneralCategory) -> CharacterClass
 }
 
-// Set algebra methods
+// MARK: Set algebra methods
+
 extension CharacterClass {
   /// Creates a character class that combines the given classes in a union.
   public init(_ first: CharacterClass, _ rest: CharacterClass...)
@@ -810,10 +881,10 @@ extension CharacterClass {
   public func symmetricDifference(_ other: CharacterClass) -> CharacterClass
 }
 
-/// Range syntax for characters in `CharacterClass`es.
+// MARK: Range syntax
+
 public func ...(lhs: Character, rhs: Character) -> CharacterClass
 
-/// Range syntax for unicode scalars in `CharacterClass`es.
 @_disfavoredOverload
 public func ...(lhs: UnicodeScalar, rhs: UnicodeScalar) -> CharacterClass
 ```
