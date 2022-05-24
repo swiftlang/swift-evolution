@@ -327,7 +327,7 @@ func go2() async {
 
 The duration of the `go2()` call remains the same, it is always `time(go2) == max(time(f), time(s))`.
 
-Special attention needs to be given to the `async let _ = ...` form of declarations. This form is interesting because it creates a child-task of the right-hand-side initializer, however it actively chooses to ignore the result. Such a declaration (and the associated child-task) will run and be awaited-on implicitly, as the scope it was declared in is about to exit — the same way as an unused `async let` declaration would be.
+Special attention needs to be given to the `async let _ = ...` form of declarations. This form is interesting because it creates a child-task of the right-hand-side initializer, however it actively chooses to ignore the result. Such a declaration (and the associated child-task) will run and be cancelled and awaited-on implicitly, as the scope it was declared in is about to exit — the same way as an unused `async let` declaration would be.
 
 ### `async let` and closures
 
