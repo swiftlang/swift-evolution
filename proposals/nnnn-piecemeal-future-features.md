@@ -23,7 +23,7 @@ Swift 6 is accumulating a number of improvements to the language that have enoug
 
 A few proposals have already introduced bespoke solutions to provide a migration path: [SE-0337](https://github.com/apple/swift-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md) adds `-warn-concurrency` to enable warnings for `Sendable`-related checks in Swift 4.x/5.x. [SE-0354](https://github.com/apple/swift-evolution/blob/main/proposals/0354-regex-literals.md) adds the flag `-enable-bare-slash-regex` to enable the bare `/.../` regular expression syntax. And although it wasn't part of the proposal, the discussion of [SE-0335](https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md) included requests for a compiler flag to require `any` on all existentials. These all have the same flavor, of opting existing Swift 4.x/5.x code into improvements that will come in Swift 6.
 
-This proposals explicitly embraces the piecemeal, intentional adoption of features that were held until Swift 6 for source-compatibility reasons. It establishes a direct path to incrementally adopt Swift 6 features, one-by-one, to gain their benefits in a Swift 4.x/5.x code base and smooth the migration path to a Swift 6 language mode. Developers can use a new compiler flag, `-enable-future-feature X` to enable the specific feature named `X` for that module, and multiple features can be specified in this manner. When the developer moves to the next major language version, `X` will be implied by that language version and the compiler flag will be rejected. This way, future feature flags only accumulate up to the next major Swift language version and are then cleared away, so we don't fork the language into incompatible dialects.
+This proposal explicitly embraces the piecemeal, intentional adoption of features that were held until Swift 6 for source-compatibility reasons. It establishes a direct path to incrementally adopt Swift 6 features, one-by-one, to gain their benefits in a Swift 4.x/5.x code base and smooth the migration path to a Swift 6 language mode. Developers can use a new compiler flag, `-enable-future-feature X` to enable the specific feature named `X` for that module, and multiple features can be specified in this manner. When the developer moves to the next major language version, `X` will be implied by that language version and the compiler flag will be rejected. This way, future feature flags only accumulate up to the next major Swift language version and are then cleared away, so we don't fork the language into incompatible dialects.
 
 Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/piecemeal-adoption-of-swift-6-improvements-in-swift-5-x/57184)
 
@@ -83,7 +83,7 @@ The `hasFeature(X)` check indicates the presence of features, but by itself an o
 #if compiler(>=5.7) && hasFeature(BareSlashRegexLiterals)
 let regex = /.../
 #else
-let regex = NSRegularExpression("...")
+let regex = try NSRegularExpression(pattern: "...")
 #endif
 ```
 
@@ -91,12 +91,13 @@ There is in issue with the above, because `hasFeature` *itself* is not understoo
 
 ```swift
 #if compiler(>=5.7)
-#if hasFeature(BareSlashRegexLiterals)
-let regex = /.../
+  #if hasFeature(BareSlashRegexLiterals)
+  let regex = /.../
+  #else
+  let regex = #/.../#
+  #endif
 #else
-let regex = NSRegularExpression("...")
-#else
-let regex = NSRegularExpression("...")
+let regex = try NSRegularExpression(pattern: "...")
 #endif
 ```
 
