@@ -3,8 +3,9 @@
 * Proposal: [SE-0352](0352-implicit-open-existentials.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active Review (April 21...May 18, 2022)**
+* Status: **Accepted**
 * Implementation: [apple/swift#41996](https://github.com/apple/swift/pull/41996), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-macos/120/artifact/branch-main/swift-PR-41996-120-osx.tar.gz)
+* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0352-implicitly-opened-existentials/57553)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/77374319a7d70c866bd197faada46ecfce461645/proposals/0352-implicit-open-existentials.md)
 * Previous Review: [First review](https://forums.swift.org/t/se-0352-implicitly-opened-existentials/56557/52)
 
