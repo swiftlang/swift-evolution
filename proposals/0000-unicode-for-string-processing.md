@@ -744,8 +744,25 @@ You can see the full `CharacterClass` API with documentation comments in the **C
 Custom classes function as the set union of their individual components, whether those parts are individual characters, individual Unicode scalar values, ranges, Unicode property classes or POSIX classes, or other custom classes.
 
 - Individual characters and scalars will be tested using the same behavior as if they were listed in an alternation. That is, a custom character class like `[abc]` is equivalent to `(a|b|c)` under the same options and modes.
-- When in grapheme cluster semantic mode, ranges of characters will test for membership using NFD form (or NFKD when performing caseless matching). This differs from how a `ClosedRange<Character>` would operate its `contains` method, since that depends on `String`'s `Comparable` conformance, but the decomposed comparison better aligns with the canonical equivalence matching used elsewhere in `Regex`.
-- A custom character class will match a maximum of one `Character` or `UnicodeScalar`, depending on the matching semantic level. This means that a custom character class with extended grapheme cluster members may not match anything while using scalar semantics.
+- Metacharacters that represent built-in character classes keep their same function inside custom character classes. For example, in `[abc\d]+`, the `\d` matches any digit, so the regex matches the entirety of the string `"0a1b2c3"`, and `[\t\R]` matches a tab or any newline character or newline sequence.
+- Metacharacters that represent zero-width assertions have their literal meaning in custom character classes, if one exists. For example, `[\b^]` matches either the BEL control character or a literal carat (`^`), while `\B` is an invalid member of a custom character class.
+
+Ranges in a custom character class require special consideration to avoid unexpected or dangerous results. Using simple lexicographical ordering for comparison is unintuitive when working with multi-scalar characters. For example,
+the custom character class `[0-9]` is intended to match only the ten ASCII digits, but because of lexicographical ordering, complex characters like `"3̠̄"` and `"5️⃣"` would fall into that range. Ranges in custom character classes therefore having the following requirements:
+
+- Range endpoints must be single Unicode scalar values. When parsing a regex, endpoints will be converted to their canonical composed form, so that characters that have a multi-Unicode scalar form in source but a single-scalar canonical representation will still be permitted.
+- When matching with grapheme cluster semantics, only single-scalar characters will match a range. The same conversion to canonical composed form will be used to support the expectation of matching with canonical equivalence.
+
+```swift
+let allDigits = /^[0-9]+$/
+"1230".contains(allDigits)              // true
+"123̠̄0".contains(allDigits)              // false
+"5️⃣".contains(allDigits)                 // false
+
+let cafeExtended = /Caf[à-ÿ]/
+"Café".contains(cafeExtended)           // true
+"Cafe\u{301}".contains(cafeExtended)    // true
+```
 
 Inside regexes, custom classes are enclosed in square brackets `[...]`, and can be nested or combined using set operators like `&&`. For more detail, see the [Run-time Regex Construction proposal][internals-charclass].
 
@@ -956,6 +973,7 @@ Instead, we could use this opportunity to make choose default options that are m
 [perl]: https://perldoc.perl.org/perlre
 [raku]: https://docs.raku.org/language/regexes
 [rust]: https://docs.rs/regex/1.5.4/regex/
+[regexbytes]: https://docs.rs/regex/1.5.4/regex/bytes/
 [python]: https://docs.python.org/3/library/re.html
 [ruby]: https://ruby-doc.org/core-2.4.0/Regexp.html
 [csharp]: https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference
