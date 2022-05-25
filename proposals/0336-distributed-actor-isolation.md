@@ -3,7 +3,7 @@
 * Proposal: [SE-0336](0336-distributed-actor-isolation.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](https://github.com/xedin), [Doug Gregor](https://github.com/DougGregor), [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0336-distributed-actor-isolation/54726)
 * Implementation: 
   * Partially available in [recent `main` toolchain snapshots](https://swift.org/download/#snapshots) behind the `-enable-experimental-distributed` feature flag. 
