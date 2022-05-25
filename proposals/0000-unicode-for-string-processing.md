@@ -413,7 +413,7 @@ When matching with grapheme cluster semantics (the default), metacharacters like
 
 When matching with Unicode scalar semantics, metacharacters and character classes always match a single Unicode scalar value, even if that scalar comprises part of a grapheme cluster.
 
-These semantic levels lead to different results, especially when working with strings that have decomposed characters. In the following example, `queRegex` matches any 3-character string that begins with `"q"`.
+These semantic levels lead to different results when working with strings that have characters made up of multiple Unicode scalar values, such as Emoji or decomposed characters. In the following example, `queRegex` matches any 3-character string that begins with `"q"`.
 
 ```swift
 let composed = "qué"
@@ -468,6 +468,8 @@ family.contains(/^\O\s/))   // false
 // \X matches a single character, whatever the current semantics
 family.contains(/^\X\s/)    // true
 ```
+
+These specific levels of matching, and the options to switch between them, are unique to Swift, but not unprecedented in other regular expression engines. Several engines, including Perl, Java, and ICU-based engines like `NSRegularExpression`, support the `\X` metacharacter for matching a grapheme cluster within otherwise Unicode scalar semantic matching. Rust has a related concept in its [`regex::bytes` type][regexbytes], which matches over abitrary bytes by default but allows switching into Unicode mode for segments of the regular expression.
 
 **Regex syntax:** `(?X)...` or `(?X...)` for grapheme cluster semantics, `(?u)...` or `(?u...)` for Unicode scalar semantics.
 
