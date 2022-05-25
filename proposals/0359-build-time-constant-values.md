@@ -1,9 +1,9 @@
 # Build-Time Constant Values
 
-* Proposal: [SE-NNNN](NNNN-build-time-constant-values.md)
+* Proposal: [SE-0359](0359-build-time-constant-values.md)
 * Authors: [Artem Chikin](https://github.com/artemcm), [Ben Cohen](https://github.com/airspeedswift), [Xi Ge](https://github.com/nkcsgexi)
-* Review Manager: Doug Gregor
-* Status: **Awaiting Review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active Review (May 24...June 6, 2022)**
 * Implementation: Implemented on `main` as `_const`
 
 ## Introduction
