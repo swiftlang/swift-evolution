@@ -3,7 +3,7 @@
 * Proposal: [SE-0346](0346-light-weight-same-type-syntax.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Holly Borla](https://github.com/hborla), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Implementation: Principally [#40714](https://github.com/apple/swift/pull/40714), [#41640](https://github.com/apple/swift/pull/41640); in `main`, enabled by the experimental `-Xfrontend -enable-parameterized-protocol-types` flag
 * Previous Revisions: [1st](https://github.com/apple/swift-evolution/blob/5d86d57cfd6d803df4da90b196682d495e5de9b9/proposals/0346-light-weight-same-type-syntax.md)
 * Review: ([first pitch](https://forums.swift.org/t/pitch-light-weight-same-type-constraint-syntax/52889)) ([second pitch](https://forums.swift.org/t/pitch-2-light-weight-same-type-requirement-syntax/55081)) ([first review](https://forums.swift.org/t/se-0346-lightweight-same-type-requirements-for-primary-associated-types/55869)) ([second review](https://forums.swift.org/t/se-0346-second-review-lightweight-same-type-requirements-for-primary-associated-types/56414)) ([acceptance](https://forums.swift.org/t/accepted-se-0346-lightweight-same-type-requirements-for-primary-associated-types/56747))
