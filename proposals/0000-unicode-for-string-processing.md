@@ -921,6 +921,12 @@ Instead of providing APIs to select whether `Regex` matching is `Character`-base
 
 A prior version of this proposal used a binary method for setting the word boundary algorithm, called `usingSimpleWordBoundaries()`. A method taking a `RegexWordBoundaryKind` instance is included in the proposal instead, to leave room for implementing other word boundary algorithms in the future.
 
+### More "Swifty" default option settings
+
+Swift's `Regex` includes some default behaviors that don't match other regex engines — in particular, matching characters with `.` and using Unicode's default word boundary algorithm. For other option-based behaviors, `Regex` adheres to the general standard set by other regular expression engines, like having `.` not match newlines and `^` and `$` only match the start and end of the input instead of the beginning and end of each line. This is to ease the process of bringing existing regular expressions and existing knowledge into Swift.
+
+Instead, we could use this opportunity to make choose default options that are more ergonomic or intuitive, and provide a `compatibilityOptions()` API that reverts back to the typical settings, including matching based on Unicode scalars instead of characters. This method could additionally be a point of documentation for Swift's choices of default behaviors.
+
 
 [repo]: https://github.com/apple/swift-experimental-string-processing/
 [option-scoping]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#matching-options
