@@ -523,7 +523,30 @@ The `repetitionBehavior(_:)` method lets you set the default behavior for all qu
 
 ```swift
 extension RegexComponent {
-  /// Returns a regular expression where `RegexBuilder` 
+  /// Returns a regular expression where quantifiers use the specified behavior
+  /// by default.
+  ///
+  /// You can call this method to change the default repetition behavior for
+  /// quantifier operators in regex syntax and `RegexBuilder` quantifier
+  /// methods. For example, in the following example, both regexes use
+  /// possessive quantification when matching a quotation surround by `"`
+  /// quote marks:
+  ///
+  ///     let regex1 = /"[^"]*"/.defaultRepetitionBehavior(.possessive)
+  ///
+  ///     let quoteMark = "\""
+  ///     let regex2 = Regex {
+  ///         quoteMark
+  ///         ZeroOrMore(.noneOf(quoteMark))
+  ///         quoteMark
+  ///     }.defaultRepetitionBehavior(.possessive)
+  ///
+  /// This setting only changes the default behavior of quantifiers, and does
+  /// not affect regex syntax operators with an explicit behavior indicator,
+  /// such as `*?` or `++`. Likewise, calls to quantifier methods such as
+  /// `OneOrMore` always use the explicit `behavior`, when given.
+  ///
+  /// - Parameter behavior: The default behavior to use for quantifiers.
   public func defaultRepetitionBehavior(_ behavior: RegexRepetitionBehavior) -> Regex<RegexOutput>
 }
 
@@ -798,41 +821,62 @@ extension RegexComponent where Self == CharacterClass {
   /// A character class that matches any element.
   ///
   /// This character class is unaffected by the `dotMatchesNewlines()` method.
+  /// To match any character that isn't a newline, see
+  /// ``CharacterClass.anyNonNewline``.
+  ///
+  /// This character class is equivalent to the regex syntax "dot"
+  /// metacharacter in single-line mode: `(?s:.)`.
   public static var any: CharacterClass { get }
 
   /// A character class that matches any element that isn't a newline.
+  ///
+  /// This character class is unaffected by the `dotMatchesNewlines()` method.
+  /// To match any character, including newlines, see ``CharacterClass.any``.
+  ///
+  /// This character class is equivalent to the regex syntax "dot"
+  /// metacharacter with single-line mode disabled: `(?-s:.)`.
   public static var anyNonNewline: CharacterClass { get }
 
   /// A character class that matches any single `Character`, or extended
   /// grapheme cluster, regardless of the current semantic level.
+  ///
+  /// This character class is equivalent to `\X` in regex syntax.
   public static var anyGraphemeCluster: CharacterClass { get }
 
-  /// A character class that matches any single Unicode scalar, regardless
-  /// of the current semantic level.
-  public static var anyUnicodeScalar: CharacterClass { get }
-
-  /// A character class that matches any decimal digit.
+  /// A character class that matches any digit.
+  ///
+  /// This character class is equivalent to `\d` in regex syntax.
   public static var digit: CharacterClass { get }
   
   /// A character class that matches any hexadecimal digit.
   public static var hexDigit: CharacterClass { get }
 
   /// A character class that matches any element that is a "word character".
-  public static var wordCharacter: CharacterClass { get }
+  ///
+  /// This character class is equivalent to `\w` in regex syntax.
+  public static var word: CharacterClass { get }
 
   /// A character class that matches any element that is classified as
   /// whitespace.
+  ///
+  /// This character class is equivalent to `\s` in regex syntax.
   public static var whitespace: CharacterClass { get }
   
   /// A character class that matches any element that is classified as
   /// horizontal whitespace.
+  ///
+  /// This character class is equivalent to `\h` in regex syntax.
   public static var horizontalWhitespace: CharacterClass { get }
 
   /// A character class that matches any element that is classified as
   /// vertical whitespace.
+  ///
+  /// This character class is equivalent to `\v` in regex syntax.
   public static var verticalWhitespace: CharacterClass { get }
 
   /// A character class that matches any newline sequence.
+  ///
+  /// This character class is equivalent to `\R` or `\n` in regex syntax.
   public static var newlineSequence: CharacterClass { get }
 }
 
@@ -841,21 +885,41 @@ extension RegexComponent where Self == CharacterClass {
 extension RegexComponent where Self == CharacterClass {
   /// Returns a character class that matches any character in the given string
   /// or sequence.
+  ///
+  /// Calling this method with a group of characters is equivalent to listing
+  /// those characters in a custom character class in regex syntax. For example,
+  /// the two regexes in this example are equivalent:
+  ///
+  ///     let regex1 = /[abcd]+/
+  ///     let regex2 = OneOrMore(.anyOf("abcd"))
   public static func anyOf<S: Sequence>(_ s: S) -> CharacterClass
     where S.Element == Character
     
-  /// Returns a character class that matches any unicode scalar in the given
+  /// Returns a character class that matches any Unicode scalar in the given
   /// sequence.
+  ///
+  /// Calling this method with a group of Unicode scalars is equivalent to
+  /// listing them in a custom character class in regex syntax.
   public static func anyOf<S: Sequence>(_ s: S) -> CharacterClass
     where S.Element == UnicodeScalar
 
   /// Returns a character class that matches none of the characters in the given
   /// string or sequence.
+  ///
+  /// Calling this method with a group of characters is equivalent to listing
+  /// those characters in a negated custom character class in regex syntax. For
+  /// example, the two regexes in this example are equivalent:
+  ///
+  ///     let regex1 = /[^abcd]+/
+  ///     let regex2 = OneOrMore(.noneOf("abcd"))
   public static func noneOf<S: Sequence>(_ s: S) -> CharacterClass
     where S.Element == Character
   
   /// Returns a character class that matches none of the Unicode scalars in the
   /// given sequence.
+  ///
+  /// Calling this method with a group of Unicode scalars is equivalent to
+  /// listing them in a negated custom character class in regex syntax.
   public static func noneOf<S: Sequence>(_ s: S) -> CharacterClass
     where S.Element == UnicodeScalar
 }
@@ -863,14 +927,82 @@ extension RegexComponent where Self == CharacterClass {
 // MARK: Unicode properties
 
 extension CharacterClass {
-  /// Returns a character class that matches elements in the given Unicode
+  /// Returns a character class that matches any element with the given Unicode
   /// general category.
+  ///
+  /// For example, when passed `.uppercaseLetter`, this method is equivalent to
+  /// `/\p{Uppercase_Letter}/` or `/\p{Lu}/`.
   public static func generalCategory(_ category: Unicode.GeneralCategory) -> CharacterClass
+
+    /// Returns a character class that matches any element with the given Unicode
+  /// binary property.
+  ///
+  /// For example, when passed `\.isAlphabetic`, this method is equivalent to
+  /// `/\p{Alphabetic}/` or `/\p{Is_Alphabetic=true}/`.
+  public static func binaryProperty(
+      _ property: KeyPath<UnicodeScalar.Properties, Bool>,
+      value: Bool = true
+  ) -> CharacterClass
+  
+  /// Returns a character class that matches any element with the given Unicode
+  /// name.
+  ///
+  /// This method is equivalent to `/\p{Name=name}/`.
+  public static func name(_ name: String) -> CharacterClass
+  
+  /// Returns a character class that matches any element that was included in
+  /// the specified Unicode version.
+  ///
+  /// This method is equivalent to `/\p{Age=version}/`.
+  public static func age(_ version: Unicode.Version) -> CharacterClass
+  
+  /// Returns a character class that matches any element with the given Unicode
+  /// numeric type.
+  ///
+  /// This method is equivalent to `/\p{Numeric_Type=type}/`.
+  public static func numericType(_ type: Unicode.NumericType) -> CharacterClass
+  
+  /// Returns a character class that matches any element with the given numeric
+  /// value.
+  ///
+  /// This method is equivalent to `/\p{Numeric_Value=value}/`.
+  public static func numericValue(_ value: Double) -> CharacterClass
+  
+  /// Returns a character class that matches any element with the given Unicode
+  /// canonical combining class.
+  ///
+  /// This method is equivalent to
+  /// `/\p{Canonical_Combining_Class=combiningClass}/`.
+  public static func canonicalCombiningClass(
+      _ combiningClass: Unicode.CanonicalCombiningClass
+  ) -> CharacterClass
+  
+  /// Returns a character class that matches any element with the given
+  /// lowercase mapping.
+  ///
+  /// This method is equivalent to `/\p{Lowercase_Mapping=value}/`.
+  public static func lowercaseMapping(_ value: String) -> CharacterClass
+  
+  /// Returns a character class that matches any element with the given
+  /// uppercase mapping.
+  ///
+  /// This method is equivalent to `/\p{Uppercase_Mapping=value}/`.
+  public static func uppercaseMapping(_ value: String) -> CharacterClass
+
+  /// Returns a character class that matches any element with the given
+  /// titlecase mapping.
+  ///
+  /// This method is equivalent to `/\p{Titlecase_Mapping=value}/`.
+  public static func titlecaseMapping(_ value: String) -> CharacterClass
 }
 
 // MARK: Set algebra methods
 
 extension CharacterClass {
+  /// Returns a character class that combines the characters classes in the
+  /// given sequence or collection via union.
+  public init(_ characterClasses: some Sequence<CharacterClass>)
+
   /// Creates a character class that combines the given classes in a union.
   public init(_ first: CharacterClass, _ rest: CharacterClass...)
   
