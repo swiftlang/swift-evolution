@@ -523,9 +523,8 @@ The `repetitionBehavior(_:)` method lets you set the default behavior for all qu
 
 ```swift
 extension RegexComponent {
-  /// Returns a regular expression where quantifiers are reluctant by default
-  /// instead of eager.
-  public func repetitionBehavior(_ behavior: RegexRepetitionBehavior) -> Regex<RegexOutput>
+  /// Returns a regular expression where `RegexBuilder` 
+  public func defaultRepetitionBehavior(_ behavior: RegexRepetitionBehavior) -> Regex<RegexOutput>
 }
 
 public struct RegexRepetitionBehavior {
@@ -716,7 +715,7 @@ When using `RegexBuilder` syntax, Unicode property classes are available through
 
 You can see the full `CharacterClass` API with documentation comments in the **Custom Classes** section, below.
 
-#### POSIX character classes: `[:NAME:]`
+#### POSIX character classes: `[:NAME:]` or `\p{NAME}`
 
 **POSIX character classes** represent concepts that we'd like to define at all semantic levels. We propose the following definitions, some of which have been described above. When matching with grapheme cluster semantics, Unicode properties are extended to `Character`s as described in the rationale above, and as shown in the table below. That is, for POSIX class `[:word:]`, any `Character` that starts with a matching scalar is a match, while for `[:digit:]`, a matching `Character` must only comprise a single Unicode scalar value.
 
@@ -802,7 +801,7 @@ extension RegexComponent where Self == CharacterClass {
   public static var any: CharacterClass { get }
 
   /// A character class that matches any element that isn't a newline.
-  public static var anyNonNewline: CharacterClass {
+  public static var anyNonNewline: CharacterClass { get }
 
   /// A character class that matches any single `Character`, or extended
   /// grapheme cluster, regardless of the current semantic level.
@@ -944,7 +943,7 @@ A prior version of this proposal used a binary method for setting the word bound
 
 Swift's `Regex` includes some default behaviors that don't match other regex engines — in particular, matching characters with `.` and using Unicode's default word boundary algorithm. For other option-based behaviors, `Regex` adheres to the general standard set by other regular expression engines, like having `.` not match newlines and `^` and `$` only match the start and end of the input instead of the beginning and end of each line. This is to ease the process of bringing existing regular expressions and existing knowledge into Swift.
 
-Instead, we could use this opportunity to make choose default options that are more ergonomic or intuitive, and provide a `compatibilityOptions()` API that reverts back to the typical settings, including matching based on Unicode scalars instead of characters. This method could additionally be a point of documentation for Swift's choices of default behaviors.
+Instead, we could use this opportunity to choose default options that are more ergonomic or intuitive, and provide a `compatibilityOptions()` API that reverts back to the typical settings, including matching based on Unicode scalars instead of characters. This method could additionally be a point of documentation for Swift's choices of default behaviors.
 
 
 [repo]: https://github.com/apple/swift-experimental-string-processing/
