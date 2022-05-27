@@ -179,20 +179,22 @@ let regex5 = /(?i)ba(?-i:na)na/
 
 All option APIs are provided on `RegexComponent`, so they can be called on a `Regex` instance, or on any component that you would use inside a `RegexBuilder` block when the `RegexBuilder` module is imported.
 
-The options that `Regex` support are shown in the table below. Options that affect _matching behavior_ are supported through both regex syntax and APIs, while options that have _structural_ or _syntactic_ effects are only supported through regex syntax.
+The options that `Regex` supports are shown in the table below, in three groups: Options that affect matching behavior for _both regex syntax and APIs_, options that affect the matching behavior of _regex syntax only_, and options with _structural_ or _syntactic_ effects that are only supported through regex syntax.
 
-| **Matching Behavior**        |                |                           | Default            |
-|------------------------------|----------------|---------------------------|--------------------|
-| Case insensitivity           | `(?i)`         | `ignoresCase()`           | disabled           |
-| Single-line mode             | `(?s)`         | `dotMatchesNewlines()`    | disabled           |
-| Multi-line mode              | `(?m)`         | `anchorsMatchNewlines()`  | disabled           |
-| ASCII-only character classes | `(?DSWP)`      | `asciiOnlyClasses(_:)`    | `.none`            |
-| Unicode word boundaries      | `(?w)`         | `wordBoundaryKind(_:)`    | `.default`         |
-| Semantic level               | `(?Xu)`        | `matchingSemantics(_:)`   | `.graphemeCluster` |
-| Repetition behavior          | `(?U)`         | `repetitionBehavior(_:)`  | `.eager`           |
-| **Structural/Syntactic**     |                |                           |                    |
-| Extended syntax              | `(?x)`,`(?xx)` | n/a                       | `xx` enabled in multi-line regex literals; otherwise, off |
-| Named captures only          | `(?n)`         | n/a                       | disabled           |
+| **Matching Behavior**        |                |                                 | Default            |
+|------------------------------|----------------|---------------------------------|--------------------|
+| Case insensitivity           | `(?i)`         | `ignoresCase()`                 | disabled           |
+| ASCII-only character classes | `(?DSWP)`      | `asciiOnlyClasses(_:)`          | `.none`            |
+| Unicode word boundaries      | `(?w)`         | `wordBoundaryKind(_:)`          | `.default`         |
+| Semantic level               | `(?Xu)`        | `matchingSemantics(_:)`         | `.graphemeCluster` |
+| Default repetition behavior  | n/a            | `defaultRepetitionBehavior(_:)` | `.eager`           |
+| **Regex Syntax Only**        |                |                                 |                    |
+| Single-line mode             | `(?s)`         | `dotMatchesNewlines()`          | disabled           |
+| Multi-line mode              | `(?m)`         | `anchorsMatchNewlines()`        | disabled           |
+| Swap eager/reluctant         | `(?U)`         | n/a                             | disabled           |
+| **Structural/Syntactic**     |                |                                 |                    |
+| Extended syntax              | `(?x)`,`(?xx)` | n/a                             | `xx` enabled in multi-line regex literals; otherwise, off |
+| Named captures only          | `(?n)`         | n/a                             | disabled           |
 
 #### Case insensitivity
 
