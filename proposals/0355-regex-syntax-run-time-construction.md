@@ -99,21 +99,23 @@ We propose `AnyRegexOutput` for capture types not known at compilation time, alo
 ```swift
 /// A type-erased regex output
 public struct AnyRegexOutput {
-  /// Creates a type-erased regex output from an existing output.
+  /// Creates a type-erased regex output from an existing match.
   ///
-  /// Use this initializer to fit a regex with strongly typed captures into the
+  /// Use this initializer to fit a regex with statically-typed captures into the
   /// use site of a dynamic regex, i.e. one that was created from a string.
   public init<Output>(_ match: Regex<Output>.Match)
 
-  /// Returns a typed output by converting the underlying value to the specified
-  /// type.
+  /// Returns a statically-typed output by converting dynamic values to the specified type.
   ///
   /// - Parameter type: The expected output type.
   /// - Returns: The output, if the underlying value can be converted to the
-  ///   output type, or nil otherwise.
-  public func `as`<Output>(_ type: Output.Type) -> Output?
+  ///   output type; otherwise `nil`.
+  public func extractValues<Output>(
+    as type: Output.Type = Output.self
+  ) -> Output?
 }
 extension AnyRegexOutput: RandomAccessCollection {
+  /// An individual output value.
   public struct Element {
     /// The range over which a value was captured. `nil` for no-capture.
     public var range: Range<String.Index>? { get }
@@ -123,6 +125,9 @@ extension AnyRegexOutput: RandomAccessCollection {
 
     /// The captured value. `nil` for no-capture.
     public var value: Any?  { get }
+
+    /// The name of this capture, if it has one, otherwise `nil`.
+    public var name: String?
   }
 
   // Trivial collection conformance requirements
@@ -150,14 +155,6 @@ extension Regex.Match where Output == AnyRegexOutput {
   /// Use this initializer to fit a regex match with strongly typed captures into the
   /// use site of a dynamic regex match, i.e. one that was created from a string.
   public init<Output>(_ match: Regex<Output>.Match)
-
-  /// Returns a typed match by converting the underlying values to the specified
-  /// types.
-  ///
-  /// - Parameter type: The expected output type.
-  /// - Returns: A match generic over the output type if the underlying values can be converted to the
-  ///   output type. Returns `nil` otherwise.
-  public func `as`<Output>(_ type: Output.Type) -> Regex<Output>.Match?
 }
 
 extension Regex where Output == AnyRegexOutput {
@@ -165,14 +162,16 @@ extension Regex where Output == AnyRegexOutput {
   ///
   /// Use this initializer to fit a regex with strongly typed captures into the
   /// use site of a dynamic regex, i.e. one that was created from a string.
-  public init<Output>(_ match: Regex<Output>)
+  public init<Output>(_ regex: Regex<Output>)
+}
 
-  /// Returns a typed regex by converting the underlying types.
+extension Regex {
+  /// Creates a strongly-typed regex from a dynamic regex.
   ///
-  /// - Parameter type: The expected output type.
-  /// - Returns: A regex generic over the output type if the underlying types can be converted.
-  ///   Returns `nil` otherwise.
-  public func `as`<Output>(_ type: Output.Type) -> Regex<Output>?
+  /// Use this initializer to create a strongly typed regex from
+  /// one that was created from a string. Returns `nil` if the types
+  /// don't match.
+  public init?(_ dynamic: Regex<AnyRegexOutput>)
 }
 ```
 
@@ -1042,6 +1041,11 @@ We are prototyping an "experimental" Swift extended syntax, which is future work
 Regex syntax will become part of Swift's source and binary-compatibility story, so a reasonable alternative is to support the absolute minimal syntactic subset available. However, we would need to ensure that such a minimal approach is extensible far into the future. Because syntax decisions can impact each other, we would want to consider the ramifications of this full syntactic superset ahead of time anyways.
 
 Even though it is more work up-front and creates a longer proposal, it is less risky to support the full intended syntax. The proposed superset maximizes the familiarity benefit of regex syntax.
+
+### Future: Capture descriptions on Regex
+
+Future API could include a description of the capture list that a regex contains, provided as a collection of optionally-named captures and their types. This would further enhance dynamic regexes.
+
 
 
 <!-- 
