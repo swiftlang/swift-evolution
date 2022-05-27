@@ -421,7 +421,7 @@ A character property specifies a particular Unicode, POSIX, or PCRE property to 
 - The POSIX properties `alnum`, `blank`, `graph`, `print`, `word`, `xdigit` (note that `alpha`, `lower`, `upper`, `space`, `punct`, `digit`, and `cntrl` are covered by Unicode properties).
 - The UTS#18 special properties `any`, `assigned`, `ascii`.
 - The special PCRE2 properties `Xan`, `Xps`, `Xsp`, `Xuc`, `Xwd`.
-- The special Java properties `javaLowerCase`, `javaUpperCase`, `javaWhitespace`, `javaMirrored`.
+- The special Java properties, including e.g `javaLowerCase`, `javaUpperCase`, `javaWhitespace`, `javaMirrored`.
 
 We follow [UTS#18][uts18]'s guidance for character properties, including fuzzy matching for property name parsing, according to rules set out by [UAX44-LM3]. The following property names are equivalent:
 
@@ -957,7 +957,7 @@ As such we feel that the more desirable default behavior of shorthand script pro
 
 Various regex engines offer an "extended syntax" where whitespace is treated as non-semantic (e.g `a b c` is equivalent to `abc`), in addition to allowing end-of-line comments `# comment`. In both PCRE and Perl, this is enabled through the `(?x)`, and in later versions, `(?xx)` matching options. The former allows non-semantic whitespace outside of character classes, and the latter also allows non-semantic whitespace in custom character classes.
 
-Oniguruma, Java, and ICU however enable the more broad behavior under `(?x)`. We therefore propose following this behavior, with `(?x)` and `(?xx)` being treated the same.
+ICU and Java however enable the more broad behavior under `(?x)`. We propose following this behavior, with `(?x)` and `(?xx)` being treated the same.
 
 Different regex engines also have different rules around what characters are considered non-semantic whitespace. When compiled with Unicode support, PCRE follows the `Pattern_White_Space` Unicode property, which consists of the following scalars:
 
