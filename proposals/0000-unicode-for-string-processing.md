@@ -221,73 +221,6 @@ extension RegexComponent {
 }
 ```
 
-#### Single line mode (`.` matches newlines)
-
-The "any" metacharacter (`.`) matches any character in a string *except* newlines by default. With the `s` option enabled, `.` matches any character including newlines.
-
-```swift
-let str = """
-    <<This string
-    uses double-angle-brackets
-    to group text.>>
-    """
-    
-str.firstMatch(of: /<<.+>>/)        // nil
-str.firstMatch(of: /(?s)<<.+>>/)    // "This string\nuses double-angle-brackets\nto group text."
-```
-
-This option also affects the behavior of `CharacterClass.any`, which is designed to match the behavior of the `.` regex literal component.
-
-**Regex syntax:** `(?s)...` or `(?s...)`
-
-**`RegexBuilder` API:**
-
-```swift
-extension RegexComponent {
-  /// Returns a regular expression where the start and end of input
-  /// anchors (`^` and `$`) also match against the start and end of a line.
-  public func dotMatchesNewlines(_ dotMatchesNewlines: Bool = true) -> Regex<RegexOutput>
-}
-```
-
-#### Multiline mode
-
-By default, the start and end anchors (`^` and `$`) match only the beginning and end of a string. With the `m` or the option, they also match the beginning and end of each line.
-
-```swift
-let str = """
-    abc
-    def
-    ghi
-    """
-	
-str.firstMatch(of: /^abc/)          // "abc"
-str.firstMatch(of: /^abc$/)         // nil
-str.firstMatch(of: /(?m)^abc$/)     // "abc"
-	
-str.firstMatch(of: /^def/)          // nil
-str.firstMatch(of: /(?m)^def$/)     // "def"
-```
-
-This option applies only to anchors used in a regex literal. The anchors defined in `RegexBuilder` are specific about matching at the start/end of the input or the line, and therefore do not correspond directly with the `^` and `$` literal anchors.
-
-```swift
-str.firstMatch(of: Regex { Anchor.startOfInput ; "def" }) // nil
-str.firstMatch(of: Regex { Anchor.startOfLine  ; "def" }) // "def"
-```
-
-**Regex syntax:** `(?m)...` or `(?m...)`
-
-**`RegexBuilder` API:**
-
-```swift
-extension RegexComponent {
-  /// Returns a regular expression where the start and end of input
-  /// anchors (`^` and `$`) also match against the start and end of a line.
-  public func anchorsMatchLineEndings(_ matchLineEndings: Bool = true) -> Regex<RegexOutput>
-}
-```
-
 #### ASCII-only character classes
 
 With one or more of these options enabled, the default character classes match only ASCII values instead of the full Unicode range of characters. Four options are included in this group:
@@ -520,31 +453,7 @@ public struct RegexSemanticLevel: Hashable {
 
 #### Default repetition behavior
 
-Regex quantifiers (`+`, `*`, and `?`) match eagerly by default when they repeat, such that they match the longest possible substring. Appending `?` to a quantifier makes it reluctant, instead, so that it matches the shortest possible substring.
-
-```swift
-let str = "<token>A value.</token>"
-	
-// By default, the '+' quantifier is eager, and consumes as much as possible.
-str.firstMatch(of: /<.+>/)          // "<token>A value.</token>"
-	
-// Adding '?' makes the '+' quantifier reluctant, so that it consumes as little as possible.
-str.firstMatch(of: /<.+?>/)         // "<token>"
-```
-
-The `U` option toggles the "eagerness" of quantifiers, so that quantifiers are reluctant by default, and only become eager when `?` is added to the quantifier.
-
-```swift
-// '(?U)' toggles the eagerness of quantifiers:
-str.firstMatch(of: /(?U)<.+>/)      // "<token>"
-str.firstMatch(of: /(?U)<.+?>/)     // "<token>A value.</token>"
-```
-
-**Regex syntax:** `(?U)...` or `(?U...)`
-
-**`RegexBuilder` API:**
-
-The `repetitionBehavior(_:)` method lets you set the default behavior for all quantifiers that don't explicitly provide their own behavior. For example, you can make all quantifiers behave possessively, eliminating any quantification-caused backtracking.
+The `defaultRepetitionBehavior(_:)` method lets you set the default behavior for all quantifiers that don't explicitly provide their own behavior. For example, you can make all quantifiers behave possessively, eliminating any quantification-caused backtracking.
 
 ```swift
 extension RegexComponent {
@@ -588,6 +497,109 @@ public struct RegexRepetitionBehavior {
   public static var possessive: RegexRepetitionBehavior { get }
 }
 ```
+
+The `RegexBuilder` quantifier APIs include a `nil`-defaulted optional `behavior` parameter. When you pass `nil`, the quantifier uses the default behavior as set by this option. If an explicit behavior is passed, that behavior is used regardless of the default.
+
+```swift
+// Example `OneOrMore` initializer
+extension OneOrMore {
+    public init<W, C0, Component: RegexComponent>(
+    _ behavior: RegexRepetitionBehavior? = nil,
+    @RegexComponentBuilder _ component: () -> Component
+  ) where Output == (Substring, C0), Component.Output == (W, C0)
+}
+```
+
+#### Single line mode (`.` matches newlines)
+
+The "any" metacharacter (`.`) matches any character in a string *except* newlines by default. With the `s` option enabled, `.` matches any character including newlines.
+
+```swift
+let str = """
+    <<This string
+    uses double-angle-brackets
+    to group text.>>
+    """
+    
+str.firstMatch(of: /<<.+>>/)        // nil
+str.firstMatch(of: /(?s)<<.+>>/)    // "This string\nuses double-angle-brackets\nto group text."
+```
+
+This option applies only to `.` used in regex syntax and does _not_ affect the behavior of `CharacterClass.any`, which always matches any character or Unicode scalar. To get the default `.` behavior when using `RegexBuilder` syntax, use `CharacterClass.anyNonNewline`.
+
+**Regex syntax:** `(?s)...` or `(?s...)`
+
+**`RegexBuilder` API:**
+
+```swift
+extension RegexComponent {
+  /// Returns a regular expression where the start and end of input
+  /// anchors (`^` and `$`) also match against the start and end of a line.
+  public func dotMatchesNewlines(_ dotMatchesNewlines: Bool = true) -> Regex<RegexOutput>
+}
+```
+
+#### Multiline mode
+
+By default, the start and end anchors (`^` and `$`) match only the beginning and end of a string. With the `m` or the option, they also match the beginning and end of each line.
+
+```swift
+let str = """
+    abc
+    def
+    ghi
+    """
+	
+str.firstMatch(of: /^abc/)          // "abc"
+str.firstMatch(of: /^abc$/)         // nil
+str.firstMatch(of: /(?m)^abc$/)     // "abc"
+	
+str.firstMatch(of: /^def/)          // nil
+str.firstMatch(of: /(?m)^def$/)     // "def"
+```
+
+This option applies only to anchors used in a regex literal. The anchors defined in `RegexBuilder` are specific about matching at the start/end of the input or the line, and therefore are not affected by this option.
+
+```swift
+str.firstMatch(of: Regex { Anchor.startOfInput ; "def" }) // nil
+str.firstMatch(of: Regex { Anchor.startOfLine  ; "def" }) // "def"
+```
+
+**Regex syntax:** `(?m)...` or `(?m...)`
+
+**`RegexBuilder` API:**
+
+```swift
+extension RegexComponent {
+  /// Returns a regular expression where the start and end of input
+  /// anchors (`^` and `$`) also match against the start and end of a line.
+  public func anchorsMatchLineEndings(_ matchLineEndings: Bool = true) -> Regex<RegexOutput>
+}
+```
+
+#### Eager/reluctant toggle
+
+Regex quantifiers (`+`, `*`, and `?`) match eagerly by default when they repeat, such that they match the longest possible substring. Appending `?` to a quantifier makes it reluctant, instead, so that it matches the shortest possible substring.
+
+```swift
+let str = "<token>A value.</token>"
+	
+// By default, the '+' quantifier is eager, and consumes as much as possible.
+str.firstMatch(of: /<.+>/)          // "<token>A value.</token>"
+	
+// Adding '?' makes the '+' quantifier reluctant, so that it consumes as little as possible.
+str.firstMatch(of: /<.+?>/)         // "<token>"
+```
+
+The `U` option toggles the "eagerness" of quantifiers, so that quantifiers are reluctant by default, and only become eager when `?` is added to the quantifier. This change only applies within regex syntax. See the `defaultRepetitionBehavior(_:)` method, described above, for control over repetition behavior in `RegexBuilder` syntax.
+
+```swift
+// '(?U)' toggles the eagerness of quantifiers:
+str.firstMatch(of: /(?U)<.+>/)      // "<token>"
+str.firstMatch(of: /(?U)<.+?>/)     // "<token>A value.</token>"
+```
+
+**Regex syntax:** `(?U)...` or `(?U...)`
 
 In order for this option to have the same effect on regexes built with `RegexBuilder` as with regex syntax, the `RegexBuilder` quantifier APIs are amended to have an `nil`-defaulted optional `behavior` parameter. For example:
 
