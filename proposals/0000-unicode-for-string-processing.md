@@ -614,7 +614,6 @@ extension OneOrMore {
 
 When you pass `nil`, the quantifier uses the default behavior as set by this option (either eager or reluctant). If an explicit behavior is passed, that behavior is used regardless of the default.
 
-
 ---
 
 ### Character Classes
@@ -637,9 +636,9 @@ You can build custom character classes by combining regex-defined classes with i
 
 #### “Any”
 
-The simplest character class, representing **any character**, is written as `.` or `CharacterClass.any` and is also referred to as the "dot" metacharacter. This  class always matches a single `Character` or Unicode scalar value, depending on the matching semantic level. This class excludes newlines, unless "single line mode" is enabled (see section above).
+The simplest character class, representing **any character**, is written as `.` and is sometimes referred to as the "dot" metacharacter. This class always matches a single `Character` or Unicode scalar value, depending on the matching semantic level. This class excludes newlines, unless "single line mode" is enabled (see section above).
 
-In the following example, using grapheme cluster semantics, a dot matches a grapheme cluster, so the decomposed é is treated as a single value:
+When using the `CharacterClass` type in a `RegexBuilder`-defined regex, the `.any` and `.anyNonNewline` provide separate APIs for the two behaviors of `.`, and are therefore unaffected by the current "single line mode" setting.
 
 ```swift
 "Cafe\u{301}".contains(/C.../)
@@ -660,10 +659,10 @@ for match in data.matches(of: /(.),/.matchingSemantics(.unicodeScalar)) {
 // ...
 ```
 
-`Regex` also provides ways to select a specific level of "any" matching, without needing to change semantic levels.
+#### Any grapheme cluster
 
-- The **any grapheme cluster** character class is written as `\X` or `CharacterClass.anyGraphemeCluster`, and matches from the current location up to the next grapheme cluster boundary. This includes matching newlines, regardless of any option settings. This metacharacter is equivalent to the regex syntax `(?s-u:.)`.
-- The **any Unicode scalar** character class is written as `\O` or `CharacterClass.anyUnicodeScalar`, and matches exactly one Unicode scalar value at the current location. This includes matching newlines, regardless of any option settings, but only the first scalar in an `\r\n` cluster. This metacharacter is equivalent to the regex syntax `(?su:.)`.
+`Regex` also provides a way to match a single grapheme cluster, regardless of the current semantic level. The **any grapheme cluster** character class is written as `\X` or `CharacterClass.anyGraphemeCluster`, and matches from the current location up to the next grapheme cluster boundary. This includes matching newlines, regardless of any option settings. This metacharacter is equivalent to the regex syntax `(?Xs:.)`.
+
 
 #### Digits
 
