@@ -410,9 +410,13 @@ public struct RegexWordBoundaryKind: Hashable {
 
 #### Matching semantic level
 
-When matching with grapheme cluster semantics (the default), metacharacters like `.` and `\w`, custom character classes, and character class instances like `.any` match a grapheme cluster when possible, corresponding with the default string representation. In addition, matching with grapheme cluster semantics compares characters using their canonical representation, corresponding with the way comparing strings for equality works.
+FIXME: Add intro paragraph
 
-When matching with Unicode scalar semantics, metacharacters and character classes always match a single Unicode scalar value, even if that scalar comprises part of a grapheme cluster.
+These specific levels of matching, and the options to switch between them, are unique to Swift, but not unprecedented in other regular expression engines. Several engines, including Perl, Java, and ICU-based engines like `NSRegularExpression`, support the `\X` metacharacter for matching a grapheme cluster within otherwise Unicode scalar semantic matching. Rust has a related concept in its [`regex::bytes` type][regexbytes], which matches over abitrary bytes by default but allows switching into Unicode mode for segments of the regular expression.
+
+When matching with *grapheme cluster semantics* (the default), metacharacters like `.` and `\w`, custom character classes, and character class instances like `.any` match a grapheme cluster, corresponding with the default string representation. In addition, matching with grapheme cluster semantics compares characters using their canonical representation, corresponding with the way comparing strings for equality works.
+
+When matching with *Unicode scalar semantics*, metacharacters and character classes match a single Unicode scalar value, even if that scalar comprises part of a grapheme cluster.
 
 These semantic levels lead to different results when working with strings that have characters made up of multiple Unicode scalar values, such as Emoji or decomposed characters. In the following example, `queRegex` matches any 3-character string that begins with `"q"`.
 
@@ -438,7 +442,7 @@ print(decomposed.contains(queRegexScalar))
 // Prints "false"
 ```
 
-With grapheme cluster semantics, a grapheme cluster boundary is naturally enforced at the start and end of the match and every capture group. Matching with Unicode scalar semantics, on the other hand, including using the `\O` metacharacter or `.anyUnicodeScalar` character class, can yield string indices that aren't aligned to character boundaries. Take care when using indices that aren't aligned with grapheme cluster boundaries, as they may have to be rounded to a boundary if used in a `String` instance.
+With grapheme cluster semantics, a grapheme cluster boundary is naturally enforced at the start and end of the match and every capture group. Matching with Unicode scalar semantics, on the other hand, can yield string indices that aren't aligned to character boundaries. Take care when using indices that aren't aligned with grapheme cluster boundaries, as they may have to be rounded to a boundary if used in a `String` instance.
 
 ```swift
 let family = "👨‍👨‍👧‍👦 is a family"
@@ -460,17 +464,37 @@ print(unicodeScalarMatch.endIndex == family.index(after: family.startIndex))
 // Prints "false"
 ```
 
-When a regex proceeds with grapheme cluster semantics from a position that _isn't_ grapheme cluster aligned, it attempts to match the partial grapheme cluster that starts at that point. In the first call to `contains(_:)` below, `\O` matches a single Unicode scalar value, as shown above, and then the engine tries to match `\s` against the remainder of the family emoji character. Because that character is not whitespace, the match fails. The second call uses `\X`, which matches the entire emoji character, and then successfully matches the following space.
+When there is a boundary between Unicode scalar semantic and grapheme scalar semantic matching in the middle of a regex, an implicit grapheme cluster boundary assertion is added at the start of the grapheme scalar semantic section. That is, these two regexes are equivalent:
 
 ```swift
-// \O matches a single Unicode scalar, whatever the current semantics
-family.contains(/^\O\s/))   // false
+let implicit = /(?u:\p{Letter}\p{CombiningMark}).+/       // Implicit grapheme cluster boundary
+let explicit = /(?u:\p{Letter}\p{CombiningMark})\y.+/     // Explicit grapheme cluster boundary
 
-// \X matches a single character, whatever the current semantics
-family.contains(/^\X\s/)    // true
+try implicit.wholeMatch(in: "e\u{301} abc")           // match
+try implicit.wholeMatch(in: "e\u{301}\u{327} abc")    // no match
 ```
 
-These specific levels of matching, and the options to switch between them, are unique to Swift, but not unprecedented in other regular expression engines. Several engines, including Perl, Java, and ICU-based engines like `NSRegularExpression`, support the `\X` metacharacter for matching a grapheme cluster within otherwise Unicode scalar semantic matching. Rust has a related concept in its [`regex::bytes` type][regexbytes], which matches over abitrary bytes by default but allows switching into Unicode mode for segments of the regular expression.
+The second call to `wholeMatch(in:)` fails because at the point the matching engine exits the `(?u:...)` group, the matching position is still in the middle of the `"e\u{301}\u{327}` character. This implicit grapheme cluster boundary assumption maintains the guarantee that capture groups over grapheme cluster semantic sections will have valid character-aligned indices.
+
+If a regex starts or ends with a Unicode scalar semantic section, there is no assertion added at the start or end of the pattern. Consider the following regex, which has Unicode scalars for the entire pattern except for a section in the middle that matches a purple heart emoji. When applied to a string with a multi-scalar character before or after the `"💜"`, the resulting match includes a partial character at its beginning and end.
+
+```swift
+let regex = Regex {
+    CharacterClass.any
+    Regex {  // <-- Implicit grapheme cluster boundary assertion, as above
+        "💜"
+    }.matchingSemantics(.graphemeCluster)
+    CharacterClass.any
+}.matchingSemantics(.unicodeScalar)
+
+let borahae = "태형💜아미"    // Note: These hangeul characters are decomposed
+if let match = borahae.firstMatch(of: regex) {
+    print(match.0)
+}
+// Prints "ᆼ💜ᄋ"
+```
+
+Boundaries from a grapheme cluster section into a Unicode scalar also imply a grapheme cluster boundary, but in this case no assertion is needed. This boundary is an emergent property of the fact that under grapheme cluster semantics, matching always happens one character at a time.
 
 **Regex syntax:** `(?X)...` or `(?X...)` for grapheme cluster semantics, `(?u)...` or `(?u...)` for Unicode scalar semantics.
 
