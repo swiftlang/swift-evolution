@@ -1113,6 +1113,15 @@ Swift's `Regex` includes some default behaviors that don't match other regex eng
 
 Instead, we could use this opportunity to choose default options that are more ergonomic or intuitive, and provide a `compatibilityOptions()` API that reverts back to the typical settings, including matching based on Unicode scalars instead of characters. This method could additionally be a point of documentation for Swift's choices of default behaviors.
 
+Swift's `Regex` includes some default behaviors that don't match other regex engines — in particular, matching characters with `.` and using Unicode's default word boundary algorithm. For other, more common option-based behaviors, `Regex` adheres to the general standard set by other regular expression engines, like having `.` not match newlines and `^` and `$` only match the start and end of the input instead of the beginning and end of each line. This is to ease the process of bringing existing regular expressions and existing knowledge into Swift.
+
+### Include `\O` and `CharacterClass.anyUnicodeScalar`
+
+An earlier draft of this proposal included a metacharacter and `CharacterClass` API for matching an individual Unicode scalar value, regardless of the current matching level, as a counterpart to `\X`/`.anyGraphemeCluster`. The behavior of this character class, particularly when matching with grapheme cluster semantics, is still unclear at this time, however. For example, when matching the expression `\O*`, does the implict grapheme boundary assertion apply between the `\O` and the quantification operator, or should we treat the two as a single unit and apply the assertion after the `*`?
+
+At the present time, we prefer to allow authors to write regexes that explicitly shift into and out of Unicode scalar mode, where those kinds of decisions are handled by the explicit scope of the setting. If common patterns emerge that indicate some version of `\O` would be useful, we can add it in the future.
+
+
 
 [repo]: https://github.com/apple/swift-experimental-string-processing/
 [option-scoping]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#matching-options
