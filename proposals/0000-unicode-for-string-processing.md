@@ -106,10 +106,9 @@ str.contains(/.+e\u{301}/)  // true
 str.contains(/\w+é/)        // true
 ```
 
-
 For compatibility with other regex engines and the flexibility to match at both `Character` and Unicode scalar level, you can switch between matching levels for an entire regex or within select portions. This powerful capability provides the expected default behavior when working with strings, while allowing you to drop down for Unicode scalar-specific matching.
 
-By default, literal characters and Unicode scalar values (e.g. `\u{301}`) are coalesced into characters in the same way as a normal string, as shown above. Metacharacters, like `.` and `\w`, and custom character classes each match a single element at the current matching level.
+By default, literal characters and Unicode scalar values (e.g. `\u{301}`) are coalesced into characters the same way as a normal string, as shown above. Metacharacters, like `.` and `\w`, and custom character classes each match a single element at the current matching level.
 
 For example, these matches fail, because by the time the engine attempts to match the "`\u{301}`" Unicode scalar literal in the regex, the full `"é"` character in `str` has been matched, even though that character is made up of two Unicode scalar values:
 
@@ -119,7 +118,7 @@ str.contains(/Caf\w\u{301}/)   // false - `\w` matches "é" character
 str.contains(/.+\u{301}/)      // false - `.+` matches each character
 ```
 
-Alternatively, we can drop down to use Unicode scalar semantics if we want to match specific Unicode sequences. For example, these regexes matches an `"e"` followed by any modifier with the specified parameters:
+Alternatively, we can drop down to use Unicode scalar semantics if we want to match specific Unicode sequences. For example, these regexes match an `"e"` followed by any modifier with the specified parameters:
 
 ```swift
 str.contains(/e[\u{300}-\u{314}]/.matchingSemantics(.unicodeScalar))
