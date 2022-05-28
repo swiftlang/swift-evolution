@@ -89,7 +89,7 @@ extension Regex {
   public init(_ pattern: String, as: Output.Type = Output.self) throws
 }
 extension Regex where Output == AnyRegexOutput {
-  /// Parse and compile `pattern`, resulting in an existentially-typed capture list.
+  /// Parse and compile `pattern`, resulting in a type-erased capture list.
   public init(_ pattern: String) throws
 }
 ```
@@ -101,11 +101,11 @@ We propose `AnyRegexOutput` for capture types not known at compilation time, alo
 public struct AnyRegexOutput {
   /// Creates a type-erased regex output from an existing match.
   ///
-  /// Use this initializer to fit a regex with statically-typed captures into the
-  /// use site of a dynamic regex, i.e. one that was created from a string.
+  /// Use this initializer to fit a strongly-typed regex match into the
+  /// use site of a type-erased regex output.
   public init<Output>(_ match: Regex<Output>.Match)
 
-  /// Returns a statically-typed output by converting dynamic values to the specified type.
+  /// Returns a strongly-typed output by converting type-erased values to the specified type.
   ///
   /// - Parameter type: The expected output type.
   /// - Returns: The output, if the underlying value can be converted to the
@@ -114,8 +114,9 @@ public struct AnyRegexOutput {
     as type: Output.Type = Output.self
   ) -> Output?
 }
+
 extension AnyRegexOutput: RandomAccessCollection {
-  /// An individual output value.
+  /// An individual type-erased output value.
   public struct Element {
     /// The range over which a value was captured. `nil` for no-capture.
     public var range: Range<String.Index>? { get }
@@ -152,26 +153,26 @@ We propose adding an API to `Regex<AnyRegexOutput>` and `Regex<AnyRegexOutput>.M
 extension Regex.Match where Output == AnyRegexOutput {
   /// Creates a type-erased regex match from an existing match.
   ///
-  /// Use this initializer to fit a regex match with strongly typed captures into the
-  /// use site of a dynamic regex match, i.e. one that was created from a string.
+  /// Use this initializer to fit a regex match with strongly-typed captures into the
+  /// use site of a type-erased regex match.
   public init<Output>(_ match: Regex<Output>.Match)
 }
 
 extension Regex where Output == AnyRegexOutput {
   /// Creates a type-erased regex from an existing regex.
   ///
-  /// Use this initializer to fit a regex with strongly typed captures into the
-  /// use site of a dynamic regex, i.e. one that was created from a string.
+  /// Use this initializer to fit a regex with strongly-typed captures into the
+  /// use site of a type-erased regex, i.e. one that was created from a string.
   public init<Output>(_ regex: Regex<Output>)
 }
 
 extension Regex {
-  /// Creates a strongly-typed regex from a dynamic regex.
+  /// Creates a strongly-typed regex from a type-erased regex.
   ///
-  /// Use this initializer to create a strongly typed regex from
+  /// Use this initializer to create a strongly-typed regex from
   /// one that was created from a string. Returns `nil` if the types
   /// don't match.
-  public init?(_ dynamic: Regex<AnyRegexOutput>)
+  public init?(_ erased: Regex<AnyRegexOutput>, as: Output.Type = Output.self)
 }
 ```
 
@@ -179,16 +180,17 @@ We propose adding API to query and access captures by name in an existentially t
 
 ```swift
 extension Regex where Output == AnyRegexOutput {
-  /// Returns whether a named-capture with `name` is present.
+  /// Returns whether a named-capture with `name` exists.
   public func contains(captureNamed name: String) -> Bool
 }
+
 extension Regex.Match where Output == AnyRegexOutput {
-  /// If a named-capture with `name` is present, returns its value. Otherwise `nil`.
+  /// Access a capture by name. Returns `nil` if there's no capture with that name.
   public subscript(_ name: String) -> AnyRegexOutput.Element? { get }
 }
 
 extension AnyRegexOutput {
-  /// If a named-capture with `name` is present, returns its value. Otherwise `nil`.
+  /// Access a capture by name. Returns `nil` if no capture with that name was present in the Regex.
   public subscript(_ name: String) -> AnyRegexOutput.Element? { get }
 }
 ```
