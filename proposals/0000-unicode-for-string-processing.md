@@ -755,7 +755,113 @@ Character classes that match **Unicode properties** are written as `\p{PROPERTY}
 
 While most Unicode properties are only defined at the scalar level, some are defined to match an extended grapheme cluster. For example, `\p{RGI_Emoji_Flag_Sequence}` will match any flag emoji character, which are composed of two Unicode scalar values. Such property classes will match multiple scalars, even when matching with Unicode scalar semantics.
 
-Unicode property matching is extended to `Character`s with a goal of consistency with other regex character classes. For `\p{Decimal}` and `\p{Hex_Digit}`, only single-scalar `Character`s can match, for the reasons described in that section, above. For all other Unicode property classes, matching `Character`s can comprise multiple scalars, as long as the first scalar matches the property.
+Unicode property matching is extended to `Character`s with a goal of consistency with other regex character classes, and as dictated by prior standard library additions to the `Character` type. For example, for `\p{Decimal}` and `\p{Hex_Digit}`, only single-scalar `Character`s can match, for the reasons described in that section, above. For other Unicode property classes, like `\p{Whitespace}`, the character matches when the first scalar has that Unicode property. Open the following disclosure area to see the full list of properties, along with the rubric for extending them to grapheme clusters.
+
+<details><summary>Unicode properties</summary>
+
+We can choose to extend a Unicode property to a grapheme cluster in one of several ways:
+
+- *single-scalar*: Only a character that comprises a single Unicode scalar value can match
+- *first-scalar*: If the first Unicode scalar in a character matches, then the character matches
+- *any-scalar*: If any Unicode scalar in a character matches, then the character matches
+- *all-scalars*: A character matches if and only if all its Unicode scalar members match
+
+With a few guidelines, we can make headway on classifying Unicode properties:
+
+- Numeric-related properties, like `Numeric_Value`, should only apply to single-scalar characters, for the reasons described in the "Digit" character class section, above.
+- Any other properties that directly or approximately correspond to regex or POSIX character classes should use the first-scalar rule. This corresponds with the way `Character.isWhitespace` is implemented and generally matches the perceived categorization of characters.
+- Properties that resolve to a unique Unicode scalar, such as `Name`, should only apply to single-scalar characters.
+- Properties that govern the way Unicode scalars combine into characters, such as `Canonical_Combining_Class`, or are otherwise only relevant when examining specific Unicode data, such as `Age`, should only apply to single-scalar characters.
+- Properties that can naturally apply to a sequence of Unicode scalars, such as `Lowercase_Mapping`, should use an all-scalars approach. This corresponds with the way `Character.isLowercased` and other casing properties are implemented.
+
+In many cases, properties with a *single-scalar* treatment won't match any characters at all, and will only be useful when matching with Unicode scalar semantics. For example, `/\p{Emoji_Modifier}/` matches the five Fitzpatrick skin tone modifier Unicode scalar values that affect the appearance of emoji within a grapheme cluster. When matching with grapheme cluster semantics, no match for the pattern will be found. Using Unicode scalar semantics, however, you can search for all characters that include such a modifier:
+
+```
+let regex = /(?u)\y.+?\p{Emoji_Modifier}.+?\y/
+for ch in "👩🏾‍🚀🚀 👨🏻‍🎤🎸 🧑🏻‍💻📲".matches(of: regex) {
+  print(ch)
+}
+// Prints:
+// 👩🏾‍🚀
+// 👨🏻‍🎤
+// 🧑🏻‍💻
+```
+
+The table below shows our best effort at choosing the right manner of extending.
+
+| Property                            | Extension                     | Notes                             |
+|-------------------------------------|-------------------------------|-----------------------------------|
+| **General**                         |                               |                                   |
+| `Name`                              | single-scalar                 |                                   |
+| `Name_Alias`                        | single-scalar                 |                                   |
+| `Age`                               | single-scalar                 |                                   |
+| `General_Category`                  | first-scalar                  | Numeric categories: single-scalar |
+| `Script`                            | first-scalar                  |                                   |
+| `White_Space`                       | first-scalar                  |                                   |
+| `Alphabetic`                        | first-scalar                  |                                   |
+| `Noncharacter_Code_Point`           | single-scalar                 |                                   |
+| `Default_Ignorable_Code_Point`      | single-scalar                 |                                   |
+| `Deprecated`                        | single-scalar                 |                                   |
+| `Logical_Order_Exception`           | single-scalar                 |                                   |
+| `Variation_Selector`                | single-scalar                 |                                   |
+| <br> **Numeric**                    |                               |                                   |
+| `Numeric_Value`                     | single-scalar                 |                                   |
+| `Numeric_Type`                      | single-scalar                 |                                   |
+| `Hex_Digit`                         | single-scalar                 |                                   |
+| `ASCII_Hex_Digit`                   | single-scalar                 |                                   |
+| <br> **Identifiers**                |                               |                                   |
+| `ID_Start`                          | single-scalar                 |                                   |
+| `ID_Continue`                       | single-scalar                 |                                   |
+| `XID_Start`                         | single-scalar                 |                                   |
+| `XID_Continue`                      | single-scalar                 |                                   |
+| `Pattern_Syntax`                    | single-scalar                 |                                   |
+| `Pattern_White_Space`               | single-scalar                 |                                   |
+| <br> **CJK**                        |                               |                                   |
+| `Ideographic`                       | first-scalar                  |                                   |
+| `Unified_Ideograph`                 | first-scalar                  |                                   |
+| `Radical`                           | first-scalar                  |                                   |
+| `IDS_Binary_Operator`               | single-scalar                 |                                   |
+| `IDS_Trinary_Operator`              | single-scalar                 |                                   |
+| <br> **Case**                       |                               |                                   |
+| `Lowercase`                         | first-scalar                  |                                   |
+| `Uppercase`                         | first-scalar                  |                                   |
+| `Lowercase_Mapping`                 | all-scalars                   |                                   |
+| `Titlecase_Mapping`                 | all-scalars                   |                                   |
+| `Uppercase_Mapping`                 | all-scalars                   |                                   |
+| `Soft_Dotted`                       | first-scalar                  |                                   |
+| `Cased`                             | all-scalars                   |                                   |
+| `Case_Ignorable`                    | all-scalars                   |                                   |
+| `Changes_When_Lowercased`           | all-scalars                   |                                   |
+| `Changes_When_Uppercased`           | all-scalars                   |                                   |
+| `Changes_When_Titlecased`           | all-scalars                   |                                   |
+| `Changes_When_Casefolded`           | all-scalars                   |                                   |
+| `Changes_When_Casemapped`           | all-scalars                   |                                   |
+| <br> **Normalization**              |                               |                                   |
+| `Canonical_Combining_Class`         | single-scalar                 |                                   |
+| `Full_Composition_Exclusion`        | single-scalar                 |                                   |
+| `Changes_When_NFKC_Casefolded`      | all-scalars                   |                                   |
+| <br> **Emoji**                      |                               |                                   |
+| `Emoji`                             | first-scalar                  |                                   |
+| `Emoji_Presentation`                | all-scalars                   |                                   |
+| `Emoji_Modifier`                    | any-scalar                    |                                   |
+| `Emoji_Modifier_Base`               | any-scalar                    |                                   |
+| <br> **Shaping and Rendering**      |                               |                                   |
+| `Join_Control`                      | single-scalar                 |                                   |
+| <br> **Bidirectional**              |                               |                                   |
+| `Bidi_Control`                      | single-scalar                 |                                   |
+| `Bidi_Mirrored`                     | first-scalar                  |                                   |
+| <br> **Miscellaneous**              |                               |                                   |
+| `Math`                              | first-scalar                  |                                   |
+| `Quotation_Mark`                    | first-scalar                  |                                   |
+| `Dash`                              | first-scalar                  |                                   |
+| `Sentence_Terminal`                 | first-scalar                  |                                   |
+| `Terminal_Punctuation`              | first-scalar                  |                                   |
+| `Diacritic`                         | single-scalar                 |                                   |
+| `Extender`                          | single-scalar                 |                                   |
+| `Grapheme_Base`                     | single-scalar                 |                                   |
+| `Grapheme_Extend`                   | single-scalar                 |                                   |
+
+</details>
 
 To invert a Unicode property character class, use `\P{...}`.
 
