@@ -22,30 +22,38 @@ Currently, if a user is given an unreadable mangled symbol, they're most likely 
 The standard library will add the following new enumeration and function:
 
 ```swift
-public enum DemangledStyle {
+/// Represents the demangler function output style.
+public enum DemangledOutputStyle {
+  /// Includes module names and implicit self types.
   case full
+  /// Excludes module names and implicit self types.
   case simplified
 }
 
 /// Given a mangled Swift symbol, return the demangled symbol. Defaults to the simplified style used by LLDB, Instruments and similar tools. 
-public func demangle(_ input: String, style: DemangledStyle = .simplified) -> String?
+public func demangle(
+  _ input: String, 
+  outputStyle: DemangledOutputStyle = .simplified
+) -> String?
 ```
 
 Examples:
 
 ```swift
-print(demangle("$s8Demangle3FooV")!) // Demangle.Foo
+print(demangle("$s8Demangle3FooV")!) // Foo
+
+print(demangle("$s8Demangle3FooV", outputStyle: .full)!) // Demangle.Foo
 ```
 
 ## Detailed design
 
-If one were to pass a string that wasn't a valid Swift mangled symbol, like `abc123`, then the `(String) -> String?` will return `nil` to indicate failure.
+If one were to pass a string that wasn't a valid Swift mangled symbol, like `abc123`, then the function will return `nil` to indicate failure.
 
 This implementation relies on the Swift runtime function `swift_demangle` which accepts symbols that start with `_T`, `_T0`, `$S`, and `$s`.
 
-The `style` parameter of the `demangle(…)` function accepts one of two potential cases:
+The `outputStyle` parameter of the `demangle(…)` function accepts one of two potential cases:
 - `full`: this is equivalent to the output of `swift-demangle`
-- `simplified`: this is equivalent to the output of `swift-demangle -simplified`
+- `simplified`: this is equivalent to the output of `swift-demangle --simplified`
 
 ## Source compatibility
 
