@@ -8,25 +8,38 @@
 * Status: **Active Review (4 - 18 April 2022)**
 
 **Table of Contents**
-- [Introduction](#introduction)
-- [Motivation](#motivation)
-- [Proposed solution](#proposed-solution)
-- [Detailed design](#detailed-design)
-  - [`RegexComponent` protocol](#regexcomponent-protocol)
-  - [Concatenation](#concatenation)
-  - [Capture](#capture)
-  - [Mapping Output](#mapping-output)
-  - [Reference](#reference)
-  - [Alternation](#alternation)
-  - [Repetition](#repetition)
-  - [Anchors and Lookaheads](#anchors-and-lookaheads)
-  - [Subpattern](#subpattern)
-  - [Scoping](#scoping)
-  - [Composability](#composability)
-- [Source compatibility](#source-compatibility)
-- [Effect on ABI stability](#effect-on-abi-stability)
-- [Effect on API resilience](#effect-on-api-resilience)
-- [Alternatives considered](#alternatives-considered)
+- [Regex builder DSL](#regex-builder-dsl)
+  - [Introduction](#introduction)
+  - [Motivation](#motivation)
+  - [Proposed solution](#proposed-solution)
+  - [Detailed design](#detailed-design)
+    - [`RegexComponent` protocol](#regexcomponent-protocol)
+    - [Concatenation](#concatenation)
+    - [Capture](#capture)
+    - [Mapping Output](#mapping-output)
+    - [Reference](#reference)
+    - [Alternation](#alternation)
+    - [Repetition](#repetition)
+      - [Repetition behavior](#repetition-behavior)
+    - [Anchors and Lookaheads](#anchors-and-lookaheads)
+    - [Subpattern](#subpattern)
+    - [Scoping](#scoping)
+    - [Composability](#composability)
+  - [Source compatibility](#source-compatibility)
+  - [Effect on ABI stability](#effect-on-abi-stability)
+  - [Effect on API resilience](#effect-on-api-resilience)
+  - [Future directions](#future-directions)
+    - [Conversion to textual regex](#conversion-to-textual-regex)
+    - [Recursive subpatterns](#recursive-subpatterns)
+  - [Alternatives considered](#alternatives-considered)
+    - [Operators for quantification and alternation](#operators-for-quantification-and-alternation)
+    - [Postfix `capture` and `tryCapture` methods](#postfix-capture-and-trycapture-methods)
+    - [Unify quantifiers under `Repeat`](#unify-quantifiers-under-repeat)
+    - [Free functions instead of types](#free-functions-instead-of-types)
+    - [Support `buildOptional` and `buildEither`](#support-buildoptional-and-buildeither)
+    - [Flatten optionals](#flatten-optionals)
+    - [Structured rather than flat captures](#structured-rather-than-flat-captures)
+    - [Unify `Capture` with `TryCapture`](#unify-capture-with-trycapture)
 
 ## Introduction
 
@@ -178,7 +191,7 @@ One of the goals of the regex builder DSL is allowing the developers to easily c
 ```swift
 public protocol RegexComponent<RegexOutput> {
   associatedtype RegexOutput
-  var regex: Regex<Output> { get }
+  var regex: Regex<RegexOutput> { get }
 }
 
 extension Regex: RegexComponent {
