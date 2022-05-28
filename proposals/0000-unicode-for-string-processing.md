@@ -1227,7 +1227,46 @@ An earlier draft of this proposal included a metacharacter and `CharacterClass` 
 
 At the present time, we prefer to allow authors to write regexes that explicitly shift into and out of Unicode scalar mode, where those kinds of decisions are handled by the explicit scope of the setting. If common patterns emerge that indicate some version of `\O` would be useful, we can add it in the future.
 
+### Additional protocol to limit option methods
 
+The option-setting methods, like `ignoresCase()`, are implemented as extensions of the `RegexComponent` protocol instead of only on the `Regex` type. This provides convenience when working with `RegexBuilder` syntax, as you don't need to add an additional `Regex { ... }` block around a quantifier or other grouping scope that you want to have a particular behavior. However, it means that the option methods are also available on some types for which their meaning is unclear. In particular, with the `RegexBuilder` module imported, `String` has `RegexComponent` conformance, meaning someone can write nonsensical code like `"literal string".defaultRepetitionBehavior(.possessive)`.
+
+One mitigating approach would be to add another protocol that refines `RegexComponent`, with a name like `RegexCompoundComponent`, representing types that can hold or more other regex components. Types like `OneOrMore`, `CharacterClass`, and `Regex` itself would all conform, and the option-setting methods would move to an extension on that new protocol, preventing such nonsensical usage.
+
+However, given that the additional conformances are only available when the `RegexBuilder` module is imported, and the lack of other usefulness for the `RegexCompoundComponent` protocol, it doesn't seem to carry its weight as an additional protocol at this time.
+
+## Future Work
+
+### API for current options
+
+As we gather information about how regexes are used and extended, we may find it useful to query an existing regex instance for the set of options that are present globally, or at the start of the regex. Likewise, if `RegexBuilder` gains the ability to use a predicate or other call out to other code, that may require providing the current set of options at the time of execution.
+
+Such an options type could have a simple read-write, property accessor interface:
+
+```swift
+/// A set of options that affect matching behavior and semantics.
+struct RegexOptions {
+    /// A Boolean value indicating whether casing is ignored while matching.
+    var ignoresCase: Bool
+    /// An option set representing any character classes that are matched as ASCII-only.
+    var asciiOnlyClasses: RegexCharacterClassKind
+    /// The current matching semantics.
+    var matchingSemantics: RegexMatchingSemantics
+    // etc...
+}
+```
+
+### API for overriding Unicode property mapping
+
+We could add API in the future to change how individual Unicode scalar properties are extended to characters. One such approach could be to provide a modifier method that takes a key path and a strategy:
+
+```swift
+// Matches only the character "a"
+let regex1 = /\p{name=latin lowercase a}/
+
+// Matches any character with "a" as its first scalar
+let regex1 = /\p{name=latin lowercase a}/.extendUnicodeProperty(\.name, by: .firstScalar)`.
+```
 
 [repo]: https://github.com/apple/swift-experimental-string-processing/
 [option-scoping]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#matching-options
