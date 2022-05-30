@@ -1199,7 +1199,7 @@ Once that is complete, the runtime will pass the constructed `InvocationEncoder`
     // [4] decode the response from the response bytes
     // in our example system, we're using Codable as SerializationRequirement,
     // so we can decode the response like this (and never need to cast `as? Codable` etc.):
-    try self.someDecoder.decode(as: Success.self, from: data)
+    return try self.someDecoder.decode(as: Success.self, from: responseData)
   }
 }
 ```
