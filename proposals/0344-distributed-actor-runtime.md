@@ -1142,11 +1142,11 @@ struct ClusterTargetInvocationEncoder: DistributedTargetInvocationEncoder {
      envelope.genericSubstitutions.append(String(reflecting: T.self))
    }
 
-   mutating func recordArgument<Argument: SerializationRequirement>(argument: Argument) throws {
-     // in this implementation, we just encode the values one-by-one as we receive them:
-     let argData = try system.encoder.encode(argument) // using whichever Encoder the system has configured
-     envelope.arguments.append(argData)
-   }
+    mutating func recordArgument<Argument: SerializationRequirement>(argument: RemoteCallArgument<Argument>) throws {
+      // in this implementation, we just encode the values one-by-one as we receive them:
+      let argData = try system.encoder.encode(argument) // using whichever Encoder the system has configured
+      envelope.arguments.append(argData)
+    }
 
    mutating func recordErrorType<E: Error>(errorType: E.Type) throws {
      envelope.returnType = String(reflecting: returnType)
