@@ -1129,39 +1129,38 @@ struct ClusterTargetInvocationEncoder: DistributedTargetInvocationEncoder {
   let system: ClusterSystem
   var envelope: Envelope
 
-    init(system: ClusterSystem) {
-      self.system = system
-      self.envelope = .init() // new "empty" envelope
-    }
+   init(system: ClusterSystem) {
+     self.system = system
+     self.envelope = .init() // new "empty" envelope
+   }
 
-    /// The arguments must be encoded order-preserving, and once `decodeGenericSubstitutions`
-    /// is called, the substitutions must be returned in the same order in which they were recorded.
-    mutating func recordGenericSubstitution<T: SerializationRequirement>(type: T.Type) throws {
-      // NOTE: we are showcasing a pretty simple implementation here...
-      //       advanced systems could use mangled type names or registered type IDs.
-      envelope.genericSubstitutions.append(String(reflecting: T.self))
-    }
+   /// The arguments must be encoded order-preserving, and once `decodeGenericSubstitutions`
+   /// is called, the substitutions must be returned in the same order in which they were recorded.
+   mutating func recordGenericSubstitution<T: SerializationRequirement>(type: T.Type) throws {
+     // NOTE: we are showcasing a pretty simple implementation here...
+     //       advanced systems could use mangled type names or registered type IDs.
+     envelope.genericSubstitutions.append(String(reflecting: T.self))
+   }
 
-    mutating func recordArgument<Argument: SerializationRequirement>(argument: Argument) throws {
-      // in this implementation, we just encode the values one-by-one as we receive them:
-      let argData = try system.encoder.encode(argument) // using whichever Encoder the system has configured
-      envelope.arguments.append(argData)
-    }
+   mutating func recordArgument<Argument: SerializationRequirement>(argument: Argument) throws {
+     // in this implementation, we just encode the values one-by-one as we receive them:
+     let argData = try system.encoder.encode(argument) // using whichever Encoder the system has configured
+     envelope.arguments.append(argData)
+   }
 
-    mutating func recordErrorType<E: Error>(errorType: E.Type) throws {
-      envelope.returnType = String(reflecting: returnType)
-    }
+   mutating func recordErrorType<E: Error>(errorType: E.Type) throws {
+     envelope.returnType = String(reflecting: returnType)
+   }
 
-    mutating func recordReturnType<R: SerializationRequirement>(returnType: R.Type) throws {
-      envelope.returnType = String(reflecting: returnType)
-    }
+   mutating func recordReturnType<R: SerializationRequirement>(returnType: R.Type) throws {
+     envelope.returnType = String(reflecting: returnType)
+   }
 
-    /// Invoked when all the `record...` calls have been completed and the `DistributedTargetInvocation`
-    /// will be passed off to the `remoteCall` to perform the remote call using this invocation representation.
-    mutating func doneRecording() throws {
-      // our impl does not need to do anything here
-    }
-  }
+   /// Invoked when all the `record...` calls have been completed and the `DistributedTargetInvocation`
+   /// will be passed off to the `remoteCall` to perform the remote call using this invocation representation.
+   mutating func doneRecording() throws {
+     // our impl does not need to do anything here
+   }
 }
 ```
 
