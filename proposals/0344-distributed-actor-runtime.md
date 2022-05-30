@@ -1191,7 +1191,7 @@ Once that is complete, the runtime will pass the constructed `InvocationEncoder`
 
     // [2] the method is a mangled identifier of the 'distributed func' (or var).
     //     In this system, we just use the mangled name, but we could do much better in the future.
-    envelope.target = target.mangledName
+    envelope.target = target.identifier
 
     // [3] send the envelope over the wire and await the reply:
     let responseData = try await self.underlyingTransport.send(envelope, to: actor.id)
