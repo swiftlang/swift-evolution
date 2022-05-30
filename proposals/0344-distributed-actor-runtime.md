@@ -1258,7 +1258,7 @@ We see that as we decode our wire envelope, we are able to get the header sectio
 Next, we need to prepare for the decoding of the message section. This is done by implementing the remaining protocol requirements on the `ClusterTargetInvocation` type we defined earlier, as well as implementing a decoding iterator of type `DistributedTargetInvocationArgumentDecoder`, as shown below:
 
 ```swift
-class ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
+struct ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
   typealias SerializationRequirement = Codable
 
   let system: ClusterSystem
