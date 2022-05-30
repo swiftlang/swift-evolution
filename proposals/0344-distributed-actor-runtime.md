@@ -1264,7 +1264,7 @@ struct ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
   let system: ClusterSystem
   var bytes: ByteBuffer
 
-  func decodeGenericSubstitutions() throws -> [Any.Type] {
+  mutating func decodeGenericSubstitutions() throws -> [Any.Type] {
     let subCount = try self.bytes.readInt()
 
     var subTypes: [Any.Type] = []
@@ -1288,14 +1288,14 @@ struct ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
   /// buffer for all the arguments and their expected types. The 'pointer' passed here is a pointer
   /// to a "slot" in that pre-allocated buffer. That buffer will then be passed to a thunk that
   /// performs the actual distributed (local) instance method invocation.
-  func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument {
+  mutating func decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument {
     try nextDataLength = try bytes.readInt()
     let nextData = try bytes.readData(bytes: nextDataLength)
     // since we are guaranteed the values are Codable, so we can just invoke it:
     return try system.decoder.decode(as: Argument.self, from: bytes)
   }
 
-  func decodeErrorType() throws -> Any.Type? {
+  mutating func decodeErrorType() throws -> Any.Type? {
     let length = try self.bytes.readInt() // read the length of the type
     guard length > 0 {
       return nil // we don't always transmit it, 0 length means "none"
@@ -1304,7 +1304,7 @@ struct ClusterTargetInvocationDecoder: DistributedTargetInvocationDecoder {
     return try self.system.summonType(byName: typeName)
   }
 
-  func decodeReturnType() throws -> Any.Type? {
+  mutating func decodeReturnType() throws -> Any.Type? {
     let length = try self.bytes.readInt() // read the length of the type
     guard length > 0 {
       return nil // we don't always transmit it, 0 length means "none"
