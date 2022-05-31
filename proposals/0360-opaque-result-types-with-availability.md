@@ -1,4 +1,4 @@
-# [Pitch] Opaque result types with limited availability
+# Opaque result types with limited availability
 
 * Proposal: [SE-0360](0360-opaque-result-types-with-availability.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
