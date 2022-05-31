@@ -6,6 +6,19 @@
 * Status: **Draft**
 * Implementation: [apple/swift-experimental-string-processing][repo]  
 
+### Version History
+
+- Version 1: Initial version
+- Version 2: 
+  - Improved option method API names
+  - Added Unicode property APIs to match regex syntax
+  - Added `CharacterClass.noneOf(_:)` and sequence-based `init`
+  - Clarified default state of options
+  - Added detail around switching semantic modes
+  - Added detail about Unicode property matching in character mode
+  - Revised details of custom character class matching
+  - Removed `\O`/`.anyUnicodeScalar`
+
 ### Table of Contents
 
   - [Introduction](#introduction)
