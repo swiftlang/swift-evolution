@@ -87,18 +87,123 @@ This is a dead-end for the library author although SE-0244 states that it should
 
 ## Proposed solution
 
-To bridge this usability gap I propose to relax same-type restriction for `return`s inside of availability conditions as follows:
+To bridge this usability gap I propose to relax same-type restriction for functions with `if #available` conditions if they meet all of the following conditions.
 
-A function returning an opaque result type is allowed to return values of different concrete types from conditionally available `if #available`  branches without any other dynamic conditions, if and only if, all universally available `return` statements in its body return a value of the same concrete type `T`. All returned values regardless of their location must meet all of the constraints stated on the opaque type.
+1. There is at least one universally (unconditionally) available `return` in a function. All universally available `return`s are required to produce the same type.
+
+2. `if #available` is a top-level statement in a function and *is not* preceded by any block that can return.
+
+  ```swift
+  func test() -> some Shape {
+    if #available(macOS 100, *) { ✅
+      return Rectangle()
+    }
+
+    return self
+  }
+  ```
+  
+  The following is incorrect because `if #available` is preceded by a dynamic condition that returns:
+  
+  ```swift
+  func test() -> some Shape {
+    guard let x = <opt-value> else {
+      return ...
+    }
+    
+    if #available(macOS 100, *) { ❌
+      return Rectangle()
+    }
+
+    return self
+  }
+  ```
+
+  `if #available` appears inside of a loop:
+
+  ```swift
+  func test() -> some Shape {
+    for ... {
+      if #available(macOS 100, *) { ❌
+        return Rectangle()
+      }
+    }
+    return self
+  }
+  ```
+
+3. `if #available` has to terminate with a `return`, and all `return` statements inside of a particular `if #available` condition have to produce the same type, which, at the same time, is allowed be different from top-level `return`(s) or `return`s nested in other conditions regardless of their kind.
+
+  The following `test()` function is well-formed because `if` statement produces the same result in both of its branches and it's statically known that the `if #available` always terminates with a `return`
+  
+  ```swift
+  func test() -> some Shape {
+    if #available(macOS 100, *) {
+       if cond { ✅
+         return Rectangle(...)
+       } else {
+         return Rectangle(...)
+       }
+    }
+    return self
+  }
+  ```
+
+  But:
+
+  ```swift
+  func test() -> some Shape {
+    if #available(macOS 100, *) {
+       if cond { ❌
+         return Rectangle()
+       } else {
+         return Square()
+       }
+    }
+    return self
+  }
+  ```
+
+  is not going to be accepted by the compiler because return types are different: `Rectangle` vs. `Square`.
+
+4. `if #available` *cannot* appear in an `else` branch unless all preceding clauses are `if #available` conditions that meet all of the requirements listed in this section.
+
+  The following example is well-formed because the first `if #available` statement terminates with a `return` and the second one is associated with a valid `if #available` and also terminates with a `return`.
+
+  ```swift
+  func test() -> some Shape {
+    if #available(macOS 100, *) { ✅
+      return Rectangle()
+    } else if #available(macOS 99, *) { ✅
+      return Square()
+    }
+    return self
+  }
+  ```
+
+  But
+
+  ```swift
+  func test() -> some Shape {
+    if cond {
+      ...
+    } else if #available(macOS 100, *) { ❌
+      return Rectangle()
+    }
+    return self
+  }
+  ```
+
+  is not accepted by the compiler because `if #available` associated with a dynamic condition.
 
 ## Detailed design
 
 Proposed changes allow to:
 
 * Use multiple different `if #available` conditions to return types based on their availability e.g. from the most to least available.
-* Safely fallback to a **single** universally available type if none of the conditions are met.
+* Safely fallback to a **single** universally available (meaning no availability restrictions) type if none of the conditions are met.
 
-Note that although it is possible to use multiple availability conditions, mixing conditional availability with dynamic checks would result in `return`s being considered universally available. The following declarations would still be unsupported:
+Note that although it is possible to use multiple availability conditions, mixing conditional availability with dynamic checks (`if`, `guard`, `switch`, `for`) would result in `return`s being considered universally available. The following declarations would still be unsupported:
 
 ```
 func asRectangle() -> some Shape { 
@@ -120,6 +225,26 @@ func asRectangle() -> some Shape {
        return self
      }
   }
+  return self
+}
+```
+
+or
+
+```
+func asRectangle() -> some Shape {
+  if <cond> {
+    if #available(macOS 100, *) { ❌
+     return Rectangle()
+    }
+  }
+
+  for ... {
+    if #available(macOS 100, *) { ❌
+     return Rectangle()
+    }
+  }
+
   return self
 }
 ```
