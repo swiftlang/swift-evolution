@@ -1,10 +1,10 @@
 # [Pitch] Opaque result types with limited availability
 
-* Proposal: [SE-NNNN](NNNN-opaque-result-types-with-availability.md)
+* Proposal: [SE-0360](0360-opaque-result-types-with-availability.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
+* Review Manager: [Joe Groff](https://github.com/jckarter)
 * Implementation: [apple/swift#42072](https://github.com/apple/swift/pull/42072), [apple/swift#42104](https://github.com/apple/swift/pull/42104), and [apple/swift#42167](https://github.com/apple/swift/pull/42167)
-* Status: **Awaiting discussion**
+* Status: **Active review (May 31...June 14, 2022)**
 
 ## Introduction
 
