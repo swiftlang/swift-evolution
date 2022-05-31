@@ -3,8 +3,9 @@
 * Proposal: [SE-0352](0352-implicit-open-existentials.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active Review (April 21...May 4, 2022)**
+* Status: **Accepted**
 * Implementation: [apple/swift#41996](https://github.com/apple/swift/pull/41996), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-macos/120/artifact/branch-main/swift-PR-41996-120-osx.tar.gz)
+* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0352-implicitly-opened-existentials/57553)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/77374319a7d70c866bd197faada46ecfce461645/proposals/0352-implicit-open-existentials.md)
 * Previous Review: [First review](https://forums.swift.org/t/se-0352-implicitly-opened-existentials/56557/52)
 
@@ -79,7 +80,7 @@ func checkFinaleReadiness(costumes: [any Costume]) -> Bool {
     }
   }
   
-  return false
+  return true
 }
 ```
 
@@ -462,19 +463,42 @@ Swift 6 will be a major language version change that can incorporate some semant
 
 ### Suppressing explicit opening with `as any P` / `as! any P`
 
-If for some reason one wants to suppress the implicit opening of an existential value, one can explicitly write a coercion or forced cast to an existential type. For example:
+If for some reason one wants to suppress the implicit opening of an existential value, one can explicitly write a coercion or forced cast to an existential type directly on the call argument. For example:
 
 ```swift
 func f1<T: P>(_: T) { }   // #1
 func f1<T>(_: T) { }      // #2
 
 func test(p: any P) {
-  f1(p)          // opens p and calls #1, which is more specific
-  f1(p as any P) // suppresses opening of 'p', calls #2 which is the only valid candidate
+  f1(p)            // opens p and calls #1, which is more specific
+  f1(p as any P)   // suppresses opening of 'p', calls #2 which is the only valid candidate
+  f1((p as any P)) // parentheses disable this suppression mechanism, so this opens p and calls #1
 }
 ```
 
 Given that implicit opening of existentials is defined to occur in those cases where a generic function would not otherwise be callable, this suppression mechanism should not be required often in Swift 5. In Swift 6, where implicit opening will be more eagerly performed, it can be used to provide the Swift 5 semantics.
+
+An extra set of parentheses will disable this suppression mechanism, which can be important when `as any P` is required for some other reason. For example, because it acknowledges when information is lost from the result type due to type erasure. This can help break ambiguities when both meanings of `as` could apply:
+
+```swift
+protocol P {
+  associatedtype A
+}
+protocol Q {
+  associatedtype B: P where B.A == Int
+}
+
+func getP<T: P>(_ p: T)
+func getBFromQ<T: Q>(_ q: T) -> T.B { ... }
+
+func eraseQAssoc(q: any Q) {
+  getP(getBFromQ(q))          // error, must specify "as any P" due to loss of constraint T.B.A == Int
+  getP(getBFromQ(q) as any P) // suppresses error above, but also suppresses opening, so it produces
+                              // error: now "any P does not conform to P" and op
+  getP((getBFromQ(q) as any P)) // okay! original error message should suggest this
+}
+
+```
 
 ## Source compatibility
 
@@ -625,6 +649,10 @@ func identityTricks(p: any Equatable) {
 This approach is much more complex because it introduces value tracking into the type system (where was this existential value produced?), at which point mutations to variables can affect the static types in the system. 
 
 ## Revisions
+
+Fifth revision:
+
+* Note that parentheses disable the `as any P` suppression mechanism, avoiding the problem where `as any P` is both required (because type erasure lost information from the return type) and also has semantic effect (suppressing opening).
 
 Fourth revision:
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0344](0344-distributed-actor-runtime.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](https://github.com/xedin), [Doug Gregor](https://github.com/DougGregor), [Kavon Farvardin](https://github.com/kavon), [Dario Rexin](https://github.com/drexin), [Tomer Doron](https://github.com/tomerd)
 * Review Manager: [Joe Groff](https://github.com/jckarter/)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Implementation:
   * Partially available in [recent `main` toolchain snapshots](https://swift.org/download/#snapshots) behind the `-enable-experimental-distributed` feature flag.
   * This flag also implicitly enables `-enable-experimental-concurrency`.
@@ -299,7 +299,7 @@ protocol DistributedActorSystem: Sendable {
   func remoteCall<Actor, Failure, Success>(
       on actor: Actor,
       target: RemoteCallTarget,
-      invocation: InvocationEncoder,
+      invocation: inout InvocationEncoder,
       throwing: Failure.Type,
       returning: Success.Type
   ) async throws -> Success
@@ -316,7 +316,7 @@ protocol DistributedActorSystem: Sendable {
   func remoteCallVoid<Actor, Error>(
       on actor: Actor,
       target: RemoteCallTarget,
-      invocation: InvocationEncoder,
+      invocation: inout InvocationEncoder,
       throwing: Failure.Type
   ) async throws
       where Actor: DistributedActor,

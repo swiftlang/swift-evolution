@@ -3,7 +3,7 @@
 * Proposal: [SE-0339](0339-module-aliasing-for-disambiguation.md)
 * Authors: [Ellie Shin](https://github.com/elsh)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted** (with modifications not yet applied; see acceptance)
+* Status: **Implemented (Swift 5.7)** 
 * Pitch: [Module Aliasing](https://forums.swift.org/t/pitch-module-aliasing/51737)
 * Implementation: ([toolchain](https://github.com/apple/swift/pull/40899)),
 [apple/swift-package-manager#4023](https://github.com/apple/swift-package-manager/pull/4023), others
@@ -64,13 +64,13 @@ Since `App` depends on these two `Utils` modules, we have a conflict, thus we ne
   .executableTarget(
     name: "App",
     dependencies: [
-     .product(name: "Game", moduleAliases: ["Utils": "GameUtils"], package: "swift-game"), 
+     .product(name: "Game", package: "swift-game", moduleAliases: ["Utils": "GameUtils"]),
      .product(name: "Utils", package: "swift-draw"), 
    ])
  ]
 ```
 
-The setting `moduleAliases` will rename `Utils` from the `swift-game` package as `GameUtils` and alias all its references in the source code to be compiled as `GameUtils`. Since renaming one of the `Utils` modules will resolve the conflict, it is not necessary to rename the other `Utils` module. The references to `Utils` in the `Game` module will be built as `GameUtils` without requiring any source changes. If `App` needs to reference both `Utils` modules in its source code, it can do so via the unique names:
+The setting `moduleAliases` will rename `Utils` from the `swift-game` package as `GameUtils` and alias all its references in the source code to be compiled as `GameUtils`. Since renaming one of the `Utils` modules will resolve the conflict, it is not necessary to rename the other `Utils` module. The references to `Utils` in the `Game` module will be built as `GameUtils` without requiring any source changes. If `App` needs to reference both `Utils` modules in its source code, it can do so by directly including the aliased name:
 ```
 [App]
 
@@ -87,8 +87,8 @@ Module aliasing relies on being able to change the namespace of all declarations
 
 Most use cases should just require setting `moduleAliases` in a package manifest.  However, it may be helpful to understand how that setting changes the compiler invocations under the hood. In our example scenario, those invocations will change as follows:
 
-1. First, we need to take the `Utils` module from `swift-game` and rename it `GameUtils`. To do this, we will compile the module as if it was actually named `GameUtils`, while treating any references to `Utils` in its source files as references to `GameUtils`.
-    1. The first part (renaming) can be achieved by passing the new module name (`GameUtils`) to `-module-name`. The new module name will also need to be used in any flags specifying output paths, such as `-o`,  `-emit-module-path`, or `-emit-module-interface-path`.  For example, the binary module file should be built as `GameUtils.swiftmodule` instead of `Utils.swiftmodule`.
+1. First, we need to take the `Utils` module from `swift-game` and rename it `GameUtils`. To do this, we will compile the module as if it were actually named `GameUtils`, while treating any references to `Utils` in its source files as references to `GameUtils`.
+    1. The first part (renaming) can be achieved by passing the new module name (`GameUtils`) to `-module-name`. The new module name will also need to be used in any flags specifying output paths, such as `-o`, `-emit-module-path`, or `-emit-module-interface-path`.  For example, the binary module file should be built as `GameUtils.swiftmodule` instead of `Utils.swiftmodule`.
     2. The second part (treating references to `Utils` in source files as `GameUtils`) can be achieved with a new compiler flag `-module-alias [name]=[new_name]`. Here, `name` is the module name that appears in source files (`Utils`), while `new_name` is the new, unique name (`GameUtils`).  So in our example, we will pass `-module-alias Utils=GameUtils`.
     
     Putting these steps together, the compiler invocation command would be `swiftc -module-name GameUtils -emit-module-path /path/to/GameUtils.swiftmodule -module-alias Utils=GameUtils ...`.
@@ -98,29 +98,29 @@ Most use cases should just require setting `moduleAliases` in a package manifest
 3. We don't need any build changes when building `App` because the source code in `App` does not expect to use the `Utils` module from `swift-game` under its original name.  If `App` tries to import a module named `Utils`, that will refer to the `Utils` module from `swift-draw`, which has not been renamed.  If `App` does need to import the `Utils` module from `swift-game`, it must use `import GameUtils`.
 
 
-The arguments to the `-module-alias` flag will be validated against reserved names, invalid identifiers, wrong format or ordering (`-module-alias Utils=GameUtils` is correct but `-module-alias GameUtils=Utils` is not). The flag can be repeated to allow multiple aliases, e.g. `-module-alias Utils=GameUtils -module-alias Logging=SwiftLogging`, and will be checked against duplicates. Diagnostics and fix-its will contain the name Utils in the error messages as opposed to GameUtils to be consistent with the names appearing to users. 
+The arguments to the `-module-alias` flag will be validated against reserved names, invalid identifiers, a wrong format or ordering (`-module-alias Utils=GameUtils` is correct but `-module-alias GameUtils=Utils` is not). The flag can be repeated to allow multiple aliases, e.g. `-module-alias Utils=GameUtils -module-alias Logging=GameLogging`, and will be checked against duplicates. Diagnostics and fix-its will contain the name `Utils` in the error messages as opposed to `GameUtils` to be consistent with the names appearing to users. 
 
-The validated map of aliases will be stored in the AST context and used for dependency scanning/resolution and module loading; from the above scenario, if Game is built with `-module-alias Utils=GameUtils` and has `import Utils` in source code, `GameUtils.swiftmodule` should be loaded instead of `Utils.swiftmodule` during import resolution.  
+The validated map of aliases will be stored in the AST context and used for dependency scanning/resolution and module loading; from the above scenario, if `Game` is built with `-module-alias Utils=GameUtils` and has `import Utils` in source code, `GameUtils.swiftmodule` should be loaded instead of `Utils.swiftmodule` during import resolution.  
 
-While the name Utils appears in source files, the actual binary name will be used for name lookup, semantic analysis, symbol mangling (e.g. `$s9GameUtils5Level`), and serialization. Since the binary names will be stored during serialization, the aliasing flag will only be needed to build the conflicting modules and their immediate consuming modules; building non-immediate consuming modules will not require the flag. 
+While the name `Utils` appears in source files, the actual binary name `GameUtils` will be used for name lookup, semantic analysis, symbol mangling (e.g. `$s9GameUtils5Level`), and serialization. Since the binary names will be stored during serialization, the aliasing flag will only be needed to build the conflicting modules and their immediate consuming modules; building non-immediate consuming modules will not require the flag. 
 
-The module alias map will also be used to disallow any references to the binary module names in source files; only the name Utils should appear in source files, not the binary name GameUtils. This is true only if the `-module-alias` was used to build the module (if the renamed modules were directly imported, those names (binary module names) can appear in source files). This restriction is useful as it can make it easier to rename the module again later if needed, e.g. from GameUtils to SwiftGameUtils.   
+Direct references to the renamed modules should only be allowed in source code if multiple conflicting modules need to be imported; in such case, a direct reference in an import statement, e.g. `import GameUtils`, is allowed. Otherwise, the original name `Utils` should be used in source code instead of the binary name `GameUtils`.  The module alias map will be used to track when to disallow direct references to the binary module names in source files, and an attempt to use the binary name will result in an error along with a fix-it. This restriction is useful as it can make it easier to rename the module again later if needed, e.g. from `GameUtils` to `SwiftGameUtils`.  
 
-Unlike source files, the generated interface module (.swiftinterface) will contain the binary module name in all its references. The binary module name will also be stored for indexing and debugging, and treated as the source of truth. 
+Unlike source files, the generated interface (.swiftinterface) will contain the binary module name in all its references. The binary module name will also be stored for indexing and debugging, and treated as the source of truth. 
 
 ### Changes to Code Assistance / Indexing
 
-The compiler arguments including the new flag `-module-alias` will be available to SourceKit and indexing. The aliases will be stored in the AST context and used to fetch the right results for code completion and other code assistance features. They will also be stored for indexing so features such as jump to definition can navigate to decls under the binary module names. 
+The compiler arguments including the new flag `-module-alias` will be available to SourceKit and indexing. The aliases will be stored in the AST context and used to fetch the right results for code completion and other code assistance features. They will also be stored for indexing so features such as `Jump to Definition` can navigate to declarations scoped to the binary module names. 
 
 Generated documentation, quick help, and other assistance features will contain the binary module names, which will be treated as the source of truth. 
 
 ### Changes to Swift Driver
 
-The module aliasing arguments will be used during dependency scan for both implicit and explicit build modes; the resolved dependency graph will contain the binary module names. In case of the explicit build mode, the dependency input passed to the frontend will contain the binary module names in its json file. Similar to the frontend, validation of the aliasing arguments will be performed at the driver. 
+The module aliasing arguments will be used during the dependency scan for both implicit and explicit build modes; the resolved dependency graph will contain the binary module names. In case of the explicit build mode, the dependency input passed to the frontend will contain the binary module names in its json file. Similar to the frontend, validation of the aliasing arguments will be performed at the driver. 
 
 ### Changes to SwiftPM
 
-To make module aliasing more accessible, we will introduce new build configs which can map to the compiler flags for aliasing described above. Let’s go over how they can be adopted by SwiftPM with the above scenario (copied below). 
+To make module aliasing more accessible, we will introduce new build configs which can map to the compiler flags for aliasing described above. Let’s go over how they can be adopted by SwiftPM with the above scenario (copied here). 
 ```
 App 
   |— Module Game (from package ‘swift-game’)
@@ -128,7 +128,7 @@ App
   |— Module Utils (from package ‘swift-draw’) 
 ```
 
-Here are the example manifests for `swift-game` and `swift-draw`. 
+Here are the manifest examples for `swift-game` and `swift-draw`.
 
 ```
 {
@@ -139,7 +139,7 @@ Here are the example manifests for `swift-game` and `swift-draw`.
    .library(name: "Utils", targets: ["Utils"]),
  ],
  targets: [
-   .target(name: "Game", targets: ["Utils"]),
+   .target(name: "Game", dependencies: ["Utils"]),
    .target(name: "Utils", dependencies: [])
  ]
 }
@@ -173,14 +173,38 @@ The `App` manifest needs to explicitly define unique names for the conflicting m
   .executableTarget(
     name: "App",
     dependencies: [
-     .product(name: "Game", moduleAliases: ["Utils": "GameUtils"], package: "swift-game"), 
+     .product(name: "Game", package: "swift-game", moduleAliases: ["Utils": "GameUtils"]),
      .product(name: "Utils", package: "swift-draw"), 
    ])
  ]
 }
 ```
 
-SwiftPM will check validations on `moduleAliases`; for each entry in `moduleAliases`, it will check if the specified module meets the requirements described in the **Requirements/Limitations** section below, such as whether the module is a pure Swift module. If validations pass, it will trigger a build with `-module-alias` for the module as described earlier. Note that only one new name can be given to a conflicting module and it should be a unique name. 
+SwiftPM will perform validations when it parses `moduleAliases`; for each entry, it will check whether the given alias is a unique name, whether there is a conflict among aliases, whether the specified module is built from source (pre-compiled modules cannot be rebuilt to respect the rename), and whether the module is a pure Swife module (see **Requirements/Limitations** section for more details). 
+
+It will also check if any aliases are defined in upstream packages and override them if necessary. For example, if the `swift-game` package were modified per below and defined its own alias `SwiftUtils` for module `Utils` from a dependency package, the alias defined in `App` will override it, thus the `Utils` module from `swift-utils` will be built as `GameUtils`. 
+
+```
+{
+ name: "swift-game",
+ dependencies: [
+  .package(url: https://.../swift-utils.git),
+ ],
+ products: [
+   .library(name: "Game", targets: ["Game"]),
+ ],
+ targets: [
+   .target(name: "Game",
+           dependencies: [
+                .product(name: "UtilsProduct",
+                         package: "swift-utils",
+                         moduleAliases: ["Utils": "SwiftUtils"]),
+           ])
+ ]
+}
+```
+
+Once the validation and alias overriding steps pass, dependency resolution will take place using the new module names, and the `-module-alias [name]=[new_name]` flag will be passed to the build execution.
 
 
 ### Resources
@@ -191,7 +215,7 @@ Tools invoked by a build system to compile resources should be modified to handl
 
 When module aliasing is used, the binary module name will be stored in mangled symbols, e.g. `$s9GameUtils5Level` instead of `$s5Utils5Level`, which will be stored in Debuginfo.
 
-For evaluating an expression, the name Utils can be used as it appears in source files (that were already compiled with module aliasing); however, the result of the evaluation will contain the binary module name. 
+For evaluating an expression, the name `Utils` can be used as it appears in source files (which were already compiled with module aliasing); however, the result of the evaluation will contain the binary module name. 
 
 If a module were to be loaded directly into lldb, the binary module name should be used, i.e. `import GameUtils` instead of `import Utils`, since it does not have access to the aliasing flag. 
 
@@ -208,7 +232,7 @@ To allow module aliasing, the following requirements need to be met, which come 
 * Higher chance of running into the following existing issues:
     * [Retroactive conformance](https://forums.swift.org/t/retroactive-conformances-vs-swift-in-the-os/14393): this is already not a recommended practice and should be avoided.   
     * Extension member “leaks”: this is [considered a bug](https://bugs.swift.org/browse/SR-3908) which hasn’t been fixed yet. More discussions [here](https://forums.swift.org/t/pre-pitch-import-access-control-a-modest-proposal/50087). 
-* Code size increase will be more implicit and requires a caution, although module aliasing will be opt-in and a size threshold could be added to provide a warning. 
+* Code size increase will be more implicit thus requires a caution, although module aliasing will be opt-in and a size threshold could be added to provide a warning. 
 
 ## Source compatibility
 This is an additive feature. Currently when there are duplicate module names, it does not compile at all. This feature requires explicitly opting in to allow and use module aliaisng via package manifests or compiler invocation commands and does not require source code changes. 

@@ -48,7 +48,7 @@ This approach, however, reduces clarity at the point of use for the unwrapped va
 
 ## Proposed solution
 
-If we instead omit the right-hand expression, and allow the compiler to automatically shadow the existing variable with that name, these optional bindings are much less verbose, and noticably easier to read / write:
+If we instead omit the right-hand expression, and allow the compiler to automatically shadow the existing variable with that name, these optional bindings are much less verbose, and noticeably easier to read / write:
 
 ```swift
 let someLengthyVariableName: Foo? = ...
