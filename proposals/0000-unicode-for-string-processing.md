@@ -797,7 +797,7 @@ The table below shows our best effort at choosing the right manner of extending.
 | `Age`                               | single-scalar                 |                                   |
 | `General_Category`                  | first-scalar                  | Numeric categories: single-scalar |
 | `Script`                            | first-scalar                  |                                   |
-| `White_Space`                       | first-scalar                  |                                   |
+| `White_Space`                       | first-scalar                  | Existing `Character` API          |
 | `Alphabetic`                        | first-scalar                  |                                   |
 | `Noncharacter_Code_Point`           | single-scalar                 |                                   |
 | `Default_Ignorable_Code_Point`      | single-scalar                 |                                   |
@@ -807,7 +807,7 @@ The table below shows our best effort at choosing the right manner of extending.
 | <br> **Numeric**                    |                               |                                   |
 | `Numeric_Value`                     | single-scalar                 |                                   |
 | `Numeric_Type`                      | single-scalar                 |                                   |
-| `Hex_Digit`                         | single-scalar                 |                                   |
+| `Hex_Digit`                         | single-scalar                 | Existing `Character` API          |
 | `ASCII_Hex_Digit`                   | single-scalar                 |                                   |
 | <br> **Identifiers**                |                               |                                   |
 | `ID_Start`                          | single-scalar                 |                                   |
@@ -829,7 +829,7 @@ The table below shows our best effort at choosing the right manner of extending.
 | `Titlecase_Mapping`                 | all-scalars                   |                                   |
 | `Uppercase_Mapping`                 | all-scalars                   |                                   |
 | `Soft_Dotted`                       | first-scalar                  |                                   |
-| `Cased`                             | all-scalars                   |                                   |
+| `Cased`                             | any-scalar                    |                                   |
 | `Case_Ignorable`                    | all-scalars                   |                                   |
 | `Changes_When_Lowercased`           | all-scalars                   |                                   |
 | `Changes_When_Uppercased`           | all-scalars                   |                                   |
@@ -842,9 +842,9 @@ The table below shows our best effort at choosing the right manner of extending.
 | `Changes_When_NFKC_Casefolded`      | all-scalars                   |                                   |
 | <br> **Emoji**                      |                               |                                   |
 | `Emoji`                             | first-scalar                  |                                   |
-| `Emoji_Presentation`                | all-scalars                   |                                   |
-| `Emoji_Modifier`                    | any-scalar                    |                                   |
-| `Emoji_Modifier_Base`               | any-scalar                    |                                   |
+| `Emoji_Presentation`                | any-scalar                    |                                   |
+| `Emoji_Modifier`                    | single-scalar                 |                                   |
+| `Emoji_Modifier_Base`               | single-scalar                 |                                   |
 | <br> **Shaping and Rendering**      |                               |                                   |
 | `Join_Control`                      | single-scalar                 |                                   |
 | <br> **Bidirectional**              |                               |                                   |
