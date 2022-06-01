@@ -407,15 +407,17 @@ A library may wish to provide their own higher-level structure around which rege
 
 ## Alternatives Considered
 
+### Alternative delimiter to `/.../`
+
 Given the fact that `/.../` is an existing term of art for regular expressions, we feel it should be the preferred delimiter syntax. It should be noted that the syntax has become less popular in some communities such as Perl, however we still feel that it is a compelling choice, especially with extended delimiters `#/.../#`. Additionally, while there are some syntactic ambiguities, we do not feel they are sufficient to disqualify the syntax. To evaluate this trade-off, below is a list of alternative delimiters that would not have the same ambiguities, and would not therefore require source breaking changes.
 
-### Extended literal delimiters only `#/.../#`
+#### Extended literal delimiters only `#/.../#`
 
 We could choose to avoid adding the bare forward slash syntax, and instead require at least one `#` character to be present in the delimiter. This would retain some of the familiarity of `/.../` while avoiding the parsing ambiguities and source breaking changes.
 
 However we feel that `/.../` is the better choice of default syntax, especially for simple regex where the additional noise of the `#` characters would be undesirable. While there are some parsing ambiguities to contend with, we do not feel they outweigh the benefits of having a lightweight and instantly recognizable syntax for regex.
 
-### Prefixed quote `re'...'`
+#### Prefixed quote `re'...'`
 
 We could choose to use `re'...'` delimiters, for example:
 
@@ -428,21 +430,21 @@ The use of two letter prefix could potentially be used as a namespace for future
 
 Also, there are a few items of regex grammar that use the single quote character as a metacharacter. These include named group definitions and references such as `(?'name')`, `(?('name'))`, `\g'name'`, `\k'name'`, as well as callout syntax `(?C'arg')`. The use of a single quote conflicts with the `re'...'` delimiter as it will be considered the end of the literal. However, alternative syntax exists for all of these constructs, e.g `(?<name>)`, `\k<name>`, and `(?C"arg")`. Those could be required instead. An extended regex literal syntax e.g `re#'...'#` would also avoid this issue.
 
-### Prefixed double quote `re"...."`
+#### Prefixed double quote `re"...."`
 
 This would be a double quoted version of `re'...'`, more similar to string literal syntax. This has the advantage that single quote regex syntax e.g `(?'name')` would continue to work without requiring the use of the alternative syntax or extended literal syntax. However it could be argued that regex literals are distinct from string literals in that they introduce their own specific language to parse. As such, regex literals are more like "program literals" than "data literals", and the use of single quote instead of double quote may be useful in expressing this difference.
 
-### Single letter prefixed quote `r'...'`
+#### Single letter prefixed quote `r'...'`
 
 This would be a slightly shorter version of `re'...'`. While it's more concise, it could potentially be confused to mean "raw", especially as Python uses this syntax for raw strings.
 
-### Single quotes `'...'`
+#### Single quotes `'...'`
 
 This would be an even more concise version of `re'...'` that drops the prefix entirely. However, given how close it is to string literal syntax, it may not be entirely clear to users that `'...'` denotes a regex as opposed to some different form of string literal (e.g some form of character literal, or a string literal with different escaping rules).
 
 We could help distinguish it from a string literal by requiring e.g `'/.../'`, though it may not be clear that the `/` characters are part of the delimiters rather than part of the literal. Additionally, this would potentially rule out the use of `'...'` as a future literal kind. 
 
-### Magic literal `#regex(...)`
+#### Magic literal `#regex(...)`
 
 We could opt for for a more explicitly spelled out literal syntax such as `#regex(...)`. This is a more heavyweight option, similar to `#selector(...)`. As such, it may be considered syntactically noisy as e.g a function argument `str.match(#regex([abc]+))` vs `str.match(/[abc]+/)`.
 
@@ -452,16 +454,16 @@ We could avoid the parenthesis balancing issue by requiring an additional intern
 
 It should also be noted that `#regex(...)` would introduce a syntactic inconsistency where the argument of a `#literal(...)` is no longer necessarily valid Swift syntax, despite being written in the form of an argument.
 
-#### On future extensibility to other foreign language snippets
+##### On future extensibility to other foreign language snippets
 
 One of the benefits of `#regex(...)` or `re'...'` is the extensibility to other kinds of foreign langauge snippets, such as SQL. Nothing in this proposal precludes a scalable approach to foreign language snippets using `#lang(...)` or `lang'...'`. If or when that happens, regex could participate as well, but the proposed syntax would still be valuable as regex literals *are* unique in their prevalence as fragments passed directly to API, as well as components of a result builder DSL.
 
 
-### Shortened magic literal `#(...)`
+#### Shortened magic literal `#(...)`
 
 We could reduce the visual weight of `#regex(...)` by only requiring `#(...)`. However it would still retain the same issues, such as still looking potentially visually noisy as an argument, and having suboptimal behavior for parenthesis balancing. It is also not clear why regex literals would deserve such privileged syntax.
 
-### Double slash `// ... //`
+#### Double slash `// ... //`
 
 Rather than using single forward slash delimiters `/.../`, we could use double slash delimiters. This would have previously been comment syntax, and would therefore be potentially source breaking. In particular, file header comments frequently use this style. Even if they successfully parse as a regex, they would receive different syntax highlighting, and emit a spurious error about being unused.
 
@@ -477,7 +479,7 @@ This would also significantly impact a variety of commonly occurring comments, s
 
 This syntax also means the editor would not be able to automatically complete the closing delimiter, as it would initially appear to be a regular comment. This further means that typing the literal would receive comment syntax highlighting until the closing delimiter is written.
 
-### Reusing string literal syntax
+#### Reusing string literal syntax
 
 Instead of supporting a first-class literal kind for regex, we could instead allow users to write a regex in a string literal, and parse, diagnose, and generate the appropriate code when it's coerced to the `Regex` type.
 
