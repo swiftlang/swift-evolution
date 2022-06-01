@@ -526,21 +526,37 @@ let r = #/
 
 ### Multi-line literal with semantic whitespace by default
 
-We could choose semantic whitespace by default within a multi-line regex literal. Such a literal would require an explicit specifier such as `(?x)` or `x` to enable non-semantic whitespace. For example:
+We could choose semantic whitespace by default within a multi-line regex literal. Such a literal would require a whitespace stripping rule, while keeping newlines of the contents verbatim. To enable non-semantic whitespace in such a literal, you would either have to explicitly write `(?x)` at the very start of the literal:
 
 ```swift
-let r1 = #/(?x)
-  abc | def
+let regex = #/
+(?x) abc | def
 /#
+```
 
-let r2 = #/x
+Or we could support an explicit specifier as part of the delimiter syntax. For example:
+
+```swift
+let regex = #/x
   abc | def
 /#
 ```
 
-However we feel that non-semantic whitespace is a much more useful default for a multi-line regex literal, and unlike the single-line case, does not lose out on compatibility or familiarity.
+However, we don't find either of these options particularly compelling. The former is somewhat verbose considering we expect it to be a common mode for multi-line literals, and it would change meaning if indented at all. The latter wouldn't extend to other matching options, and wouldn't be usable within a single-line literal.
 
-We could still enforce the specification of `(?x)` or `x`, however these would be a feature of the delimiter rather than the regex syntax. As such, they would need to appear in a specific position, and the former would likely not support the full matching option changing syntax. This would effectively mean that the opening delimiter for a multi-line literal becomes `#/(?x)` or `#/x`. We are not convinced this would significantly improve clarity, and feel that it may be confusing, as it wouldn't be applicable to `/.../`. We feel that the literal being split over multiple lines provides enough signal to indicate different semantics.
+We ultimately feel that non-semantic whitespace is a much more useful default for a multi-line regex literal, and unlike the single-line case, does not lose out on compatibility or familiarity. We could still enforce the specification of `(?x)` or `x`, however they would retain the same drawbacks. We are therefore not convinced they would be beneficial, and feel that the literal being split over multiple lines provides enough signal to indicate different semantics.
+
+#### Supporting the full matching option syntax as part of the delimiter
+
+Rather than supporting a specifier such as `x` on the delimiter, we could support the full range of matching option syntax on the delimiter. For example:
+
+```swift
+let regex = #/(?xi)
+  abc | def
+/#
+```
+
+However this would be more verbose, and would add additional complexity to the lexing logic which needs to be able to distinguish between an unterminated single-line literal, and a multi-line literal. It would also be limited to the isolated syntax, and e.g wouldn't support `(?xi:...)`. As we expect non-semantic whitespace to be the frequently desired mode in such a literal, we are not convinced the extra complexity or verbosity is beneficial. 
 
 ### Allow matching option flags on the literal `/.../x`
 
