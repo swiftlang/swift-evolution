@@ -506,6 +506,21 @@ Instead of adding a custom regex literal, we could require users to explicitly w
 
 We therefore feel this would be a much less compelling feature without first class literal support.
 
+### Trailing whitespace heuristic for `/.../`
+
+We could extend the no-space-or-tab first character heuristic such that it also applies to the last character of the regex literal. This would mean that the following would no longer be parsed as regex literals:
+
+```swift
+foo(/, /)
+foo(/x, /y)
+foo(/x, y / z)
+subs[/] / x
+```
+
+This would help avoid breaking source in many cases where the closing `/` would previously have been parsed as an infix or unapplied `/` operator.
+
+However, such a heuristic could potentially lead to an awkward editing experience. While typing the contents of a regex literal with both delimiters present e.g `/abc.../`, any spaces typed at the end will temporarily flip the meaning of the code to not-a-regex, until the next character is typed. This could result in the syntax highlighting flip flopping, and as such we feel it would be undesirable unless the source breakage is significant. As we do not currently believe that these source breaking cases will be particularly common, we do not feel this is a worthwhile tradeoff. Such cases may still be disambiguated with parentheses on the opening `/`.
+
 ### Non-semantic whitespace by default for single-line literals
 
 We could choose to enable non-semantic whitespace by default for single-line literals, matching the behavior of multi-line literals. While this is quite compelling for better readability, we feel that it would lose out on the familiarity and compatibility of the single-line literal.
