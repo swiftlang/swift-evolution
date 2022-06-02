@@ -87,44 +87,139 @@ This is a dead-end for the library author although SE-0244 states that it should
 
 ## Proposed solution
 
-To bridge this usability gap I propose to relax same-type restriction for `return`s inside of availability conditions as follows:
+To bridge this usability gap, I propose to relax the same-type restriction for functions with `if #available` conditions: if an `if #available` condition is always executed, it can return a different type than the type returned by the rest of the function.
 
-A function returning an opaque result type is allowed to return values of different concrete types from conditionally available `if #available`  branches without any other dynamic conditions, if and only if, all universally available `return` statements in its body return a value of the same concrete type `T`. All returned values regardless of their location must meet all of the constraints stated on the opaque type.
+The proposed changes allow functions to:
+
+* use multiple `if #available` conditions to return different types based on their dynamic availability and
+* safely fall back to a return type with no availability restrictions if none of the availability conditions are met.
+
+Because the return type must be decidable without running the code in the function, mixing availability conditions with other conditions (such as `if`, `guard`, or `switch`) removes this special power and requires `return`s in the `if #available` to return the same type as the rest of the function.
+
+This example satisfies these rules:
+
+```swift
+func test() -> some Shape {
+  if #available(macOS 100, *) { ✅
+    return Rectangle()
+  }
+
+  return self
+}
+```
 
 ## Detailed design
 
-Proposed changes allow to:
+An *unconditional availability clause* is an `if` or `else if` clause that satisfies the following conditions:
 
-* Use multiple different `if #available` conditions to return types based on their availability e.g. from the most to least available.
-* Safely fallback to a **single** universally available type if none of the conditions are met.
+  - The clause is part of an `if` statement at the top level of the containing function.
+  - There are no `return` statements in the containing function prior to the `if` statement.
+  - The condition of the clause is an `#available` condition.
+  - The clause is either the initial `if` clause or an `else if` clause immediately following an unconditional availability clause.
+  - The clause contains at least one `return` statement.
+  - All paths through the block controlled by the clause terminate by either returning or throwing.
 
-Note that although it is possible to use multiple availability conditions, mixing conditional availability with dynamic checks would result in `return`s being considered universally available. The following declarations would still be unsupported:
+All `return` statements outside of unconditional availability clauses must return the same type as each other, and this type must be as available as the containing function.
 
+All `return` statements within a given unconditional availability clause must return the same type as each other, and this type must be as available as the `#available` condition of the clause. This type need not be the same type returned by any `return` statement outside of the clause.
+
+There must be at least one `return` statement in the containing function.  If there are no `return` statements outside of unconditional availability clauses, then at least one of the return types within unconditional availability clauses must be as available as the containing function.
+
+Dynamically, the return type of the containing function is:
+  - the return type of `return` statements in the first unconditional availability clause whose condition is dynamically satisfied, or if none are satisfied then
+  - the return type of `return` statements outside of all unconditional availability clauses, or if there are no such statements then
+  - the return type of `return` statements in the first unconditional availability clause that is as available as the containing function.
+ 
+Now let's consider a couple of examples to better demonstrate the difference between well-formed and invalid functions under the proposed rules.
+
+The following example is well-formed because the first `if #available` statement terminates with a `return` and the second one is associated with a valid `if #available` and also terminates with a `return`.
+
+  ```swift
+  func test() -> some Shape {
+    if #available(macOS 100, *) { ✅
+      return Rectangle()
+    } else if #available(macOS 99, *) { ✅
+      return Square()
+    }
+    return self
+  }
+  ```
+
+  But
+
+  ```swift
+  func test() -> some Shape {
+    if cond {
+      ...
+    } else if #available(macOS 100, *) { ❌
+      return Rectangle()
+    }
+    return self
+  }
+  ```
+
+is not accepted by the compiler because `if #available` associated with a dynamic condition.
+  
+The following is incorrect because `if #available` is preceded by a dynamic condition that returns:
+  
+```swift
+func test() -> some Shape {
+  guard let x = <opt-value> else {
+    return ...
+  }
+    
+  if #available(macOS 100, *) { ❌
+    return Rectangle()
+  }
+
+  return self
+}
 ```
-func asRectangle() -> some Shape { 
-  if <cond>, #available(macOS 100, *) { ❌
-     return Rectangle()
+
+Similarly, the following is incorrect because `if #available` appears inside of a loop:
+
+```swift
+func test() -> some Shape {
+  for ... {
+    if #available(macOS 100, *) { ❌
+      return Rectangle()
+    }
   }
   return self
 }
 ```
 
-or
-
-```
-func asRectangle() -> some Shape {
-  if #available(macOS 100, *) {
-     if cond { ❌
-       return Rectangle()
-     } else {
-       return self
-     }
+The following `test()` function is well-formed because `if` statement produces the same result in both of its branches and it's statically known that the `if #available` always terminates with a `return`
+  
+  ```swift
+  func test() -> some Shape {
+    if #available(macOS 100, *) {
+       if cond { ✅
+         return Rectangle(...)
+       } else {
+         return Rectangle(...)
+       }
+    }
+    return self
   }
-  return self
-}
-```
+  ```
 
-In both of this examples `self` and `Rectangle` would have to be same concrete type which is consistent with existing behavior.
+  But:
+
+  ```swift
+  func test() -> some Shape {
+    if #available(macOS 100, *) {
+       if cond { ❌
+         return Rectangle()
+       } else {
+         return Square()
+       }
+    }
+    return self
+  }
+  ```
+
+is not going to be accepted by the compiler because return types are different: `Rectangle` vs. `Square`.
 
 This semantic adjustment fits well into the existing model because it makes sure that there is always a single underlying type per platform and universally.
 
@@ -144,3 +239,6 @@ All of the resilience rules associated with opaque result types are preserved.
 
 * Only alternative is to change the API patterns used in the library, e.g. by exposing the underlying result type and overloading the method.
 
+## Acknowledgments
+
+[John McCall](https://forums.swift.org/u/john_mccall) for the help with `Proposed Solution` and `Detail Design` improvements.
