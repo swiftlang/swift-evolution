@@ -166,21 +166,20 @@ let regex2 = Regex {
 }.ignoresCase()
 ```
 
-Note that the `ignoresCase()` is available on any type conforming to `RegexComponent`, which means that you can always use the more readable option-setting interface in conjunction with regex literals or run-time compiled `Regex`es:
+Because the `ignoresCase()` option method is defined on `Regex`, you can always use the more readable option-setting interface in conjunction with regex literals or run-time compiled `Regex`es:
 
 ```swift
 let regex3 = /banana/.ignoresCase()
 ```
 
-Calling an option-setting method like `ignoresCase(_:)` acts like wrapping the callee in an option-setting group `(?:...)`. That is, while it sets the behavior for the callee, it doesn’t override options that are applied to more specific regions. In this example, the middle `"na"` in `"banana"` matches case-sensitively, despite the outer call to `ignoresCase()`:
+Calling an option-setting method like `ignoresCase()` acts like wrapping the callee in an option-setting group `(?:...)`. That is, while it sets the behavior for the callee, it doesn’t override options that are applied to more specific regions. In this example, the middle `"na"` in `"banana"` matches case-sensitively, despite the outer call to `ignoresCase()`:
 
 ```swift
 let regex4 = Regex {
     "ba"
-    "na".ignoresCase(false)
+    Regex { "na" }.ignoresCase(false)
     "na"
-}
-.ignoresCase()
+}.ignoresCase()
 
 "banana".contains(regex4)     // true
 "BAnaNA".contains(regex4)     // true
@@ -190,8 +189,6 @@ let regex4 = Regex {
 let regex5 = /(?i)ba(?-i:na)na/
 ```
 
-All option APIs are provided on `RegexComponent`, so they can be called on a `Regex` instance, or on any component that you would use inside a `RegexBuilder` block when the `RegexBuilder` module is imported.
-
 The options that `Regex` supports are shown in the table below, in three groups: Options that affect matching behavior for _both regex syntax and APIs_, options that affect the matching behavior of _regex syntax only_, and options with _structural_ or _syntactic_ effects that are only supported through regex syntax.
 
 | **Matching Behavior**        |                |                                 | Default            |
@@ -199,7 +196,7 @@ The options that `Regex` supports are shown in the table below, in three groups:
 | Case insensitivity           | `(?i)`         | `ignoresCase()`                 | disabled           |
 | ASCII-only character classes | `(?DSWP)`      | `asciiOnlyClasses(_:)`          | `.none`            |
 | Unicode word boundaries      | `(?w)`         | `wordBoundaryKind(_:)`          | `.default`         |
-| Semantic level               | `(?Xu)`        | `matchingSemantics(_:)`         | `.graphemeCluster` |
+| Semantic level               | n/a            | `matchingSemantics(_:)`         | `.graphemeCluster` |
 | Default repetition behavior  | n/a            | `defaultRepetitionBehavior(_:)` | `.eager`           |
 | **Regex Syntax Only**        |                |                                 |                    |
 | Single-line mode             | `(?s)`         | `dotMatchesNewlines()`          | disabled           |
@@ -216,19 +213,19 @@ Regexes perform case sensitive comparisons by default. The `i` option or the `ig
 ```swift
 let str = "Café"
 	
-str.firstMatch(of: /CAFÉ/)          // nil
-str.firstMatch(of: /(?i)CAFÉ/)      // "Café"
-str.firstMatch(of: /(?i)cAfÉ/)      // "Café"
+str.firstMatch(of: /CAFÉ/)               // nil
+str.firstMatch(of: /(?i)CAFÉ/)           // "Café"
+str.firstMatch(of: /cAfÉ/.ignoresCase()) // "Café"
 ```
 
 Case insensitive matching uses case folding to ensure that canonical equivalence continues to operate as expected.
 
 **Regex syntax:** `(?i)...` or `(?i:...)`
 
-**`RegexBuilder` API:**
+**Standard Library API:**
 
 ```swift
-extension RegexComponent {
+extension Regex {
     /// Returns a regular expression that ignores casing when matching.
     public func ignoresCase(_ ignoresCase: Bool = true) -> Regex<RegexOutput>
 }
@@ -238,21 +235,26 @@ extension RegexComponent {
 
 With one or more of these options enabled, the default character classes match only ASCII values instead of the full Unicode range of characters. Four options are included in this group:
 
-* `D`: Match only ASCII members for `\d`, `\p{Digit}`, `\p{HexDigit}`, `[:digit:]`, and `CharacterClass.digit`.
-* `S`: Match only ASCII members for `\s`, `\p{Space}`, `[:space:]`, and any of the whitespace-representing `CharacterClass` members.
-* `W`: Match only ASCII members for `\w`, `\p{Word}`, `[:word:]`, and `CharacterClass.word`. Also only considers ASCII characters for `\b`, `\B`, and `Anchor.wordBoundary`.
-* `P`: Match only ASCII members for all POSIX properties (including `digit`, `space`, and `word`).
+* Regex syntax `(?D)`: Match only ASCII members for `\d`, `[:digit:]`, and `CharacterClass.digit`.
+* Regex syntax `(?S)`: Match only ASCII members for `\s`, `[:space:]`, and any of the whitespace-representing `CharacterClass` members.
+* Regex syntax `(?W)`: Match only ASCII members for `\w`, `[:word:]`, and `CharacterClass.word`. Also only considers ASCII characters for `\b`, `\B`, and `Anchor.wordBoundary`.
+* Regex syntax `(?D)`: Match only ASCII members for all POSIX properties (including `digit`, `space`, and `word`).
 
 This option affects the built-in character classes listed in the "Character Classes" section below. When one or more of these options is enabled, the set of characters matched by those character classes is constrained to the ASCII character set. For example, `CharacterClass.hexDigit` usually matches `0...9`, `a-f`, and `A-F`, in either the ASCII or half-width variants. When the `(?D)` or `.asciiOnlyClasses(.digit)` options are enabled, only the ASCII characters are matched.
 
+```swift
+let str = "0x35AB"
+str.contains(/0x(\d+)/.asciiOnlyClasses())
+```
+
 **Regex syntax:** `(?DSWP)...` or `(?DSWP...)`
 
-**`RegexBuilder` API:**
+**Standard Library API:**
 
 ```swift
-extension RegexComponent {
-  /// Returns a regular expression that only matches ASCII characters as digits.
-  public func asciiOnlyClasses(_ kinds: RegexCharacterClassKind = .all) -> Regex<RegexOutput>
+extension Regex {
+    /// Returns a regular expression that only matches ASCII characters as digits.
+    public func asciiOnlyClasses(_ kinds: RegexCharacterClassKind = .all) -> Regex<RegexOutput>
 }
 
 /// A built-in regex character class kind.
@@ -261,24 +263,24 @@ extension RegexComponent {
 /// to control whether character classes match any character or only members
 /// of the ASCII character set.
 public struct RegexCharacterClassKind: OptionSet, Hashable {
-  public var rawValue: Int { get }
-
-  /// Regex digit-matching character classes, like `\d`, `[:digit:]`, and
-  /// `\p{HexDigit}`.
-  public static var digit: RegexCharacterClassKind { get }
-
-  /// Regex whitespace-matching character classes, like `\s`, `[:space:]`,
-  /// and `\p{Whitespace}`.
-  public static var whitespace: RegexCharacterClassKind { get }
-
-  /// Regex word character-matching character classes, like `\w`.
-  public static var wordCharacter: RegexCharacterClassKind { get }
-
-  /// All built-in regex character classes.
-  public static var all: RegexCharacterClassKind { get }
-
-  /// No built-in regex character classes.
-  public static var none: RegexCharacterClassKind { get }
+    public var rawValue: Int { get }
+  
+    /// Regex digit-matching character classes, like `\d`, `[:digit:]`, and
+    /// `\p{HexDigit}`.
+    public static var digit: RegexCharacterClassKind { get }
+  
+    /// Regex whitespace-matching character classes, like `\s`, `[:space:]`,
+    /// and `\p{Whitespace}`.
+    public static var whitespace: RegexCharacterClassKind { get }
+  
+    /// Regex word character-matching character classes, like `\w`.
+    public static var wordCharacter: RegexCharacterClassKind { get }
+  
+    /// All built-in regex character classes.
+    public static var all: RegexCharacterClassKind { get }
+  
+    /// No built-in regex character classes.
+    public static var none: RegexCharacterClassKind { get }
 }
 ```
 
@@ -293,8 +295,10 @@ As shown in this example, the default matching behavior finds the whole first wo
 ```swift
 let str = "Don't look down!"
 	
-str.firstMatch(of: /D\S+\b/)        // "Don't"
-str.firstMatch(of: /(?-w)D\S+\b/)   // "Don"
+str.firstMatch(of: /D\S+\b/)
+// "Don't"
+str.firstMatch(of: /D\S+\b/.wordBoundaryKind(.simple))
+// "Don"
 ```
 
 You can see more differences between level 1 (simple) and level 2 (default) word boundaries in the following table, generated by calling `matches(of: /\b.+\b/)` on the strings in the first column:
@@ -317,10 +321,10 @@ You can see more differences between level 1 (simple) and level 2 (default) word
 
 **Regex syntax:** `(?-w)...` or `(?-w...)`
 
-**`RegexBuilder` API:**
+**Standard Library API:**
 
 ```swift
-extension RegexComponent {
+extension Regex {
   /// Returns a regular expression that uses the specified word boundary algorithm.
   ///
   /// A simple word boundary is a position in the input between two characters
@@ -356,13 +360,13 @@ public struct RegexWordBoundaryKind: Hashable {
 
 #### Matching semantic level
 
-FIXME: Add intro paragraph
-
-These specific levels of matching, and the options to switch between them, are unique to Swift, but not unprecedented in other regular expression engines. Several engines, including Perl, Java, and ICU-based engines like `NSRegularExpression`, support the `\X` metacharacter for matching a grapheme cluster within otherwise Unicode scalar semantic matching. Rust has a related concept in its [`regex::bytes` type][regexbytes], which matches over abitrary bytes by default but allows switching into Unicode mode for segments of the regular expression.
+To support both matching on `String`'s default character-by-character view and more broadly-compatible Unicode scalar-based matching, you can select a matching level for an entire regex or a portion of a regex constructed with the `RegexBuilder` API.
 
 When matching with *grapheme cluster semantics* (the default), metacharacters like `.` and `\w`, custom character classes, and character class instances like `.any` match a grapheme cluster, corresponding with the default string representation. In addition, matching with grapheme cluster semantics compares characters using their canonical representation, corresponding with the way comparing strings for equality works.
 
-When matching with *Unicode scalar semantics*, metacharacters and character classes match a single Unicode scalar value, even if that scalar comprises part of a grapheme cluster.
+When matching with *Unicode scalar semantics*, metacharacters and character classes match a single Unicode scalar value, even if that scalar comprises part of a grapheme cluster. Canonical representations are _not_ used, corresponding with the way comparison would work when using a string's `UnicodeScalarView`.
+
+These specific levels of matching, and the options to switch between them, are unique to Swift, but not unprecedented in other regular expression engines. Several engines, including Perl, Java, and ICU-based engines like `NSRegularExpression`, support the `\X` metacharacter for matching a grapheme cluster within otherwise Unicode scalar semantic matching. Rust has a related concept in its [`regex::bytes` type][regexbytes], which matches over abitrary bytes by default but allows switching into Unicode mode for segments of the regular expression.
 
 These semantic levels lead to different results when working with strings that have characters made up of multiple Unicode scalar values, such as Emoji or decomposed characters. In the following example, `queRegex` matches any 3-character string that begins with `"q"`.
 
@@ -388,7 +392,7 @@ print(decomposed.contains(queRegexScalar))
 // Prints "false"
 ```
 
-With grapheme cluster semantics, a grapheme cluster boundary is naturally enforced at the start and end of the match and every capture group. Matching with Unicode scalar semantics, on the other hand, can yield string indices that aren't aligned to character boundaries. Take care when using indices that aren't aligned with grapheme cluster boundaries, as they may have to be rounded to a boundary if used in a `String` instance.
+The index boundaries of the overall match and capture groups are affected by the matching semantic level. With grapheme cluster semantics, the start and end index of the overall match and each capture is `Character`-aligned. Matching with Unicode scalar semantics, on the other hand, can yield string indices that aren't aligned to character boundaries. Take care when using indices that aren't aligned with grapheme cluster boundaries, as they may have to be rounded to a boundary if used in a `String` instance.
 
 ```swift
 let family = "👨‍👨‍👧‍👦 is a family"
@@ -410,17 +414,31 @@ print(unicodeScalarMatch.endIndex == family.index(after: family.startIndex))
 // Prints "false"
 ```
 
-When there is a boundary between Unicode scalar semantic and grapheme scalar semantic matching in the middle of a regex, an implicit grapheme cluster boundary assertion is added at the start of the grapheme scalar semantic section. That is, these two regexes are equivalent:
+When there is a boundary between Unicode scalar semantic and grapheme scalar semantic matching in the middle of a regex, an implicit grapheme cluster boundary assertion is added at the start of the grapheme scalar semantic section. That is, the two regexes in the following example are equivalent; each matches a single "word" scalar, followed by a combining mark scalar, followed by one or more grapheme clusters.
 
 ```swift
-let implicit = /(?u:\p{Letter}\p{CombiningMark}).+/       // Implicit grapheme cluster boundary
-let explicit = /(?u:\p{Letter}\p{CombiningMark})\y.+/     // Explicit grapheme cluster boundary
+let explicit = Regex {
+    Regex {
+        CharacterClass.word
+        CharacterClass.generalCategory(.combiningMark)
+    }.matchingSemantics(.unicodeScalar)
+    Anchor.graphemeClusterBoundary       // explicit grapheme cluster boundary
+    OneOrMore(.any)
+}
+
+let implicit = Regex {
+    Regex {
+        CharacterClass.word
+        CharacterClass.generalCategory(.combiningMark)
+    }.matchingSemantics(.unicodeScalar)
+    OneOrMore(.any)
+}
 
 try implicit.wholeMatch(in: "e\u{301} abc")           // match
 try implicit.wholeMatch(in: "e\u{301}\u{327} abc")    // no match
 ```
 
-The second call to `wholeMatch(in:)` fails because at the point the matching engine exits the `(?u:...)` group, the matching position is still in the middle of the `"e\u{301}\u{327}` character. This implicit grapheme cluster boundary assumption maintains the guarantee that capture groups over grapheme cluster semantic sections will have valid character-aligned indices.
+The second call to `wholeMatch(in:)` fails because at the point the matching engine exits the inner regex, the matching position is still in the middle of the `"e\u{301}\u{327}` character. This implicit grapheme cluster boundary assertion maintains the guarantee that capture groups over grapheme cluster semantic sections will have valid character-aligned indices.
 
 If a regex starts or ends with a Unicode scalar semantic section, there is no assertion added at the start or end of the pattern. Consider the following regex, which has Unicode scalars for the entire pattern except for a section in the middle that matches a purple heart emoji. When applied to a string with a multi-scalar character before or after the `"💜"`, the resulting match includes a partial character at its beginning and end.
 
@@ -428,7 +446,7 @@ If a regex starts or ends with a Unicode scalar semantic section, there is no as
 let regex = Regex {
     CharacterClass.any
     Regex {  // <-- Implicit grapheme cluster boundary assertion, as above
-        "💜"
+        CharacterClass.binaryProperty(\.isEmoji)
     }.matchingSemantics(.graphemeCluster)
     CharacterClass.any
 }.matchingSemantics(.unicodeScalar)
@@ -442,12 +460,10 @@ if let match = borahae.firstMatch(of: regex) {
 
 Boundaries from a grapheme cluster section into a Unicode scalar also imply a grapheme cluster boundary, but in this case no assertion is needed. This boundary is an emergent property of the fact that under grapheme cluster semantics, matching always happens one character at a time.
 
-**Regex syntax:** `(?X)...` or `(?X...)` for grapheme cluster semantics, `(?u)...` or `(?u...)` for Unicode scalar semantics.
-
-**`RegexBuilder` API:**
+**Standard Library API:**
 
 ```swift
-extension RegexComponent {
+extension Regex {
   /// Returns a regular expression that matches with the specified semantic
   /// level.
   public func matchingSemantics(_ semanticLevel: RegexSemanticLevel) -> Regex<RegexOutput>
@@ -466,10 +482,31 @@ public struct RegexSemanticLevel: Hashable {
 
 #### Default repetition behavior
 
-The `defaultRepetitionBehavior(_:)` method lets you set the default behavior for all quantifiers that don't explicitly provide their own behavior. For example, you can make all quantifiers behave possessively, eliminating any quantification-caused backtracking.
+The `defaultRepetitionBehavior(_:)` method lets you set the default behavior for all quantifiers that don't explicitly provide their own behavior. For example, you can make all quantifiers behave possessively, eliminating any quantification-caused backtracking. This option applies both to quanitifiers in regex syntax that don't include an additional `?` or `+` (indicating reluctant or possessive quantification, respectively) and quantifiers in `RegexBuilder` syntax without an explicit behavior parameter.
+
+In the following example, both regexes use possessive quantification:
 
 ```swift
-extension RegexComponent {
+let regex1 = /[0-9a-f]+\w*$/.defaultRepetitionBehavior(.possessive)
+
+let regex2 = Regex {
+    OneOrMore {
+        CharacterClass.anyOf(
+            "0"..."9",
+            "a"..."f"
+        )
+    }
+    ZeroOrMore(.whitespace)
+    Anchor.endOfInput
+}.defaultRepetitionBehavior(.possessive)
+```
+
+This option is related to, but independent from, the regex syntax option `(?U)`. See below for more about that regex-syntax-only option.
+
+**Standard Library API:**
+
+```swift
+extension Regex {
   /// Returns a regular expression where quantifiers use the specified behavior
   /// by default.
   ///
@@ -511,7 +548,7 @@ public struct RegexRepetitionBehavior {
 }
 ```
 
-The `RegexBuilder` quantifier APIs include a `nil`-defaulted optional `behavior` parameter. When you pass `nil`, the quantifier uses the default behavior as set by this option. If an explicit behavior is passed, that behavior is used regardless of the default.
+As described in the [Regex Builder proposal][regexbuilder], `RegexBuilder` quantifier APIs include a `nil`-defaulted optional `behavior` parameter. When you pass `nil`, the quantifier uses the default behavior as set by this option. If an explicit behavior is passed, that behavior is used regardless of the default.
 
 ```swift
 // Example `OneOrMore` initializer
@@ -534,18 +571,20 @@ let str = """
     to group text.>>
     """
     
-str.firstMatch(of: /<<.+>>/)        // nil
-str.firstMatch(of: /(?s)<<.+>>/)    // "This string\nuses double-angle-brackets\nto group text."
+str.firstMatch(of: /<<.+>>/)
+// nil
+str.firstMatch(of: /<<.+>>/.dotMatchesNewLines())
+// "This string\nuses double-angle-brackets\nto group text."
 ```
 
 This option applies only to `.` used in regex syntax and does _not_ affect the behavior of `CharacterClass.any`, which always matches any character or Unicode scalar. To get the default `.` behavior when using `RegexBuilder` syntax, use `CharacterClass.anyNonNewline`.
 
 **Regex syntax:** `(?s)...` or `(?s...)`
 
-**`RegexBuilder` API:**
+**Standard Library API:**
 
 ```swift
-extension RegexComponent {
+extension Regex {
   /// Returns a regular expression where the start and end of input
   /// anchors (`^` and `$`) also match against the start and end of a line.
   public func dotMatchesNewlines(_ dotMatchesNewlines: Bool = true) -> Regex<RegexOutput>
@@ -563,15 +602,20 @@ let str = """
     ghi
     """
 	
-str.firstMatch(of: /^abc/)          // "abc"
-str.firstMatch(of: /^abc$/)         // nil
-str.firstMatch(of: /(?m)^abc$/)     // "abc"
+str.firstMatch(of: /^abc/)
+// "abc"
+str.firstMatch(of: /^abc$/)
+// nil
+str.firstMatch(of: /^abc$/.anchorsMatchLineEndings())
+// "abc"
 	
-str.firstMatch(of: /^def/)          // nil
-str.firstMatch(of: /(?m)^def$/)     // "def"
+str.firstMatch(of: /^def/)
+// nil
+str.firstMatch(of: /^def$/.anchorsMatchLineEndings())
+// "def"
 ```
 
-This option applies only to anchors used in a regex literal. The anchors defined in `RegexBuilder` are specific about matching at the start/end of the input or the line, and therefore are not affected by this option.
+This option applies only to anchors used in regex syntax. The anchors defined in `RegexBuilder` are specific about matching at the start/end of the input or the line, and therefore are not affected by this option.
 
 ```swift
 str.firstMatch(of: Regex { Anchor.startOfInput ; "def" }) // nil
@@ -580,10 +624,10 @@ str.firstMatch(of: Regex { Anchor.startOfLine  ; "def" }) // "def"
 
 **Regex syntax:** `(?m)...` or `(?m...)`
 
-**`RegexBuilder` API:**
+**Standard Library API:**
 
 ```swift
-extension RegexComponent {
+extension Regex {
   /// Returns a regular expression where the start and end of input
   /// anchors (`^` and `$`) also match against the start and end of a line.
   public func anchorsMatchLineEndings(_ matchLineEndings: Bool = true) -> Regex<RegexOutput>
@@ -604,7 +648,7 @@ str.firstMatch(of: /<.+>/)          // "<token>A value.</token>"
 str.firstMatch(of: /<.+?>/)         // "<token>"
 ```
 
-The `U` option toggles the "eagerness" of quantifiers, so that quantifiers are reluctant by default, and only become eager when `?` is added to the quantifier. This change only applies within regex syntax. See the `defaultRepetitionBehavior(_:)` method, described above, for control over repetition behavior in `RegexBuilder` syntax.
+The `U` option toggles the "eagerness" of quantifiers, so that quantifiers are reluctant by default, and only become eager when `?` is added to the quantifier. This change only applies within regex syntax. See the `defaultRepetitionBehavior(_:)` method, described above, for broader control over repetition behavior, including setting the default for `RegexBuilder` syntax.
 
 ```swift
 // '(?U)' toggles the eagerness of quantifiers:
@@ -614,18 +658,6 @@ str.firstMatch(of: /(?U)<.+?>/)     // "<token>A value.</token>"
 
 **Regex syntax:** `(?U)...` or `(?U...)`
 
-In order for this option to have the same effect on regexes built with `RegexBuilder` as with regex syntax, the `RegexBuilder` quantifier APIs are amended to have an `nil`-defaulted optional `behavior` parameter. For example:
-
-```swift
-extension OneOrMore {
-    public init<W, C0, Component: RegexComponent>(
-    _ behavior: RegexRepetitionBehavior? = nil,
-    @RegexComponentBuilder _ component: () -> Component
-  ) where Output == (Substring, C0), Component.Output == (W, C0)
-}
-```
-
-When you pass `nil`, the quantifier uses the default behavior as set by this option (either eager or reluctant). If an explicit behavior is passed, that behavior is used regardless of the default.
 
 ---
 
@@ -1240,15 +1272,13 @@ An earlier draft of this proposal included a metacharacter and `CharacterClass` 
 
 At the present time, we prefer to allow authors to write regexes that explicitly shift into and out of Unicode scalar mode, where those kinds of decisions are handled by the explicit scope of the setting. If common patterns emerge that indicate some version of `\O` would be useful, we can add it in the future.
 
+## Future Work
+
 ### Additional protocol to limit option methods
 
-The option-setting methods, like `ignoresCase()`, are implemented as extensions of the `RegexComponent` protocol instead of only on the `Regex` type. This provides convenience when working with `RegexBuilder` syntax, as you don't need to add an additional `Regex { ... }` block around a quantifier or other grouping scope that you want to have a particular behavior. However, it means that the option methods are also available on some types for which their meaning is unclear. In particular, with the `RegexBuilder` module imported, `String` has `RegexComponent` conformance, meaning someone can write nonsensical code like `"literal string".defaultRepetitionBehavior(.possessive)`.
+The option-setting methods, like `ignoresCase()`, are implemented as extensions of the `Regex` type instead of on the `RegexComponent` protocol. This makes sure that nonsensical formulations like `"abc".defaultRepetitionBehavior(.possessive)"` are impossible to write, but is somewhat inconvenient when working with `RegexBuilder` syntax, as you need to add an additional `Regex { ... }` block around a quantifier or other grouping scope that you want to have a particular behavior.
 
-One mitigating approach would be to add another protocol that refines `RegexComponent`, with a name like `RegexCompoundComponent`, representing types that can hold or more other regex components. Types like `OneOrMore`, `CharacterClass`, and `Regex` itself would all conform, and the option-setting methods would move to an extension on that new protocol, preventing such nonsensical usage.
-
-However, given that the additional conformances are only available when the `RegexBuilder` module is imported, and the lack of other usefulness for the `RegexCompoundComponent` protocol, it doesn't seem to carry its weight as an additional protocol at this time.
-
-## Future Work
+One possible future addition would be to add another protocol that refines `RegexComponent`, with a name like `RegexCompoundComponent`, representing types that can hold or more other regex components. Types like `OneOrMore`, `CharacterClass`, and `Regex` itself would all conform, and the option-setting methods would move to an extension on that new protocol, permitting more convenient usage where appropriate.
 
 ### API for current options
 
@@ -1268,6 +1298,10 @@ struct RegexOptions {
     // etc...
 }
 ```
+
+### Regex syntax for matching level
+
+An earlier draft of this proposal included options within the regex syntax that are equivalent to calling the `matchingSemantics(_:)` method: `(?X)` for switching to grapheme cluster more and `(?u)` for switching to Unicode scalar mode. As these are new additions to regex syntax, and their exclusive behavior has yet to be determined, they are not included in the proposed functionality at this time.
 
 ### API for overriding Unicode property mapping
 
@@ -1291,6 +1325,7 @@ let regex1 = /\p{name=latin lowercase a}/.extendUnicodeProperty(\.name, by: .fir
 
 [overview]: https://forums.swift.org/t/declarative-string-processing-overview/52459
 [charprops]: https://github.com/apple/swift-evolution/blob/master/proposals/0221-character-properties.md
+[regexbuilder]: https://github.com/apple/swift-evolution/blob/main/proposals/0351-regex-builder.md
 [charpropsrationale]: https://github.com/apple/swift-evolution/blob/master/proposals/0221-character-properties.md#detailed-semantics-and-rationale
 [canoneq]: https://www.unicode.org/reports/tr15/#Canon_Compat_Equivalence
 [graphemes]: https://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries
