@@ -544,7 +544,7 @@ extension Capture {
   
   public init<R: RegexComponent, W, NewCapture>(
     _ component: R,
-    transform: @escaping (Substring) throws -> NewCapture
+    transform: @Sendable @escaping (W) throws -> NewCapture
   ) where Output == (Substring, NewCapture), R.RegexOutput == W
   
   public init<R: RegexComponent, W>(
@@ -557,12 +557,12 @@ extension Capture {
 extension TryCapture {
   public init<R: RegexComponent, W, NewCapture>(
     _ component: R,
-    transform: @escaping (Substring) throws -> NewCapture?
+    transform: @Sendable @escaping (W) throws -> NewCapture?
   ) where Output == (Substring, NewCapture), R.RegexOutput == W
   
   public init<R: RegexComponent, W, NewCapture>(
     @RegexComponentBuilder _ component: () -> R,
-    transform: @escaping (Substring) throws -> NewCapture?
+    transform: @Sendable @escaping (W) throws -> NewCapture?
   ) where Output == (Substring, NewCapture), R.RegexOutput == W
 
   // ... `O(arity)` overloads
