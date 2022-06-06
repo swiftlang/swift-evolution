@@ -482,7 +482,7 @@ Capture {
 
 A capture will be represented in the type signature as a slice of the input, i.e. `Substring`. To transform the captured substring into another value during matching, specify a `transform:` closure.
 
-```
+```swift
 // This example is similar to the one above, however in this example we
 // transform the result of the capture into:
 // "Transaction Kind: CREDIT" or "Transaction Kind: DEBIT"
