@@ -397,7 +397,7 @@ let log: (Int) -> Void = { (@Traceable value) in
 The closure can be written to instead take in the projected-value type by using the `$` prefix in the parameter name:
 
 ```swift
-let log: (History<Int>) -> Void { (@Traceable $value) in
+let log: (History<Int>) -> Void = { (@Traceable $value) in
   ...
 }
 ```
