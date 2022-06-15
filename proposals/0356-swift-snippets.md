@@ -3,7 +3,7 @@
 * Proposal: [SE-0356](0356-swift-snippets.md)
 * Authors: [Ashley Garland](http://github.com/bitjammer)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active Review (May 2 – May 16 2022)**
+* Status: **Accepted**
 * Implementation:
     Available in [recent nightly](https://swift.org/download/#snapshots) snapshots. Requires `--enable-experimental-snippet-support` feature flag when using the [Swift DocC Plugin](https://github.com/apple/swift-docc-plugin). Related pull requests:
     * Swift DocC
