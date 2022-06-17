@@ -219,11 +219,11 @@ There is a minor ambiguity when infix operators are used with regex literals. Wh
 
 ### Regex syntax limitations in `/.../`
 
-In order to help avoid a parsing ambiguity, a `/.../` regex literal will not be parsed if it starts with a space or tab character. This restriction may be avoided by using the extended `#/.../#` literal.
+In order to help avoid a parsing ambiguity, a `/.../` regex literal will not be parsed if it starts or ends with a space or tab character. This restriction may be avoided by using the extended `#/.../#` literal.
 
 #### Rationale
 
-This is due to a parsing ambiguity that arises when a `/.../` regex literal starts a new line. This is particularly problematic for result builders, where we expect it to be frequently used, in particular within a `Regex` builder:
+The restriction on the ending character helps avoid breaking source compatibility with prefix and infix `/` operators in certain cases. Such cases are explored in the next section. The restriction on the starting character is due to a parsing ambiguity that arises when a `/.../` regex literal starts a new line. This is particularly problematic for result builders, where we expect it to be frequently used, in particular within a `Regex` builder:
 
 ```swift
 let digit = Regex {
@@ -303,51 +303,78 @@ But `let r = /^/` will be parsed as a regex.
 
 A regex literal may be used with a prefix operator, e.g `let r = ^^/x/` is parsed as `let r = ^^(/x/)`. In this case, when encountering operator characters containing `/` in an expression position, the characters up to the first `/` are split into a prefix operator, and regex literal parsing continues as normal.
 
-As already discussed, a regex literal may not begin with a space or tab. However this is not sufficient to disambiguate cases such as:
+As already discussed, a regex literal may not start or end with a space or tab. This means that the following will continue to be parsed as normal:
 
 ```swift
 // Unapplied '/' in a call to 'reduce':
 let x = array.reduce(1, /) / 5
 let y = array.reduce(1, /) + otherArray.reduce(1, /)
 
-// Prefix '/' with a potential closing '/'.
-foo(/x) / 2
+// Prefix '/' with another '/' on the same line:
+foo(/a, /b)
+bar(/x) / 2
 
-// Unapplied '!/' with a potential closing '/'.
-bar(!/, 1) / 2
+// Unapplied operators:
+baz(!/, 1) / 2
+qux(/, /)
+qux(/^, /)
+qux(!/, /)
+
+let d = hasSubscript[/] / 2 // Unapplied infix '/' and infix '/'
+
+let e = !/y / .foo() // Prefix '!/' with infix '/' and operand '.foo()'
 ```
 
-In all of these cases, the opening `/` appears in expression position, and there is a potential closing `/`. To avoid source breakage for such cases, one further heuristic is employed. A regex literal will not be parsed if it contains an unbalanced `)`. This takes both escapes and custom character classes into consideration, and therefore only applies to syntax that would already be invalid for a regex. As such, all of the above cases will continue to be parsed as normal.
+However this is not sufficient to disambiguate cases such as:
+
+```swift
+// Prefix '/' used multiple times on the same line without trailing whitespace:
+(/x).foo(/y)
+bar(/x) + bar(/y)
+
+// Cases where the closing '/' is not used with whitespace:
+bar(/x)/2
+baz(!/, 1)/2
+
+// Prefix '/^' with postfix '/':
+let f = (/^x)/
+```
+
+In all of these cases, the opening `/` appears in expression position, and there is a potential closing `/` that is used without whitespace. To avoid source breakage for such cases, one further heuristic is employed. A regex literal will not be parsed if it contains an unbalanced `)`. This takes both escapes and custom character classes into consideration, and therefore only applies to syntax that would already be invalid for a regex. As such, all of the above cases will continue to be parsed as normal.
 
 This additional heuristic also allows for straightforward disambiguation in source breaking cases where the regex is valid. For example, the following cases will become regex literals:
 
 ```swift
-baz(/, /)  // Will become the regex literal '/, /'
-baz(/^, /) // Will become the regex literal '/^, /'
-baz(!/, /) // Will become prefix '!' on the regex literal '/, /'
+foo(/a, b/) // Will become regex literal '/a, b/'
+qux(/, !/)  // Will become regex literal '/, !/'
+qux(/,/)    // Will become regex literal '/,/'
 
-// Will become the regex literal '/] /'
-let d = hasSubscript[/] / 2
+let g = hasSubscript[/]/2 // Will become regex literal '/]/'
 
-let e = /0; let f = 1/ // Will become the regex literal '/0; let y = 1/'
-let g = /^x/           // Will become the regex literal '/^x/'
-let h = !/y / .foo()   // Will become the regex literal '/y /' with prefix '!' and method call '.foo()'.
+let h = /0; let f = 1/ // Will become the regex literal '/0; let y = 1/'
+let i = /^x/           // Will become the regex literal '/^x/'
 ```
 
 However they can be readily disambiguated by inserting parentheses:
 
 ```swift
-// These are now all unapplied operators
-baz((/), /)
-baz((/^), /)
-baz((!/), /)
+// Now a prefix and postfix '/':
+foo((/a), b/)
 
-// Unapplied operator in a subscript
-let d = hasSubscript[(/)] / 2
+// Now unapplied operators:
+qux((/), !/)
+qux((/),/)
+let g = hasSubscript[(/)]/2
 
-let e = (/0); let f = 1/ // Two variables, with prefix '/' and postfix '/'
-let g = (/^x)/           // Prefix '/^' with postfix '/'
-let h = (!/y) / .foo()   // Prefix '!/' with infix '/' and member argument '.foo()'
+let h = (/0); let f = 1/ // Now prefix '/' and postfix '/'
+let i = (/^x)/           // Now prefix '/^' and postfix '/'
+```
+
+or, in some cases, by inserting whitespace:
+
+```swift
+qux(/, /)
+let g = hasSubscript[/] / 2
 ```
 
 We however expect these cases will be fairly uncommon. A similar case is the use of an unapplied infix operator with two `/` characters, for example:
@@ -356,7 +383,7 @@ We however expect these cases will be fairly uncommon. A similar case is the use
 baz(/^/) // Will become the regex literal '/^/' rather than an unapplied operator
 ```
 
-This cannot be disambiguated with parentheses, however it can be disambiguated using a closure. For example:
+This cannot be disambiguated with parentheses or whitespace, however it can be disambiguated using a closure. For example:
 
 ```swift
 baz({ $0 /^/ $1 }) // Is now infix '/^/'
@@ -505,21 +532,6 @@ Instead of adding a custom regex literal, we could require users to explicitly w
 - More verbose syntax is required.
 
 We therefore feel this would be a much less compelling feature without first class literal support.
-
-### Trailing whitespace heuristic for `/.../`
-
-We could extend the no-space-or-tab first character heuristic such that it also applies to the last character of the regex literal. This would mean that the following would no longer be parsed as regex literals:
-
-```swift
-foo(/, /)
-foo(/x, /y)
-foo(/x, y / z)
-subs[/] / x
-```
-
-This would help avoid breaking source in many cases where the closing `/` would previously have been parsed as an infix or unapplied `/` operator.
-
-However, such a heuristic could potentially lead to an awkward editing experience. While typing the contents of a regex literal with both delimiters present e.g `/abc.../`, any spaces typed at the end will temporarily flip the meaning of the code to not-a-regex, until the next character is typed. This could result in the syntax highlighting flip flopping, and as such we feel it would be undesirable unless the source breakage is significant. As we do not currently believe that these source breaking cases will be particularly common, we do not feel this is a worthwhile tradeoff. Such cases may still be disambiguated with parentheses on the opening `/`.
 
 ### Non-semantic whitespace by default for single-line literals
 
