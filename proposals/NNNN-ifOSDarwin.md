@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal makes it possible to pass `Darwin` to `#if os` statements as an alias to check for all Darwin platforms.
+This proposal aims to makes it possible to make checking for Darwin platforms easier to read & write in code, by introducing a `Darwin` alias which can be used on `#if os` to check for Darwin platforms.
 
 [Swift-evolution discussion thread](https://forums.swift.org/t/if-os-darwin-a-shorthand-for-checking-for-darwin-platforms/58146)
 
@@ -71,4 +71,6 @@ Current, existing, alternatives include:
 - Checking for `#if canImport(ObjectiveC)`
 - Checking for `#if canImport(Darwin)`
 
-Which, although work, aren't suitable to be used for checking for Darwin platforms. `#if canImport` solutions may encounter issues when compiling without an SDK, for example.
+Which, although work, aren't meant to be used for checking for Darwin platforms. ie, using `#if canImport(Darwin)` for code which doesn't use symbols from the Darwin framework (such as Darwin-only symbols from Foundation) feels like a clunky alternative and may be confusing.
+
+As mentioned in the beginning of this proposal, there is also the existing, widely used method of checking for the 4 supported Darwin OSes individually (`#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)`), however is harder to read than a simple one check of `#if os(Darwin)`, and is not future-proof in case any new Darwin OSes which support the same code are released.
