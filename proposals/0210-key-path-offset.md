@@ -61,7 +61,7 @@ A new API is added to `MemoryLayout`:
 
 ```swift
 extension MemoryLayout {
-  func offset(of key: PartialKeyPath<T>) -> Int?
+  public static func offset(of key: PartialKeyPath<T>) -> Int?
 }
 ```
 
