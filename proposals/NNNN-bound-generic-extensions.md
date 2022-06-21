@@ -15,6 +15,7 @@
   - [Effect on ABI stability](#effect-on-abi-stability)
   - [Effect on API resilience](#effect-on-api-resilience)
   - [Alternatives considered](#alternatives-considered)
+    - [Reserving syntax for parameterized extensions](#reserving-syntax-for-parameterized-extensions)
   - [Future directions](#future-directions)
     - [Parameterized extensions](#parameterized-extensions)
 
@@ -83,26 +84,36 @@ extension [String] { ... }
 A generic type name in an extension can be followed by a comma-separated type argument list in angle brackets. The type argument list binds the type parameters of the generic type to each of the specified type arguments. This is equivalent to writing same-type requirements in a `where` clause. For example:
 
 ```swift
-struct GenericType<T1, T2> { ... }
+struct Pair<T, U> {}
 
-extension GenericType<Arg1, Arg2> { ... }
+extension Pair<Int, String> {}
 ```
 
 is equivalent to
 
 ```swift
-extension GenericType where T1 == Arg1, T2 == Arg2 { ... }
+extension Pair where T == Int, U == String {}
+```
+
+A type argument list applied to an extended type name must specify all type arguments; constraining only a subset of the type parameters in an extension must still use a `where` clause:
+
+```swift
+struct Pair<T, U> {}
+
+extension Pair<Int> {} // error: Generic type 'Pair' specialized with too few type parameters (got 1, but expected 2)
+
+extension Pair where T == Int {} // okay
 ```
 
 The types specified in the type argument list must be concrete types. For example, you cannot extend a generic type with placeholders as type arguments:
 
 ```swift
-extension Array<_> {} // error: Cannot extend a type that contains placeholders
+extension Pair<Int, _> {} // error: Cannot extend a type that contains placeholders
 ```
 
-> **Rationale**: When `_` is used as a type placeholder, it directs the compiler to infer the type at the position of the underscore. Using `_` in a bound generic extension would introduce a subtly different meaning of `_`, which is to leave the type at that position unconstrained, so `Array<_>` would mean different things in different contexts.
+> **Rationale**: When `_` is used as a type placeholder, it directs the compiler to infer the type at the position of the underscore. Using `_` in a bound generic extension would introduce a subtly different meaning of `_`, which is to leave the type at that position unconstrained, so `Pair<Int, _>` would mean different things in different contexts.
 
-Similarly, the type parameters of the generic type cannot appear in the type argument list:
+Name lookup of the type arguments is performed outside the extension context, so the type parameters of the generic type cannot appear in the type argument list:
 
 ```swift
 extension Array<Element> {} // error: Cannot find type 'Element' in scope
@@ -132,7 +143,7 @@ This change has no impact on API resilience. Changing an existing bound generic 
 
 ### Reserving syntax for parameterized extensions
 
-Using angle brackets after an extended type name as sugar for same-type requirements prevents this syntax from being used to declare a parameterized extension. Alternatively, `extension Array<T, U> { ... }` could  mean an extension that declares two new type parameters `T` and `U`, rather than an (invalid) application of type arguments to `Array`'s type parameters. However, SE-0346 already introuced this syntax as sugar for same-type requirements on associated types:
+Using angle brackets after an extended type name as sugar for same-type requirements prevents this syntax from being used to declare a parameterized extension. Alternatively, `extension Array<T, U> { ... }` could  mean an extension that declares two new type parameters `T` and `U`, rather than an (invalid) application of type arguments to `Array`'s type parameters. However, SE-0346 already introduced this syntax as sugar for same-type requirements on associated types:
 
 ```swift
 protocol Collection<Element> {
@@ -147,7 +158,7 @@ Instead of reserving this syntax for parameterized extensions, type parameters c
 
 ```swift
 // Introduces new type parameters `T` and `U` for the APIs
-// in this extensions.
+// in this extension.
 extension <T, U> Array { ... }
 ```
 
