@@ -14,6 +14,7 @@
   - [Source compatibility](#source-compatibility)
   - [Effect on ABI stability](#effect-on-abi-stability)
   - [Effect on API resilience](#effect-on-api-resilience)
+  - [Alternatives considered](#alternatives-considered)
   - [Future directions](#future-directions)
     - [Parameterized extensions](#parameterized-extensions)
 
@@ -127,6 +128,29 @@ This is a syntactic sugar change with no impact on ABI.
 
 This change has no impact on API resilience. Changing an existing bound generic extension using a where clause to the sugared syntax and vice versa is a resilient change.
 
+## Alternatives considered
+
+### Reserving syntax for parameterized extensions
+
+Using angle brackets after an extended type name as sugar for same-type requirements prevents this syntax from being used to declare a parameterized extension. Alternatively, `extension Array<T, U> { ... }` could  mean an extension that declares two new type parameters `T` and `U`, rather than an (invalid) application of type arguments to `Array`'s type parameters. However, SE-0346 already introuced this syntax as sugar for same-type requirements on associated types:
+
+```swift
+protocol Collection<Element> {
+  associatedtype Element
+}
+
+// Already sugar for `extension Collection where Element == String`
+extension Collection<String> { ... }
+```
+
+Instead of reserving this syntax for parameterized extensions, type parameters could be declared in angle brackets after the `extension` keyword, which will help indicate that the type parameters belong to the extension:
+
+```swift
+// Introduces new type parameters `T` and `U` for the APIs
+// in this extensions.
+extension <T, U> Array { ... }
+```
+
 ## Future directions
 
 ### Parameterized extensions
@@ -156,7 +180,5 @@ extension <T, U> (T, U) { ... }
 This syntax also generalizes to variadic type parameters, e.g. to extend all tuple types to provide a protocol conformance:
 
 ```swift
-extension <T...> (T...): Hashable { ... }
+extension <T...> (T...): Hashable where T: Hashable { ... }
 ```
-
-Note that SE-0346 and this proposal solidify using the `extension <T>` syntax for parameterized extensions, because this proposal specifies that a type in angle brackets after a generic type name in an extension is an application of type arguments, not a declaration of new type parameters.
