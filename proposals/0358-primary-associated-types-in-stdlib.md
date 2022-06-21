@@ -103,7 +103,7 @@ The table below lists all public protocols in the Standard Library with associat
 | `RangeExpression`                                    | `Bound`        | --                                                                                                                                                                                                                   |
 | `Strideable`                                         | `Stride`       | --                                                                                                                                                                                                                   |
 | `SetAlgebra`                                         | `Element`      | `ArrayLiteralElement`                                                                                                                                                                                                |
-| `OptionSet`                                          | `Element`      | `ArrayLiteralElement`, `RawValue`                                                                                                                                                                                    |
+| `OptionSet`                                          | -- [(2)][note] | `Element`, `ArrayLiteralElement`, `RawValue`                                                                                                                                                                         |
 | `Numeric`                                            | --             | `IntegerLiteralType`, `Magnitude`                                                                                                                                                                                    |
 | `SignedNumeric`                                      | --             | `IntegerLiteralType`, `Magnitude`                                                                                                                                                                                    |
 | `BinaryInteger`                                      | --             | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
@@ -134,14 +134,14 @@ The table below lists all public protocols in the Standard Library with associat
 | `CaseIterable`                                       | --             | `AllCases`                                                                                                                                                                                                           |
 | `Clock`                                              | `Duration`     | `Instant`                                                                                                                                                                                                            |
 | `InstantProtocol`                                    | `Duration`     | --                                                                                                                                                                                                                   |
-| `AsyncIteratorProtocol`                              | -- [(2)][note] | `Element`                                                                                                                                                                                                            |
-| `AsyncSequence`                                      | -- [(2)][note] | `AsyncIterator`, `Element`                                                                                                                                                                                           |
+| `AsyncIteratorProtocol`                              | -- [(3)][note] | `Element`                                                                                                                                                                                                            |
+| `AsyncSequence`                                      | -- [(3)][note] | `AsyncIterator`, `Element`                                                                                                                                                                                           |
 | `GlobalActor`                                        | --             | `ActorType`                                                                                                                                                                                                          |
-| `DistributedActor`                                   | -- [(3)][note] | `ID`, `ActorSystem`, `SerializationRequirement`                                                                                                                                                                      |
-| `DistributedActorSystem`                             | -- [(3)][note] | `ActorID`, `SerializationRequirement`, `InvocationEncoder`, `InvocationDecoder`, `ResultHandler`                                                                                                                     |
-| `DistributedTargetInvocationEncoder`                 | -- [(3)][note] | `SerializationRequirement`                                                                                                                                                                                           |
-| `DistributedTargetInvocationDecoder`                 | -- [(3)][note] | `SerializationRequirement`                                                                                                                                                                                           |
-| `DistributedTargetInvocationResultHandler`           | -- [(3)][note] | `SerializationRequirement`                                                                                                                                                                                           |
+| `DistributedActor`                                   | -- [(4)][note] | `ID`, `ActorSystem`, `SerializationRequirement`                                                                                                                                                                      |
+| `DistributedActorSystem`                             | -- [(4)][note] | `ActorID`, `SerializationRequirement`, `InvocationEncoder`, `InvocationDecoder`, `ResultHandler`                                                                                                                     |
+| `DistributedTargetInvocationEncoder`                 | -- [(4)][note] | `SerializationRequirement`                                                                                                                                                                                           |
+| `DistributedTargetInvocationDecoder`                 | -- [(4)][note] | `SerializationRequirement`                                                                                                                                                                                           |
+| `DistributedTargetInvocationResultHandler`           | -- [(4)][note] | `SerializationRequirement`                                                                                                                                                                                           |
 
 As of Swift 5.6, the following public protocols don't have associated type requirements, so they are outside of the scope of this proposal.
 
@@ -175,7 +175,6 @@ public protocol RangeExpression<Bound>
 public protocol Strideable<Stride>: Comparable
 
 public prococol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral
-public protocol OptionSet<Element>: SetAlgebra, RawRepresentable
 
 public protocol SIMD<Scalar>: ...
 
@@ -203,8 +202,15 @@ Therefore, we will not be able to make any changes to the list of primary associ
 
 (1) It is tempting to declare `Element` as the primary associated type for `LazySequenceProtocol` and `LazyCollectionProtocol`, for consistency with other protocols in the collection hierarchy. However, in actual use, `Elements` seems just as useful (if not more) to be easily constrained. We left the matter of selecting one of these as primary unresolved for now; as we get more experience with lightweight same-type requirements, we may revisit these protocols.
 
-(2) `AsyncSequence` and `AsyncIteratorProtocol` logically ought to have `Element` as their primary associated type. However, we have [ongoing evolution discussions][rethrows] about adding a precise error type to these. If those discussions bear fruit, then it's possible we may want to _also_ mark the potential new `Error` associated type as primary. To prevent source compatibility complications, adding primary associated types to these two protocols is deferred to a future proposal.
+(2) In the `OptionSet` protocol, the `Element` type is designed to always be `Self`, so `RawValue` would be the most practical choice for the primary associated type. However, to avoid potential confusion, we left `OptionSet` without a primary associated type annotation.
+
+(3) `AsyncSequence` and `AsyncIteratorProtocol` logically ought to have `Element` as their primary associated type. However, we have [ongoing evolution discussions][rethrows] about adding a precise error type to these. If those discussions bear fruit, then it's possible we may want to _also_ mark the potential new `Error` associated type as primary. To prevent source compatibility complications, adding primary associated types to these two protocols is deferred to a future proposal.
 
 [rethrows]: https://forums.swift.org/t/se-0346-lightweight-same-type-requirements-for-primary-associated-types/55869/70
 
-(3) Declaring primary associated types on the distributed actor protocols would be desirable, but it was [deferred to a future proposal](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/47), to prevent interfering with potential future language improvements that would make them more useful in this use case.
+(4) Declaring primary associated types on the distributed actor protocols would be desirable, but it was [deferred to a future proposal](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/47), to prevent interfering with potential future language improvements that would make them more useful in this use case.
+
+## Revisions
+
+- [2022-05-28](https://github.com/apple/swift-evolution/blob/716db41ccefde348ac38bd2fd1eb5bd7842be7b6/proposals/0358-primary-associated-types-in-stdlib.md): Initial proposal version.
+- 2022-06-22: Removed the primary associated type declaration from the `OptionSet` protocol.
