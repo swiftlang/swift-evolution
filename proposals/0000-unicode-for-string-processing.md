@@ -155,6 +155,12 @@ Swift's `Regex` follows the level 2 guidelines for Unicode support in regular ex
 
 First, we'll discuss the options that let you control a regex's behavior, and then explore the character classes that define the your pattern.
 
+As detailed below, there are a few differences in defaults between Swift's `Regex` and the typical regex engine. In particular:
+
+- `Regex` matches at the Swift `Character` level, instead of matching Unicode scalars, UTF-16 code units, or bytes. A regex that deliberately matches multi-scalar characters may need to switch to Unicode scalar semantics.
+- `Regex` uses "default" word boundaries, instead of "simple" word boundaries. A regex that expects `\b` to always match the boundary between a word character (`\w`) and a non-word character (`\W`) may need to switch to simple word boundaries.
+- For multi-line regex literals, extended syntax is automatically enabled, which ignores whitespace both in patterns and within custom character classes. To use semantic whitespace, you can temporarily disable extended mode (`(?-x:...)`), quote a section of your pattern (`\Q...\E`), or escape a space explicitly (`a\ b`).
+
 ### Options
 
 Options can be enabled and disabled in two different ways: as part of [regex internal syntax][internals], or applied as methods when declaring a `Regex`. For example, both of these `Regex`es are declared with case insensitivity:
