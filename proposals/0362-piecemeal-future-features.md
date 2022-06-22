@@ -1,17 +1,11 @@
 # Piecemeal adoption of future language improvements
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0362](0362-piecemeal-future-features.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (June 22nd...July 5th, 2022)**
 * Implementation: [apple/swift#59055](https://github.com/apple/swift/pull/59055)
-
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
+* Review: ([pitch](https://forums.swift.org/t/piecemeal-adoption-of-swift-6-improvements-in-swift-5-x/57184))
 
 ## Introduction
 
