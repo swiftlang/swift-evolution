@@ -2,9 +2,10 @@
 
 * Proposal: [SE-0361](0361-bound-generic-extensions.md)
 * Authors: [Holly Borla](https://github.com/hborla)
-* Review Manager: [John McCall]([rjmccall](https://github.com/rjmccall)
+* Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (June 21st...July 4th, 2022)**
 * Implementation: [apple/swift#41172](https://github.com/apple/swift/pull/41172), gated behind the frontend flag `-enable-experimental-bound-generic-extensions`
+* Review: ([pitch](https://forums.swift.org/t/pitch-extensions-on-bound-generic-types/57535/)) ([review](https://forums.swift.org/t/se-0361-extensions-on-bound-generic-types/58366))
 
 ## Contents
   - [Introduction](#introduction)
