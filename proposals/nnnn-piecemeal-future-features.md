@@ -103,15 +103,15 @@ let regex = try NSRegularExpression(pattern: "...")
 
 In the worst case, this does involve some code duplication for libraries that need to work on Swift versions that predate the introduction of `hasFeature`, but it is possible to handle those compilers, and over time that limitation will go away.
 
-To prevent this issue for any future extensions to the `#if` syntax, the compiler should interpret the "call" syntax to an unknown function as if it always evaluated false. That way, if we invent something like `#if hasAttribute(Y)` in the future, one can use
+To prevent this issue for any future extensions to the `#if` syntax, the compiler should not attempt to interpret any "call" syntax on the right-hand side of a `&&` whose left-hand side disables parsing of the `#if` body, such as `compiler(>=5.7)` or `swift(>=6.0)`. For example, if we invent something like `#if hasAttribute(Y)` in the future, one can use this formulation:
 
 ```swift
-#if hasAttribute(Sendable)
+#if compiler(>=5.8) && hasAttribute(Sendable)
 ...
 #endif
 ```
 
-and the `#if` condition will evaluate to `false` on any compiler that doesn't understand the `hasAttribute` check. This is similar in spirit to how C compilers introduce checks like [`__has_feature`](https://clang.llvm.org/docs/LanguageExtensions.html#has-feature-and-has-extension), where one can use the C preprocessor to define a function-like macro for compilers that don't support the feature-checking mechanism.
+On Swift 5.8 or newer compilers (which we assume will support `hasAttribute`), the full condition will be evaluated. On prior Swift compilers (i.e., ones that support this proposal but not something newer like `hasAttribute`), the code after the `&&` will be parsed as an expression, but will not be evaluated, so such compilers will not reject this `#if` condition.
 
 ### Embracing experimental features
 
