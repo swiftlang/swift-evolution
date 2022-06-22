@@ -145,6 +145,10 @@ However, this proposal introduces `hasFeature` because it's a clearer in the cod
 
 This proposal narrowly introduces `-enable-future-feature` to only describe accepted features that will be enabled with a newer language version, but that were held back (partially or in full) due to source compatibility concerns. It is not meant to be used to enable "optional" features, which would create permanent dialects, and is designed to be somewhat self-healing: as folks move to newer language modes (e.g., Swift 6), the future feature flags are eliminated with the new baseline.
 
+### Enabling all future features
+
+The set of future features will expand over time, as Swift introduces new features with source-compatibility impact that are staged in via a new major language version. For developers who want to be on the leading edge, it would be more convenient to have a single flag that enables all future features, rather than having to specify each future feature as they get added. However, the introduction of such a flag would create a shifting dialect of Swift: features are only "future" features if they have source-compatibility impact, so code that adopted this flag could break with every new Swift release. That would directly cut against our source-compatibility goals for Swift, so we do not propose such a flag. Instead, we should find a central place to document all future features on swift.org, updated with each release, so that developers know where to go to learn about the new future features they want to enable.
+
 ## Acknowledgments
 
 Becca Royal-Gordon designed the original `#if compiler(>=5.5) && $AsyncAwait` approach to adopting features without breaking compatibility with older tools, and helped shape this design.
