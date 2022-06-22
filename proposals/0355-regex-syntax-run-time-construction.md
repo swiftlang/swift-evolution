@@ -255,15 +255,14 @@ Interpolation -> '<{' (!'}>')* '}>'
 (extended syntax only) EndOfLineComment      -> '#' (!<EOL> .)* <EOL>
 (extended syntax only) NonSemanticWhitespace -> <Space>+
 
-Quote -> '\Q' (!'\E' .)* '\E'
-
+Quote -> '\Q' (!'\E' .)* '\E'?
 ```
 
 Each component of a concatenation may be "trivia" (comments and non-semantic whitespace, if applicable), a quoted run of literal content, or a potentially-quantified subexpression.
 
-In-line comments, similarly to C, are lexical and are not recursively nested like normal groups are. A closing `)` cannot be escaped. Quotes are similarly lexical, non-nested, and the `\` before a `\E` cannot be escaped.
+In-line comments, similarly to C, are lexical and are not recursively nested like normal groups are. A closing `)` cannot be escaped.
 
-For example, `\Q^[xy]+$\E`, is treated as the literal characters `^[xy]+$` rather than an anchored quantified character class. `\Q\\E` is a literal `\`.
+Quotes are similarly lexical, non-nested, and the `\` before a `\E` cannot be escaped. For example, `\Q^[xy]+$\E`, is treated as the literal characters `^[xy]+$` rather than an anchored quantified character class. `\Q\\E` is a literal `\`. A quoted sequence `\Q` may not have a closing `\E`, in which case it extends to the end of the regex. A quote may appear in a custom character class, but such a quote may not be empty.
 
 An interpolation sequence `<{...}>` is syntax that is reserved for a potential future interpolation feature. As such, the details surrounding it are future work, and it will currently be rejected for both literals and run-time compiled patterns. It may however be made available in the future as the literal characters.
 
