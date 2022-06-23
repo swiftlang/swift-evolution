@@ -19,7 +19,7 @@
 
 ## Motivation
 
-In order for the lightweight same-type requirement syntax introduced in [SE-0346] to be actually usable, protocol definitions inside and outside the Standard Library need to be extended with primary associated type declarations.
+In order for the lightweight constraint syntax introduced in [SE-0346] to be actually usable, protocol definitions inside and outside the Standard Library need to be extended with primary associated type declarations.
 
 See [SE-0346] for several motivating examples for these changes.
 
@@ -33,7 +33,7 @@ We've found the following guidelines helpful when considering the adoption of pr
 
 1. **Let usage inform your design.**
 
-   If you are considering adding a primary associated type declaration to a preexisting protocol, then look at its existing clients to discover which associated types get typically mentioned in same-type requirements. Is there one particular type that is used overwhelmingly more than any other? If so, then it will probably be a good choice for the primary.
+   If you are considering adding a primary associated type declaration to a preexisting protocol, then look at its existing clients to discover which associated types get typically constrained. Is there one particular type that is used overwhelmingly more than any other? If so, then it will probably be a good choice for the primary.
 
    For example, in the case of `Sequence`, use sites overwhelmingly tend to constrain `Element` -- `Iterator` is almost never mentioned in `where` clauses. This makes it fairly clear that `Element` is the right choice for the primary type.
 
@@ -43,7 +43,7 @@ We've found the following guidelines helpful when considering the adoption of pr
 
 2. **Consider clarity at the point of use.** To prevent persistent confusion, _people familiar with the protocol_ ought to be able to correctly intuit the meaning of a same-type constraint such as `some Sequence<Int>`.
 
-   Lightweight same-type requirements share the same angle-bracketed syntax as generic type arguments, including the same limitations. In particular, the language does not support argument labels in such lists, which prevents us from clarifying the role of the type names provided. A type name such as `Foo<Int, String>` on its own provides no hints about the role of its generic arguments `Int` and `String`; likewise, it isn't possible to decipher the role of `Character` in a same-type requirement such as `some Bar<Character>`, unless the reader is already somewhat familiar with the protocol `Bar`.
+   Lightweight constraint specifications share the same angle-bracketed syntax as generic type arguments, including the same limitations. In particular, the language does not support argument labels in such lists, which prevents us from clarifying the role of the type names provided. A type name such as `Foo<Int, String>` on its own provides no hints about the role of its generic arguments `Int` and `String`; likewise, it isn't possible to decipher the role of `Character` in a same-type requirement such as `some Bar<Character>`, unless the reader is already somewhat familiar with the protocol `Bar`.
 
    The best candidates for primary associated types tend to be those that have a simple, obvious relationship to the protocol itself. A good heuristic is that if the relationship can be described using a simple preposition, then the associated type will probably make a viable primary:
 
@@ -54,9 +54,9 @@ We've found the following guidelines helpful when considering the adoption of pr
 
    Associated types that don't support this tend to have a more complex / idiosyncratic role in their protocol, and often make poor choices for a primary associated type.
 
-   For example, `Numeric` has an associated type called `Magnitude` that does sometimes appear in same-type constraints. However, its role seems too subtle and non-obvious to consider marking it as primary. The meaning of `Int` in `some Numeric<Int>` is unlikely to be clear to readers, even if they are deeply familiar with Swift's numeric protocol hierarchy.
+   For example, `Numeric` has an associated type called `Magnitude` that does sometimes appear in associated type constraints. However, its role seems too subtle and non-obvious to consider marking it as primary. The meaning of `Int` in `some Numeric<Int>` is unlikely to be clear to readers, even if they are deeply familiar with Swift's numeric protocol hierarchy.
 
-3. **Not every protocol needs primary associated types.** Don't feel obligated to add a primary associated type just because it is possible to do so. If you don't expect people will want to put same-type constraints on a type, there is little reason to mark it as a primary. Similarly, if there are multiple possible choices that seem equally useful, it might be best not to select one. (See point 2 above.)
+3. **Not every protocol needs primary associated types.** Don't feel obligated to add a primary associated type just because it is possible to do so. If you don't expect people will want to constrain an associated type in practice, there is little reason to mark it as a primary. Similarly, if there are multiple possible choices that seem equally useful, it might be best not to select one. (See point 2 above.)
 
    For example, `ExpressibleByIntegerLiteral` is not expected to be mentioned in generic function declarations, so there is no reason to mark its sole associated type (`IntegerLiteral`) as the primary.
 
@@ -202,7 +202,7 @@ Therefore, we will not be able to make any changes to the list of primary associ
 
 ## Alternatives considered
 
-(1) It is tempting to declare `Element` as the primary associated type for `LazySequenceProtocol` and `LazyCollectionProtocol`, for consistency with other protocols in the collection hierarchy. However, in actual use, `Elements` seems just as useful (if not more) to be easily constrained. We left the matter of selecting one of these as primary unresolved for now; as we get more experience with lightweight same-type requirements, we may revisit these protocols.
+(1) It is tempting to declare `Element` as the primary associated type for `LazySequenceProtocol` and `LazyCollectionProtocol`, for consistency with other protocols in the collection hierarchy. However, in actual use, `Elements` seems just as useful (if not more) to be easily constrained. We left the matter of selecting one of these as primary unresolved for now; as we get more experience with the lightweight constraint syntax, we may revisit these protocols.
 
 (2) In the `OptionSet` protocol, the `Element` type is designed to always be `Self`, so `RawValue` would be the most practical choice for the primary associated type. However, to avoid potential confusion, we left `OptionSet` without a primary associated type annotation.
 
@@ -215,4 +215,4 @@ Therefore, we will not be able to make any changes to the list of primary associ
 ## Revisions
 
 - [2022-05-28](https://github.com/apple/swift-evolution/blob/716db41ccefde348ac38bd2fd1eb5bd7842be7b6/proposals/0358-primary-associated-types-in-stdlib.md): Initial proposal version.
-- 2022-06-22: Removed the primary associated type declaration from the `OptionSet` protocol. The API guidelines section has revised wording; it no longer proposes the new guidelines for inclusion in the official Swift API Guidelines document.
+- 2022-06-22: Removed the primary associated type declaration from the `OptionSet` protocol. The API guidelines section has revised wording; it no longer proposes the new guidelines for inclusion in the official Swift API Guidelines document. Adjusted wording to prefer the term "lightweight constraint syntax" to "lightweight same-type requirements", as the new syntax can be used for more than just to express same-type constraints.
