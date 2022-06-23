@@ -3,7 +3,7 @@
 * Proposal: [SE-0358](0358-primary-associated-types-in-stdlib.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (May 18...June 20, 2022)**
+* Status: **Active review (May 18...June 27, 2022)**
 * Implementation: [apple/swift#41843](https://github.com/apple/swift/pull/41843)
 * Review: ([pitch](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/)) ([review](https://forums.swift.org/t/se-0358-primary-associated-types-in-the-standard-library/57432)) ([partial acceptance](https://forums.swift.org/t/se-0358-primary-associated-types-in-the-standard-library/57432/14))
 * Related Proposals:
@@ -19,19 +19,21 @@
 
 ## Motivation
 
-In order for the lightweight same-type requirement syntax introduced in [SE-0346] to be actually usable, protocol definitions inside and outside the Standard Library need to be extended with primary associated type declarations.
+In order for the lightweight constraint syntax introduced in [SE-0346] to be actually usable, protocol definitions inside and outside the Standard Library need to be extended with primary associated type declarations.
 
 See [SE-0346] for several motivating examples for these changes.
 
-## General API Design Guidelines
-
-(The contents of this section are to be integrated into the Swift API Design Guidelines document, introduced in [SE-0023].)
+## API Design Guidelines
 
 Primary associated types add a new facet to the design of protocols. For every public protocol with associated type requirements, we need to carefully consider which of them (if any) we want to mark as primary. On the one hand, we want to allow people to use the shorthand syntax whenever possible; on the other hand, we only get one chance to decide this: once a protocol gains a primary associated type annotation, most subsequent changes would be source-breaking.
 
+We've found the following guidelines helpful when considering the adoption of primary associated types within the Standard Library. We haven't had enough real-life experience with this new feature to propose these guidelines for general use -- however, the recommendations below can still serve as a useful starting point.
+
+(Aside: If you decide to follow these guidelines when annotating your own protocols, and they lead you to a choice that you later regret, please post a note on the Swift forums! Negative examples are going to be extremely helpful while revising the guidelines for general use. We're also looking for (positive or negative) examples for multiple primary associated types on a single protocol.)
+
 1. **Let usage inform your design.**
 
-   If you are considering adding a primary associated type declaration to a preexisting protocol, then look at its existing clients to discover which associated types get typically mentioned in same-type requirements. Is there one particular type that is used overwhelmingly more than any other? If so, then it will probably be a good choice for the primary.
+   If you are considering adding a primary associated type declaration to a preexisting protocol, then look at its existing clients to discover which associated types get typically constrained. Is there one particular type that is used overwhelmingly more than any other? If so, then it will probably be a good choice for the primary.
 
    For example, in the case of `Sequence`, use sites overwhelmingly tend to constrain `Element` -- `Iterator` is almost never mentioned in `where` clauses. This makes it fairly clear that `Element` is the right choice for the primary type.
 
@@ -41,7 +43,7 @@ Primary associated types add a new facet to the design of protocols. For every p
 
 2. **Consider clarity at the point of use.** To prevent persistent confusion, _people familiar with the protocol_ ought to be able to correctly intuit the meaning of a same-type constraint such as `some Sequence<Int>`.
 
-   Lightweight same-type requirements share the same angle-bracketed syntax as generic type arguments, including the same limitations. In particular, the language does not support argument labels in such lists, which prevents us from clarifying the role of the type names provided. A type name such as `Foo<Int, String>` on its own provides no hints about the role of its generic arguments `Int` and `String`; likewise, it isn't possible to decipher the role of `Character` in a same-type requirement such as `some Bar<Character>`, unless the reader is already somewhat familiar with the protocol `Bar`.
+   Lightweight constraint specifications share the same angle-bracketed syntax as generic type arguments, including the same limitations. In particular, the language does not support argument labels in such lists, which prevents us from clarifying the role of the type names provided. A type name such as `Foo<Int, String>` on its own provides no hints about the role of its generic arguments `Int` and `String`; likewise, it isn't possible to decipher the role of `Character` in a same-type requirement such as `some Bar<Character>`, unless the reader is already somewhat familiar with the protocol `Bar`.
 
    The best candidates for primary associated types tend to be those that have a simple, obvious relationship to the protocol itself. A good heuristic is that if the relationship can be described using a simple preposition, then the associated type will probably make a viable primary:
 
@@ -52,9 +54,9 @@ Primary associated types add a new facet to the design of protocols. For every p
 
    Associated types that don't support this tend to have a more complex / idiosyncratic role in their protocol, and often make poor choices for a primary associated type.
 
-   For example, `Numeric` has an associated type called `Magnitude` that does sometimes appear in same-type constraints. However, its role seems too subtle and non-obvious to consider marking it as primary. The meaning of `Int` in `some Numeric<Int>` is unlikely to be clear to readers, even if they are deeply familiar with Swift's numeric protocol hierarchy.
+   For example, `Numeric` has an associated type called `Magnitude` that does sometimes appear in associated type constraints. However, its role seems too subtle and non-obvious to consider marking it as primary. The meaning of `Int` in `some Numeric<Int>` is unlikely to be clear to readers, even if they are deeply familiar with Swift's numeric protocol hierarchy.
 
-3. **Not every protocol needs primary associated types.** Don't feel obligated to add a primary associated type just because it is possible to do so. If you don't expect people will want to put same-type constraints on a type, there is little reason to mark it as a primary. Similarly, if there are multiple possible choices that seem equally useful, it might be best not to select one. (See point 2 above.)
+3. **Not every protocol needs primary associated types.** Don't feel obligated to add a primary associated type just because it is possible to do so. If you don't expect people will want to constrain an associated type in practice, there is little reason to mark it as a primary. Similarly, if there are multiple possible choices that seem equally useful, it might be best not to select one. (See point 2 above.)
 
    For example, `ExpressibleByIntegerLiteral` is not expected to be mentioned in generic function declarations, so there is no reason to mark its sole associated type (`IntegerLiteral`) as the primary.
 
@@ -103,7 +105,7 @@ The table below lists all public protocols in the Standard Library with associat
 | `RangeExpression`                                    | `Bound`        | --                                                                                                                                                                                                                   |
 | `Strideable`                                         | `Stride`       | --                                                                                                                                                                                                                   |
 | `SetAlgebra`                                         | `Element`      | `ArrayLiteralElement`                                                                                                                                                                                                |
-| `OptionSet`                                          | `Element`      | `ArrayLiteralElement`, `RawValue`                                                                                                                                                                                    |
+| `OptionSet`                                          | -- [(2)][note] | `Element`, `ArrayLiteralElement`, `RawValue`                                                                                                                                                                         |
 | `Numeric`                                            | --             | `IntegerLiteralType`, `Magnitude`                                                                                                                                                                                    |
 | `SignedNumeric`                                      | --             | `IntegerLiteralType`, `Magnitude`                                                                                                                                                                                    |
 | `BinaryInteger`                                      | --             | `IntegerLiteralType`, `Magnitude`, `Stride`, `Words`                                                                                                                                                                 |
@@ -134,14 +136,14 @@ The table below lists all public protocols in the Standard Library with associat
 | `CaseIterable`                                       | --             | `AllCases`                                                                                                                                                                                                           |
 | `Clock`                                              | `Duration`     | `Instant`                                                                                                                                                                                                            |
 | `InstantProtocol`                                    | `Duration`     | --                                                                                                                                                                                                                   |
-| `AsyncIteratorProtocol`                              | -- [(2)][note] | `Element`                                                                                                                                                                                                            |
-| `AsyncSequence`                                      | -- [(2)][note] | `AsyncIterator`, `Element`                                                                                                                                                                                           |
+| `AsyncIteratorProtocol`                              | -- [(3)][note] | `Element`                                                                                                                                                                                                            |
+| `AsyncSequence`                                      | -- [(3)][note] | `AsyncIterator`, `Element`                                                                                                                                                                                           |
 | `GlobalActor`                                        | --             | `ActorType`                                                                                                                                                                                                          |
-| `DistributedActor`                                   | -- [(3)][note] | `ID`, `ActorSystem`, `SerializationRequirement`                                                                                                                                                                      |
-| `DistributedActorSystem`                             | -- [(3)][note] | `ActorID`, `SerializationRequirement`, `InvocationEncoder`, `InvocationDecoder`, `ResultHandler`                                                                                                                     |
-| `DistributedTargetInvocationEncoder`                 | -- [(3)][note] | `SerializationRequirement`                                                                                                                                                                                           |
-| `DistributedTargetInvocationDecoder`                 | -- [(3)][note] | `SerializationRequirement`                                                                                                                                                                                           |
-| `DistributedTargetInvocationResultHandler`           | -- [(3)][note] | `SerializationRequirement`                                                                                                                                                                                           |
+| `DistributedActor`                                   | -- [(4)][note] | `ID`, `ActorSystem`, `SerializationRequirement`                                                                                                                                                                      |
+| `DistributedActorSystem`                             | -- [(4)][note] | `ActorID`, `SerializationRequirement`, `InvocationEncoder`, `InvocationDecoder`, `ResultHandler`                                                                                                                     |
+| `DistributedTargetInvocationEncoder`                 | -- [(4)][note] | `SerializationRequirement`                                                                                                                                                                                           |
+| `DistributedTargetInvocationDecoder`                 | -- [(4)][note] | `SerializationRequirement`                                                                                                                                                                                           |
+| `DistributedTargetInvocationResultHandler`           | -- [(4)][note] | `SerializationRequirement`                                                                                                                                                                                           |
 
 As of Swift 5.6, the following public protocols don't have associated type requirements, so they are outside of the scope of this proposal.
 
@@ -175,7 +177,6 @@ public protocol RangeExpression<Bound>
 public protocol Strideable<Stride>: Comparable
 
 public prococol SetAlgebra<Element>: Equatable, ExpressibleByArrayLiteral
-public protocol OptionSet<Element>: SetAlgebra, RawRepresentable
 
 public protocol SIMD<Scalar>: ...
 
@@ -201,10 +202,17 @@ Therefore, we will not be able to make any changes to the list of primary associ
 
 ## Alternatives considered
 
-(1) It is tempting to declare `Element` as the primary associated type for `LazySequenceProtocol` and `LazyCollectionProtocol`, for consistency with other protocols in the collection hierarchy. However, in actual use, `Elements` seems just as useful (if not more) to be easily constrained. We left the matter of selecting one of these as primary unresolved for now; as we get more experience with lightweight same-type requirements, we may revisit these protocols.
+(1) It is tempting to declare `Element` as the primary associated type for `LazySequenceProtocol` and `LazyCollectionProtocol`, for consistency with other protocols in the collection hierarchy. However, in actual use, `Elements` seems just as useful (if not more) to be easily constrained. We left the matter of selecting one of these as primary unresolved for now; as we get more experience with the lightweight constraint syntax, we may revisit these protocols.
 
-(2) `AsyncSequence` and `AsyncIteratorProtocol` logically ought to have `Element` as their primary associated type. However, we have [ongoing evolution discussions][rethrows] about adding a precise error type to these. If those discussions bear fruit, then it's possible we may want to _also_ mark the potential new `Error` associated type as primary. To prevent source compatibility complications, adding primary associated types to these two protocols is deferred to a future proposal.
+(2) In the `OptionSet` protocol, the `Element` type is designed to always be `Self`, so `RawValue` would be the most practical choice for the primary associated type. However, to avoid potential confusion, we left `OptionSet` without a primary associated type annotation.
+
+(3) `AsyncSequence` and `AsyncIteratorProtocol` logically ought to have `Element` as their primary associated type. However, we have [ongoing evolution discussions][rethrows] about adding a precise error type to these. If those discussions bear fruit, then it's possible we may want to _also_ mark the potential new `Error` associated type as primary. To prevent source compatibility complications, adding primary associated types to these two protocols is deferred to a future proposal.
 
 [rethrows]: https://forums.swift.org/t/se-0346-lightweight-same-type-requirements-for-primary-associated-types/55869/70
 
-(3) Declaring primary associated types on the distributed actor protocols would be desirable, but it was [deferred to a future proposal](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/47), to prevent interfering with potential future language improvements that would make them more useful in this use case.
+(4) Declaring primary associated types on the distributed actor protocols would be desirable, but it was [deferred to a future proposal](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/47), to prevent interfering with potential future language improvements that would make them more useful in this use case.
+
+## Revisions
+
+- [2022-05-28](https://github.com/apple/swift-evolution/blob/716db41ccefde348ac38bd2fd1eb5bd7842be7b6/proposals/0358-primary-associated-types-in-stdlib.md): Initial proposal version.
+- 2022-06-22: Removed the primary associated type declaration from the `OptionSet` protocol. The API guidelines section has revised wording; it no longer proposes the new guidelines for inclusion in the official Swift API Guidelines document. Adjusted wording to prefer the term "lightweight constraint syntax" to "lightweight same-type requirements", as the new syntax can be used for more than just to express same-type constraints.
