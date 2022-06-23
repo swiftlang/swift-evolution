@@ -23,11 +23,13 @@ In order for the lightweight same-type requirement syntax introduced in [SE-0346
 
 See [SE-0346] for several motivating examples for these changes.
 
-## General API Design Guidelines
-
-(The contents of this section are to be integrated into the Swift API Design Guidelines document, introduced in [SE-0023].)
+## API Design Guidelines
 
 Primary associated types add a new facet to the design of protocols. For every public protocol with associated type requirements, we need to carefully consider which of them (if any) we want to mark as primary. On the one hand, we want to allow people to use the shorthand syntax whenever possible; on the other hand, we only get one chance to decide this: once a protocol gains a primary associated type annotation, most subsequent changes would be source-breaking.
+
+We've found the following guidelines helpful when considering the adoption of primary associated types within the Standard Library. We haven't had enough real-life experience with this new feature to propose these guidelines for general use -- however, the recommendations below can still serve as a useful starting point.
+
+(Aside: If you decide to follow these guidelines when annotating your own protocols, and they lead you to a choice that you later regret, please post a note on the Swift forums! Negative examples are going to be extremely helpful while revising the guidelines for general use. We're also looking for (positive or negative) examples for multiple primary associated types on a single protocol.)
 
 1. **Let usage inform your design.**
 
@@ -213,4 +215,4 @@ Therefore, we will not be able to make any changes to the list of primary associ
 ## Revisions
 
 - [2022-05-28](https://github.com/apple/swift-evolution/blob/716db41ccefde348ac38bd2fd1eb5bd7842be7b6/proposals/0358-primary-associated-types-in-stdlib.md): Initial proposal version.
-- 2022-06-22: Removed the primary associated type declaration from the `OptionSet` protocol.
+- 2022-06-22: Removed the primary associated type declaration from the `OptionSet` protocol. The API guidelines section has revised wording; it no longer proposes the new guidelines for inclusion in the official Swift API Guidelines document.
