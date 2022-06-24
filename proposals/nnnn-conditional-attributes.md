@@ -1,6 +1,6 @@
-# Conditional compilation for attributes and modifiers
+# Conditional compilation for attributes
 
-* Proposal: [SE-NNNN](nnnn-conditional-attributes-modifiers.md)
+* Proposal: [SE-NNNN](nnnn-conditional-attributes.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status: **Awaiting review**
@@ -10,9 +10,9 @@
 
 ## Introduction
 
-Over time, Swift has introduced a number of new attributes and modifiers to communicate additional information in source code. Existing code can then be updated to take advantage of these new constructs to improve its behavior, providing more expressive capabilities, better compile-time checking, better performance, and so on.
+Over time, Swift has introduced a number of new attributes to communicate additional information in source code. Existing code can then be updated to take advantage of these new constructs to improve its behavior, providing more expressive capabilities, better compile-time checking, better performance, and so on.
 
-However, adopting a new attribute or modifier in existing source code means that source code won't compile with an older compiler. Conditional compilation can be used to address this problem, but the result is verbose and unsatisfactory. For example, one could use `#if` to check the compiler version to determine whether to use the `@preconcurrency` attribute:
+However, adopting a new attribute in existing source code means that source code won't compile with an older compiler. Conditional compilation can be used to address this problem, but the result is verbose and unsatisfactory. For example, one could use `#if` to check the compiler version to determine whether to use the `@preconcurrency` attribute:
 
 ```swift
 #if compiler(>=5.6)
@@ -28,15 +28,14 @@ protocol P: Sendable {
 #endif
 ```
 
-This is unsatisfactory for at least two reasons. First, it's a lot of code duplication, because the entire protocol `P` needs to be duplicated just to provide the attribute. Second, the Swift 5.6 compiler is the first to contain the `@preconcurrency` attribute, but that is somewhat incidental and not self-documenting: the attribute could have been enabled by a compiler flag or partway through the development of Swift 5.6, making that check incorrect. Although these are small issues, they make adopting new attributes and modifiers in existing code harder than it needs to be.
+This is unsatisfactory for at least two reasons. First, it's a lot of code duplication, because the entire protocol `P` needs to be duplicated just to provide the attribute. Second, the Swift 5.6 compiler is the first to contain the `@preconcurrency` attribute, but that is somewhat incidental and not self-documenting: the attribute could have been enabled by a compiler flag or partway through the development of Swift 5.6, making that check incorrect. Moreover, the availability of some attributes can depend not on compiler version, but on platform and configuration flags: for example, `@objc` is only available when the Swift runtime has been compiled for interoperability with Objective-C. Although these are small issues in isolation, they make adopting new attributes in existing code harder than it needs to be.
 
 ## Proposed solution
 
-I propose three related changes to make it easier to adopt new attributes and modifiers in existing code:
+I propose two related changes to make it easier to adopt new attributes in existing code:
 
-* Allow `#if` checks to surround attributes and modifiers wherever they appear, eliminating the need to clone a declaration just  to adopt a new attribute or modifier.
+* Allow `#if` checks to surround attributes wherever they appear, eliminating the need to clone a declaration just  to adopt a new attribute.
 * Add a conditional directive `hasAttribute(AttributeName)` that evalutes `true` when the compiler has support for the attribute with the name `AttributeName` in the current language mode.
-* Add a conditional directive `hasModifier(ModifierName)` that evalutes `true` when the compiler has support for the modifier with the name `ModifierName` in the current language mode.
 
 The first two of these can be combined to make the initial example less repetitive and more descriptive:
 
@@ -47,17 +46,6 @@ The first two of these can be combined to make the initial example less repetiti
 protocol P: Sendable {
   func f()
   func g()
-}
-```
-
-Similarly, `hasModifier` can benefit code that relies on modifiers, e.g.,
-
-```swift
-#if hasModifier(distributed)
-distributed
-#endif
-actor MyActor { // distributed when we can be, otherwise a local actor
-  // ...
 }
 ```
 
@@ -87,18 +75,6 @@ else-directive-attributes → else-directive attributes[opt]
 
 i.e., within an attribute list one can have a conditional clause `#if...#endif` that wraps another attribute list.
 
-The same applies to `declaration-modifiers`, adding a production for conditional compilation:
-
-```
-declaration-modifiers → conditional-compilation-modifiers declaration-modifiers[opt]
-
-conditional-compilation-modifiers → if-directive-modifiers elseif-directive-modifiers[opt] else-directive-modifiers[opt] endif-directive
-if-directive-modifiers → if-directive compilation-condition declaration-modifiers[opt]
-elseif-directive-modifiers → elseif-directive-modifiers elseif-directive-modifiers[opt]
-elseif-directive-modifiers → elseif-directive compilation-condition declaration-modifiers[opt]
-else-directive-modifiers → else-directive declaration-modifiers[opt]
-```
-
 ### `hasAttribute` only considers attributes that are part of the language 
 
 A number of Swift language features, including property wrappers, result builders, and global actors, all introduce forms of custom attributes. For example, a type `MyWrapper` that has been marked with the `@propertyWrapper` attribute (and meets the other requirements for a property wrapper type) can be used with the attribute syntax `@MyWrapper`. While the built-in attribute that enables the feature will be recognized by `hasAttribute` (e.g., `hasAttribute(propertyWrapper)` will evaluate `true`), the custom attribute will not (e.g., `hasAttribute(MyWrapper)` will evaluate `false`).
@@ -120,14 +96,5 @@ Therefore, a conditionally-compiled branch based on `#if hasAttribute(UnknownAtt
 @UnknownAttributeName(something we do not understand) // okay, we parse this but don't reject it
 #endif
 func f()
-```
-
-Modifiers are different, because there is neither a notion of custom modifiers nor is there an identifying token like `@`. Therefore, we treat `#if hasModifier(UnknownModifierName)` more like the `#if compiler(>=7.2)` directive, where the contents of the branch not taken is not processed at all:
-
-```swift
-#if hasModifier(UnknownModifierName)
-it is okay to have total gibberish here
-#endif
-func g()
 ```
 
