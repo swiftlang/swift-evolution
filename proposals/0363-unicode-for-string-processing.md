@@ -1,9 +1,9 @@
 # Unicode for String Processing
 
-* Proposal: [SE-NNNN](NNNN-unicode-for-string-processing.md)
+* Proposal: [SE-0363](0363-unicode-for-string-processing.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Draft**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (24 July - 7th July 2022)**
 * Implementation: [apple/swift-experimental-string-processing][repo]  
 
 ### Version History
