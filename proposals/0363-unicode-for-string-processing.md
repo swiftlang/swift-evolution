@@ -1241,7 +1241,7 @@ The initial version of `Regex` includes only the options described above. Fillin
 
 ### Extensions to Character and Unicode Scalar APIs
 
-An earlier version of this pitch described adding standard library APIs to `Character` and `UnicodeScalar` for each of the supported character classes, as well as convenient static members for control characters. In addition, regex literals support Unicode property features that don’t currently exist in the standard library, such as a scalar’s script or extended category, or creating a scalar by its Unicode name instead of its scalar value. These kinds of additions are 
+An earlier version of this pitch described adding standard library APIs to `Character` and `UnicodeScalar` for each of the supported character classes, as well as convenient static members for control characters. In addition, regex literals support Unicode property features that don’t currently exist in the standard library, such as a scalar’s script or extended category, or creating a scalar by its Unicode name instead of its scalar value. These kinds of additions have value outside of just their relationship to the `Regex` additions, so they can be pitched and considered in a future proposal.
 
 ### Byte semantic mode
 
