@@ -3,7 +3,7 @@
 * Proposal: [SE-0363](0363-unicode-for-string-processing.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (24 July - 7th July 2022)**
+* Status: **Active Review (24 July - 11th July 2022)**
 * Implementation: [apple/swift-experimental-string-processing][repo]  
 
 ### Version History
