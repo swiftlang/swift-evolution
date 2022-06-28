@@ -878,9 +878,10 @@ extension AlternationBuilder {
 
 ### Repetition
 
-One of the most useful features of regex is repetition, aka. quantification, as it allows you to match a specific range of number of occurrences of a subpattern. Regex builder provides 4 repetition components: `OneOrMore`, `ZeroOrMore`, `Optionally`, and `Repeat`.
+One of the most useful features of regex is repetition, aka. quantification, as it allows you to match a specific range of number of occurrences of a subpattern. Regex builder provides 5 repetition components: `One`, `OneOrMore`, `ZeroOrMore`, `Optionally`, and `Repeat`.
 
 ```swift
+public struct One<Output>: RegexComponent { ... }
 public struct OneOrMore<Output>: RegexComponent { ... }
 public struct ZeroOrMore<Output>: RegexComponent { ... }
 public struct Optionally<Output>: RegexComponent { ... }
@@ -889,6 +890,7 @@ public struct Repeat<Output>: RegexComponent { ... }
 
 | Repetition in regex builder | Textual regex equivalent |
 |-----------------------------|--------------------------|
+| `One(...)`                  | `...`                    |
 | `OneOrMore(...)`            | `...+`                   |
 | `ZeroOrMore(...)`           | `...*`                   |
 | `Optionally(...)`           | `...?`                   |
@@ -896,12 +898,12 @@ public struct Repeat<Output>: RegexComponent { ... }
 | `Repeat(..., n...)`         | `...{n,}`                |
 | `Repeat(..., n...m)`        | `...{n,m}`               |
 
-`OneOrMore` and count-based `Repeat` are quantifiers that produce a new regex with the original capture types. Their `Output` type is `Substring` followed by the component's capture types. `ZeroOrMore`, `Optionally`, and range-based `Repeat` are quantifiers that produce a new regex with optional capture types. Their `Output` type is `Substring` followed by the component's capture types wrapped in `Optional`.
+`One`, `OneOrMore` and count-based `Repeat` are quantifiers that produce a new regex with the original capture types. Their `Output` type is `Substring` followed by the component's capture types. `ZeroOrMore`, `Optionally`, and range-based `Repeat` are quantifiers that produce a new regex with optional capture types. Their `Output` type is `Substring` followed by the component's capture types wrapped in `Optional`.
 
 | Quantifier                                           | Component `Output`         | Result `Output`            |
 |------------------------------------------------------|----------------------------|----------------------------|
-| `OneOrMore`<br>`Repeat(..., count: ...)`             | `(WholeMatch, Capture...)` | `(Substring, Capture...)`  |
-| `OneOrMore`<br>`Repeat(..., count: ...)`             | `WholeMatch` (non-tuple)   | `Substring`                |
+| `One`<br>`OneOrMore`<br>`Repeat(..., count: ...)`    | `(WholeMatch, Capture...)` | `(Substring, Capture...)`  |
+| `One`<br>`OneOrMore`<br>`Repeat(..., count: ...)`    | `WholeMatch` (non-tuple)   | `Substring`                |
 | `ZeroOrMore`<br>`Optionally`<br>`Repeat(..., n...m)` | `(WholeMatch, Capture...)` | `(Substring, Capture?...)` |
 | `ZeroOrMore`<br>`Optionally`<br>`Repeat(..., n...m)` | `WholeMatch` (non-tuple)   | `Substring`                |
 
@@ -909,6 +911,10 @@ public struct Repeat<Output>: RegexComponent { ... }
 <summary>API definition</summary>
 
 ```swift
+public struct One<Output>: RegexComponent {
+  public var regex: Regex<Output> { get }
+}
+ 
 public struct OneOrMore<Output>: RegexComponent {
   public var regex: Regex<Output> { get }
 }
@@ -929,6 +935,53 @@ public struct Repeat<Output>: RegexComponent {
 Due to the lack of variadic generics, initializers must be overloaded for every supported capture arity.
 
 ```swift
+extension One {
+  // The following builder methods implement what would be possible with
+  // variadic generics (using imaginary syntax) as a single set of methods:
+  //
+  //   public init<
+  //     Component: RegexComponent, WholeMatch, Capture...
+  //   >(
+  //     _ component: Component,
+  //     _ behavior: RegexRepetitionBehavior = .eager
+  //   )
+  //   where Output == (Substring, Capture...)>,
+  //         Component.RegexOutput == (WholeMatch, Capture...)
+  //
+  //   public init<
+  //     Component: RegexComponent, WholeMatch, Capture...
+  //   >(
+  //     _ behavior: RegexRepetitionBehavior = .eager,
+  //     @RegexComponentBuilder _ component: () -> Component
+  //   )
+  //   where Output == (Substring, Capture...),
+  //         Component.RegexOutput == (WholeMatch, Capture...)
+
+  @_disfavoredOverload
+  public init<Component: RegexComponent>(
+    _ component: Component,
+    _ behavior: RegexRepetitionBehavior? = nil
+  ) where Output == Substring
+  
+  @_disfavoredOverload
+  public init<Component: RegexComponent>(
+    _ behavior: RegexRepetitionBehavior? = nil,
+    @RegexComponentBuilder _ component: () -> Component
+  ) where Output == Substring
+  
+  public init<W, C0, Component: RegexComponent>(
+    _ component: Component,
+    _ behavior: RegexRepetitionBehavior? = nil
+  ) where Output == (Substring, C0), Component.RegexOutput == (W, C0)
+  
+  public init<W, C0, Component: RegexComponent>(
+    _ behavior: RegexRepetitionBehavior? = nil,
+    @RegexComponentBuilder _ component: () -> Component
+  ) where Output == (Substring, C0), Component.RegexOutput == (W, C0)
+  
+  // ... `O(arity)` overloads
+}
+ 
 extension OneOrMore {
   // The following builder methods implement what would be possible with
   // variadic generics (using imaginary syntax) as a single set of methods:
@@ -1594,7 +1647,48 @@ There are some concerns with this design which we need to consider:
 - When there is an initializer that accepts a result builder closure, overloading that initializer with the same argument labels could lead to bad error messages upon interor type errors.
 
 ## Alternatives considered
+ 
+### Semicolons or parentheses instead of `One`
+ 
+In the DSL syntax as described in the first version of this proposal, there was a problem with the use of leading-dot syntax for character classes and other "atoms" and the builder syntax:
+```swift
+Regex {
+  .digit
+  OneOrMore(.whitespace)
+}
+```
+worked as expected, but:
+```swift
+Regex {
+  OneOrMore(.whitespace)
+  .digit
+}
+```
+did not, because `.digit` parses as a property on `OneOrMore` rather than a regex component. This could have been resolved by making people use either semicolons:
+```swift
+Regex {
+  OneOrMore(.whitespace);
+  .digit
+}
+```
+or parentheses:
+```swift
+Regex {
+  OneOrMore(.whitespace)
+  (.digit)
+}
+```
 
+Instead we decided to introduce the quantifier `One` to resolve the ambiguity:
+```swift
+Regex {
+  OneOrMore(.whitespace)
+  One(.digit)
+}
+```
+
+This increase the API surface, which is mildly undesirable, but feels much more stylistically consistent with the rest of the DSL and with Swift as whole. We also considered a "two protocol" approach that would force the use of `One` in these cases by making it impossible to use the dot-prefixed "atoms" within builder blocks, but this seems like too much heavy machinery to resolve the problem.
+ 
 ### Operators for quantification and alternation
 
 While `ChoiceOf` and quantifier types provide a general way of creating alternations and quantifications, we recognize that some synctactic sugar can be useful for creating one-liners like in textual regexes, e.g. infix operator `|`, postfix operator `*`, etc.
