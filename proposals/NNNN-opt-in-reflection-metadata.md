@@ -1,4 +1,5 @@
 
+  
 # Swift Opt-In Reflection Metadata
 
 *   Proposal: [SE-NNNN](NNNN-opt-in-reflection-metadata.md)
@@ -81,31 +82,31 @@ Since Reflection symbols might be used by LLDB, there will be difference in emit
 **Release mode**: if `-O`, `-Osize`, `-Ospeed` passed.  
 **Debug**: - if `-Onone` passed or if not set.  
   
-One more level of reflection metadata will be introduced in addition to the existing ones:  
-  
+One more level of reflection metadata will be introduced in addition to the existing ones:    
 
-1.  Reflection Disabled (`disable-reflection-metadata`)
+1.  Reflection Disabled (`-disable-reflection-metadata`)
 
 -   Do not emit reflection in Release and Debug modes.
 -   If there is a type in a module conforming to `Reflectable`, the compiler will emit an error.
 
-1.  Enabled for the debugger support (`reflection-metadata-for-debugger-only`)
+2.  Enabled for the debugger support (`-reflection-metadata-for-debugger-only`)
 
--   Emit Reflection metadata for all types in non-optimised mode while emitting nothing in optimised modes.
--   If there is a type in a module conforming to `Reflectable`, the compiler will emit an error (even if in a non-opmised mode the metadata is actually emitted).
+-   Emit Reflection metadata for all types in Debug mode while emitting nothing in Release modes.
+-   If there is a type in a module conforming to `Reflectable`, the compiler will emit an error (even if in Debug mode the metadata is actually emitted).
 
-1.  Opt-in enabled (`-enable-opt-in-reflection-metadata`)
+3.  Opt-in enabled (`-enable-opt-in-reflection-metadata`)
 
--   In optimised mode, emit only for types that conform to `Reflectable`.
--   In non-optimised mode emit reflection in full.
+-   In Release mode, emit only for types that conform to `Reflectable`.
+-   In Debug mode emit reflection in full.
 
-1.  Fully enabled (current default level)
+4.  Fully enabled (current default level)
 
--   Emit reflection metadata for all types in optimised and non-optimised modes.
+-   Emit reflection metadata for all types in Release and Debug modes.
 
 Introducing a new flag to control the feature will allow us to safely roll it out and avoid breakages of the existing code. For those modules that get compiled with fully enabled metadata, nothing will change (all symbols will stay). For modules that have the metadata disabled, but are consumers of reflectable API, the compiler will emit the error enforcing the guarantee.  
-  
-For Swift 6, we propose to enable Opt-in behaviour by default, to make the user experience consistent and safe.  
+ 
+### Behaviour change for Swift 6
+For Swift 6, we propose to enable Opt-in behaviour by default, to make the user experience consistent and safe.  To achieve that we will need to deprecate the compiler's options that can lead to missing reflection - `-reflection-metadata-for-debugger-only` and `-disable-reflection-metadata`. Starting with Swift 6, these arguments will be ignored in favour of the default opt-in mode.
   
 
 ## Source compatibility
