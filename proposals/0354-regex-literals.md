@@ -113,7 +113,7 @@ func matchHexAssignment(_ input: String) -> (String, Int)? {
   let regex = /(?<identifier>[[:alpha:]]\w*) = (?<hex>[0-9A-F]+)/
   // regex: Regex<(Substring, identifier: Substring, hex: Substring)>
   
-  guard let match = regex.matchWhole(input), 
+  guard let match = regex.wholeMatch(input),
         let hex = Int(match.hex, radix: 16) 
   else { return nil }
   
