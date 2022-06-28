@@ -46,16 +46,20 @@ Amend the following proposals, which are partially or wholly delayed until Swift
 
 ### Swift Package Manager support for future features
 
-SwiftPM targets should be able to specify the future language features they require. Extend the `target` part of the manifest to take a set of future features as strings, e.g.:
+SwiftPM targets should be able to specify the future language features they require. Extend `SwiftSetting` with an API to define a future feaure:
 
 ```swift
-.target(name: "myPackage",
-        futureFeatures: ["ConciseMagicFile", "ExistentialAny"])
+extension SwiftSetting {
+  public static func enableFutureFeature(
+    _ name: String,
+    _ condition: BuildSettingCondition? = nil
+  ) -> SwiftSetting
+}
 ```
 
-SwiftPM would then pass each of the future features listed there to the compiler via the  `-enable-future-feature` flag when building the module for this target. Other targets that depend on this one do not need to pass the features when they build, because the effect of future features does not cross module boundaries.
+SwiftPM would then pass each of the future features listed there to the compiler via the  `-enable-future-feature` flag when building a module using this setting. Other targets that depend on this one do not need to pass the features when they build, because the effect of future features does not cross module boundaries.
 
-The features are provided as strings here so that SwiftPM's manifest format doesn't need to change each time a new feature is added to the compiler. Package authors can add to the `futureFeatures` list while still supporting older tools without creating a new, versioned manifest.
+The features are provided as strings here so that SwiftPM's manifest format doesn't need to change each time a new feature is added to the compiler. Package authors can add future features while still supporting older tools without creating a new, versioned manifest.
 
 ### Feature detection in source code
 
@@ -109,7 +113,7 @@ On Swift 5.8 or newer compilers (which we assume will support `hasAttribute`), t
 
 ### Embracing experimental features
 
-It is common for language features in the compiler to be staged in behind an "experimental" flag as they are developed. This is usually done in an ad hoc manner, and the flag is removed before the feature finally ships. However, we should embrace the experimental feature model further: when a feature is under development, provide it with a feature identifier that allows it to be enabled with a new flag, `-enable-experimental-feature X`, or its SwiftPM counterpart `experimentalFeatures`.
+It is common for language features in the compiler to be staged in behind an "experimental" flag as they are developed. This is usually done in an ad hoc manner, and the flag is removed before the feature finally ships. However, we should embrace the experimental feature model further: when a feature is under development, provide it with a feature identifier that allows it to be enabled with a new flag, `-enable-experimental-feature X`, or its SwiftPM counterpart `enableExperimentalFeature`.
 
 Experimental features are still to be considered unstable, and should not be available in released compilers. However, by unifying the manner in which experimental and future features are introduced, we can rely on the same staging mechanisms: a way to enable the feature and to check for its presence in source code, making it easier to experiment with these features. If a feature then "graduates" to a complete, supported language feature, `hasFeature` can return true for it and, if part of it was delayed until the next major language version, `-enable-future-feature` will work with it, too. 
 
@@ -145,4 +149,4 @@ The set of future features will expand over time, as Swift introduces new featur
 
 ## Acknowledgments
 
-Becca Royal-Gordon designed the original `#if compiler(>=5.5) && $AsyncAwait` approach to adopting features without breaking compatibility with older tools, and helped shape this design.
+Becca Royal-Gordon designed the original `#if compiler(>=5.5) && $AsyncAwait` approach to adopting features without breaking compatibility with older tools, and helped shape this design. Ben Rimmington provided the design for the SwiftPM API, replacing the less-flexible design from the original reviewed proposal.
