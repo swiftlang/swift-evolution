@@ -178,12 +178,25 @@ let regex = #/
   (?<date>    \S+)                \s\s+
   (?<account> (?: (?!\s\s) . )+)  \s\s+ # Note that account names may contain spaces.
   (?<amount>  .*)
-  /#
+/#
 ```
 
-In such a literal, [extended regex syntax][extended-regex-syntax] `(?x)` is enabled by default. This means that whitespace in the regex becomes non-semantic, and end-of-line comments are supported with `# comment` syntax.
+In such a literal, [extended regex syntax][extended-regex-syntax] `(?x)` is enabled. This means that whitespace in the regex becomes non-semantic (including within character classes), and end-of-line comments are supported with `# comment` syntax.
 
 This mode is supported with any (non-zero) number of `#` characters in the delimiter. Similar to multi-line strings introduced by [SE-0168], the closing delimiter must appear on a new line. To avoid parsing confusion, such a literal will not be parsed if a closing delimiter is not present. This avoids inadvertently treating the rest of the file as regex if you only type the opening.
+
+Extended syntax in such a literal may not be disabled with `(?-x)`, however it may be disabled for the contents of a group `(?-x:...)` or quoted sequence `\Q...\E`, as long as they do not span multiple lines. Supporting semantic whitespace over multiple lines would require stripping leading and trailing whitespace while maintaining the verbatim newlines. This could feasibly be supported, however we feel that its behavior could potentially be confusing.
+
+If desired, newlines may be written using `\n`, or by using a backslash to escape the literal newline character:
+
+```swift
+let regex = #/
+  a\
+  b\
+  c
+/#
+// regex = /a\nb\nc/
+```
 
 ### Ambiguities of `/.../` with comment syntax
 
@@ -206,11 +219,11 @@ There is a minor ambiguity when infix operators are used with regex literals. Wh
 
 ### Regex syntax limitations in `/.../`
 
-In order to help avoid a parsing ambiguity, a `/.../` regex literal will not be parsed if it starts with a space or tab character. This restriction may be avoided by using the extended `#/.../#` literal.
+In order to help avoid a parsing ambiguity, a `/.../` regex literal will not be parsed if it starts or ends with a space or tab character. This restriction may be avoided by using the extended `#/.../#` literal.
 
 #### Rationale
 
-This is due to a parsing ambiguity that arises when a `/.../` regex literal starts a new line. This is particularly problematic for result builders, where we expect it to be frequently used, in particular within a `Regex` builder:
+The restriction on the ending character helps avoid breaking source compatibility with prefix and infix `/` operators in certain cases. Such cases are explored in the next section. The restriction on the starting character is due to a parsing ambiguity that arises when a `/.../` regex literal starts a new line. This is particularly problematic for result builders, where we expect it to be frequently used, in particular within a `Regex` builder:
 
 ```swift
 let digit = Regex {
@@ -290,51 +303,78 @@ But `let r = /^/` will be parsed as a regex.
 
 A regex literal may be used with a prefix operator, e.g `let r = ^^/x/` is parsed as `let r = ^^(/x/)`. In this case, when encountering operator characters containing `/` in an expression position, the characters up to the first `/` are split into a prefix operator, and regex literal parsing continues as normal.
 
-As already discussed, a regex literal may not begin with a space or tab. However this is not sufficient to disambiguate cases such as:
+As already discussed, a regex literal may not start or end with a space or tab. This means that the following will continue to be parsed as normal:
 
 ```swift
 // Unapplied '/' in a call to 'reduce':
 let x = array.reduce(1, /) / 5
 let y = array.reduce(1, /) + otherArray.reduce(1, /)
 
-// Prefix '/' with a potential closing '/'.
-foo(/x) / 2
+// Prefix '/' with another '/' on the same line:
+foo(/a, /b)
+bar(/x) / 2
 
-// Unapplied '!/' with a potential closing '/'.
-bar(!/, 1) / 2
+// Unapplied operators:
+baz(!/, 1) / 2
+qux(/, /)
+qux(/^, /)
+qux(!/, /)
+
+let d = hasSubscript[/] / 2 // Unapplied infix '/' and infix '/'
+
+let e = !/y / .foo() // Prefix '!/' with infix '/' and operand '.foo()'
 ```
 
-In all of these cases, the opening `/` appears in expression position, and there is a potential closing `/`. To avoid source breakage for such cases, one further heuristic is employed. A regex literal will not be parsed if it contains an unbalanced `)`. This takes both escapes and custom character classes into consideration, and therefore only applies to syntax that would already be invalid for a regex. As such, all of the above cases will continue to be parsed as normal.
+However this is not sufficient to disambiguate cases such as:
+
+```swift
+// Prefix '/' used multiple times on the same line without trailing whitespace:
+(/x).foo(/y)
+bar(/x) + bar(/y)
+
+// Cases where the closing '/' is not used with whitespace:
+bar(/x)/2
+baz(!/, 1)/2
+
+// Prefix '/^' with postfix '/':
+let f = (/^x)/
+```
+
+In all of these cases, the opening `/` appears in expression position, and there is a potential closing `/` that is used without whitespace. To avoid source breakage for such cases, one further heuristic is employed. A regex literal will not be parsed if it contains an unbalanced `)`. This takes both escapes and custom character classes into consideration, and therefore only applies to syntax that would already be invalid for a regex. As such, all of the above cases will continue to be parsed as normal.
 
 This additional heuristic also allows for straightforward disambiguation in source breaking cases where the regex is valid. For example, the following cases will become regex literals:
 
 ```swift
-baz(/, /)  // Will become the regex literal '/, /'
-baz(/^, /) // Will become the regex literal '/^, /'
-baz(!/, /) // Will become prefix '!' on the regex literal '/, /'
+foo(/a, b/) // Will become regex literal '/a, b/'
+qux(/, !/)  // Will become regex literal '/, !/'
+qux(/,/)    // Will become regex literal '/,/'
 
-// Will become the regex literal '/] /'
-let d = hasSubscript[/] / 2
+let g = hasSubscript[/]/2 // Will become regex literal '/]/'
 
-let e = /0; let f = 1/ // Will become the regex literal '/0; let y = 1/'
-let g = /^x/           // Will become the regex literal '/^x/'
-let h = !/y / .foo()   // Will become the regex literal '/y /' with prefix '!' and method call '.foo()'.
+let h = /0; let f = 1/ // Will become the regex literal '/0; let y = 1/'
+let i = /^x/           // Will become the regex literal '/^x/'
 ```
 
 However they can be readily disambiguated by inserting parentheses:
 
 ```swift
-// These are now all unapplied operators
-baz((/), /)
-baz((/^), /)
-baz((!/), /)
+// Now a prefix and postfix '/':
+foo((/a), b/)
 
-// Unapplied operator in a subscript
-let d = hasSubscript[(/)] / 2
+// Now unapplied operators:
+qux((/), !/)
+qux((/),/)
+let g = hasSubscript[(/)]/2
 
-let e = (/0); let f = 1/ // Two variables, with prefix '/' and postfix '/'
-let g = (/^x)/           // Prefix '/^' with postfix '/'
-let h = (!/y) / .foo()   // Prefix '!/' with infix '/' and member argument '.foo()'
+let h = (/0); let f = 1/ // Now prefix '/' and postfix '/'
+let i = (/^x)/           // Now prefix '/^' and postfix '/'
+```
+
+or, in some cases, by inserting whitespace:
+
+```swift
+qux(/, /)
+let g = hasSubscript[/] / 2
 ```
 
 We however expect these cases will be fairly uncommon. A similar case is the use of an unapplied infix operator with two `/` characters, for example:
@@ -343,7 +383,7 @@ We however expect these cases will be fairly uncommon. A similar case is the use
 baz(/^/) // Will become the regex literal '/^/' rather than an unapplied operator
 ```
 
-This cannot be disambiguated with parentheses, however it can be disambiguated using a closure. For example:
+This cannot be disambiguated with parentheses or whitespace, however it can be disambiguated using a closure. For example:
 
 ```swift
 baz({ $0 /^/ $1 }) // Is now infix '/^/'
@@ -394,15 +434,17 @@ A library may wish to provide their own higher-level structure around which rege
 
 ## Alternatives Considered
 
+### Alternative delimiter to `/.../`
+
 Given the fact that `/.../` is an existing term of art for regular expressions, we feel it should be the preferred delimiter syntax. It should be noted that the syntax has become less popular in some communities such as Perl, however we still feel that it is a compelling choice, especially with extended delimiters `#/.../#`. Additionally, while there are some syntactic ambiguities, we do not feel they are sufficient to disqualify the syntax. To evaluate this trade-off, below is a list of alternative delimiters that would not have the same ambiguities, and would not therefore require source breaking changes.
 
-### Extended literal delimiters only `#/.../#`
+#### Extended literal delimiters only `#/.../#`
 
 We could choose to avoid adding the bare forward slash syntax, and instead require at least one `#` character to be present in the delimiter. This would retain some of the familiarity of `/.../` while avoiding the parsing ambiguities and source breaking changes.
 
 However we feel that `/.../` is the better choice of default syntax, especially for simple regex where the additional noise of the `#` characters would be undesirable. While there are some parsing ambiguities to contend with, we do not feel they outweigh the benefits of having a lightweight and instantly recognizable syntax for regex.
 
-### Prefixed quote `re'...'`
+#### Prefixed quote `re'...'`
 
 We could choose to use `re'...'` delimiters, for example:
 
@@ -415,21 +457,21 @@ The use of two letter prefix could potentially be used as a namespace for future
 
 Also, there are a few items of regex grammar that use the single quote character as a metacharacter. These include named group definitions and references such as `(?'name')`, `(?('name'))`, `\g'name'`, `\k'name'`, as well as callout syntax `(?C'arg')`. The use of a single quote conflicts with the `re'...'` delimiter as it will be considered the end of the literal. However, alternative syntax exists for all of these constructs, e.g `(?<name>)`, `\k<name>`, and `(?C"arg")`. Those could be required instead. An extended regex literal syntax e.g `re#'...'#` would also avoid this issue.
 
-### Prefixed double quote `re"...."`
+#### Prefixed double quote `re"...."`
 
 This would be a double quoted version of `re'...'`, more similar to string literal syntax. This has the advantage that single quote regex syntax e.g `(?'name')` would continue to work without requiring the use of the alternative syntax or extended literal syntax. However it could be argued that regex literals are distinct from string literals in that they introduce their own specific language to parse. As such, regex literals are more like "program literals" than "data literals", and the use of single quote instead of double quote may be useful in expressing this difference.
 
-### Single letter prefixed quote `r'...'`
+#### Single letter prefixed quote `r'...'`
 
 This would be a slightly shorter version of `re'...'`. While it's more concise, it could potentially be confused to mean "raw", especially as Python uses this syntax for raw strings.
 
-### Single quotes `'...'`
+#### Single quotes `'...'`
 
 This would be an even more concise version of `re'...'` that drops the prefix entirely. However, given how close it is to string literal syntax, it may not be entirely clear to users that `'...'` denotes a regex as opposed to some different form of string literal (e.g some form of character literal, or a string literal with different escaping rules).
 
 We could help distinguish it from a string literal by requiring e.g `'/.../'`, though it may not be clear that the `/` characters are part of the delimiters rather than part of the literal. Additionally, this would potentially rule out the use of `'...'` as a future literal kind. 
 
-### Magic literal `#regex(...)`
+#### Magic literal `#regex(...)`
 
 We could opt for for a more explicitly spelled out literal syntax such as `#regex(...)`. This is a more heavyweight option, similar to `#selector(...)`. As such, it may be considered syntactically noisy as e.g a function argument `str.match(#regex([abc]+))` vs `str.match(/[abc]+/)`.
 
@@ -439,20 +481,16 @@ We could avoid the parenthesis balancing issue by requiring an additional intern
 
 It should also be noted that `#regex(...)` would introduce a syntactic inconsistency where the argument of a `#literal(...)` is no longer necessarily valid Swift syntax, despite being written in the form of an argument.
 
-#### On future extensibility to other foreign language snippets
+##### On future extensibility to other foreign language snippets
 
 One of the benefits of `#regex(...)` or `re'...'` is the extensibility to other kinds of foreign langauge snippets, such as SQL. Nothing in this proposal precludes a scalable approach to foreign language snippets using `#lang(...)` or `lang'...'`. If or when that happens, regex could participate as well, but the proposed syntax would still be valuable as regex literals *are* unique in their prevalence as fragments passed directly to API, as well as components of a result builder DSL.
 
 
-### Shortened magic literal `#(...)`
+#### Shortened magic literal `#(...)`
 
 We could reduce the visual weight of `#regex(...)` by only requiring `#(...)`. However it would still retain the same issues, such as still looking potentially visually noisy as an argument, and having suboptimal behavior for parenthesis balancing. It is also not clear why regex literals would deserve such privileged syntax.
 
-### Using a different delimiter for multi-line
-
-Instead of re-using the extended delimiter syntax `#/.../#` for multi-line regex literals, we could choose a different delimiter for it. Unfortunately, the obvious choice for a multi-line regex literal would be to use `///` delimiters, in accordance with the precedent set by multi-line string literals `"""`. This signifies a (documentation) comment, and as such would not be viable.
-
-### Double slash `// ... //`
+#### Double slash `// ... //`
 
 Rather than using single forward slash delimiters `/.../`, we could use double slash delimiters. This would have previously been comment syntax, and would therefore be potentially source breaking. In particular, file header comments frequently use this style. Even if they successfully parse as a regex, they would receive different syntax highlighting, and emit a spurious error about being unused.
 
@@ -468,7 +506,7 @@ This would also significantly impact a variety of commonly occurring comments, s
 
 This syntax also means the editor would not be able to automatically complete the closing delimiter, as it would initially appear to be a regular comment. This further means that typing the literal would receive comment syntax highlighting until the closing delimiter is written.
 
-### Reusing string literal syntax
+#### Reusing string literal syntax
 
 Instead of supporting a first-class literal kind for regex, we could instead allow users to write a regex in a string literal, and parse, diagnose, and generate the appropriate code when it's coerced to the `Regex` type.
 
@@ -494,6 +532,107 @@ Instead of adding a custom regex literal, we could require users to explicitly w
 - More verbose syntax is required.
 
 We therefore feel this would be a much less compelling feature without first class literal support.
+
+### Non-semantic whitespace by default for single-line literals
+
+We could choose to enable non-semantic whitespace by default for single-line literals, matching the behavior of multi-line literals. While this is quite compelling for better readability, we feel that it would lose out on the familiarity and compatibility of the single-line literal.
+
+Non-semantic whitespace can always be enabled explicitly with `(?x)`:
+
+```swift
+let r = /(?x) abc | def/
+```
+
+or by writing a multi-line literal:
+
+```swift
+let r = #/
+  abc | def
+/#
+```
+
+### Multi-line literal with semantic whitespace by default
+
+We could choose semantic whitespace by default within a multi-line regex literal. Such a literal would require a whitespace stripping rule, while keeping newlines of the contents verbatim. To enable non-semantic whitespace in such a literal, you would either have to explicitly write `(?x)` at the very start of the literal:
+
+```swift
+let regex = #/
+(?x) abc | def
+/#
+```
+
+Or we could support an explicit specifier as part of the delimiter syntax. For example:
+
+```swift
+let regex = #/x
+  abc | def
+/#
+```
+
+However, we don't find either of these options particularly compelling. The former is somewhat verbose considering we expect it to be a common mode for multi-line literals, and it would change meaning if indented at all. The latter wouldn't extend to other matching options, and wouldn't be usable within a single-line literal.
+
+We ultimately feel that non-semantic whitespace is a much more useful default for a multi-line regex literal, and unlike the single-line case, does not lose out on compatibility or familiarity. We could still enforce the specification of `(?x)` or `x`, however they would retain the same drawbacks. We are therefore not convinced they would be beneficial, and feel that the literal being split over multiple lines provides enough signal to indicate different semantics.
+
+#### Supporting the full matching option syntax as part of the delimiter
+
+Rather than supporting a specifier such as `x` on the delimiter, we could support the full range of matching option syntax on the delimiter. For example:
+
+```swift
+let regex = #/(?xi)
+  abc | def
+/#
+```
+
+However this would be more verbose, and would add additional complexity to the lexing logic which needs to be able to distinguish between an unterminated single-line literal, and a multi-line literal. It would also be limited to the isolated syntax, and e.g wouldn't support `(?xi:...)`. As we expect non-semantic whitespace to be the frequently desired mode in such a literal, we are not convinced the extra complexity or verbosity is beneficial. 
+
+### Allow matching option flags on the literal `/.../x`
+
+We could choose to support Perl-style specification of matching options on the literal. This could feasibly be supported without introducing source compatibility issues, as identifiers cannot normally be sequenced with a regex literal. However it is unusual for a Swift literal to be suffixed like that. For matching options that affect runtime matching, e.g `i`, we intend on exposing API such as `/.../.ignoresCase()`. The only remaining options that affect parsing instead of matching are `x`, `xx`, `n`, and `J`. These cannot be exposed as API, however the multi-line literal already provides a way to enter extended syntax mode, and we feel writing `(?n)` or `(?J)` at the start of the literal is a suitable alternative to `/.../n` and `/.../J`.
+
+For the multi-line literal, we could require the specification of the `x` flag to enable extended syntax mode. However this would still require the `#/` delimiter. As such, it would lose out on the familiarity of the `/.../x` syntax, and wouldn't provide much visual signal for non-trivial literals. For example:
+
+```swift
+let regex = #/
+  # Match a line of the format e.g "DEBIT  03/03/2022  Totally Legit Shell Corp  $2,000,000.00"
+  (?<kind>    \w+)                \s\s+
+  (?<date>    \S+)                \s\s+
+  (?<account> (?: (?!\s\s) . )+)  \s\s+ # Note that account names may contain spaces.
+  (?<amount>  .*)
+/x#
+```
+
+### Using `///` or `#///` for multi-line
+
+Instead of re-using the extended delimiter syntax `#/.../#` for multi-line regex literals, we could choose a delimiter that more closely parallels the multi-line string delimiter `"""`. `///` would be the obvious choice, but unfortunately already signifies a documentation comment. As such, it would likely not be viable without further heuristics and regex syntax limitations. A possible alternative is to require at least one `#` character, e.g `#///`. This would be more syntactically viable at the cost of being more verbose. However it may seem odd that a `///` delimiter does not exist for such a literal.
+
+In either case, we are not convinced that drawing a parallel to multi-line string literals is particularly desirable, as multi-line regex literals have considerably different semantics. For example, whitespace is non-semantic and backslashes treat newlines as literal, rather than eliding them:
+
+```swift
+let str = """
+  a\
+  b\
+  c
+"""
+// str = "  a  b  c"
+
+let re = #/
+  a\
+  b\
+  c
+/#
+// re = /a\nb\nc/
+```
+
+For multi-line string literals, the two main reasons for choosing `"""` over `"` were:
+
+1. Editing: It was felt that typing `"` and temporarily messing up the source highlighting of the rest of the file was a bad experience.
+2. Visual weight: It was felt that a single `"` written after potentially paragraphs of text would be difficult to notice.
+
+However we do not feel that these are serious issues for regex literals. The `#/` delimiter has plenty of visual weight, and we require a closing `/#` before the literal is treated as multi-line. While it may be possible for the closing `/#` of an existing multi-line regex literal to be treated as a closing delimiter when typing `#/` above, we feel such cases will be quite a bit less common than the string literal `"` case.
+
+### No multi-line literal
+
+We could choose to only support single-line regex literals, with more complex multi-line cases requiring the DSL. However we feel that the ability to write non-semantic whitespace multi-line regex literals is quite a compelling feature that is not covered by the DSL. We feel that confining the literal's ability to work with non-semantic whitespace to the single-line case would lose a lot of the benefits of the extended syntax.
 
 ### Restrict feature set to that of the builder DSL
 
