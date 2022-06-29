@@ -3,7 +3,7 @@
 * Proposal: [SE-0358](0358-primary-associated-types-in-stdlib.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Implementation: [apple/swift#41843](https://github.com/apple/swift/pull/41843)
 * Review: ([pitch](https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426/)) ([review](https://forums.swift.org/t/se-0358-primary-associated-types-in-the-standard-library/57432)) ([partial acceptance](https://forums.swift.org/t/se-0358-primary-associated-types-in-the-standard-library/57432/14)) ([revision and extension](https://forums.swift.org/t/se-0358-primary-associated-types-in-the-standard-library/57432/32)) ([acceptance](https://forums.swift.org/t/accepted-se-0358-primary-associated-types-in-the-standard-library/58547))
 * Related Proposals:
