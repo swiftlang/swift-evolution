@@ -363,38 +363,16 @@ public enum RegexComponentBuilder {
 
 `RegexComponentBuilder` utilizes `buildPartialBlock` to be able to concatenate all components' capture types to a single result tuple. `buildPartialBlock(first:)` provides support for creating a regex from a single component, and `buildPartialBlock(accumulated:next:)` support for creating a regex from multiple results.
 
-Before Swift supports variadic generics, `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` must be overloaded to support concatenating regexes of supported capture quantities (arities).
-- `buildPartialBlock(first:)` is overloaded `arity` times such that a unary block with a component of any supported capture arity will produce a regex with capture type `Substring` followed by the component's capture types. The base overload, `buildPartialBlock<R>(first:) -> Regex<Substring>`, must be marked with `@_disfavoredOverload` to prevent it from shadowing other overloads.
-- `buildPartialBlock(accumulated:next:)` is overloaded up to `arity^2` times to account for all possible pairs of regexes that make up 10 captures.
+Before Swift supports variadic generics, `buildPartialBlock(accumulated:next:)` must be overloaded to support concatenating regexes of supported capture quantities (arities). It is overloaded up to `arity^2` times to account for all possible pairs of regexes that make up 10 captures.
 
 In the initial version of the DSL, we plan to support regexes with up to 10 captures, as 10 captures are sufficient for most use cases. These overloads can be superceded by variadic versions of `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` in a future release.
 
 ```swift
 extension RegexComponentBuilder {
-  // The following builder methods implement what would be possible with
-  // variadic generics (using imaginary syntax) as a single method:
-  //
-  //   public static func buildPartialBlock<
-  //     R, WholeMatch, Capture...
-  //   >(
-  //     first component: Component<R>
-  //   ) -> Regex<(Substring, Capture...)>
-  //   where Component.RegexOutput == (WholeMatch, Capture...),
-
   @_disfavoredOverload
   public static func buildPartialBlock<R: RegexComponent>(
     first r: Component<R>
-  ) -> Regex<Substring>
-
-  public static func buildPartialBlock<W, C0, R: RegexComponent>(
-    first r: Component<R>
-  ) -> Regex<(Substring, C0)> where R.RegexOutput == (W, C0)
-
-  public static func buildPartialBlock<W, C0, C1, R: RegexComponent>(
-    first r: Component<R>
-  ) -> Regex<(Substring, C0, C1)> where R.RegexOutput == (W, C0, C1)
-
-  // ... `O(arity)` overloads of `buildPartialBlock(first:)`
+  ) -> Regex<R.RegexOutput>
 
   // The following builder methods implement what would be possible with
   // variadic generics (using imaginary syntax) as a single method:
@@ -664,7 +642,9 @@ if let result = try regex.firstMatch(in: "abcdefabcdef") {
 }
 ```
 
-A regex is considered invalid when it contains a use of reference without it ever being used as the `as:` argument to an initializer of `Capture` or `TryCapture` in the regex. When this occurs in the regex builder DSL, a runtime error will be reported. Similarly, the argument to a `Regex.Match.subscript(_:)` must have been used as the `as:` argument to an initializer of `Capture` or `TryCapture` in the regex that produced the match.
+A regex is considered invalid when it contains a use of reference without it ever being used as the `as:` argument to an initializer of `Capture` or `TryCapture` in the regex. When this occurs in the regex builder DSL, a runtime error will be reported.
+
+Similarly, the argument to a `Regex.Match.subscript(_:)` must have been used as the `as:` argument to an initializer of `Capture` or `TryCapture` in the regex that produced the match.
 
 <details>
 <summary>API definition</summary>
@@ -1947,5 +1927,5 @@ Regex {
 
 [Declarative String Processing]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/DeclarativeStringProcessing.md
 [Strongly Typed Regex Captures]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StronglyTypedCaptures.md
-[Regex Syntax]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntax.md
-[String Processing Algorithms]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StringProcessingAlgorithms.md
+[Regex Syntax]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md
+[String Processing Algorithms]: https://github.com/apple/swift-evolution/blob/main/proposals/0357-regex-string-processing-algorithms.md
