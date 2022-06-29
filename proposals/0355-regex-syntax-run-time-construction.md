@@ -566,7 +566,7 @@ Set             -> Member+
 Member          -> CustomCharClass | Quote | Range | Atom
 Range           -> RangeElt `-` RangeElt
 RangeElt        -> <Char> | UnicodeScalar | EscapeSequence
-SetOp           -> '&&' | '--' | '~~' | '-'
+SetOp           -> '&&' | '--' | '~~'
 ```
 
 Custom characters classes introduce their own sublanguage, in which most regular expression metacharacters become literal. The basic element in a custom character class is an `Atom`, though only some atoms are considered valid:
@@ -591,11 +591,8 @@ Operators may be used to apply set operations to character class members. The op
 - `&&`: Intersection of the LHS and RHS.
 - `--`: Subtraction of the RHS from the LHS.
 - `~~`: Symmetric difference of the RHS and LHS.
-- `-`: .NET's spelling of subtracting the RHS from the LHS.
 
 These operators have a lower precedence than the implicit union of members, e.g `[ac-d&&a[d]]` is an intersection of the character classes `[ac-d]` and `[ad]`.
-
-To avoid ambiguity between .NET's subtraction syntax and range syntax, .NET specifies that a subtraction will only be parsed if the right-hand-side is a nested custom character class. We propose following this behavior.
 
 Note that a custom character class may begin with the `:` character, and only becomes a POSIX character property if a closing `:]` is present. For example, `[:a]` is the character class of `:` and `a`.
 
@@ -848,7 +845,7 @@ Unlike other engines, .NET supports the use of `-` to denote both a range as wel
 
 We propose supporting the operators `&&`, `--`, and `~~`. This means that any regex literal containing these sequences in a custom character class while being written for an engine not supporting that operation will have a different semantic meaning in our engine. However this ought not to be a common occurrence, as specifying a character multiple times in a custom character class is redundant.
 
-In the interests of compatibility, we also propose supporting the `-` operator, though we will likely want to emit a warning and encourage users to switch to `--`.
+In order to help avoid confusion between engines, we will reject the use of .NET style `-` for subtraction. Users will be required to write `--` instead, or escape with `\-`.
 
 ### Nested custom character classes
 
