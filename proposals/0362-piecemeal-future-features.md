@@ -101,7 +101,7 @@ let regex = try NSRegularExpression(pattern: "...")
 
 In the worst case, this does involve some code duplication for libraries that need to work on Swift versions that predate the introduction of `hasFeature`, but it is possible to handle those compilers, and over time that limitation will go away.
 
-To prevent this issue for any upcoming extensions to the `#if` syntax, the compiler should not attempt to interpret any "call" syntax on the right-hand side of a `&&` whose left-hand side disables parsing of the `#if` body, such as `compiler(>=5.7)` or `swift(>=6.0)`. For example, if we invent something like `#if hasAttribute(Y)` in the future, one can use this formulation:
+To prevent this issue for any upcoming extensions to the `#if` syntax, the compiler should not attempt to interpret any "call" syntax on the right-hand side of a `&&` or `||` whose left-hand side disables parsing of the `#if` body, such as `compiler(>=5.7)` or `swift(>=6.0)`, and where the right-hand term is not required to determine the result of the whole expression. For example, if we invent something like `#if hasAttribute(Y)` in the future, one can use this formulation:
 
 ```swift
 #if compiler(>=5.8) && hasAttribute(Sendable)
@@ -109,7 +109,7 @@ To prevent this issue for any upcoming extensions to the `#if` syntax, the compi
 #endif
 ```
 
-On Swift 5.8 or newer compilers (which we assume will support `hasAttribute`), the full condition will be evaluated. On prior Swift compilers (i.e., ones that support this proposal but not something newer like `hasAttribute`), the code after the `&&` will be parsed as an expression, but will not be evaluated, so such compilers will not reject this `#if` condition.
+On Swift 5.8 or newer compilers (which we assume will support `hasAttribute`), the full condition will be evaluated. On prior Swift compilers (i.e., ones that support this proposal but not something newer like `hasAttribute`), the code after the `&&` or `||` will be parsed as an expression, but will not be evaluated, so such compilers will not reject this `#if` condition.
 
 ### Embracing experimental features
 
@@ -152,6 +152,7 @@ The set of upcoming features will expand over time, as Swift introduces new feat
 * Changes from first reviewed version:
   * Changed the SwiftPM manifest API to be based on `SwiftSettings` rather than the target.
   * Use the term "upcoming feature" rather than "future feature" to reduce confusion.
+  * Don't parse the right-hand side of a `&&` or `||` that doesn't affect the result.
 
 ## Acknowledgments
 
