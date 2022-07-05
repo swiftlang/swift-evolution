@@ -4,7 +4,8 @@
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Implementation: [apple/swift#42072](https://github.com/apple/swift/pull/42072), [apple/swift#42104](https://github.com/apple/swift/pull/42104), and [apple/swift#42167](https://github.com/apple/swift/pull/42167)
-* Status: **Active review (May 31...June 14, 2022)**
+* Status: **Implemented**
+* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0360-opaque-result-types-with-limited-availability/58712)
 
 ## Introduction
 
