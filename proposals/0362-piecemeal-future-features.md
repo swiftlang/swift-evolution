@@ -3,7 +3,7 @@
 * Proposal: [SE-0362](0362-piecemeal-future-features.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (June 22nd...July 5th, 2022)**
+* Status: **Active Review (June 22nd...July 11th, 2022)**
 * Implementation: [apple/swift#59055](https://github.com/apple/swift/pull/59055)
 * Review: ([pitch](https://forums.swift.org/t/piecemeal-adoption-of-swift-6-improvements-in-swift-5-x/57184)) ([review](https://forums.swift.org/t/se-0362-piecemeal-adoption-of-future-language-improvements/58384))
 
