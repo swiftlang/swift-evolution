@@ -4,7 +4,7 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (June 22nd...July 11th, 2022)**
-* Implementation: [apple/swift#59055](https://github.com/apple/swift/pull/59055)
+* Implementation: [apple/swift#59055](https://github.com/apple/swift/pull/59055), [apple/swift-package-manager#5632](https://github.com/apple/swift-package-manager/pull/5632)
 * Review: ([pitch](https://forums.swift.org/t/piecemeal-adoption-of-swift-6-improvements-in-swift-5-x/57184)) ([review](https://forums.swift.org/t/se-0362-piecemeal-adoption-of-future-language-improvements/58384))
 
 ## Introduction
@@ -26,17 +26,17 @@ Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/piecemeal-adoption
 There are two related kinds of "Swift version" that are distinct, but we often conflate them for convenience. However, both kinds of version have a bearing on this proposal:
 
 - *Swift tools version*: the version number of the compiler itself. For example, the Swift 5.6 compiler was introduced in March 2022.
-- *Swift language version*: the language version with which we are providing source compatibility. For example, Swift version 5 is the most current language version support by Swift tools version 5.6.
+- *Swift language version*: the language version with which we are providing source compatibility. For example, Swift version 5 is the most current language version supported by Swift tools version 5.6.
 
-The Swift tools support multiple Swift language versions. All recent versions (since Swift tools version 5.0) have supported multiple Swift language versions, of which there are currently only three: 4, 4.2, and 5. As the tools evolve, they try to avoid making source-incompatible changes within a Swift language version, and this is also reflected in the evolution process itself: proposals that change the meaning of existing source code, or make it invalid, are generally not accepted for existing language modes. Many proposals do *extend* the Swift language within an existing language mode. For example, you can use `async`/`await` became available in Swift tools version 5.5, and is available in all language versions (4, 4.2, 5).
+The Swift tools support multiple Swift language versions. All recent versions (since Swift tools version 5.0) have supported multiple Swift language versions, of which there are currently only three: 4, 4.2, and 5. As the tools evolve, they try to avoid making source-incompatible changes within a Swift language version, and this is also reflected in the evolution process itself: proposals that change the meaning of existing source code, or make it invalid, are generally not accepted for existing language modes. Many proposals do *extend* the Swift language within an existing language mode. For example, `async`/`await` became available in Swift tools version 5.5, and is available in all language versions (4, 4.2, 5).
 
-This proposal involves source--incompatible changes that are waiting for the introduction of a new Swift language version, e.g., 6. Swift tools version 6.0 will be the first tools to officially allow the use of Swift language version 6. Those tools will continue to support Swift language versions 4, 4.2, and 5. Code does not need to move to Swift language version 6 to use Swift tools version 6.0, or 6.1, and so on, and code written to Swift language version 6 will interoperate with code written to Swift language version 4, 4.2, or 5.
+This proposal involves source-incompatible changes that are waiting for the introduction of a new Swift language version, e.g., 6. Swift tools version 6.0 will be the first tools to officially allow the use of Swift language version 6. Those tools will continue to support Swift language versions 4, 4.2, and 5. Code does not need to move to Swift language version 6 to use Swift tools version 6.0, or 6.1, and so on, and code written to Swift language version 6 will interoperate with code written to Swift language version 4, 4.2, or 5.
 
 ## Proposed solution
 
-Introduce a compiler flag `-enable-upcoming-feature X`, where `X` is a name for the feature to enable. Each proposal will document what `X` is, so it's clear how to enable that feature. For example, SE-0274 could use `ConciseMagicFile`, so that `-enable-upcoming-feature ConciseMagicFile` will enable that change in semantics. One can of course pass multiple `-enable-feature` flags to the compiler to enable multiple features. 
+Introduce a compiler flag `-enable-upcoming-feature X`, where `X` is a name for the feature to enable. Each proposal will document what `X` is, so it's clear how to enable that feature. For example, SE-0274 could use `ConciseMagicFile`, so that `-enable-upcoming-feature ConciseMagicFile` will enable that change in semantics. One can of course pass multiple `-enable-upcoming-feature` flags to the compiler to enable multiple features. 
 
-Unrecognized upcoming features will be ignored by the compiler. This allows older tools to use the same command lines as newer tools for Swift code that has started adopting new features, but has appropriate workarounds to still work with older tools. Sometimes this is possible because older compilers will still have a reasonable interpretation of the code, other times one will need a way to [detect features in source code][#feature-detection-in-source-code], the subject of a later section.
+Unrecognized upcoming features will be ignored by the compiler. This allows older tools to use the same command lines as newer tools for Swift code that has started adopting new features, but has appropriate workarounds to still work with older tools. Sometimes this is possible because older compilers will still have a reasonable interpretation of the code, other times one will need a way to [detect features in source code](#feature-detection-in-source-code), the subject of a later section.
 
 All "upcoming" features are enabled by default in some language version. The compiler will produce an error if `-enable-upcoming-feature X` is provided and the language version enables the feature `X` by default. This will make it clear to developers when their expectations about when a feature is available, and clean up projects and manifests that have evolved from from earlier language versions, adopted features piecemeal, and then moved to later language versions.
 
@@ -49,7 +49,7 @@ Amend the [Swift proposal template](https://github.com/apple/swift-evolution/blo
 Amend the following proposals, which are partially or wholly delayed until Swift 6, with the following feature identifiers:
 
 * [SE-0274 "Concise magic file names"](https://github.com/apple/swift-evolution/blob/main/proposals/0274-magic-file.md) (`ConciseMagicFile`) delayed the semantic change to `#file` until Swift 6. Enabling this feature changes `#file` to mean `#fileID` rather than `#filePath`.
-* [SE-0286 "Forward-scan matching for trailing closures"](https://github.com/apple/swift-evolution/blob/main/proposals/0286-forward-scan-trailing-closures.md) (`ForwardTrailingClosures`) delays the removal of the "backward-scan matching" rule of trailing closures until Swift 6. Enabling this feature remove the backward-scan matching rule.
+* [SE-0286 "Forward-scan matching for trailing closures"](https://github.com/apple/swift-evolution/blob/main/proposals/0286-forward-scan-trailing-closures.md) (`ForwardTrailingClosures`) delays the removal of the "backward-scan matching" rule of trailing closures until Swift 6. Enabling this feature removes the backward-scan matching rule.
 * [SE-0335 "Introduce existential `any`"](https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md) (`ExistentialAny`) delays the requirement to use `any` for all existentials until Swift 6. Enabling this feature requires `any` for existential types.
 * [SE-0337 "Incremental migration to concurrency checking"](https://github.com/apple/swift-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md) (`StrictConcurrency`) delays some checking of the concurrency model to Swift 6 (with a flag to opt in to warnings about it in Swift 5.x). Enabling this feature is equivalent to `-warn-concurrency`, performing complete concurrency checking.
 * [SE-0352 "Implicitly Opened Existentials"](https://github.com/apple/swift-evolution/blob/main/proposals/0352-implicit-open-existentials.md) (`ImplicitOpenExistentials`) expands implicit opening to more cases in Swift 6, because we didn't want to change the semantics of well-formed code in Swift 5.x. Enabling this feature performs implicit opening in these additional cases.
@@ -57,7 +57,7 @@ Amend the following proposals, which are partially or wholly delayed until Swift
 
 ### Swift Package Manager support for upcoming features
 
-SwiftPM targets should be able to specify the upcoming language features they require. Extend `SwiftSetting` with an API to define a upcoming feaure:
+SwiftPM targets should be able to specify the upcoming language features they require. Extend `SwiftSetting` with an API to enable an upcoming feature:
 
 ```swift
 extension SwiftSetting {
@@ -96,7 +96,7 @@ let regex = try NSRegularExpression(pattern: "...")
 #endif
 ```
 
-There is in issue with the above, because `hasFeature` *itself* is not understood by tools that predate this proposal, so the code above will fail to compile on with any Swift compiler that predates the introduction of `hasFeature`. It is possible to avoid this problem by nested the `hasFeature` check like this (assuming that Swift 5.7 introduced `hasFeature`):
+There is an issue with the above, because `hasFeature` *itself* is not understood by tools that predate this proposal, so the code above will fail to compile with any Swift compiler that predates the introduction of `hasFeature`. It is possible to avoid this problem by nesting the `hasFeature` check like this (assuming that Swift 5.7 introduced `hasFeature`):
 
 ```swift
 #if compiler(>=5.7)
@@ -132,13 +132,13 @@ Experimental features are still to be considered unstable, and should not be ava
 
 For the language itself, `hasFeature` is the only addition, and it occurs in a constrained syntactic space (`#if`) where there are no user-definable functions. Therefore, there is no source-compatibility issue in the traditional sense, where a newer compiler rejects existing, well-formed code. 
 
-For SwiftPM, the addition of the `enableUpcomingFeature` function to `SwiftSetting` represents a one-time break in the manifest file format. Packages that wish to adopt this parameter and support tools versions that predate the introduction of `upcomingFeatures` can use versioned manifest, e.g., `Package@swift-5.6.swift`, to adopt the feature for newer tools versions. Once `upcomingFeatures` has been added, adopting additional features this way won't require another copy of the manifest file.
+For SwiftPM, the addition of the `enableUpcomingFeature` function to `SwiftSetting` represents a one-time break in the manifest file format. Packages that wish to adopt this function and support tools versions that predate the introduction of `enableUpcomingFeature` can use versioned manifest, e.g., `Package@swift-5.6.swift`, to adopt the feature for newer tools versions. Once `enableUpcomingFeature` has been added, adopting additional features this way won't require another copy of the manifest file.
 
 ## Alternatives considered
 
 ### `$X` instead of `hasFeature(X)`
 
-The original pitch for this proposal used special identifiers `$X` for feature detection instead of `hasFeature(X)`. `$X` has been used in the compiler implementation to help stage in Swift's concurrency features, especially when producing Swift interface files that might need to be understood by olde tools versions. The compiler still defines `$AsyncAwait`, for example, which can be used with  `#if` to check for async/await support:
+The original pitch for this proposal used special identifiers `$X` for feature detection instead of `hasFeature(X)`. `$X` has been used in the compiler implementation to help stage in Swift's concurrency features, especially when producing Swift interface files that might need to be understood by older tools versions. The compiler still defines `$AsyncAwait`, for example, which can be used with  `#if` to check for async/await support:
 
 ```swift
 #if compiler(>=5.3) && $AsyncAwait
@@ -148,7 +148,7 @@ func f() async -> String
 
 The primary advantage to the `$` syntax is that all Swift compilers already treat `$` as an acceptable leading character for an identifier. The compiler can define names with a leading `$`, but developers aren't technically supposed to, so it's effectively a reserved space for "magic" names. This means that, unlike the `hasFeature` formulation of the above, older compilers can process the code above without producing an error.
 
-However, this proposal introduces `hasFeature` because it's a clearer in the code, and makes the forward-looking changes to the way `#if` conditions are processed to make it easier for additional `hasFeature`-like features to be introduced in the future without having this problem with older compilers.
+However, this proposal introduces `hasFeature` because it's clearer in the code, and makes the forward-looking changes to the way `#if` conditions are processed to make it easier for additional `hasFeature`-like features to be introduced in the future without having this problem with older compilers.
 
 ### Enabling optional features
 
