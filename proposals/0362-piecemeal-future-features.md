@@ -21,6 +21,17 @@ This proposal explicitly embraces the piecemeal, intentional adoption of feature
 
 Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/piecemeal-adoption-of-swift-6-improvements-in-swift-5-x/57184)
 
+## Language version and tools version
+
+There are two related kinds of "Swift version" that are distinct, but we often conflate them for convenience. However, both kinds of version have a bearing on this proposal:
+
+- *Swift tools version*: the version number of the compiler itself. For example, the Swift 5.6 compiler was introduced in March 2022.
+- *Swift language version*: the language version with which we are providing source compatibility. For example, Swift version 5 is the most current language version support by Swift tools version 5.6.
+
+The Swift tools support multiple Swift language versions. All recent versions (since Swift tools version 5.0) have supported multiple Swift language versions, of which there are currently only three: 4, 4.2, and 5. As the tools evolve, they try to avoid making source-incompatible changes within a Swift language version, and this is also reflected in the evolution process itself: proposals that change the meaning of existing source code, or make it invalid, are generally not accepted for existing language modes. Many proposals do *extend* the Swift language within an existing language mode. For example, you can use `async`/`await` became available in Swift tools version 5.5, and is available in all language versions (4, 4.2, 5).
+
+This proposal involves source--incompatible changes that are waiting for the introduction of a new Swift language version, e.g., 6. Swift tools version 6.0 will be the first tools to officially allow the use of Swift language version 6. Those tools will continue to support Swift language versions 4, 4.2, and 5. Code does not need to move to Swift language version 6 to use Swift tools version 6.0, or 6.1, and so on, and code written to Swift language version 6 will interoperate with code written to Swift language version 4, 4.2, or 5.
+
 ## Proposed solution
 
 Introduce a compiler flag `-enable-upcoming-feature X`, where `X` is a name for the feature to enable. Each proposal will document what `X` is, so it's clear how to enable that feature. For example, SE-0274 could use `ConciseMagicFile`, so that `-enable-upcoming-feature ConciseMagicFile` will enable that change in semantics. One can of course pass multiple `-enable-feature` flags to the compiler to enable multiple features. 
@@ -33,7 +44,7 @@ All "upcoming" features are enabled by default in some language version. The com
 
 Amend the [Swift proposal template](https://github.com/apple/swift-evolution/blob/main/proposal-templates/0000-swift-template.md) with a new, optional field that defines the feature identifier:
 
-* **Feature identifier**: UpperCamelCaseFeatureName
+* **Feature identifier**: `UpperCamelCaseFeatureName`
 
 Amend the following proposals, which are partially or wholly delayed until Swift 6, with the following feature identifiers:
 
@@ -153,6 +164,7 @@ The set of upcoming features will expand over time, as Swift introduces new feat
   * Changed the SwiftPM manifest API to be based on `SwiftSettings` rather than the target.
   * Use the term "upcoming feature" rather than "future feature" to reduce confusion.
   * Don't parse the right-hand side of a `&&` or `||` that doesn't affect the result.
+  * Add some discussion of language and tools versions.
 
 ## Acknowledgments
 
