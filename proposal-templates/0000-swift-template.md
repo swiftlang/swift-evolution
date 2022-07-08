@@ -5,6 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
 * Bug: *if applicable* [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN)
+* Feature Identifier: *if applicable; see SE-0362* `FeatureIdentifier`
 * Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
 * Previous Proposal: *if applicable* [SE-XXXX](XXXX-filename.md)
 * Previous Revision: *if applicable* [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
