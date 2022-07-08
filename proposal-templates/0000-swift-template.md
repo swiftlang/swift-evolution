@@ -3,23 +3,20 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-
-*During the review process, add the following fields as needed:*
-
+* Status: **Awaiting implementation** or **Awaiting review**
+* Bug: *if applicable* [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN)
 * Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
+* Previous Proposal: *if applicable* [SE-XXXX](XXXX-filename.md)
+* Previous Revision: *if applicable* [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
+* Review: ([pitch](https://forums.swift.org/...))
+
+*The Review field is a history of all threads about this proposal.  Standardized link names: `pitch` `review` `revision` `acceptance` `rejection`.  If there are multiple such threads, spell the ordinal out: `first pitch` `second review` etc.*
 
 ## Introduction
 
 A short description of what the feature is. Try to keep it to a
 single-paragraph "elevator pitch" so the reader understands what
 problem this proposal is addressing.
-
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
 ## Motivation
 
