@@ -1,7 +1,7 @@
 # Allow implicit `self` for `weak self` captures, after `self` is unwrapped
 
 * Proposal: [SE-NNNN](NNNN-implicit-self-weak-capture.md)
-* Authors: [Cal Stephens](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
+* Authors: [Cal Stephens](https://github.com/calda)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [apple/swift#40702](https://github.com/apple/swift/pull/40702)
@@ -16,7 +16,7 @@ class ViewController {
 
     func setup() {
         button.tapHandler = { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             dismiss()
         }
     }
@@ -41,7 +41,7 @@ SE-0269 left the handling of `weak self` captures as a future direction, so expl
 
 ```swift
 button.tapHandler = { [weak self] in
-    guard let self = self else { return }
+    guard let self else { return }
     self.dismiss()
 }
 ```
@@ -60,7 +60,7 @@ class ViewController {
 
     func setup() {
         button.tapHandler = { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             dismiss()
         }
     }
@@ -84,11 +84,11 @@ button.tapHandler = { [weak self] in
 }
 ```
 
-Following the precedent of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), the innermost closure most capture `self` explicitly in order to use implicit `self`.
+Following the precedent of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), additional closures nested inside the `[weak self]` closure most capture `self` explicitly in order to use implicit `self`.
 
 ```swift
 button.tapHandler = { [weak self] in
-    guard let self = self else { return }
+    guard let self else { return }
 
     execute {
         // error: call to method 'method' in closure requires 
@@ -120,7 +120,7 @@ This change is purely additive, and is a syntactic transformation to existing va
 
 ## Effect on API resilience
 
-This change is purely additive, and is a syntactic transformation to existing valid code, so has no effect on ABI resilience.
+This change is purely additive, and is a syntactic transformation to existing valid code, so has no effect on API resilience.
 
 ## Alternatives considered
 
