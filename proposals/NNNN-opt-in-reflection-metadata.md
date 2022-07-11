@@ -1,5 +1,3 @@
-
-  
 # Swift Opt-In Reflection Metadata
 
 *   Proposal: [SE-NNNN](NNNN-opt-in-reflection-metadata.md)
@@ -73,8 +71,23 @@ User module:
 struct Bar: Reflectable {}  
 foo(Bar())
 ```
-Reflection metadata for `Bar` will be emitted because it explicitly conforms to Reflectable protocol. Without conformance to Reflectable, an instance of type Bar can't be used on function `foo`. If the user module gets compiled with the reflection metadata disabled, the compiler will emit an error.  
-  
+Reflection metadata for `Bar` will be emitted because it explicitly conforms to Reflectable protocol. Without conformance to Reflectable, an instance of type Bar can't be used on function `foo`. If the user module gets compiled with the reflection metadata disabled, the compiler will emit an error.
+
+### Conditional cast (`as? Reflectable`)
+We also propose to allow a conditional cast to the `Reflectable` marker protocol, which would succeed only if Reflection Metadata related to a type is available at runtime. This would allow developers to explicitly check if reflection metadata is available and based on that fact branch the code accordingly.
+
+```swift
+public  func consume(_ t:  Any) {
+    if  let _t = t as? Reflectable {
+        // Use Mirror API to extract Reflection Metadata
+    }  else  {
+        // Back to default implementation
+    }
+}
+```
+
+### Behaviour change for Swift 6
+For Swift 6, we propose to enable Opt-in behaviour by default, to make the user experience consistent and safe.  To achieve that we will need to deprecate the compiler's options that can lead to missing reflection - `-reflection-metadata-for-debugger-only` and `-disable-reflection-metadata`. Starting with Swift 6, these arguments will be ignored in favour of the default opt-in mode.
 
 ## Detailed design
 
@@ -103,10 +116,7 @@ One more level of reflection metadata will be introduced in addition to the exis
 
 -   Emit reflection metadata for all types in Release and Debug modes.
 
-Introducing a new flag to control the feature will allow us to safely roll it out and avoid breakages of the existing code. For those modules that get compiled with fully enabled metadata, nothing will change (all symbols will stay). For modules that have the metadata disabled, but are consumers of reflectable API, the compiler will emit the error enforcing the guarantee.  
- 
-### Behaviour change for Swift 6
-For Swift 6, we propose to enable Opt-in behaviour by default, to make the user experience consistent and safe.  To achieve that we will need to deprecate the compiler's options that can lead to missing reflection - `-reflection-metadata-for-debugger-only` and `-disable-reflection-metadata`. Starting with Swift 6, these arguments will be ignored in favour of the default opt-in mode.
+Introducing a new flag to control the feature will allow us to safely roll it out and avoid breakages of the existing code. For those modules that get compiled with fully enabled metadata, nothing will change (all symbols will stay). For modules that have the metadata disabled, but are consumers of reflectable API, the compiler will emit the error enforcing the guarantee.
   
 
 ## Source compatibility
