@@ -96,7 +96,9 @@ actor Clicker {
 
 ### Runtime
 
-Proposal introduces new runtime function that is used to schedule task-less block of synchronous code on the executor by wrapping it into an ad hoc task. If no switching is needed, block is executed immediately on the current thread. It does not do any reference counting and can be safely used even with references that were released for the last time but not deallocated yet.
+Proposal introduces new runtime function that is used to schedule task-less block of synchronous code on the executor by wrapping it into an ad hoc task. It does not do any reference counting and can be safely used even with references that were released for the last time but not deallocated yet.
+
+If no switching is needed, block is executed immediately on the current thread. Otherwise, task-less job copies priority and task-local values from the task/thread that released the last strong reference to the object.
 
 ```cpp
 using AdHocWorkFunction = SWIFT_CC(swift) void (void *);
@@ -142,7 +144,7 @@ actor MyActor {
 }
 ```
 
-If there is explicit `deinit`, then isolation is computed following usual rules for isolation of class instance members. It takes into account isolation attributes on the parent class, deinit itself, and allows `nonisolated` keyword to be used to supress isolation of the parent class:
+If there is an explicit `deinit`, then isolation is computed following usual rules for isolation of class instance members. It takes into account isolation attributes on the `deinit` itself, isolation of the `deinit` in the superclass, and isolation attributes on the containing class. If deinit belongs to an actor or GAIT, but isolation of the `deinit` is undesired, it can be supressed using `nonisolated` attribute:
 
 ```swift
 @MainActor
@@ -198,9 +200,46 @@ class Derived3: IsolatedBase {
 }
 ```
 
+Note that this is opposite from the rules for overriding functions. That's because in case of `deinit`, isolation applies to the non-deallocating `deinit`, while overriding happens for `__deallocating_deinit`. `__deallocating_deinit` is always non-isolated, and is resposible for switching to correct executor before calling non-deallocting `deinit`. Non-deallocating `deinit` of the subclass calls non-deallocating `deinit` of the superclass. And it is allowed to call nonisolated function from isolated one.
+
+### Interaction with ObjC
+
+Implemented mechanism is not available to the ObjC code, so marking ObjC classes as isolated on global actor using `__attribute__((swift_attr(..)))` has no effect on behaviour of the ObjC code.
+Such classes are imported into Swift as having non-isolated `deinit`.
+
+But if `__attribute__((swift_attr(..)))` is used in `@interface` to explicitly mark `dealloc` method as isolated on global actor, then it is imported as isolated `deinit`. Marking `dealloc` as isolated means that `dealloc` must be called only on that executor. It is assumed that ObjC implementation of such class ensures this by overriding `retain/release`. `deinit` of the Swift subclasses is generated as an override of the `dealloc` method. Any pre-conditions which hold for the base class will be true for Swift subclasses as well. In this case `deinit` of the Swift subclass is type-checked as isolated, but isolation thunk is not generated for code size and performance optimization.
+
+If `deinit` isolation was intoduced into hierarchy of the `@objc` Swift classes by a class implemented in Swift, then `retain/release` are not overriden, `dealloc` can be called from any thread, but isolation happens inside `dealloc` implementation. In this case, isolation thunks will be generated for each isolated `deinit` in the hierarchy. Only the most derived one may can do actual switching. The rest will be called already on the correct executor, and will follow the fast path in `swift_task_performOnExecutor()`.
+
+ObjC classes that isolate `dealloc` by overriding `retain/release` SHOULD mark `dealloc` as isolated. This not only allows Swift subclasses to fully benefit from isolation, but also prevents them from isolating their `deinit/dealloc` (including the call to `[super dealloc]`) on a different actor.
+
+On the other hand, if ObjC classes implement isolation by switching executors inside `dealloc`, they SHOULD NOT mark `dealloc` as isolated. Such `dealloc` can be called from any thread, and does not prevent Swift subclasses from isolating on different actor. And skipping isolation thunk in the Swift subclasses would be incorrect.
+
+```objc
+// Non-ARC code
+
+// Executes on main queue/thread
+- (void)dealloc_impl {
+    ...
+    [super dealloc];
+}
+
+static void dealloc_impl_helper(void *ctx) {
+    [(MyClass*)ctx dealloc_impl];
+}
+
+// SHOULD NOT be marked as isolated!
+// Executes on any thread
+- (void)dealloc {
+    dispatch_async_f(dispatch_get_main_queue(), self, dealloc_impl_helper);
+}
+```
+
 ## Source compatibility
 
 Proposal makes previously invalid code valid.
+
+Proposal may alter behaviour of existing GAIT and actors when last release happens on the different actor. It is unlikely that `deinit` of GAIT or an actor would have a synchronous externally-observable side effect that can be safely executed on a different actor.
 
 ## Effect on ABI stability
 
@@ -218,20 +257,32 @@ Changing deinitializer from isolated to nonisolated does not break ABI. Any unmo
 
 ## Future Directions
 
-### Managing priority of the deinitialization job 
-
-Currently job created for the isolated `deinit` inherits priority of the task/thread that performed last release. If there are references from different tasks/threads, value of this priority is racy. It is impossible to reason about which tasks/threads can reference the object based on local analysis, especially since object can be referenced by other objects. Ideally deinitialization should happen with a predictable priority. Such priority could be set using attributes on the deinitializer or be provided by the isolating actor.
-
-### Clearing task local values
-
-Current implementation preserves task local values if last release happened on the desired executor, or runs deinitializer without any task local values. Ideally deinitialization should happen with a predictable state of task local values. This could be achieved by blocking task-local values even if deinitializer is immediately executed. This could implemented as adding a node that stops lookup of the task-local values into the linked list.
-
 ### Asynchronous `deinit`
 
-Similar approach can be used to start a detached task for executing `async` deinit, but this is out of scope of this proposal.
+Similar approach can be used to start an unstructured task for executing `async` deinit, but this is out of scope of this proposal.
 
 ## Alternatives considered
 
 ### Placing hopping logic in `swift_release()` instead.
 
 `UIView` and `UIViewController` implement hopping to the main thread by overriding `release` method. But in Swift there are no vtable/wvtable slots for releasing, and adding them would also affect a lot of code that does not need isolated deinit.
+
+### Deterministic priority and task local values
+
+When switching executors, current implementation copies priority and task-local values from the task/thread where the last release happened. This minimises differences between isolated and nonisolated `deinit`'s.
+
+If there are references from different tasks/threads, values of the priority and task-local values observed by the `deinit` are racy, both for isolated and nonsiolated `deinit`'s.
+
+One way of making task-local values predictable would be to clear them for the duration of the `deinit` execution. This can be implemented efficiently, but would be too restrictive. If object is referenced in several tasks which all have a common parent, then `deinit` can reliably use task-local values which are known to be set in the parent task and not overriden in the child tasks.
+
+If there is a demand for resetting task-local values, it can be implemented separately as an API:
+
+```swift
+// Temporary resets all task-local values to their defaults
+// by appending a stop-node to the linked-list of task-locals 
+func withoutTaskLocalValues(operation: () throws -> Void) rethrows
+```
+
+Making priority deterministic would require switching jobs even when last release happened on the desired executor. For now, there is no evidence that deterministic priority wouild be worth taking a performance hit.
+
+### Explicit opt-in into deinit isolation
