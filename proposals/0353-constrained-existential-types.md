@@ -3,7 +3,7 @@
 * Proposal: [SE-0353](0353-constrained-existential-types.md)
 * Authors: [Robert Widmann](https://github.com/codafi)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Implementation: implemented in `main` branch, under flag `-enable-parameterized-existential-types`
 * Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0353-constrained-existential-types/57560)
 
