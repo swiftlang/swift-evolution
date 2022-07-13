@@ -1,12 +1,10 @@
 # Warning for Retroactive Conformances of External Types in Resilient Libraries
 
-* Proposal: [SE-NNNN](XXXX-retroactive-conformance-warning.md)
+* Proposal: [SE-0364](0364-retroactive-conformance-warning.md)
 * Author: [Harlan Haskins](https://github.com/harlanhaskins)
-* Review Manager: TBD
-* Status: **Awaiting formal proposal**
-
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (13 July - 27 July, 2022)**
 * Implementation: [apple/swift#36068](https://github.com/apple/swift/pull/36068)
-* Bugs: rdar://74543558
 
 ## Introduction
 
