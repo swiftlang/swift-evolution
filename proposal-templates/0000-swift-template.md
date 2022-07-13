@@ -4,13 +4,32 @@
 * Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
 * Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
-* Bug: *if applicable* [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN)
+* Roadmap: *if applicable* [Roadmap Name](https://forums.swift.org/...))
+* Bug: *if applicable* [apple/swift#NNNNN](https://github.com/apple/swift/issues/NNNNN)
 * Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
 * Previous Proposal: *if applicable* [SE-XXXX](XXXX-filename.md)
 * Previous Revision: *if applicable* [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Review: ([pitch](https://forums.swift.org/...))
 
-*The Review field is a history of all threads about this proposal.  Standardized link names: `pitch` `review` `revision` `acceptance` `rejection`.  If there are multiple such threads, spell the ordinal out: `first pitch` `second review` etc.*
+<!-- The proposal author should fill out all fields except Review Manager.  The review manager will set that field and change several others as part of initiating the review. -->
+
+<!-- When sharing a link to the proposal while it is still a PR, be sure to share a live link to the proposal, not an exact commit: from the PR page, click the "username wants to merge ... from username:my-branch-name" link and find the proposal file in that branch. -->
+
+<!-- Status should reflect the current implementation status while the proposal is still a PR.  The proposal cannot be reviewed until an implementation is available, but early readers should see the correct status. -->
+
+<!-- Roadmap should link to the discussion thread for the roadmap that this proposal is part of, if that applies. -->
+
+<!-- Bug should be used when this proposal is fixing a bug with significant discussion in the bug report.  It is not necessary to link bugs that do not contain significant discussion or that merely duplicate discussion otherwise linked.  Do not link bugs from private bug trackers. -->
+
+<!-- Implementation should link to the PR(s) implementing the feature.  If the proposal has not been implemented yet, or if it simply codifies existing behavior, just say that.  If the implementation has already been committed to the main branch (as an experimental feature), say that and specify the experimental feature flag.  If the implementation is spread across multiple PRs, just link to the most important ones. -->
+
+<!-- Previous Proposal should be used when there is a specific line of succession between the linked proposal and this one.  For example, this proposal might have been removed from the previous proposal so that it can be reviewed separately, or this proposal might supersede the previous proposal in some way that was felt to exceed the scope of a "revision". -->
+
+<!-- Previous Revision should be added after a major substantive revision of a proposal that has undergone review.  It links to the previously reviewed revision.  It is not necessary to add or update this field after minor editorial changes. -->
+
+<!-- The Review field is a history of all threads about this proposal, in chronological order.  Use these standardized link names: `pitch` `review` `revision` `acceptance` `rejection`.  If there are multiple such threads, spell the ordinal out: `first pitch` `second review` etc. -->
+
+<!-- Remove these comments when making your PR.  You can find them again from the template. -->
 
 ## Introduction
 
