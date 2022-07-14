@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-isolated-synchronous-deinit.md)
 * Authors: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
 * Review Manager: TBD
-* Status: **WIP**
+* Status: **Awaiting review**
 
 ## Introduction
 
@@ -13,7 +13,7 @@ This feature lifts restrictions on `deinit` of actors and GAITs imposed by [SE-0
 
 Combination of automatics reference counting and deterministic deinitialization makes `deinit` in Swift a powerful tool for resource management. It greatly reduces need for `close()`-like methods (`unsubscribe()`, `cancel()`, `shutdown()`, etc.) in the public API. Such methods not only clutter public API, but also introduce a state where object is already unusable but is still referencable.
 
-Restrictions imposed by [SE-0327](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) reduce usefullness of explicit `deinit`s in actors and GAITs. Workarounds for these limitations may involve creation of `close()`-like methods, or even manual reference counting, if API should be able to serve several clients.
+Restrictions imposed by [SE-0327](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) reduce usefulness of explicit `deinit`s in actors and GAITs. Workarounds for these limitations may involve creation of `close()`-like methods, or even manual reference counting, if API should be able to serve several clients.
 
 In cases when `deinit` belongs to a subclass of `UIView` or `UIViewController` which are known to call deinitializer on the main thread, developers may be tempted to silence the diagnostic by adopting `@unchecked Sendable` in types that are not actually  sendable. This undermines concurrency checking by the compiler, and may lead to data races when using incorrectly marked types in other places.
 
@@ -144,7 +144,7 @@ actor MyActor {
 }
 ```
 
-If there is an explicit `deinit`, then isolation is computed following usual rules for isolation of class instance members. It takes into account isolation attributes on the `deinit` itself, isolation of the `deinit` in the superclass, and isolation attributes on the containing class. If deinit belongs to an actor or GAIT, but isolation of the `deinit` is undesired, it can be supressed using `nonisolated` attribute:
+If there is an explicit `deinit`, then isolation is computed following usual rules for isolation of class instance members. It takes into account isolation attributes on the `deinit` itself, isolation of the `deinit` in the superclass, and isolation attributes on the containing class. If deinit belongs to an actor or GAIT, but isolation of the `deinit` is undesired, it can be suppressed using `nonisolated` attribute:
 
 ```swift
 @MainActor
@@ -200,16 +200,16 @@ class Derived3: IsolatedBase {
 }
 ```
 
-Note that this is opposite from the rules for overriding functions. That's because in case of `deinit`, isolation applies to the non-deallocating `deinit`, while overriding happens for `__deallocating_deinit`. `__deallocating_deinit` is always non-isolated, and is resposible for switching to correct executor before calling non-deallocting `deinit`. Non-deallocating `deinit` of the subclass calls non-deallocating `deinit` of the superclass. And it is allowed to call nonisolated function from isolated one.
+Note that this is opposite from the rules for overriding functions. That's because in case of `deinit`, isolation applies to the non-deallocating `deinit`, while overriding happens for `__deallocating_deinit`. `__deallocating_deinit` is always non-isolated, and is responsible for switching to correct executor before calling non-deallocating `deinit`. Non-deallocating `deinit` of the subclass calls non-deallocating `deinit` of the superclass. And it is allowed to call nonisolated function from isolated one.
 
-### Interaction with ObjC
+### Importing ObjC code
 
-Implemented mechanism is not available to the ObjC code, so marking ObjC classes as isolated on global actor using `__attribute__((swift_attr(..)))` has no effect on behaviour of the ObjC code.
+Implemented mechanism is not available to the ObjC code, so marking ObjC classes as isolated on global actor using `__attribute__((swift_attr(..)))` has no effect on behavior of the ObjC code.
 Such classes are imported into Swift as having non-isolated `deinit`.
 
 But if `__attribute__((swift_attr(..)))` is used in `@interface` to explicitly mark `dealloc` method as isolated on global actor, then it is imported as isolated `deinit`. Marking `dealloc` as isolated means that `dealloc` must be called only on that executor. It is assumed that ObjC implementation of such class ensures this by overriding `retain/release`. `deinit` of the Swift subclasses is generated as an override of the `dealloc` method. Any pre-conditions which hold for the base class will be true for Swift subclasses as well. In this case `deinit` of the Swift subclass is type-checked as isolated, but isolation thunk is not generated for code size and performance optimization.
 
-If `deinit` isolation was intoduced into hierarchy of the `@objc` Swift classes by a class implemented in Swift, then `retain/release` are not overriden, `dealloc` can be called from any thread, but isolation happens inside `dealloc` implementation. In this case, isolation thunks will be generated for each isolated `deinit` in the hierarchy. Only the most derived one may can do actual switching. The rest will be called already on the correct executor, and will follow the fast path in `swift_task_performOnExecutor()`.
+If `deinit` isolation was introduced into hierarchy of the `@objc` Swift classes by a class implemented in Swift, then `retain/release` are not overridden, `dealloc` can be called from any thread, but isolation happens inside `dealloc` implementation. In this case, isolation thunks will be generated for each isolated `deinit` in the hierarchy. Only the most derived one does the actual switching. The rest will be called already on the correct executor, and will follow the fast path in `swift_task_performOnExecutor()`.
 
 ObjC classes that isolate `dealloc` by overriding `retain/release` SHOULD mark `dealloc` as isolated. This not only allows Swift subclasses to fully benefit from isolation, but also prevents them from isolating their `deinit/dealloc` (including the call to `[super dealloc]`) on a different actor.
 
@@ -235,11 +235,19 @@ static void dealloc_impl_helper(void *ctx) {
 }
 ```
 
+### Exporting to ObjC
+
+`deinit` isolation is relevant only when subclassing, but ObjC code cannot subclass Swift classes. Generated  `*-Swift.h` files contain no information about `deinit` isolation.
+
+### Interaction with distributed actors
+
+`deinit` declared in the code of the distributed actor applies only to the local actor and can be isolated as described above. Remote proxy has an implicit compiler-generated `deinit` which is never isolated.
+
 ## Source compatibility
 
 Proposal makes previously invalid code valid.
 
-Proposal may alter behaviour of existing GAIT and actors when last release happens on the different actor. It is unlikely that `deinit` of GAIT or an actor would have a synchronous externally-observable side effect that can be safely executed on a different actor.
+Proposal may alter behavior of existing GAIT and actors when last release happens on the different actor. But it is very unlikely that `deinit` of GAIT or an actor would have a synchronous externally-observable side effect that can be safely executed on a different actor.
 
 ## Effect on ABI stability
 
@@ -249,11 +257,15 @@ Proposal does not change ABI of the existing language features, but introduces n
 
 Isolation attributes of the `deinit` become part of the public API, but it matters only when inheriting from the class.
 
-Changing deinitializer from nonisolated to isolated is allowed on final classes. But for non-final classes it may effect how deinitializers of the subclasses are generated.
+Changing deinitializer from nonisolated to isolated is allowed on final Swift classes. But for non-final classes it may effect how deinitializers of the subclasses are generated.
 
 The same is true for changing identity of the isolating actor.
 
-Changing deinitializer from isolated to nonisolated does not break ABI. Any unmodified subclasses will keep calling `deinit` of the superclass on the original actor.
+Changing deinitializer from isolated to nonisolated does not break ABI for Swift classes, including `@objc`-classes. Any non-recompiled subclasses will keep calling `deinit` of the superclass on the original actor.
+
+Adding isolation annotation to `dealloc` method of the imported Objective-C classes is a breaking change. Existing Swift subclasses may have `deinit` isolated on different actor, and without recompilation will be calling `[super deinit]` on that actor. When recompiled, subclasses isolating on different actor will produce compilation error. Subclasses that had non-isolated deinitializer, or isolated on the same actor remain ABI compatible. It is possible to add isolation annotation to UIKit classes, because currently all their subclasses have nonisolated deinitializers.
+
+Removing isolation annotation from the `dealloc` method (together with `retain/release` overrides) is a breaking change. Any existing subclasses would be type-checked as isolated but compiled without isolation thunks. After changes in the base class, subclass deinitializers could be called on the wrong executor.
 
 ## Future Directions
 
@@ -261,19 +273,61 @@ Changing deinitializer from isolated to nonisolated does not break ABI. Any unmo
 
 Similar approach can be used to start an unstructured task for executing `async` deinit, but this is out of scope of this proposal.
 
+### Asserting that `self` does not escape from `deinit`.
+
+It is not legal for `self` to escape from `deinit`. Any strong references remaining after `swift_deallocObject()` is executed cannot be even released safely. Dereferencing dangling references can manifest itself as a crash, reading garbage data or  corruption of unrelated memory. It can be hard to connect symptoms with the origin of the problem. Better solution would be to deterministically produce `fatalError()` in `swift_deallocObject()` if there are additional strong references. Ideal solution be to detect escaping `self` using compile-time analysis.
+
+### Improving de-virtualization and inlining of the executor access.
+
+Consider the following example:
+
+```swift
+import Foundation
+
+@_silgen_name("do_it")
+@MainActor func doIt()
+
+public class Foo {
+  @MainActor
+  public func foo() async {
+    doIt()
+  }
+  @MainActor
+  deinit {}
+}
+```
+
+Currently both method and `deinit` entry points produce two calls to access the `MainActor.shared.unownedExecutor`, with the second one even using dynamic dispatch.
+These two calls could be replaced with a single call to the statically referenced `swift_task_getMainExecutor()`.
+
+```llvm
+%1 = tail call swiftcc %swift.metadata_response @"type metadata accessor for Swift.MainActor"(i64 0) #6
+%2 = extractvalue %swift.metadata_response %1, 0
+%3 = tail call swiftcc %TScM* @"static Swift.MainActor.shared.getter : Swift.MainActor"(%swift.type* swiftself %2)
+%4 = tail call i8** @"lazy protocol witness table accessor for type Swift.MainActor and conformance Swift.MainActor : Swift.Actor in Swift"() #6
+%5 = bitcast %TScM* %3 to %objc_object*
+%6 = tail call swiftcc { i64, i64 } @"dispatch thunk of Swift.Actor.unownedExecutor.getter : Swift.UnownedSerialExecutor"(%objc_object* swiftself %5, %swift.type* %2, i8** %4)
+```
+
+### Making fast path inlinable
+
+For this to be useful compiler first needs to be able to reason about the value of the current executor based on the isolation of the surrounding function. Then inlinable pre-check for `swift_task_isCurrentExecutor()` can be inserted allowing isolated deallocating deinit to be inlined into non-isolated one.
+
 ## Alternatives considered
 
 ### Placing hopping logic in `swift_release()` instead.
 
 `UIView` and `UIViewController` implement hopping to the main thread by overriding `release` method. But in Swift there are no vtable/wvtable slots for releasing, and adding them would also affect a lot of code that does not need isolated deinit.
 
-### Deterministic priority and task local values
+### Deterministic task local values
 
-When switching executors, current implementation copies priority and task-local values from the task/thread where the last release happened. This minimises differences between isolated and nonisolated `deinit`'s.
+When switching executors, current implementation copies priority and task-local values from the task/thread where the last release happened. This minimizes differences between isolated and nonisolated `deinit`'s.
 
 If there are references from different tasks/threads, values of the priority and task-local values observed by the `deinit` are racy, both for isolated and nonsiolated `deinit`'s.
 
-One way of making task-local values predictable would be to clear them for the duration of the `deinit` execution. This can be implemented efficiently, but would be too restrictive. If object is referenced in several tasks which all have a common parent, then `deinit` can reliably use task-local values which are known to be set in the parent task and not overriden in the child tasks.
+One way of making task-local values predictable would be to clear them for the duration of the `deinit` execution.
+This can be implemented efficiently, but would be too restrictive.
+If object is referenced in several tasks which all have a common parent, then `deinit` can reliably use task-local values which are known to be set in the parent task and not overridden in the child tasks.
 
 If there is a demand for resetting task-local values, it can be implemented separately as an API:
 
@@ -283,6 +337,16 @@ If there is a demand for resetting task-local values, it can be implemented sepa
 func withoutTaskLocalValues(operation: () throws -> Void) rethrows
 ```
 
-Making priority deterministic would require switching jobs even when last release happened on the desired executor. For now, there is no evidence that deterministic priority wouild be worth taking a performance hit.
+### Don't isolate empty explicit `deinit`
 
-### Explicit opt-in into deinit isolation
+Empty explicit deinitializers are also eligible to be nonisolated as an optimization. But that would mean that interface of the declaration depends on its implementation. Currently, Swift infers function signature only for closure literals, but never for named functions.
+
+### Explicit opt-in into `deinit` isolation
+
+This would eliminate any possibility of unexpected changes in behavior of the existing code, but would penalize future users, creating inconsistency between isolation inference rules for `deinit` and regular methods. Currently there is syntax for opt-out from isolation for actor instance members, but there is no syntax for opt-in. Having opt-in for deinitializers would require introducing such syntax, and it would be used only for actor deinitializers. There is already `isolated` keyword, but it is applied to function arguments, not to function declarations.
+
+Classes whose deinitializers have nonisolated synchronous externally-visible side effects, like `AnyCancellable`, are unlikely to be isolated on global actors or be implemented as an actor.
+
+Proposal preserves behavior of deinitializers that have synchronous externally-visible side effects only under assumption that they are always released on the isolating actor.
+
+Deinitializers that explicitly notify about completion of their side effect continue to satisfy their contract even if proposal changes their behavior.
