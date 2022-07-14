@@ -1320,10 +1320,10 @@ let regex1 = /\p{name=latin lowercase a}/.extendUnicodeProperty(\.name, by: .fir
 ```
 
 [repo]: https://github.com/apple/swift-experimental-string-processing/
-[option-scoping]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#matching-options
-[internals]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md
-[internals-properties]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#character-properties
-[internals-charclass]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#custom-character-classes
+[option-scoping]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#matching-options
+[internals]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md
+[internals-properties]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#character-properties
+[internals-charclass]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#custom-character-classes
 [level1-word-boundaries]:https://unicode.org/reports/tr18/#Simple_Word_Boundaries
 [level2-word-boundaries]:https://unicode.org/reports/tr18/#RL2.3
 
