@@ -4,6 +4,7 @@
 * Authors: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
 * Review Manager: TBD
 * Status: **Awaiting review**
+* Implementation: [apple/swift#60057](https://github.com/apple/swift/pull/60057)
 
 ## Introduction
 
