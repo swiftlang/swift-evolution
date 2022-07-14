@@ -493,7 +493,7 @@ The `defaultRepetitionBehavior(_:)` method lets you set the default behavior for
 In the following example, both regexes use possessive quantification:
 
 ```swift
-let regex1 = /[0-9a-f]+\w*$/.defaultRepetitionBehavior(.possessive)
+let regex1 = /[0-9a-f]+\s*$/.defaultRepetitionBehavior(.possessive)
 
 let regex2 = Regex {
     OneOrMore {
@@ -1237,7 +1237,7 @@ N/A
 
 ### Expanded options and modifiers
 
-The initial version of `Regex` includes only the options described above. Filling out the remainder of options described in the [Run-time Regex Construction proposal][literals] could be completed as future work, as well as additional improvements, such as adding an option that makes a regex match only at the start of a string.
+The initial version of `Regex` includes only the options described above. Filling out the remainder of options described in the [Run-time Regex Construction proposal][internals] could be completed as future work, as well as additional improvements, such as adding an option that makes a regex match only at the start of a string.
 
 ### Extensions to Character and Unicode Scalar APIs
 
@@ -1269,8 +1269,6 @@ A prior version of this proposal used a binary method for setting the word bound
 Swift's `Regex` includes some default behaviors that don't match other regex engines — in particular, matching characters with `.` and using Unicode's default word boundary algorithm. For other option-based behaviors, `Regex` adheres to the general standard set by other regular expression engines, like having `.` not match newlines and `^` and `$` only match the start and end of the input instead of the beginning and end of each line. This is to ease the process of bringing existing regular expressions and existing knowledge into Swift.
 
 Instead, we could use this opportunity to choose default options that are more ergonomic or intuitive, and provide a `compatibilityOptions()` API that reverts back to the typical settings, including matching based on Unicode scalars instead of characters. This method could additionally be a point of documentation for Swift's choices of default behaviors.
-
-Swift's `Regex` includes some default behaviors that don't match other regex engines — in particular, matching characters with `.` and using Unicode's default word boundary algorithm. For other, more common option-based behaviors, `Regex` adheres to the general standard set by other regular expression engines, like having `.` not match newlines and `^` and `$` only match the start and end of the input instead of the beginning and end of each line. This is to ease the process of bringing existing regular expressions and existing knowledge into Swift.
 
 ### Include `\O` and `CharacterClass.anyUnicodeScalar`
 
@@ -1322,10 +1320,10 @@ let regex1 = /\p{name=latin lowercase a}/.extendUnicodeProperty(\.name, by: .fir
 ```
 
 [repo]: https://github.com/apple/swift-experimental-string-processing/
-[option-scoping]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#matching-options
-[internals]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md
-[internals-properties]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#character-properties
-[internals-charclass]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/RegexSyntaxRunTimeConstruction.md#custom-character-classes
+[option-scoping]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#matching-options
+[internals]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md
+[internals-properties]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#character-properties
+[internals-charclass]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#custom-character-classes
 [level1-word-boundaries]:https://unicode.org/reports/tr18/#Simple_Word_Boundaries
 [level2-word-boundaries]:https://unicode.org/reports/tr18/#RL2.3
 
