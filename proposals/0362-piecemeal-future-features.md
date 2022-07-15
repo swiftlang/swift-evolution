@@ -132,7 +132,7 @@ Experimental features are still to be considered unstable, and should not be ava
 
 For the language itself, `hasFeature` is the only addition, and it occurs in a constrained syntactic space (`#if`) where there are no user-definable functions. Therefore, there is no source-compatibility issue in the traditional sense, where a newer compiler rejects existing, well-formed code. 
 
-For SwiftPM, the addition of the `enableUpcomingFeature` function to `SwiftSetting` represents a one-time break in the manifest file format. Packages that wish to adopt this function and support tools versions that predate the introduction of `enableUpcomingFeature` can use versioned manifest, e.g., `Package@swift-5.6.swift`, to adopt the feature for newer tools versions. Once `enableUpcomingFeature` has been added, adopting additional features this way won't require another copy of the manifest file.
+For SwiftPM, the addition of the `enableUpcomingFeature` and `enableExperimentalFeature` functions to `SwiftSetting` represents a one-time break in the manifest file format. Packages that wish to adopt these functions and support tools versions that predate the introduction of `enableUpcomingFeature` and `enableExperimentalFeature` can use versioned manifest, e.g., `Package@swift-5.6.swift`, to adopt the feature for newer tools versions. Once `enableUpcomingFeature` and `enableExperimentalFeature` have been added, adopting additional features this way won't require another copy of the manifest file.
 
 ## Alternatives considered
 
