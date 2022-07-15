@@ -318,6 +318,31 @@ For this to be useful compiler first needs to be able to reason about the value 
 
 Developers who put breakpoint in the isolated deinit might want to see the call stack that lead to the least release of the object. Currently if switching of executors was involved, release call stack won't be shown in the debugger.
 
+### Implementing API for synchronously scheduling arbitrary work on the actor
+
+Introduced runtime functions has calling convention optimized for deinit use case, but using similar runtime function with a slightly different signature, one could implement an API for synchronously scheduling arbitrary work on the actor:
+
+```swift
+extension Actor {
+  /// Adds a job to the actor queue that calls `work` passing `self` as an argument.
+  nonisolated func enqueue(_ work: __owned @Sendable @escaping (isolated Self) -> Void)
+
+  /// If actor's executor is already the current one - executes work immediately
+  /// Otherwise adds a job to the actor's queue.
+  nonisolated func executeOrEnqueue(_ work: __owned @Sendable @escaping (isolated Self) -> Void)
+}
+
+actor MyActor {
+    var k: Int = 0
+    func inc() { k += 1 }
+}
+
+let a = MyActor()
+a.enqueue { aIsolated in
+    aIsolated.inc() // no await
+}
+```
+
 ## Alternatives considered
 
 ### Placing hopping logic in `swift_release()` instead.
