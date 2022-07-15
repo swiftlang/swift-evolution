@@ -3,7 +3,8 @@
 * Proposal: [SE-0359](0359-build-time-constant-values.md)
 * Authors: [Artem Chikin](https://github.com/artemcm), [Ben Cohen](https://github.com/airspeedswift), [Xi Ge](https://github.com/nkcsgexi)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (May 24...June 6, 2022)**
+* Status: **Returned for revision**
+* Decision notes: [First review rationale](https://forums.swift.org/t/returned-for-revision-se-0359-build-time-constant-values/58976)
 * Implementation: Implemented on `main` as `_const`
 
 ## Introduction
