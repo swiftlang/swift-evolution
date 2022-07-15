@@ -314,6 +314,10 @@ These two calls could be replaced with a single call to the statically reference
 
 For this to be useful compiler first needs to be able to reason about the value of the current executor based on the isolation of the surrounding function. Then inlinable pre-check for `swift_task_isCurrentExecutor()` can be inserted allowing isolated deallocating deinit to be inlined into non-isolated one.
 
+### Improving extended stack trace support
+
+Developers who put breakpoint in the isolated deinit might want to see the call stack that lead to the least release of the object. Currently if switching of executors was involved, release call stack won't be shown in the debugger.
+
 ## Alternatives considered
 
 ### Placing hopping logic in `swift_release()` instead.
@@ -351,3 +355,7 @@ Classes whose deinitializers have nonisolated synchronous externally-visible sid
 Proposal preserves behavior of deinitializers that have synchronous externally-visible side effects only under assumption that they are always released on the isolating actor.
 
 Deinitializers that explicitly notify about completion of their side effect continue to satisfy their contract even if proposal changes their behavior.
+
+### Use asynchronous deinit as the only tool for `deinit` isolation
+
+Synchronous deinit has an efficient fast path that jumps right into deinit implementation without context switching, or any memory allocations. But asynchronous deinit would require creation of task in all cases.
