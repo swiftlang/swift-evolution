@@ -3,9 +3,13 @@
 * Proposal: [SE-0357](0357-regex-string-processing-algorithms.md)
 * Authors: [Tina Liu](https://github.com/itingliu), [Michael Ilseman](https://github.com/milseman), [Nate Cook](https://github.com/natecook1000), [Tim Vermeulen](https://github.com/timvermeulen)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (9 - 23 May 2022)**
+* Status: **Accepted**
 * Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/)
     * Available in nightly toolchain snapshots with `import _StringProcessing`
+* Review: ([pitch](https://forums.swift.org/t/pitch-regex-powered-string-processing-algorithms/55969))
+         ([review](https://forums.swift.org/t/se-0357-regex-string-processing-algorithms/57225))
+     ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0357-regex-string-processing-algorithms/58706))
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7741017763f528dfbdfa54c6d11f559918ab53e4/proposals/0357-regex-string-processing-algorithms.md)
 
 ## Introduction
 
@@ -172,32 +176,6 @@ We also propose the following regex-powered algorithms as well as their generic 
 |`wholeMatch(of:)`| Matches the specified `RegexComponent` in the collection as a whole |
 |`prefixMatch(of:)`| Matches the specified `RegexComponent` against the collection at the beginning |
 |`matches(of:)`| Returns a collection containing all matches of the specified `RegexComponent` |
-
-We also propose an overload of `~=` allowing regexes to be used in `case` expressions:
-
-```swift
-  switch "abcde" {
-  case /a.*f/:  // never taken
-  case /abc/:   // never taken
-  case /ab.*e/: return "success"
-  default:      // never taken
-  }
-
-  switch "2022-04-22" {
-  case decimalParser: // never taken
-
-  case OneOrMore {
-    CharacterClass.whitespace
-  }: // never taken
-
-  case #/\d{2}/\d{2}/\d{4}/# // never taken
-
-  case dateParser: return "success"
-
-  default: // never taken
-  }
-```
-
 
 ## Detailed design
 
@@ -1096,18 +1074,6 @@ let range = empty.firstRange(of: empty)
 // empty == empty[range]
 ```
 
-### Language-level pattern matching via `~=`
-
-We propose allowing any regex component be used in case statements by overloading the `~=` operator for matching against the entire input:
-
-```swift
-extension RegexComponent {
-  public static func ~=(regex: Self, input: String) -> Bool
-
-  public static func ~=(regex: Self, input: Substring) -> Bool
-}
-```
-
 [SE-0346]: https://github.com/apple/swift-evolution/blob/main/proposals/0346-light-weight-same-type-syntax.md
 [stdlib-pitch]: https://forums.swift.org/t/pitch-primary-associated-types-in-the-standard-library/56426
 
@@ -1161,15 +1127,7 @@ This protocol customizes the basic consume-from-the-front functionality. A proto
 A `Substring` slice requirement allows the regex engine to produce indicies in the original collection by operating over a portion of the input. Unfortunately, this is not one of the requirements of `StringProtocol`.
 
 A new protocol for types that can produce a `Substring` on request (e.g. from UTF-8 contents) would have to eagerly produce a `String` copy first and would need requirements to translate indices. When higher-level algorithms are implemented via multiple calls to the lower-level algorithms, these copies could happen many times. Shared strings are future work but a much better solution to this.
-
    
-### Matches-anywhere semantics for `~=`
-   
-Some scripting languages use semantics akin to `contains` for this purpose. But in Swift, this would deviate from how switch normally behaves, such as when switching over an Array.
-   
-Matches-anywhere can be perilous when the input is dynamic and unpredictable: new inputs might just happen to trigger an earlier case in non-obvious ways. Matches-anywhere can be opted into by quantifying around the regex, and a modifier on regex to make this more convenient is future work.
-   
-
 ## Future directions
 
 ### Backward algorithms
