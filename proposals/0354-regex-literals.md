@@ -3,9 +3,15 @@
 * Proposal: [SE-0354](0354-regex-literals.md)
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Michael Ilseman](https://github.com/milseman), [David Ewing](https://github.com/DaveEwing)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (May 16 – May 23 2022)**
+* Status: **Accepted**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
   * Available in nightly toolchain snapshots with `-enable-bare-slash-regex`
+* Review: ([first pitch](https://forums.swift.org/t/pitch-regular-expression-literals/52820))
+         ([second pitch](https://forums.swift.org/t/pitch-2-regex-literals/56736))
+         ([first review](https://forums.swift.org/t/se-0354-regex-literals/57037))
+             ([revision](https://forums.swift.org/t/returned-for-revision-se-0354-regex-literals/57366))
+        ([second review](https://forums.swift.org/t/se-0354-second-review-regex-literals/57367))
+           ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0354-regex-literals/58537))
 
 ## Introduction
 
