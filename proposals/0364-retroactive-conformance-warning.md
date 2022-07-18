@@ -1,4 +1,4 @@
-# Warning for Retroactive Conformances of External Types in Resilient Libraries
+# Warning for Retroactive Conformances of External Types
 
 * Proposal: [SE-0364](0364-retroactive-conformance-warning.md)
 * Author: [Harlan Haskins](https://github.com/harlanhaskins)
@@ -32,12 +32,14 @@ extension Date: Identifiable {
 
 Now that this client has declared this conformance, if Foundation decides to
 add this conformance in a later revision, this client will fail to build.
+Before the client removes their conformance and rebuilds, however, their
+application will exhibit undefined behavior, as it is indeterminate which
+definition of this conformance will "win". Foundation may well have defined
+it to use `Date.timeIntervalSinceReferenceDate`, and if the client had persisted
+these IDs to a database or some persistent storage beyond the lifetime of the process,
+then their dates will have completely different IDs.
 
-If this is an app client, that might be okay --- the breakage will be confined
-to their process, and it's their responsibility to remove their conformance,
-rebuild, and resubmit their app or redeploy their service.
-
-However, if this is a library target, this conformance propagates down to every
+Worse, if this is a library target, this conformance propagates down to every
 client that imports the library. This is especially bad for frameworks that
 are built with library evolution enabled, as their clients link against
 binary frameworks and usually are not aware these conformances don't come from
@@ -45,11 +47,11 @@ the actual owning module.
 
 ## Proposed solution
 
-This proposal adds a warning when library evolution is enabled that explicitly
-calls out this pattern as problematic and unsupported.
+This proposal adds a warning that explicitly calls out this pattern as
+problematic and unsupported.
 
 ```swift
-/tmp/retro.swift:3:1: warning: extension declares a conformance of imported type 'Date' to imported protocol 'Identifiable'; this is not supported when library evolution is enabled
+/tmp/retro.swift:3:1: warning: extension declares a conformance of imported type 'Date' to imported protocol 'Identifiable'; this will not behave correctly if the owners of 'Foundation' introduce this conformance in the future
 extension Date: Identifiable {
 ^
 ```
@@ -66,11 +68,25 @@ extension Foundation.Date: Swift.Identifiable {
 
 ## Detailed design
 
-This warning is intentionally scoped to attempt to prevent a common mistake that
-has bad consequences for ABI-stable libraries.
+This warning will appear only if all of the following conditions are met, with a few exceptions.
 
-This warning does not trigger for conformances of external types to protocols
-defined within the current module, as those conformances are safe.
+- The type being extended was declared in a different module from the extension.
+- The protocol for which the extension introduces the conformance is declared in a different
+  module from the extension.
+
+The following exceptions apply:
+
+- If the type is declared in a Clang module, and the extension in question is declared in a Swift
+  overlay, this is not considered a retroactive conformance.
+- If the type is declared or transitively imported in a bridging header or through the
+  `-import-objc-header` flag, and the type does not belong to any other module, the warning is not
+  emitted. This could be a retroactive conformance, but since these are added to an implicit module
+  called `__ObjC`, we have to assume the client takes responsibility for these declaration.
+
+For clarification, the following are still valid, safe, and allowed:
+- Conformances of external types to protocols defined within the current module.
+- Extensions of external types that do not introduce a conformance. These do not introduce runtime conflicts, since the
+  module name is mangled into the symbol.
 
 ## Source compatibility
 
@@ -83,16 +99,17 @@ This proposal has no effect on ABI stability.
 
 ## Effect on API resilience
 
-This proposal has no effect on API resilience.
+This proposal has direct effect on API resilience, but has the indirect effect of reducing
+the possible surface of client changes introduced by the standard library adding new conformances.
 
 ## Alternatives considered
 
-#### Enabling this warning always
+#### Enabling this warning only for resilient libraries
 
-This pattern is technically never a good idea, since it subjects your code to
-runtime breakage in the future. However, I believe the risk to individual apps
-is much lower than the risk of shipping one of these retroactive conformances in
-an ABI-stable framework.
+A previous version of this proposal proposed enabling this warning only for resilient libraries, as those
+are meant to be widely distributed and such a conformance is much more difficult to remove from clients
+who expect ABI stability. However, review feedback showed a clear preference to enable this warning always,
+to give library authors more freedom to introduce conformances.
 
 #### Putting it behind a flag
 
