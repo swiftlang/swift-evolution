@@ -212,7 +212,7 @@ func processEntry(_ line: String) -> Transaction? {
   //    amount: Substring
   //  )>
 
-  guard let match = try? regex.wholeMatch(line),
+  guard let match = line.wholeMatch(of: regex),
         let kind = Transaction.Kind(match.kind),
         let date = try? Date(String(match.date), strategy: dateParser),
         let amount = try? Decimal(String(match.amount), format: decimalParser)
@@ -269,7 +269,7 @@ func processEntry(_ line: String) -> Transaction? {
   }
   // regex: Regex<(Substring, Transaction.Kind, Date, Substring, Decimal)>
 
-  guard let match = regex.matchWhole(line) else { return nil }
+  guard let match = line.wholeMatch(of: regex) else { return nil }
 
   return Transaction(
     kind: match[kind],
