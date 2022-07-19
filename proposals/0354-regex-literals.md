@@ -403,8 +403,8 @@ As explored above, the parsing of `/.../` does have potential to break source in
 
 - `/` appears in an expression position.
 - There is a closing `/` on the same line.
-- The first character following the opening `/` is not space or tab.
-- There are no unbalanced `)` characters between the two `/` characters.
+- The first and last character of the literal is not space or tab.
+- There are no unbalanced `)` characters within the literal.
 
 However we expect these cases will be uncommon, and can be disambiguated with parentheses or closures if needed.
 
