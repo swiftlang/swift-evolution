@@ -3,9 +3,9 @@
 * Proposal: [SE-0354](0354-regex-literals.md)
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Michael Ilseman](https://github.com/milseman), [David Ewing](https://github.com/DaveEwing)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
-* Implementation: https://github.com/apple/swift-experimental-string-processing
-  * Available in nightly toolchain snapshots with `-enable-bare-slash-regex`
+* Status: **Implemented (Swift 5.7)**
+* Implementation: [apple/swift#42119](https://github.com/apple/swift/pull/42119), [apple/swift#58835](https://github.com/apple/swift/pull/58835)
+  * Bare slash syntax `/.../` available with `-enable-bare-slash-regex`
 * Review: ([first pitch](https://forums.swift.org/t/pitch-regular-expression-literals/52820))
          ([second pitch](https://forums.swift.org/t/pitch-2-regex-literals/56736))
          ([first review](https://forums.swift.org/t/se-0354-regex-literals/57037))
@@ -403,8 +403,8 @@ As explored above, the parsing of `/.../` does have potential to break source in
 
 - `/` appears in an expression position.
 - There is a closing `/` on the same line.
-- The first character following the opening `/` is not space or tab.
-- There are no unbalanced `)` characters between the two `/` characters.
+- The first and last character of the literal is not space or tab.
+- There are no unbalanced `)` characters within the literal.
 
 However we expect these cases will be uncommon, and can be disambiguated with parentheses or closures if needed.
 
