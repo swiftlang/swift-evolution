@@ -18,8 +18,8 @@ Currently, passing a keypath to `print()`, or to the `po` command in LLDB, yield
 ```swift
 struct Theme {
 
-    var background: Color
-    var foreground: Color
+    var backgroundColor: Color
+    var foregroundColor: Color
     
     var overlay: Color {
         backgroundColor.withAlpha(0.8)
