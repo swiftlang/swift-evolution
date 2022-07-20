@@ -1,28 +1,28 @@
-# Add CustomDebugDescription conformance to AnyKeyPath
+# Add CustomDebugStringConvertible conformance to AnyKeyPath
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [benpious](https://github.com/benpious)
+* Author: [Ben Pious](https://github.com/benpious)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: [apple/swift#60133](https://github.com/apple/swift/pull/60133)
 
 ## Introduction
 
-This proposal is to add conformance to the protocol `CustomDebugDescription` to `AnyKeyPath`.
+This proposal is to add conformance to the protocol `CustomDebugStringConvertible` to `AnyKeyPath`.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [pitch](https://forums.swift.org/t/pitch-add-customdebugdescription-conformance-to-anykeypath/58705)
 
 ## Motivation
 
 Currently, passing a keypath to `print()`, or to the `po` command in LLDB, yields the standard output for a Swift class. This is not very useful. For example, given
-```
+```swift
 struct Theme {
 
     var background: Color
     var foreground: Color
     
     var overlay: Color {
-        background.withAlpha(0.8)
+        backgroundColor.withAlpha(0.8)
     }
 }
 ```
@@ -40,11 +40,11 @@ exactly as it was written in the program.
 
 ## Proposed solution
 
-Implement the `debugDescription` requirement of `CustomDebugDescription`, that produces the output described above, on a best effort basis.
+Implement the `debugDescription` requirement of `CustomDebugStringConvertible`, that produces the output described above, on a best effort basis.
 
 ## Detailed design
 
-### Implementation of `CustomDebugDescription`
+### Implementation of `CustomDebugStringConvertible`
 
 Much like the `_project` functions currently implemented in `KeyPath.swift`, this function would loop through the keypath's buffer, handling each segment as follows:
 
@@ -88,7 +88,7 @@ As it might be difficult to correlate a memory address with the name of the func
 
 ## Source compatibility
 
-Programs that extend `AnyKeyPath` to implmenent `CustomDebugStringConvertible` themselves will no longer compile. 
+Programs that extend `AnyKeyPath` to implement `CustomDebugStringConvertible` themselves will no longer compile. 
 
 Calling `print` on a KeyPath will of course produce different results. 
 
@@ -119,7 +119,7 @@ This is an obvious solution to this problem, and would likely be very easy to im
 
 It has the additional advantage of being 100% reliable, to the point where it arguably could be the basis for implementing `description` rather than `debugDescription`. 
 
-However, it would add to the code size of the compiled code, perhaps unacceptably so. Furthermore, it precludes the possiblity of someday printing out the arguments of subscript based keypaths, as
+However, it would add to the code size of the compiled code, perhaps unacceptably so. Furthermore, it precludes the possibility of someday printing out the arguments of subscript based keypaths, as
 these can be created dynamically. It would also add overhead to appending keypaths, as the string would also have to be appended. 
 
 I think that most users who might want this _really_ want to use it to build something else, like encodable keypaths. Those features should be provided opt-in on a per-keypath or per-type basis, which will make it much more useful (and in the context of encodable keypaths specifically, eliminate major potential security issues). Such a feature should also include the option to let the user configure this string, so that it can remain backwards compatible with older versions of the program. 
@@ -130,7 +130,7 @@ This would also potentially make it feasible to change this proposal from implem
 
 This would also potentially bloat the binary. It could also be a security issue, as `dlysm` would now be able to find these functions.
 
-I am not very knowlegable about linkers or how typical Swift builds strip symbols, but I think it might be useful to have this as an option in some IDEs that build Swift programs. But that is beyond the scope of this proposal. 
+I am not very knowledgeable about linkers or how typical Swift builds strip symbols, but I think it might be useful to have this as an option in some IDEs that build Swift programs. But that is beyond the scope of this proposal. 
 
 ## Acknowledgments
 
