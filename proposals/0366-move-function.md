@@ -1,19 +1,11 @@
 # Move Function + "Use After Move" Diagnostic
 
-* Proposal: [SE-NNNN](nnnn-move-function.md)
+* Proposal: [SE-0366](0366-move-function.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick), [Joe Groff](https://github.com/jckarter)
-* Review Manager: TBD
-* Status: Implemented on main as stdlib SPI (`_move` instead of `move`)
-
-<!--
-*During the review process, add the following fields as needed:*
-
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (July 25...August 8, 2022)**
+* Implementation: Implemented on main as stdlib SPI (`_move` instead of `move`)
+* Review: ([pitch](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic))
 
 ## Introduction
 
