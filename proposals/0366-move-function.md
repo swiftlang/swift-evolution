@@ -158,8 +158,9 @@ func f() {
 }
 ```
 
-In fact, each movable binding's lifetime is tracked independently, and gets a separate
-diagnostic if used after move. If we try to compile this:
+In fact, each movable binding's lifetime is tracked independently, and gets a
+separate diagnostic if used after move. We can move `other` independently
+of `x`, and get separate diagnostics for both variables:
 
 ```swift
 func useX(_ x: SomeClassType) -> () {}
@@ -169,37 +170,14 @@ func f() {
   let x = ...
   useX(x)
   let other = x
-  let _ = move(x)
+  _ = move(x)
   useX(move(other))
-  consumeX(other)
-  useX(x)
+  consumeX(other) // error: 'other' used after being moved
+  useX(x) // error: 'x' used after being moved
 }
 ```
 
-we get separate diagnostics for each variable:
-
-```swift
-test.swift:7:15: error: 'x' used after being moved
-  let x = ...
-          ^
-test.swift:10:11: note: move here
-  let _ = move(x)
-          ^
-test.swift:13:3: note: use here
-  useX(x)
-  ^
-test.swift:9:7: error: 'other' used after being moved
-  let other = x
-      ^
-test.swift:11:8: note: move here
-  useX(move(other))
-       ^
-test.swift:12:3: note: use here
-  consumeX(other)
-  ^
-```
-
-If one applies move to a local `var`, then a new value can be assigned into
+If a local `var` is moved, then a new value can be assigned into
 the variable after an old value has been moved out. One can
 begin using the var again after one re-assigns to the var:
 
@@ -259,15 +237,16 @@ func f(_ buffer: inout Buffer) {
 }
 ```
 
-`defer` can also be used to reinitialize an `inout` or `var` after a move.
-So we can also write the above as:
+`defer` can also be used to reinitialize an `inout` or `var` after a move,
+in order to ensure that reassignment happens on any exit from scope, including
+thrown errors or breaks out of loops. So we can also write:
 
 ```swift
 func f(_ buffer: inout Buffer) {
   let b = move(buffer)
   // Ensure the buffer is reinitialized before we exit.
   defer { buffer = getNewInstance() }
-  try b.deinitialize()
+  try b.deinitializeOrError()
   // ... write code ...
 }
 ```
@@ -327,7 +306,7 @@ useX(x) // !! ERROR! Use after move.
 
 If the binding is a `var`, the analysis additionally allows for code to
 conditionally reinitialize the var and thus be able to use it in positions
-that are dominated by the reinitialization.  continuation path. Consider the
+that are dominated by the reinitialization. Consider the
 following example:
 
 ```swift
