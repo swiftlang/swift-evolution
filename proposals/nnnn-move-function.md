@@ -120,7 +120,8 @@ lifetime of `y` ends at the given point, allowing the compiler to generate
 code to clean up or transfer ownership of `y` without relying on optimization.
 Furthermore, if a future maintainer modifies the code in a way that extends
 the lifetime of `y` past the expected point, then the compiler will raise an
-error. For instance, if we try:
+error. For instance, if a maintainer later introduces an additional use of
+`y` after the move, it will raise an error:
 
 ```swift
 func test() {
@@ -141,34 +142,15 @@ func test() {
   x.append(7)
 
   // ...but this additional use of y snuck in:
-  useYAgain(y)
+  useYAgain(y) // error: 'y' used after being moved
 }
 ```
 
-In this case, we get the following output from the compiler as expected:
-
-```swift
-test.swift:10:7: error: 'y' used after being moved
-  var y = x
-      ^
-test.swift:13:17: note: move here
-  consumeFinalY(move(y))
-                ^
-test.swift:19:13: note: use here
-  useYAgain(y)
-            ^
-```
-
-Note how the compiler gives all of the information that we need to resolve
-this: it says where the move was and where the later uses that
-cause the problem are, alerting the programmer to what parts of the code are
-trying to extend the lifetime of the value beyond our expected endpoint.
-
-Note that `move` only ends the lifetime of a specific movable binding.
-It is not tied to the lifetime of the value of the binding or to any particular
-object instance. If we declare another local constant `other` with the same
-value of `x`, we can use that other binding after we end the lifetime of `x`,
-as in:
+`move` only ends the lifetime of a specific movable binding.  It is not tied to
+the lifetime of the value of the binding at the time of the move, or to any
+particular object instance. If we declare another local constant `other` with
+the same value of `x`, we can use that other binding after we end the lifetime
+of `x`, as in:
 
 ```swift
 func useX(_ x: SomeClassType) -> () {}
@@ -442,7 +424,6 @@ suggesting adding an additional API would not be idiomatic. We do not propose
 making `move` use the `@discardableResult` attribute, so that this kind of
 standalone drop is syntactically explicit in client code.
 
-
 ## Future directions
 
 ### Dynamic enforcement of `move` for other kinds of bindings
@@ -487,6 +468,21 @@ performance benefits from consuming a computed variable without allowing
 for some additional accessors to be defined, such as a "consuming getter" that
 can consume its `self` in order to produce the property value, and an
 initializer to reinitialize `self` on reassignment after a `move`.
+
+### Suppressing implicit copying
+
+Another useful tool for programmers is to be able to suppress Swift's usual
+implicit copying rules for a type, specific values, or a scope. The `move` function
+as proposed is not intended to be a replacement for move-only types or for
+"no-implicit-copy" constraints on values or scopes. The authors believe that
+there is room in the language for both features; `move` is a useful incremental
+annotation for code that is value type- or object-oriented which needs
+minor amounts of fine control for performance. Suppressing implicit copies can
+ultimately achieve the same goal, but requires adapting to a stricter
+programming model and controlling ownership in order to avoid the need for
+explicit copies or to eliminate copies entirely. That level of control
+definitely has its place, but requires a higher investment than we expect
+`move` to.
 
 ## Acknowledgments
 
