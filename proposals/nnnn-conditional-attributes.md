@@ -34,7 +34,7 @@ This is unsatisfactory for at least two reasons. First, it's a lot of code dupli
 
 I propose two related changes to make it easier to adopt new attributes in existing code:
 
-* Allow `#if` checks to surround attributes wherever they appear, eliminating the need to clone a declaration just  to adopt a new attribute.
+* Allow `#if` checks to surround attributes on a declaration wherever they appear, eliminating the need to clone a declaration just  to adopt a new attribute.
 * Add a conditional directive `hasAttribute(AttributeName)` that evalutes `true` when the compiler has support for the attribute with the name `AttributeName` in the current language mode.
 
 The first two of these can be combined to make the initial example less repetitive and more descriptive:
