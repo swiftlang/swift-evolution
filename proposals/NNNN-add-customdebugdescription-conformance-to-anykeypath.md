@@ -132,6 +132,18 @@ This would also potentially bloat the binary. It could also be a security issue,
 
 I am not very knowledgeable about linkers or how typical Swift builds strip symbols, but I think it might be useful to have this as an option in some IDEs that build Swift programs. But that is beyond the scope of this proposal. 
 
+### Add LLDB formatters/summaries
+
+This would be a good augmentation to this proposal, and might improve the developer experience, as there [might be debug metadata available to the debugger](https://forums.swift.org/t/pitch-add-customdebugdescription-conformance-to-anykeypath/58705/2) that is not available in the binary itself. 
+
+However, I think it might be very difficult to implement this. I see three options: 
+
+1. Implement a public reflection API for KeyPaths in the Swift Standard Library that the formatter can interact with from Python. 
+2. The formatter parses the raw memory of the KeyPath, essentially duplicating the code in `debugDescription`. 
+
+I think (1) is overkill, especially considering the limited potential applications of this API beyond its use by the formatter. If it's possible to implement this as an `internal` function in the Swift stdlib then this is a much more attractive option. 
+From personal experience trying to parse KeyPath memory from outside the Standard Library, I think (2) would be extremely difficult to implemenet, and unsustainable to maintain considering that the memory layout of KeyPaths is not ABI stable. 
+
 ## Acknowledgments
 
 Thanks to Joe Groff for answering several questions on the initial pitch document, and Slava Pestov for answering some questions about the logistics of pitching this. 
