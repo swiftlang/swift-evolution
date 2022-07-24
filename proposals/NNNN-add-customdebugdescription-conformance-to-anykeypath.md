@@ -136,7 +136,7 @@ I am not very knowledgeable about linkers or how typical Swift builds strip symb
 
 This would be a good augmentation to this proposal, and might improve the developer experience, as there [might be debug metadata available to the debugger](https://forums.swift.org/t/pitch-add-customdebugdescription-conformance-to-anykeypath/58705/2) that is not available in the binary itself. 
 
-However, I think it might be very difficult to implement this. I see three options: 
+However, I think it might be very difficult to implement this. I see two options: 
 
 1. Implement a public reflection API for KeyPaths in the Swift Standard Library that the formatter can interact with from Python. 
 2. The formatter parses the raw memory of the KeyPath, essentially duplicating the code in `debugDescription`. 
