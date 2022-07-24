@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Implementation: [apple/swift#60208](https://github.com/apple/swift/pull/60208)
 * Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-conditional-compilation-for-attributes-and-modifiers/58339)
 
 ## Introduction
