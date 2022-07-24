@@ -142,7 +142,7 @@ However, I think it might be very difficult to implement this. I see two options
 2. The formatter parses the raw memory of the KeyPath, essentially duplicating the code in `debugDescription`. 
 
 I think (1) is overkill, especially considering the limited potential applications of this API beyond its use by the formatter. If it's possible to implement this as an `internal` function in the Swift stdlib then this is a much more attractive option. 
-From personal experience trying to parse KeyPath memory from outside the Standard Library, I think (2) would be extremely difficult to implemenet, and unsustainable to maintain considering that the memory layout of KeyPaths is not ABI stable. 
+From personal experience trying to parse KeyPath memory from outside the Standard Library, I think (2) would be extremely difficult to implement, and unsustainable to maintain considering that the [memory layout of KeyPaths](https://github.com/apple/swift/blob/main/docs/ABI/KeyPaths.md) is not ABI stable. 
 
 ## Acknowledgments
 
