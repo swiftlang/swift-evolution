@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (July 25...August 8, 2022)**
 * Implementation: Implemented on main as stdlib SPI (`_move` instead of `move`)
-* Review: ([pitch](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic))
+* Review: ([pitch](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic)) ([review](https://forums.swift.org/t/se-0366-move-function-use-after-move-diagnostic/59202))
 
 ## Introduction
 
