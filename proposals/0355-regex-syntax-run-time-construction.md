@@ -1,12 +1,15 @@
-
 # Regex Syntax and Run-time Construction
 
 * Proposal: [SE-0355](0355-regex-syntax-run-time-construction.md)
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (April 28 – May 10 2022)**
+* Status: **Accepted**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
   * Available in nightly toolchain snapshots with `import _StringProcessing`
+* Review: ([first pitch](https://forums.swift.org/t/pitch-regex-syntax/55711))
+         ([second pitch](https://forums.swift.org/t/pitch-2-regex-syntax-and-run-time-construction/56624))
+               ([review](https://forums.swift.org/t/se-0355-regex-syntax-and-runtime-construction/57038))
+           ([acceptance](https://forums.swift.org/t/accepted-se-0355-regex-syntax-and-runtime-construction/59232))
 
 ## Introduction
 
