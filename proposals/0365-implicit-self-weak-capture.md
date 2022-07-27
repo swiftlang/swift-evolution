@@ -84,7 +84,7 @@ button.tapHandler = { [weak self] in
 }
 ```
 
-Following the precedent of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), additional closures nested inside the `[weak self]` closure most capture `self` explicitly in order to use implicit `self`.
+Following the precedent of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), additional closures nested inside the `[weak self]` closure must capture `self` explicitly in order to use implicit `self`.
 
 ```swift
 button.tapHandler = { [weak self] in
