@@ -1,7 +1,7 @@
 # Allow implicit `self` for `weak self` captures, after `self` is unwrapped
 
 * Proposal: [SE-0365](0365-implicit-self-weak-capture.md)
-* Authors: [Cal Stephens](https://github.com/calda)
+* Author: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Status: **Active review (July 18, 2022...August 1, 2022)**
 * Implementation: [apple/swift#40702](https://github.com/apple/swift/pull/40702)
