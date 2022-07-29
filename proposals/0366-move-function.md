@@ -1,19 +1,21 @@
-# Move Function + "Use After Move" Diagnostic
+# Move Operation + "Use After Move" Diagnostic
 
 * Proposal: [SE-0366](0366-move-function.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (July 25...August 8, 2022)**
-* Implementation: Implemented on main as stdlib SPI (`_move` instead of `move`)
+* Implementation: Implemented on main as stdlib SPI (`_move` function instead of `move` keyword)
 * Review: ([pitch](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic)) ([review](https://forums.swift.org/t/se-0366-move-function-use-after-move-diagnostic/59202))
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md)
 
 ## Introduction
 
-In this document, we propose adding a new function called `move` to the swift
-standard library, which ends the lifetime of a specific local `let`,
-local `var`, or `consuming` function parameter, and which enforces this
-by causing the compiler to emit a diagnostic upon any uses that are after the
-move function. This allows for code that relies on **forwarding ownership**
+In this document, we propose adding a new operation, marked by the
+context-sensitive keyword `move`, to the
+language. `move` ends the lifetime of a specific local `let`,
+local `var`, or `consuming` function parameter, and enforces this
+by causing the compiler to emit a diagnostic upon any use after the
+move. This allows for code that relies on **forwarding ownership**
 of values for performance or correctness to communicate that requirement to
 the compiler and to human readers. As an example:
 
@@ -21,14 +23,13 @@ the compiler and to human readers. As an example:
 useX(x) // do some stuff with local variable x
 
 // Ends lifetime of x, y's lifetime begins.
-let y = move(x) // [1]
+let y = move x // [1]
 
 useY(y) // do some stuff with local variable y
 useX(x) // error, x's lifetime was ended at [1]
 
-// Ends lifetime of y, destroying the current value
-// since it is explicitly thrown away assigning to `_`
-_ = move(y) // [2]
+// Ends lifetime of y, destroying the current value.
+move y // [2]
 useX(x) // error, x's lifetime was ended at [1]
 useY(y) // error, y's lifetime was ended at [2]
 ```
@@ -75,9 +76,9 @@ characteristics of the code.
 
 Swift-evolution pitch thread: [https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic)
 
-## Proposed solution: Move Function + "Use After Move" Diagnostic
+## Proposed solution: Move Operation + "Use After Move" Diagnostic
 
-That is where the `move` function comes into play. The `move` function consumes
+That is where the `move` operation comes into play. `move` consumes
 a **movable binding**, which is either
 an unescaped local `let`, unescaped local `var`, or function argument, with
 no property wrappers or get/set/read/modify/etc. accessors applied. It then
@@ -100,7 +101,7 @@ func test() {
   longAlgorithmUsing(&y)
   // We no longer use y after this point, so move it when we pass it off to
   // the last use.
-  consumeFinalY(move(y))
+  consumeFinalY(move y)
 
   // x will be unique again here.
   x.append(7)
@@ -128,7 +129,7 @@ func test() {
   var y = x
   longAlgorithmUsing(&y)
   // We think we no longer use y after this point...
-  consumeFinalY(move(y))
+  consumeFinalY(move y)
 
   // ...and x will be unique again here...
   x.append(7)
@@ -146,15 +147,14 @@ of `x`, as in:
 
 ```swift
 func useX(_ x: SomeClassType) -> () {}
-func consumeX(_ x: __owned SomeClassType) -> () {}
 
 func f() {
   let x = ...
   useX(x)
   let other = x   // other is a new binding used to extend the lifetime of x
-  _ = move(x) // x's lifetime ends
+  move x // x's lifetime ends
   useX(other)     // other is used here... no problem.
-  consumeX(other) // other is used here... no problem.
+  useX(other) // other is used here... no problem.
 }
 ```
 
@@ -164,15 +164,14 @@ of `x`, and get separate diagnostics for both variables:
 
 ```swift
 func useX(_ x: SomeClassType) -> () {}
-func consumeX(_ x: __owned SomeClassType) -> () {}
 
 func f() {
   let x = ...
   useX(x)
   let other = x
-  _ = move(x)
-  useX(move(other))
-  consumeX(other) // error: 'other' used after being moved
+  move x
+  useX(move other)
+  useX(other) // error: 'other' used after being moved
   useX(x) // error: 'x' used after being moved
 }
 ```
@@ -184,7 +183,7 @@ begin using the var again after one re-assigns to the var:
 ```swift
 func f() {
   var x = getValue()
-  let _ = move(x)
+  move x
   useX(x) // error: no value in x
   x = getValue()
   useX(x) // ok, x has a new value here
@@ -194,32 +193,24 @@ func f() {
 This follows from move being applied to the binding (`x`), not the value in the
 binding (the value returned from `getValue()`).
 
-We also support applying the move operation to consuming function arguments:
+We also support `move` of function arguments:
 
 ```swift
-func f(_ x: __owned SomeClassType) {
-    let _ = move(x)
+func f(_ x: SomeClassType) {
+    move x
     useX(x) // !! Error! Use of x after move
 }
 ```
 
-Normal arguments are passed by borrow, meaning that the lifetime of the value
-is managed by the caller. Although we could allow `move` on these arguments,
-shortening the syntactic lifetime of the variable, doing so would have no
-practical effect on the value's lifetime at runtime, so we choose to leave this
-disallowed for now, in order to avoid potentially misleading developers who
-might expect the value to be destroyed at the point of the move.
-
-On the other hand, one can `move` out of an `inout`
-function argument. Like a `var`, the `inout` argument can be reassigned after
-being moved from and used again; however, since the final value of an
-`inout` argument is passed back to the caller, an `inout` argument *must* be
-reassigned by the callee before it returns. This will raise an error because
-`buffer` doesn't have a value at the point of return:
+This includes `inout` function arguments. Like a `var`, an `inout` argument can
+be reassigned after being moved from and used again; however, since the final
+value of an `inout` argument is passed back to the caller, an `inout` argument
+*must* be reassigned by the callee before it returns. This will raise an error
+because `buffer` doesn't have a value at the point of return:
 
 ```swift
 func f(_ buffer: inout Buffer) { // error: 'buffer' not reinitialized after move!
-  let b = move(buffer)           // note: move was here
+  let b = move buffer           // note: move was here
   b.deinitialize()
   ... write code ...
 }                                // note: return without reassigning inout argument `buffer`
@@ -229,7 +220,7 @@ But we can reinitialize `buffer` by writing the following code:
 
 ```swift
 func f(_ buffer: inout Buffer) {
-  let b = move(buffer)
+  let b = move buffer
   b.deinitialize()
   // ... write code ...
   // We re-initialized buffer before end of function so the checker is satisfied
@@ -243,7 +234,7 @@ thrown errors or breaks out of loops. So we can also write:
 
 ```swift
 func f(_ buffer: inout Buffer) {
-  let b = move(buffer)
+  let b = move buffer
   // Ensure the buffer is reinitialized before we exit.
   defer { buffer = getNewInstance() }
   try b.deinitializeOrError()
@@ -253,26 +244,18 @@ func f(_ buffer: inout Buffer) {
 
 ## Detailed design
 
-We declare `move` as follows:
-
-```swift
-/// This function ends the lifetime of the passed in binding.
-func move<T>(_ value: __owned T) -> T
-```
-
-At runtime, the function returns `value` unmodified back to its caller.
-However, at compile time, the presence of a call to `move` forces
+At runtime, `move value` evaluates to the current value bound to `value`.
+However, at compile time, the presence of a `move` forces
 ownership of the argument to be transferred out of the binding at the given
-point, and triggers diagnostics that prove that it is safe to do so,
-by flagging any proceeding uses of the binding that are reachable from the move.
-The argument to `move` is required to be a reference to a *movable binding*.
-The following kinds of declarations can currently be referenced as movable
-bindings:
+point, and triggers diagnostics that prove that it is safe to do so.
+The compiler flags any proceeding uses of the binding that are reachable from
+the move.  The operand to `move` is required to be a reference to a *movable
+binding*.  The following kinds of declarations can currently be referenced as
+movable bindings:
 
 - a local `let` constant in the immediately-enclosing function,
 - a local `var` variable in the immediately-enclosing function,
-- one of the immediately-enclosing function's parameters that
-  has the `__owned` or `inout` ownership modifier, or
+- one of the immediately-enclosing function's parameters, or
 - the `self` parameter in a `mutating` or `__consuming` method.
 
 A movable binding also must satisfy the following requirements:
@@ -293,7 +276,7 @@ flow sensitive, so one is able to end the lifetime of a value conditionally:
 
 ```swift
 if condition {
-  let y = move(x)
+  let y = move x
   // I can't use x anymore here!
   useX(x) // !! ERROR! Use after move.
 } else {
@@ -311,7 +294,7 @@ following example:
 
 ```swift
 if condition {
-  let _ = move(x)
+  move x
   // I can't use x anymore here!
   useX(x) // !! ERROR! Use after move.
   x = newValue
@@ -338,13 +321,23 @@ inout parameters after they are moved from.
 
 ## Source compatibility
 
-This is additive. If a user already in their module has a function called
-"move", they can call the Stdlib specific move by calling Swift.move.
+`move` behaves as a contextual keyword. In order to avoid interfering
+with existing code that calls functions named `move`, the operand to
+`move` must begin with another identifier, and must consist of an
+identifier or postfix expression:
+
+```
+move x // OK
+move [1, 2, 3] // Syntax error
+move(x) // Call to global function `move`, not a move operation
+move x.y.z // Syntactically OK (although x.y.z is not currently a movable binding)
+move x[0] // Syntactically OK (although x[0] is not currently a movable binding)
+move x + y // Parses as (move x) + y
+```
 
 ## Effect on ABI stability
 
-`move` will use the `@_alwaysEmitIntoClient` attribute, so that it adds no
-ABI requirements to the standard library or clients.
+`move` requires no ABI additions.
 
 ## Effect on API resilience
 
@@ -354,15 +347,23 @@ None, this is additive.
 
 ### Alternative spellings
 
-As a function, `move` is rather unusual, since it only accepts certain forms of
-expression as its argument, and it doesn't really have any runtime behavior
-of its own, acting more as a marker for the compiler to perform additional
-analysis. As such, many have suggested alternative spellings that make `move`'s
-special nature more syntactically distinct, including:
+The [first reviewed revision](https://github.com/apple/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md)
+of this proposal offered `move(x)` as a special
+function with semantics recognized by the compiler. Based on initial feedback,
+we pivoted to the contextual keyword spelling.
+As a function, `move` would be rather unusual, since it only accepts certain
+forms of expression as its argument, and it doesn't really have any runtime
+behavior of its own, acting more as a marker for the compiler to perform
+additional analysis.
 
-- a contextual keyword operator, like `useX(move x)`
+Many have suggested alternative spellings that
+also make `move`'s special nature more syntactically distinct, including:
+
 - an expression attribute, like `useX(@move x)`
-- a compiler directive, like `useX(#move(x))`
+- a compiler directive, like `useX(#move x)`
+- an operator, like `useX(<-x)`
+
+### The name `move`
 
 There are also potentially other names besides `move` that we could use. We're
 proposing using the name `move` because it is an established term of art in
@@ -370,30 +371,6 @@ other programming language communities including C++ and Rust, as well as a
 term that has already been used in other Swift standard library APIs such as
 the `UnsafeMutablePointer.move*` family of methods that move a value out of
 memory referenced by a pointer.
-
-Declaring `move` as a function also minimizes the potential impact to the
-language syntax. We've introduced new contextual keywords without breaking
-compatibility before, like `some` and `any` for types. But to do so, we've had
-to impose constraints on their use, such as not allowing the constraints
-modified by `some` or `any` to be parenthesized to avoid the result looking
-like a function call. Although that would be acceptable for `move` given its
-current constraints, it might be premature to assume we won't expand the
-capabilities of `move` to include more expression forms.
-
-### `drop` function
-
-We could also introduce a separate `drop` function like languages like Rust does
-that doesn't have a result like `move` does. We decided not to go with this
-since in Swift the idiomatic way to throw away a value is to assign to `_`
-implying that the idiomatic way to write `drop` would be:
-
-```swift
-_ = move(x)
-```
-
-suggesting adding an additional API would not be idiomatic. We do not propose
-making `move` use the `@discardableResult` attribute, so that this kind of
-standalone drop is syntactically explicit in client code.
 
 ## Future directions
 
@@ -420,8 +397,8 @@ struct TwoStrings {
   var second: String
 }
 
-func foo(x: __owned TwoStrings) {
-  use(move(x.first))
+func foo(x: TwoStrings) {
+  use(move x.first)
   // ERROR! part of x was moved out of
   use(x)
   // OK, this part wasn't
@@ -455,6 +432,74 @@ explicit copies or to eliminate copies entirely. That level of control
 definitely has its place, but requires a higher investment than we expect
 `move` to.
 
+### `shared` and `owned` argument modifiers
+
+The ownership convention used when passing arguments by value is usually
+indefinite; the compiler initially tries passing arguments by borrow, so
+that the caller is made to keep the value alive on the callee's behalf for
+the duration of the call, with the exception of setters and initializers, where
+it defaults to transferring ownership of arguments from the caller to the callee.
+The optimizer may subsequently adjust these decisions if it sees opportunities
+to reduce overall ARC traffic. Using `move` on an argument that ends up
+passed by borrow can syntactically shorten the lifetime of the argument binding,
+but can't actually shorten the lifetime of the argument at runtime, since the
+borrowed value remains owned by the caller.
+
+In order to guarantee the forwarding of a value's ownership across function
+calls, `move` is therefore not sufficient on its own. We would also need to
+guarantee the calling convention for the enclosing function transfers ownership
+to the callee. We could add annotations which behave similar to `inout`. These
+are currently implemented internally in the compiler as `__shared` and `__owned`,
+and we could expose these as official language features:
+
+```swift
+func test() {
+  var x: [Int] = getArray()
+  
+  // x is appended to. After this point, we know that x is unique. We want to
+  // preserve that property.
+  x.append(5)
+  
+  // We create a new variable y so we can write an algorithm where we may
+  // change the value of y (causing a COW copy of the buffer shared with x).
+  var y = x
+  longAlgorithmUsing(&y)
+  // We no longer use y after this point, so move it when we pass it off to
+  // the last use.
+  consumeFinalY(move y)
+
+  // x will be unique again here.
+  x.append(7)
+}
+
+// consumeFinalY declares its argument `owned`, ensuring it takes ownership
+// of the argument from the caller.
+func consumeFinalY(y: owned [Int]) {
+  consumeYSomewhereElse(move y)
+}
+```
+
+The presence of a `move` could be used as an optimizer hint to infer that
+`owned` convention is desired within a module, but since the choice of `shared`
+or `owned` affects ABI, we would need an explicit annotation for public API
+to specify the desired ABI. There are also reasons to expose these
+conventions beyond `move`. We leave it to a future dedicated proposal to
+delve deeper into these modifiers.
+
 ## Acknowledgments
 
 Thanks to Nate Chandler, Tim Kientzle, and Holly Borla for their help with this!
+
+## Revision history
+
+Changes from the [first revision](https://github.com/apple/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md):
+
+- `move x` is now proposed as a contextual keyword, instead of a magic function
+  `move(x)`.
+- The proposal no longer mentions `__owned` or `__shared` parameters, which
+  are currently an experimental language feature, and leaves discussion of them
+  as a future direction. `move x` is allowed to be used on all function
+  parameters.
+- `move x` is allowed as a statement on its own, ignoring the return value,
+  to release the current value of `x` without forwarding ownership without
+  explicitly assigning `_ = move x`.
