@@ -421,9 +421,23 @@ The first transformation pattern for selection statements turns the case into it
 ```swift
 var vCase0: String?
 if i == 0 {
-  vCase0 = "0"
+  var thenVar = "0"
+  var thenBlock = BuilderType.buildBlock(thenVar)
+  vCase0 = BuilderType.buildOptional(.some(thenBlock))
 }
-let v0 = BuilderType.buildOptional(vCase0)
+```
+
+If `if` statement doesn't have a corresponding `else` block, like in our example, the result builder transform is going create one implicitly and inject a call to `buildOptional(.none)` as follows:
+
+```swift
+var vCase0: String?
+if i == 0 {
+  var thenVar = "0"
+  var thenBlock = BuilderType.buildBlock(thenVar)
+  vCase0 = BuilderType.buildOptional(.some(thenBlock))
+} else {
+  vCase0 = BuilderType.buildOptional(.none)
+}
 ```
 
 The second transformation pattern produces a balanced binary tree of injections into a single partial result in the enclosing block. It supports `if`-`else` and `switch`. Consider the following code:
@@ -443,13 +457,19 @@ Under this pattern, the example code becomes something like the following:
 ```swift
 let vMerged: PartialResult
 if i == 0 {
-  vMerged = BuilderType.buildEither(first: "0")
+  var firstVar = "0"
+  var firstBlock = BuilderType.buildBlock(firstVar)
+  vMerged = BuilderType.buildEither(first: firstBlock)
 } else if i == 1 {
+  var secondVar = "1"
+  var secondBlock = BuilderType.buildBlock(secondVar)
   vMerged = BuilderType.buildEither(second:
-        BuilderType.buildEither(first: "1"))
+        BuilderType.buildEither(first: secondBlock))
 } else {
+  var elseVar = generateFibTree(i)
+  var elseBlock = BuilderType.buildBlock(elseVar)
   vMerged = BuilderType.buildEither(second:
-        BuilderType.buildEither(second: generateFibTree(i)))
+        BuilderType.buildEither(second: elseBlock))
 }
 ```
 
