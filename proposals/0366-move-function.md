@@ -435,20 +435,21 @@ definitely has its place, but requires a higher investment than we expect
 ### `shared` and `owned` argument modifiers
 
 The ownership convention used when passing arguments by value is usually
-indefinite; the compiler initially tries passing arguments by borrow, so
-that the caller is made to keep the value alive on the callee's behalf for
-the duration of the call, with the exception of setters and initializers, where
-it defaults to transferring ownership of arguments from the caller to the callee.
-The optimizer may subsequently adjust these decisions if it sees opportunities
-to reduce overall ARC traffic. Using `move` on an argument that ends up
-passed by borrow can syntactically shorten the lifetime of the argument binding,
-but can't actually shorten the lifetime of the argument at runtime, since the
-borrowed value remains owned by the caller.
+indefinite; the compiler initially tries having the function receive
+parameters by borrow, so that the caller is made to keep the value alive on the
+callee's behalf for the duration of the call (The exceptions are setters and
+initializers, where the compiler defaults to transferring ownership of arguments from the
+caller to the callee). Optimization may subsequently adjust the compiler's
+initial decisions if it sees opportunities to reduce overall ARC traffic. Using
+`move` on a parameter that was received as a borrow can syntactically shorten
+the lifetime of the argument binding, but can't actually shorten the lifetime
+of the argument at runtime, since the borrowed value remains owned by the
+caller.
 
 In order to guarantee the forwarding of a value's ownership across function
 calls, `move` is therefore not sufficient on its own. We would also need to
 guarantee the calling convention for the enclosing function transfers ownership
-to the callee. We could add annotations which behave similar to `inout`. These
+to the callee, using annotations which behave similar to `inout`. These
 are currently implemented internally in the compiler as `__shared` and `__owned`,
 and we could expose these as official language features:
 
