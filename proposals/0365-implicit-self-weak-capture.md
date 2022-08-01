@@ -1,7 +1,7 @@
 # Allow implicit `self` for `weak self` captures, after `self` is unwrapped
 
 * Proposal: [SE-0365](0365-implicit-self-weak-capture.md)
-* Authors: [Cal Stephens](https://github.com/calda)
+* Author: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Status: **Active review (July 18, 2022...August 1, 2022)**
 * Implementation: [apple/swift#40702](https://github.com/apple/swift/pull/40702)
@@ -84,7 +84,7 @@ button.tapHandler = { [weak self] in
 }
 ```
 
-Following the precedent of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), additional closures nested inside the `[weak self]` closure most capture `self` explicitly in order to use implicit `self`.
+Following the precedent of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md), additional closures nested inside the `[weak self]` closure must capture `self` explicitly in order to use implicit `self`.
 
 ```swift
 button.tapHandler = { [weak self] in
