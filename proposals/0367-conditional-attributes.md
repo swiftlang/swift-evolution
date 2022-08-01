@@ -1,9 +1,9 @@
 # Conditional compilation for attributes
 
-* Proposal: [SE-NNNN](nnnn-conditional-attributes.md)
+* Proposal: [SE-0367](0367-conditional-attributes.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (August 1...August 15, 2022)**
 
 * Implementation: [apple/swift#60208](https://github.com/apple/swift/pull/60208)
 * Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-conditional-compilation-for-attributes-and-modifiers/58339)
