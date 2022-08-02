@@ -5,7 +5,7 @@
            [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted (2021-06-23)**
+* Status: **Implemented (Swift 5.7)**
 * Implementation: [apple/swift-package-manager#3023](https://github.com/apple/swift-package-manager/pull/3023)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0292-package-registry-service/49849)
 * Review:
