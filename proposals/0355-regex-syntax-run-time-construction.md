@@ -92,7 +92,7 @@ extension Regex {
   public init(_ pattern: String, as: Output.Type = Output.self) throws
 }
 extension Regex where Output == AnyRegexOutput {
-  /// Parse and compile `pattern`, resulting in an existentially-typed capture list.
+  /// Parse and compile `pattern`, resulting in a type-erased capture list.
   public init(_ pattern: String) throws
 }
 ```
@@ -102,21 +102,24 @@ We propose `AnyRegexOutput` for capture types not known at compilation time, alo
 ```swift
 /// A type-erased regex output
 public struct AnyRegexOutput {
-  /// Creates a type-erased regex output from an existing output.
+  /// Creates a type-erased regex output from an existing match.
   ///
-  /// Use this initializer to fit a regex with strongly typed captures into the
-  /// use site of a dynamic regex, i.e. one that was created from a string.
+  /// Use this initializer to fit a strongly-typed regex match into the
+  /// use site of a type-erased regex output.
   public init<Output>(_ match: Regex<Output>.Match)
 
-  /// Returns a typed output by converting the underlying value to the specified
-  /// type.
+  /// Returns a strongly-typed output by converting type-erased values to the specified type.
   ///
   /// - Parameter type: The expected output type.
   /// - Returns: The output, if the underlying value can be converted to the
-  ///   output type, or nil otherwise.
-  public func `as`<Output>(_ type: Output.Type) -> Output?
+  ///   output type; otherwise `nil`.
+  public func extractValues<Output>(
+    as type: Output.Type = Output.self
+  ) -> Output?
 }
+
 extension AnyRegexOutput: RandomAccessCollection {
+  /// An individual type-erased output value.
   public struct Element {
     /// The range over which a value was captured. `nil` for no-capture.
     public var range: Range<String.Index>? { get }
@@ -126,6 +129,9 @@ extension AnyRegexOutput: RandomAccessCollection {
 
     /// The captured value. `nil` for no-capture.
     public var value: Any?  { get }
+
+    /// The name of this capture, if it has one, otherwise `nil`.
+    public var name: String?
   }
 
   // Trivial collection conformance requirements
@@ -150,32 +156,26 @@ We propose adding an API to `Regex<AnyRegexOutput>` and `Regex<AnyRegexOutput>.M
 extension Regex.Match where Output == AnyRegexOutput {
   /// Creates a type-erased regex match from an existing match.
   ///
-  /// Use this initializer to fit a regex match with strongly typed captures into the
-  /// use site of a dynamic regex match, i.e. one that was created from a string.
+  /// Use this initializer to fit a regex match with strongly-typed captures into the
+  /// use site of a type-erased regex match.
   public init<Output>(_ match: Regex<Output>.Match)
-
-  /// Returns a typed match by converting the underlying values to the specified
-  /// types.
-  ///
-  /// - Parameter type: The expected output type.
-  /// - Returns: A match generic over the output type if the underlying values can be converted to the
-  ///   output type. Returns `nil` otherwise.
-  public func `as`<Output>(_ type: Output.Type) -> Regex<Output>.Match?
 }
 
 extension Regex where Output == AnyRegexOutput {
   /// Creates a type-erased regex from an existing regex.
   ///
-  /// Use this initializer to fit a regex with strongly typed captures into the
-  /// use site of a dynamic regex, i.e. one that was created from a string.
-  public init<Output>(_ match: Regex<Output>)
+  /// Use this initializer to fit a regex with strongly-typed captures into the
+  /// use site of a type-erased regex, i.e. one that was created from a string.
+  public init<Output>(_ regex: Regex<Output>)
+}
 
-  /// Returns a typed regex by converting the underlying types.
+extension Regex {
+  /// Creates a strongly-typed regex from a type-erased regex.
   ///
-  /// - Parameter type: The expected output type.
-  /// - Returns: A regex generic over the output type if the underlying types can be converted.
-  ///   Returns `nil` otherwise.
-  public func `as`<Output>(_ type: Output.Type) -> Regex<Output>?
+  /// Use this initializer to create a strongly-typed regex from
+  /// one that was created from a string. Returns `nil` if the types
+  /// don't match.
+  public init?(_ erased: Regex<AnyRegexOutput>, as: Output.Type = Output.self)
 }
 ```
 
@@ -183,16 +183,17 @@ We propose adding API to query and access captures by name in an existentially t
 
 ```swift
 extension Regex where Output == AnyRegexOutput {
-  /// Returns whether a named-capture with `name` is present.
+  /// Returns whether a named-capture with `name` exists.
   public func contains(captureNamed name: String) -> Bool
 }
+
 extension Regex.Match where Output == AnyRegexOutput {
-  /// If a named-capture with `name` is present, returns its value. Otherwise `nil`.
+  /// Access a capture by name. Returns `nil` if there's no capture with that name.
   public subscript(_ name: String) -> AnyRegexOutput.Element? { get }
 }
 
 extension AnyRegexOutput {
-  /// If a named-capture with `name` is present, returns its value. Otherwise `nil`.
+  /// Access a capture by name. Returns `nil` if no capture with that name was present in the Regex.
   public subscript(_ name: String) -> AnyRegexOutput.Element? { get }
 }
 ```
@@ -422,7 +423,7 @@ A character property specifies a particular Unicode, POSIX, or PCRE property to 
 - The POSIX properties `alnum`, `blank`, `graph`, `print`, `word`, `xdigit` (note that `alpha`, `lower`, `upper`, `space`, `punct`, `digit`, and `cntrl` are covered by Unicode properties).
 - The UTS#18 special properties `any`, `assigned`, `ascii`.
 - The special PCRE2 properties `Xan`, `Xps`, `Xsp`, `Xuc`, `Xwd`.
-- The special Java properties `javaLowerCase`, `javaUpperCase`, `javaWhitespace`, `javaMirrored`.
+- The special Java properties, including e.g `javaLowerCase`, `javaUpperCase`, `javaWhitespace`, `javaMirrored`.
 
 We follow [UTS#18][uts18]'s guidance for character properties, including fuzzy matching for property name parsing, according to rules set out by [UAX44-LM3]. The following property names are equivalent:
 
@@ -955,7 +956,7 @@ As such we feel that the more desirable default behavior of shorthand script pro
 
 Various regex engines offer an "extended syntax" where whitespace is treated as non-semantic (e.g `a b c` is equivalent to `abc`), in addition to allowing end-of-line comments `# comment`. In both PCRE and Perl, this is enabled through the `(?x)`, and in later versions, `(?xx)` matching options. The former allows non-semantic whitespace outside of character classes, and the latter also allows non-semantic whitespace in custom character classes.
 
-Oniguruma, Java, and ICU however enable the more broad behavior under `(?x)`. We therefore propose following this behavior, with `(?x)` and `(?xx)` being treated the same.
+ICU and Java however enable the more broad behavior under `(?x)`. We propose following this behavior, with `(?x)` and `(?xx)` being treated the same.
 
 Different regex engines also have different rules around what characters are considered non-semantic whitespace. When compiled with Unicode support, PCRE follows the `Pattern_White_Space` Unicode property, which consists of the following scalars:
 
@@ -1041,6 +1042,11 @@ We are prototyping an "experimental" Swift extended syntax, which is future work
 Regex syntax will become part of Swift's source and binary-compatibility story, so a reasonable alternative is to support the absolute minimal syntactic subset available. However, we would need to ensure that such a minimal approach is extensible far into the future. Because syntax decisions can impact each other, we would want to consider the ramifications of this full syntactic superset ahead of time anyways.
 
 Even though it is more work up-front and creates a longer proposal, it is less risky to support the full intended syntax. The proposed superset maximizes the familiarity benefit of regex syntax.
+
+### Future: Capture descriptions on Regex
+
+Future API could include a description of the capture list that a regex contains, provided as a collection of optionally-named captures and their types. This would further enhance dynamic regexes.
+
 
 
 <!-- 
