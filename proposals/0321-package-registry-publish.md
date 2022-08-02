@@ -4,7 +4,7 @@
 * Authors: [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted (2021-09-01)**
+* Status: **Implemented (Swift 5.7)**
 * Implementation: [apple/swift-package-manager#3671](https://github.com/apple/swift-package-manager/pull/3671)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0321-package-registry-service-publish-endpoint/51660)
 
