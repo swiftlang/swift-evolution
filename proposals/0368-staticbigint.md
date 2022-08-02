@@ -6,6 +6,7 @@
 * Status: **Active Review (August 2...16, 2022)**
 * Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722)
 * Review: ([pitch](https://forums.swift.org/t/staticbigint/54545))
+         ([review](https://forums.swift.org/t/se-0368-staticbigint/59421))
 
 <details>
 <summary><b>Revision history</b></summary>
