@@ -1,10 +1,11 @@
 # Isolated synchronous deinit
 
 * Proposal: [SE-NNNN](NNNN-isolated-synchronous-deinit.md)
-* Authors: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
-* Review Manager: TBD
+* Author: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
+* Review Manager: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Status: **Awaiting review**
 * Implementation: [apple/swift#60057](https://github.com/apple/swift/pull/60057)
+* Review: ([pitch](https://forums.swift.org/t/isolated-synchronous-deinit/58177))
 
 ## Introduction
 
