@@ -3,7 +3,7 @@
 * Proposal: [SE-0365](0365-implicit-self-weak-capture.md)
 * Author: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Active review (July 18, 2022...August 1, 2022)**
+* Status: **Accepted (2022-08-08)**
 * Implementation: [apple/swift#40702](https://github.com/apple/swift/pull/40702)
 
 ## Introduction
