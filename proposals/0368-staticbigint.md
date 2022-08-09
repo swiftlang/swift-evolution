@@ -112,17 +112,19 @@ public struct StaticBigInt:
   /// The words are ordered from least significant to most significant, with an
   /// infinite sign extension. Negative values are in two's complement.
   ///
-  ///     let negative: StaticBigInt = -0x0123456789ABCDEF
+  ///     let negative: StaticBigInt = -0x0011223344556677_8899AABBCCDDEEFF
   ///     negative.signum()  //-> -1
-  ///     negative.bitWidth  //-> 58
-  ///     negative[0]        //-> 0xFEDCBA9876543211
-  ///     negative[1]        //-> 0xFFFFFFFFFFFFFFFF
+  ///     negative.bitWidth  //-> 118
+  ///     negative[0]        //-> 0x7766554433221101
+  ///     negative[1]        //-> 0xFFEEDDCCBBAA9988
+  ///     negative[2]        //-> 0xFFFFFFFFFFFFFFFF
   ///
-  ///     let positive: StaticBigInt = +0x0123456789ABCDEF
+  ///     let positive: StaticBigInt = +0x0011223344556677_8899AABBCCDDEEFF
   ///     positive.signum()  //-> +1
-  ///     positive.bitWidth  //-> 58
-  ///     positive[0]        //-> 0x0123456789ABCDEF
-  ///     positive[1]        //-> 0x0000000000000000
+  ///     positive.bitWidth  //-> 118
+  ///     positive[0]        //-> 0x8899AABBCCDDEEFF
+  ///     positive[1]        //-> 0x0011223344556677
+  ///     positive[2]        //-> 0x0000000000000000
   ///
   /// - Parameter index: A nonnegative zero-based index.
   public subscript(_ index: Int) -> UInt { get }
