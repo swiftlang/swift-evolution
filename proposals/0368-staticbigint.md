@@ -59,8 +59,8 @@ extension UInt256: ExpressibleByIntegerLiteral {
       "integer literal '\(value)' overflows when stored into '\(Self.self)'"
     )
     self.words = Words()
-    for index in 0..<Words.count {
-      self.words[index] = value[index]
+    for wordIndex in 0..<Words.count {
+      self.words[wordIndex] = value[wordIndex]
     }
   }
 }
@@ -109,8 +109,8 @@ public struct StaticBigInt:
 
   /// Returns a 32-bit or 64-bit word of this value's binary representation.
   ///
-  /// The words are ordered from least significant to most significant, with an
-  /// infinite sign extension. Negative values are in two's complement.
+  /// The words are ordered from least significant to most significant, with
+  /// an infinite sign extension. Negative values are in two's complement.
   ///
   ///     let negative: StaticBigInt = -0x0011223344556677_8899AABBCCDDEEFF
   ///     negative.signum()  //-> -1
@@ -126,8 +126,8 @@ public struct StaticBigInt:
   ///     positive[1]        //-> 0x0011223344556677
   ///     positive[2]        //-> 0x0000000000000000
   ///
-  /// - Parameter index: A nonnegative zero-based index.
-  public subscript(_ index: Int) -> UInt { get }
+  /// - Parameter wordIndex: A nonnegative zero-based offset.
+  public subscript(_ wordIndex: Int) -> UInt { get }
 }
 ```
 
