@@ -1,16 +1,12 @@
 # Pointer Family Initialization Improvements & Better Buffer Slices
 
-* Proposal: [SE-NNNN Pointer Family Initialization Improvements & Better Buffer Slices][proposal]
+* Proposal: [SE-NNNN Pointer Family Initialization Improvements & Better Buffer Slices](https://github.com/apple/swift-evolution/blob/pointer-family-initialization/proposals/NNNN-pointer-family-initialization-improvements.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: TBD
 * Status: pending
-* Implementation: [Draft Pull Request][draft-pr]
+* Implementation: [Draft Pull Request](https://github.com/apple/swift/pull/41608)
 * Bugs: [rdar://51817146](rdar://51817146)
 * Previous Revision: [pitch A](https://gist.github.com/glessard/3bb47dce974aa483fd6df072d265005c ), [pitch B](https://gist.github.com/glessard/cefa5686696b0e30ac18eb4899213c65)
-
-[proposal]: https://github.com/apple/swift-evolution/blob/pointer-family-initialization/proposals/NNNN-pointer-family-initialization-improvements.md
-[draft-pr]: https://github.com/apple/swift/pull/41608
-[pitch-thread]: https://forums.swift.org/t/55689
 
 
 ## Introduction
@@ -25,7 +21,7 @@ Memory can be safely deallocated whenever it is uninitialized.
 
 We intend to round out initialization functionality for every relevant member of that family: `UnsafeMutablePointer`, `UnsafeMutableRawPointer`, `UnsafeMutableBufferPointer`, `UnsafeMutableRawBufferPointer`,  `Slice<UnsafeMutableBufferPointer>` and `Slice<UnsafeMutableRawBufferPointer>`. The functionality will allow managing initialization state in a much greater variety of situations, including easier handling of partially-initialized buffers.
 
-Swift-evolution thread: [Pitch thread][pitch-thread]
+Swift-evolution thread: [Pitch thread](https://forums.swift.org/t/55689), previous pitch threads [A](https://forums.swift.org/t/53168), [B](https://forums.swift.org/t/53795)
 
 ## Motivation
 
