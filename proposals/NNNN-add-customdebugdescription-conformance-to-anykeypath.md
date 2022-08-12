@@ -1,16 +1,15 @@
 # Add CustomDebugStringConvertible conformance to AnyKeyPath
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-add-customdebugdescription-conformance-to-anykeypath.md)
 * Author: [Ben Pious](https://github.com/benpious)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Awaiting Review**
 * Implementation: [apple/swift#60133](https://github.com/apple/swift/pull/60133)
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-customdebugdescription-conformance-to-anykeypath/58705))
 
 ## Introduction
 
 This proposal is to add conformance to the protocol `CustomDebugStringConvertible` to `AnyKeyPath`.
-
-Swift-evolution thread: [pitch](https://forums.swift.org/t/pitch-add-customdebugdescription-conformance-to-anykeypath/58705)
 
 ## Motivation
 
