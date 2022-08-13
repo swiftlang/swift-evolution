@@ -19,7 +19,7 @@ Memory can be safely deallocated whenever it is uninitialized.
 
 We intend to round out initialization functionality for every relevant member of that family: `UnsafeMutablePointer`, `UnsafeMutableRawPointer`, `UnsafeMutableBufferPointer`, `UnsafeMutableRawBufferPointer`,  `Slice<UnsafeMutableBufferPointer>` and `Slice<UnsafeMutableRawBufferPointer>`. The functionality will allow managing initialization state in a much greater variety of situations, including easier handling of partially-initialized buffers.
 
-Swift-evolution thread: [Pitch thread](https://forums.swift.org/t/55689), previous pitch threads [A](https://forums.swift.org/t/53168), [B](https://forums.swift.org/t/53795)
+Swift-evolution thread: [Pitch thread](https://forums.swift.org/t/55689), previous pitch threads [A](https://forums.swift.org/t/53168), [B](https://forums.swift.org/t/53795)
 
 ## Motivation
 
@@ -210,7 +210,7 @@ extension UnsafeMutableRawBufferPointer {
 
 The first addition will initialize raw memory from a `Collection` and have similar behaviour as `UnsafeMutableBufferPointer.initialize(fromElements:)`, described above. The other two initialize raw memory by moving data from another range of memory, leaving that other range of memory deinitialized.
 
-##### UnsafeMutableRawPointer
+##### `UnsafeMutableRawPointer`
 
 ```swift
 extension UnsafeMutableRawPointer {
@@ -234,7 +234,7 @@ The addition here initializes a single value.
 
 ##### Slices of BufferPointer
 
-We propose to add to slices of `Unsafe[Mutable][Raw]BufferPointer` all the `BufferPointer`-specific methods of their `Base`. The following declarations detail the additions, which are all intended to behave exactly as the functions on the base BufferPointer types:
+We propose to extend slices of `Unsafe[Mutable][Raw]BufferPointer` with all the `BufferPointer`-specific methods of their `Base`. The following declarations detail the additions, which are all intended to behave exactly as the functions on the base BufferPointer types:
 
 ```swift
 extension Slice<UnsafeBufferPointer<T>> {
