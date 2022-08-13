@@ -284,7 +284,7 @@ extension Slice<UnsafeMutableBufferPointer<T>> {
 }
 ```
 
-Slices of `Unsafe[Mutable]RawBufferPointer` will add memory binding functions, memory initialization functions, and variants of `load`, `loadUnaligned` and `storeBytes` that always load from the beginning of the slice.
+Slices of `Unsafe[Mutable]RawBufferPointer` will add memory binding functions, memory initialization functions, and variants of `load`, `loadUnaligned` and `storeBytes`.
 ```swift
 extension Slice<UnsafeRawBufferPointer> {
   func bindMemory<T>(to type: T.Type) -> UnsafeBufferPointer<T>
@@ -294,8 +294,8 @@ extension Slice<UnsafeRawBufferPointer> {
     to type: T.Type, _ body: (UnsafeBufferPointer<T>) throws -> Result
   ) rethrows -> Result
 
-  func load<T>(as type: T.Type) -> T
-  func loadUnaligned<T>(as type: T.Type) -> T
+  func load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
+  func loadUnaligned<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
 }
 ```
 
@@ -332,9 +332,9 @@ extension Slice<UnsafeMutableRawBufferPointer> {
     _ body: (UnsafeMutableBufferPointer<T>) throws -> Result
   ) rethrows -> Result
 
-  func load<T>(as type: T.Type) -> T
-  func loadUnaligned<T>(as type: T.Type) -> T
-  func storeBytes<T>(of value: T, as type: T.Type)
+  func load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
+  func loadUnaligned<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
+  func storeBytes<T>(of value: T, toByteOffset offset: Int = 0, as type: T.Type)
 }
 ```
 
