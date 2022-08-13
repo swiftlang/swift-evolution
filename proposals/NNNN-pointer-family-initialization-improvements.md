@@ -142,7 +142,6 @@ extension UnsafeMutableBufferPointer {
 +++ func deinitialize() -> UnsafeMutableRawBufferPointer
 
 +++ func initializeElement(at index: Index, to value: Element)
-+++ func updateElement(at index: Index, to value: Element)
 +++ func moveElement(from index: Index) -> Element
 +++ func deinitializeElement(at index: Index)
 }
@@ -154,7 +153,7 @@ We would like to use the verb `update` instead of `assign`, in order to better c
 
 The methods that initialize or update from a `Collection` will have forgiving semantics, and copy the number of elements that they can, be that every available element or none, and then return the index in the buffer that follows the last element copied, which is cheaper than returning an iterator and a count. Unlike the existing `Sequence` functions, they include no preconditions beyond having a valid `Collection` and valid buffer, with the understanding that if a user needs stricter behaviour, it can be composed from these functions.
 
-The above changes include a method to update a single element. Evidently that is a synonym for the `subscript(_ i: Index)` setter. We hope that documenting the update action specifically will help clarify the requirements of that action, namely that the buffer element must already be initialized. Experience shows that the initialization requirement of the subscript setter is frequently not noticed by users in the current situation, where it is only documented along with the subscript getter.
+We also add functions to manipulate the initialization state for single elements of the buffer.  There is no `buffer.updateElement(at index: Index, to value: Element)`, because it can already be expressed as `buffer[index] = value`.
 
 ##### `UnsafeMutablePointer`
 
@@ -165,7 +164,6 @@ extension UnsafeMutablePointer {
     func initialize(to value: Pointee)
     func initialize(repeating repeatedValue: Pointee, count: Int)
     func initialize(from source: UnsafePointer<Pointee>, count: Int)
-+++ func update(to value: Pointee)
 --- func assign(repeating repeatedValue: Pointee, count: Int)
 +++ func update(repeating repeatedValue: Pointee, count: Int)
 --- func assign(from source: UnsafePointer<Pointee>, count: Int)
@@ -273,7 +271,6 @@ extension Slice<UnsafeMutableBufferPointer<T>> {
   func deinitialize() -> UnsafeMutableRawBufferPointer
 
   func initializeElement(at index: Index, to value: Element)
-  func updateElement(at index: Index, to value: Element)
   func moveElement(at index: Index) -> Element
   func deinitializeElement(at index: Index)
 
@@ -1612,9 +1609,7 @@ All functionality implemented as `@_alwaysEmitIntoClient` will back-deploy. Rena
 
 ##### Single element update functions
 
-The single-element update functions, `UnsafeMutablePointer.update(to:)` and `UnsafeMutableBufferPointer.updateElement(at:to:)`, are synonyms for the setters of `UnsafeMutablePointer.pointee` and `UnsafeMutableBufferPointer.subscript(_ i: Index)`, respectively. Clearly we can elect to not add them.
-
-The setters in question, like the update functions, have a required precondition that the memory they refer to must be initialized. This precondition is often overlooked and leads to programmer errors and bug reports. The proposed names and cross-references should help clarify the requirements to users.
+An earlier version of this proposal included single-element update functions, `UnsafeMutablePointer.update(to:)` and `UnsafeMutableBufferPointer.updateElement(at:to:)`. These are synonyms for the setters of `UnsafeMutablePointer.pointee` and `UnsafeMutableBufferPointer.subscript(_ i: Index)`, respectively. They were intended to improve the documentation for that operation, in particular the  often overlooked initialization requirement.
 
 ##### Renaming `assign` to `update`
 
