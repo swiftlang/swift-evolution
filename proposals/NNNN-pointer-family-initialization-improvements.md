@@ -19,8 +19,6 @@ Memory can be safely deallocated whenever it is uninitialized.
 
 We intend to round out initialization functionality for every relevant member of that family: `UnsafeMutablePointer`, `UnsafeMutableRawPointer`, `UnsafeMutableBufferPointer`, `UnsafeMutableRawBufferPointer`,  `Slice<UnsafeMutableBufferPointer>` and `Slice<UnsafeMutableRawBufferPointer>`. The functionality will allow managing initialization state in a much greater variety of situations, including easier handling of partially-initialized buffers.
 
-Swift-evolution thread: [Pitch thread](https://forums.swift.org/t/55689), previous pitch threads [A](https://forums.swift.org/t/53168), [B](https://forums.swift.org/t/53795)
-
 ## Motivation
 
 Memory allocated using `UnsafeMutablePointer`, `UnsafeMutableRawPointer`, `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer` is passed to the user in an uninitialized state. In the general case, such memory needs to be initialized before it is used in Swift. Memory can be "initialized" or "uninitialized". We hereafter refer to this as a memory region's "initialization state".
