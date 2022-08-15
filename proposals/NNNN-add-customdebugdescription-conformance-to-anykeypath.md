@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This proposal is to add conformance to the protocol `CustomDebugStringConvertible` to `AnyKeyPath`.
+This proposal is to add conformance to the protocol `CustomDebugStringConvertible` to `AnyKeyPath`. 
 
 ## Motivation
 
@@ -39,7 +39,7 @@ exactly as it was written in the program.
 
 ## Proposed solution
 
-Implement the `debugDescription` requirement of `CustomDebugStringConvertible`, that produces the output described above, on a best effort basis.
+Take advantage of whatever information is available in the binary to implement the `debugDescription` requirement of `CustomDebugStringConvertible`. In the best case, roughly the output above will be produced, in the worst cases, other, potentially useful information will be output instead. 
 
 ## Detailed design
 
@@ -78,7 +78,7 @@ print(\Theme.backgroundColor) // outputs "\Theme.<offset 0 (Color)>"
 
 #### `lookupSymbol` failure case
 
-In this case we'll print the address in memory as hex, plus the type name: 
+In this case we'll print the address-in-memory as hex, plus the type name: 
 ```
 print(\Theme.overlay) // outputs \Theme.<computed 0xABCDEFG (Color)>
 ```
@@ -87,22 +87,24 @@ As it might be difficult to correlate a memory address with the name of the func
 
 ## Source compatibility
 
-Programs that extend `AnyKeyPath` to implement `CustomDebugStringConvertible` themselves will no longer compile. 
+Programs that extend `AnyKeyPath` to implement `CustomDebugStringConvertible` themselves will no longer compile and the authors of such code will have to delete the conformance. Based on a search of Github, there are currently no publically available Swift projects that do this. 
 
-Calling `print` on a KeyPath will of course produce different results. 
+Calling `print` on a KeyPath will, of course, produce different results than before. 
 
 It is unlikely that any existing Swift program is depending on the existing behavior in a production context. While it is likely that someone, somewhere has written code in unit tests that depends on the output of this function, any issues that result will be easy for the authors of such code to identify and fix, and will likely represent an improvement in the readability of those tests. 
 
 ## Effect on ABI stability
 
-This proposal will add a new conformance to an existing protocol to an existing type in the stdlib.  
+This proposal will add a new var & protcol confromance to the Standard Library's ABI. It will be availability guarded appropriately. 
 
 ## Effect on API resilience
 
-This change could break existing Swift programs that add their own conformance to `AnyKeyPath`. 
+The implementation of `debugDescription` might change after the inital work to implement this proposal is done. In particular, the output format will not be guarenteed to be stable. Here are a few different changes we might anticipate making: 
 
-However, it seems unlikely that any Swift program would rely on `debugDescription` in production, when the `description` property is far more appropriate for such a purpose. 
-
+- As new features are added to the compiler, there may be new metadata available in the binary to draw from. One example would be lookup tables of KeyPath segment to human-readable-name or some other unique, stable identifier
+- Whenever a new feature is added to `KeyPath`, it will need to be reflected in the output of this function. For example, the `KeyPath`s produced by [\_forEachFieldWithKeyPath](https://github.com/apple/swift/blob/main/stdlib/public/core/ReflectionMirror.swift#L324) are incomplete, in the sense that they merely set a value at in offset in memory and do not call `didSet` observers. If this function were ever publically exposed, it would be useful if this was surfaced in the debugging information. 
+- The behavior of subscript printing might be changed: for example, we might always print out the value of the argument to the subscript, or we might do so only in cases where the output is short. We might also change from `.subscript()` to `[]`
+- The Swift language workgroup may create new policies around debug descriptions and the output of this function might need to be updated to conform to them 
 
 ## Alternatives considered
 
@@ -121,15 +123,19 @@ It has the additional advantage of being 100% reliable, to the point where it ar
 However, it would add to the code size of the compiled code, perhaps unacceptably so. Furthermore, it precludes the possibility of someday printing out the arguments of subscript based keypaths, as
 these can be created dynamically. It would also add overhead to appending keypaths, as the string would also have to be appended. 
 
+An alternative implementation of this idea would be the output of additional metadata: a lookup table of function -> name. However, this would require a lot of additional work on the compiler for a relatively small benefit. 
+
 I think that most users who might want this _really_ want to use it to build something else, like encodable keypaths. Those features should be provided opt-in on a per-keypath or per-type basis, which will make it much more useful (and in the context of encodable keypaths specifically, eliminate major potential security issues). Such a feature should also include the option to let the user configure this string, so that it can remain backwards compatible with older versions of the program. 
 
 ### Make Keypath functions global to prevent the linker from stripping them
 
 This would also potentially make it feasible to change this proposal from implementing `debugDescription` to implementing `description`. 
 
-This would also potentially bloat the binary. It could also be a security issue, as `dlysm` would now be able to find these functions.
+This would also potentially bloat the binary and would increase linker times. It could also be a security issue, as `dlysm` would now be able to find these functions.
 
 I am not very knowledgeable about linkers or how typical Swift builds strip symbols, but I think it might be useful to have this as an option in some IDEs that build Swift programs. But that is beyond the scope of this proposal. 
+
+## Future Directions
 
 ### Add LLDB formatters/summaries
 
@@ -142,6 +148,10 @@ However, I think it might be very difficult to implement this. I see two options
 
 I think (1) is overkill, especially considering the limited potential applications of this API beyond its use by the formatter. If it's possible to implement this as an `internal` function in the Swift stdlib then this is a much more attractive option. 
 From personal experience trying to parse KeyPath memory from outside the Standard Library, I think (2) would be extremely difficult to implement, and unsustainable to maintain considering that the [memory layout of KeyPaths](https://github.com/apple/swift/blob/main/docs/ABI/KeyPaths.md) is not ABI stable. 
+
+### Make Keypath functions global in DEBUG builds only
+
+This may be necessary to allow `swift::lookupSymbol` to function correctly on Windows, Linux and other platforms that use COFF or ELF-like formats. 
 
 ## Acknowledgments
 
