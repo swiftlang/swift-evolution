@@ -97,6 +97,8 @@ It is unlikely that any existing Swift program is depending on the existing beha
 
 This proposal will add a new var & protocol conformance to the Standard Library's ABI. It will be availability guarded appropriately.
 
+The new debugging output will not be backdeployed, so Swift programs running on older ABI stable versions of the OS won't be able to rely on the new output. 
+
 ## Effect on API resilience
 
 The implementation of `debugDescription` might change after the initial work to implement this proposal is done. In particular, the output format will not be guaranteed to be stable. Here are a few different changes we might anticipate making: 
