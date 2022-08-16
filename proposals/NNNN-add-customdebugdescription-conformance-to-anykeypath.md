@@ -99,7 +99,7 @@ This proposal will add a new var & protcol confromance to the Standard Library's
 
 ## Effect on API resilience
 
-The implementation of `debugDescription` might change after the inital work to implement this proposal is done. In particular, the output format will not be guarenteed to be stable. Here are a few different changes we might anticipate making: 
+The implementation of `debugDescription` might change after the initial work to implement this proposal is done. In particular, the output format will not be guaranteed to be stable. Here are a few different changes we might anticipate making: 
 
 - As new features are added to the compiler, there may be new metadata available in the binary to draw from. One example would be lookup tables of KeyPath segment to human-readable-name or some other unique, stable identifier
 - Whenever a new feature is added to `KeyPath`, it will need to be reflected in the output of this function. For example, the `KeyPath`s produced by [\_forEachFieldWithKeyPath](https://github.com/apple/swift/blob/main/stdlib/public/core/ReflectionMirror.swift#L324) are incomplete, in the sense that they merely set a value at in offset in memory and do not call `didSet` observers. If this function were ever publically exposed, it would be useful if this was surfaced in the debugging information. 
