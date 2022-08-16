@@ -87,7 +87,7 @@ As it might be difficult to correlate a memory address with the name of the func
 
 ## Source compatibility
 
-Programs that extend `AnyKeyPath` to implement `CustomDebugStringConvertible` themselves will no longer compile and the authors of such code will have to delete the conformance. Based on a search of Github, there are currently no publically available Swift projects that do this. 
+Programs that extend `AnyKeyPath` to implement `CustomDebugStringConvertible` themselves will no longer compile and the authors of such code will have to delete the conformance. Based on a search of Github, there are currently no publicly available Swift projects that do this. 
 
 Calling `print` on a KeyPath will, of course, produce different results than before. 
 
