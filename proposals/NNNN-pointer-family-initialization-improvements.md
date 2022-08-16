@@ -525,19 +525,6 @@ extension UnsafeMutableBufferPointer {
 
 ```swift
 extension UnsafeMutablePointer {
-  /// Update this pointer's initialized memory.
-  ///
-  /// The range of memory starting at this pointer and covering one instance
-  /// of `Pointee` must be initialized, or `Pointee` must be a trivial type.
-  /// This method is equivalent to:
-  ///
-  ///     self.pointee = value
-  ///
-  /// - Parameters:
-  ///   - value: The value used to update this pointer's memory.
-  public func update(_ value: Pointee)
-}
-
   /// Update this pointer's initialized memory with the specified number of
   /// instances, copied from the given pointer's memory.
   ///
