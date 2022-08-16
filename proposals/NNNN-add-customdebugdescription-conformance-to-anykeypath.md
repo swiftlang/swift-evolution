@@ -95,7 +95,7 @@ It is unlikely that any existing Swift program is depending on the existing beha
 
 ## Effect on ABI stability
 
-This proposal will add a new var & protcol confromance to the Standard Library's ABI. It will be availability guarded appropriately. 
+This proposal will add a new var & protocol conformance to the Standard Library's ABI. It will be availability guarded appropriately.
 
 ## Effect on API resilience
 
