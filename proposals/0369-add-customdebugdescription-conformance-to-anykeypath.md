@@ -5,7 +5,7 @@
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active Review (August 16...August 29, 2022)**
 * Implementation: [apple/swift#60133](https://github.com/apple/swift/pull/60133)
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-customdebugdescription-conformance-to-anykeypath/58705))
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-customdebugdescription-conformance-to-anykeypath/58705)) ([review](https://forums.swift.org/t/se-0369-add-customdebugstringconvertible-conformance-to-anykeypath/59704))
 
 ## Introduction
 
