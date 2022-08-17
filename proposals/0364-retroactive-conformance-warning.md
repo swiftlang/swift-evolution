@@ -3,6 +3,7 @@
 * Proposal: [SE-0364](0364-retroactive-conformance-warning.md)
 * Author: [Harlan Haskins](https://github.com/harlanhaskins)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Review Thread: https://forums.swift.org/t/se-0364-warning-for-retroactive-conformances-of-external-types/58922
 * Status: [**Returned for Revision**](https://forums.swift.org/t/returned-for-revision-se-0364-warning-for-retroactive-conformance-of-external-types/59729)
 * Implementation: [apple/swift#36068](https://github.com/apple/swift/pull/36068)
 
