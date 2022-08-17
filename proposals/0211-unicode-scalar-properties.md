@@ -398,3 +398,13 @@ However, since these properties are intended for advanced users who are likely
 already somewhat familiar with the Unicode Standard and its definitions, we
 decided to keep the names directly derived from the Standard, which makes them
 more discoverable to the intended audience.
+
+### `isDefined` Property
+
+The original version of this proposal also included a Boolean `isDefined`
+property that was equivalent to the `u_isdefined` function from ICU, which
+would evaluate to true for exactly the code points that are assigned (those
+with general category other than "Cn"). In Swift, however, this would be
+redundant and was thus dropped from the final implementation; its value would
+differ from `Unicode.Scalar.Properties.generalCategory != .unassigned` only
+for surrogate code points, which cannot be created as `Unicode.Scalar` values.
