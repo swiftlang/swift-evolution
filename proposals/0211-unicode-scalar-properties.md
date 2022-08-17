@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5)**
 * Implementation: [apple/swift#15593](https://github.com/apple/swift/pull/15593)
-* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0211-add-unicode-properties-to-unicode-scalar/13857)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0211-add-unicode-properties-to-unicode-scalar/13857), [Update](https://forums.swift.org/t/update-se-0211-add-unicode-properties-to-unicode-scalar/59727)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9b1c670206052f5c94bcb20df1c30c27a06e9755/proposals/0211-unicode-scalar-properties.md)
 
 ## Introduction
@@ -177,7 +177,7 @@ extension Unicode.Scalar.Properties {
 ```
 
 We also propose the following Boolean computed property that is generally
-useful, though it does not correspond to a named Unicode property:
+useful, though it does not correspond to a named Unicode property[^1]:
 
 ```swift
 extension Unicode.Scalar.Properties {
@@ -409,3 +409,9 @@ However, since these properties are intended for advanced users who are likely
 already somewhat familiar with the Unicode Standard and its definitions, we
 decided to keep the names directly derived from the Standard, which makes them
 more discoverable to the intended audience.
+
+[^1]: The `isDefined: Bool` property was removed from the implementation during
+discussion, although the proposal text was never updated to account for this
+change. The language workgroup considers this one API to be
+[**rejected**](https://forums.swift.org/t/update-se-0211-add-unicode-properties-to-unicode-scalar/59727),
+and a new evolution proposal would be required to add it in the future.
