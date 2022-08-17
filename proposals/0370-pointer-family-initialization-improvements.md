@@ -1,9 +1,9 @@
 # Pointer Family Initialization Improvements and Better Buffer Slices
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/pointer-family-initialization/proposals/NNNN-pointer-family-initialization-improvements.md)
+* Proposal: [SE-0370](0370-pointer-family-initialization-improvements.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Awaiting Review**
+* Status: **Active Review (August 17...29th, 2022)**
 * Implementation: [Draft Pull Request](https://github.com/apple/swift/pull/41608)
 * Review: ([first pitch](https://forums.swift.org/t/pitch-pointer-family-initialization-improvements/53168)) ([second pitch](https://forums.swift.org/t/pitch-buffer-partial-initialization-better-buffer-slices/53795)) ([third pitch](https://forums.swift.org/t/pitch-pointer-family-initialization-improvements-better-buffer-slices/55689))
 
