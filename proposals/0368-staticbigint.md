@@ -17,6 +17,7 @@
 | 2022-02-01 | Updated with an "ABI-neutral" abstraction.        |
 | 2022-03-03 | Implemented the `SIMDWordsInteger` prototype.     |
 | 2022-04-23 | Updated with an "infinitely-sign-extended" model. |
+| 2022-08-08 | Updated with a "non-generic" subscript.           |
 
 </details>
 
@@ -58,8 +59,8 @@ extension UInt256: ExpressibleByIntegerLiteral {
       "integer literal '\(value)' overflows when stored into '\(Self.self)'"
     )
     self.words = Words()
-    for index in 0..<Words.count {
-      self.words[index] = value[index]
+    for wordIndex in 0..<Words.count {
+      self.words[wordIndex] = value[wordIndex]
     }
   }
 }
@@ -93,7 +94,8 @@ public struct StaticBigInt:
   /// including the sign bit, and excluding the sign extension.
   ///
   /// The following examples show the least significant byte of each value's
-  /// binary representation, separated into excluded and included bits.
+  /// binary representation, separated into excluded and included bits. Negative
+  /// values are in two's complement.
   ///
   /// * `-4` (`0b11111_100`) is 3 bits.
   /// * `-3` (`0b11111_101`) is 3 bits.
@@ -105,43 +107,27 @@ public struct StaticBigInt:
   /// * `+3` (`0b00000_011`) is 3 bits.
   public var bitWidth: Int { get }
 
-  /// Returns an element of this value's binary representation.
+  /// Returns a 32-bit or 64-bit word of this value's binary representation.
   ///
-  /// The elements are ordered from least significant to most significant, with
+  /// The words are ordered from least significant to most significant, with
   /// an infinite sign extension. Negative values are in two's complement.
   ///
-  ///     let value: StaticBigInt = -0x8000000000000000_0000000000000000
-  ///     value.bitWidth        //-> 128
-  ///     value[0] as UInt64    //-> 0x0000000000000000
-  ///     value[1] as UInt64    //-> 0x8000000000000000
-  ///     value[2] as UInt64    //-> 0xFFFFFFFFFFFFFFFF
+  ///     let negative: StaticBigInt = -0x0011223344556677_8899AABBCCDDEEFF
+  ///     negative.signum()  //-> -1
+  ///     negative.bitWidth  //-> 118
+  ///     negative[0]        //-> 0x7766554433221101
+  ///     negative[1]        //-> 0xFFEEDDCCBBAA9988
+  ///     negative[2]        //-> 0xFFFFFFFFFFFFFFFF
   ///
-  ///     let value: StaticBigInt = -1
-  ///     value.bitWidth        //-> 1
-  ///     value[0] as UInt64    //-> 0xFFFFFFFFFFFFFFFF
-  ///     value[1] as UInt64    //-> 0xFFFFFFFFFFFFFFFF
-  ///     value[2] as UInt64    //-> 0xFFFFFFFFFFFFFFFF
+  ///     let positive: StaticBigInt = +0x0011223344556677_8899AABBCCDDEEFF
+  ///     positive.signum()  //-> +1
+  ///     positive.bitWidth  //-> 118
+  ///     positive[0]        //-> 0x8899AABBCCDDEEFF
+  ///     positive[1]        //-> 0x0011223344556677
+  ///     positive[2]        //-> 0x0000000000000000
   ///
-  ///     let value: StaticBigInt = +0
-  ///     value.bitWidth        //-> 1
-  ///     value[0] as UInt64    //-> 0x0000000000000000
-  ///     value[1] as UInt64    //-> 0x0000000000000000
-  ///     value[2] as UInt64    //-> 0x0000000000000000
-  ///
-  ///     let value: StaticBigInt = +0x7FFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF
-  ///     value.bitWidth        //-> 128
-  ///     value[0] as UInt64    //-> 0xFFFFFFFFFFFFFFFF
-  ///     value[1] as UInt64    //-> 0x7FFFFFFFFFFFFFFF
-  ///     value[2] as UInt64    //-> 0x0000000000000000
-  ///
-  /// - Parameter index: A nonnegative zero-based index.
-  /// - Returns: A fixed-width unsigned integer. Word-sized types are preferred.
-  public subscript<Element>(_ index: Int) -> Element
-  where
-    Element: _ExpressibleByBuiltinIntegerLiteral,
-    Element: FixedWidthInteger,
-    Element: UnsignedInteger
-  { get }
+  /// - Parameter wordIndex: A nonnegative zero-based offset.
+  public subscript(_ wordIndex: Int) -> UInt { get }
 }
 ```
 
@@ -157,7 +143,7 @@ The integer literal type has to be selected statically as the associated type. T
 
 - Along similar lines, it is intentional that `StaticBigInt` cannot represent fractional values. Integer types should not be constructible with fractional literals, and allowing that simply adds unnecessary costs and introduces a new way for construction to fail. It is still a language goal for Swift to someday support dynamically flexible floating-point literals the way it does for integer literals, but that is a separable project from introducing `StaticBigInt`.
 
-- A prior design had a `words` property, initially as a contiguous buffer, subsequently as a custom collection. John McCall requested an "ABI-neutral" abstraction, and suggested the current "infinitely-sign-extended" model. This new design is ideal for initializing fixed-width types. Do we also need an API to compute the minimal number of elements — including and excluding the sign bit?
+- A prior design had a `words` property, initially as a contiguous buffer, subsequently as a custom collection. John McCall requested an "ABI-neutral" abstraction, and suggested the current "infinitely-sign-extended" model. Xiaodi Wu convincingly argued for a "non-generic" subscript, rather than over-engineering a choice of element type.
 
 - Xiaodi Wu [suggested](https://forums.swift.org/t/staticbigint/54545/23) that a different naming scheme and API design be chosen to accommodate other similar types, such as IEEE 754 interchange formats. However, specific alternatives weren't put forward for consideration. Using non-arithmetic types for interchange formats would seem to be a deliberate choice; whereas for `StaticBigInt` it's because of an inherent limitation.
 
@@ -186,10 +172,10 @@ The integer literal type has to be selected statically as the associated type. T
   ```swift
   let a: StaticBigInt = -42  // OK
   let b: StaticBigInt = +42  // OK
-  
+
   let c = -42 as StaticBigInt  // OK
   let d = +42 as StaticBigInt  // OK
-  
+
   let e = StaticBigInt(-42)  // OK
   let f = StaticBigInt(+42)  // error
   ```
@@ -198,7 +184,7 @@ The integer literal type has to be selected statically as the associated type. T
 
 ## Acknowledgments
 
-John McCall implemented arbitrary-precision integer literals (in Swift 5.0). `StaticBigInt` is a thin wrapper around the existing [`Builtin.IntLiteral`][] type.
+John McCall made significant improvements to this proposal; and (in Swift 5.0) implemented arbitrary-precision integer literals. `StaticBigInt` is a thin wrapper around the existing [`Builtin.IntLiteral`][] type.
 
 <!----------------------------------------------------------------------------->
 
