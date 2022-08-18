@@ -119,10 +119,6 @@ internal func _deinitOnExecutor(_ object: __owned AnyObject,
 
 If `deinit` is isolated, code that normally is emitted into `__deallocating_init` gets emitted into a new entity (`__isolated_deallocating_init`), and `__deallocating_init` is emitted as a thunk that reads the executor (from `self` for actors and from the global actor for GAITs) and calls `swift_task_performOnExecutor` passing `self`, `__isolated_deallocating_init` and the desired executor.
 
-![Last release from background thread](./NNNN-isolated-synchronous-deinit/last-release.png)
-
-![Deinit on main thread](./NNNN-isolated-synchronous-deinit/isolated-deinit.png)
-
 Non-deallocating `deinit` is not affected by this proposal.
 
 ### Rules for computing isolation
@@ -278,7 +274,41 @@ Removing an isolation annotation from the `dealloc` method (together with `retai
 
 ### Asynchronous `deinit`
 
-A similar approach can be used to start an unstructured task for executing `async` deinit, but this is out of scope of this proposal.
+Currently, if users need to initiate an asynchronous operation from `deinit`, they need to manually start a task. It is easy to accidentally capture `self` inside task's closure. Such `self` would become a dangling reference which may cause a crash, but is not guaranteed to reproduce during debugging.
+
+```swift
+actor Service {
+  func shutdown() {}
+}
+
+@MainActor
+class ViewModel {
+  let service: Service
+
+  deinit {
+    // Incorrect:
+    _ = Task { await service.shutdown() }
+
+    // Corrected version:
+    _ = Task { [service] in await service.shutdown() }
+  }
+}
+```
+
+A more developer-friendly approach would be to allow asynchronous deinit:
+
+```swift
+  ...
+  deinit async {
+    await service.shutdown()
+
+    // Destroy stored properties and deallocate memory
+    // after asynchronous shutdown is complete
+  }
+}
+```
+
+Similarly to this proposal, `__deallocating_deinit` can be used as a thunk that starts an unstructured task for executing async deinit. But such naïve approach can flood the task scheduler when deallocating large data structure with many async `deinit`s. More research is needed to understand typical usage of asynchronous operations in `deinit`, and applicable optimization methods. This is out of scope of this proposal.
 
 ### Asserting that `self` does not escape from `deinit`.
 
