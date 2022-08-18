@@ -186,21 +186,21 @@ extension UnsafeMutableRawBufferPointer {
       as type: T.Type, repeating repeatedValue: T
     ) -> UnsafeMutableBufferPointer<T>
 
-  	func initializeMemory<S>(
+    func initializeMemory<S>(
       as type: S.Element.Type, from source: S
     ) -> (unwritten: S.Iterator, initialized: UnsafeMutableBufferPointer<S.Element>) where S: Sequence
 
 +++ func initializeMemory<C>(
       as type: C.Element.Type, fromElements: C
-		) -> UnsafeMutableBufferPointer<C.Element> where C: Collection
+    ) -> UnsafeMutableBufferPointer<C.Element> where C: Collection
 
 +++ func moveInitializeMemory<T>(
-  		as type: T.Type, fromElements: UnsafeMutableBufferPointer<T>
-		) -> UnsafeMutableBufferPointer<T>
+      as type: T.Type, fromElements: UnsafeMutableBufferPointer<T>
+    ) -> UnsafeMutableBufferPointer<T>
 
 +++ func moveInitializeMemory<T>(
-  		as type: T.Type, fromElements: Slice<UnsafeMutableBufferPointer<T>>
-		) -> UnsafeMutableBufferPointer<T>
+      as type: T.Type, fromElements: Slice<UnsafeMutableBufferPointer<T>>
+    ) -> UnsafeMutableBufferPointer<T>
 }
 ```
 
@@ -212,15 +212,15 @@ The first addition will initialize raw memory from a `Collection` and have simil
 extension UnsafeMutableRawPointer {
 +++ func initializeMemory<T>(as type: T.Type, to value: T) -> UnsafeMutablePointer<T>
 
-  	func initializeMemory<T>(
+    func initializeMemory<T>(
       as type: T.Type, repeating repeatedValue: T, count: Int
     ) -> UnsafeMutablePointer<T>
 
-  	func initializeMemory<T>(
+    func initializeMemory<T>(
       as type: T.Type, from source: UnsafePointer<T>, count: Int
     ) -> UnsafeMutablePointer<T>
 
-  	func moveInitializeMemory<T>(
+    func moveInitializeMemory<T>(
       as type: T.Type, from source: UnsafeMutablePointer<T>, count: Int
     ) -> UnsafeMutablePointer<T>
 }
@@ -275,7 +275,7 @@ extension Slice<UnsafeMutableBufferPointer<T>> {
   func withMemoryRebound<T, Result>(
     to type: T.Type,
     _ body: (UnsafeMutableBufferPointer<T>) throws -> Result
-	) rethrows -> Result
+    ) rethrows -> Result
 }
 ```
 
@@ -296,7 +296,7 @@ extension Slice<UnsafeRawBufferPointer> {
 
 ```swift
 extension Slice<UnsafeMutableRawBufferPointer> {
-	func copyMemory(from source: UnsafeRawBufferPointer)
+  func copyMemory(from source: UnsafeRawBufferPointer)
   func copyBytes<C: Collection>(from source: C) where C.Element == UInt8
 
   func initializeMemory<T>(
