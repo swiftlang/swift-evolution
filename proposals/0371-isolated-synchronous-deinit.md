@@ -5,7 +5,7 @@
 * Review Manager: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Status: **Active review(August 18...August 31, 2022)**
 * Implementation: [apple/swift#60057](https://github.com/apple/swift/pull/60057)
-* Review: ([pitch](https://forums.swift.org/t/isolated-synchronous-deinit/58177))
+* Review: ([pitch](https://forums.swift.org/t/isolated-synchronous-deinit/58177)) ([review](https://forums.swift.org/t/se-0371-isolated-synchronous-deinit/59754))
 
 ## Introduction
 
