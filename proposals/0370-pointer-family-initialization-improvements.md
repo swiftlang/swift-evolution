@@ -48,7 +48,7 @@ Unfortunately, `UnsafeMutablePointer` is the only one of the list of types liste
 
 An example of partial initialization is the insertion of elements in the middle of a collection. This is one of the possible operations needed in an implementation of `RangeReplaceableCollection.replaceSubrange(_:with:)`. Given a `RangeReplaceableCollection` whose unique storage can be represented by a partially-initialized `UnsafeMutableBufferPointer`:
 
-```
+```swift
 mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C)
   where C: Collection, Element == C.Element {
 
@@ -84,7 +84,7 @@ mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C)
 ```
 
 Here, we had to convert to `UnsafeMutablePointer` to use some of its API, as well as resort to element-by-element copying and initialization. With API enabling buffer operations on the slices of buffers, we could simplify things greatly:
-```
+```swift
 mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C)
   where C: Collection, Element == C.Element {
 
