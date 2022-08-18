@@ -3,7 +3,7 @@
 * Proposal: [SE-0368](0368-staticbigint.md)
 * Author: [Ben Rimmington](https://github.com/benrimmington)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (August 2...16, 2022)**
+* Status: **Active Review (August 2...23, 2022)**
 * Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722)
 * Review: ([pitch](https://forums.swift.org/t/staticbigint/54545))
          ([review](https://forums.swift.org/t/se-0368-staticbigint/59421))
@@ -172,10 +172,10 @@ The integer literal type has to be selected statically as the associated type. T
   ```swift
   let a: StaticBigInt = -42  // OK
   let b: StaticBigInt = +42  // OK
-
+  
   let c = -42 as StaticBigInt  // OK
   let d = +42 as StaticBigInt  // OK
-
+  
   let e = StaticBigInt(-42)  // OK
   let f = StaticBigInt(+42)  // error
   ```
