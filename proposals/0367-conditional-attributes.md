@@ -3,10 +3,11 @@
 * Proposal: [SE-0367](0367-conditional-attributes.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (August 1...August 15, 2022)**
+* Status: **Accepted**
 
 * Implementation: [apple/swift#60208](https://github.com/apple/swift/pull/60208)
 * Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-conditional-compilation-for-attributes-and-modifiers/58339)
+* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0367-conditional-compilation-for-attributes/59756)
 
 ## Introduction
 
