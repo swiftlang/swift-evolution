@@ -192,7 +192,7 @@ John McCall made significant improvements to this proposal; and (in Swift 5.0) i
 
 [`Builtin.IntLiteral`]: <https://forums.swift.org/t/how-to-find-rounding-error-in-floating-point-integer-literal-initializer/42039/8>
 
-[numeric protocols]: <https://developer.apple.com/documentation/swift/swift_standard_library/numbers_and_basic_values/numeric_protocols>
+[numeric protocols]: <https://developer.apple.com/documentation/swift/numeric-protocols>
 
 [obsolete]: <https://forums.swift.org/t/pitch-compile-time-constant-values/53606/9>
 
