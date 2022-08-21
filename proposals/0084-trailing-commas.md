@@ -95,4 +95,4 @@ The acceptance of SE-0084 will not affect existing code.
 
 * Chris Lattner: A narrower way to solve the same problem would be to allow a comma before the `)`, but *only* when there is a newline between them.
 
-* Vlad S suggests introducing "newlines as separators for any comma-separated list, not limited by funcs/typles but also array/dicts/generic type list etc."
+* Vlad S suggests introducing "newlines as separators for any comma-separated list, not limited by funcs/tuples but also array/dicts/generic type list, etc."
