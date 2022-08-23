@@ -1610,7 +1610,7 @@ an existing use of the current function that doesn't destructure the returned tu
 
 ##### Returned tuple labels
 
-Some of the pre-existing returned tuples do not have element labels. This proposal adds labels to them. This is technically source-breaking, in that if existing source uses exactly the proposed labels in a different position, then the returned tuple value would be shuffled. The chosen labels have sufficiently pointed names that the risk is very small.
+One of the pre-existing returned tuples does not have element labels, and the original version of the proposal did not change that. New labels are now proposed for this case. This is technically source-breaking, in that if existing source uses exactly the proposed labels in a different position, then the returned tuple value would be shuffled. The chosen labels have sufficiently pointed names that the risk is very small.
 
 ## Acknowledgments
 
