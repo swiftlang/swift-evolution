@@ -127,11 +127,12 @@ We propose to modify `UnsafeMutableBufferPointer` as follows:
 ```swift
 extension UnsafeMutableBufferPointer {
     func initialize(repeating repeatedValue: Element)
-    func initialize<S>(from source: S) -> (S.Iterator, Index) where S: Sequence, S.Element == Element
++++ func initialize<S>(from source: S) -> (unwritten: S.Iterator, index: Index) where S: Sequence, S.Element == Element
+--- func initialize<S>(from source: S) -> (S.Iterator, Index) where S: Sequence, S.Element == Element
 +++ func initialize<C>(fromElements: C) -> Index where C: Collection, C.Element == Element
 --- func assign(repeating repeatedValue: Element)
 +++ func update(repeating repeatedValue: Element)
-+++ func update<S>(from source: S) -> (unwritten: S.Iterator, updated: Index) where S: Sequence, S.Element == Element
++++ func update<S>(from source: S) -> (unwritten: S.Iterator, index: Index) where S: Sequence, S.Element == Element
 +++ func update<C>(fromElements: C) -> Index where C: Collection, C.Element == Element
 +++ func moveInitialize(fromElements: UnsafeMutableBufferPointer) -> Index
 +++ func moveInitialize(fromElements: Slice<UnsafeMutableBufferPointer>) -> Index
@@ -245,7 +246,7 @@ extension Slice<UnsafeBufferPointer<T>> {
 extension Slice<UnsafeMutableBufferPointer<T>> {
   func initialize(repeating repeatedValue: Element)
 
-  func initialize<S: Sequence>(from source: S) -> (S.Iterator, Index)
+  func initialize<S: Sequence>(from source: S) -> (unwritten: S.Iterator, index: Index)
     where S.Element == Element
 
   func initialize<C: Collection>(fromElements: C) -> Index
@@ -255,7 +256,7 @@ extension Slice<UnsafeMutableBufferPointer<T>> {
 
   func update<S: Sequence>(
     from source: S
-  ) -> (iterator: S.Iterator, updated: Index) where S.Element == Element
+  ) -> (unwritten: S.Iterator, index: Index) where S.Element == Element
 
   func update<C: Collection>(
     fromElements: C
@@ -381,7 +382,7 @@ extension UnsafeMutableBufferPointer {
   ///   the buffer's contents.
   /// - Returns: An iterator to any elements of `source` that didn't fit in the
   ///   buffer, and the index one past the last updated element in the buffer.
-  public func update<S>(from source: S) -> (unwritten: S.Iterator, assigned: Index)
+  public func update<S>(from source: S) -> (unwritten: S.Iterator, index: Index)
     where S: Sequence, S.Element == Element
 
   /// Updates the buffer's initialized memory with the given elements.
@@ -789,7 +790,7 @@ extension Slice {
   ///   buffer, and an index to the next uninitialized element in the buffer.
   public func initialize<S>(
     from source: S
-  ) -> (S.Iterator, Index)
+  ) -> (unwritten: S.Iterator, index: Index)
     where S: Sequence, Base == UnsafeMutableBufferPointer<S.Element>
   
   /// Initializes the buffer slice's memory with the given elements.
@@ -839,7 +840,7 @@ extension Slice {
   ///   buffer, and the index one past the last updated element in the buffer.
   public func update<S>(
     from source: S
-  ) -> (unwritten: S.Iterator, updated: Index)
+  ) -> (unwritten: S.Iterator, index: Index)
     where S: Sequence, Base == UnsafeMutableBufferPointer<S.Element>
 
   /// Updates the buffer slice's initialized memory with the given elements.
@@ -1606,6 +1607,10 @@ There are only four current symbols to be renamed by this proposal, and their re
 
 The initialization and updating functions that copy from `Collection` inputs use the argument label `fromElements`. This is a different label than used by the pre-existing functions that copy from `Sequence` inputs. We could use the same argument label (`from`) as with the `Sequence` inputs, but that would mean that we must return the `Iterator` for the `Collection` versions, and that is not necessarily desirable, especially if a particular `Iterator` cannot be copied cheaply. If we used the same argument label (`from`) and did not return `Iterator`, then the `Sequence` and `Collection` versions of the `initialize(from:)` would be overloaded by their return type, and that would be source-breaking:
 an existing use of the current function that doesn't destructure the returned tuple on assignment could now pick up the `Collection` overload, which would have a return value incompatible with the subsequent code which assumes that the return value is of type `(Iterator, Int)`.
+
+##### Returned tuple labels
+
+Some of the pre-existing returned tuples do not have element labels. This proposal adds labels to them. This is technically source-breaking, in that if existing source uses exactly the proposed labels in a different position, then the returned tuple value would be shuffled. The chosen labels have sufficiently pointed names that the risk is very small.
 
 ## Acknowledgments
 
