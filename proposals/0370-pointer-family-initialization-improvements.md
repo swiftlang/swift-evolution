@@ -490,18 +490,6 @@ extension UnsafeMutableBufferPointer {
   ///   - index: The index of the element to initialize
   public func initializeElement(at index: Index, to value: Element)
 
-  /// Updates the initialized buffer element at `index` with the given value.
-  ///
-  /// The destination element must be initialized, or
-  /// `Element` must be a trivial type. This method is equivalent to:
-  ///
-  ///     self[index] = value
-  ///
-  /// - Parameters:
-  ///   - value: The value used to update the buffer element's memory.
-  ///   - index: The index of the element to update
-  public func updateElement(at index: Index, to value: Element)
-
   /// Retrieves and returns the buffer element at `index`,
   /// leaving that element's memory uninitialized.
   ///
