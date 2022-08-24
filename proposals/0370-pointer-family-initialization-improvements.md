@@ -229,7 +229,7 @@ extension UnsafeMutableRawPointer {
 
 The addition here initializes a single value.
 
-##### Slices of BufferPointer
+##### Slices of `BufferPointer`
 
 We propose to extend slices of `Unsafe[Mutable][Raw]BufferPointer` with all the `BufferPointer`-specific methods of their `Base`. The following declarations detail the additions, which are all intended to behave exactly as the functions on the base BufferPointer types:
 
@@ -335,6 +335,8 @@ extension Slice<UnsafeMutableRawBufferPointer> {
 ```
 
 ## Detailed design
+
+##### `UnsafeMutableBufferPointer`
 
 ```swift
 extension UnsafeMutableBufferPointer {
@@ -524,6 +526,8 @@ extension UnsafeMutableBufferPointer {
 }
 ```
 
+##### `UnsafeMutablePointer`
+
 ```swift
 extension UnsafeMutablePointer {
   /// Update this pointer's initialized memory with the specified number of
@@ -565,6 +569,8 @@ extension UnsafeMutablePointer {
   public func moveUpdate(from source: UnsafeMutablePointer, count: Int)
 ```
 
+##### `UnsafeMutableRawPointer`
+
 ```swift
 extension UnsafeMutableRawPointer {
   /// Initializes the memory referenced by this pointer with the given value,
@@ -599,6 +605,8 @@ extension UnsafeMutableRawPointer {
   public func initializeMemory<T>(as type: T.Type, to value: T) -> UnsafeMutablePointer<T>
 }
 ```
+
+##### `UnsafeMutableRawBufferPointer`
 
 ```swift
 extension UnsafeMutableRawBufferPointer {
@@ -685,9 +693,10 @@ extension UnsafeMutableRawBufferPointer {
 
 
 
-For `Slice`, the functions need to add an additional generic parameter, which is immediately restricted in the `where` clause. This is necessary because "parameterized extensions" are not yet a Swift feature. Eventually, these functions should be able to have exactly the same generic signatures as the counterpart function on their `UnsafeBufferPointer`-family base. This change will be neither source-breaking nor ABI-breaking.
+For `Slice` of typed buffers, the functions need to add an additional generic parameter, which is immediately restricted in the `where` clause. This is necessary because "parameterized extensions" are not yet a Swift feature. Eventually, these functions should be able to have exactly the same generic signatures as the counterpart function on their `UnsafeBufferPointer`-family base. This change will be neither source-breaking nor ABI-breaking.
 
-Changes to `Slice<UnsafeBufferPointer<T>`:
+#####  `Slice<UnsafeBufferPointer<T>`
+
 ```swift
 extension Slice {
   /// Executes the given closure while temporarily binding the memory referenced
@@ -752,7 +761,8 @@ extension Slice {
 }
 ```
 
-Changes for `Slice<UnsafeMutableBufferPointer<T>>`:
+#####  `Slice<UnsafeMutableBufferPointer<T>>`
+
 ```swift
 extension Slice {
   /// Initializes every element in this buffer slice's memory to
@@ -1061,7 +1071,8 @@ extension Slice {
 }
 ```
 
-Changes for `Slice<UnsafeRawBufferPointer>`:
+#####  `Slice<UnsafeRawBufferPointer>`
+
 ```swift
 extension Slice where Base: UnsafeRawBufferPointer {
 
@@ -1216,7 +1227,8 @@ extension Slice where Base: UnsafeRawBufferPointer {
 }
 ```
 
-Changes for `Slice<UnsafeMutableRawBufferPointer>`:
+#####  `Slice<UnsafeMutableRawBufferPointer>`
+
 ```swift
 extension Slice where Base == UnsafeMutableRawBufferPointer {
 
