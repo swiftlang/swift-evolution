@@ -1720,6 +1720,7 @@ This proposal consists mostly of additions, which are by definition source compa
 
 The proposal includes the renaming of four existing functions from `assign` to `update`. The existing function names would be deprecated, producing a warning. A fixit will support an easy transition to the renamed versions of these functions.
 
+The proposal also includes the addition of labels to the tuple return value of one function. This is technically source breaking. We have tested the change against the source compatibility suite and found no issue.
 
 ## Effect on ABI stability
 
@@ -1727,6 +1728,7 @@ The functions proposed here are generally small wrappers around existing functio
 
 The renamed functions can reuse the existing symbol, while the deprecated functions can forward using an `@_alwaysEmitIntoClient` stub to support the functionality under its previous name. The renamings would therefore have no ABI impact.
 
+In the case of the added tuple labels, we can avoid an ABI impact by reusing the mangled symbol of the previously-existing function that had an unlabeled return tuple type.
 
 ## Effect on API resilience
 
