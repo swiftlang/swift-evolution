@@ -235,7 +235,7 @@ We propose to extend slices of `Unsafe[Mutable][Raw]BufferPointer` with all the 
 
 ```swift
 extension Slice<UnsafeBufferPointer<T>> {
-  public func withMemoryRebound<T, Result>(
+  func withMemoryRebound<T, Result>(
     to type: T.Type,
     _ body: (UnsafeBufferPointer<T>) throws -> Result
   ) rethrows -> Result
@@ -1127,7 +1127,7 @@ extension Slice where Base: UnsafeRawBufferPointer {
   ///     the return value for the `withMemoryRebound(to:capacity:_:)` method.
   ///   - buffer: The buffer temporarily bound to instances of `T`.
   /// - Returns: The return value, if any, of the `body` closure parameter.
-  func withMemoryRebound<T, Result>(
+  public func withMemoryRebound<T, Result>(
     to type: T.Type, _ body: (UnsafeBufferPointer<T>) throws -> Result
   ) rethrows -> Result
 
@@ -1147,7 +1147,7 @@ extension Slice where Base: UnsafeRawBufferPointer {
   ///
   /// - Parameter to: The type `T` that the memory has already been bound to.
   /// - Returns: A typed pointer to the same memory as this raw pointer.
-  func assumingMemoryBound<T>(to type: T.Type) -> UnsafeBufferPointer<T>
+  public func assumingMemoryBound<T>(to type: T.Type) -> UnsafeBufferPointer<T>
 
   /// Returns a new instance of the given type, read from the
   /// specified offset into the buffer pointer slice's raw memory.
@@ -1178,7 +1178,7 @@ extension Slice where Base: UnsafeRawBufferPointer {
   ///     with `type`.
   /// - Returns: A new instance of type `T`, copied from the buffer pointer
   ///   slice's memory.
-  func load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
+  public func load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
 
   /// Returns a new instance of the given type, read from the
   /// specified offset into the buffer pointer slice's raw memory.
@@ -1211,7 +1211,7 @@ extension Slice where Base: UnsafeRawBufferPointer {
   ///     with `type`.
   /// - Returns: A new instance of type `T`, copied from the buffer pointer's
   ///   memory.
-  func loadUnaligned<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
+  public func loadUnaligned<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
 }
 ```
 
@@ -1236,7 +1236,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///
   /// - Parameter source: A buffer of raw bytes. `source.count` must
   ///   be less than or equal to this buffer slice's `count`.
-  func copyMemory(from source: UnsafeRawBufferPointer)
+  public func copyMemory(from source: UnsafeRawBufferPointer)
 
   /// Copies from a collection of `UInt8` into this buffer slice's memory.
   ///
@@ -1447,7 +1447,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///     the return value for the `withMemoryRebound(to:capacity:_:)` method.
   ///   - buffer: The buffer temporarily bound to instances of `T`.
   /// - Returns: The return value, if any, of the `body` closure parameter.
-  func withMemoryRebound<T, Result>(
+  public func withMemoryRebound<T, Result>(
     to type: T.Type, _ body: (UnsafeMutableBufferPointer<T>) throws -> Result
   ) rethrows -> Result
 
@@ -1467,7 +1467,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///
   /// - Parameter to: The type `T` that the memory has already been bound to.
   /// - Returns: A typed pointer to the same memory as this raw pointer.
-  func assumingMemoryBound<T>(to type: T.Type) -> UnsafeMutableBufferPointer<T>
+  public func assumingMemoryBound<T>(to type: T.Type) -> UnsafeMutableBufferPointer<T>
 
   /// Returns a new instance of the given type, read from the
   /// specified offset into the buffer pointer slice's raw memory.
@@ -1498,7 +1498,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///     with `type`.
   /// - Returns: A new instance of type `T`, copied from the buffer pointer
   ///   slice's memory.
-  func load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
+  public func load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
 
   /// Returns a new instance of the given type, read from the
   /// specified offset into the buffer pointer slice's raw memory.
@@ -1531,7 +1531,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///     with `type`.
   /// - Returns: A new instance of type `T`, copied from the buffer pointer's
   ///   memory.
-  func loadUnaligned<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
+  public func loadUnaligned<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T
 
   /// Stores a value's bytes into the buffer pointer slice's raw memory at the
   /// specified byte offset.
@@ -1568,7 +1568,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///   - type: The type to use for the newly constructed instance. The memory
   ///     must be initialized to a value of a type that is layout compatible
   ///     with `type`.
-  func storeBytes<T>(of value: T, toByteOffset offset: Int = 0, as type: T.Type)
+  public func storeBytes<T>(of value: T, toByteOffset offset: Int = 0, as type: T.Type)
 }
 ```
 
