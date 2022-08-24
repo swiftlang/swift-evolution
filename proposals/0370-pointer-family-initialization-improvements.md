@@ -150,7 +150,7 @@ extension UnsafeMutableBufferPointer {
 
 We would like to use the verb `update` instead of `assign`, in order to better communicate the intent of the API. It is currently a common programmer error to use one of the existing `assign` functions for uninitialized memory; using the verb `update` instead would express the precondition in the API name itself.
 
-The methods that initialize or update from a `Collection` will have forgiving semantics, and copy the number of elements that they can, be that every available element or none, and then return the index in the buffer that follows the last element copied, which is cheaper than returning an iterator and a count. Unlike the existing `Sequence` functions, they include no preconditions beyond having a valid `Collection` and valid buffer, with the understanding that if a user needs stricter behaviour, it can be composed from these functions.
+The methods that initialize or update from a `Collection` will have consistent (and strict) semantics, and require the destination buffer (or slice) to have enough storage to copy the entire source collection, and then return the index in the destination that follows the last element copied. The storage available precondition will be strictly enforced, resulting in a consistent behaviour. The existing `Sequence` functions intended such a precondition, but in practice cannot enforce it.
 
 We also add functions to manipulate the initialization state for single elements of the buffer.  There is no `buffer.updateElement(at index: Index, to value: Element)`, because it can already be expressed as `buffer[index] = value`.
 
@@ -342,20 +342,46 @@ extension Slice<UnsafeMutableRawBufferPointer> {
 extension UnsafeMutableBufferPointer {
   /// Initializes the buffer's memory with the given elements.
   ///
-  /// Initializes the buffer's memory with the given elements.
+  /// Prior to calling the `initialize(from:)` method on a buffer,
+  /// the memory it references must be uninitialized,
+  /// or its `Element` type must be a trivial type. After the call,
+  /// the memory referenced by the buffer up to, but not including,
+  /// the returned index is initialized.
+  /// The buffer must contain sufficient memory to accommodate
+  /// `source.underestimatedCount`.
+  ///
+  /// The returned index is the position of the next uninitialized element
+  /// in the buffer, which is one past the last element written.
+  /// If `source` contains no elements, the returned index is equal to
+  /// the buffer's `startIndex`. If `source` contains an equal or greater number
+  /// of elements than the buffer can hold, the returned index is equal to
+  /// the buffer's `endIndex`.
+  ///
+  /// - Parameter source: A sequence of elements with which to initialize the
+  ///   buffer.
+  /// - Returns: An iterator to any elements of `source` that didn't fit in the
+  ///   buffer, and an index to the next uninitialized element in the buffer.
+  public func initialize<S: Sequence>(
+    from source: S
+  ) -> (unwritten: S.Iterator, index: Index) where S.Element == Element
+
+  /// Initializes the buffer's memory with every element of the source.
   ///
   /// Prior to calling the `initialize(fromContentsOf:)` method on a buffer,
   /// the memory referenced by the buffer must be uninitialized,
   /// or the `Element` type must be a trivial type. After the call,
   /// the memory referenced by the buffer up to, but not including,
   /// the returned index is initialized.
+  /// The buffer must reference enough memory to accommodate
+  /// `source.count` elements.
   ///
   /// The returned index is the position of the next uninitialized element
-  /// in the buffer, which is one past the last element written.
-  /// If `source` contains no elements, the returned index is equal to
-  /// the buffer's `startIndex`. If `source` contains an equal or greater
-  /// number of elements than the buffer can hold, the returned index is equal
-  /// to the buffer's `endIndex`.
+  /// in the buffer, one past the index of the last element written.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// can hold, the returned index is equal to the buffer's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
   ///
   /// - Parameter source: A collection of elements to be used to
   ///   initialize the buffer's storage.
@@ -387,84 +413,129 @@ extension UnsafeMutableBufferPointer {
   public func update<S>(from source: S) -> (unwritten: S.Iterator, index: Index)
     where S: Sequence, S.Element == Element
 
-  /// Updates the buffer's initialized memory with the given elements.
+  /// Updates the buffer's initialized memory with every element of the source.
   ///
-  /// The buffer's memory must be initialized or the buffer's `Element` type
-  /// must be a trivial type.
+  /// Prior to calling the `update(fromContentsOf:)` method on a buffer,
+  /// the first `source.count` elements of the buffer's memory must be
+  /// initialized, or the buffer's `Element` type must be a trivial type.
+  /// The buffer must reference enough initialized memory to accommodate
+  /// `source.count` elements.
+  ///
+  /// The returned index is one past the index of the last element updated.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// can hold, the returned index is equal to the buffer's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
   ///
   /// - Parameter source: A collection of elements to be used to update
   ///   the buffer's contents.
-  /// - Returns: An index one past the last updated element in the buffer,
-  ///   or `endIndex`.
+  /// - Returns: An index one past the index of the last element updated.
   public func update<C>(fromContentsOf source: C) -> Index
     where C: Collection, C.Element == Element
 
-  /// Moves instances from an initialized source buffer into the
+  /// Moves every element of an initialized source buffer into the
   /// uninitialized memory referenced by this buffer, leaving the source memory
   /// uninitialized and this buffer's memory initialized.
   ///
-  /// The region of memory starting at this pointer and covering `source.count`
-  /// instances of the buffer's `Element` type must be uninitialized, or
-  /// `Element` must be a trivial type. After calling
-  /// `moveInitialize(fromContentsOf:)`, the region is initialized and the memory
-  /// region underlying `source` is uninitialized.
+  /// Prior to calling the `moveInitialize(fromContentsOf:)` method on a buffer,
+  /// the memory it references must be uninitialized,
+  /// or its `Element` type must be a trivial type. After the call,
+  /// the memory referenced by the buffer up to, but not including,
+  /// the returned index is initialized. The memory referenced by
+  /// `source` is uninitialized after the function returns.
+  /// The buffer must reference enough memory to accommodate
+  /// `source.count` elements.
   ///
-  /// - Parameter source: A buffer containing the values to copy. The memory region
-  ///   underlying `source` must be initialized. The memory regions
+  /// The returned index is the position of the next uninitialized element
+  /// in the buffer, one past the index of the last element written.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// can hold, the returned index is equal to the buffer's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
+  ///
+  /// - Parameter source: A buffer containing the values to copy. The memory
+  ///   region underlying `source` must be initialized. The memory regions
   ///   referenced by `source` and this buffer may overlap.
   /// - Returns: An index to the next uninitialized element in the buffer,
   ///   or `endIndex`.
   public func moveInitialize(fromContentsOf source: Self) -> Index
 
-  /// Moves instances from an initialized source buffer slice into the
+  /// Moves every element of an initialized source buffer into the
   /// uninitialized memory referenced by this buffer, leaving the source memory
   /// uninitialized and this buffer's memory initialized.
   ///
-  /// The region of memory starting at this pointer and covering `source.count`
-  /// instances of the buffer's `Element` type must be uninitialized, or
-  /// `Element` must be a trivial type. After calling
-  /// `moveInitialize(fromContentsOf:)`, the region is initialized and the memory
-  /// region underlying `source[..<source.endIndex]` is uninitialized.
+  /// Prior to calling the `moveInitialize(fromContentsOf:)` method on a buffer,
+  /// the memory it references must be uninitialized,
+  /// or its `Element` type must be a trivial type. After the call,
+  /// the memory referenced by the buffer up to, but not including,
+  /// the returned index is initialized. The memory referenced by
+  /// `source` is uninitialized after the function returns.
+  /// The buffer must reference enough memory to accommodate
+  /// `source.count` elements.
+  ///
+  /// The returned index is the position of the next uninitialized element
+  /// in the buffer, one past the index of the last element written.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// can hold, the returned index is equal to the buffer's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
   ///
   /// - Parameter source: A buffer containing the values to copy. The memory
   ///   region underlying `source` must be initialized. The memory regions
   ///   referenced by `source` and this buffer may overlap.
-  /// - Returns: An index one past the last replaced element in the buffer,
+  /// - Returns: An index to the next uninitialized element in the buffer,
   ///   or `endIndex`.
   public func moveInitialize(fromContentsOf source: Slice<Self>) -> Index
 
-  /// Updates this buffer's initialized memory initialized memory by moving
-  /// all the elements from the source buffer, leaving the source memory
-  /// uninitialized.
+  /// Updates this buffer's initialized memory initialized memory by
+  /// moving every element from the source buffer slice,
+  /// leaving the source memory uninitialized.
   ///
-  /// The region of memory starting at this pointer and covering
-  /// `source.count` instances of the buffer's `Element` type
-  /// must be initialized, or `Element` must be a trivial type. After calling
-  /// `moveUpdate(fromContentsOf:)`, the memory region underlying
-  /// `source` is uninitialized.
+  /// Prior to calling the `moveUpdate(fromContentsOf:)` method on a buffer,
+  /// the first `source.count` elements of the buffer's memory must be
+  /// initialized, or the buffer's `Element` type must be a trivial type.
+  /// The memory referenced by `source` is uninitialized after the function
+  /// returns. The buffer must reference enough initialized memory
+  /// to accommodate `source.count` elements.
+  ///
+  /// The returned index is one past the index of the last element updated.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// can hold, the returned index is equal to the buffer's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
   ///
   /// - Parameter source: A buffer containing the values to move.
   ///   The memory region underlying `source` must be initialized. The
   ///   memory regions referenced by `source` and this pointer must not overlap.
-  /// - Returns: An index one past the last updated element in the buffer,
-  ///   or `endIndex`.
+  /// - Returns: An index one past the index of the last element updated.
   public func moveUpdate(fromContentsOf source: `Self`) -> Index
 
-  /// Updates this buffer's initialized memory initialized memory by moving
-  /// all the elements from the source buffer slice, leaving the source memory
-  /// uninitialized.
+  /// Updates this buffer's initialized memory initialized memory by
+  /// moving every element from the source buffer slice,
+  /// leaving the source memory uninitialized.
   ///
-  /// The region of memory starting at this pointer and covering
-  /// `fromContentsOf.count` instances of the buffer's `Element` type
-  /// must be initialized, or `Element` must be a trivial type. After calling
-  /// `moveUpdate(fromContentsOf:)`, the memory region underlying
-  /// `source[..<source.endIndex]` is uninitialized.
+  /// Prior to calling the `moveUpdate(fromContentsOf:)` method on a buffer,
+  /// the first `source.count` elements of the buffer's memory must be
+  /// initialized, or the buffer's `Element` type must be a trivial type.
+  /// The memory referenced by `source` is uninitialized after the function
+  /// returns. The buffer must reference enough initialized memory
+  /// to accommodate `source.count` elements.
   ///
-  /// - Parameter source: A buffer containing the values to move.
+  /// The returned index is one past the index of the last element updated.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// can hold, the returned index is equal to the buffer's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
+  ///
+  /// - Parameter source: A buffer slice containing the values to move.
   ///   The memory region underlying `source` must be initialized. The
   ///   memory regions referenced by `source` and this pointer must not overlap.
-  /// - Returns: An index one past the last updated element in the buffer,
-  ///   or `endIndex`.
+  /// - Returns: An index one past the index of the last element updated.
   public func moveUpdate(fromContentsOf source: Slice<`Self`>) -> Index
 
   /// Deinitializes every instance in this buffer.
@@ -598,19 +669,21 @@ extension UnsafeMutableRawPointer {
 
 ```swift
 extension UnsafeMutableRawBufferPointer {
-  /// Initializes the buffer's memory with the given elements, binding the
-  /// initialized memory to the elements' type.
+  /// Initializes the buffer's memory with every element of the source,
+  /// binding the initialized memory to the elements' type.
   ///
-  /// When calling the `initializeMemory(as:fromContentsOf:)` method on a buffer
-  /// `b`, the memory referenced by `b` must be uninitialized, or initialized
-  /// to a trivial type. `b` must be properly aligned for accessing `C.Element`.
+  /// When calling the `initializeMemory(as:fromContentsOf:)` method,
+  /// the memory referenced by the buffer must be uninitialized, or initialized
+  /// to a trivial type. The buffer must reference enough memory to store
+  /// `source.count` elements, and its `baseAddress` must be properly aligned
+  /// for accessing `C.Element`.
   ///
-  /// This method initializes the buffer with the contents of `source`,
-  /// until `source` is exhausted or the buffer runs out of available
-  /// space. After calling `initializeMemory(as:fromContentsOf:)`, the memory
+  /// This method initializes the buffer with the contents of `source`
+  /// until `source` is exhausted.
+  /// After calling `initializeMemory(as:fromContentsOf:)`, the memory
   /// referenced by the returned `UnsafeMutableBufferPointer` instance is bound
-  /// and initialized to type `C.Element`. This method does not change
-  /// the binding state of the unused portion of `b`, if any.
+  /// to the type `C.Element` and is initialized. This method does not change
+  /// the binding state of the unused portion of the buffer, if any.
   ///
   /// - Parameters:
   ///   - type: The type of element to which this buffer's memory will be bound.
@@ -618,61 +691,72 @@ extension UnsafeMutableRawBufferPointer {
   ///     initialize the buffer's storage.
   /// - Returns: A typed buffer containing the initialized elements.
   ///     The returned buffer references memory starting at the same
-  ///     base address as this buffer, and its count indicates
-  ///     the number of elements copied from the collection `elements`.
-  func initializeMemory<C>(
+  ///     base address as this buffer, and its count is equal to `source.count`
+  public func initializeMemory<C>(
     as: C.Element.Type, fromContentsOf source: C
   ) -> UnsafeMutableBufferPointer<C.Element>
     where C: Collection
 
-  /// Moves instances from an initialized source buffer into the
+  /// Moves every element of an initialized source buffer into the
   /// uninitialized memory referenced by this buffer, leaving the source memory
   /// uninitialized and this buffer's memory initialized.
   ///
-  /// When calling the `moveInitializeMemory(as:from:)` method on a buffer `b`,
-  /// the memory referenced by `b` must be uninitialized, or initialized to a
-  /// trivial type. `b` must be properly aligned for accessing `C.Element`.
-  ///
-  /// The region of memory starting at this pointer and covering
-  /// `source.count` instances of the buffer's `Element` type
-  /// must be uninitialized, or `Element` must be a trivial type. After
-  /// calling `moveInitialize(as:from:)`, the region is initialized and the
+  /// When calling the `moveInitializeMemory(as:fromContentsOf:)` method,
+  /// the memory referenced by the buffer must be uninitialized, or initialized
+  /// to a trivial type. The buffer must reference enough memory to store
+  /// `source.count` elements, and its `baseAddress` must be properly aligned
+  /// for accessing `C.Element`. After the method returns,
+  /// the memory referenced by the returned buffer is initialized and the
   /// memory region underlying `source` is uninitialized.
+  ///
+  /// This method initializes the buffer with the contents of `source`
+  /// until `source` is exhausted.
+  /// After calling `initializeMemory(as:fromContentsOf:)`, the memory
+  /// referenced by the returned `UnsafeMutableBufferPointer` instance is bound
+  /// to the type `C.Element` and is initialized. This method does not change
+  /// the binding state of the unused portion of the buffer, if any.
   ///
   /// - Parameters:
   ///   - type: The type of element to which this buffer's memory will be bound.
   ///   - source: A buffer containing the values to copy.
   ///     The memory region underlying `source` must be initialized.
   ///     The memory regions referenced by `source` and this buffer may overlap.
-  /// - Returns: A typed buffer of the initialized elements. The returned
-  ///   buffer references memory starting at the same base address as this
-  ///   buffer, and its count indicates the number of elements copied from
-  ///   `source`.
-  func moveInitializeMemory<T>(
+  /// - Returns: A typed buffer referencing the initialized elements.
+  ///     The returned buffer references memory starting at the same
+  ///     base address as this buffer, and its count is equal to `source.count`.
+  public func moveInitializeMemory<T>(
     as type: T.Type,
     fromContentsOf source: UnsafeMutableBufferPointer<T>
   ) -> UnsafeMutableBufferPointer<T>
 
-  /// Moves instances from an initialized source buffer slice into the
+  /// Moves every element of an initialized source buffer slice into the
   /// uninitialized memory referenced by this buffer, leaving the source memory
   /// uninitialized and this buffer's memory initialized.
   ///
-  /// The region of memory starting at this pointer and covering
-  /// `source.count` instances of the buffer's `Element` type
-  /// must be uninitialized, or `Element` must be a trivial type. After
-  /// calling `moveInitialize(as:from:)`, the region is initialized and the
-  /// memory region underlying `source[..<source.endIndex]` is uninitialized.
+  /// When calling the `moveInitializeMemory(as:fromContentsOf:)` method,
+  /// the memory referenced by the buffer must be uninitialized, or initialized
+  /// to a trivial type. The buffer must reference enough memory to store
+  /// `source.count` elements, and its `baseAddress` must be properly aligned
+  /// for accessing `C.Element`. After the method returns,
+  /// the memory referenced by the returned buffer is initialized and the
+  /// memory region underlying `source` is uninitialized.
+  ///
+  /// This method initializes the buffer with the contents of `source`
+  /// until `source` is exhausted.
+  /// After calling `initializeMemory(as:fromContentsOf:)`, the memory
+  /// referenced by the returned `UnsafeMutableBufferPointer` instance is bound
+  /// to the type `C.Element` and is initialized. This method does not change
+  /// the binding state of the unused portion of the buffer, if any.
   ///
   /// - Parameters:
   ///   - type: The type of element to which this buffer's memory will be bound.
   ///   - source: A buffer containing the values to copy.
   ///     The memory region underlying `source` must be initialized.
   ///     The memory regions referenced by `source` and this buffer may overlap.
-  /// - Returns: A typed buffer of the initialized elements. The returned
-  ///   buffer references memory starting at the same base address as this
-  ///   buffer, and its count indicates the number of elements copied from
-  ///   `source`.
-  func moveInitializeMemory<T>(
+  /// - Returns: A typed buffer referencing the initialized elements.
+  ///     The returned buffer references memory starting at the same
+  ///     base address as this buffer, and its count is equal to `source.count`.
+  public func moveInitializeMemory<T>(
     as type: T.Type,
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<T>>
   ) -> UnsafeMutableBufferPointer<T>
@@ -791,7 +875,7 @@ extension Slice {
   ) -> (unwritten: S.Iterator, index: Index)
     where S: Sequence, Base == UnsafeMutableBufferPointer<S.Element>
   
-  /// Initializes the buffer slice's memory with the given elements.
+  /// Initializes the buffer slice's memory with with every element of the source.
   ///
   /// Prior to calling the `initialize(fromContentsOf:)` method on a buffer slice,
   /// the memory it references must be uninitialized,
@@ -799,17 +883,19 @@ extension Slice {
   /// the memory referenced by the buffer slice up to, but not including,
   /// the returned index is initialized.
   ///
-  /// The returned index is the position of the next uninitialized element
-  /// in the buffer slice, which is one past the last element written.
+  /// The returned index is the index of the next uninitialized element
+  /// in the buffer slice, one past the index of the last element written.
   /// If `source` contains no elements, the returned index is equal to
-  /// the buffer's `startIndex`. If `source` contains an equal or greater
-  /// of elements than the buffer slice can hold, the returned index is equal to
-  /// to the buffer's `endIndex`.
+  /// the buffer's `startIndex`. If `source` contains as many elements
+  /// as the buffer slice can hold, the returned index is equal to
+  /// to the slice's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
   ///
   /// - Parameter source: A collection of elements to be used to
-  ///   initialize the buffer's storage.
-  /// - Returns: An index to the next uninitialized element in the buffer,
-  ///   or `endIndex`.
+  ///     initialize the buffer's storage.
+  /// - Returns: An index to the next uninitialized element in the
+  ///     buffer slice, or `endIndex`.
   public func initialize<C>(
     fromContentsOf source: C
   ) -> Index
@@ -841,15 +927,24 @@ extension Slice {
   ) -> (unwritten: S.Iterator, index: Index)
     where S: Sequence, Base == UnsafeMutableBufferPointer<S.Element>
 
-  /// Updates the buffer slice's initialized memory with the given elements.
+  /// Updates the buffer slice's initialized memory with every element of the source.
   ///
-  /// The buffer slice's memory must be initialized or the buffer's `Element` type
-  /// must be a trivial type.
+  /// Prior to calling the `update(fromContentsOf:)` method on a buffer
+  /// slice, the first `source.count` elements of the referenced memory must be
+  /// initialized, or the buffer's `Element` type must be a trivial type.
+  /// The buffer must reference enough initialized memory to accommodate
+  /// `source.count` elements.
+  ///
+  /// The returned index is one past the index of the last element updated.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// slice can hold, the returned index is equal to the slice's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
   ///
   /// - Parameter source: A collection of elements to be used to update
-  ///   the buffer's contents.
-  /// - Returns: An index one past the last updated element in the buffer,
-  ///   or `endIndex`.
+  ///     the buffer's contents.
+  /// - Returns: An index one past the index of the last element updated.
   public func update<C>(
     fromContentsOf source: C
   ) -> Index
@@ -859,17 +954,28 @@ extension Slice {
   /// uninitialized memory referenced by this buffer slice, leaving the
   /// source memory uninitialized and this buffer slice's memory initialized.
   ///
-  /// The region of memory starting at the beginning of this buffer and
-  /// covering `source.count` instances of its `Element` type must be
-  /// uninitialized, or `Element` must be a trivial type. After calling
-  /// `moveInitialize(fromContentsOf:)`, the region is initialized and
-  /// the region of memory underlying `source` is uninitialized.
+  /// Prior to calling the `moveInitialize(fromContentsOf:)` method on a
+  /// buffer slice, the memory it references must be uninitialized,
+  /// or its `Element` type must be a trivial type. After the call,
+  /// the memory referenced by the buffer slice up to, but not including,
+  /// the returned index is initialized. The memory referenced by
+  /// `source` is uninitialized after the function returns.
+  /// The buffer slice must reference enough memory to accommodate
+  /// `source.count` elements.
   ///
-  /// - Parameter source: A buffer containing the values to copy. The memory
-  ///   region underlying `source` must be initialized. The memory regions
-  ///   referenced by `source` and this buffer may overlap.
+  /// The returned index is the position of the next uninitialized element
+  /// in the buffer slice, one past the index of the last element written.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// slice's `startIndex`. If `source` contains as many elements as the slice
+  /// can hold, the returned index is equal to the slice's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
+  ///
+  /// - Parameter source: A buffer containing the values to copy.
+  ///     The memory region underlying `source` must be initialized. The memory
+  ///     regions referenced by `source` and this buffer may overlap.
   /// - Returns: An index to the next uninitialized element in the buffer,
-  ///   or `endIndex`.
+  ///     or `endIndex`.
   public func moveInitialize<Element>(
     fromContentsOf source: UnsafeMutableBufferPointer<Element>
   ) -> Index
@@ -879,17 +985,28 @@ extension Slice {
   /// uninitialized memory referenced by this buffer slice, leaving the
   /// source memory uninitialized and this buffer slice's memory initialized.
   ///
-  /// The region of memory starting at the beginning of this buffer slice and
-  /// covering `source.count` instances of its `Element` type must be
-  /// uninitialized, or `Element` must be a trivial type. After calling
-  /// `moveInitialize(fromContentsOf:)`, the region is initialized and
-  /// the region of memory underlying `source` is uninitialized.
+  /// Prior to calling the `moveInitialize(fromContentsOf:)` method on a
+  /// buffer slice, the memory it references must be uninitialized,
+  /// or its `Element` type must be a trivial type. After the call,
+  /// the memory referenced by the buffer slice up to, but not including,
+  /// the returned index is initialized. The memory referenced by
+  /// `source` is uninitialized after the function returns.
+  /// The buffer slice must reference enough memory to accommodate
+  /// `source.count` elements.
   ///
-  /// - Parameter source: A buffer containing the values to copy. The memory
-  ///   region underlying `source` must be initialized. The memory regions
-  ///   referenced by `source` and this buffer may overlap.
-  /// - Returns: An index one past the last replaced element in the buffer,
-  ///   or `endIndex`.
+  /// The returned index is the position of the next uninitialized element
+  /// in the buffer slice, one past the index of the last element written.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// slice's `startIndex`. If `source` contains as many elements as the slice
+  /// can hold, the returned index is equal to the slice's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
+  ///
+  /// - Parameter source: A buffer slice containing the values to copy.
+  ///     The memory region underlying `source` must be initialized. The memory
+  ///     regions referenced by `source` and this buffer slice may overlap.
+  /// - Returns: An index to the next uninitialized element in the buffer,
+  ///     or `endIndex`.
   public func moveInitialize<Element>(
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<Element>>
   ) -> Index
@@ -905,11 +1022,17 @@ extension Slice {
   /// `moveUpdate(fromContentsOf:)`,
   /// the region of memory underlying `source` is uninitialized.
   ///
+  /// The returned index is one past the index of the last element updated.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// slice can hold, the returned index is equal to the slice's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
+  ///
   /// - Parameter source: A buffer containing the values to move.
-  ///   The memory region underlying `source` must be initialized. The
-  ///   memory regions referenced by `source` and this pointer must not overlap.
-  /// - Returns: An index one past the last updated element in the buffer,
-  ///   or `endIndex`.
+  ///     The memory region underlying `source` must be initialized. The memory
+  ///     regions referenced by `source` and this buffer slice must not overlap.
+  /// - Returns: An index one past the index of the last element updated.
   public func moveUpdate<Element>(
     fromContentsOf source: UnsafeMutableBufferPointer<Element>
   ) -> Index
@@ -925,11 +1048,17 @@ extension Slice {
   /// `moveUpdate(fromContentsOf:)`,
   /// the region of memory underlying `source` is uninitialized.
   ///
-  /// - Parameter source: A buffer containing the values to move.
-  ///   The memory region underlying `source` must be initialized. The
-  ///   memory regions referenced by `source` and this pointer must not overlap.
-  /// - Returns: An index one past the last updated element in the buffer,
-  ///   or `endIndex`.
+  /// The returned index is one past the index of the last element updated.
+  /// If `source` contains no elements, the returned index is equal to the
+  /// buffer's `startIndex`. If `source` contains as many elements as the buffer
+  /// slice can hold, the returned index is equal to the slice's `endIndex`.
+  ///
+  /// - Precondition: `self.count` >= `source.count`
+  ///
+  /// - Parameter source: A buffer slice containing the values to move.
+  ///     The memory region underlying `source` must be initialized. The memory
+  ///     regions referenced by `source` and this buffer slice must not overlap.
+  /// - Returns: An index one past the index of the last element updated.
   public func moveUpdate<Element>(
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<Element>>
   ) -> Index
@@ -1305,81 +1434,94 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
     as type: S.Element.Type, from source: S
   ) -> (unwritten: S.Iterator, initialized: UnsafeMutableBufferPointer<S.Element>)
 
-  /// Initializes the buffer's memory with the given elements, binding the
-  /// initialized memory to the elements' type.
+ /// Initializes the buffer slice's memory with every element of the source,
+  /// binding the initialized memory to the elements' type.
   ///
-  /// When calling the `initializeMemory(as:fromContentsOf:)` method on a buffer
-  /// `b`, the memory referenced by `b` must be uninitialized, or initialized
-  /// to a trivial type. `b` must be properly aligned for accessing `C.Element`.
+  /// When calling the `initializeMemory(as:fromContentsOf:)` method,
+  /// the memory referenced by the buffer slice must be uninitialized,
+  /// or initialized to a trivial type. The buffer slice must reference
+  /// enough memory to store `source.count` elements, and it
+  /// must be properly aligned for accessing `C.Element`.
   ///
   /// This method initializes the buffer with the contents of `source`
-  /// until `source` is exhausted or the buffer runs out of available
-  /// space. After calling `initializeMemory(as:fromContentsOf:)`, the memory
+  /// until `source` is exhausted.
+  /// After calling `initializeMemory(as:fromContentsOf:)`, the memory
   /// referenced by the returned `UnsafeMutableBufferPointer` instance is bound
-  /// and initialized to type `C.Element`. This method does not change
-  /// the binding state of the unused portion of `b`, if any.
+  /// to the type `C.Element` and is initialized. This method does not change
+  /// the binding state of the unused portion of the buffer, if any.
   ///
   /// - Parameters:
   ///   - type: The type of element to which this buffer's memory will be bound.
   ///   - source: A collection of elements to be used to
   ///     initialize the buffer's storage.
-  /// - Returns: A typed buffer of the initialized elements. The returned
-  ///   buffer references memory starting at the same base address as this
-  ///   buffer, and its count indicates the number of elements copied from
-  ///   the collection `elements`.
-  func initializeMemory<C: Collection>(
+  /// - Returns: A typed buffer referencing the initialized elements.
+  ///     The returned buffer references memory starting at the same
+  ///     base address as this slice, and its count is equal to `source.count`
+  public func initializeMemory<C: Collection>(
     as type: C.Element.Type,
     fromContentsOf source: C
   ) -> UnsafeMutableBufferPointer<C.Element>
 
-  /// Moves instances from an initialized source buffer into the
-  /// uninitialized memory referenced by this buffer, leaving the source memory
-  /// uninitialized and this buffer's memory initialized.
+  /// Moves every element of an initialized source buffer into the
+  /// uninitialized memory referenced by this buffer slice, leaving
+  /// the source memory uninitialized and this slice's memory initialized.
   ///
-  /// When calling the `moveInitializeMemory(as:fromContentsOf:)` method on a buffer `b`,
-  /// the memory referenced by `b` must be uninitialized, or initialized to a
-  /// trivial type. `b` must be properly aligned for accessing `C.Element`.
-  ///
-  /// The region of memory starting at this pointer and covering
-  /// `source.count` instances of the buffer's `Element` type
-  /// must be uninitialized, or `Element` must be a trivial type. After
-  /// calling `moveInitialize(as:from:)`, the region is initialized and the
+  /// When calling the `moveInitializeMemory(as:fromContentsOf:)` method,
+  /// the memory referenced by the buffer slice must be uninitialized,
+  /// or initialized to a trivial type. The buffer slice must reference
+  /// enough memory to store `source.count` elements, and it must be properly
+  /// aligned for accessing `C.Element`. After the method returns,
+  /// the memory referenced by the returned buffer is initialized and the
   /// memory region underlying `source` is uninitialized.
+  ///
+  /// This method initializes the buffer slice with the contents of `source`
+  /// until `source` is exhausted.
+  /// After calling `initializeMemory(as:fromContentsOf:)`, the memory
+  /// referenced by the returned `UnsafeMutableBufferPointer` instance is bound
+  /// to the type `C.Element` and is initialized. This method does not change
+  /// the binding state of the unused portion of the buffer slice, if any.
   ///
   /// - Parameters:
   ///   - type: The type of element to which this buffer's memory will be bound.
-  ///   - source: A buffer containing the values to copy.
+  ///   - source: A buffer referencing the values to copy.
   ///     The memory region underlying `source` must be initialized.
-  ///     The memory regions referenced by `source` and this buffer may overlap.
-  /// - Returns: A typed buffer of the initialized elements. The returned
-  ///   buffer references memory starting at the same base address as this
-  ///   buffer, and its count indicates the number of elements copied from
-  ///   `source`.
-  func moveInitializeMemory<T>(
+  ///     The memory regions referenced by `source` and this slice may overlap.
+  /// - Returns: A typed buffer referencing the initialized elements.
+  ///     The returned buffer references memory starting at the same
+  ///     base address as this slice, and its count is equal to `source.count`.
+  public func moveInitializeMemory<T>(
     as type: T.Type,
     fromContentsOf source: UnsafeMutableBufferPointer<T>
   ) -> UnsafeMutableBufferPointer<T>
 
-  /// Moves instances from an initialized source buffer slice into the
-  /// uninitialized memory referenced by this buffer, leaving the source memory
-  /// uninitialized and this buffer's memory initialized.
+  /// Moves every element from an initialized source buffer slice into the
+  /// uninitialized memory referenced by this buffer slice, leaving
+  /// the source memory uninitialized and this slice's memory initialized.
   ///
-  /// The region of memory starting at this pointer and covering
-  /// `source.count` instances of the buffer's `Element` type
-  /// must be uninitialized, or `Element` must be a trivial type. After
-  /// calling `moveInitialize(as:from:)`, the region is initialized and the
-  /// memory region underlying `source[..<source.endIndex]` is uninitialized.
+  /// When calling the `moveInitializeMemory(as:fromContentsOf:)` method,
+  /// the memory referenced by the buffer slice must be uninitialized,
+  /// or initialized to a trivial type. The buffer slice must reference
+  /// enough memory to store `source.count` elements, and it must be properly
+  /// aligned for accessing `C.Element`. After the method returns,
+  /// the memory referenced by the returned buffer is initialized and the
+  /// memory region underlying `source` is uninitialized.
+  ///
+  /// This method initializes the buffer slice with the contents of `source`
+  /// until `source` is exhausted.
+  /// After calling `initializeMemory(as:fromContentsOf:)`, the memory
+  /// referenced by the returned `UnsafeMutableBufferPointer` instance is bound
+  /// to the type of `T` and is initialized. This method does not change
+  /// the binding state of the unused portion of the buffer slice, if any.
   ///
   /// - Parameters:
   ///   - type: The type of element to which this buffer's memory will be bound.
-  ///   - source: A buffer containing the values to copy.
+  ///   - source: A buffer referencing the values to copy.
   ///     The memory region underlying `source` must be initialized.
   ///     The memory regions referenced by `source` and this buffer may overlap.
-  /// - Returns: A typed buffer of the initialized elements. The returned
-  ///   buffer references memory starting at the same base address as this
-  ///   buffer, and its count indicates the number of elements copied from
-  ///   `source`.
-  func moveInitializeMemory<T>(
+  /// - Returns: A typed buffer referencing the initialized elements.
+  ///     The returned buffer references memory starting at the same
+  ///     base address as this slice, and its count is equal to `source.count`.
+  public func moveInitializeMemory<T>(
     as type: T.Type,
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<T>>
   ) -> UnsafeMutableBufferPointer<T>
