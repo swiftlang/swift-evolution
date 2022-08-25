@@ -15,9 +15,8 @@
 | ---------- | ------------------------------------------------- |
 | 2022-01-10 | Initial pitch.                                    |
 | 2022-02-01 | Updated with an "ABI-neutral" abstraction.        |
-| 2022-03-03 | Implemented the `SIMDWordsInteger` prototype.     |
 | 2022-04-23 | Updated with an "infinitely-sign-extended" model. |
-| 2022-08-08 | Updated with a "non-generic" subscript.           |
+| 2022-08-18 | Updated with a "non-generic" subscript.           |
 
 </details>
 
