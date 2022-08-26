@@ -88,7 +88,7 @@ declarations.  They can appear in the same places as the `inout` modifier, and
 are mutually exclusive with each other and with `inout`. In a `func`,
 `subscript`, or `init` declaration, they appear as follows:
 
-```
+```swift
 func foo(_: borrow Foo)
 func foo(_: take Foo)
 func foo(_: inout Foo)
@@ -96,7 +96,7 @@ func foo(_: inout Foo)
 
 In a closure:
 
-```
+```swift
 bar { (a: borrow Foo) in a.foo() }
 bar { (a: take Foo) in a.foo() }
 bar { (a: inout Foo) in a.foo() }
@@ -104,27 +104,38 @@ bar { (a: inout Foo) in a.foo() }
 
 In a function type:
 
-```
+```swift
 let f: (borrow Foo) -> Void = { a in a.foo() }
 let f: (take Foo) -> Void = { a in a.foo() }
 let f: (inout Foo) -> Void = { a in a.foo() }
 ```
 
-TODO: How to apply these modifiers to `self`, the `newValue` of accessors, ...
+Methods can using the `taking` or `borrowing` modifier to indicate that they
+take ownership of their `self` parameter, or they borrow it. These modifiers
+are mutually exclusive with each other and with the existing `mutating` modifier:
+
+```swift
+struct Foo {
+  taking func foo() // `take` ownership of self
+  borrowing func foo() // `borrow` self
+  mutating func foo() // modify self with `inout` semantics
+}
+```
 
 `take` or `borrow` on a parameter do not affect the caller-side syntax for
-passing an argument to the affected declaration. For typical Swift code,
-adding, removing, or changing these modifiers does not have any source-breaking
-effects.  (See "related directions" below for interactions with other language
-features being considered currently or in the near future which might interact
-with these modifiers in ways that cause them to break source.)
+passing an argument to the affected declaration, nor do `taking` or
+`borrowing` affect the application of `self` in a method call. For typical
+Swift code, adding, removing, or changing these modifiers does not have any
+source-breaking effects.  (See "related directions" below for interactions with
+other language features being considered currently or in the near future which
+might interact with these modifiers in ways that cause them to break source.)
 
 Protocol requirements can also use `take` and `borrow`, and the modifiers will
 affect the convention used by the generic interface to call the requirement.
 The requirement may still be satisfied by an implementation that uses different
 conventions for parameters of copyable types:
 
-```
+```swift
 protocol P {
   func foo(x: take Foo, y: borrow Foo)
 }
@@ -148,7 +159,7 @@ Function values can also be implicitly converted to function types that change
 the convention of parameters of copyable types among unspecified, `borrow`,
 or `take`:
 
-```
+```swift
 let f = { (a: Foo) in print(a) }
 
 let g: (borrow Foo) -> Void = f
@@ -191,6 +202,61 @@ changing these annotations to an API should not affect its existing clients.
 
 ## Alternatives considered
 
+### Making `take` parameter bindings mutable inside the callee
+
+It is likely to be common for functions that `take` ownership of their
+parameters to want to modify the value of the parameter they received. Taking
+ownership of a COW value type allows for a caller with the only reference to
+a COW buffer to transfer ownership of that unique reference, and the callee
+can then take advantage of that ownership to do in-place mutation of the
+parameter, allowing for efficiency while still presenting a "pure" functional
+interface externally:
+
+```swift
+extension String {
+  // Append `self` to another String, using in-place modification if
+  // possible
+  taking func plus(_ other: String) -> String {
+    // Transfer ownership of the `self` parameter to a mutable variable
+    var myself = take self
+    // Modify it in-place, taking advantage of uniqueness if possible
+    myself += other
+    return myself
+  }
+}
+
+// This is amortized O(n) instead of O(n^2)!
+let helloWorld = "hello ".plus("cruel ").plus("world")
+```
+
+If this is common enough, we could consider making it so that the parameter
+binding inside a function body for a `take` parameter, or for the `self`
+parameter of a `taking func`, is mutable out of the gate, removing the need
+to reassign it to a local `var`:
+
+```swift
+extension String {
+  // Append `self` to another String, using in-place modification if
+  // possible
+  taking func plus(_ other: String) -> String {
+    // Modify it in-place, taking advantage of uniqueness if possible
+    self += other
+    return self
+  }
+}
+```
+
+This does make changing a `take` parameter to `borrow`, or removing the
+`take` annotation from a parameter, potentially source-breaking, but in a
+purely localized way, since the parameter binding inside the function would
+only become immutable again. There is also still the potential for confusion
+from users who mutate parameters within the function and expect those mutations
+to persist in the caller, which is part of why we removed the ability to declare
+a parameter `var` from early versions of Swift. This might be less of a concern
+when using `take` with move-only types, since without the ability for the caller
+to copy its argument, there's no way for the caller to see the argument after
+the callee takes it and modifies it.
+
 ### Naming
 
 We have considered alternative naming schemes for these modifiers:
@@ -203,7 +269,9 @@ We have considered alternative naming schemes for these modifiers:
   found that the "shared" versus "exclusive" language for discussing borrows,
   while technically correct, is unnecessarily confusing for explaining the
   model.
-- A previous pitch used the names `nonconsuming` and `consuming`.
+- A previous pitch used the names `nonconsuming` and `consuming`. The current
+  implementation also uses `__consuming func` to notate a method that takes
+  ownership of its `self` parameter.
 
 The names `take` and `borrow` arose during [the first review of
 SE-0366](https://forums.swift.org/t/se-0366-move-function-use-after-move-diagnostic/59202).
@@ -237,27 +305,6 @@ implicitly copyable values), and that explicit operators on the call site
 can be used in the important, but relatively rare, cases where the default
 optimizer behavior is insufficient to get optimal code.
 
-### Applying `borrow` and `take` modifiers to the `self` parameter of methods
-
-This proposal does not yet specify how to control the calling convention of
-the `self` parameter for methods. As currently implemented, the `__consuming`
-modifier can be applied to the method declaration to make `self` be taken,
-similar to how the `mutating` method modifier makes `self` be `inout`. We could
-continue that scheme with new function-level modifiers:
-
-```
-struct Foo {
-  mutating func mutate() // self is inout
-  taking func take() // self is take
-  borrowing func borrow() // self is borrow
-}
-```
-
-Alternatively, we could explore schemes to [allow the `self` parameter to be
-declared explicitly](https://forums.swift.org/t/optional-explicit-self-parameter-declaration-in-methods/59522), which would allow for the `take` and `borrow`
-modifiers as proposed for other parameters to also be applied to an explicit
-`self` parameter declaration.
-
 ## Related directions
 
 ### `take` operator
@@ -271,7 +318,7 @@ last use, without depending on optimization and vague ARC optimizer rules.
 When the lifetime of the variable ends in an argument to a `take` parameter,
 then we can transfer ownership to the callee without any copies:
 
-```
+```swift
 func consume(x: take Foo)
 
 func produce() {
@@ -293,7 +340,7 @@ instead of passing a copy, then the mutation of `global` inside of `useFoo`
 would trigger a dynamic exclusivity failure (or UB if exclusivity checks
 are disabled):
 
-```
+```swift
 var global = Foo()
 
 func useFoo(x: borrow Foo) {
@@ -325,7 +372,7 @@ not attempt to modify the same object or global variable during a call,
 and want to suppress this copy. An explicit `borrow` operator could allow for
 this:
 
-```
+```swift
 var global = Foo()
 
 func useFooWithoutTouchingGlobal(x: borrow Foo) {
@@ -354,7 +401,7 @@ take a value destroy it and prevent its continued use. This makes the
 convention used for move-only parameters a much more important part of their
 API contract:
 
-```
+```swift
 moveonly struct FileHandle { ... }
 
 // Operations that open a file handle return new FileHandle values
