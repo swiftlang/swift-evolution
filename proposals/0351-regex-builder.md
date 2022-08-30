@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Implementation: [apple/swift-experimental-string-processing](https://github.com/apple/swift-experimental-string-processing/tree/main/Sources/RegexBuilder)
   * Available in nightly toolchain snapshots with `import _StringProcessing`
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Review: ([pitch](https://forums.swift.org/t/pitch-regex-builder-dsl/56007))
    ([first review](https://forums.swift.org/t/se-0351-regex-builder-dsl/56531))
        ([revision](https://forums.swift.org/t/returned-for-revision-se-0351-regex-builder-dsl/57224))
