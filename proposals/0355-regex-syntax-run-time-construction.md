@@ -3,7 +3,7 @@
 * Proposal: [SE-0355](0355-regex-syntax-run-time-construction.md)
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
   * Available in nightly toolchain snapshots with `import _StringProcessing`
 * Review: ([first pitch](https://forums.swift.org/t/pitch-regex-syntax/55711))
