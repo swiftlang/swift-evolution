@@ -3,7 +3,7 @@
 * Proposal: [SE-0350](0350-regex-type-overview.md)
 * Authors: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.7)**
 * Implementation: https://github.com/apple/swift-experimental-string-processing
   * Available in nightly toolchain snapshots with `import _StringProcessing`
 
