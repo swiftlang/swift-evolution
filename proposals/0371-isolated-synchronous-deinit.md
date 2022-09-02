@@ -3,9 +3,9 @@
 * Proposal: [SE-0371](0371-isolated-synchronous-deinit.md)
 * Author: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
 * Review Manager: [Frederick Kellison-Linn](https://github.com/jumhyn)
-* Status: **Active review(August 18...August 31, 2022)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#60057](https://github.com/apple/swift/pull/60057)
-* Review: ([pitch](https://forums.swift.org/t/isolated-synchronous-deinit/58177)) ([review](https://forums.swift.org/t/se-0371-isolated-synchronous-deinit/59754))
+* Review: ([pitch](https://forums.swift.org/t/isolated-synchronous-deinit/58177)) ([review](https://forums.swift.org/t/se-0371-isolated-synchronous-deinit/59754)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0371-isolated-synchronous-deinit/60060))
 
 ## Introduction
 
