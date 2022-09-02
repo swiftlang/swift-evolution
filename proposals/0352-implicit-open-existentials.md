@@ -122,7 +122,7 @@ func checkFinaleReadinessMember(costumes: [any Costume]) -> Bool {
 
 In that sense, implicitly opening existentials for calls to generic functions is a generalization of this existing behavior to all generic parameters. It isn't strictly more expressive: as the `hasBellsMember` example shows, one *can* always write a member in a protocol extension to get this opening behavior. This proposal aims to make implicit opening of existentials more uniform and more ergonomic, by making it more general.
 
-Let's consider one last implementation of our "readiness" check, where want to "open code" the check for bells without putting the logic into a separatae generic function `hasBells`:
+Let's consider one last implementation of our "readiness" check, where want to "open code" the check for bells without putting the logic into a separate generic function `hasBells`:
 
 ```swift
 func checkFinaleReadinessOpenCoded(costumes: [any Costume]) -> Bool {
