@@ -88,12 +88,12 @@ Calculating the offset between the start of the data structure to the field of t
 We propose to add a function to help perform this operation on raw pointer types:
 ```swift
 extension UnsafeRawPointer {
-  public func alignedUp<T>(for: T.type) -> Self
+  public func alignedUp<T>(for: T.Type) -> Self
 }
 ```
 
 This function will round the current pointer up to the next address properly aligned to access an instance of `T`.
-When applied to a `self` already aligned for `T`, `UnsafeRawPointer.aligned(for:)` will return `self`.
+When applied to a `self` already aligned for `T`, `UnsafeRawPointer.alignedUp(for:)` will return `self`.
 
 The new function would make identifying the storage location of `T` much more straightforward than in the example above:
 ```swift
