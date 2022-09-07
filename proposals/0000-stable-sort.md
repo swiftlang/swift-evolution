@@ -39,11 +39,11 @@ For users who are unaware that many sorting algorithms aren't stable, an unstabl
 
 Sort stability isn't always observable. When a collection is sorted based on the elements' `Comparable` conformance, like sorting an array of integers, "unordered" elements are typically indistinguishable. In general, sort stability is important when elements are sorted based on a subset of their properties.
 
-The standard library `sort()` has long been stable, but the documentation explicitly [doesn't make this guarantee](https://developer.apple.com/documentation/swift/array/sorted()):
+The standard library `sort()` has long been stable, but the documentation explicitly [doesn't make this guarantee](https://github.com/apple/swift/blob/release/5.7/stdlib/public/core/Sort.swift#L40-L41):
 
 > The sorting algorithm is not guaranteed to be stable. A stable sort preserves the relative order of elements that compare as equal.
 
-This status quo is a problem — developers who are aware of what stability is and cannot rely on the current behavior, and developers who are unaware of stability could be surprised by unexpected bugs if the stability were to disappear. Guaranteeing stability would resolve both of these issues.
+This status quo is a problem — developers who are aware of what stability is cannot rely on the current behavior, and developers who are unaware of stability could be surprised by unexpected bugs if stability were to disappear. Guaranteeing stability would resolve both of these issues.
 
 ## Proposed solution
 
@@ -73,6 +73,6 @@ Making this guarantee explicit requires that any changes to the sort algorithm m
 
 Discussing the *stability* of the current sort naturally brings up the question of providing an alternative sort that is *unstable*. An unstable sort by itself, however, doesn't provide any specific benefit to users — no one is asking for a sort that mixes up equivalent elements! Instead, users could be interested in sort algorithms that have other characteristics, such as using only an array's existing allocation, that are much faster to implement without guaranteeing stability. If and when proposals for those sort algorithms are introduced, the lack of stability can be addressed through documentation and/or API naming, and having the default sort be stable is still valuable for the reasons listed above.
 
-### Other sorting-related changes
+## Future directions
 
-There are also a variety of other sorting-related improvements that could be interesting to pursue, including key-path or function-based sorting, sorted collection types or protocols, sort descriptors, and more. These ideas can be explored in future pitches and proposals.
+There are a variety of other sorting-related improvements that could be interesting to pursue, including key-path or function-based sorting, sorted collection types or protocols, sort descriptors, and more. These ideas can be explored in future pitches and proposals.
