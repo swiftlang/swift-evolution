@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active review (September 7, 2022...September 20, 2022)**
 * Implementation: [apple/swift PR #60936](https://github.com/apple/swift/pull/60936)
-* Review: ([pitch](https://forums.swift.org/t/pitch-document-sorting-as-stable/59880))
+* Review: ([pitch](https://forums.swift.org/t/pitch-document-sorting-as-stable/59880)) ([review](https://forums.swift.org/t/se-0372-document-sorting-as-stable/60165))
 
 ## Introduction
 
