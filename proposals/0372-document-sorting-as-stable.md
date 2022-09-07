@@ -1,16 +1,15 @@
 # Document Sorting as Stable
 
-* Proposal: [SE-NNNN](0000-stable-sort.md)
+* Proposal: [SE-0372](0372-document-sorting-as-stable.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active review (September 7, 2022...September 20, 2022)**
 * Implementation: [apple/swift PR #60936](https://github.com/apple/swift/pull/60936)
+* Review: ([pitch](https://forums.swift.org/t/pitch-document-sorting-as-stable/59880))
 
 ## Introduction
 
 Swift's sorting algorithm was changed to be stable before Swift 5, but we've never updated the documentation to provide that guarantee. Let's commit to the sorting algorithm being stable so that people can rely on that behavior.
-
-Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-document-sorting-as-stable/59880)
 
 ## Motivation
 
