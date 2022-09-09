@@ -824,13 +824,13 @@ function _applyFilter (matchingProposals) {
  *
  * Syntax (a query string within a fragment):
  *   fragment --> `#?` parameter-value-list
- *   parameter-value-list --> parameter-value | parameter-value-pair `&` parameter-value-list
+ *   parameter-value-list --> parameter-value-pair | parameter-value-pair `&` parameter-value-list
  *   parameter-value-pair --> parameter `=` value
  *   parameter --> `proposal` | `status` | `version` | `search`
  *   value --> ** Any URL-encoded text. **
  *
  * For example:
- *   /#?proposal:SE-0180,SE-0123
+ *   /#?proposal=SE-0180,SE-0123
  *   /#?status=rejected&version=3&search=access
  *
  * Four types of parameters are supported:
@@ -859,6 +859,17 @@ function _applyFragment (fragment) {
         value = decodeURIComponent(value)
       } else {
         value = value.split(',')
+      }
+
+      if (action === 'proposal') {
+        value = value.flatMap(function (id) {
+          // filter out invalid identifiers.
+          const output = id.match(/^SE-([0-9]{1,4})$/i)
+          if (!output) return []
+
+          // insert missing leading zeros, e.g., 'SE-2' → 'SE-0002'.
+          return 'SE-' + output[1].padStart(4, '0')
+        })
       }
 
       actions[action] = value
