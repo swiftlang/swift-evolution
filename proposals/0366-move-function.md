@@ -54,27 +54,38 @@ func test() {
   // preserve that property.
   x.append(5)
   
-  // We create a new variable y so we can write an algorithm where we may
-  // change the value of y (causing a COW copy of the buffer shared with x).
-  var y = x
-  longAlgorithmUsing(&y)
-  consumeFinalY(y)
+  // Pass the current value of x off to another function, that could take
+  // advantage of its uniqueness to efficiently mutate it further.
+  doStuffUniquely(with: x)
 
-  // We no longer use y after this point. Ideally, x would be guaranteed
-  // unique so we know we can append again without copying.
-  x.append(7)
+  // Reset x to a new value. Since we don't use the old value anymore,
+  // it could've been uniquely referenced by the callee.
+  x = []
+  doMoreStuff(with: &x)
+}
+
+func doStuffUniquely(with value: [Int]) {
+  // If we received the last remaining reference to `value`, we'd like
+  // to be able to efficiently update it without incurring more copies.
+  var newValue = value
+  newValue.append(42)
+
+  process(newValue)
 }
 ```
 
-In the example above, `y`'s formal lifetime extends to the end of
-scope. When we go back to using `x`, although the compiler may optimize
-the actual lifetime of `y` to release it after its last use, there isn't
-a strong guarantee that it will. Even if the optimizer does what we want,
-programmers modifying this code in the future
-may introduce new references to `y` that inadvertently extend its lifetime
-and break our attempt to keep `x` unique. There isn't any indication in the
-source code that that the end of `y`'s use is important to the performance
-characteristics of the code.
+In the example above, a value is built up in the variable `x` and then
+handed off to `doStuffUniquely(with:)`, which makes further modifications to
+the value it receives. `x` is then set to a new value. It should be possible for
+the caller to **forward ownership** of the value of `x` to `doStuffUniquely`,
+since it no longer uses the value as is, to avoid unnecessary retains or
+releases of the array buffer and unnecessary copy-on-writes of the array
+contents. `doStuffUniquely` should in turn be able to move its parameter into
+a local mutable variable and modify the unique buffer in place. The compiler
+could make these optimizations automatically, but a number of analyses have to
+align to get the optimal result. The programmer may want to guarantee that this
+series of optimizations occurs, and receive diagnostics if they wrote the code
+in a way that would interfere with these optimizations being possible.
 
 Swift-evolution pitch threads:
 
@@ -84,13 +95,14 @@ Swift-evolution pitch threads:
 ## Proposed solution: `take` operator
 
 That is where the `take` operator comes into play. `take` consumes
-a **binding with static lifetime**, which is either
+the current value of a **binding with static lifetime**, which is either
 an unescaped local `let`, unescaped local `var`, or function parameter, with
 no property wrappers or get/set/read/modify/etc. accessors applied. It then
- provides a compiler guarantee that the binding will
+ provides a compiler guarantee that the current value will
 be unable to be used again locally. If such a use occurs, the compiler will
 emit an error diagnostic. We can modify the previous example to use `take` to
-explicitly end the lifetime of `y` when we're done with it:
+explicitly end the lifetime of `x`'s current value when we pass it off to
+`doStuffUniquely(with:)`:
 
 ```swift
 func test() {
@@ -100,55 +112,81 @@ func test() {
   // preserve that property.
   x.append(5)
   
-  // We create a new variable y so we can write an algorithm where we may
-  // change the value of y (causing a COW copy of the buffer shared with x).
-  var y = x
-  longAlgorithmUsing(&y)
-  // We no longer use y after this point, so tell the final use to take
-  // ownership of its value.
-  consumeFinalY(take y)
+  // Pass the current value of x off to another function, that
+  doStuffUniquely(with: take x)
 
-  // x will be unique again here.
-  x.append(7)
+  // Reset x to a new value. Since we don't use the old value anymore,
+  x = []
+  doMoreStuff(with: &x)
 }
 ```
 
-This addresses both of the motivating issues above: `take` guarantees the
-lifetime of `y` ends at the given point, allowing the compiler to generate
-code to clean up or transfer ownership of `y` without relying on optimization.
-Furthermore, if a future maintainer modifies the code in a way that extends
-the lifetime of `y` past the expected point, then the compiler will raise an
+The `take x` operator syntax deliberately mirrors the
+proposed [ownership modifier](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)
+parameter syntax, `(x: take T)`, because the caller-side behavior of `take`
+operator is analogous to a callee’s behavior receiving a `take` parameter.
+`doStuffUniquely(with:)` can use the `take` operator, combined with
+the `take` parameter modifier, to preserve the uniqueness of the parameter
+as it moves it into its own local variable for mutation:
+
+```swift
+func doStuffUniquely(with value: take [Int]) {
+  // If we received the last remaining reference to `value`, we'd like
+  // to be able to efficiently update it without incurring more copies.
+  var newValue = take value
+  newValue.append(42)
+
+  process(newValue)
+}
+```
+
+This takes the guesswork out of the optimizations discussed above: in the
+`test` function, the final value of `x` before reassignment is explicitly
+handed off to `doStuffUniquely(with:)`, ensuring that the callee receives
+unique ownership of the value at that time, and that the caller can't
+use the old value again. Inside `doStuffUniquely(with:)`, the lifetime of the
+immutable `value` parameter is ended to initialize the local variable `newValue`,
+ensuring that the assignment doesn't cause a copy.
+Furthermore, if a future maintainer modifies the code in a way that breaks
+this transfer of ownership chain, then the compiler will raise an
 error. For instance, if a maintainer later introduces an additional use of
-`y` after it was taken, it will raise an error:
+`x` after it's taken, but before it's reassigned, they will see an error:
 
 ```swift
 func test() {
   var x: [Int] = getArray()
-  
-  // x is appended to. After this point, we know that x is unique. We want to
-  // preserve that property.
   x.append(5)
   
-  // We create a new variable y so we can write an algorithm where we may
-  // change the value of y (causing a COW copy of the buffer shared with x).
-  var y = x
-  longAlgorithmUsing(&y)
-  // We think we no longer use y after this point...
-  consumeFinalY(take y)
+  doStuffUniquely(with: take x)
 
-  // ...and x will be unique again here...
-  x.append(7)
+  // ERROR: x used after being taken from
+  doStuffInvalidly(with: x)
 
-  // ...but this additional use of y snuck in:
-  useYAgain(y) // error: 'y' used after being taken
+  x = []
+  doMoreStuff(with: &x)
 }
 ```
 
-`take` only ends the lifetime of a specific binding.  It is not tied to
-the lifetime of the value of the binding at the time of the take, or to any
-particular object instance. If we declare another local constant `other` with
-the same value of `x`, we can use that other binding after we end the lifetime
-of `x`, as in:
+Likewise, if the maintainer tries to access the original `value` parameter inside
+of `doStuffUniquely` after being taken to initialize `newValue`, they will
+get an error:
+
+```
+func doStuffUniquely(with value: take [Int]) {
+  // If we received the last remaining reference to `value`, we'd like
+  // to be able to efficiently update it without incurring more copies.
+  var newValue = take value
+  newValue.append(42)
+
+  process(newValue)
+}
+```
+
+`take` can also end the lifetime of local immutable `let` bindings, which become
+unavailable after their value is taken since they cannot be reassigned.
+Also note that `take` operates on bindings, not values. If we declare a
+constant `x` and another local constant `other` with the same value,
+we can still use `other` after we take the value from `x`, as in:
 
 ```swift
 func useX(_ x: SomeClassType) -> () {}
@@ -163,7 +201,7 @@ func f() {
 }
 ```
 
-We can take `other` independently of `x`, and get separate diagnostics for both
+We can also take `other` independently of `x`, and get separate diagnostics for both
 variables:
 
 ```swift
@@ -177,39 +215,6 @@ func f() {
   useX(take other)
   useX(other) // error: 'other' used after being taken
   useX(x) // error: 'x' used after being taken
-}
-```
-
-If a local `var` is taken, then a new value can be assigned into
-the variable after the old value has been taken away. One can
-begin using the `var` again after it is reassigned:
-
-```swift
-func f() {
-  var x = getValue()
-  _ = take x
-  useX(x) // error: no value in x
-  x = getValue()
-  useX(x) // ok, x has a new value here
-}
-```
-
-This follows from `take` being applied to the binding (`x`), not the value in the
-binding (the value returned from `getValue()`).
-
-The `take x` operator syntax deliberately mirrors the
-proposed [ownership modifier](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)
-parameter syntax, `(x: take T)`, because the caller-side behavior of the
-operator is analogous to the callee’s behavior receiving the parameter: the
-`take y` operator forces the caller to give up ownership of the value of `x` in
-the caller, and the `take T` parameter will assume ownership of the argument in
-the callee. When a parameter has the `take` modifier, it can also be forwarded
-using the `take` operator in the function body:
-
-```swift
-func f(_ x: take SomeClassType) {
-    _ = take x
-    useX(x) // !! Error! Use of x after it's been taken
 }
 ```
 
