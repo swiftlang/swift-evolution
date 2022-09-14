@@ -28,6 +28,7 @@ consumes a move-only value or not.
 Pitch threads:
 
 - First pitch thread: [https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers](https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers)
+- Second pitch thread: [https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)
 
 ## Motivation
 
@@ -78,7 +79,7 @@ types.
 
 ## Proposed solution
 
-We can give developers direct control over the ownership convention of
+We give developers direct control over the ownership convention of
 parameters by introducing two new parameter modifiers `borrow` and `take`.
 
 ## Detailed design
@@ -122,11 +123,20 @@ struct Foo {
 }
 ```
 
+`take` cannot be applied to parameters of nonescaping closure type, which by
+their nature are always borrowed:
+
+```swift
+// ERROR: cannot `take` a nonescaping closure
+func foo(f: take () -> ()) {
+}
+```
+
 `take` or `borrow` on a parameter do not affect the caller-side syntax for
 passing an argument to the affected declaration, nor do `taking` or
 `borrowing` affect the application of `self` in a method call. For typical
 Swift code, adding, removing, or changing these modifiers does not have any
-source-breaking effects.  (See "related directions" below for interactions with
+source-breaking effects. (See "related directions" below for interactions with
 other language features being considered currently or in the near future which
 might interact with these modifiers in ways that cause them to break source.)
 
@@ -186,13 +196,15 @@ This will change if we introduce features that limit the compiler's ability
 to implicitly copy values, such as move-only types, "no implicit copy" values
 or scopes, and `take` or `borrow` operators in expressions. Changing the
 parameter convention changes where copies may be necessary to perform the call.
-Passing an uncopyable value as a `take` argument ends its lifetime, and that
-value cannot be used again after it's taken.
+Passing an uncopyable value as an argument to a `take` parameter ends its
+lifetime, and that value cannot be used again after it's taken.
 
 ## Effect on ABI stability
 
 `take` or `borrow` affects the ABI-level calling convention and cannot be
-changed without breaking ABI-stable libraries.
+changed without breaking ABI-stable libraries (except on "trivial types"
+for which copying is equivalent to `memcpy` and destroying is a no-op; however,
+`take` or `borrow` also has no practical effect on parameters of trivial type).
 
 ## Effect on API resilience
 
@@ -307,7 +319,16 @@ optimizer behavior is insufficient to get optimal code.
 
 ## Related directions
 
-### `take` operator
+### Caller-side controls on implicit copying
+
+There are a number of caller-side operators we are considering to allow for
+performance-sensitive code to make assertions about call behavior. These
+are closely related to the `take` and `borrow` parameter modifiers and so
+share their names. See also the
+[Selective control of implicit copying behavior](https://forums.swift.org/t/selective-control-of-implicit-copying-behavior-take-borrow-and-copy-operators-noimplicitcopy/60168)
+thread on the Swift forums for deeper discussion of this suite of features
+
+#### `take` operator
 
 Currently under review as
 [SE-0366](https://github.com/apple/swift-evolution/blob/main/proposals/0366-move-function.md),
@@ -328,7 +349,7 @@ func produce() {
 }
 ```
 
-### `borrow` operator
+#### `borrow` operator
 
 Relatedly, there are circumstances where the compiler defaults to copying
 when it is theoretically possible to borrow, particularly when working with
@@ -389,7 +410,7 @@ func callUseFoo() {
 If `useFooWithoutTouchingGlobal` did in fact attempt to mutate `global`
 while the caller is borrowing it, an exclusivity failure would be raised.
 
-### Move-only types, uncopyable values, and related features
+#### Move-only types, uncopyable values, and related features
 
 The `take` versus `borrow` distinction becomes much more important and
 prominent for values that cannot be implicitly copied. We have plans to
@@ -425,6 +446,100 @@ func hackPasswords() throws -> HackedPasswords {
   let moreContents = try read(from: fd) // compiler error: use after take
 
   return hackPasswordData(contents)
+}
+```
+
+### `set`/`out` parameter convention
+
+By making the `borrow` and `take` conventions explicit, we mostly round out
+the set of possibilities for how to handle a parameter. `inout` parameters get
+**exclusive access** to their argument, allowing them to mutate or replace the
+current value without concern for other code. By contrast, `borrow` parameters
+get **shared access** to their argument, allowing multiple pieces of code to
+share the same value without copying, so long as none of them mutate the
+shared value. A `take` parameter consumes a value, leaving nothing behind, but
+there still isn't a parameter analog to the opposite convention, which would
+be to take an uninitialized argument and populate it with a new value. Many
+languages, including C# and Objective-C when used with the "Distributed
+Objects" feature, have `out` parameter conventions for this, and the Val
+programming language calls this `set`.
+
+In Swift up to this point, return values have been the preferred mechanism for
+functions to pass values back to their callers. This proposal does not propose
+to add some kind of `out` parameter, but a future proposal could.
+
+### Destructuring methods
+
+Move-only types would allow for the possibility of value types with custom
+`deinit` logic that runs at the end of a value of the type's lifetime.
+Typically, this logic would run when the final owner of the value is finished
+with it, which means that a function which `take`s an instance, or a
+`taking func` method on the type itself, would run the deinit if it does not
+forward ownership anywhere else:
+
+```
+moveonly struct FileHandle {
+  var fd: Int32
+
+  // close the fd on deinit
+  deinit { close(fd) }
+}
+
+func dumpAndClose(to fh: take FileHandle, contents: Data) {
+  write(fh.fd, contents)
+  // fh implicitly deinit-ed here, closing it
+}
+```
+
+However, this may not always be desirable, either because the function performs
+an operation that invalidates the value some other way, making it unnecessary
+or incorrect for the deinit logic to run on it, or because it wants to be able
+to take ownership of parts away from the value:
+
+```
+extension FileHandle {
+  // Return the file descriptor back to the user for manual management
+  // and disable automatic management with the FileHandle value.
+
+  taking func giveUp() -> Int32 {
+    return fd
+    // How do we stop the deinit from running here?
+  }
+}
+```
+
+Rust has the magic function `mem::forget` to suppress destruction of a value,
+though `forget` in Rust still does not allow for the value to be destructured
+into parts. We could come up with a mechanism in Swift that both suppresses
+implicit deinitialization, and allows for piecewise taking of its components.
+This doesn't require a new parameter convention (since it fits within the
+ABI of a `take T` parameter), but could be spelled as a new `take x`-like operator
+inside of a `taking func`:
+
+```
+extension FileHandle {
+  // Return the file descriptor back to the user for manual management
+  // and disable automatic management with the FileHandle value.
+
+  taking func giveUp() -> Int32 {
+    // `deinit fd` is strawman syntax for consuming a value without running
+    // its initializer. it is only allowed inside of `taking func` methods
+    // on the type
+    return (deinit self).fd
+  }
+}
+
+moveonly struct SocketPair {
+  var input, output: FileHandle
+
+  deinit { /* ... */ }
+
+  // Break the pair up into separately-managed FileHandles
+  taking func split() -> (input: FileHandle, output: FileHandle) {
+    // Break apart the value without running the standard deinit
+    let (input, output) = deinit self
+    return (input, output)
+  }
 }
 ```
 
