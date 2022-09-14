@@ -3,7 +3,7 @@
 * Proposal: [SE-0367](0367-conditional-attributes.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.8)**
 
 * Implementation: [apple/swift#60208](https://github.com/apple/swift/pull/60208)
 * Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-conditional-compilation-for-attributes-and-modifiers/58339)
