@@ -497,6 +497,92 @@ func foo(x: TwoStrings) {
 }
 ```
 
+### Destructuring methods for move-only types with `deinit`
+
+Move-only types would allow for the possibility of value types with custom
+`deinit` logic that runs at the end of a value of the type's lifetime.
+Typically, this logic would run when the final owner of the value is finished
+with it, which means that a function which `take`s an instance, or a
+`taking func` method on the type itself, would run the deinit if it does not
+forward ownership anywhere else:
+
+```
+moveonly struct FileHandle {
+  var fd: Int32
+
+  // close the fd on deinit
+  deinit { close(fd) }
+}
+
+func dumpAndClose(to fh: take FileHandle, contents: Data) {
+  write(fh.fd, contents)
+  // fh implicitly deinit-ed here, closing it
+}
+```
+
+However, this may not always be desirable, either because the function performs
+an operation that invalidates the value some other way, making it unnecessary
+or incorrect for `deinit` to run on it, or because the function wants to be able
+to take ownership of parts away from the value:
+
+```
+extension FileHandle {
+  // Return the file descriptor back to the user for manual management
+  // and disable automatic management with the FileHandle value.
+
+  taking func giveUp() -> Int32 {
+    return fd
+    // How do we stop the deinit from running here?
+  }
+}
+```
+
+Rust has the magic function `mem::forget` to suppress destruction of a value,
+though `forget` in Rust still does not allow for the value to be destructured
+into parts. We could come up with a mechanism in Swift that both suppresses
+implicit deinitialization, and allows for piecewise taking of its components.
+This doesn't require a new parameter convention (since it fits within the
+ABI of a `take T` parameter), but could be spelled as a new operator
+inside of a `taking func`:
+
+```
+extension FileHandle {
+  // Return the file descriptor back to the user for manual management
+  // and disable automatic management with the FileHandle value.
+
+  taking func giveUp() -> Int32 {
+    // `deinit fd` is strawman syntax for consuming a value without running
+    // its deinitializer. it is only allowed inside of `taking func` methods
+    // that have visibility into the type layout.
+    return (deinit self).fd
+  }
+}
+
+moveonly struct SocketPair {
+  var input, output: FileHandle
+
+  deinit { /* ... */ }
+
+  // Break the pair up into separately-managed FileHandles
+  taking func split() -> (input: FileHandle, output: FileHandle) {
+    // Break apart the value without running the standard deinit
+    return ((deinit self).input, (deinit self).output)
+  }
+}
+```
+
+Suppressing the normal deinit logic for a type should be done carefully.
+Although Rust allows `mem::forget` to be used anywhere, and considers it "safe"
+based on the observation that destructors may not always run if a program
+crashes or leaks a value anyway, that observation is less safe in the case
+of values whose lifetime depends on a parent value, and where the child value's
+deinit must be sequenced with operations on the parent. As such, I think
+the ability should be limited to methods defined on the type itself. Also,
+within the constraints of Swift's stable ABI and library evolution model,
+code that imports a module may not always have access to the concrete layout
+of a type, which would make partial destructuring impossible, which further
+limits the contexts in which such an operator can be used.
+
 ### `take` from computed properties, property wrappers, properties with accessors, etc.
 
 It would potentially be useful to be able to `take` from variables
