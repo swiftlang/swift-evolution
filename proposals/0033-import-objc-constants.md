@@ -4,15 +4,15 @@
 * Author: [Jeff Kelley](https://github.com/SlaunchaMan)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/011996.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0033-import-objective-c-constants-as-swift-types/1706)
 
 ## Introduction
 
 Given a list of constants in an Objective-C file, add an attribute that will enable Swift to import them as either an Enum or a Struct, using `RawRepresentable` to convert to their original type. This way, instead of passing strings around for APIs, we can use more type-safe objects and take advantage of Swift’s code completion, as well as making our Swift (and Objective-C!) code more readable and more approachable to beginners.
 
-Swift-evolution thread: [Original E-Mail](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006893.html), [Replies](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/006904.html)
+[Swift-evolution thread](https://forums.swift.org/t/pitch-import-objective-c-constants-as-enums/1114)
 
-[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010625.html)
+[Review](https://forums.swift.org/t/review-import-objective-c-constants-as-swift-types/1486)
 
 ## Motivation
 
@@ -49,7 +49,7 @@ Sometimes, as with `NSError` domains, it’s OK to use your own values when ther
 
 ## Proposed solution
 
-As [suggested by Doug Gregor on swift-evolution](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/006904.html), combining a `typedef` with a new attribute could clean this up while still keeping everything as the original type internally. Here are examples using both structs and enums:
+As [suggested by Doug Gregor on swift-evolution](https://forums.swift.org/t/pitch-import-objective-c-constants-as-enums/1114/2), combining a `typedef` with a new attribute could clean this up while still keeping everything as the original type internally. Here are examples using both structs and enums:
 
 ### Enums
 

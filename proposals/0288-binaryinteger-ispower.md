@@ -3,8 +3,9 @@
 * Proposal: [SE-0288](0288-binaryinteger-ispower.md)
 * Author: [Ding Ye](https://github.com/dingobye)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Previewing**
 * Implementation: [apple/swift#24766](https://github.com/apple/swift/pull/24766)
-* Status: **Accepted**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0288-adding-ispower-of-to-binaryinteger/40325)
 
 ## Introduction
 

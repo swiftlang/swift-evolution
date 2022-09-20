@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -19,13 +19,13 @@ var proposals
  * To be updated when proposals are confirmed to have been implemented
  * in a new language version.
  */
-var languageVersions = ['2.2', '3', '3.0.1', '3.1', '4', '4.1', '4.2', '5', '5.1', '5.2', '5.3', 'Next']
+var languageVersions = ['2.2', '3', '3.0.1', '3.1', '4', '4.1', '4.2', '5', '5.1', '5.2', '5.3', '5.4', '5.5', '5.5.2', '5.6', '5.7', '5.8', 'Next']
 
 /** Storage for the user's current selection of filters when filtering is toggled off. */
 var filterSelection = []
 
 var GITHUB_BASE_URL = 'https://github.com/'
-var REPO_PROPOSALS_BASE_URL = GITHUB_BASE_URL + 'apple/swift-evolution/blob/master/proposals'
+var REPO_PROPOSALS_BASE_URL = GITHUB_BASE_URL + 'apple/swift-evolution/blob/main/proposals'
 
 /**
  * `name`: Mapping of the states in the proposals JSON to human-readable names.
@@ -824,13 +824,13 @@ function _applyFilter (matchingProposals) {
  *
  * Syntax (a query string within a fragment):
  *   fragment --> `#?` parameter-value-list
- *   parameter-value-list --> parameter-value | parameter-value-pair `&` parameter-value-list
+ *   parameter-value-list --> parameter-value-pair | parameter-value-pair `&` parameter-value-list
  *   parameter-value-pair --> parameter `=` value
  *   parameter --> `proposal` | `status` | `version` | `search`
  *   value --> ** Any URL-encoded text. **
  *
  * For example:
- *   /#?proposal:SE-0180,SE-0123
+ *   /#?proposal=SE-0180,SE-0123
  *   /#?status=rejected&version=3&search=access
  *
  * Four types of parameters are supported:
@@ -859,6 +859,17 @@ function _applyFragment (fragment) {
         value = decodeURIComponent(value)
       } else {
         value = value.split(',')
+      }
+
+      if (action === 'proposal') {
+        value = value.flatMap(function (id) {
+          // filter out invalid identifiers.
+          const output = id.match(/^SE-([0-9]{1,4})$/i)
+          if (!output) return []
+
+          // insert missing leading zeros, e.g., 'SE-2' → 'SE-0002'.
+          return 'SE-' + output[1].padStart(4, '0')
+        })
       }
 
       actions[action] = value

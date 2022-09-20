@@ -4,13 +4,13 @@
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000199.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0105-removing-where-clauses-from-for-in-loops/3205)
 
 ## Introduction
 
 This proposal removes `where` clauses from `for-in` loops, where they are better expressed (and read) as guard conditions.
 
-Swift Evolution Discussion: [\[Pitch\] Retiring `where` from for-in loops](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160606/020566.html)
+Swift Evolution Discussion: [\[Pitch\] Retiring `where` from for-in loops](https://forums.swift.org/t/pitch-retiring-where-from-for-in-loops/2926)
 
 ## Motivation
 
@@ -153,4 +153,4 @@ Code must be refactored to move the where clause into `guard` (or, for less styl
 
 ## Acknowledgements
 
-Big thanks to Joe Groff, Brent Royal-Gordon, Xiaodi Wu
+Big thanks to Joe Groff, Becca Royal-Gordon, Xiaodi Wu

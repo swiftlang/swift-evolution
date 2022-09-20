@@ -4,7 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000205.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0102-remove-noreturn-attribute-and-introduce-an-empty-never-type/3213)
 * Bug: [SR-1953](https://bugs.swift.org/browse/SR-1953)
 
 ## Introduction
@@ -15,9 +15,9 @@ uninhabited type.
 
 Swift-evolution threads:
 
-- [SE-0097: Normalizing naming for "negative" attributes](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000167.html)
+- [SE-0097: Normalizing naming for "negative" attributes](https://forums.swift.org/t/review-se-0097-normalizing-naming-for-negative-attributes/2746)
   was the review discussion from which this proposal arose.
-- [Change @noreturn to unconstructible return type](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/020140.html)
+- [Change @noreturn to unconstructible return type](https://forums.swift.org/t/draft-change-noreturn-to-unconstructible-return-type/2888)
 
 ## Motivation
 

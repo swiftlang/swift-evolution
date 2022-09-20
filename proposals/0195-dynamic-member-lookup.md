@@ -160,7 +160,7 @@ the code would have explicit member lookups all over the place:
 
 If you'd like to explore what Python interoperability looks like with plain Swift 4 (i.e. without
 either of these proposals) then check out the [Xcode 9 playground demonstrating Python
-interoperability](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171204/042029.html)
+interoperability](https://forums.swift.org/t/python-interop-with-swift-4/7109/9)
 that has been periodically posted to swift-evolution over the last few months.
 
 While this is a syntactic sugar proposal, we believe that this expands Swift to be usable in
@@ -200,7 +200,7 @@ see the JSON example below).
 ## Example Usage
 
 While there are many potential uses of this sort of API, one motivating example comes from a
-[prototype Python interoperability layer](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171204/042029.html).
+[prototype Python interoperability layer](https://forums.swift.org/t/python-interop-with-swift-4/7109/9).
 There are many ways to implement this, and the details are not
 particularly important, but it is perhaps useful to know that this is directly useful to address
 the motivation section described above.   Given a currency type of `PyVal`, an implementation
@@ -644,12 +644,12 @@ someday have fast compile times).
 
 ### Introduce a language independent "foreign class" feature to Swift
 
-One suggestion was to introduce a [general "foreign class" feature to Swift](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171218/042227.html).  The core team met to discuss this and concluded that it was the wrong direction to go.  Among opinions held by core team members, several believed that forcing other languages models into the Swift model would violate their fundamental principles (e.g. Go and Javascript don't *have* classes), some felt it would be too invasive into the compiler, and others believed that such an approach ends up requiring a `DynamicMemberLookup` related feature anyway - because
+One suggestion was to introduce a [general "foreign class" feature to Swift](https://forums.swift.org/t/proposal-introduce-user-defined-dynamic-member-lookup-types/7129/90).  The core team met to discuss this and concluded that it was the wrong direction to go.  Among opinions held by core team members, several believed that forcing other languages models into the Swift model would violate their fundamental principles (e.g. Go and Javascript don't *have* classes), some felt it would be too invasive into the compiler, and others believed that such an approach ends up requiring a `DynamicMemberLookup` related feature anyway - because
 e.g. Python doesn't require property declarations.
 
 ### Use "automatically generated wrappers" to interface with Python
 
-This approach has [numerous problems](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180101/042522.html).  Beyond that, wrappers also fundamentally require that we take (something like) this proposal
+This approach has [numerous problems](https://forums.swift.org/t/dynamicmemberlookup-proposal-status-update/7358).  Beyond that, wrappers also fundamentally require that we take (something like) this proposal
 to work in the first place.  The primary issue is that Python (and other dynamic languages)
 require no property declarations.  If you have no property declaration, there is nothing for the
 wrapper generator to [w]rap or generate.

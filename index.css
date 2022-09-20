@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -10,6 +10,35 @@
 //
 //===----------------------------------------------------------------------===//
 */
+
+:root {
+    color-scheme: light dark;
+
+    --background: white;
+    --text: #333;
+    --link: #666;
+    --proposal-link: #888;
+    --footer-background: #333;
+    --footer-text: #ccc;
+    --header-background: rgba(248, 248, 248, 0.7);
+    --nav-background: rgba(248, 248, 248, 0.7);
+    --border: rgb(230, 230, 230);
+    --filter-link: rgb(0, 136, 204);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: black;
+        --text: white;
+        --link: rgb(9, 132, 255);
+        --proposal-link: rgba(235, 235, 245, 0.6);
+        --footer-background: rgb(28, 28, 30);
+        --footer-text: rgb(255, 255, 255);
+        --header-background: rgba(44, 44, 46, 0.7);
+        --nav-background: rgba(28, 28, 30, 0.7);
+        --border: rgba(84, 84, 88, 0.6);
+    }
+}
 
 *:focus {
     outline: none;
@@ -20,7 +49,8 @@ body {
     font-size: 18px;
     -webkit-text-size-adjust: none;
     line-height: 1.5;
-    color: #333;
+    color: var(--text);
+    background-color: var(--background);
     margin: 0;
 }
 
@@ -36,20 +66,20 @@ h4 {
 }
 
 a:link {
-    color: #666;
+    color: var(--link);
     text-decoration: none;
 }
 
 a:visited {
-    color: #666;
+    color: var(--link);
 }
 
 a:active {
-    color: #666;
+    color: var(--link);
 }
 
 a:hover {
-    color: #666;
+    color: var(--link);
     text-decoration: underline;
 }
 
@@ -76,10 +106,10 @@ header {
     text-align: left;
     align-items: center;
     justify-content: center;
-    background: rgba(248, 248, 248, 0.7);
+    background: var(--header-background);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgb(230, 230, 230);
+    border-bottom: 1px solid var(--border);
     padding-top: 0px;
 }
 
@@ -101,9 +131,9 @@ header {
     font-weight: 200;
 }
 
-#title a:link { color: #333; }
-#title a:active { color: #333; }
-#title a:visited { color: #333; }
+#title a:link { color: var(--text); }
+#title a:active { color: var(--text); }
+#title a:visited { color: var(--text); }
 #title a:hover { text-decoration: none; }
 
 .app {
@@ -115,9 +145,11 @@ header {
 
 nav {
     top: 0px;
-    background: rgb(248, 248, 248);
+    background: var(--nav-background);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     
-    border-bottom: 1px solid rgb(230, 230, 230);
+    border-bottom: 1px solid var(--border);
     min-width: 100%;
 }
 
@@ -125,13 +157,6 @@ nav {
     nav {
         position: -webkit-sticky;
         position: sticky;
-    }
-}
-
-@supports (-webkit-backdrop-filter: blur(10px)) {
-    nav {
-        background: rgba(248, 248, 248, 0.7);
-        -webkit-backdrop-filter: blur(10px);
     }
 }
 
@@ -147,8 +172,8 @@ nav {
 }
 
 footer {
-    background: #333;
-    color: #ccc;
+    background: var(--footer-background);
+    color: var(--footer-text);
     font-size: 12px;
     min-width: 100%;
     justify-content: center;
@@ -157,7 +182,7 @@ footer {
 }
 
 footer a:link, footer a:active, footer a:visited, footer a:hover {
-    color: #ccc;
+    color: var(--footer-text);
 }
 
 .footer-contents {
@@ -192,7 +217,7 @@ section ul, section li {
 #proposals-count {
     line-height: 40px;
     font-size: 16px;
-    color: #333;
+    color: var(--text);
     padding: 4px 0px;
 }
 
@@ -201,7 +226,7 @@ section ul, section li {
 */
 
 .proposal-id {
-    color: #888;
+    color: var(--proposal-link);
     font-weight: 300;
     font-size: 20px;
     margin-right: 0.7em;
@@ -239,7 +264,7 @@ section ul, section li {
 }
 
 .proposal-detail-label {
-    color: #888;
+    color: var(--proposal-link);
     font-weight: 200;
     display: inline-block;
     padding-right: 6px;
@@ -248,7 +273,7 @@ section ul, section li {
 
 .proposal-detail-value {
     display: inline-block;
-    color: #333;
+    color: var(--text);
 }
 
 .proposal-title a:link,
@@ -257,7 +282,7 @@ section ul, section li {
 .proposal-detail-value a:link,
 .proposal-detail-value a:visited,
 .proposal-detail-value a:active {
-    color: #333;
+    color: var(--text);
 }
 
 .authors .proposal-detail-value {
@@ -311,6 +336,12 @@ section ul, section li {
     Filtering
 */
 
+#search-filter {
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
 .filter-by-status {
     padding-bottom: 0.75em;
     padding-top: 7px;
@@ -323,7 +354,7 @@ section ul, section li {
 }
 
 .filter-by-status label {
-    border: 1px solid #888;
+    border: 1px solid var(--proposal-link);
     border-radius: 4px;
     padding: 3px 16px;
     font-size: 16px;
@@ -342,16 +373,16 @@ section ul, section li {
 }
 
 .filter-by-status input[type=checkbox] + label {
-    color: #888;
+    color: var(--proposal-link);
 }
 
 .filter-by-status input[type=checkbox]:checked + label {
-    background: #888;
+    background: var(--proposal-link);
     color: white;
 }
 
 .filter-toggle a {
-    color: #0088cc;
+    color: var(--filter-link);
     font-weight: 400;
     cursor: pointer;
 }
@@ -377,7 +408,7 @@ section ul, section li {
 
 .filter-description {
     font-size: 14px;
-    color: #888;
+    color: var(--proposal-link);
     max-height: 70%;
     margin-right: 10px;
 }
@@ -393,7 +424,7 @@ section ul, section li {
 }
 
 .active .icon-circle {
-    fill: #888;
+    fill: var(--proposal-link);
 }
 
 .expandable {

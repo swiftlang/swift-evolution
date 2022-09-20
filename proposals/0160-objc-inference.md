@@ -4,7 +4,7 @@
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000349.html) 
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0160-limiting-objc-inference/5621) 
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/0389b1f49fc55b1a898701c549ce89738307b9fc/proposals/0160-objc-inference.md)
 * Implementation: [apple/swift#8379](https://github.com/apple/swift/pull/8379)
 * Bug: [SR-4481](https://bugs.swift.org/browse/SR-4481)
@@ -23,7 +23,7 @@ method declared in a subclass of `NSObject`) would no longer infer
 `@objc`, but one could continue to write it explicitly to produce
 Objective-C entry points.
 
-Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017308.html) and [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170102/029909.html)
+Swift-evolution thread: [here](https://forums.swift.org/t/pitch-align-objc-inference-with-the-semantic-model/2563) and [here](https://forums.swift.org/t/proposal-draft-limiting-objc-inference/4812)
 
 ## Motivation
 
@@ -319,7 +319,7 @@ possible, but Swift does not (and, practically speaking, cannot) do
 the same for protocol extensions.
 
 A previous mini-proposal [discussed
-here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005312.html)
+here](https://forums.swift.org/t/mini-proposal-require-nonobjc-on-members-of-objc-protocol-extensions/905)
 suggested requiring `@nonobjc` for members of `@objc` protocol
 extensions. However, limiting inference of `@objc` eliminates the
 expectation itself, addressing the problem from a different angle.

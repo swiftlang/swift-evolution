@@ -4,7 +4,7 @@
 * Author: [Dmitri Gribenko](https://github.com/gribozavr)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000263.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0131-add-anyhashable-to-the-standard-library/3553)
 
 ## Introduction
 
@@ -19,7 +19,7 @@ hashable values.  From SE-0116:
 > hashable type that is itself `Hashable`, for use as the upper-bound
 > type of heterogeneous `Dictionary`s and `Set`s.
 
-Swift-evolution thread: [Add AnyHashable to the standard library](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025264.html).
+Swift-evolution thread: [Add AnyHashable to the standard library](https://forums.swift.org/t/add-anyhashable-to-the-standard-library/3517).
 
 ## Motivation
 

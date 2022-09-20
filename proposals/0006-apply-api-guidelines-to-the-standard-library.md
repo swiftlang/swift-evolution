@@ -4,7 +4,7 @@
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000054.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0006-apply-api-guidelines-to-the-standard-library/1667)
 
 ## Reviewer notes
 
@@ -12,11 +12,11 @@ This review is part of a group of three related reviews, running
 concurrently:
 
 * [SE-0023 API Design Guidelines](0023-api-guidelines.md)
-  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007353.html))
+  ([Review](https://forums.swift.org/t/review-se-0023-api-design-guidelines/1162))
 * [SE-0006 Apply API Guidelines to the Standard Library](0006-apply-api-guidelines-to-the-standard-library.md)
-  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007354.html))
+  ([Review](https://forums.swift.org/t/review-se-0006-apply-api-guidelines-to-the-standard-library/1163))
 * [SE-0005 Better Translation of Objective-C APIs Into Swift](0005-objective-c-name-translation.md)
-  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007355.html))
+  ([Review](https://forums.swift.org/t/review-se-0005-better-translation-of-objective-c-apis-into-swift/1164))
 
 These reviews are running concurrently because they interact strongly
 (e.g., an API change in the standard library will correspond to a

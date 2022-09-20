@@ -4,7 +4,7 @@
 * Authors: [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000147.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0073-marking-closures-as-executing-exactly-once/2575)
 
 ## Introduction
 
@@ -14,7 +14,7 @@ escape, and that it is run exactly once on any code path returning from the
 function. For clients, it allows the compiler to relax initialization
 requirements and close the gap between closure and "inline code" a little bit.
 
-Swift-evolution thread: [Guaranteed closure execution](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/008167.html)
+Swift-evolution thread: [Guaranteed closure execution](https://forums.swift.org/t/guaranteed-closure-execution/1233)
 
 ## Motivation
 
@@ -183,7 +183,7 @@ future proposals.
 
 ## Rationale
 
-On [May 11, 2016](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000147.html), the core team decided to **Reject** this proposal for Swift 3.
+On [May 11, 2016](https://forums.swift.org/t/rejected-se-0073-marking-closures-as-executing-exactly-once/2575), the core team decided to **Reject** this proposal for Swift 3.
 
 The feedback on the proposal was generally positive both from the community and
 core team.  That said, it is being rejected for Swift 3 two reasons:

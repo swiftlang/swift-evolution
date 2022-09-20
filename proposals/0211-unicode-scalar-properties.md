@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5)**
 * Implementation: [apple/swift#15593](https://github.com/apple/swift/pull/15593)
-* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0211-add-unicode-properties-to-unicode-scalar/13857)
+* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0211-add-unicode-properties-to-unicode-scalar/13857), [Update](https://forums.swift.org/t/update-se-0211-add-unicode-properties-to-unicode-scalar/59727)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9b1c670206052f5c94bcb20df1c30c27a06e9755/proposals/0211-unicode-scalar-properties.md)
 
 ## Introduction
@@ -173,17 +173,6 @@ extension Unicode.Scalar.Properties {
   public var isEmojiPresentation: Bool { get }    // Emoji_Presentation
   public var isEmojiModifier: Bool { get }    // Emoji_Modifier
   public var isEmojiModifierBase: Bool { get }    // Emoji_Modifier_Base
-}
-```
-
-We also propose the following Boolean computed property that is generally
-useful, though it does not correspond to a named Unicode property:
-
-```swift
-extension Unicode.Scalar.Properties {
-
-  // Implemented in terms of ICU's `u_isdefined`.
-  public var isDefined: Bool { get }
 }
 ```
 
@@ -409,3 +398,13 @@ However, since these properties are intended for advanced users who are likely
 already somewhat familiar with the Unicode Standard and its definitions, we
 decided to keep the names directly derived from the Standard, which makes them
 more discoverable to the intended audience.
+
+### `isDefined` Property
+
+The original version of this proposal also included a Boolean `isDefined`
+property that was equivalent to the `u_isdefined` function from ICU, which
+would evaluate to true for exactly the code points that are assigned (those
+with general category other than "Cn"). In Swift, however, this would be
+redundant and was thus dropped from the final implementation; its value would
+differ from `Unicode.Scalar.Properties.generalCategory != .unassigned` only
+for surrogate code points, which cannot be created as `Unicode.Scalar` values.

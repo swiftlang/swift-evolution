@@ -1,7 +1,7 @@
 # Derived Collection of Enum Cases
 
 * Proposal: [SE-0194](0194-derived-collection-of-enum-cases.md)
-* Authors: [Jacob Bandes-Storch](https://github.com/jtbandes), [Brent Royal-Gordon](https://github.com/brentdax), [Robert Widmann](https://github.com/CodaFi)
+* Authors: [Jacob Bandes-Storch](https://github.com/jtbandes), [Becca Royal-Gordon](https://github.com/beccadax), [Robert Widmann](https://github.com/CodaFi)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Review Thread: [SE-0194 review][se8]
 * Status: **Implemented (Swift 4.2)**

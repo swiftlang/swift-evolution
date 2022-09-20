@@ -4,14 +4,14 @@
 * Authors: [Nate Cook](https://github.com/natecook1000), [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status:  **Deferred**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000165.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/deferred-se-0078-implement-a-rotate-algorithm-equivalent-to-std-rotate-in-c/2744)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/f5936651da1a08e2335a4991831db61da29aba15/proposals/0078-rotate-algorithm.md), [2](https://github.com/apple/swift-evolution/blob/8d45024ed7baacce94e22080d74f136bebc5c075/proposals/0078-rotate-algorithm.md)
 
 ## Introduction
 
 This proposal is to add rotation and in-place reversing methods to Swift's standard library collections.
 
-[Swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002213.html), [Proposal review feedback](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016642.html)
+[Swift-evolution thread](https://forums.swift.org/t/proposal-implement-a-rotate-algorithm-equivalent-to-std-rotate-in-c/491), [Proposal review feedback](https://forums.swift.org/t/review-se-0078-implement-a-rotate-algorithm-equivalent-to-std-rotate-in-c/2440/3)
 
 ## Motivation
 

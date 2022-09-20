@@ -3,10 +3,10 @@
 * Proposal: [SE-0246](0246-mathable.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted with modifications**
+* Status: **Accepted with modifications (2019-03-28)**
 * Implementation: [apple/swift#23140](https://github.com/apple/swift/pull/23140)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md) [2](https://github.com/apple/swift-evolution/blob/3afc4c68a4062ff045415f5eafb9d4956b30551b/proposals/0246-mathable.md)
-* Review: ([review](https://forums.swift.org/t/se-0246-generic-math-s-functions/21479)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0246-generic-math-functions/22244))
+* Decision Notes: ([review](https://forums.swift.org/t/se-0246-generic-math-s-functions/21479)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0246-generic-math-functions/22244/26))
 
 **This proposal is accepted, but currently not implemented in Swift due to source breaking consequences relating
 to typechecker performance and shadowing rules. These are expected to be resolved in a future release

@@ -4,7 +4,7 @@
 * Author: [Charlie Monroe](https://github.com/charlieMonroe)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000262.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0127-cleaning-up-stdlib-pointer-and-buffer-routines/3549)
 * Bugs: [SR-1937](https://bugs.swift.org/browse/SR-1937),
         [SR-1955](https://bugs.swift.org/browse/SR-1955),
         [SR-1957](https://bugs.swift.org/browse/SR-1957)
@@ -15,7 +15,7 @@ This proposal deals with three routines and one class related to pointers and bu
 The goal of this proposal is to update the API to match new API guidelines and remove 
 redundant identifiers.
 
-Swift-evolution thread: [Cleaning up stdlib Pointer and Buffer Routines](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023518.html)
+Swift-evolution thread: [Cleaning up stdlib Pointer and Buffer Routines](https://forums.swift.org/t/discussion-cleaning-up-stdlib-pointer-and-buffer-routines-open-issues-affecting-standard-library-api-stability/3295)
 
 ## Motivation
 

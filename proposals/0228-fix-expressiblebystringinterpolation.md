@@ -1,7 +1,7 @@
 # Fix `ExpressibleByStringInterpolation`
 
 * Proposal: [SE-0228](0228-fix-expressiblebystringinterpolation.md)
-* Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Michael Ilseman](https://github.com/milseman)
+* Authors: [Becca Royal-Gordon](https://github.com/beccadax), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 5)**
 * Review: [Discussion thread](https://forums.swift.org/t/se-0228-fix-expressible-by-string-interpolation/16031), [Announcement thread](https://forums.swift.org/t/accepted-se-0228-fix-expressible-by-string-interpolation/16548)
@@ -11,7 +11,7 @@
 
 String interpolation is a simple and powerful feature for expressing complex, runtime-created strings, but the current version of the `ExpressibleByStringInterpolation` protocol has been deprecated since Swift 3. We propose a new design that improves its performance, clarity, and efficiency.
 
-Swift-evolution thread: [\[Draft\] Fix ExpressibleByStringInterpolation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/033676.html), [String interpolation revamp](https://forums.swift.org/t/string-interpolation-revamp/9302), [String interpolation revamp: design decisions](https://forums.swift.org/t/string-interpolation-revamp-design-decisions/12624)
+Swift-evolution thread: [\[Draft\] Fix ExpressibleByStringInterpolation](https://forums.swift.org/t/draft-fix-expressiblebystringinterpolation/5403), [String interpolation revamp](https://forums.swift.org/t/string-interpolation-revamp/9302), [String interpolation revamp: design decisions](https://forums.swift.org/t/string-interpolation-revamp-design-decisions/12624)
 
 ## Motivation
 
@@ -33,9 +33,9 @@ We see three general classes of types that might want to conform to `Expressible
 
 The current design handles simple textual data, but struggles to support structured textual data and machine-readable code fragments.
 
-  [sql]: https://github.com/brentdax/SQLKit/blob/master/Sources/SQLKit/SQLStatement.swift
+  [sql]: https://github.com/beccadax/SQLKit/blob/master/Sources/SQLKit/SQLStatement.swift
   [html]: https://oleb.net/blog/2017/01/fun-with-string-interpolation/
-  [loc]: https://gist.github.com/brentdax/79fa038c0af0cafb52dd
+  [loc]: https://gist.github.com/beccadax/79fa038c0af0cafb52dd
 
 ### Current design
 
@@ -188,7 +188,7 @@ String(stringInterpolation: {
 
 [We have written a few examples of conforming types.][examples]
 
-  [examples]: https://gist.github.com/brentdax/0b46ce25b7da1049e61b4669352094b6
+  [examples]: https://gist.github.com/beccadax/0b46ce25b7da1049e61b4669352094b6
 
 ## Detailed design
 

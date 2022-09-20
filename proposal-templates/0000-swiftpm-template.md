@@ -50,7 +50,7 @@ implement the feature.
 
 Does this change have any impact on security, safety, or privacy?
 
-## Impact on exisiting packages
+## Impact on existing packages
 
 Explain if and how this proposal will affect the behavior of existing packages.
 If there will be impact, is it possible to gate the changes on the tools version

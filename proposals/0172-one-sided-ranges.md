@@ -1,10 +1,10 @@
 # One-sided Ranges
 
 * Proposal: [SE-0172](0172-one-sided-ranges.md)
-* Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](https://github.com/dabrahams), [Brent Royal-Gordon](https://github.com/brentdax)
+* Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](https://github.com/dabrahams), [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)** 
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036125.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0172-one-sided-ranges/5768)
 
 ## Introduction
 

@@ -4,7 +4,7 @@
 * Authors: [Adrian Zubarev](https://github.com/DevAndArtist), [Anton Zhilin](https://github.com/Anton3)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Withdrawn**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000251.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/withdrawn-for-revision-se-0126-refactor-metatypes-repurpose-t-self-and-mirror/3499)
 
 ## Introduction
 
@@ -12,9 +12,9 @@ This proposal wants to revise metatypes `T.Type`, repurpose *public* `T.self` no
 
 Swift-evolution threads: 
 
-* [\[Proposal\] Refactor Metatypes, repurpose T[dot]self and Mirror](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/024772.html) 
-* [\[Discussion\] Seal `T.Type` into `Type<T>`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023818.html)
-* [\[Discussion\] Can we make `.Type` Hashable?](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/023067.html)
+* [\[Proposal\] Refactor Metatypes, repurpose T[dot]self and Mirror](https://forums.swift.org/t/proposal-refactor-metatypes-repurpose-t-dot-self-and-mirror/3460) 
+* [\[Discussion\] Seal `T.Type` into `Type<T>`](https://forums.swift.org/t/discussion-seal-t-type-into-type-t/3340)
+* [\[Discussion\] Can we make `.Type` Hashable?](https://forums.swift.org/t/discussion-can-we-make-type-hashable/3232)
 
 GitHub Gist thread: 
 

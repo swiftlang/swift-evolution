@@ -4,7 +4,7 @@
 * Authors: [Erica Sadun](http://github.com/erica), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000244.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0101-reconfiguring-sizeof-and-related-functions-into-a-unified-memorylayout-struct/3477)
 
 ## Introduction
 
@@ -12,14 +12,14 @@ This proposal addresses `sizeof`, `sizeofValue`, `strideof`, `strideofValue`, `a
 
 Review 1: 
 
-* [Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021527.html)
+* [Swift Evolution Review Thread](https://forums.swift.org/t/review-se-0101-rename-sizeof-and-related-functions-to-comply-with-api-guidelines/3060)
 * [Original Proposal](https://github.com/apple/swift-evolution/blob/26e1e5b546b13fb66ee8877ad7018a7856e467ca/proposals/0101-standardizing-sizeof-naming.md)
 
 Prior Discussions:
 
-* Swift Evolution Pitch: [\[Pitch\] Renaming sizeof, sizeofValue, strideof,	strideofValue](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/019884.html)
-* [Earlier Discussions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/016042.html)
-* [SE-0101 Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021527.html)
+* Swift Evolution Pitch: [\[Pitch\] Renaming sizeof, sizeofValue, strideof,	strideofValue](https://forums.swift.org/t/pitch-renaming-sizeof-sizeofvalue-strideof-strideofvalue/2857)
+* [Earlier Discussions](https://forums.swift.org/t/trial-balloon-conforming-sizeof-sizeofvalue-etc-to-naming-guidelines/2388)
+* [SE-0101 Review](https://forums.swift.org/t/review-se-0101-rename-sizeof-and-related-functions-to-comply-with-api-guidelines/3060)
 
 ## Motivation
 
@@ -146,7 +146,7 @@ According to Joe Groff, concerns about existential values (it's illegal to ask f
 
 This proposal uses `<T>` /  `T.Type` to reflect Swift's current implementation.
 
-**Note:** There is a [known bug](https://lists.swift.org/pipermail/swift-dev/Week-of-Mon-20160530/002150.html) (cite D. Gregor) that does not enforce `.self` when used with `sizeof`, allowing `sizeof(UInt)`. This call should be `sizeof(UInt.self)`. This proposal is written as if the bug were resolved without relying on adoption of [SE-0090](0090-remove-dot-self.md).
+**Note:** There is a [known bug](https://forums.swift.org/t/delaying-the-enforcement-of-self-out-of-swift-3/2862) (cite D. Gregor) that does not enforce `.self` when used with `sizeof`, allowing `sizeof(UInt)`. This call should be `sizeof(UInt.self)`. This proposal is written as if the bug were resolved without relying on adoption of [SE-0090](0090-remove-dot-self.md).
 
 ## Impact on Existing Code
 

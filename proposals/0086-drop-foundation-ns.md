@@ -4,7 +4,7 @@
 * Authors: [Tony Parker](https://github.com/parkera), [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000229.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0086-drop-ns-prefix-in-swift-foundation/3382)
 
 ##### Related radars or Swift bugs
 
@@ -19,9 +19,9 @@
 
 As part of _Swift 3 API Naming_ and the introduction of _Swift Core Libraries_, we are dropping the `NS` prefix from key Foundation types in Swift.
 
-[Swift Evolution Discussion Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016723.html)
+[Swift Evolution Discussion Thread](https://forums.swift.org/t/dropping-ns-prefix-in-foundation/2494)
 
-[Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/016934.html)
+[Review Thread](https://forums.swift.org/t/review-se-0086-drop-ns-prefix-in-swift-foundation/2531)
 
 ## Motivation
 

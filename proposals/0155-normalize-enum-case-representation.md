@@ -3,7 +3,7 @@
 * Proposal: [SE-0155][]
 * Authors: [Daniel Duan][], [Joe Groff][]
 * Review Manager: [John McCall][]
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale][]
 * Previous Revision: [1][Revision 1], [Originally Accepted Proposal][], [Expired Proposal][]
 * Bugs: [SR-4691](https://bugs.swift.org/browse/SR-4691), [SR-12206](https://bugs.swift.org/browse/SR-12206), [SR-12229](https://bugs.swift.org/browse/SR-12229)
@@ -265,9 +265,9 @@ base name. This new design still had not been implemented at the time the [core 
 [Daniel Duan]: https://github.com/dduan
 [Joe Groff]: https://github.com/jckarter
 [John McCall]: https://github.com/rjmccall
-[TJs comment]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/030614.html
+[TJs comment]: https://forums.swift.org/t/draft-compound-names-for-enum-cases/4933/33
 [Revision 1]: https://github.com/apple/swift-evolution/blob/43ca098355762014f53e1b54e02d2f6a01253385/proposals/0155-normalize-enum-case-representation.md
-[Normalize Enum Case Representation (rev. 2)]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/033626.html
+[Normalize Enum Case Representation (rev. 2)]: https://forums.swift.org/t/normalize-enum-case-representation-rev-2/5395
 [Originally Accepted Proposal]: https://github.com/apple/swift-evolution/blob/4cbb1f1fa836496d4bfba95c4b78a9754690956d/proposals/0155-normalize-enum-case-representation.md
 [Expired Proposal]: https://github.com/apple/swift-evolution/blob/aecced4919ab297f343dafd7235d392d8b859839/proposals/0155-normalize-enum-case-representation.md
-[Rationale]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035972.html
+[Rationale]: https://forums.swift.org/t/accepted-se-0155-normalize-enum-case-representation/5732

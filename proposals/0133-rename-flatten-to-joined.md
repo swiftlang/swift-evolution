@@ -4,7 +4,7 @@
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000265.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0133-rename-flatten-to-joined/3575)
 * Implementation: [apple/swift#3809](https://github.com/apple/swift/pull/3809),
                   [apple/swift#3838](https://github.com/apple/swift/pull/3838),
                   [apple/swift#3839](https://github.com/apple/swift/pull/3839)
@@ -31,8 +31,8 @@ https://github.com/apple/swift/blob/c6e828f761fc30f7ce444431de7da52814f96595/std
 https://github.com/apple/swift/blob/f72a82327b172e1a2979e46cb7a579e3cc2f3bd6/stdlib/public/core/Flatten.swift.gyb
 
 Swift-evolution threads:
-- [[Pitch] Unify joined(separator:) and flatten()](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025136.html)
-- [[Pitch] Rename flatten() to joined() and give joined() for string sequences the empty string as the default parameter](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025234.html)
+- [[Pitch] Unify joined(separator:) and flatten()](https://forums.swift.org/t/pitch-unify-joined-separator-and-flatten/3505)
+- [[Pitch] Rename flatten() to joined() and give joined() for string sequences the empty string as the default parameter](https://forums.swift.org/t/pitch-rename-flatten-to-joined-and-give-joined-for-string-sequences-the-empty-string-as-the-default-parameter/3522)
 
 ## Motivation
 

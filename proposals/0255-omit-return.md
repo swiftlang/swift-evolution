@@ -104,8 +104,8 @@ struct Echo<T> {
 With an explicit getter and setter:
 
 ```swift
-struct GuaranteedDictionary<Key : Hashable, Value> {
-    var storage: [Key : Value]
+struct GuaranteedDictionary<Key: Hashable, Value> {
+    var storage: [Key: Value]
     var fallback: Value
     subscript(key: Key) -> Value {
         get {
@@ -123,7 +123,7 @@ As with property accessors, since only the `get` accessor may return a value, im
 - Initializers.
 
 ```swift
-class Derived : Base {
+class Derived: Base {
     required init?() { nil }
 }
 ```
@@ -237,7 +237,7 @@ var doWork: Void {
 
 - **Making uninhabited types be bottom types.**  
 
-As currently implemented, an implicit conversion from an uninhabited type to any arbitrary type is permitted only if the uninhabited type is the type of the expression in a single-argument function and the arbitrary type is the the result type of that function.  If every uninhabited type were a subtype of every type, this implicit conversion could be applied across the board without special casing for the single-argument return scenario.  
+As currently implemented, an implicit conversion from an uninhabited type to any arbitrary type is permitted only if the uninhabited type is the type of the expression in a single-argument function and the arbitrary type is the result type of that function.  If every uninhabited type were a subtype of every type, this implicit conversion could be applied across the board without special casing for the single-argument return scenario.  
 
 While such a feature can be implemented (see the [uninhabited-upcast](https://github.com/nate-chandler/swift/tree/nate/uninhabited-upcast) branch), it doesn't maintain source compatibility or otherwise relate to this feature except in terms of the compiler's implementation.
 

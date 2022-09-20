@@ -3,16 +3,11 @@
 * Proposal: [SE-0153](0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md)
 * Author: [Torin Kwok](https://github.com/TorinKwok)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Expired**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170227/033357.html)
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0153-compensate-for-the-inconsistency-of-nscopying-s-behaviour/5341), [Additional Commentary](https://forums.swift.org/t/addressing-unimplemented-evolution-proposals/40322)
 * Bug: [SR-4538](https://bugs.swift.org/browse/SR-4538)
 
-<!--*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)-->
+**Note**: This proposal was initially accepted without an implementation on 2017-03-01, and has not been implemented since. The Core Team has decided to retroactively reject the proposal.
 
 ## Introduction
 
@@ -26,8 +21,7 @@ This proposal is intent on proposing several solutions to this inconsistency.
 
 ## Swift-evolution thread
 
-- [@NSCopying currently does not affect initializers (from *The Week Of Monday 23 January 2017 Archive*)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170123/031049.html)
-- [@NSCopying currently does not affect initializers (from *The Week Of Monday 30 January 2017 Archive*)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170130/031162.html)
+[@NSCopying currently does not affect initializers](https://forums.swift.org/t/nscopying-currently-does-not-affect-initializers/5019)
 
 ## Motivation
 

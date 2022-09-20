@@ -4,7 +4,7 @@
 * Authors: [Itai Ferber](https://github.com/itaiferber), [Michael LeHew](https://github.com/mlehew), [Tony Parker](https://github.com/parkera)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000368.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0167-swift-encoders/5781)
 * Implementation: [apple/swift#9005](https://github.com/apple/swift/pull/9005)
 
 ## Introduction

@@ -10,7 +10,7 @@
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0282-interoperability-with-the-c-atomic-operations-library/38050)
 
 [SE-0282v1]: https://github.com/apple/swift-evolution/blob/3a358a07e878a58bec256639d2beb48461fc3177/proposals/0282-atomics.md
-[package]: https://github.com/apple/swift-se-0282-experimental
+[package]: https://github.com/apple/swift-atomics
 
 ## Introduction
 
@@ -181,7 +181,7 @@ However, despite the superficial similarity, the `&` here isn't an address-of op
 
 ```swift
 withUnsafePointer(to: &value) { pointer in
-  test(&pointer)
+  test(pointer)
 }
 ```
 

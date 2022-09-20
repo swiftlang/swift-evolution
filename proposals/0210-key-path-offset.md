@@ -61,7 +61,7 @@ A new API is added to `MemoryLayout`:
 
 ```swift
 extension MemoryLayout {
-  func offset(of key: PartialKeyPath<T>) -> Int?
+  public static func offset(of key: PartialKeyPath<T>) -> Int?
 }
 ```
 
@@ -151,7 +151,7 @@ A related API that might be useful to build on top of this functionality would
 be to add methods to `UnsafePointer` and `UnsafeMutablePointer` for projecting
 a pointer to a field from a pointer to a base value, for example:
 
-```
+```swift
 extension UnsafePointer {
   subscript<Field>(field: KeyPath<Pointee, Field>) -> UnsafePointer<Field> {
     return (UnsafeRawPointer(self) + MemoryLayout<Pointee>.offset(of: field))

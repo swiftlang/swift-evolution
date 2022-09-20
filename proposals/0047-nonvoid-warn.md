@@ -4,7 +4,7 @@
 * Authors: [Erica Sadun](http://github.com/erica), [Adrian Kashivskyy](https://github.com/akashivskyy)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000075.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0047-defaulting-non-void-functions-so-they-warn-on-unused-results/1927)
 * Bug: [SR-1052](https://bugs.swift.org/browse/SR-1052)
 
 
@@ -20,7 +20,7 @@ public func sort() -> [Self.Generator.Element]
 
 This proposal flips this default behavior. Unused results are more likely to indicate programmer error than confusion between mutating and non-mutating function pairs. This proposal makes "warn on unused result" the *default* behavior for Swift methods and functions. Developers must override this default to enable the compiler to ignore unconsumed values.
 
-This proposal was discussed on-list in a variety of threads, most recently [Make non-void functions @warn_unused_result by default](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/010926.html).
+This proposal was discussed on-list in a variety of threads, most recently [Make non-void functions @warn_unused_result by default](https://forums.swift.org/t/make-non-void-functions-warn-unused-result-by-default/1553).
 
 #### Acceptance Notes
 
@@ -145,5 +145,5 @@ Upon acceptance, this proposal removes two of the last remaining instances of sn
 
 ## Acknowledgements
 
-Changing the behavior of non-void functions to use default warnings for unused results was initially introduced by Adrian Kashivskyy. Additional thanks go out to Chris Lattner, Gwendal Roué, Dmitri Gribenko, Jeff Kelley, David Owens, Jed Lewison, Stephen Cellis, Ankit Aggarwal, Paul Ossenbruggen,Brent Royal-Gordon, Tino Heth, Haravikk, Félix Cloutier,Yuta Koshizawa, 
+Changing the behavior of non-void functions to use default warnings for unused results was initially introduced by Adrian Kashivskyy. Additional thanks go out to Chris Lattner, Gwendal Roué, Dmitri Gribenko, Jeff Kelley, David Owens, Jed Lewison, Stephen Cellis, Ankit Aggarwal, Paul Ossenbruggen, Becca Royal-Gordon, Tino Heth, Haravikk, Félix Cloutier,Yuta Koshizawa, 
 for their feedback on this topic.

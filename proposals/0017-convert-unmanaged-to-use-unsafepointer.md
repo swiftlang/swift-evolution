@@ -4,14 +4,14 @@
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000133.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0017-change-unmanaged-to-use-unsafepointer/2461)
 * Bug: [SR-1485](https://bugs.swift.org/browse/SR-1485)
 
 ## Introduction
 
 The standard library [`Unmanaged<Instance>` struct](https://github.com/apple/swift/blob/master/stdlib/public/core/Unmanaged.swift) provides a type-safe object wrapper that does not participate in ARC; it allows the user to make manual retain/release calls.
 
-[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001046.html), [Proposed Rewrite Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003243.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/016034.html)
+[Swift Evolution Discussion](https://forums.swift.org/t/unmanaged-and-copaquepointer-vs-unsafe-mutable-pointer/295), [Proposed Rewrite Discussion](https://forums.swift.org/t/rfc-proposed-rewrite-of-unmanaged-t/612), [Review](https://forums.swift.org/t/review-se-0017-change-unmanaged-to-use-unsafepointer/2380)
 
 ## Motivation
 
@@ -83,5 +83,5 @@ Code previously calling `Unmanaged` API with `COpaquePointer` will need to chang
 
 ## Alternatives considered
 
-- Make no change. However, it has been [said on swift-evolution](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001096.html) that `COpaquePointer` is vestigial, and better bridging of C APIs is desired, so we do want to move in this direction.
+- Make no change. However, it has been [said on swift-evolution](https://forums.swift.org/t/unmanaged-and-copaquepointer-vs-unsafe-mutable-pointer/295/3) that `COpaquePointer` is vestigial, and better bridging of C APIs is desired, so we do want to move in this direction.
 

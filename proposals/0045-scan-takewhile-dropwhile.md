@@ -4,7 +4,7 @@
 * Author: [Lily Ballard](https://github.com/lilyball)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000136.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0045-add-scan-prefix-while-drop-while-and-unfold-to-the-stdlib/2466)
 * Bug: [SR-1516](https://bugs.swift.org/browse/SR-1516)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/b39d653f7e3d5e982b562664343f26c826652291/proposals/0045-scan-takewhile-dropwhile.md), [2](https://github.com/apple/swift-evolution/blob/baec22a8a5ddaa0407086380da32b5cad2144800/proposals/0045-scan-takewhile-dropwhile.md), [3](https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0045-scan-takewhile-dropwhile.md)
 
@@ -15,9 +15,9 @@ overrides as appropriate on `Collection`, `LazySequenceProtocol`, and
 `LazyCollectionProtocol`.
 
 Swift-evolution thread:
-[Proposal: Add scan, takeWhile, dropWhile, and iterate to the stdlib](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011923.html)
+[Proposal: Add scan, takeWhile, dropWhile, and iterate to the stdlib](https://forums.swift.org/t/proposal-add-scan-takewhile-dropwhile-and-iterate-to-the-stdlib/806)
 
-[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/016036.html)
+[Review](https://forums.swift.org/t/review-se-0045-add-scan-prefix-while-drop-while-and-iterate-to-the-stdlib/2382)
 
 ## Motivation
 
@@ -150,4 +150,4 @@ and `unfold(_:applying:)` (see [revision 3][rev-3]). This proposal was partially
 accepted, with `scan(_:combine:)` rejected on grounds of low utility and
 `unfold(_:applying:)` rejected on grounds of poor naming (see [rationale][]).
 
-[rationale]: <https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016543.html>
+[rationale]: https://forums.swift.org/t/accepted-with-modifications-se-0045-add-scan-prefix-while-drop-while-and-unfold-to-the-stdlib/2466

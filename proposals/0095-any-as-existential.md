@@ -4,7 +4,7 @@
 * Authors: [Adrian Zubarev](https://github.com/DevAndArtist), [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000198.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0095-replace-protocol-p1-p2-syntax-with-p1-p2-syntax/3198)
 * Bug: [SR-1938](https://bugs.swift.org/browse/SR-1938)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/a4356fee94c06181715fad83aa61e923eb73f8ec/proposals/0095-any-as-existential.md)
 
@@ -13,9 +13,9 @@
 The current `protocol<>` construct, which defines an existential type consisting of zero or more protocols, should be replaced by an infix `&` type operator joining bare protocol type names.
 
 Discussion threads: 
-[pre-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/018109.html), 
-[review thread 1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021713.html),
-[return for revision thread](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000182.html)
+[pre-proposal](https://forums.swift.org/t/pitch-rename-protocol-to-any/2687), 
+[review thread 1](https://forums.swift.org/t/review-se-0095-replace-protocol-p1-p2-syntax-with-any-p1-p2/3081),
+[return for revision thread](https://forums.swift.org/t/returned-for-revision-se-0095-replace-protocol-p1-p2-syntax-with-any-p1-p2/2855)
 
 ## Motivation
 
@@ -72,5 +72,5 @@ The original proposal suggested replacing `protocol<>` with either `Any<>` or `a
 
 ## Acknowledgements
 
-[Matthew Johnson](https://github.com/anandabits) and [Brent Royal-Gordon](https://github.com/brentdax) provided valuable input which helped shape the first version of this proposal.
+[Matthew Johnson](https://github.com/anandabits) and [Becca Royal-Gordon](https://github.com/beccadax) provided valuable input which helped shape the first version of this proposal.
 

@@ -43,7 +43,7 @@ This can make it quite difficult to elegantly consume the results of these APIs:
 
 ```swift
 URLSession.shared.dataTask(with: url) { (data, response, error) in
-    guard error == nil else { self.handleError(error!) }
+    guard error == nil else { return self.handleError(error!) }
     
     guard let data = data, let response = response else { return // Impossible? }
     

@@ -4,7 +4,7 @@
 * Author: [Karl Wagner](https://github.com/karwa)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000217.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0113-add-integral-rounding-functions-to-floatingpoint/3308)
 * Bug: [SR-2010](https://bugs.swift.org/browse/SR-2010)
 
 ## Introduction, Motivation
@@ -14,7 +14,7 @@ The standard library lacks equivalents to the `floor()` and `ceil()` functions f
 In general, rounding of floating-point numbers for predictable conversion in to integers is something we should provide natively.
 
 Swift-evolution initial discussion thread: [\[Proposal\] Add floor() and ceiling() functions to FloatingPoint
-](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/022146.html)
+](https://forums.swift.org/t/proposal-add-floor-and-ceiling-functions-to-floatingpoint/3139)
 
 ## Proposed Solution
 

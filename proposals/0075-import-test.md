@@ -4,20 +4,20 @@
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 4.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000159.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0075-adding-a-build-configuration-import-test/2683)
 * Bug: [SR-1560](https://bugs.swift.org/browse/SR-1560)
 
 ## Introduction
 
 Expanding the build configuration suite to test for the ability to import certain 
-modules was [first introduced](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010693.html)
+modules was [first introduced](https://forums.swift.org/t/idea-support-if-os-darwin-as-shorthand-for-os-ios-os-osx-os-watchos-os-tvos/1493)
 on the Swift-Evolution list by Lily Ballard. Although her initial idea (checking for Darwin
 to differentiate Apple targets from non-Apple targets) proved problematic, developers warmly
 greeted the notion of an import-based configuration test. 
 Dmitri Gribenko wrote, "There's a direction that we want to move to a unified name for the libc module for all platform, so 'can import Darwin' might not be a viable long-term strategy." 
 Testing for imports offers advantages that stand apart from this one use-case: to test for API availability before use.
 
-[Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017044.html)
+[Swift Evolution Review Thread](https://forums.swift.org/t/review-se-0075-adding-a-build-configuration-import-test/2542)
  
 ## Motivation
 

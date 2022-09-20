@@ -16,7 +16,6 @@
 + [Examples](#examples)
   - [Delayed Initialization](#delayed-initialization)
   - [`NSCopying`](#nscopying)
-  - [`Atomic`](#atomic)
   - [Thread-specific storage](#thread-specific-storage)
   - [User defaults](#user-defaults)
   - [Copy-on-write](#copy-on-write)
@@ -51,6 +50,7 @@
   - [Referencing the enclosing 'self' in a wrapper type](#referencing-the-enclosing-self-in-a-wrapper-type)
   - [Delegating to an existing property](#delegating-to-an-existing-property)
 + [Revisions](#revisions)
+  - [Changes from the accepted proposal](#changes-from-the-accepted-proposal)
   - [Changes from the third reviewed version](#changes-from-the-third-reviewed-version)
   - [Changes from the second reviewed version](#changes-from-the-second-reviewed-version)
   - [Changes from the first reviewed version](#changes-from-the-first-reviewed-version)
@@ -449,63 +449,6 @@ struct Copying<Value: NSCopying> {
 This implementation would address the problem detailed in
 [SE-0153](https://github.com/apple/swift-evolution/blob/master/proposals/0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md). Leaving the `copy()` out of `init(wrappedValue:)` implements the pre-SE-0153 semantics.
 
-### `Atomic`
-
-Support for atomic operations (load, store, increment/decrement, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property wrapper type:
-
-
-```swift
-@propertyWrapper
-struct Atomic<Value> {
-  private var _value: Value
-  
-  init(wrappedValue: Value) {
-    self._value = wrappedValue
-  }
-
-  var wrappedValue: Value {
-    get { return load() }
-    set { store(newValue: newValue) }
-  }
-  
-  func load(order: MemoryOrder = .relaxed) { ... }
-  mutating func store(newValue: Value, order: MemoryOrder = .relaxed) { ... }
-  mutating func increment() { ... }
-  mutating func decrement() { ... }
-}
-
-extension Atomic where Value: Equatable {
-  mutating func compareAndExchange(oldValue: Value, newValue: Value, order: MemoryOrder = .relaxed)  -> Bool { 
-    ...
-  }
-}  
-
-enum MemoryOrder {
-  case relaxed, consume, acquire, release, acquireRelease, sequentiallyConsistent
-};
-```
-
-Here are some simple uses of `Atomic`. With atomic types, it's fairly common
-to weave lower-level atomic operations (`increment`, `load`, `compareAndExchange`) where we need specific semantics (such as memory ordering) with simple queries, so both the property and the synthesized storage property are used often:
-
-```swift
-@Atomic var counter: Int
-
-if thingHappened {
-  _counter.increment()
-}
-print(counter)
-
-@Atomic var initializedOnce: Int?
-if initializedOnce == nil {
-  let newValue: Int = /*computeNewValue*/
-  if !_initializedOnce.compareAndExchange(oldValue: nil, newValue: newValue) {
-    // okay, someone else initialized it. clean up if needed
-  }
-}
-print(initializedOnce)
-```
-
 ### Thread-specific storage
 
 Thread-specific storage (based on pthreads) can be implemented as a property wrapper, too (example courtesy of Daniel Delwood):
@@ -557,7 +500,7 @@ final class ThreadSpecific<T> {
 
 ### User defaults
 
-Property wrappers can be used to provide typed properties into for
+Property wrappers can be used to provide typed properties for
 string-keyed data, such as [user defaults](https://developer.apple.com/documentation/foundation/userdefaults) (example courtesy of Harlan Haskins),
 encapsulating the mechanism for extracting that data in the wrapper type.
 For example:
@@ -589,7 +532,7 @@ enum GlobalSettings {
 
 ### Copy-on-write
 
-With some work, property wrappers can provide copy-on-write wrappers (original example courtesy of Brent Royal-Gordon):
+With some work, property wrappers can provide copy-on-write wrappers (original example courtesy of Becca Royal-Gordon):
 
 ```swift
 protocol Copyable: AnyObject {
@@ -830,7 +773,7 @@ Note that this design means that property wrapper composition is not commutative
 @Copying @DelayedMutable var path2: UIBezierPath   // error: _path2 has ill-formed type Copying<DelayedMutable<UIBezierPath>>
 ```
 
-In this case, the type checker prevents the second ordering, because `DelayedMutable` does not conform to the `NSCopying` protocol. This won't always be the case: some semantically-bad compositions won't necessarily by caught by the type system. Alternatives to this approach to composition are presented in "Alternatives considered." 
+In this case, the type checker prevents the second ordering, because `DelayedMutable` does not conform to the `NSCopying` protocol. This won't always be the case: some semantically-bad compositions won't necessarily be caught by the type system. Alternatives to this approach to composition are presented in "Alternatives considered." 
 
 ## Detailed design
 
@@ -857,12 +800,12 @@ type is the wrapper type. That stored property can be initialized
 in one of three ways:
 
 1. Via a value of the original property's type (e.g., `Int` in `@Lazy var
-   foo: Int`, using the the property wrapper type's
+   foo: Int`, using the property wrapper type's
    `init(wrappedValue:)` initializer. That initializer must have a single
    parameter of the same type as the `wrappedValue` property (or
    be an `@autoclosure` thereof) and have the same access level as the 
    property wrapper type itself. When `init(wrappedValue:)` is present,
-   is is always used for the initial value provided on the property
+   is always used for the initial value provided on the property
    declaration. For example:
 
    ```swift
@@ -961,7 +904,7 @@ In any case, the first wrapper type is constrained to be a specialization of the
 @Lazy<Int> var bar: Double  // error: Lazy<Int>.wrappedValue is of type Int, not Double
 ```
 
-The deduction can also provide a type for the original property (if a type annotation was omitted) or deduce generic arguments that have omitted from the type annotation. For example:
+The deduction can also provide a type for the original property (if a type annotation was omitted) or deduce generic arguments that have been omitted from the type annotation. For example:
 
 ```swift
 @propertyWrapper
@@ -1254,7 +1197,7 @@ struct AB<Value> {
 }
 ```
 
-The main benefit of this approach is its predictability: the author of `AB` decides how to best achieve the composition of `A` and `B`, names it appropriately, and provides the right API and documentation of its semantics. On the other hand, having to manually write out each of the compositions is a lot of boilerplate, particularly for a feature whose main selling point is the elimination of boilerplate. It is also unfortunate to have to invent names for each composition---when I try the compose `A` and `B` via `@A @B`, how do I know to go look for the manually-composed property wrapper type `AB`? Or maybe that should be `BA`?
+The main benefit of this approach is its predictability: the author of `AB` decides how to best achieve the composition of `A` and `B`, names it appropriately, and provides the right API and documentation of its semantics. On the other hand, having to manually write out each of the compositions is a lot of boilerplate, particularly for a feature whose main selling point is the elimination of boilerplate. It is also unfortunate to have to invent names for each composition---when I try to compose `A` and `B` via `@A @B`, how do I know to go look for the manually-composed property wrapper type `AB`? Or maybe that should be `BA`?
 
 ### Composition via nested type lookup
 One proposed approach to composition addresses only the last issue above directly, treating the attribute-composition syntax `@A @B` as  a lookup of the nested type `B` inside `A` to find the wrapper type:
@@ -1276,7 +1219,7 @@ This approach addresses the syntax for composition while maintaining control ove
   
 ### Composition without nesting
 
-There has been a desire to effect composition of property wrappers without having to wrap one property wrapper type in the other. For example, to have `@A @B` apply the policies of both `A` and `B` without producing a nested type like `A<B<Int>>`. This would make potentially make composition more commutative, at least from the type system perspective. However, this approach does not fit with the "wrapper" approach taken by property wrappers. In a declaration
+There has been a desire to effect composition of property wrappers without having to wrap one property wrapper type in the other. For example, to have `@A @B` apply the policies of both `A` and `B` without producing a nested type like `A<B<Int>>`. This would potentially make composition more commutative, at least from the type system perspective. However, this approach does not fit with the "wrapper" approach taken by property wrappers. In a declaration
 
 ```swift
 @A @B var x: Int
@@ -1304,10 +1247,10 @@ because we'd need to cope with `mutating get` as well as `set` and
 `nonmutating set`. Moreover, protocols don't support optional
 requirements, like `init(wrappedValue:)` (which also has two
 forms: one accepting a `Value` and one accepting an `@autoclosure ()
--> Value`) and `init()`. To cover all of these cases, we would need a
+-> Value`) and `init()`. To cover all of these cases, we would need
 several related-but-subtly-different protocols.
 
-The second issue that, even if there were a single `PropertyWrapper`
+The second issue is that, even if there were a single `PropertyWrapper`
 protocol, we don't know of any useful generic algorithms or data
 structures that seem to be implemented in terms of only
 `PropertyWrapper`.
@@ -1527,7 +1470,7 @@ var wrappedValue: Value {
 }
 ```
 
-The same model could be extended to static properties of types (passing the metatype instance for the enclosing `self`) as well as global and local properties (no enclsoing `self`), although we would also need to extend key path support to static, global, and local properties to do so.
+The same model could be extended to static properties of types (passing the metatype instance for the enclosing `self`) as well as global and local properties (no enclosing `self`), although we would also need to extend key path support to static, global, and local properties to do so.
  
 ### Delegating to an existing property
 
@@ -1541,6 +1484,39 @@ lazy var fooBacking: SomeWrapper<Int>
 One could express this either by naming the property directly (as above) or, for an even more general solution, by providing a keypath such as `\.someProperty.someOtherProperty`.
 
 ## Revisions
+
+### Changes from the accepted proposal
+
+This proposal originally presented an example of implementing atomic operations using a property wrapper interface. This example was misleading because it would require additional compiler and library features to work correctly.
+
+Programmers looking for atomic operations can use the [Swift Atomics](https://github.com/apple/swift-atomics) package.
+
+For those who have already attempted to implement something similar, here is the original example, and why it is incorrect:
+
+```swift
+@propertyWrapper
+class Atomic<Value> {
+  private var _value: Value
+
+  init(wrappedValue: Value) {
+    self._value = wrappedValue
+  }
+
+  var wrappedValue: Value {
+    get { return load() }
+    set { store(newValue: newValue) }
+  }
+
+  func load(order: MemoryOrder = .relaxed) { ... }
+  func store(newValue: Value, order: MemoryOrder = .relaxed) { ... }
+  func increment() { ... }
+  func decrement() { ... }
+}
+```
+
+As written, this property wrapper does not access its wrapped value atomically. `wrappedValue.getter` reads the entire `_value` property nonatomically, *before* calling the atomic `load` operation on the copied value. Similarly, `wrappedValue.setter` writes the entire `_value` property nonatomically *after* calling the atomic `store` operation. So, in fact, there is no atomic access to the shared class property, `_value`.
+
+Even if the getter and setter could be made atomic, useful atomic operations, like increment, cannot be built from atomic load and store primitives. The property wrapper in fact encourages race conditions by allowing mutating methods, such as `atomicInt += 1`, to be directly invoked on the nonatomic copy of the wrapped value.
 
 ### Changes from the third reviewed version
 
@@ -1569,4 +1545,4 @@ One could express this either by naming the property directly (as above) or, for
 
 ## Acknowledgments
 
-This proposal was greatly improved throughout its [first pitch](https://forums.swift.org/t/pitch-property-delegates/21895) by many people. Harlan Haskins, Brent Royal-Gordon, Adrian Zubarev, Jordan Rose and others provided great examples of uses of property wrappers (several of which are in this proposal). Adrian Zubarev and Kenny Leung helped push on some of the core assumptions and restrictions of the original proposal, helping to make it more general. Vini Vendramini and David Hart helped tie this proposal together with custom attributes, which drastically reduced the syntactic surface area of this proposal.
+This proposal was greatly improved throughout its [first pitch](https://forums.swift.org/t/pitch-property-delegates/21895) by many people. Harlan Haskins, Becca Royal-Gordon, Adrian Zubarev, Jordan Rose and others provided great examples of uses of property wrappers (several of which are in this proposal). Adrian Zubarev and Kenny Leung helped push on some of the core assumptions and restrictions of the original proposal, helping to make it more general. Vini Vendramini and David Hart helped tie this proposal together with custom attributes, which drastically reduced the syntactic surface area of this proposal.

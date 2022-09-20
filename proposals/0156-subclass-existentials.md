@@ -4,14 +4,14 @@
 * Authors: [David Hart](http://github.com/hartbit), [Austin Zheng](http://github.com/austinzheng)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170320/034123.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0156-class-and-subtype-existentials/5477)
 * Bug: [SR-4296](https://bugs.swift.org/browse/SR-4296)
 
 ## Introduction
 
 This proposal brings more expressive power to the type system by allowing Swift to represent existentials of classes and subtypes which conform to protocols.
 
-[Mailing list discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170123/031066.html)
+[Mailing list discussion](https://forums.swift.org/t/subclass-existentials/5024)
 
 ## Motivation
 
