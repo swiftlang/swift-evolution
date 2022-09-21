@@ -1,7 +1,7 @@
 # Swift Language Version Build Configuration
 
 * Proposal: [SE-0020](0020-if-swift-version.md)
-* Author: [David Farler](https://github.com/bitjammer)
+* Author: [Ashley Garland](https://github.com/bitjammer)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 2.2)**
 * Implementation: [apple/swift@c32fb8e](https://github.com/apple/swift/commit/c32fb8e7b9a67907e8b6580a46717c6a345ec7c6)

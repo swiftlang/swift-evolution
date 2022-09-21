@@ -1,7 +1,7 @@
 # Removing `var` from Function Parameters
 
 * Proposal: [SE-0003](0003-remove-var-parameters.md)
-* Author: [David Farler](https://github.com/bitjammer)
+* Author: [Ashley Garland](https://github.com/bitjammer)
 * Review Manager: [Joe Pamer](https://github.com/jopamer)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0003-removing-var-from-function-parameters-and-pattern-matching/1230)
