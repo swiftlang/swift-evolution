@@ -178,6 +178,29 @@ let h: (take Foo) -> Void = f
 let f2: (Foo) -> Void = h
 ```
 
+Inside of a function or closure body, `take` parameters may be mutated, as can
+the `self` parameter of a `taking func` method. These
+mutations are performed on the value that the function itself took ownership of,
+and will not be evident in any copies of the value that might still exist in
+the caller. This makes it easy to take advantage of the uniqueness of values
+after ownership transfer to do efficient local mutations of the value:
+
+```
+extension String {
+  // Append `self` to another String, using in-place modification if
+  // possible
+  taking func plus(_ other: String) -> String {
+    // Modify our owned copy of `self` in-place, taking advantage of
+    // uniqueness if possible
+    self += other
+    return self
+  }
+}
+
+// This is amortized O(n) instead of O(n^2)!
+let helloWorld = "hello ".plus("cruel ").plus("world")
+```
+
 ## Source compatibility
 
 Adding `take` or `borrow` to a parameter in the language today does not
@@ -214,64 +237,37 @@ changing these annotations to an API should not affect its existing clients.
 
 ## Alternatives considered
 
-### Making `take` parameter bindings mutable inside the callee
+### Leaving `take` parameter bindings immutable inside the callee
 
-It is likely to be common for functions that `take` ownership of their
-parameters to want to modify the value of the parameter they received. Taking
-ownership of a COW value type allows for a caller with the only reference to
-a COW buffer to transfer ownership of that unique reference, and the callee
-can then take advantage of that ownership to do in-place mutation of the
-parameter, allowing for efficiency while still presenting a "pure" functional
-interface externally:
+We propose that `take` parameters should be mutable inside of the callee,
+because it is likely that the callee will want to perform mutations using
+the value it has ownership of. There is a concern that some users may find this
+behavior unintuitive, since those mutations would not be visible in copies
+of the value in the caller. This was the motivation behind
+[SE-0003](https://github.com/apple/swift-evolution/blob/main/proposals/0003-remove-var-parameters.md),
+which explicitly removed the former ability to declare parameters as `var`
+because of this potential for confusion. However, whereas `var` and `inout`
+both suggest mutability, and `var` does not provide explicit directionality as
+to where mutations become visible, `take` on the other hand does not
+suggest any kind of mutability to the caller, and it explicitly states the
+directionality of ownership transfer. Furthermore, with move-only types, the
+chance for confusion is moot, because the transfer of ownership means the
+caller cannot even use the value after the callee takes ownership anyway.
 
-```swift
-extension String {
-  // Append `self` to another String, using in-place modification if
-  // possible
-  taking func plus(_ other: String) -> String {
-    // Transfer ownership of the `self` parameter to a mutable variable
-    var myself = take self
-    // Modify it in-place, taking advantage of uniqueness if possible
-    myself += other
-    return myself
-  }
-}
-
-// This is amortized O(n) instead of O(n^2)!
-let helloWorld = "hello ".plus("cruel ").plus("world")
-```
-
-If this is common enough, we could consider making it so that the parameter
-binding inside a function body for a `take` parameter, or for the `self`
-parameter of a `taking func`, is mutable out of the gate, removing the need
-to reassign it to a local `var`:
-
-```swift
-extension String {
-  // Append `self` to another String, using in-place modification if
-  // possible
-  taking func plus(_ other: String) -> String {
-    // Modify it in-place, taking advantage of uniqueness if possible
-    self += other
-    return self
-  }
-}
-```
-
-This does make changing a `take` parameter to `borrow`, or removing the
-`take` annotation from a parameter, potentially source-breaking, but in a
-purely localized way, since the parameter binding inside the function would
-only become immutable again. There is also still the potential for confusion
-from users who mutate parameters within the function and expect those mutations
-to persist in the caller, which is part of why we removed the ability to declare
-a parameter `var` from early versions of Swift. This might be less of a concern
-when using `take` with move-only types, since without the ability for the caller
-to copy its argument, there's no way for the caller to see the argument after
-the callee takes it and modifies it.
+Another argument for `take` parameters to remain immutable is to serve the
+proposal's stated goal of minimizing the source-breaking impact of
+parameter ownership modifiers. When `take` parameters are mutable,
+changing a `take` parameter to `borrow`, or removing the
+`take` annotation altogether, is potentially source-breaking. However,
+any such breakage is purely localized to the callee; callers are still
+unaffected (as long as copyable arguments are involved). If a developer wants
+to change a `take` parameter back into a `borrow`, they can still assign the
+borrowed value to a local variable and use that local variable for local
+mutation.
 
 ### Naming
 
-We have considered alternative naming schemes for these modifiers:
+We have considered several alternative naming schemes for these modifiers:
 
 - The current implementation in the compiler uses `__shared` and `__owned`,
   and we could remove the underscores to make these simply `shared` and
