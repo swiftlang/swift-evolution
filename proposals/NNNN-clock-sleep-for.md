@@ -1,4 +1,4 @@
-# Feature name
+# Add sleep(for:) to Clock
 
 * Proposal: [SE-NNNN](NNNN-clock-sleep-for.md)
 * Authors: [Brandon Williams](https://github.com/mbrandonw), [Stephen Celis](https://github.com/stephencelis)
