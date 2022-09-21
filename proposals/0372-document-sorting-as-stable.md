@@ -3,9 +3,9 @@
 * Proposal: [SE-0372](0372-document-sorting-as-stable.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Active review (September 7, 2022...September 20, 2022)**
+* Status: **Implemented (Swift 5.8)**
 * Implementation: [apple/swift PR #60936](https://github.com/apple/swift/pull/60936)
-* Review: ([pitch](https://forums.swift.org/t/pitch-document-sorting-as-stable/59880)) ([review](https://forums.swift.org/t/se-0372-document-sorting-as-stable/60165))
+* Review: ([pitch](https://forums.swift.org/t/pitch-document-sorting-as-stable/59880)) ([review](https://forums.swift.org/t/se-0372-document-sorting-as-stable/60165)) ([acceptance](https://forums.swift.org/t/accepted-se-0372-document-sorting-as-stable/60425))
 
 ## Introduction
 
