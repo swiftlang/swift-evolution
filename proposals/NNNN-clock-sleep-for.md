@@ -133,11 +133,11 @@ A single extension method will be added to the `Clock` protocol:
 ```swift
 extension Clock {
   /// Suspends for the given duration.
-  public func sleep<C: Clock>(
+  public func sleep(
     for duration: Duration,
-    tolerance: C.Duration? = nil
+    tolerance: Duration? = nil
   ) async throws {
-    try await self.sleep(until: self.now.advance(by: duration), tolerance: tolerance)
+    try await self.sleep(until: self.now.advanced(by: duration), tolerance: tolerance)
   }
 }
 ```
