@@ -4,7 +4,7 @@
 * Authors: [Brandon Williams](https://github.com/mbrandonw), [Stephen Celis](https://github.com/stephencelis)
 * Review Manager: TBD
 * Status: **Draft implementation**
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/61222)
+* Implementation: [apple/swift#61222](https://github.com/apple/swift/pull/61222)
 
 
 ## Introduction
@@ -133,8 +133,6 @@ A single extension method will be added to the `Clock` protocol:
 ```swift
 extension Clock {
   /// Suspends for the given duration.
-  ///
-  /// - Parameter duration: The duration to wait.
   public func sleep<C: Clock>(
     for duration: Duration,
     tolerance: C.Duration? = nil
