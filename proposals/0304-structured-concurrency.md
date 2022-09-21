@@ -1083,7 +1083,7 @@ This waiting can be performed either:
 - by the code within the task group itself (e.g., using `next()` repeatedly until it returns `nil`, described below), or
 - implicitly in the task group itself when returning from the `body`.
 
-By default, the task group will schedule child tasks added to the group on the default global concurrent executor. In the future is is likely that it will be possible to customize the executor tasks are started on with an optional executor parameter to `addTask`.
+By default, the task group will schedule child tasks added to the group on the default global concurrent executor. In the future it is likely that it will be possible to customize the executor tasks are started on with an optional executor parameter to `addTask`.
 
 ##### Creating TaskGroup child tasks
 
@@ -1135,7 +1135,7 @@ extension ThrowingTaskGroup {
 
 The `addTask` operation always succeeds in adding a new child task to the group, even if the task running the group has been cancelled or the group was cancelled explicitly with `group.cancelAll`. In cases where the task group has already
 been cancelled, the new child task will be created in the `cancelled` state.
-To avoid this, the `saddTaskUnlessCancelled` function checks if a group is cancelled before attempting to create the task, and returns a `Bool` that is true if
+To avoid this, the `addTaskUnlessCancelled` function checks if a group is cancelled before attempting to create the task, and returns a `Bool` that is true if
 the task was successfully created. This allows for simple implementation of groups which should "keep creating tasks until cancelled".
 
 Cancelling a specific task group child task does _not_ cancel the entire group or any of its siblings.
