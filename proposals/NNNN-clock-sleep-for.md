@@ -84,6 +84,12 @@ class FeatureModel: ObservableObject {
 One cannot invoke `sleep(until:)` on a clock existential because the `Instant` has been fully 
 erased, and so there is no way to access `.now` and advance it.
 
+For similar reasons, one cannot invoke `Task.sleep(until:clock:)` with a clock existential:
+
+```swift
+try await Task.sleep(until: self.clock.now.advanced(by: .seconds(5)), clock: self.clock) // 🛑
+```
+
 What we need instead is the `sleep(for:)` method on clocks that allow you to sleep for a duration
 rather than sleeping until an instant:
 
@@ -148,11 +154,11 @@ This will allow one to sleep for a duration with a clock rather than sleeping un
 
 ## Source compatibility, effect on ABI stability, effect on API resilience
 
-As this is an additive change, it should not have any compatability, stability or resilience 
+As this is an additive change, it should not have any compatibility, stability or resilience 
 problems. The only potential problem would be if someone has already run into this shortcoming
 and decided to define their own `sleep(for:)` method on clocks.
 
 ## Alternatives considered
 
-This does not need to be added to the standard library since it is possible for people to define
-it themselves.
+We could leave things as is, and not add this method to the standard library, as it is possible for
+people to define it themselves.
