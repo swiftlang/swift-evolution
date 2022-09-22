@@ -3,8 +3,12 @@
 * Proposal: SE-NNNN
 * Authors: Shantini Vyas, David Smith
 * Review Manager: TBD
-* Status: **Implementation Paused**
+* Status: **Implementation Blocked**
 * Implementation: https://github.com/apple/swift/pull/42237
+
+## Important Note
+
+Existing apps may have already added these conformances in extensions, and Swift does not currently provide a compatible way for the stdlib to add conformances that are duplicates of existing ones from extensions. This proposal is conditional on a solution to this problem being added to the language, and is on hold until then. See the [Source Compatibility](## Source Compatibility, Effect on ABI stability, and Effect on API resilience) section for more details. 
 
 ##Glossary
 * `String View`is not a Swift type per se, but is a helpful catch-all for describing a string or substring's unicode representation, for example `String.UTF8View`. It will be used here to refer to:
