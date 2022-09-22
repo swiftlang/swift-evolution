@@ -114,3 +114,4 @@ In [this bug report](https://github.com/apple/swift/issues/57837) and linked dis
 * Karoy Lorentey 
 * Holly Borla
 * Steve Canon
+* Alex Akers
