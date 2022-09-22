@@ -15,6 +15,7 @@ See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
         <meta name="color-scheme" content="light dark">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
         <link rel="license" href="https://swift.org/LICENSE.txt" />
+        <link rel="preload" href="index.css" as="style">
         <link rel="shortcut icon" sizes="16x16 24x24 32x32 48x48 64x64" type="image/vnd.microsoft.icon" href="https://swift.org/favicon.ico" />
         <link rel="apple-touch-icon" href="https://swift.org/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="57x57" href="https://swift.org/apple-touch-icon-57x57.png" />
@@ -28,6 +29,7 @@ See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
         <link rel="mask-icon" href="https://swift.org/assets/images/icon-swift.svg" color="#F05339" />
         <title>Swift Evolution</title>
         <link href="index.css" rel="stylesheet" type="text/css">
+        <script src="index.js" defer></script>
     <body>
         <div class="app">
             <header>
@@ -39,7 +41,7 @@ See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
             <nav>
                 <div class="nav-contents">
                     <div id="search-container">
-                        <svg id="search-icon" width="17px" height="17px" viewBox="7 5 17 17" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                        <svg decoding="async" id="search-icon" width="17px" height="17px" viewBox="7 5 17 17" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                             <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" transform="translate(8.000000, 6.000000)">
                                 <circle stroke="#333333" cx="6" cy="6" r="6"></circle>
                                 <path d="M10.5,10.5 L14.5,14.5" stroke="#333333" stroke-linecap="square"></path>
@@ -47,7 +49,7 @@ See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
                         </svg>
                         <span class="filter-container">
                             <input id="search-filter" class="filter" title="Search proposals" placeholder="Search" type="search" />
-                            <svg id="clear-button" role="button" tabindex="0" class="hidden" width="14px" height="13px" viewBox="182 7 14 13" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                            <svg decoding="async" id="clear-button" role="button" tabindex="0" class="hidden" width="14px" height="13px" viewBox="182 7 14 13" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                                 <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" transform="translate(183.000000, 8.000000)" stroke-linecap="square">
                                     <path d="M11.6842105,0.305555556 L0.947368421,10.6944444" stroke="#333333"></path>
                                     <path d="M0.947368421,0.305555556 L11.6842105,10.6944444" stroke="#333333"></path>
@@ -56,7 +58,7 @@ See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
                         </span>
                     </div>
                     <span role="button" class="filter-button" aria-label="Toggle status filtering options" aria-pressed="false" tabindex="0">
-                        <svg width="21px" height="21px" viewBox="0 0 21 21" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                        <svg decoding="async" width="21px" height="21px" viewBox="0 0 21 21" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                             <g id="filter-icon" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" transform="translate(1.381818, 0.400000)">
                                 <ellipse class="icon-circle" id="filter-icon-circle" stroke="#888" cx="8.92443193" cy="9.85624994" rx="8.90625" ry="8.90625"></ellipse>
                                 <path d="M3.38221606,6.64717725 L14.3694355,6.64717725" class="icon-line" id="line-top" stroke="#888" stroke-linecap="square"></path>
@@ -92,6 +94,5 @@ See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
                 </div>
             </footer>
         </div>
-        <script src="index.js"></script>
     </body>
 </html>
