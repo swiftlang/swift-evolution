@@ -4,7 +4,7 @@
 * Authors: Shantini Vyas, David Smith
 * Review Manager: TBD
 * Status: **Implementation Blocked**
-* Implementation: https://github.com/apple/swift/pull/42237
+* Implementation: [#42237](https://github.com/apple/swift/pull/42237)
 
 ## Important Note
 
