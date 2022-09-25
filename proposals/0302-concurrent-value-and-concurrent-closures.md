@@ -193,7 +193,7 @@ Swift has [hard coded conformances for tuples](https://github.com/apple/swift-ev
 
 #### Metatype conformance to `Sendable`
 
-Metatypes (such as` Int.Type`, the type produced by the expression `Int.self`) always conform to `Sendable`, because they are immutable.
+Metatypes (such as `Int.Type`, the type produced by the expression `Int.self`) always conform to `Sendable`, because they are immutable.
 
 #### `Sendable` conformance checking for structs and enums
 
@@ -374,7 +374,7 @@ list = await contactList.filteredElements { $0.firstName != "Max" }
 
 // Capturing a 'searchName' string is ok, because String conforms
 // to Sendable.  searchName is captured by value implicitly.
-list = await contactList.filteredElements { $0.firstName==searchName }
+list = await contactList.filteredElements { $0.firstName == searchName }
 
 // @Sendable is part of the type, so passing a compatible
 // function declaration works as well.
