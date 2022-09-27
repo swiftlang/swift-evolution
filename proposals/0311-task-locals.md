@@ -413,7 +413,7 @@ await Lib.$sugar.withValue(.noSugar) {
 
 As expected, because the *detached task* completely discards any contextual information from the creating task, no `.sugar` preferences were automatically carried through to it. This is similar to task priority, which also is never automatically inherited in detached tasks.
 
-If necessary, it is possible is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
+If necessary, it is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
 
 ```swift
 let sugarPreference = Lib.sugar                 // store the sugar preference in task-1
@@ -473,7 +473,7 @@ withTaskGroup(of: String.self) { group in
 }
 ```
 
-This is an an un-supported pattern because the purpose of `group.spawn` (and `group.spawnUnlessCancelled`) is explicitly to spawn off a child-task and return immediately. While the _structure_ of these child-tasks is upheld by no child-task being allowed to escape the task group, the child-tasks do "escape" the scope of the `withValue` — which causes trouble for the internal workings of task locals, which are allocated using an efficient task-local allocation mechanism.
+This is an un-supported pattern because the purpose of `group.spawn` (and `group.spawnUnlessCancelled`) is explicitly to spawn off a child-task and return immediately. While the _structure_ of these child-tasks is upheld by no child-task being allowed to escape the task group, the child-tasks do "escape" the scope of the `withValue` — which causes trouble for the internal workings of task locals, which are allocated using an efficient task-local allocation mechanism.
 
 At the same time, the just shown pattern can be seen as simply wrong usage of the API and programmer error, violating the structured nature of child-tasks. Instead, what the programmer should do in this case is either, set the value for the entire task group, such that all children inherit it:
 
@@ -963,7 +963,7 @@ Building complex server side systems is hard, especially as they are highly conc
 
 #### Contextual Logging
 
-Developers instrument their server side systems using logging, metrics and distributed tracing to gain some insight into how such systems are performing. Improving such observability of back-end systems is crucial to their success, yet also very tedious to manually propagate the context.x
+Developers instrument their server side systems using logging, metrics and distributed tracing to gain some insight into how such systems are performing. Improving such observability of back-end systems is crucial to their success, yet also very tedious to manually propagate the context.
 
 Today developers must pass context explicitly, and with enough cooperation of libraries it is possible to make this process relatively less painful, however it adds a large amount of noise to the already noisy asynchronous functions:
 
