@@ -987,8 +987,8 @@ func makeDinner(context: LoggingContext) async throws -> Meal {
   async let meat = marinateMeat(context: context)
   async let oven = preheatOven(temperature: 350, context: context)
 
-  let dish = Dish(ingredients: await try [veggies, meat])
-  return await try oven.cook(dish, duration: .hours(3), context: context)
+  let dish = Dish(ingredients: try await [veggies, meat])
+  return try await oven.cook(dish, duration: .hours(3), context: context)
 }
 ```
 
@@ -1098,12 +1098,12 @@ If Swift were to get "function wrappers", tracing a set of asynchronous function
 
 @Traced
 func makeDinner() async throws -> Meal {
-  async let veggies = await try chopVegetables()
+  async let veggies = try await chopVegetables()
   async let meat = await marinateMeat()
-  async let oven = await try preheatOven(temperature: 350)
+  async let oven = try await preheatOven(temperature: 350)
 
   let dish = Dish(ingredients: await [veggies, meat])
-  return await try oven.cook(dish, duration: .hours(3))
+  return try await oven.cook(dish, duration: .hours(3))
 }
 ```
 
