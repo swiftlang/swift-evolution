@@ -4,7 +4,6 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 5.7)**
-* Implementation: [apple/swift#41996](https://github.com/apple/swift/pull/41996), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-macos/120/artifact/branch-main/swift-PR-41996-120-osx.tar.gz)
 * Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0352-implicitly-opened-existentials/57553)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/77374319a7d70c866bd197faada46ecfce461645/proposals/0352-implicit-open-existentials.md)
 * Previous Review: [First review](https://forums.swift.org/t/se-0352-implicitly-opened-existentials/56557/52)
@@ -191,6 +190,16 @@ func testOpenSimple(p: any P) {
 }
 ```
 
+An argument of (non-optional) existential type can be opened to be passed to an optional parameter:
+
+```swift
+func openOptional<T: P>(_ value: T?) { }
+
+func testOpenToOptional(p: any P) {
+  openOptional(p) // okay, opens 'p' and binds 'T' to its underlying type
+}
+```
+
 It's also possible to open an `inout` parameter. The generic function will operate on the underlying type, and can (e.g.) call `mutating` methods on it, but cannot change its *dynamic* type because it doesn't have access to the existential box:
 
 ```swift
@@ -225,13 +234,17 @@ func testCannotOpenMultiple(array: [any P], p1: any P, p2: any P, xp: X<any P>, 
 }
 ```
 
-The case of optionals is somewhat interesting. It's clear that the call `cannotOpen6(pOpt)` cannot work because `pOpt` could be `nil`, in which case there is no type to bind `T` to. We *could* choose to allow opening a non-optional existential argument when the parameter is optional, e.g.,
+The case of optionals is somewhat interesting. The call `cannotOpen6(pOpt)` cannot work because `pOpt` could be `nil`, in which case there is no type to bind `T` to. If one has an optional value of existential type, it would need to be unwrapped to perform the call, e.g.,
 
 ```swift
-cannotOpen6(p1) // we *could* open here, binding T to the underlying type of p1, but choose not to 
+if let p = pOpt {
+  cannotOpen6(p) // okay, T binds to the underlying type of p
+} else {
+  ...
+}
 ```
 
-but this proposal doesn't allow this because it would be odd to allow this call but not the `cannotOpen6(pOpt)` call.
+> *Note*: The original version of this proposal disallowed opening when an existential argument is passed to a parameter of optional type, due to concerns about confusion over the discrepency between the `cannotOpen6(p)` and `cannotOpen6(pOpt)` cases.
 
 A value of existential metatype can also be opened, with the same limitations as above.
 
@@ -649,6 +662,10 @@ func identityTricks(p: any Equatable) {
 This approach is much more complex because it introduces value tracking into the type system (where was this existential value produced?), at which point mutations to variables can affect the static types in the system. 
 
 ## Revisions
+
+Post-review revision:
+
+* Enable opening an existential argument when the corresponding parameter is of optional type.
 
 Fifth revision:
 
