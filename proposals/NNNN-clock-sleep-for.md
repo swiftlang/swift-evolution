@@ -139,6 +139,9 @@ A single extension method will be added to the `Clock` protocol:
 ```swift
 extension Clock {
   /// Suspends for the given duration.
+  ///
+  /// Prefer to use the `sleep(until:tolerance:)` method on `Clock` if you have access to an 
+  // absolute instant. 
   public func sleep(
     for duration: Duration,
     tolerance: Duration? = nil
@@ -147,6 +150,8 @@ extension Clock {
   }
 }
 ```
+
+<!-- We should make sure that we talk in the documentation about why this kind of method should only be used as a convenience API and why the primary API should traffic in absolute clock values. But with that said, I absolutely agree that it's pretty much always going to be useful to have this kind of convenience alongside that primary API, and so this proposal seems like a nice addition. -->
 
 This will allow one to sleep for a duration with a clock rather than sleeping until an instant.
 
