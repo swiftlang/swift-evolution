@@ -30,7 +30,7 @@ is API clients. When you run your feature in production you want the API client 
 network requests, but when run in tests you may want it to just return some mock data.
 
 Due to the current design of `Clock`, it is not possible to inject a clock existential into a 
-feature so that you can use a `Continuous` clock in production, but some other kind of controllable
+feature so that you can use a `ContinuousClock` in production, but some other kind of controllable
 clock in tests.
 
 For example, suppose you have an observable object for the logic of some feature that wants to show
