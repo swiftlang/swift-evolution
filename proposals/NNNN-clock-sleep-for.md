@@ -141,7 +141,7 @@ extension Clock {
   /// Suspends for the given duration.
   ///
   /// Prefer to use the `sleep(until:tolerance:)` method on `Clock` if you have access to an 
-  // absolute instant. 
+  /// absolute instant. 
   public func sleep(
     for duration: Duration,
     tolerance: Duration? = nil
