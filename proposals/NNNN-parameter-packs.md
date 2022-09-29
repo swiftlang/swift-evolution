@@ -388,7 +388,7 @@ func ranges<T..., U...>(values: T..., otherValues: U...) where T: Comparable, le
 
 In the above code, `values...` in the expansion pattern could mean either:
 
-1. The postfix `...` operator is called on each element in `values`, and the result is expanded pairwise with `otherValues` such that each argument has type `(ClosedRange<T>, U)`
+1. The postfix `...` operator is called on each element in `values`, and the result is expanded pairwise with `otherValues` such that each argument has type `(PartialRangeFrom<T>, U)`
 2. `values` is expanded into each tuple passed to `acceptAnything`, with each element of `otherValues` appended onto the end of the tuple, and each argument has type `(T... U)`
 
 Like the ambiguity with non-pack variadic parameters, the pack expansion interpretation of `...` is preferred in expressions. This corresponds to the second meaning above. It is still possible to write code with the first meaning, by factoring out the call to the postfix closed-range operator into a function:
@@ -397,11 +397,11 @@ Like the ambiguity with non-pack variadic parameters, the pack expansion interpr
 func acceptAnything<T...>(_: T...) {}
 
 func ranges<T..., U...>(values: T..., otherValues: U...) where T: Comparable, length(Ts...) == length(Us...) {
-  func range<C: Comparable>(from comparable: C) -> ClosedRange<C> {
+  func range<C: Comparable>(from comparable: C) -> PartialRangeFrom<C> {
     return comparable...
   }
   
-  acceptAnything((range(from: values)..., otherValues)...) 
+  acceptAnything((range(from: values), otherValues)...)
 }
 ```
 
