@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (September 30...October 10th, 2022)**
 * Implementation: [apple/swift#60839](https://github.com/apple/swift/pull/60839)
-* Review: ([pitch](https://forums.swift.org/t/pitch-lift-all-limitations-on-variables-in-result-builders/60460))
+* Review: ([pitch](https://forums.swift.org/t/pitch-lift-all-limitations-on-variables-in-result-builders/60460)) ([review](https://forums.swift.org/t/se-0373-lift-all-limitations-on-variables-in-result-builders/60592))
 
 ## Introduction
 
