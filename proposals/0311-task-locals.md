@@ -214,7 +214,7 @@ The same property holds for child tasks. For example, if we used a task group to
 ```swift
 await MyLibrary.$requestID.withValue("1234-5678") {
   await withTaskGroup(of: String.self) { group in 
-    group.spawn { // spawns child task running this closure
+    group.addTask { // add child task running this closure
       MyLibrary.requestID // returns "1234-5678", which was bound by the parent task
     }
                                         
@@ -352,9 +352,9 @@ And finally, if we wanted to set the `withWasabi` reference for most of the task
 
 ```swift
 await Lib.$wasabiPreference.withValue(.withWasabi) {
-  spawn let firstMeal = cookDinner()
-  spawn let secondMeal = cookDinner()
-  spawn let noWasabiMeal = Lib.$wasabiPreference.withValue(.withoutWasabi) {
+  async let firstMeal = cookDinner()
+  async let secondMeal = cookDinner()
+  async let noWasabiMeal = Lib.$wasabiPreference.withValue(.withoutWasabi) {
     cookDinner()
   }
   await firstMeal, secondMeal, noWasabiMeal
@@ -413,7 +413,7 @@ await Lib.$sugar.withValue(.noSugar) {
 
 As expected, because the *detached task* completely discards any contextual information from the creating task, no `.sugar` preferences were automatically carried through to it. This is similar to task priority, which also is never automatically inherited in detached tasks.
 
-If necessary, it is possible is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
+If necessary, it is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
 
 ```swift
 let sugarPreference = Lib.sugar                 // store the sugar preference in task-1
@@ -454,7 +454,7 @@ Please note that what is copied here are only the bindings, i.e. if a reference 
 
 One other situation where a task might out-live the `withValue` lexical-scope is a specific anti-pattern within task groups. This situation is reliabily detected at runtime and cause a crash when it is encountered, along with a detailed explanation of the issue.
 
-This one situation where a `withValue` scope is not enough to encapsulate the lifetime of a child-task is if the binding is performed _exactly_ around a TaskGroup's `group.spawn`, like this:
+This one situation where a `withValue` scope is not enough to encapsulate the lifetime of a child-task is if the binding is performed _exactly_ around a TaskGroup's `group.addTask`, like this:
 
 ```swift
 withTaskGroup(of: String.self) { group in 
@@ -463,33 +463,33 @@ withTaskGroup(of: String.self) { group in
     // error: task-local value: detected illegal task-local value binding at Example.swift:68. 
     // <... more details ... >
 
-    group.spawn { 
+    group.addTask { 
       Trace.name
     }
   } // end-withValue
   
-  // the spawned child-task lives until it is pulled out of the group by next() here:
+  // the added child-task lives until it is pulled out of the group by next() here:
   return group.next()!
 }
 ```
 
-This is an an un-supported pattern because the purpose of `group.spawn` (and `group.spawnUnlessCancelled`) is explicitly to spawn off a child-task and return immediately. While the _structure_ of these child-tasks is upheld by no child-task being allowed to escape the task group, the child-tasks do "escape" the scope of the `withValue` — which causes trouble for the internal workings of task locals, which are allocated using an efficient task-local allocation mechanism.
+This is an un-supported pattern because the purpose of `group.addTask` (and `group.addTaskUnlessCancelled`) is explicitly to add off a child-task and return immediately. While the _structure_ of these child-tasks is upheld by no child-task being allowed to escape the task group, the child-tasks do "escape" the scope of the `withValue` — which causes trouble for the internal workings of task locals, which are allocated using an efficient task-local allocation mechanism.
 
 At the same time, the just shown pattern can be seen as simply wrong usage of the API and programmer error, violating the structured nature of child-tasks. Instead, what the programmer should do in this case is either, set the value for the entire task group, such that all children inherit it:
 
 ```swift
 await Trace.$name.withValue("some(func:)") { // OK!
   await withTaskGroup(...) { group in
-    group.spawn { ... }
+    group.addTask { ... }
   }
 }
 ```
 
-or, set it _within_ the spawned child-task, as then the task-local allocation will take place inside the child-task, and the lifetime of the value will be correct again, i.e. bounded by the closure lifetime of the spawned child-task:
+or, set it _within_ the added child-task, as then the task-local allocation will take place inside the child-task, and the lifetime of the value will be correct again, i.e. bounded by the closure lifetime of the added child-task:
 
 ```swift
 await withTaskGroup(...) { group in
-  group.spawn {
+  group.addTask {
     await Trace.$name.withValue("some(func:)") { // OK!
       ...
     }
@@ -533,13 +533,13 @@ func simple() async {
 
 The same would work if the second `print` would be multiple asynchronous function calls "deeper" from the `withValue` invocation.
 
-The same mechanism also works with tasks spawned in task groups or async let declarations, because those also construct child tasks, which then inherit the bound task-local values of the outer scope.
+The same mechanism also works with tasks added in task groups or async let declarations, because those also construct child tasks, which then inherit the bound task-local values of the outer scope.
 
 ```swift
 await Lib.$number.withValue(42) {
   
   await withTaskGroup(of: Int.self) { group in 
-    group.spawn { 
+    group.addTask { 
       Lib.number // task group child-task sees the "42" value
     }
     return group.next()! // 42
@@ -963,7 +963,7 @@ Building complex server side systems is hard, especially as they are highly conc
 
 #### Contextual Logging
 
-Developers instrument their server side systems using logging, metrics and distributed tracing to gain some insight into how such systems are performing. Improving such observability of back-end systems is crucial to their success, yet also very tedious to manually propagate the context.x
+Developers instrument their server side systems using logging, metrics and distributed tracing to gain some insight into how such systems are performing. Improving such observability of back-end systems is crucial to their success, yet also very tedious to manually propagate the context.
 
 Today developers must pass context explicitly, and with enough cooperation of libraries it is possible to make this process relatively less painful, however it adds a large amount of noise to the already noisy asynchronous functions:
 
@@ -987,8 +987,8 @@ func makeDinner(context: LoggingContext) async throws -> Meal {
   async let meat = marinateMeat(context: context)
   async let oven = preheatOven(temperature: 350, context: context)
 
-  let dish = Dish(ingredients: await try [veggies, meat])
-  return await try oven.cook(dish, duration: .hours(3), context: context)
+  let dish = Dish(ingredients: try await [veggies, meat])
+  return try await oven.cook(dish, duration: .hours(3), context: context)
 }
 ```
 
@@ -1098,12 +1098,12 @@ If Swift were to get "function wrappers", tracing a set of asynchronous function
 
 @Traced
 func makeDinner() async throws -> Meal {
-  async let veggies = await try chopVegetables()
+  async let veggies = try await chopVegetables()
   async let meat = await marinateMeat()
-  async let oven = await try preheatOven(temperature: 350)
+  async let oven = try await preheatOven(temperature: 350)
 
   let dish = Dish(ingredients: await [veggies, meat])
-  return await try oven.cook(dish, duration: .hours(3))
+  return try await oven.cook(dish, duration: .hours(3))
 }
 ```
 
@@ -1254,7 +1254,7 @@ We have specific designs in mind with regards to `Progress` monitoring types how
 - v4: Changed surface API to be focused around `@TaskLocal` property wrapper-style key definitions.
   - introduce API to bind task-local values in synchronous functions, through `UnsafeCurrentTask`
   - allude to `async` (or `send`) as the way to carry task-local values rather than forcing them into a detached task
-  - explain an anti-pattern that will be detected and cause a crash if used around wrapping a `group.spawn` with a task local binding. Thank you to @Lantua over on the Swift Forums for noticing this specific issue.
+  - explain an anti-pattern that will be detected and cause a crash if used around wrapping a `group.addTask` with a task local binding. Thank you to @Lantua over on the Swift Forums for noticing this specific issue.
 - v3.2: Cleanups as the proposal used outdated wordings and references to proposals that since have either changed or been accepted already. 
   - No semantic changes in any of the mechanisms proposed.
   - Change mentions of `ConcurrentValue` to `Sendable` as it was since revised and accepted.
