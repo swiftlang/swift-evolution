@@ -101,7 +101,7 @@ The change is purely semantic, without any new syntax. It allows variables of al
 
 These variables will be treated just like they are treated in regular functions.  All of the ordinary semantic checks to verify their validity will still be performed, and invalid declarations (based on the standard rules) will still be rejected by the compiler.
 
-There is one notable exception from this general rule - declaration of an uninitialized variable is going to be rejected by the compiler if the result builder doesn't support `buildExpression(_: Void)` operation as stated by [SE-0289](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md#assignments).
+There is one notable exception to this general rule. Initializing a variable after its declaration requires writing an assignment to it, and assignments require the result builder to support `Void` results, as described in [SE-0289](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md#assignments).  If the result builder does not support `Void` results (whether with an explicit `buildExpression` or just by handling them in `buildBlock`), transformed functions will not be allowed to contain uninitialized declarations.
 
 
 ## Source compatibility
