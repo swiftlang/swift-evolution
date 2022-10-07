@@ -3,8 +3,8 @@
 * Proposal: [SE-0026](0026-abstract-classes-and-methods.md)
 * Author: David Scrève
 * Review Manager: [Joe Groff](https://github.com/jckarter/)
-* Status: **Deferred**
-* Decision Notes: [Rationale](https://forums.swift.org/t/deferred-se-0026-abstract-classes-and-methods/1705)
+* Status: **Rejected**
+* Review: ([pitch](https://forums.swift.org/t/proposal-draff-abstract-classes-and-methods/965)) ([review](https://forums.swift.org/t/review-se-0026-abstract-classes-and-methods/1580)) ([deferral](https://forums.swift.org/t/deferred-se-0026-abstract-classes-and-methods/1705)) ([rejection](https://forums.swift.org/t/returning-or-rejecting-all-the-deferred-evolution-proposals/60724))
 
 ## Introduction
 
@@ -13,8 +13,6 @@ abstract with partial implementation. Protocol and protocol extensions provide t
 they cannot have attributes as classes have.
 A partial class combines the behavior of a class with the requirement of implementing methods
 in inherited class like protocols.
-
-[Swift-Evolution Discussion](https://forums.swift.org/t/proposal-draff-abstract-classes-and-methods/965)
 
 ## Motivation
 
