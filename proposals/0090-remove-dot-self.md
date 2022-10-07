@@ -3,9 +3,7 @@
 * Proposal: [SE-0090](0090-remove-dot-self.md)
 * Authors: [Joe Groff](https://github.com/jckarter), [Tanner Nelson](https://github.com/tannernelson)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Deferred**
-* Decision Notes: [Rationale](https://forums.swift.org/t/deferred-se-0090-remove-self-and-freely-allow-type-references-in-expressions/2781)
-* Revision: 2
+* Status: **Returned for revision**
 * Review: ([pitch](https://forums.swift.org/t/making-self-after-type-optional/1737)) ([review](https://forums.swift.org/t/review-se-0090-remove-self-and-freely-allow-type-references-in-expressions/2664)) ([deferral](https://forums.swift.org/t/deferred-se-0090-remove-self-and-freely-allow-type-references-in-expressions/2781)) ([return for revision](https://forums.swift.org/t/returning-or-rejecting-all-the-deferred-evolution-proposals/60724))
 
 ## Introduction
