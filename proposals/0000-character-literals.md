@@ -39,12 +39,15 @@
 	Int("0123") as Any // >Optional(123)< Optional<Int>
 	Int('3') // >51< Int
 	'a'+1 //  >98< Int
+	['a', 'b'] as [Int8], // >[97, 98]< Array<Int8>
+	'a' * 'b' as Int8, // overflows at compilation
+	'b' - 'a' + 10 // >11< Int
 	Int('€') as Any // >nil< Optional<Int>
 	"123".firstIndex(of: '2') as Any 
 		// >Optional(Swift.String.Index(_rawBits: 65799))< Optional<Index>
 	'👩🏼‍🚀'.asciiValue as Any /// >nil< Optional<UInt8>
 	('😎' as UnicodeScalar).value // >128526< UInt32
-	('👩🏼‍🚀' as UnicodeScalar).value // does not compile
+	('👩🏼‍🚀' as UnicodeScalar).value // will not compile
 ```
  ### Single quotes in Swift, a historical perspective
 
