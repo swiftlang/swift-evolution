@@ -180,7 +180,7 @@ The `App` manifest needs to explicitly define unique names for the conflicting m
 }
 ```
 
-SwiftPM will perform validations when it parses `moduleAliases`; for each entry, it will check whether the given alias is a unique name, whether there is a conflict among aliases, whether the specified module is built from source (pre-compiled modules cannot be rebuilt to respect the rename), and whether the module is a pure Swife module (see **Requirements/Limitations** section for more details). 
+SwiftPM will perform validations when it parses `moduleAliases`; for each entry, it will check whether the given alias is a unique name, whether there is a conflict among aliases, whether the specified module is built from source (pre-compiled modules cannot be rebuilt to respect the rename), and whether the module is a pure Swift module (see **Requirements/Limitations** section for more details). 
 
 It will also check if any aliases are defined in upstream packages and override them if necessary. For example, if the `swift-game` package were modified per below and defined its own alias `SwiftUtils` for module `Utils` from a dependency package, the alias defined in `App` will override it, thus the `Utils` module from `swift-utils` will be built as `GameUtils`. 
 
