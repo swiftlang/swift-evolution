@@ -23,7 +23,18 @@
 
  We propose to adopt the `'x'` as an alternative syntax for all textual literal types up to and including `ExtendedGraphemeClusterLiteral`, but not including `StringLiteral`. These literals will be used to express `Character`, `Unicode.Scalar`, and types like `UTF16.CodeUnit` in the standard library. These literals would have a default type of `Character`, as `Character` is the preferred element type of `String`. In addition where the character literal is a single ASCII code point conversions to an integer value are made available using a new `ExpressibleByASCIILiteral` conformance.
 
- Use of single quotes for character/scalar literals is highly precedented in other languages, including C, Objective-C, C++, Java, Elm, and Rust, although different languages have slightly differing ideas about what a “character” is. We choose to use the single quote syntax specifically because it reinforces the notion that strings and character values are different: the former is a sequence, the later is an element (though a single element can itself be a `String`). Character types also don’t support string literal interpolation, which is another reason to move away from double quotes.
+ Use of single quotes for character/scalar literals is highly precedented in other languages, including C, Objective-C, C++, Java, Elm, and Rust, although different languages have slightly differing ideas about what a “character” is. We choose to use the single quote syntax specifically because it reinforces the notion that strings and character values are different: the former is a sequence, the later is an element (though a single element can itself be a `String`). Character types also don’t support string literal interpolation and can be obtimized, which is another reason to move away from double quotes.
+ 
+ Advantages for a developer to migrate to the single quote distinction:
+ 
+  * Differentiate in the source when a literal is intended to be a Character or UnicodeScalar
+  * Distinct default type of `Character` making available that type's methods and properties.
+  * Compile time best-effort check that the literal is in fact a single Character/Unicode grapheme.
+
+ Improvements to the new implementation over that previously reviewed:
+ 
+  * SingleQuoted literals have their own new `ExpressibleBy` marker protocols preventing source breaking changes to the use of double quoted literals in existing source.
+  * Distinct protocol for ASCII literals further localising the more contentious integer conversions.
  
  ### Example usage
  
@@ -37,17 +48,17 @@
 	'1'+'1' as String // >11< String
 	'1'+'1' as Int // >98< Int
 	Int("0123") as Any // >Optional(123)< Optional<Int>
+	Int('€') as Any // >nil< Optional<Int>
 	Int('3') // >51< Int
 	'a'+1 //  >98< Int
 	['a', 'b'] as [Int8], // >[97, 98]< Array<Int8>
 	'a' * 'b' as Int8, // overflows at compilation
 	'b' - 'a' + 10 // >11< Int
-	Int('€') as Any // >nil< Optional<Int>
 	"123".firstIndex(of: '2') as Any 
 		// >Optional(Swift.String.Index(_rawBits: 65799))< Optional<Index>
 	'👩🏼‍🚀'.asciiValue as Any /// >nil< Optional<UInt8>
 	('😎' as UnicodeScalar).value // >128526< UInt32
-	('👩🏼‍🚀' as UnicodeScalar).value // will not compile
+	('👩🏼‍🚀' as UnicodeScalar).value // compilation error
 ```
  ### Single quotes in Swift, a historical perspective
 
