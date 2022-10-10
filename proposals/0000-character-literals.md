@@ -74,19 +74,27 @@
 
  Given that, and the desire for lightweight syntax for single character syntax, and the precedent in other languages for characters, it is natural to use single quotes for this purpose.
 
- ## Detailed design
+## Detailed design
 
  This is a change that is internal to the Swift compiler and does not affect how these literal values are represented at runtime and hence does not affect the ABI. Single quoted literals are largely identical to double quoted `String` literals, supporting the same existing escape syntax, and they reuse the same code in the lexer which happened to already support parsing single quoted syntax. However, the compiler would in addition perform a best-effort attempt at validating that they contain a single extended grapheme cluster at compile time, as it currently does when an `as Character` type coercion annotation is present. Validation behaviour for `Unicode.Scalar` literals will be unaffected. 
-
+ 
+```Swift
+// Modified String literal protocol hierarchy:
+ExpressibleByStringLiteral
+  ↳ ExpressibleByExtendedGraphemeClusterLiteral
+      ↳ ExpressibleByUnicodeScalarLiteral
+          ↳ @_marker ExpressibleBySingleQuotedLiteral
+              ↳ @_marker ExpressibleByASCIILiteral
+```
 This is realised by introducing two new `ExpressibleBy` marker protocols: `ExpressibleBySingleQuotedLiteral` and `ExpressibleByASCIILiteral` which are inserted above the existing `ExpressibleByUnicodeScalarLiteral` in the double quoted literal protocols. As they are prefixed with `@_marker` it is assumed this will not affect the ABI of the existing protocol's witness table layouts. The `ExpressibleBySingleQuotedLiteral` is used only to change the default type of single quoted literals in an expression without type context and the `ExpressibleByASCIILiteral` used to gate the ASCII to integer value conversions. While the inheritance relationship of the ABI-locked `ExpressibleBy` protocols technically entails that `Character` and `Unicode.Scalar` literals can be implicitly promoted to `String` literals, it would be possible in future for the compiler to statically reject such cases at the type checking stage, without affecting ABI, in the interest of untangling the various textual literal forms. As literal delimiters are a purely compile-time construct, and all double-quoted literals currently default to `String`, this will have zero impact on all existing Swift code.
 
  ## Source compatibility
 
-As the use of the new single quoted syntax is opt-in existing code will continue to compile as before i.e. the proposed implementation is not source breaking. Only where the user has opted to use the new single quoted spelling will the integer conversions be available. Ti is possible to add a warning and fix-it to prompt the user to move to the new syntax in the course of time. In practice, the Character and Unicode.Scalar types occur do not occur frequently in code so this would not be an arduous migration.
+As the use of the new single quoted syntax is opt-in existing code will continue to compile as before i.e. the proposed implementation is not source breaking. Only where the user has opted to use the new single quoted spelling will the integer conversions be available. This is possible to add a warning and fix-it to prompt the user to move to the new syntax in the course of time. In practice, the Character and Unicode.Scalar types occur do not occur frequently in code so this would not be an arduous migration.
 
  ## Effect on ABI stability
 
- Assuming injecting `@_marker` protocols does not alter witness table layout and ABI this is a purely lexer- and type checker-level change which does not affect the storage or entry points of `Character` and `Unicode.Scalar`. These initializers are an implementation artifact of Swift's protocol-driven literals model, and are meant to be automatically invoked by the compiler. As they are not intended for “public consumption”, we see no reason to continue having the compiler invoke them.
+ Assuming injecting `@_marker` protocols does not alter witness table layout and ABI, this is a purely lexer- and type checker-level change which does not affect the storage or entry points of `Character` and `Unicode.Scalar`. These initializers are an implementation artifact of Swift's protocol-driven literals model, and are meant to be automatically invoked by the compiler. As they are not intended for “public consumption”, we see no reason to continue having the compiler invoke them.
 
  ## Effect on API resilience
 
