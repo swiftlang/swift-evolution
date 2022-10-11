@@ -10,7 +10,7 @@
 
 ## Introduction
 
-SE-0303 introduced the ability to define *build tool plugins* in SwiftPM, allowing custom tools to be invoked while building a package. In support of this, SE-0303 introduced a minimal initial API through which plugins can access information about the target for which they are invoked.
+[SE-0303](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md) introduced the ability to define *build tool plugins* in SwiftPM, allowing custom tools to be invoked while building a package. In support of this, SE-0303 introduced a minimal initial API through which plugins can access information about the target for which they are invoked.
 
 This proposal extends the plugin API to provide more context, including a richer representation of the package graph. This is in preparation for supporting new kinds of plugins in the future.
 
