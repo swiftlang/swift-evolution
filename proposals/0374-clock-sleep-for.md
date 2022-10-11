@@ -5,6 +5,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (Oct 11 ... 25, 2022)**
 * Implementation: [apple/swift#61222](https://github.com/apple/swift/pull/61222)
+* Review: ([pitch](https://forums.swift.org/t/pitch-clock-sleep-for/60376)) ([review](https://forums.swift.org/t/se-0374-add-sleep-for-to-clock/60787))
 
 
 ## Introduction
