@@ -16,7 +16,7 @@ This proposal extends SwiftPM binary targets to also support other kinds of preb
 
 ## Motivation
 
-The Swift Package Manager’s `binaryTarget` type lets packages vend libraries that either cannot be built in Swift Package Manager for technical reasons, or for which the source code cannot be published for legal or other reasons.
+The Swift Package Manager’s [`binaryTarget` type](https://github.com/apple/swift-evolution/blob/main/proposals/0272-swiftpm-binary-dependencies.md) lets packages vend libraries that either cannot be built in Swift Package Manager for technical reasons, or for which the source code cannot be published for legal or other reasons.
 
 In the current version of SwiftPM, binary targets only support libraries in an Xcode-oriented format called *XCFramework*, and only for Apple platforms.
 
