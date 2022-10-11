@@ -1,9 +1,9 @@
 # Add sleep(for:) to Clock
 
-* Proposal: [SE-NNNN](NNNN-clock-sleep-for.md)
+* Proposal: [SE-0374](0374-clock-sleep-for.md)
 * Authors: [Brandon Williams](https://github.com/mbrandonw), [Stephen Celis](https://github.com/stephencelis)
-* Review Manager: TBD
-* Status: **Draft implementation**
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (Oct 11 ... 25, 2022)**
 * Implementation: [apple/swift#61222](https://github.com/apple/swift/pull/61222)
 
 
