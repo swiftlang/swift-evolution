@@ -1,10 +1,11 @@
 # Opening existential arguments to optional parameters
 
-* Proposal: [SE-NNNN](NNNN-opening-existential-optional.md)
+* Proposal: [SE-0375](0375-opening-existential-optional.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active Review (October 11...25, 2022)**
 * Implementation: [apple/swift#61321](https://github.com/apple/swift/pull/61321)
+* Review: ([pitch](https://forums.swift.org/t/mini-pitch-for-se-0352-amendment-allow-opening-an-existential-argument-to-an-optional-parameter/60501))
 
 ## Introduction
 
@@ -39,8 +40,6 @@ func test(p: any P) {
   acceptNonOptionalThunk(p) // workaround for SE-0352 to get a call to acceptOptional with opened existential
 }
 ```
-
-Swift-evolution thread: [Pitch](https://forums.swift.org/t/mini-pitch-for-se-0352-amendment-allow-opening-an-existential-argument-to-an-optional-parameter/60501)
 
 ## Proposed solution
 
