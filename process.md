@@ -90,6 +90,29 @@ update the proposal's state in the [swift-evolution
 repository][swift-evolution-repo] to reflect that decision.
 
 ## Proposal states
+
+```mermaid
+flowchart LR
+  %% <https://mermaid-js.github.io/>
+
+  %% Nodes:
+  1{{"Awaiting\nreview"}}
+  2{{"Scheduled\nfor review"}}
+  3{"Active\nreview"}
+  4["Returned\nfor revision"]
+  5(["Withdrawn"])
+  6(["Rejected"])
+  7_8["Accepted\n(with revisions)"]
+  9[["Previewing"]]
+  10(["Implemented"])
+
+  %% Links:
+  1 ==> 3 ==> 7_8 ==> 10
+  1 -.-> 2 -.-> 3 -.-> 4 -.-> 5 & 1
+  3 -.-> 6
+  7_8 -.-> 9 -.-> 10
+```
+
 A given proposal can be in one of several states:
 
 * **Awaiting review**: The proposal is awaiting review. Once known, the dates
