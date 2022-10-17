@@ -416,7 +416,8 @@ for particular variables or scopes. Operations that borrow
 a value allow the same value to continue being used, whereas operations that
 take a value destroy it and prevent its continued use. This makes the
 convention used for move-only parameters a much more important part of their
-API contract:
+API contract, since it directly affects whether the value is still available
+after the operation:
 
 ```swift
 moveonly struct FileHandle { ... }
@@ -444,6 +445,40 @@ func hackPasswords() throws -> HackedPasswords {
   return hackPasswordData(contents)
 }
 ```
+
+When protocol requirements have parameters of move-only type, the ownership
+convention of the corresponding parameters in an implementing method will need to
+match exactly, since they cannot be implicitly copied in a thunk:
+
+```
+protocol WritableToFileHandle {
+  func write(to fh: borrow FileHandle)
+}
+
+extension String: WritableToFileHandle {
+  // error: does not satisfy protocol requirement, ownership modifier for
+  // parameter of move-only type `FileHandle` does not match
+  /*
+  func write(to fh: take FileHandle) {
+    ...
+  }
+   */
+
+  // This is OK:
+  func write(to fh: borrow FileHandle) {
+    ...
+  }
+}
+```
+
+All generic and existential types in the language today are assumed to be
+copyable, but copyability will need to become an optional constraint in order
+to allow move-only types to conform to protocols and be used in generic
+functions. When that happens, the need for strict matching of ownership
+modifiers in protocol requirements would extend also to any generic parameter
+types, associated types, and existential types that are not required to be
+copyable, as well as the `Self` type in a protocol that does not require
+conforming types to be copyable.
 
 ### `set`/`out` parameter convention
 
