@@ -133,21 +133,27 @@ func who(_ z: NonSendableType) async {
   // Sendable.
 }
 ```
-
+---
 
 ## Detailed design
 
-In Swift, a method can be referenced as an unapplied function by writing its fully-qualified name. Consider the type signatures of the following methods:
+In Swift, a method can be referenced as an unapplied function by writing its fully-qualified name. To make the proposed changes more concrete, consider the type signatures of the following methods:
 
 ```swift
+actor A {
+  nonisolated func nonIsoMethod(_: NonSendableType) -> V {}
+  func actorMethod1(_: NonSendableType) -> V {}
+  func actorMethod2(_: V) -> V {}
+}
+
 final class S: Sendable { // S stands for Sendable
-  func nonIsoMethod(_: NonSendableType) -> R {}
+  func nonIsoMethod(_: NonSendableType) -> V {}
   @MainActor func mainActorMethod1(_: NonSendableType) -> V {}
   @MainActor func mainActorMethod2(_: V) -> V {}
 }
 
 class P { // P stands for "Pinned", a non-sendable type.
-  func nonIsoMethod(_: NonSendableType) -> R {}
+  func nonIsoMethod(_: NonSendableType) -> V {}
   @MainActor func mainActorMethod1(_: NonSendableType) -> V {}
   @MainActor func mainActorMethod2(_: V) -> V {}
 }
@@ -155,21 +161,29 @@ class P { // P stands for "Pinned", a non-sendable type.
 extension V: Sendable {}
 ```
 
-This proposal specifies that the types of these methods depend on the isolation of the context in which the methods are referenced. For references in a non-matching context like `nonisolated`, the types are:
+This proposal specifies that the types of these methods depend on the isolation of the context in which the methods are referenced. For references originating in a generally non-matching context like `nonisolated`, the most general types of the methods above are:
 
 ```swift
-S.nonIsoMethod     : @Sendable (S) -> (@Sendable (NonSendableType) -> R)
-S.mainActorMethod1 : @Sendable (S) -> ((NonSendableType) async -> V)
+A.nonIsoMethod : @Sendable (A) -> (@Sendable (NonSendableType) -> V))
+A.actorMethod1 : ⊥  // not accessible
+A.actorMethod2 : @Sendable (A) -> (@Sendable (V) async -> V)
+
+S.nonIsoMethod     : @Sendable (S) -> (@Sendable (NonSendableType) -> V)
+S.mainActorMethod1 : @Sendable (S) -> (@Sendable @MainActor (NonSendableType) async -> V)
 S.mainActorMethod2 : @Sendable (S) -> (@Sendable (V) async -> V)
 
-P.nonIsoMethod     : (P) -> ((NonSendableType) -> R)
+P.nonIsoMethod     : (P) -> ((NonSendableType) -> V)
 P.mainActorMethod1 : (P) -> (@MainActor (NonSendableType) async -> V)
-P.mainActorMethod2 : (P) -> (@MainActor (V) async -> V)
+P.mainActorMethod2 : (P) -> ((V) async -> V)
 ```
 
-There are a few important things to recognize here:
+For each type above, its `mainActorMethod2` is a version of `mainActorMethod1` where the argument and return types all conform to `Sendable`. This makes a difference in the most 
 
-- After partially-applying `C.mainActorMethod1`, it does not yield a `@Sendable` function. The presence of non-matching isolation would require the argument type to also be `Sendable`. Furthermore, `C.mainActorMethod2` is defined to be non-async in the class, but a `nonisolated` context referencing it yields an `async` function.
+// TODO: was here
+
+A key factor of this proposal is the difference between the actor-instance isolated `A.mainActorMethod1` and the global-actor isolated `S.mainActorMethod1`. We can find a type for `A.mainActorMethod1` when accessed from a `nonisolated` context because 
+
+- After partially-applying `mainActorMethod1`,  it does not yield a `@Sendable` function. The presence of non-matching isolation would require the argument type to also be `Sendable`. Furthermore, `C.mainActorMethod2` is defined to be non-async in the class, but a `nonisolated` context referencing it yields an `async` function.
 
 
 
