@@ -29,8 +29,13 @@ There is a natural tension between these two goals. Open evolution processes are
 
 ## Community structure
 
-* [Core Team](https://www.swift.org/community/#core-team) members are responsible for the strategic direction of Swift.
-* [Language Workgroup](https://www.swift.org/community/#language-workgroup) members initiate, participate in, and manage the public review of proposals and have the authority to accept or reject changes to Swift.
+The [Core Team](https://www.swift.org/community/#core-team) is responsible for the strategic direction of Swift.  The Core Team creates workgroups focused on specific parts of the project.  When the Core Team gives a workgroup authority over part of the evolution of the project, that workgroup is called an evolution workgroup.  Evolution workgroups manage the evolution process for proposals under their authority, working together with other workgroups as needed.
+
+Currently, there is only one evolution workgroup:
+
+* The [Language Workgroup](https://www.swift.org/language-workgroup/#evolution-process) has authority over the evolution of the Swift language and its standard library.
+
+The Core Team manages (or delegates) the evolution process for proposals outside these areas.  The Core Team also retains the power to override the evolution decisions of workgroups when necessary.
 
 ## Participation
 
