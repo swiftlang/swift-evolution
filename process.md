@@ -4,7 +4,7 @@ Swift is a powerful and intuitive programming language that is designed to make 
 
 ## Scope
 
-The Swift evolution process covers all design changes, no matter how small, to the Swift language, its core libraries, and the core tools necessary to build Swift programs.  This includes additions, removals, and changes to:
+The Swift evolution process covers all design changes, no matter how small, to the Swift language, its standard library, and the core tools necessary to build Swift programs.  This includes additions, removals, and changes to:
 - the features of the Swift language,
 - the public interface of the Swift standard library,
 - the configuration of the Swift compiler, and
@@ -12,7 +12,7 @@ The Swift evolution process covers all design changes, no matter how small, to t
 
 The design of other tools, such as IDEs, debuggers, and documentation generators, is not covered by the evolution process.  The Core Team may create workgroups to guide and make recommendations about the development of these tools, but the output of those workgroups is not reviewed.
 
-The evolution process does not cover experimental features, which can be added, changed, or removed at any time.  Implementors should take steps to prevent the accidental use of experimental features, such as by enabling them only under explicitly experimental options.  Features should not be allowed to be remain perpetually experimental; a feature with no clear path for development into an official feature should be removed.
+The evolution process does not cover experimental features, which can be added, changed, or removed at any time.  Implementors should take steps to prevent the accidental use of experimental features, such as by enabling them only under explicitly experimental options.  Features should not be allowed to remain perpetually experimental; a feature with no clear path for development into an official feature should be removed.
 
 Changes such as bug fixes, optimizations, or diagnostic improvements can be contributed via the normal contribution process; see [Contributing to Swift](https://www.swift.org/contributing/).  Some bug fixes are effectively substantial changes to the design, even if they're just making the implementation match the official documentation; whether such a change requires evolution review is up to the appropriate evolution workgroup.
 
