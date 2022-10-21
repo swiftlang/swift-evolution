@@ -37,6 +37,20 @@ Currently, there is only one evolution workgroup:
 
 The Core Team manages (or delegates) the evolution process for proposals outside these areas.  The Core Team also retains the power to override the evolution decisions of workgroups when necessary.
 
+## Proposals, roadmaps, and visions
+
+There are three kinds of documents commonly used in the evolution process.
+
+* An evolution *proposal* describes a specific proposed change in detail.  All evolution changes are advanced as proposals which will be discussed in the community and given a formal open review.
+
+* An evolution *roadmap* describes a concrete plan for how a complex change will be broken into separate proposals that can be individually pitched and reviewed.  Considering large changes in small pieces allows the community to provide more focused feedback about each part of the change.  A roadmap makes this organization easier for community members to understand.
+
+  Roadmaps are planning documents that do not need to be reviewed.
+
+* An evolution *vision* describes a high-level design for a broad topic (for example, string processing or concurrency).  A vision creates a baseline of understanding in the community for future conversations on that topic, setting goals and laying out a possible program of work.
+
+  Visions must be approved by the appropriate evolution workgroup.  This approval is an endorsement of the vision's basic ideas, but not of any of its concrete proposals, which must still be separately developed and reviewed.
+
 ## Participation
 
 Everyone is welcome to propose, discuss, and review ideas to improve
