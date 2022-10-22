@@ -62,7 +62,7 @@ This section provides a summary of the solutions and changes proposed for Swift.
 
 ### Inferring `@Sendable` for methods
 
-In [SE-302](0302-concurrent-value-and-concurrent-closures.md), the `@Sendable` attribute was introduced for both closures and named functions/methods. Beyond changing the type of the function, the attribute only influences the kinds of values that can be captured by the function. But when methods of a nominal type are used in a first-class way, they cannot capture anything but the object instance itself. Furthermore, a non-local (i.e., a global or static) function cannot capture _anything_, because a reference to a global declaration is not considered a capture of that value. Thus, the proposed changes are:
+In [SE-302](0302-concurrent-value-and-concurrent-closures.md), the `@Sendable` attribute was introduced for both closures and named functions/methods. Beyond allowing the function value to cross actor boundaries, the attribute influences the kinds of values that can be captured by the function. But when methods of a nominal type are used in a first-class way, they cannot capture anything but the object instance itself. Furthermore, a non-local (i.e., a global or static) function cannot capture _anything_, because a reference to a global declaration is not considered a capture of that value. Thus, the proposed changes are:
 
 1. the inference of `@Sendable` on all methods of a type that conforms to `Sendable`.
 2. the inference of `@Sendable` on all non-local functions.
@@ -70,12 +70,14 @@ In [SE-302](0302-concurrent-value-and-concurrent-closures.md), the `@Sendable` a
 
 ### Sendable `actor` methods
 
-Since all `actor` types are `Sendable`, their methods will also be considered `@Sendable` as part of the earlier proposed rules. The challenge is that, once partially-applied to an `actor` method, the object instance to which the method is isolated is not visible in the function type. Barring major extensions to the language, we have to assume the isolation of the context in which the partially-applied method will be used is unknown. Thus, a `@Sendable` function value representing a method isolated to an actor instance must:
+Since all `actor` types are `Sendable`, their methods will also be considered `@Sendable` as part of the earlier proposed rules. The challenge is that, a `@Sendable` function is not required to have argument and return types that conform to `Sendable`. That is a rule about actor-isolation. Whether an argument to an actor-isolated function is required to be `Sendable` depends on the isolation of the context in which the call appears.
+
+Getting back to function values: once partially-applied to an `actor` instance, the instance to which the method is isolated will not be visible in the function's type. Barring major extensions to the language, we have to assume the isolation of the context in which the partially-applied method will be used is unknown. Thus, a `@Sendable` function value representing a method isolated to an actor instance must:
 
 1. Carry `async` and/or `throws` in its type.
 2. Have its arguments and return type all conform to `Sendable`.
 
-> **Rationale:** For a normal call to a non-async method of an actor from a different isolation domain, you must `await` it because it is implicitly treated as an `async` call (and `throws` for distributed actors) because actors are non-blocking. To maintain isolation principles, the argument and return types of an actor-isolated function must also conform to `Sendable`. Thus, these proposed rules for partially-applied methods mirror the ones for the fully-applied case in a `nonisolated` context.
+> **Rationale:** Even for a normal call to a non-async method of an actor from a different isolation domain, you must `await` as it is implicitly treated as an `async` call (and `throws` for distributed actors) because actors are non-blocking. To maintain isolation principles, the argument and return types of an actor-isolated function must also conform to `Sendable`. Thus, these proposed rules for partially-applied methods mirror the ones for the fully-applied case in a `nonisolated` context.
 
 
 ### Global-actors and function types
@@ -84,12 +86,14 @@ Global actors represent isolation that depends on a fixed, well-known instance o
 
 #### Dropping global actors from function types
 
-For methods that are isolated to a global-actor, partial applications of those methods do not have to erase the isolation from the type.  Thus, a `@Sendable` partially-applied method that is isolated to a global-actor is not _required_ to be an `async` function. Nor is it required to have `Sendable` input and output types. But, there are still situations where losing or dropping the global-actor isolation from a function's type is useful. The proposed rules for when it's safe to perform such a conversion resemble the actor-instance isolation case:
+For methods that are isolated to a global-actor, partial applications of those methods do not need to erase the isolation from the type. Thus, a `@Sendable` partially-applied method that is isolated to a global-actor is not _required_ to carry `async` in its type. Nor is it required to have `Sendable` input and output types. But, there are still situations where losing or dropping the global-actor isolation from a function's type is useful. The proposed rules for when it's safe to perform such a conversion resemble the actor-instance isolation case:
 
-1. When within a matching isolation domain, it is permitted to simply drop the global-actor if the function type is not `@Sendable` and not `async`.
-2. In all other cases, the global actor is traded for `async` and `Sendable` argument/return types, just as for actor-instance isolated methods.
+1. When within a matching isolation domain, it is permitted to simply drop the global-actor if the function type is not `@Sendable` when any of the following is true:
+  - the function is non-async.
+  - the function is `async` and the argument and return types are `Sendable`.
+2. In all other cases, the global actor is traded for being `async` and having `Sendable` argument/return types.
 
-Here are a few example type conversion chains where all intermediate steps are shown:
+Here are a few example type conversion chains that rely on these rules, where all intermediate steps are shown:
 
 ```swift
 // Example 1a - matching context isolation.
@@ -105,10 +109,12 @@ func ex2(_ x: @Sendable @GlobalActor (T) -> V) {
   use2(y)
 }
 
-// Example 3 - `async` and non-Sendable prevents dropping the actor.
+// Example 3 - `async` can prevent dropping the actor in some cases.
 @MainActor 
 func balanceData(withBalancer balancer: @MainActor (MutableRef) async -> ()) async {
- // TODO: paused here 10/20/22
+  // this cast will be rejected because it makes the function totally unusable... its not Sendable!
+  let incorrect = balancer as (MutableRef) async -> ()
+  incorrect(MutableRef()) // error: cannot pass non-Sendable value 'MutableRef' to nonisolated function.
 }
 ```
 
@@ -117,20 +123,21 @@ func balanceData(withBalancer balancer: @MainActor (MutableRef) async -> ()) asy
 On the other side, there are some issues with casts that _add_ a global actor to an `async` function type. Consider this function, which attempts to run an `async` function on the `MainActor`:
 
 ```swift
-@MainActor func callOnMainActor(_ f: @escaping (Data) async -> Data, _ d: Data) async -> Data {
+@MainActor func callOnMainActor(_ f: @escaping (Data) async -> Data) async -> Data {
+  let d = Data()
   let withMainActor: @MainActor (Data) async -> Data = f
   return await withMainActor(d)
 }
 ```
 
-If `Data` is not a `Sendable` type, then the conversion is unsafe and must be prohibited. Otherwise, it would allow non-Sendable values to leave the `MainActor` into a `nonisolated` domain. The only safe conversions here are those whose argument and return types are `Sendable`. But then, those remaining safe conversions of `async` functions that add a global actor are just misleading: the executor or underlying actor of an `async` function cannot be changed through casts due to [SE-338](0338-clarify-execution-non-actor-async.md).
+If `Data` is not a `Sendable` type, then the conversion is unsafe and must be prohibited. Otherwise, it would allow non-Sendable values to leave the `MainActor` into a `nonisolated` domain. The only safe conversions of `async` functions that add a global actor are those whose argument and return types are `Sendable`. But then, that conversion serves no purpose: the executor or underlying actor of an `async` function cannot be changed through casts due to [SE-338](0338-clarify-execution-non-actor-async.md).
 
 This proposal aims to clear up this confusion and make it safe by proposing two rules that, when combined with the rest of this proposal, yield an overall safety improvement and simplification of the language:
 
 1. Casts that add a global actor to an `async` function type are prohibited.
 2. Writing an `async` function type with a global actor is not permitted if its argument and return types are `Sendable`.
 
-Keep in mind that the only safe scenario where there is a valid need for an `async` function to have global actor in its type signature is when its argument and/or return type is _not_ `Sendable`. In all other cases, the annotation is simply not needed anymore. Take this for example:
+Overall, this simplification says that the only scenario where an `async` function needs to have a global actor in its type signature is when its argument and/or return type is _not_ `Sendable`. Keep in mind that `async` functions _with_ `Sendable` argument/return types are still allowed to be isolated to a global actor. The attribute can simply be dropped from its type whenever it is used as a first-class value. Take this for example:
 
 ```swift
 extension SendableData: Sendable {}
@@ -152,24 +159,7 @@ func doWork() async {
 }
 ```
 
-Swift should ignore (and suggest removing) the `@MainActor` in the type of the `withFetcher` parameter, since its argument and return types are `Sendable`. The `mainActorFetcher` passed to it will be implicitly cast to drop its `@MainActor` when passed as an argument to the function.
-
-Now, consider two cases where the global actor is still required:
-
-```swift
-func updateData<T>(withUpdater parseData: @MainActor (T) async -> ()) async { /* ... */ }
-
-@MainActor 
-func deleteData<T>(withDeleter deleteData: @MainActor (T) async -> ()) async { /* ... */ }
-
-func doNothing<T>(_ t: T) {}
-
-func oneCycle() async {
-  await updateData(withUpdater: doNothing)
-  await deleteData(withDeleter: doNothing)
-}
-```
-In all cases, the type variable `T` is not `Sendable`, so the global-actor is not redundant. 
+Swift will suggest removing the `@MainActor` in the type of the `withFetcher` parameter, since its argument and return types are `Sendable`. Any function such as `mainActorFetcher` passed to it will be implicitly cast to drop its `@MainActor`.
 
 ## Detailed design
 
@@ -177,21 +167,21 @@ In Swift, a method can be referenced as an unapplied function by writing its ful
 
 ```swift
 actor A {
-  nonisolated func nonIsoMethod(_: NonSendableType) -> V {}
-  func takesNonSendable(_: NonSendableType) -> V {}
-  func takesSendable(_: V) -> V {}
+  nonisolated func nonIsoMethod(_: NonSendableType) -> V
+  func takesNonSendable(_: NonSendableType) -> V
+  func takesSendable(_: V) -> V
 }
 
 final class S: Sendable { // S stands for Sendable
-  func nonIsoMethod(_: NonSendableType) -> V {}
-  @MainActor func takesNonSendable(_: NonSendableType) -> V {}
-  @MainActor func takesSendable(_: V) -> V {}
+  func nonIsoMethod(_: NonSendableType) -> V
+  @MainActor func takesNonSendable(_: NonSendableType) -> V
+  @MainActor func takesSendable(_: V) -> V
 }
 
 class P { // P stands for "Pinned", a non-sendable type.
-  func nonIsoMethod(_: NonSendableType) -> V {}
-  @MainActor func takesNonSendable(_: NonSendableType) -> V {}
-  @MainActor func takesSendable(_: V) -> V {}
+  func nonIsoMethod(_: NonSendableType) -> V
+  @MainActor func takesNonSendable(_: NonSendableType) -> V
+  @MainActor func takesSendable(_: V) -> V
 }
 
 extension V: Sendable {}
