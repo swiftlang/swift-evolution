@@ -200,7 +200,68 @@ button.tapHandler = { [weak self] in
 
 ## Source compatibility
 
-This change is purely additive and does not break source compatibility of any valid existing Swift code.
+In Swift 5 mode, non-escaping closures that capture self weakly are permitted to use implicit self, even before `self` has been unwrapped. For example, this code compiles in Swift 5.7:
+
+```swift
+// `Array.map` takes a non-escaping closure
+stringArray.map { [weak self] string in
+  let selfName = name // implicitly `self.name`
+  return "[\(selfName)] \(string)"
+}
+```
+
+This is a [bug](https://forums.swift.org/t/why-is-implicit-self-allowed-for-weak-self-captures-in-non-escaping-closures/60483), and should not be permitted to compile. Unfortunately, since fixing this bug is source breaking, it cannot be fixed until Swift 6.
+
+Implementing this proposal also fixes this bug, which means the implementation of this proposal is source breaking and cannot be fully enabled until Swift 6. In the meantime, the following changes will be made in Swift 5 mode:
+
+Escaping closures that capture `self` weakly will not be permitted to use implicit self. This is the existing behavior in Swift 5.7.
+
+```swift
+button.tapHandler = { [weak self] in
+  guard let self else { return }
+  dismiss() // error: call to method 'dismiss' in closure requires explicit use of 'self' to make capture semantics explicit
+}
+```
+
+Non-escaping closures that capture `self` weakly will be permitted to use implicit self (as required for source compatibility). If the usage of implicit self would not be permitted in Swift 6 (following the rules laid out in this proposal), a new warning will be emitted:
+
+```swift
+stringArray.map { [weak self] string in
+  let selfName = name // warning: reference to property 'name' in closure requires explicit use of 'self' to make capture semantics explicit; this is an error in Swift 6
+  return "[\(selfName)] \(string)"
+}
+```
+
+In cases where implicit self would be permitted in Swift 6, the code will continue to compile without new warnings:
+
+```swift
+stringArray.map { [weak self] string in
+  guard let self else { return string }
+
+  let selfName = name
+  return "[\(selfName)] \(string)"
+}
+```
+
+In Swift 6, implicit self references in non-escaping closures will no longer be allowed before `self` is unwrapped (a source-breaking change):
+
+```swift
+stringArray.map { [weak self] string in
+  let selfName = name // error: explicit use of 'self' is required when 'self' is optional, to make control flow explicit (fix-it: reference 'self?.' explicitly)
+  return "[\(selfName)] \(string)"
+}
+```
+
+and implicit self will be permitted in escaping closures that capture self weakly, after `self` has been unwrapped:
+
+```swift
+button.tapHandler = { [weak self] in
+  guard let self else { return }
+  dismiss()
+}
+```
+
+That change, for escaping closures specifically, is purely additive and does not impact source compatibility.
 
 ## Effect on ABI stability
 
@@ -227,3 +288,5 @@ That would effectively add implicit control flow, however. `dismiss()` would onl
 Thanks to the authors of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md) for laying the foundation for this proposal.
 
 Thanks to Kyle Sluder for [the suggestion](https://forums.swift.org/t/allow-implicit-self-for-weak-self-captures-after-self-is-unwrapped/54262/2) to not permit implicit `self` in cases where the unwrapped `self` value doesn't necessarily refer to the closure's `self` capture, like in `let self = self ?? C.global`.
+
+Many thanks to Pavel Yaskevich for providing significant feedback and advice regarding the implementation of this proposal.
