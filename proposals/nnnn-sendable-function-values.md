@@ -7,11 +7,11 @@
 
 ## Introduction
 
-This proposal is focused on a few corner-cases in the language when using functions as values. It aims to expand the ways you can use functions as values when using concurrency. The goal is to improve flexibility and ergonomics without major changes to Swift.
+This proposal is focused on a few corner-cases in the language surrounding functions as values when using concurrency. The goal is to improve flexibility, simplicity, and ergonomics without major changes to Swift.
 
 ## Motivation
 
-The partial application of methods and other first-class uses of functions have a few rough [edges](https://forums.swift.org/t/sendable-func-on-sendable-types/60708) when combined with concurrency. For example, today you can create a function-value representing an actor's method by writing an expression that only accesses (but does not call) a method using one of its instances. More precisely, this access is referred to as a "partial application" of a method to one of its (implicit) arguments, the object instance:
+The partial application of methods and other first-class uses of functions have a few rough [edges](https://forums.swift.org/t/sendable-func-on-sendable-types/60708) when combined with concurrency. For example, today you can create a function-value representing an actor's method by writing an expression that only accesses (but does not call) a method using one of its instances. More precisely, this access is referred to as a "partial application" of a method to one of its (curried) arguments, the object instance. One can think of `StatefulTransformer.transform`'s type signature as being `(isolated StatefulTransformer) -> ((Data) -> Data)` to support partial applications:
 
 ```swift
 typealias Data = Int
@@ -41,7 +41,7 @@ extension StatefulTransformer {
 }
 ```
 
-Part of the need for this limitation is that knowledge of the isolation is effectively erased from the type when partially-applying the actor instance. That knowledge is required for non-async isolated methods, as their runtime representation cannot encode isolation enforcement alone. But, it is possible to create a `@Sendable` version of a partially-applied non-async actor method, by representing it with an `async` function value.
+Part of the need for this limitation is that knowledge of the isolation is effectively erased from the type signature when partially-applying the actor instance. That knowledge is required for non-async isolated methods, as their runtime representation cannot encode isolation enforcement alone. But, the limitation is not a fundamental barrier. It is feasible to create a `@Sendable` version of a partially-applied non-async actor method, by representing it with an `async` function value.
 
 Conceptually, a similar limitation comes up when performing a conversion that removes the `@MainActor` from a function type. Since it is generally unsafe to do so, the compiler emits a warning, such as in this example:
 
@@ -52,7 +52,7 @@ Conceptually, a similar limitation comes up when performing a conversion that re
 }
 ```
 
-But not all situations that drop the global-actor from a function value are unsafe. In the example above, the conversion that loses the global-actor happens while already on the same actor. By the same logic as our actor-method example, this should be safe if we do not allow that casted function to later leave the actor's isolation.
+But not all situations that drop the global-actor from a function value are unsafe. In the example above, the conversion that loses the global-actor happens while already on the same actor. By the same logic as our actor-method example, this should be safe if we do not allow that casted function to later leave the MainActor's isolation.
 
 These and other aspects of how Sendable and actor isolation interact with function values are the focus of this proposal.
 
@@ -62,7 +62,7 @@ This section provides a summary of the solutions and changes proposed for Swift.
 
 ### Inferring `@Sendable` for methods
 
-In [SE-302](0302-concurrent-value-and-concurrent-closures.md), the `@Sendable` attribute was introduced for both closures and named functions/methods. Beyond allowing the function value to cross actor boundaries, the attribute influences the kinds of values that can be captured by the function. But when methods of a nominal type are used in a first-class way, they cannot capture anything but the object instance itself. Furthermore, a non-local (i.e., a global or static) function cannot capture _anything_, because a reference to a global declaration is not considered a capture of that value. Thus, the proposed changes are:
+In [SE-302](0302-concurrent-value-and-concurrent-closures.md), the `@Sendable` attribute was introduced for both closures and named functions/methods. Beyond allowing the function value to cross actor boundaries, the attribute primarily influences the kinds of values that can be captured by the function. But methods of a nominal type cannot capture anything but the object instance itself. Furthermore, a non-local (i.e., a global or static) function cannot capture _anything_, because a reference to a global declaration is not considered a capture of that value. Thus, the proposed simplifications are:
 
 1. the inference of `@Sendable` on all methods of a type that conforms to `Sendable`.
 2. the inference of `@Sendable` on all non-local functions.
@@ -70,9 +70,9 @@ In [SE-302](0302-concurrent-value-and-concurrent-closures.md), the `@Sendable` a
 
 ### Sendable `actor` methods
 
-Since all `actor` types are `Sendable`, their methods will also be considered `@Sendable` as part of the earlier proposed rules. The challenge is that, a `@Sendable` function is not required to have argument and return types that conform to `Sendable`. That is a rule about actor-isolation. Whether an argument to an actor-isolated function is required to be `Sendable` depends on the isolation of the context in which the call appears.
+Since all `actor` types are `Sendable`, their methods will also be considered `@Sendable` as part of the earlier proposed rules. The subtle complication is that, a `@Sendable` function is not required to have argument and return types that conform to `Sendable`. That is a rule about actor-isolation: whether an argument passed to an actor-isolated function is required to be `Sendable` depends on the isolation of the context in which the call appears.
 
-Getting back to function values: once partially-applied to an `actor` instance, the instance to which the method is isolated will not be visible in the function's type. Barring major extensions to the language, we have to assume the isolation of the context in which the partially-applied method will be used is unknown. Thus, a `@Sendable` function value representing a method isolated to an actor instance must:
+Up until now, the isolation of _the context_ in which a call to an isolated method appears has been statically known, because partial-applications of those methods were not `@Sendable`. Barring major extensions to the language, we cannot statically infer anything about the context in which a `@Sendable` version will eventually be called. As a result, those function values must:
 
 1. Carry `async` and/or `throws` in its type.
 2. Have its arguments and return type all conform to `Sendable`.
@@ -88,15 +88,15 @@ Global actors represent isolation that depends on a fixed, well-known instance o
 
 For methods that are isolated to a global-actor, partial applications of those methods do not need to erase the isolation from the type. Thus, a `@Sendable` partially-applied method that is isolated to a global-actor is not _required_ to carry `async` in its type. Nor is it required to have `Sendable` input and output types. But, there are still situations where losing or dropping the global-actor isolation from a function's type is useful. The proposed rules for when it's safe to perform such a conversion resemble the actor-instance isolation case:
 
-1. When within a matching isolation domain, it is permitted to simply drop the global-actor if the function type is not `@Sendable` when any of the following is true:
+1. When within a matching isolation domain, it is permitted to simply drop the global-actor if the function type is not `@Sendable`, when any of the following are true:
   - the function is non-async.
   - the function is `async` and the argument and return types are `Sendable`.
-2. In all other cases, the global actor is traded for being `async` and having `Sendable` argument/return types.
+2. In all other cases, the global actor in its type is exchanged for becoming `async` and having `Sendable` argument/return types.
 
 Here are a few example type conversion chains that rely on these rules, where all intermediate steps are shown:
 
 ```swift
-// Example 1a - matching context isolation.
+// Example 1 - matching context isolation.
 @GlobalActor func ex1(_ a: @Sendable @GlobalActor (T) -> V) {
   let b = a as @GlobalActor (T) -> V  // by subtyping of @Sendable functions
   let c = b as (T) -> V               // because we are in GlobalActor's isolation
@@ -112,11 +112,13 @@ func ex2(_ x: @Sendable @GlobalActor (T) -> V) {
 // Example 3 - `async` can prevent dropping the actor in some cases.
 @MainActor 
 func balanceData(withBalancer balancer: @MainActor (MutableRef) async -> ()) async {
-  // this cast will be rejected because it makes the function totally unusable... its not Sendable!
-  let incorrect = balancer as (MutableRef) async -> ()
-  incorrect(MutableRef()) // error: cannot pass non-Sendable value 'MutableRef' to nonisolated function.
+  // This cast will be rejected because MutableRef is not a Sendable type.
+  let unusable = balancer as (MutableRef) async -> ()
+  unusable(MutableRef()) // error: cannot pass non-Sendable value 'MutableRef' to nonisolated function.
 }
 ```
+
+Example 3 in particular is quite interesting. The cast of `balancer` cannot be allowed because it would produce a function value that is completely unusable. Since `MutableRef` is not a `Sendable` type, there is currently no way for the `MainActor` to pass a value to it. It cannot even be passed to a `nonisolated` context which _could_ pass an argument to it, because the function value itself is also not `@Sendable`.
 
 #### Adding global actors to function types
 
@@ -163,7 +165,61 @@ Swift will suggest removing the `@MainActor` in the type of the `withFetcher` pa
 
 ## Detailed design
 
-In Swift, a method can be referenced as an unapplied function by writing its fully-qualified name. It is useful to study the type signatures of these methods to better understand this proposal. In the following code example, we define three nominal types with methods that have the same input and argument types, but each type has a different combination of actor-isolation and Sendable conformance:
+## Source compatibility
+
+
+## Effect on ABI stability
+
+
+## Effect on API resilience
+
+## Alternatives considered
+
+Herein lies some ideas cut or discarded from this proposal.
+
+### Forced discarding of non-Sendable return values.
+
+We could loosen some of the rules about `Sendable` return types in Swift if we
+added a rule stating that if the return value is non-Sendable and crosses an
+actor's boundary, the value is required to be discarded. For example, this rule
+would eliminate any diagnostics in the following examples:
+
+```swift
+func foreign() async -> MutableRef { return MutableRef() }
+
+@MainActor func mainFn() async {
+  await foreign() // warning: non-sendable type 'MutableRef' returned by call from main actor-isolated context to non-isolated global function 'foreign()' cannot cross actor boundary
+}
+```
+
+```swift
+// Dropping a global actor from an 'async' function, where only the return value
+// is non-Sendable, would now be allowed.
+@MainActor 
+func balanceData(withBalancer balancer: @MainActor () async -> (MutableRef)) async {
+  let discardOnly = balancer as () async -> (MutableRef)
+  _ = discardOnly()
+}
+```
+
+## Acknowledgments
+
+This proposal has benefited from discussions with Doug Gregor and John McCall.
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------
+
+## OLD Detailed design
+
+It is useful to study the type signatures of a method's to better understand this proposal. In the following code example, we define three nominal types with methods that have the same input and argument types, but each type has a different combination of actor-isolation and Sendable conformance:
 
 ```swift
 actor A {
@@ -544,97 +600,3 @@ Yet, because `self` is `Sendable`, it is OK to fully-apply `self.transform` insi
 
 
 ----
-
-
-
-## Source compatibility
-
-How much of Swift <= 5.7 is going to break?
-
-## Effect on ABI stability
-
-The ABI comprises all aspects of how code is generated for the
-language, how that code interacts with other code that has been
-compiled separately, and how that code interacts with the Swift
-runtime library. It includes the basic rules of the language ABI,
-such as calling conventions, the layout of data types, and the
-behavior of dynamic features in the language like reflection,
-dynamic dispatch, and dynamic casting. It also includes applications
-of those basic rules to ABI-exposed declarations, such as the `public`
-functions and types of ABI-stable libraries like the Swift standard
-library.
-
-Many language proposals have no direct impact on the ABI. For
-example, a proposal to add the `typealias` declaration to Swift
-would have no effect on the ABI because type aliases are not
-represented dynamically and uses of them in code can be
-straightforwardly translated into uses of the aliased type.
-Proposals like this can simply state in this section that they
-have no impact on the ABI. However, if *using* the feature in code
-that must maintain a stable ABI can have a surprising ABI impact,
-for example by changing a function signature to be different from
-how it would be without using the feature, that should be discussed
-in this section.
-
-Because Swift has a stable ABI on some platforms, proposals are
-generally not acceptable if they would require changes to the ABI
-of existing language features or declarations. Proposals must be
-designed to avoid the need for this.
-
-For example, Swift could not accept a proposal for a feature which,
-in order to work, would require parameters of certain (existing)
-types to always be passed as owned values, because parameters are
-not always passed as owned values in the ABI. This feature could
-be fixed by only enabling it for parameters marked a special new way.
-Adding that marking to an existing function parameter would change
-the ABI of that specific function, which programmers can make good,
-context-aware decisions about: adding the marking to an existing
-function with a stable ABI would not be acceptable, but adding it
-to a new function or to a function with no stable ABI restrictions
-would be fine.
-
-Proposals that change the ABI may be acceptable if they can be thought
-of as merely *adding* to the ABI, such as by adding new kinds of
-declarations, adding new modifiers or attributes, or adding new types
-or methods to the Swift standard library. The key principle is
-that the ABI must not change for code that does not use the new
-feature. On platforms with stable ABIs, uses of such features will
-by default require a new release of the platform in order to work,
-and so their use in code that may deploy to older releases will have
-to be availability-guarded. If this limitation applies to any part
-of this proposal, that should be discussed in this section.
-
-Adding a function to the standard library does not always require
-an addition to the ABI if it can be implemented using existing
-functions. Library maintainers may be able to help you with this
-during the code review of your implementation. Adding a type or
-protocol currently always requires an addition to the ABI.
-
-If a feature does require additions to the ABI, platforms with
-stable ABIs may sometimes be able to back-deploy those additions
-to existing releases of the platform. This is not always possible,
-and in any case, it is outside the scope of the evolution process.
-Proposals should usually discuss ABI stability concerns as if
-it was not possible to back-deploy the necessary ABI additions.
-
-## Effect on API resilience
-
-API resilience describes the changes one can make to a public API
-without breaking its ABI. Does this proposal introduce features that
-would become part of a public API? If so, what kinds of changes can be
-made without breaking ABI? Can this feature be added/removed without
-breaking ABI? For more information about the resilience model, see the
-[library evolution<br>document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
-in the Swift repository.
-
-## Alternatives considered
-
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
-
-## Acknowledgments
-
-If significant changes or improvements suggested by members of the
-community were incorporated into the proposal as it developed, take a
-moment here to thank them for their contributions. Swift evolution is a
-collaborative process, and everyone's input should receive recognition!
