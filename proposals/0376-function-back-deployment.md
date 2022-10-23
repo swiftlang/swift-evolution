@@ -1,10 +1,11 @@
 # Function Back Deployment
 
-* Proposal: [SE-NNNN](NNNN-back-deploy.md)
+* Proposal: [SE-0376](0376-function-back-deployment.md)
 * Author: [Allan Shortlidge](https://github.com/tshortli)
 * Implementation: [apple/swift#41271](https://github.com/apple/swift/pull/41271), [apple/swift#41348](https://github.com/apple/swift/pull/41348), [apple/swift#41416](https://github.com/apple/swift/pull/41416), [apple/swift#41612](https://github.com/apple/swift/pull/41612) as the underscored attribute `@_backDeploy` 
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Frederick Kellison-Linn](https://github.com/jumhyn)
+* Review: ([pitch](https://forums.swift.org/t/pitch-function-back-deployment/55769))
+* Status: **Review scheduled (Oct 25-Nov 7, 2022)**
 
 ## Introduction
 
@@ -58,8 +59,6 @@ While `@_alwaysEmitIntoClient` can be used to back deploy APIs, there are some d
 
 1. The API implementation from the original library is preferred at runtime when it is available.
 2. Fallback copies of the API implementation are absent from clients binaries when they would never be used.
-
-Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-function-back-deployment/55769)
 
 ## Proposed solution
 
