@@ -165,7 +165,10 @@ Swift will suggest removing the `@MainActor` in the type of the `withFetcher` pa
 
 ## Detailed design
 
+
+
 ## Source compatibility
+
 
 
 ## Effect on ABI stability
@@ -217,93 +220,88 @@ This proposal has benefited from discussions with Doug Gregor and John McCall.
 
 -------------------------------------------------------------------------------------
 
-## OLD Detailed design
+## Detailed design
 
-It is useful to study the type signatures of a method's to better understand this proposal. In the following code example, we define three nominal types with methods that have the same input and argument types, but each type has a different combination of actor-isolation and Sendable conformance:
-
-```swift
-actor A {
-  nonisolated func nonIsoMethod(_: NonSendableType) -> V
-  func takesNonSendable(_: NonSendableType) -> V
-  func takesSendable(_: V) -> V
-}
-
-final class S: Sendable { // S stands for Sendable
-  func nonIsoMethod(_: NonSendableType) -> V
-  @MainActor func takesNonSendable(_: NonSendableType) -> V
-  @MainActor func takesSendable(_: V) -> V
-}
-
-class P { // P stands for "Pinned", a non-sendable type.
-  func nonIsoMethod(_: NonSendableType) -> V
-  @MainActor func takesNonSendable(_: NonSendableType) -> V
-  @MainActor func takesSendable(_: V) -> V
-}
-
-extension V: Sendable {}
-```
-
-Notice for each type above, its `mainActorMethod1` its `mainActorMethod2` is a version of  where the argument and return types all conform to `Sendable`.
-
-This proposal specifies that the types of these methods depend on the isolation of the context in which the methods are referenced. For references originating in a generally non-matching context like `nonisolated`, the most general types of the methods above are:
+In an attempt to leave no stone unturned, we now analyze the most general types of various methods based on the isolation context in which they are referenced. The following code example will serve as a vehicle for this discussion. It defines three nominal types, each one having different kinds of actor isolation, Sendable conformance, and asynchrony:
 
 ```swift
-A.nonIsoMethod : @Sendable (isolated A) -> (@Sendable (NonSendableType) -> V))
-A.actorMethod1 : ⊥  // not accessible
-A.actorMethod2 : @Sendable (isolated A) -> (@Sendable (V) async -> V)
-
-S.nonIsoMethod     : @Sendable (S) -> (@Sendable (NonSendableType) -> V)
-S.mainActorMethod1 : @Sendable (S) -> (@Sendable @MainActor (NonSendableType) async -> V)
-S.mainActorMethod2 : @Sendable (S) -> (@Sendable (V) async -> V)
-
-P.nonIsoMethod     : (P) -> ((NonSendableType) -> V)
-P.mainActorMethod1 : (P) -> (@MainActor (NonSendableType) async -> V)
-P.mainActorMethod2 : (P) -> ((V) async -> V)
-```
-
-For each type above, its `mainActorMethod2` is a version of `mainActorMethod1` where the argument and return types all conform to `Sendable`. This makes a difference in the most 
-
-// TODO: was here
-
-```swift
-// a close but incorrect type. after partial application, 
-// we cannot reason about whether it's safe to send values to the method 
-// because it lacks isolation.
-A.actorMethod1 : @Sendable (isolated A) -> ((NonSendableType) async -> V))
-```
-
-A key factor of this proposal is the difference between the actor-instance isolated `A.mainActorMethod1` and the global-actor isolated `S.mainActorMethod1`. We can find a type for `A.mainActorMethod1` when accessed from a `nonisolated` context because 
-
-- After partially-applying `mainActorMethod1`,  it does not yield a `@Sendable` function. The presence of non-matching isolation would require the argument type to also be `Sendable`. Furthermore, `C.mainActorMethod2` is defined to be non-async in the class, but a `nonisolated` context referencing it yields an `async` function.
-
-
-
-but for a context isolated to the `@MainActor`, the types are
-
-```
-C.nonIsoMethod     : @Sendable (C) -> (@Sendable (NonSendableType) -> R)
-C.mainActorMethod1 : @Sendable (C) -> (@MainActor (NonSendableType) -> R)
-C.mainActorMethod2 : @Sendable (C) -> (@Sendable @MainActor (NonSendableType) -> R)
-```
-
-```swift
-func otherIsolation(_ f: @Main) async
-
-@MainActor func mainActorCxt() {
-
+actor I { // 'I' stands for actor-instance isolation
+  nonisolated func nonIsoTakingNonSendable(_: NonSendableType) -> V
+  func isoTakingNonSendable(_: NonSendableType) -> V
+  func asyncIsoTakingNonSendable(_: NonSendableType) async -> V
+  func isoTakingSendable(_: V) -> V
 }
+
+@MainActor
+class G { // 'G' stands for global-actor isolated
+  nonisolated func nonIsoTakingNonSendable(_: NonSendableType) -> V
+  func isoTakingNonSendable(_: NonSendableType) -> V
+  func asyncIsoTakingNonSendable(_: NonSendableType) async -> V
+  func isoTakingSendable(_: V) -> V
+}
+
+class PG { // 'PG' stands for pinned global-actor isolated (i.e., non-Sendable)
+  func nonIsoTakingNonSendable(_: NonSendableType) -> V
+  @MainActor func isoTakingNonSendable(_: NonSendableType) -> V
+  @MainActor func asyncIsoTakingNonSendable(_: NonSendableType) async -> V
+  @MainActor func isoTakingSendable(_: V) -> V
+}
+
+extension V: Sendable {} // assume V is a Sendable type
+```
+
+In the following subsections, we list the most-general type signatures for each
+method as a curried function to make clear what the partially-applied type will be.
+
+## References from a `nonisolated` context
+
+This proposal expands the kinds of partial-applications of isolated methods that are possible from a `nonisolated` context. Still, not all isolated methods can be partially-applied in this context because of non-Sendable argument or return types.
+
+Consider the isolated methods of an actor-instance that have a non-Sendable type in its function signature. The most accurate way to describe the type of these methods would be:
+
+```swift
+// invalid types for references originating from a `nonisolated` context.
+I.isoTakingNonSendable : @Sendable (isolated A) -> (@Sendable (NonSendableType) async -> V))
+I.asyncIsoTakingNonSendable : @Sendable (isolated A) -> (@Sendable (NonSendableType) async -> V))
+``` 
+
+But the types above are invalid, because after partial application, the type can be confused with a function that is simply `async` and `nonisolated`. That matters because the argument type is not `Sendable`. The same principle applies to a full-application of these methods, because the argument couldn't be sent across actors.
+
+Next, we have a situation where, even if we _could_ accurately represent the isolation of the function value in its type, because the function value _itself_ is not `@Sendable`, the function is uncallable!
+
+```swift
+// unusable types for references originating from a `nonisolated` context
+PG.isoTakingNonSendable      : @Sendable (PG) -> (@MainActor (NonSendableType) -> V)
+PG.asyncIsoTakingNonSendable : @Sendable (PG) -> (@MainActor (NonSendableType) async -> V)
+```
+
+Because `PG` represents a non-Sendable type with global-actor isolated methods, partial applications of these methods are not `@Sendable`, because they always capture the object instance. Thus, when references to these methods originate from a `nonisolated` context, we cannot pass the function value to a `@MainActor` context, which is the only one that can pass an argument to it!
+
+In all other cases, the method signatures should not be particularly surprising. Here is the full listing of types if the methods were referenced from a `nonisolated` context:
+
+```swift
+I.nonIsoTakingNonSendable   : @Sendable (I) -> (@Sendable (NonSendableType) -> V)
+I.isoTakingNonSendable      : ⊥  // not accessible
+I.asyncIsoTakingNonSendable : ⊥  // not accessible
+I.isoTakingSendable         : @Sendable (isolated A) -> (@Sendable (V) async -> V))
+
+G.nonIsoTakingNonSendable   : @Sendable (G) -> (@Sendable (NonSendableType) -> V)
+G.isoTakingNonSendable      : @Sendable (G) -> (@Sendable @MainActor (NonSendableType) async -> V)
+G.asyncIsoTakingNonSendable : @Sendable (G) -> (@Sendable @MainActor (NonSendableType) async -> V)
+G.isoTakingSendable         : @Sendable (G) -> (@Sendable (V) async -> V)
+
+PG.nonIsoTakingNonSendable   : @Sendable (G) -> ((NonSendableType) -> V)
+PG.isoTakingNonSendable      : ⊥  // not accessible
+PG.asyncIsoTakingNonSendable : ⊥  // not accessible
+PG.isoTakingSendable         : @Sendable (G) -> (@MainActor (V) -> V)
 ```
 
 
- there is no constraint demanding `@Sendable`, then the types 
+
+// TODO: stopped here 10/23 and it's basically nothign else interesting left.
 
 
-
-
-
-
-
-
+----------------------
 
 
 Notice that `dropMainActor` itself is isolated to the `MainActor`, so the non-async call to `map` is guaranteed to run in the `MainActor` 's isolation domain. That's guaranteed because `f` is neither `@Sendable` nor `@escaping` , so the `map` function could not hand-off `f` to any other isolation domain.
