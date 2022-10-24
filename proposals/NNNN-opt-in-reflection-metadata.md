@@ -12,9 +12,11 @@
 This proposal seeks to increase the safety, efficiency and privacy of Swift Reflection Metadata by improving the existing mechanism and providing the opportunity to express a requirement on Reflection Metadata in APIs that consume it. 
   
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-3-opt-in-reflection-metadata/58852)
-  
+
 
 ## Motivation
+
+There are two kinds of Swift metadata - Core Metadata (type metadata record, nominal type descriptor, etc) and Reflection metadata. The former must constantly be emitted and may only be stripped if provenly not used. Core Metadata is not affected by this proposal. The latter contains optional information about the type's fields and their names, not used by the language's runtime features, and the emission may be skipped if not used by reflection-consuming APIs.
 
 APIs can use Reflection Metadata differently. Some like `print`, and `dump` will still work with disabled reflection, but the output will be limited. Others, like SwiftUI, rely on it and won't work correctly if the reflection metadata is missing.
 While the former can benefit as well, the main focus of this proposal is on the latter.
@@ -23,7 +25,7 @@ A developer can mistakenly turn off Reflection Metadata for a Swift module and w
 
 On the other hand, excessive Reflection metadata may be preserved in a binary even if not used, because there is currently no way to statically determine its usage. There was an attempt to limit the amount of unused reflection metadata by improving its stripability by the Dead Code Elimination LLVM pass, but in many cases, it’s still preserved in the binary because it’s referenced by Full Type Metadata which prevents Reflection Metadata from stripping.  This unnecessarily increases the binary size and may affect privacy by storing more information about the code's semantics in a binary, which might be used for reverse-engineering.
 
-Introducing a static compilation check potentially can help to solve both of mentioned issues by adding to the language a way to express the requirement to have Reflection metadata at runtime.
+Introducing a static compilation check can help to solve both of mentioned issues by adding to the language a way to express the requirement to have Reflection metadata at runtime.
 
 
 ## Proposed solution
