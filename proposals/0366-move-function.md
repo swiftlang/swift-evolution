@@ -3,7 +3,7 @@
 * Proposal: [SE-0366](0366-move-function.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Returned for revision**
+* Status: **Active Review (Oct 25 - Nov 8, 2022)**
 * Implementation: Implemented on main as stdlib SPI (`_move` instead of `take` keyword)
 * Review: ([pitch](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic)) ([review](https://forums.swift.org/t/se-0366-move-function-use-after-move-diagnostic/59202)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0366-move-operation-use-after-move-diagnostic/59687))
 * Previous Revisions:
