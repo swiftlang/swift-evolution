@@ -209,63 +209,6 @@ Swift will suggest removing the `@MainActor` in the type of the `withFetcher` pa
 
 ## Detailed design
 
-
-
-## Source compatibility
-
-
-
-## Effect on ABI stability
-
-
-## Effect on API resilience
-
-## Alternatives considered
-
-Herein lies some ideas cut or discarded from this proposal.
-
-### Forced discarding of non-Sendable return values.
-
-We could loosen some of the rules about `Sendable` return types in Swift if we
-added a rule stating that if the return value is non-Sendable and crosses an
-actor's boundary, the value is required to be discarded. For example, this rule
-would eliminate any diagnostics in the following examples:
-
-```swift
-func foreign() async -> MutableRef { return MutableRef() }
-
-@MainActor func mainFn() async {
-  await foreign() // warning: non-sendable type 'MutableRef' returned by call from main actor-isolated context to non-isolated global function 'foreign()' cannot cross actor boundary
-}
-```
-
-```swift
-// Dropping a global actor from an 'async' function, where only the return value
-// is non-Sendable, would now be allowed.
-@MainActor 
-func balanceData(withBalancer balancer: @MainActor () async -> (MutableRef)) async {
-  let discardOnly = balancer as () async -> (MutableRef)
-  _ = discardOnly()
-}
-```
-
-## Acknowledgments
-
-This proposal has benefited from discussions with Doug Gregor and John McCall.
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------------------
-
-## Detailed design
-
 In an attempt to leave no stone unturned, we now analyze the most general types of various methods based on the isolation context in which they are referenced. The following code example will serve as a vehicle for this discussion. It defines three nominal types, each one having different kinds of actor isolation, Sendable conformance, and asynchrony:
 
 ```swift
@@ -360,9 +303,9 @@ I.asyncIsoTakingNonSendable : @Sendable (I) -> (@isolated (NonSendableType) asyn
 I.isoTakingSendable         : @Sendable (I) -> (@isolated (V) async -> V))
 
 G.nonIsoTakingNonSendable   : @Sendable (G) -> (@Sendable (NonSendableType) -> V)
-G.isoTakingNonSendable      : @Sendable (G) -> (@MainActor (NonSendableType) -> V)
-G.asyncIsoTakingNonSendable : @Sendable (G) -> (@MainActor (NonSendableType) async -> V)
-G.isoTakingSendable         : @Sendable (G) -> (@MainActor (V) -> V)
+G.isoTakingNonSendable      : @Sendable (G) -> (@Sendable @MainActor (NonSendableType) -> V)
+G.asyncIsoTakingNonSendable : @Sendable (G) -> (@Sendable @MainActor (NonSendableType) async -> V)
+G.isoTakingSendable         : @Sendable (G) -> (@Sendable @MainActor (V) -> V)
 
 PG.nonIsoTakingNonSendable   : @Sendable (PG) -> ((NonSendableType) -> V)
 PG.isoTakingNonSendable      : @Sendable (PG) -> (@MainActor (NonSendableType) -> V)
@@ -370,303 +313,61 @@ PG.asyncIsoTakingNonSendable : @Sendable (PG) -> (@MainActor (NonSendableType) -
 PG.isoTakingSendable         : @Sendable (PG) -> (@MainActor (V) -> V)
 ```
 
-
-
-
-----------------------
-
-
-Notice that `dropMainActor` itself is isolated to the `MainActor`, so the non-async call to `map` is guaranteed to run in the `MainActor` 's isolation domain. That's guaranteed because `f` is neither `@Sendable` nor `@escaping` , so the `map` function could not hand-off `f` to any other isolation domain.
-
-> **NOTE:** In theory, the parameter to `map` not being `@Sendable` could be reason enough to allow this cast. But, as of _today_ we require it to also be non-escaping so that the value does not get smuggled into a different isolation domain via global storage.
-
-Consider `withoutActuallyEscaping` because it adds a runtime check to ensure it didn't actually escape. This can be used to make sure, say, `map` doesn't truly escape it. If we know `map` was compiled in strict checking / Swift 6 mode, we don't need it, but otherwise we need that to guarantee it's OK. 
-
-We know eventually that writing to a global or static is going to require the value to be Sendable in some way (follow-up).
-
----
-
-**TODO:** maybe the `@Sendable` on methods is totally useless, since methods can't capture anything from the type's enclosing scope. This also means global functions don't need it, but local functions do (since they can capture locals).
-
-**Rule 0a:** An object method can be marked with `@Sendable` if the method is not isolated to an actor and the instance type conforms to `Sendable`.
-
-As a result, the type of the method becomes `@Sendable (T) -> (@Sendable (A) -> R)`, that is, the unapplied method itself is `@Sendable`, and so too is the result of partially-applying the method to an instance.
-
-**Rule 0b:** An actor-isolated method cannot be marked with `@Sendable` because it is implicitly `@Sendable` based on whether the reference appears inside or outside of the actor's isolation:
-1. When inside the actor's isolation, by default the reference is not `Sendable` unless there is demand for it to be `@Sendable` (i.e., a type coercion).
-2. When outside the actor's isolation, the reference always yields a `Sendable` function.
-
-The reasoning for the distinction between Rule 0a and Rule 0b is that actor isolation already provides a guarantee that any captured values are `Sendable` , otherwise they wouldn't be accessible to the method. Next, the reason for a distinction upon referencing an actor-isolated method based on the context is that the type can greatly differ, based on whether the method is `async` or not. For example, if an actor-isolated method is `async`, then one can always treat it as `@Sendable` , relying on the subtyping rule for contexts where `@Sendable` is not needed. But if the actor method were non-async, then depending on whether it is `Sendable`, its type might need to be `async` (or `throws` for distributed actors).
- 
-**TODO: example**
-
----
-
-
-**Rule 1:** When partially-applying an object instance to one of its methods, the resulting function can be coerced to be `@Sendable`  if the instance conforms to `Sendable`.
-
-This follows directly from the existing rule that a closure is `Sendable` if its captures are let-bound and `Sendable`. But, this rule cannot stand on its own:
-
-**Rule 2a:** If a partially-applied method is chosen to be coerced to `@Sendable` **and the method is isolated to an `actor` instance**, then the resulting function type is `async` (and `throws` if isolated to a distributed actor) and its argument and return types must conform to `Sendable`.
-
-Take note that Rule 2a only applies to `actor` instance isolation. The rule's requirements follow from the idea that partial-application of an instance of `actor A` to a function with a parameter `isolated A` effectively eliminates any trace of the actor type itself. But importantly, the isolation is *not* removed. This erasure from the type is required for actor instances, because each instance is a unique actor. But because the resulting function must be `Sendable`, it will be possible to invoke it from *any* context. Thus:
-
-1.  The function must have the internal ability to gain actor isolation at runtime from any isolation context, so it must be `async` (and possibly `throws`).
-2.  Because we cannot track where the function will be ultimately invoked, we don't know what context is sending or recieving values from this partially-applied actor method, so its argument and return types must be `Sendable`.
-
-As of today, partially-applying an `actor`-instance isolated method is only allowed within a context with matching isolation:
+Casts to make these function values `@Sendable` within its own isolation domain must happen on the expression performing the partial application. For example,
 
 ```swift
-class Pinned { var x: Int = 0 } // a non-sendable type
-protocol P: Sendable { func f() }
-final class C: Sendable { func f() {} }
-actor A { 
-    private var pinned: Pinned = Pinned()
+func doProcessing(_ f: @Sendable @MainActor (NonSendableType) async -> V)) async { /* ... */ }
 
-    func f() -> C { return C() }
-    func asyncF() async -> C { return C() }
-    func getPinned() -> Pinned { return pinned }
+extension G {
+  func process() async {
+    await doProcessing(self.isoTakingNonSendable) // OK. conversion will add @Sendable and `async`
 
-    /////////////
-    // These partial-applications can only appear within these isolated methods,
-    // and the resulting function value cannot be cast to Sendable. Thus these
-    // methods are only callable from a context already isolated the actor.
-    func currentlyAllowed_1() -> (() -> C) {
-      return self.f
-    }
-    func currentlyAllowed_2() -> (() async -> Pinned) {
-      return self.getPinned
-    }
-
-    /////////////
-    // With Rule 2a, the following partial-applications can now appear anywhere.
-    // The closures can also be cast to Sendable. The diagnostics below are
-    // what the compiler currently raises.
-    nonisolated func byRule2a_ex1() -> (@Sendable () async -> C) {
-      let x = self.f
-          return x // without this return to coerce it, `x` would have type `() -> C`
-    }
-    func byRule2a_ex2() -> (@Sendable () async -> C) {
-      let x = self.asyncF
-          return x // without this return coercing it, `x` would have type `() async -> C`
-    }
-
-    // Pinned is not Sendable, so this conversion is still not allowed.
-    nonisolated func disallowed_ex3() -> (@Sendable () async -> Pinned) {
-           return self.getPinned
-    }
-    
-         // The type checker cannot determine the provenance of `f` to inspect its captures, 
-       // so this conversion is still not allowed.
-       func disallowed_ex4(_ f: () async -> C) -> (@Sendable () async -> C) {
-      return f
-    }
-}
-```
-
-**Rule 2b:** If a partially-applied method is chosen to be coerced to `@Sendable` **and the method has global-actor isolation**, then the resulting function type carries isolation to that global actor.
-
-**Rule 3:** If a partially-applied actor-isolated method is **not** coerced to `@Sendable`, then resulting function type is computed based on the isolation of the context in which the partial application happens:
-
-1.  The resulting function is `async` if an `await` would be required to invoke it from that context.
-2.  The function's argument and return types must be `Sendable` if invoking it from that context would cross actors.
-
-As of today, partial applications of actor-isolated methods outside of the same actor's isolation are not allowed at all.
-
-* * *
-
-**Rule 4a:** Conversions that drop a global-actor from the type of an `async` function value is permitted in any context.
-
-This is already permitted by SE-N, but we restate it differently here to contrast with the next rule:
-
-**Rule 4b (rdar://94462333):** Dropping some global-actor `G` from the type of a **non-`async`** and **non-`@Sendable`** function is permitted if the conversion happens in a context isolated to `G` .
-
-For example, in the context of a statement isolated to global-actor `GlobalActor`, this conversion is allowed:
-
-```swift
-{ @GlobalActor () in // some context isolated to the global actor...
-
-  @GlobalActor (T) -> V  ==>  (T) -> V
-  
-}
-```
-
-because the function is not `@Sendable` and thus cannot leave the isolation of `GlobalActor`.
-
-**Rule 4c (rdar://94462333):** Dropping some global-actor `G` from the type of a **non-`async`** and **`@Sendable`** function is permitted in the following circumstances:
-
-1.  Rule 4b can be applied if also dropping the `@Sendable` is possible.
-2.  Otherwise, the function will also become `async` and its arguments and return type must conform to `Sendable`
-
-A Sendable function can always be used in a place where Sendable is not required, so circumstance (1) is a reminder that if Sendability is also not required, then the function can remain non-`async` if Rule 4b applies.
-
-Otherwise, the rationale behind circumstance (2) mirrors that of Rule 2a. Conceptually, dropping a global actor from a function's' type is exactly the same situation as partially-applying an actor instance to an `isolated` parameter, in that it's erasing actor information from the type, but *preserving* the isolation in a different way. Isolation is always enforced and never removed.
-
-Here are a few example conversions:
-
-```
-// Circumstance 1
-@Sendable @GlobalActor (T) -> V  
-  ==> @GlobalActor (T) -> V   (if not required to be @Sendable)
-  ==> (T) -> V                (by Rule 4b)
-
-// Circumstance 2
-@Sendable @GlobalActor (T) -> V
-  ==> @Sendable (T) async -> V  (if T is Sendable and V is Sendable)
-```
-
-**Rule 5:**
-
-(still trying to figure out what to do about the casts that add global actor to async funcs)
-
-```swift
-@MainActor func mainActorAsync() async {}
-func voidAsync() async -> Void {}
-func pinnedAsync() async -> Pinned {}
-
-func banned() {
-  // expected-error @+1 {{cannot convert value of type 'MainActor' to specified type 'SomeOtherActor'}}
-  let _: @SomeOtherActor () async -> Void = mainActorAsync // arbitrarily not allowed?
-}
-
-@MainActor func chk() async {
-  let _: @MainActor () async -> Void = voidAsync     // OK cause return type is Sendable
-
-  // expected-warning @+1 {{non-sendable type 'Pinned' returned by call from main actor-isolated context to non-isolated global function 'pinnedAsync()' cannot cross actor boundary}}
-  let _: @MainActor () async -> Pinned = pinnedAsync // not OK cause return type is non-Sendable
-}
-```
-
-
-
-## Old Version
-
-
-
-Prior to this proposal, there was only one narrow circumstance under which the partial-application of an isolated `actor` method is permitted: the partial-application occurs within a context that is isolated to the same actor instance being partially-applied.
-
-In terms of our examples from earlier, that happens for `insideIsolationExample` because it is isolated to the actor `self`, and `self` is being partially-applied to `transform`. Conceptually, the type signature of `StatefulTransformer.transform` is `(isolated StatefulTransformer) -> ((Data) -> Data)`. Once partially applied to an instance of the type, the `isolated` instance parameter will be consumed and leave behind a resulting function `(Data) -> Data`. Thus, _because_ the isolation is not tracked in the resulting function's type, that function cannot be `Sendable`, i.e., be allowed to leave the actor's isolation domain. Otherwise, a caller from a non-isolated context will not know whether to `await` the call in order to obtain the isolation required. With this understanding in mind, the key idea behind the proposed solution becomes clear: 
-
-> When consuming or removing the isolation in a function's type, its resulting type is required to reflect the actor's requirements in all isolation contexts where it can be fully applied.
-
-
-For example, partially-applying an actor instance to one of its non-async methods can yield an async function:
-
-```swift
-extension StatefulTransformer {
-  nonisolated func outsideIsolationProposed() -> [Data] {
-    let h = self.transform
-    return [4, 8, 15, 16, 23, 42].asyncMap(h)
-	}
-}
-```
-
-In this example, `h` has the type `@Sendable (Data) async -> Data`. The demand for `h` to be `Sendable` comes in part from `asyncMap`, which requires a `Sendable` closure. Despite `transform` being a non-async function, `self.transform` yields an `async` function because an `await` may be required to gain isolation of the underlying actor. In addition,     
-
-But the other reason why it must be `Sendable`   
-
-But it's important to note that anytime we partially-apply a method, the `self` argument will be consumed. Conceptually, the complete signature of `StatefulTransformer.transform` is `(isolated StatefulTransformer) -> ((Data) -> Data)`. Once partially applied, the isolated parameter will have been consumed. Thus, the isolation is also dropped from the type. This is why it's not Sendable. etc.
-
-Left off here
-------------
-
-
-
-Thus, it is not safe to share the resulting function value with another actor.
-
-Note that the complete type signature for our example actor method is:
-
-```swift
-StatefulTransformer.transform : ()
-```
-
-Together, these two properties ensure that the resulting function value cannot *leave* the actor in which it is isolated. For example, if we try to perform the partial-application outside of the instance's isolation, the compiler rejects it:
-
-```swift
-extension Array where Self.Element: Sendable {
-  func asyncMap<T>(_ transform: @Sendable (Self.Element) async throws -> T) async rethrows -> [T]
-      where T: Sendable { /* ... */}
-}
-
-extension StatefulTransformer {
-    nonisolated func outsideIsolationExample() async -> [Data] {
-    let _: (Data) -> Data = self.transform
-    //                      ^~~~~~~~~~~~~~
-    // error: actor-isolated instance method 'transform' can not be partially applied
-        
-    let g: @Sendable (Data) async -> Data = { await self.transform($0) }
-    // OK
-        
-    return await [4, 8, 15, 16, 23, 42].asyncMap(g)
+    let x = self.isoTakingNonSendable
+    await doProcessing(x) // error: cannot cast  
   }
 }
 ```
 
-Yet, because `self` is `Sendable`, it is OK to fully-apply `self.transform` inside of a `@Sendable` closure as a workaround. There is no reason for this distinction.
 
 
-----
-
-Prior to this proposal, there was only one narrow circumstance under which the partial-application of an isolated `actor` method is permitted: the partial-application occurs within a context that is isolated to the same actor instance being partially-applied.
-
-In terms of our examples from earlier, that happens for `insideIsolationExample` because it is isolated to the actor `self`, and `self` is being partially-applied to `transform`. Conceptually, the type signature of `StatefulTransformer.transform` is `(isolated StatefulTransformer) -> ((Data) -> Data)`. Once partially applied to an instance of the type, the `isolated` instance parameter will be consumed and leave behind a resulting function `(Data) -> Data`. Thus, _because_ the isolation is not tracked in the resulting function's type, that function cannot be `Sendable`, i.e., be allowed to leave the actor's isolation domain. Otherwise, a caller from a non-isolated context will not know whether to `await` the call in order to obtain the isolation required. With this understanding in mind, the key idea behind the proposed solution becomes clear: 
-
-> When consuming or removing the isolation in a function's type, its resulting type is required to reflect the actor's requirements in all isolation contexts where it can be fully applied.
+## Source compatibility
 
 
-For example, partially-applying an actor instance to one of its non-async methods can yield an async function:
+
+## Effect on ABI stability
+
+
+## Effect on API resilience
+
+## Alternatives considered
+
+Herein lies some ideas cut or discarded from this proposal.
+
+### Forced discarding of non-Sendable return values.
+
+We could loosen some of the rules about `Sendable` return types in Swift if we
+added a rule stating that if the return value is non-Sendable and crosses an
+actor's boundary, the value is required to be discarded. For example, this rule
+would eliminate any diagnostics in the following examples:
 
 ```swift
-extension StatefulTransformer {
-  nonisolated func outsideIsolationProposed() -> [Data] {
-    let h = self.transform
-    return [4, 8, 15, 16, 23, 42].asyncMap(h)
-	}
+func foreign() async -> MutableRef { return MutableRef() }
+
+@MainActor func mainFn() async {
+  await foreign() // warning: non-sendable type 'MutableRef' returned by call from main actor-isolated context to non-isolated global function 'foreign()' cannot cross actor boundary
 }
 ```
 
-In this example, `h` has the type `@Sendable (Data) async -> Data`. The demand for `h` to be `Sendable` comes in part from `asyncMap`, which requires a `Sendable` closure. Despite `transform` being a non-async function, `self.transform` yields an `async` function because an `await` may be required to gain isolation of the underlying actor. In addition,     
-
-But the other reason why it must be `Sendable`   
-
-But it's important to note that anytime we partially-apply a method, the `self` argument will be consumed. Conceptually, the complete signature of `StatefulTransformer.transform` is `(isolated StatefulTransformer) -> ((Data) -> Data)`. Once partially applied, the isolated parameter will have been consumed. Thus, the isolation is also dropped from the type. This is why it's not Sendable. etc.
-
-Left off here
-------------
-
-
-
-Thus, it is not safe to share the resulting function value with another actor.
-
-Note that the complete type signature for our example actor method is:
-
 ```swift
-StatefulTransformer.transform : ()
-```
-
-Together, these two properties ensure that the resulting function value cannot *leave* the actor in which it is isolated. For example, if we try to perform the partial-application outside of the instance's isolation, the compiler rejects it:
-
-```swift
-extension Array where Self.Element: Sendable {
-  func asyncMap<T>(_ transform: @Sendable (Self.Element) async throws -> T) async rethrows -> [T]
-      where T: Sendable { /* ... */}
-}
-
-extension StatefulTransformer {
-    nonisolated func outsideIsolationExample() async -> [Data] {
-    let _: (Data) -> Data = self.transform
-    //                      ^~~~~~~~~~~~~~
-    // error: actor-isolated instance method 'transform' can not be partially applied
-        
-    let g: @Sendable (Data) async -> Data = { await self.transform($0) }
-    // OK
-        
-    return await [4, 8, 15, 16, 23, 42].asyncMap(g)
-  }
+// Dropping a global actor from an 'async' function, where only the return value
+// is non-Sendable, would now be allowed.
+@MainActor 
+func balanceData(withBalancer balancer: @MainActor () async -> (MutableRef)) async {
+  let discardOnly = balancer as () async -> (MutableRef)
+  _ = discardOnly()
 }
 ```
 
-Yet, because `self` is `Sendable`, it is OK to fully-apply `self.transform` inside of a `@Sendable` closure as a workaround. There is no reason for this distinction.
+## Acknowledgments
 
-
-----
+This proposal has benefited from discussions with Doug Gregor and John McCall.
