@@ -380,7 +380,14 @@ func balanceData(withBalancer balancer: @MainActor () async -> (MutableRef)) asy
 }
 ```
 
-<!-- TODO: What about Task.result case?? Do we basically already allow this? -->
+```swift
+class StatusRef { var status = 0 }
+
+@MainActor func example(_ t: Task<StatusRef, Never>) async {
+  // warning: non-sendable type 'Result<StatusRef, Never>' in asynchronous access from main actor-isolated context to non-isolated property 'result' cannot cross actor boundary
+  _ = await t.result
+}
+```
 
 ## Acknowledgments
 
