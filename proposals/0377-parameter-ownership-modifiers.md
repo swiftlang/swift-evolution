@@ -112,7 +112,7 @@ let f: (take Foo) -> Void = { a in a.foo() }
 let f: (inout Foo) -> Void = { a in a.foo() }
 ```
 
-Methods can using the `taking` or `borrowing` modifier to indicate that they
+Methods can use the `taking` or `borrowing` modifier to indicate that they
 take ownership of their `self` parameter, or they borrow it. These modifiers
 are mutually exclusive with each other and with the existing `mutating` modifier:
 
