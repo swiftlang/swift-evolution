@@ -292,9 +292,9 @@ Furthermore, `G.isoTakingSendable` can return an `async` function that does not 
 
 Prior to this proposal, Swift did allow partial-applications of isolated methods from a matching isolation context.Thus, our goal is to only enhance the generality of those references by making partial applications `@Sendable` when doing so will not introduce a source break. This is possible because a `@Sendable` function is a subtype of a non-`Sendable` function.
 
-Why not keep things uniform and have all partially-applied methods be `@Sendable` if their object instance is `Sendable`? It is not always possible or desirable to make the resulting function `@Sendable`, because that can drastically change the type, i.e., it can become `async` as for the differing isolation case. Otherwise, if those scenarios do not apply, inferring `@Sendable` on the function will not yield a source break thanks to subtyping.
+Why not keep things uniform and have all partially-applied methods be `@Sendable` if their object instance is `Sendable`? It is not always possible or desirable to make the resulting function `@Sendable`, because that can drastically change the type.
 
-For the methods above, we list the most general types that will be inferred by default:
+For the methods above, we list the most general types that will be inferred by default in a context that has matching isolation:
 
 ```swift
 I.nonIsoTakingNonSendable   : @Sendable (I) -> (@Sendable (NonSendableType) -> V)
@@ -313,35 +313,47 @@ PG.asyncIsoTakingNonSendable : @Sendable (PG) -> (@MainActor (NonSendableType) -
 PG.isoTakingSendable         : @Sendable (PG) -> (@MainActor (V) -> V)
 ```
 
-Casts to make these function values `@Sendable` within its own isolation domain must happen on the expression performing the partial application. For example,
+Casts to make these function values `@Sendable` within its own isolation domain are possible. The casts must happen on the expression performing the partial application. For example, you must coerce the type of the partial application to be `@Sendable` before it is bound to a variable:
 
 ```swift
-func doProcessing(_ f: @Sendable @MainActor (NonSendableType) async -> V)) async { /* ... */ }
+func doProcessing(_ f: @Sendable (NonSendableType) async -> V)) async { /* ... */ }
 
 extension G {
   func process() async {
-    await doProcessing(self.isoTakingNonSendable) // OK. conversion will add @Sendable and `async`
+    await doProcessing(self.isoTakingNonSendable) // OK. will be automatically coerced.
 
     let x = self.isoTakingNonSendable
-    await doProcessing(x) // error: cannot cast  
+    await doProcessing(x) // error: cannot cast '@isolated (NonSendableType) -> V' to '@Sendable (NonSendableType) async -> V'
   }
 }
 ```
 
+<!-- TODO: it might actually be feasible to allow a bunch of these casts now that we have @isolated. We can't support this:
+
+@isolated (NonSendableType) async -> V  ==>  @Sendable (NonSendableType) async -> V
+
+but we could support this:
+
+@isolated (V) async -> V  ==>  @Sendable (V) async -> V
+
+ -->
 
 
 ## Source compatibility
 
-
+This proposal highlights at least one source break for the type confusion between `async` functions. This will need to become an error diagnostic eventually, but will start as a warning until Swift 6 to provide time for fixes. The rules about dropping a global actor from function types as being redundant will at most be a warning about the redundancy with a fix-it to delete the global actor.
 
 ## Effect on ABI stability
 
+None.
 
 ## Effect on API resilience
 
+None.
+
 ## Alternatives considered
 
-Herein lies some ideas cut or discarded from this proposal.
+Herein lies some ideas cut, discarded, or deferred from this proposal.
 
 ### Forced discarding of non-Sendable return values.
 
@@ -367,6 +379,8 @@ func balanceData(withBalancer balancer: @MainActor () async -> (MutableRef)) asy
   _ = discardOnly()
 }
 ```
+
+<!-- TODO: What about Task.result case?? Do we basically already allow this? -->
 
 ## Acknowledgments
 
