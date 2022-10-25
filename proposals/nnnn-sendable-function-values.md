@@ -79,6 +79,49 @@ Up until now, the isolation of _the context_ in which a call to an isolated meth
 
 > **Rationale:** Even for a normal call to a non-async method of an actor from a different isolation domain, you must `await` as it is implicitly treated as an `async` call (and `throws` for distributed actors) because actors are non-blocking. To maintain isolation principles, the argument and return types of an actor-isolated function must also conform to `Sendable`. Thus, these proposed rules for partially-applied methods mirror the ones for the fully-applied case in a `nonisolated` context.
 
+### Introducing `@isolated` function types
+
+After [SE-338](0338-clarify-execution-non-actor-async.md), an `async` function that has no actor isolation is said to be `nonisolated`, which is a distinct isolation domain. That distinct domain has an effect on whether a non-`Sendable` value can be passed to the function. For example, Swift flags the following function call as invalid because it would break the isolation of `ref`:
+
+```swift
+func inspect(_ r: MutableRef) async { /* ex: creates a concurrent task to update r */ }
+
+actor MyActor {
+  var ref: MutableRef = MutableRef()  // MutableRef is not Sendable
+
+  func check() {
+    inspect(ref) // warning: non-sendable type 'MutableRef' exiting actor-isolated context in call to non-isolated global function 'inspect' cannot cross actor boundary
+  }
+}
+```
+
+When used as a first-class value, the type of `inspect` will be `@Sendable (MutableRef) async -> ()`. If `inspect` were passed in as an argument instead, we can still accurately determine whether to reject the call based on the type. Since there is no isolation listed in the type signature, it must be `nonisolated`. But as discussed previously, the true isolation of an `actor` instance cannot be represented in a function's type, as it is dependent upon a dynamic value in the program. Without any way to distinguish these kinds of values, type confusions can happen:
+
+```swift
+extension MyActor {
+  func update(_ ref: MutableRef) { /* ... */}
+  
+  func test(_ g: @Sendable (MutableRef) async -> ()) async {
+    let f: (MutableRef) async -> () = self.update
+    
+    let ref = MutableRef()
+    await f(ref) // Want this to be OK,
+    await g(ref) // but this to be rejected.
+  }
+}
+```
+
+The example above is currently accepted by Swift with no diagnostics about the incorrect sharing of `ref`. Both `f` and `g` have effectively the same type, but only one of their uses is correct. 
+
+To solve this type confusion, a new type-level attribute `@isolated` is proposed to distinguish functions that are isolated to _some_ actor. Here are some of the rules about this attribute:
+
+- An `@isolated` function value is only created after the partial-application of an actor-instance isolated method.
+- An `@isolated` function type cannot be both `@isolated` and `@Sendable`.
+
+To solve the type confusion above, the partial-application `self.update` will yield a value of type `@isolated (MutableRef) -> ()`, which can then be converted to `@isolated (MutableRef) async -> ()`.
+
+<!-- TODO: Can I go from @isolated -> Sendable, since we know all actor instances are Sendable? -->
+<!-- TODO: @isolated (SomeOtherActor) async -> () is quite easy to visually confuse with (isolated SomeOtherActor) async -> () -->
 
 ### Global-actors and function types
 
@@ -162,6 +205,7 @@ func doWork() async {
 ```
 
 Swift will suggest removing the `@MainActor` in the type of the `withFetcher` parameter, since its argument and return types are `Sendable`. Any function such as `mainActorFetcher` passed to it will be implicitly cast to drop its `@MainActor`.
+
 
 ## Detailed design
 
@@ -253,11 +297,11 @@ extension V: Sendable {} // assume V is a Sendable type
 In the following subsections, we list the most-general type signatures for each
 method as a curried function to make clear what the partially-applied type will be.
 
-## References from a `nonisolated` context
+## References from a differing isolation context
 
-This proposal expands the kinds of partial-applications of isolated methods that are possible from a `nonisolated` context. Still, not all isolated methods can be partially-applied in this context because of non-Sendable argument or return types.
+This section details the kinds of partial-applications that will be possible when the an isolation context of the reference differs from the isolation of the method. Without loss of generality, you can think of this section as covering the case of partial-applications that happen within a `nonisolated` context.
 
-Consider the isolated methods of an actor-instance that have a non-Sendable type in its function signature. The most accurate way to describe the type of these methods would be:
+Not all isolated methods can be partially-applied in a `nonisolated` context. Consider the isolated methods of an actor-instance that have a non-`Sendable` type in its function signature. The most accurate way to describe the type of these methods would be:
 
 ```swift
 // invalid types for references originating from a `nonisolated` context.
@@ -267,23 +311,23 @@ I.asyncIsoTakingNonSendable : @Sendable (isolated A) -> (@Sendable (NonSendableT
 
 But the types above are invalid, because after partial application, the type can be confused with a function that is simply `async` and `nonisolated`. That matters because the argument type is not `Sendable`. The same principle applies to a full-application of these methods, because the argument couldn't be sent across actors.
 
-Next, we have a situation where, even if we _could_ accurately represent the isolation of the function value in its type, because the function value _itself_ is not `@Sendable`, the function is uncallable!
+Next, we have a situation where, even when we _can_ accurately represent the isolation of the function value in its type, because the function value _itself_ is not `@Sendable`, the function is uncallable!
 
 ```swift
-// unusable types for references originating from a `nonisolated` context
+// accurate types for references originating from a `nonisolated` context, but the functions are unusable!
 PG.isoTakingNonSendable      : @Sendable (PG) -> (@MainActor (NonSendableType) -> V)
 PG.asyncIsoTakingNonSendable : @Sendable (PG) -> (@MainActor (NonSendableType) async -> V)
 ```
 
-Because `PG` represents a non-Sendable type with global-actor isolated methods, partial applications of these methods are not `@Sendable`, because they always capture the object instance. Thus, when references to these methods originate from a `nonisolated` context, we cannot pass the function value to a `@MainActor` context, which is the only one that can pass an argument to it!
+Because `PG` represents a non-`Sendable` type with global-actor isolated methods, partial applications of these methods are _not_ `@Sendable`, because they always are assumed to capture the object instance. Thus, when references to these methods originate from a `nonisolated` context, we cannot pass the function value to a `@MainActor` context, which is the only context that can pass an argument to it!
 
-In all other cases, the method signatures should not be particularly surprising. Here is the full listing of types if the methods were referenced from a `nonisolated` context:
+Here is the full listing of types if the methods were referenced from a `nonisolated` context:
 
 ```swift
 I.nonIsoTakingNonSendable   : @Sendable (I) -> (@Sendable (NonSendableType) -> V)
 I.isoTakingNonSendable      : ⊥  // not accessible
 I.asyncIsoTakingNonSendable : ⊥  // not accessible
-I.isoTakingSendable         : @Sendable (isolated A) -> (@Sendable (V) async -> V))
+I.isoTakingSendable         : @Sendable (isolated I) -> (@Sendable (V) async -> V))
 
 G.nonIsoTakingNonSendable   : @Sendable (G) -> (@Sendable (NonSendableType) -> V)
 G.isoTakingNonSendable      : @Sendable (G) -> (@Sendable @MainActor (NonSendableType) async -> V)
@@ -296,9 +340,37 @@ PG.asyncIsoTakingNonSendable : ⊥  // not accessible
 PG.isoTakingSendable         : @Sendable (G) -> (@MainActor (V) -> V)
 ```
 
+The first thing to note is `I.isoTakingSendable`, which despite being declared as a non-`async` function, when it is referenced from a `nonisolated` context, will return an `async` function. If `I` were a distributed actor type, then the returned function would additionally be `throws`.
+
+Furthermore, `G.isoTakingSendable` can return an `async` function that does not carry `@MainActor`, because it is not needed when `V` is `Sendable`. This is in contrast with `PG.isoTakingSendable`, which does not return a `@Sendable` function, thus a non-`async` function carrying the needed isolation is the most general.
 
 
-// TODO: stopped here 10/23 and it's basically nothign else interesting left.
+## References from a matching isolation context
+
+Prior to this proposal, Swift did allow partial-applications of isolated methods from a matching isolation context.Thus, our goal is to only enhance the generality of those references by making partial applications `@Sendable` when doing so will not introduce a source break. This is possible because a `@Sendable` function is a subtype of a non-`Sendable` function.
+
+Why not keep things uniform and have all partially-applied methods be `@Sendable` if their object instance is `Sendable`? It is not always possible or desirable to make the resulting function `@Sendable`, because that can drastically change the type, i.e., it can become `async` as for the differing isolation case. Otherwise, if those scenarios do not apply, inferring `@Sendable` on the function will not yield a source break thanks to subtyping.
+
+For the methods above, we list the most general types that will be inferred by default:
+
+```swift
+I.nonIsoTakingNonSendable   : @Sendable (I) -> (@Sendable (NonSendableType) -> V)
+I.isoTakingNonSendable      : @Sendable (I) -> (@isolated (NonSendableType) -> V)
+I.asyncIsoTakingNonSendable : @Sendable (I) -> (@isolated (NonSendableType) async -> V)
+I.isoTakingSendable         : @Sendable (I) -> (@isolated (V) async -> V))
+
+G.nonIsoTakingNonSendable   : @Sendable (G) -> (@Sendable (NonSendableType) -> V)
+G.isoTakingNonSendable      : @Sendable (G) -> (@MainActor (NonSendableType) -> V)
+G.asyncIsoTakingNonSendable : @Sendable (G) -> (@MainActor (NonSendableType) async -> V)
+G.isoTakingSendable         : @Sendable (G) -> (@MainActor (V) -> V)
+
+PG.nonIsoTakingNonSendable   : @Sendable (PG) -> ((NonSendableType) -> V)
+PG.isoTakingNonSendable      : @Sendable (PG) -> (@MainActor (NonSendableType) -> V)
+PG.asyncIsoTakingNonSendable : @Sendable (PG) -> (@MainActor (NonSendableType) -> V)
+PG.isoTakingSendable         : @Sendable (PG) -> (@MainActor (V) -> V)
+```
+
+
 
 
 ----------------------
