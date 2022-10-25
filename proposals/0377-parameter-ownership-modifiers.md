@@ -1,9 +1,10 @@
 # `borrow` and `take` parameter ownership modifiers
 
-* Proposal: [SE-NNNN](NNNN-parameter-ownership-modifiers.md)
+* Proposal: [SE-0377](0377-parameter-ownership-modifiers.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Joe Groff](https://github.com/jckarter)
-* Review Manager: TBD
-* Status: **Implemented**, using the internal names `__shared` and `__owned`
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (Oct 25 - Nov 8, 2022)**
+* Implementation: available using the internal names `__shared` and `__owned`
 * Pitch v1: [https://github.com/gottesmm/swift-evolution/blob/consuming-nonconsuming-pitch-v1/proposals/000b-consuming-nonconsuming.md](https://github.com/gottesmm/swift-evolution/blob/consuming-nonconsuming-pitch-v1/proposals/000b-consuming-nonconsuming.md)
 
 <!--
