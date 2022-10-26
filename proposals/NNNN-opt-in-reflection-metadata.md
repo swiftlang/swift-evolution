@@ -16,7 +16,13 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation
 
-There are two kinds of Swift metadata - Core Metadata (type metadata record, nominal type descriptor, etc) and Reflection metadata. The former must constantly be emitted and may only be stripped if provenly not used. Core Metadata is not affected by this proposal. The latter contains optional information about the type's fields and their names, not used by the language's runtime features, and the emission may be skipped if not used by reflection-consuming APIs.
+There are two kinds of Swift metadata emitted be the compiler:
+
+1. Core Metadata (type metadata record, nominal type descriptor, etc).
+2. Reflection metadata (reflection metadata field descriptor).
+
+Core metadata must constantly be emitted and may only be stripped if provenly not used. (This metadata isn't affected by this proposal)
+Reflection metadata contains optional information about declarations' fields - their names and references to their types. This metadata isn't used by the language's runtime features, and the emission may be skipped if such types aren't passed to reflection-consuming APIs.
 
 APIs can use Reflection Metadata differently. Some like `print`, and `dump` will still work with disabled reflection, but the output will be limited. Others, like SwiftUI, rely on it and won't work correctly if the reflection metadata is missing.
 While the former can benefit as well, the main focus of this proposal is on the latter.
