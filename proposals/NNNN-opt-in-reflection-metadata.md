@@ -115,9 +115,7 @@ In Swift `Mirror(reflecting:)` is the only official way to access Reflection met
 
 ## Detailed design
 
-Since Reflection symbols might be used by the debugger, there will be difference in emitted Reflection symbols across Debug and Release modes.
-**Release mode**: if `-O`, `-Osize`, `-Ospeed` passed.
-**Debug**: - if `-Onone` passed or if not set.
+Since Reflection metadata might be used by the debugger, we propose to always keep that metadata if full emission of debugging information is enabled (`-gdwarf-types` or `-g` flags).
 
 **Changes in flags**
 To handle behavior change between Swift pre-6 and 6, we can introduce a new upcoming feature, which will allow to enable Opt-In mode explicitly for pre-6 Swift with `-enable-upcoming-feature OptInReflection` and will set this mode by default in Swift 6.
@@ -127,17 +125,17 @@ A new flag `-enable-full-reflection-metadata` will also have to be introduced to
 For Swift 6, flags `-disable-reflection-metadata` and `-emit-reflection-for-debugger` will be a no-op, to ensure the reflection metadata is always available when needed.
 
 1.  Reflection Disabled (`-disable-reflection-metadata` and `-reflection-metadata-for-debugger-only`)
-- Do not emit reflection in Release and Debug modes for Swift pre-6.
-- A no-op in Swift 6 and later.
+- For Swift pre-6 emit Reflection metadata only if full debugging information is enabled.
 - If there is a type in a module conforming to `Reflectable`, the compiler will emit an error.
+- A no-op in Swift 6 and later (Opt-in mode is enabled by default).
 
 2.  Opt-In Reflection (`-enable-upcoming-feature OptInReflection`)
-- In Release mode, emit only for types that conform to `Reflectable`.
-- In Debug mode emit reflection in full.
+- If debugging is disabled, emit only for types that conform to `Reflectable`.
+- Will emit reflection in full for all types if debugging is enabled.
 - For Swift pre-6 will require an explicit flag, for Swift 6 will be enabled by default.
 
 3.  Fully enabled (`-enable-full-reflection-metadata`)
-- Emit reflection metadata for all types in Release and Debug modes.
+- Always emit reflection metadata for all types regardless of debugging information level.
 - Conformance to Reflectable will be synthesized for all types to allow usage of reflection-consuming APIs.
 - Current default level for Swift pre-6.
 
