@@ -143,8 +143,6 @@ extension Clock {
   ///
   /// Prefer to use the `sleep(until:tolerance:)` method on `Clock` if you have access to an 
   /// absolute instant.
-  @available(SwiftStdlib 5.7, *)
-  @_alwaysEmitIntoClient
   public func sleep(
     for duration: Duration,
     tolerance: Duration? = nil
@@ -169,8 +167,6 @@ Further, to make the APIs between `clock.sleep` and `Task.sleep` similar, we wil
 ///       try await Task.sleep(for: .seconds(3))
 ///
 /// - Parameter duration: The duration to wait.
-@available(SwiftStdlib 5.7, *)
-@_alwaysEmitIntoClient
 public static func sleep(
   for duration: Duration,
   tolerance: C.Instant.Duration? = nil
