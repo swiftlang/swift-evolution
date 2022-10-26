@@ -3,7 +3,7 @@
 * Proposal: [SE-0374](0374-clock-sleep-for.md)
 * Authors: [Brandon Williams](https://github.com/mbrandonw), [Stephen Celis](https://github.com/stephencelis)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (Oct 11 ... Nov 1, 2022)**
+* Status: **Active Review (October 11 ... November 1, 2022)**
 * Implementation: [apple/swift#61222](https://github.com/apple/swift/pull/61222)
 * Review: ([pitch](https://forums.swift.org/t/pitch-clock-sleep-for/60376)) ([review](https://forums.swift.org/t/se-0374-add-sleep-for-to-clock/60787))
 
@@ -19,8 +19,6 @@ is fully erased, and only the `Duration` is preserved via the primary associated
 that deals with instants is inaccessible to an existential. This means one cannot invoke 
 `sleep(until:)` on an existential clock, and hence you can't really do anything with an existential
 clock.
-
-Swift-evolution thread: https://forums.swift.org/t/pitch-clock-sleep-for/60376
 
 ## Motivation
 
@@ -156,25 +154,25 @@ This will allow one to sleep for a duration with a clock rather than sleeping un
 Further, to make the APIs between `clock.sleep` and `Task.sleep` similar, we will also add a `tolerance` argument to `Task.sleep(for:)`:
 
 ```swift
-/// Suspends the current task for the given duration on a continuous clock.
-///
-/// If the task is cancelled before the time ends, this function throws 
-/// `CancellationError`.
-///
-/// This function doesn't block the underlying thread.
-///
-///       try await Task.sleep(for: .seconds(3))
-///
-/// - Parameter duration: The duration to wait.
-public static func sleep(
-  for duration: Duration,
-  tolerance: C.Instant.Duration? = nil
-) async throws {
-  try await sleep(until: .now + duration, tolerance: tolerance, clock: .continuous)
+extension Task where Success == Never, Failure == Never {
+  /// Suspends the current task for the given duration on a continuous clock.
+  ///
+  /// If the task is cancelled before the time ends, this function throws 
+  /// `CancellationError`.
+  ///
+  /// This function doesn't block the underlying thread.
+  ///
+  ///       try await Task.sleep(for: .seconds(3))
+  ///
+  /// - Parameter duration: The duration to wait.
+  public static func sleep(
+    for duration: Duration,
+    tolerance: Duration? = nil
+  ) async throws {
+    try await sleep(until: .now + duration, tolerance: tolerance, clock: .continuous)
+  }
 }
 ```
-
-## Detailed design
 
 ## Source compatibility, effect on ABI stability, effect on API resilience
 
