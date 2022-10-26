@@ -100,8 +100,18 @@ public func testIsReflectable<T>(_ t:  T) -> Bool {
 }
 ```
 
-### Behaviour change for Swift 6
-For Swift 6, we propose to enable Opt-In behaviour by default, to make the user experience consistent and safe.  To achieve that we will need to deprecate the compiler's options that can lead to missing reflection - `-reflection-metadata-for-debugger-only` and `-disable-reflection-metadata`. Starting with Swift 6, these arguments will be ignored in favour of the default opt-in mode.
+### Behavior change for Swift 6
+Starting with Swift 6, we propose to enable Opt-In mode by default, to make the user experience consistent and safe. However, if full reflection isn't enabled with a new flag (`-enable-full-reflection-metadata`), the emission of reflection metadata will be skipped for all types that don't conform to the `Reflectable` protocol. This may cause changes in the behavior of the code that wasn't audited to conform to Reflectable and uses reflection-consuming APIs.
+
+For instance, stdlib's APIs like `dump`, `debugPrint`, `String(describing:)` will be returning limited output.
+Library authors will have to prepare their APIs for Swift 6 and introduce generic requirements on `Reflectable` in their APIs.
+
+We also propose to deprecate the compiler's options that can lead to missing reflection - `-reflection-metadata-for-debugger-only` and `-disable-reflection-metadata` and starting with Swift 6, ignore these arguments in favor of the default opt-in mode.
+
+
+### Stdlib behavior changes
+In Swift `Mirror(reflecting:)` is the only official way to access Reflection metadata, all other APIs are using it under the hood. We intentionally do not propose adding a Reflectable constraint on Mirror type, because it would impose restrictions on those developers who still don't want to require it. If the presence of reflection metadata is mandatory, the requirement on Reflectable protocol should be expressed in the signatures of calling functions.
+
 
 ## Detailed design
 
