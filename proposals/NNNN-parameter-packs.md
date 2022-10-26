@@ -1,4 +1,14 @@
-- [Value and Type Parameter Packs](#value-and-type-parameter-packs)
+# Value and Type Parameter Packs
+
+* Proposal: [SE-NNNN](NNNN-parameter-packs.md)
+* Authors: [Holly Borla](https://github.com/swiftdev), [John McCall](https://github.com/swiftdev), [Slava Pestov]()
+* Review Manager: TBD
+* Status: **Awaiting implementation**
+* Implementation: On `main` gated behind the frontend flag `-enable-experimental-variadic-generics`
+* Review: ([pitch 1]()) ([pitch 2]())
+
+## Contents
+
   - [Proposed solution](#proposed-solution)
   - [Detailed design](#detailed-design)
     - [Type parameter packs](#type-parameter-packs)
@@ -32,7 +42,13 @@
     - [Tuple conformances](#tuple-conformances)
   - [Acknowledgments](#acknowledgments)
 
-# Value and Type Parameter Packs
+## Introduction
+
+Many modern Swift libraries include ad-hoc variadic APIs with an arbitrary upper bound, typically achieved with overloads that each have a different fixed number of type parameters and corresponding arguments. Without variadic generic programming support in the language, these ad-hoc variadic APIs have a significant cost on library maintenance and the developer experience of using these APIs.
+
+This proposal adds _type parameter packs_ and _value parameter packs_ to enable abstracting over the number of types and values with distinct type. This is the first step toward variadic generics in Swift.
+
+## Motivation
 
 Generic functions currently require a fixed number of type parameters. It is not possible to write a generic function that accepts an arbitrary number of arguments with distinct types, instead requiring one of the following workarounds:
 
@@ -759,4 +775,4 @@ extension<T...> (T...): Comparable where T: Comparable {
 
 ## Acknowledgments
 
-Thank you to Robert Widmann for exploring the design space of modeling packs as tuples, to John McCall for his insight on the various possibilities in the variadic generics design space, and to everyone who participated in earlier design discussions about variadic generics in Swift.
+Thank you to Robert Widmann for exploring the design space of modeling packs as tuples, and to everyone who participated in earlier design discussions about variadic generics in Swift.
