@@ -68,40 +68,29 @@ In [SE-302](0302-concurrent-value-and-concurrent-closures.md), the `@Sendable` a
 2. the inference of `@Sendable` on all non-local functions.
 3. the prohibition of marking a method `@Sendable` if the object type does not conform to `Sendable`.
 
-### Sendable `actor` methods
-
-Since all `actor` types are `Sendable`, their methods will also be considered `@Sendable` as part of the earlier proposed rules. The subtle complication is that, a `@Sendable` function is not required to have argument and return types that conform to `Sendable`. That is a rule about actor-isolation: whether an argument passed to an actor-isolated function is required to be `Sendable` depends on the isolation of the context in which the call appears.
-
-Up until now, the isolation of _the context_ in which a call to an isolated method appears has been statically known, because partial-applications of those methods were not `@Sendable`. Barring major extensions to the language, we cannot statically infer anything about the context in which a `@Sendable` version will eventually be called. As a result, those function values must:
-
-1. Carry `async` and/or `throws` in its type.
-2. Have its arguments and return type all conform to `Sendable`.
-
-> **Rationale:** Even for a normal call to a non-async method of an actor from a different isolation domain, you must `await` as it is implicitly treated as an `async` call (and `throws` for distributed actors) because actors are non-blocking. To maintain isolation principles, the argument and return types of an actor-isolated function must also conform to `Sendable`. Thus, these proposed rules for partially-applied methods mirror the ones for the fully-applied case in a `nonisolated` context.
-
 ### Introducing `@isolated` function types
 
-After [SE-338](0338-clarify-execution-non-actor-async.md), an `async` function that has no actor isolation is said to be `nonisolated`, which is a distinct isolation domain. That distinct domain has an effect on whether a non-`Sendable` value can be passed to the function. For example, Swift flags the following function call as invalid because it would break the isolation of `ref`:
+After [SE-338](0338-clarify-execution-non-actor-async.md), an `async` function that has no actor isolation is said to be `nonisolated` and within a distinct isolation domain. That distinct domain has an effect on whether a non-`Sendable` value can be passed to the function. For example, Swift marks the following function call as invalid because it would break the isolation of `ref`:
 
 ```swift
-func inspect(_ r: MutableRef) async { /* ex: creates a concurrent task to update r */ }
+@Sendable func inspect(_ r: MutableRef) async { /* ex: creates a concurrent task to update r */ }
 
 actor MyActor {
   var ref: MutableRef = MutableRef()  // MutableRef is not Sendable
 
-  func check() {
-    inspect(ref) // warning: non-sendable type 'MutableRef' exiting actor-isolated context in call to non-isolated global function 'inspect' cannot cross actor boundary
+  func check() async {
+    await inspect(ref) // warning: non-sendable type 'MutableRef' exiting actor-isolated context in call to non-isolated global function 'inspect' cannot cross actor boundary
   }
 }
 ```
 
-When used as a first-class value, the type of `inspect` will be `@Sendable (MutableRef) async -> ()`. If `inspect` were passed in as an argument instead, we can still accurately determine whether to reject the call based on the type. Since there is no isolation listed in the type signature, it must be `nonisolated`. But as discussed previously, the true isolation of an `actor` instance cannot be represented in a function's type, as it is dependent upon a dynamic value in the program. Without any way to distinguish these kinds of values, type confusions can happen:
+When used as a first-class value, the type of `inspect` will be `@Sendable (MutableRef) async -> ()`. If `inspect` were bound in a `let`, we can still accurately determine whether to reject the call based on the type. Since there is no isolation listed in the type signature and it is `async`, it must be `nonisolated`. But as discussed previously, the true isolation of an `actor` instance cannot be represented in a function's type, as it is dependent upon a dynamic value in the program. Without any way to distinguish these kinds of values, type confusions can happen:
 
 ```swift
 extension MyActor {
   func update(_ ref: MutableRef) { /* ... */}
   
-  func test(_ g: @Sendable (MutableRef) async -> ()) async {
+  func confusion(_ g: @Sendable (MutableRef) async -> ()) async {
     let f: (MutableRef) async -> () = self.update
     
     let ref = MutableRef()
@@ -109,56 +98,172 @@ extension MyActor {
     await g(ref) // but this to be rejected.
   }
 }
+
+func pass(_ a: MyActor) async {
+  await a.confusion(inspect)
+}
 ```
 
-The example above is currently accepted by Swift with no diagnostics about the incorrect sharing of `ref`. Both `f` and `g` have effectively the same type, but only one of their uses is correct. 
+In the example above, the call to `g` should raise an error about passing a non-Sendable value from an actor-isolated domain into a non-isolated one. That fact is inferred purely based on the `async` in the type of `g` with no other isolation listed. But if we make that an error, then `f` would also be an error, despite not actually crossing actors! As of today, this example raises no diagnostics in Swift.
 
-To solve this type confusion, a new type-level attribute `@isolated` is proposed to distinguish functions that are isolated to _some_ actor. Here are some of the rules about this attribute:
+To solve this type confusion, a new type-level attribute `@isolated` is proposed to distinguish functions that are isolated to the actor whose context in which the value resides. Here are some of the rules about this attribute:
 
-- An `@isolated` function value is only created after the partial-application of an actor-instance isolated method.
-- An `@isolated` function type cannot be both `@isolated` and `@Sendable`.
+- A function value with `@isolated` type be produced when a function is used as a first-class value and all of the following apply:
+  - The function is isolated to an actor.
+  - The isolation of the function matches the context of the first-class use.
+  - The function is `@Sendable`.
+- An function type that is `@isolated` is mutually exclusive with the following type attributes:
+  - `@Sendable`
+  - any global-actor
+- A function value whose type contains global-actor `@G`, is `@Sendable`, and appears in `G`'s isolation domain can be cast to or from `@isolated`.
 
-To solve the type confusion above, the partial-application `self.update` will yield a value of type `@isolated (MutableRef) -> ()`, which can then be converted to `@isolated (MutableRef) async -> ()`.
+> **Rationale:** The purpose of `@isolated` is to track first-class functions that are isolated to the same actor as the context in which the value appears. That is why `@Sendable` must be mutually-exclusive with `@isolated`. We could no longer infer anything about the `@isolated` function once it crosses actors, because the isolation described by the attribute must match its context. That is why it is impossible to cast a `@Sendable` function value to `@isolated`.
 
-<!-- TODO: Can I go from @isolated -> Sendable, since we know all actor instances are Sendable? -->
-<!-- TODO: @isolated (SomeOtherActor) async -> () is quite easy to visually confuse with (isolated SomeOtherActor) async -> () -->
+To solve the type confusion above, the partial-application `self.update` will always yield a value of type `@isolated (MutableRef) -> ()`, which can then be converted to `@isolated (MutableRef) async -> ()`. The type checker can then correctly distinguish the two calls when performing `Sendable` checking on the argument:
+
+```swift
+extension MyActor {
+  func update(_ ref: MutableRef) { /* ... */}
+  
+  func distinction(_ g: @Sendable (MutableRef) async -> ()) async {
+    let f: @isolated (MutableRef) async -> () = self.update
+    
+    let ref = MutableRef()
+    await f(ref) // OK because `@isolated`
+    await g(ref) // rejected.
+  }
+}
+```
+
+Going further, `@isolated` provides the needed capability to share partially-applied methods across actors, when it is safe to do so:
+
+```swift
+func ok(_ y: @Sendable (V) async -> ()) {}
+func bad(_ x: @Sendable (MutableRef) async -> ()) {}
+
+extension MyActor {
+  func shareThem(_ h: @isolated (V) -> (), _ i: @isolated (MutableRef) -> ()) {
+    ok(h) 
+    bad(i) // error: cannot cast '@isolated (MutableRef) -> ()' to '@Sendable (MutableRef) async -> ()' because 'MutableRef' is not Sendable.
+  }
+}
+```
+
+Here, we know `h` is isolated to the actor-instance because of `MyActor.shareThem`'s isolation. In fact, the compiler can determine specifically _which instance_ of that type the function `h` must be isolated: it's the implicit (or explicit) parameter `self: isolated MyActor` currently in scope! By the existing rules about `Sendable` values, `h` must have been partially-applied to the exact same instance of `MyActor` as the one representing `self` in `shareThem`. For example, it could not have come from some other instance of `MyActor` because non-Sendable values cannot cross between different instances.
+
+**Caveat:** It is tempting to believe that all actor-instance isolated functions are `@isolated` because they are `@Sendable`, but one can define an actor-instance isolated method that is not part of that `actor`'s type:
+
+```swift
+class PinnedClass {
+  func instanceIso(_ a: isolated MyActor) -> V {}
+}
+```
+
+Here, a partial-application of `PinnedClass.instanceIso` does _not_ yield a `@isolated` method, instead, it will yield a function that is isolated to its unfilled _parameter_, i.e., it will have type `(isolated MyActor) -> V` and is not `@Sendable` because `PinnedClass` is not `Sendable`.
+
+#### Removing `@isolated` from a function's type
+
+The core reason why `@isolated` function types can only be inhabited by `@Sendable` functions is to facilitate their conversion should the function need to cross isolation domains. The removal of `@isolated` is not required to add `@Sendable` and there are safe and useful places where this applies. Consider this:
+
+```swift
+func process(_ e: Element, _ f: (Element) -> ()) { /* ... */ }
+
+func crunchNumbers(_ a: MyActor, _ es: [Element], _ cruncher: @isolated (Element) -> ()) {
+  for e in es {
+    process(e, es, cruncher)
+  }
+}
+```
+
+Here, because arguments passed to `process` do not cross domains, there's no need for it to become `@Sendable`. We can summarize the rules about dropping `@isolated` (_without_ adding `@Sendable`) as:
+
+**Rule for Dropping `@isolated`:**
+- If the function is `async`, then its argument and return types must conform to `Sendable`.
+
+Once an attempt is made to pass an `@isolated` method across isolation domains, it must become `@Sendable`. But, there is a subtle complication: `@Sendable` functions are not required to have argument and return types that conform to `Sendable`. Yet, that extra requirement is needed to truly share an `@isolated` method across actors. This follows directly from rules about actor-isolation: whether an argument passed to an actor-isolated function is required to be `Sendable` depends on the isolation of the context in which the call appears. Since we cannot statically reason about the context in which a `@Sendable` function will be invoked, we have the following rule: 
+
+**Rule for Exchanging `@isolated` for `@Sendable`:**
+- The function becomes `async`.
+- If the function is isolated to a distributed actor, then it also gains `throws`.
+- The function's argument and return types must conform to `Sendable`.
+- The original function must have been `@Sendable` (always true for `@isolated`)
+
+> **Rationale:** For a normal call to a non-async method of an actor from a different isolation domain, you must `await` as it is implicitly treated as an `async` call (and `throws` for distributed actors) because actors are non-blocking. To maintain isolation principles once isolation information is lost, the argument and return types of an actor-isolated function must also conform to `Sendable`.
 
 ### Global-actors and function types
 
-Global actors represent isolation that depends on a fixed, well-known instance of an actor. Swift can express the isolation of a function value to a global actor in its type system. As discussed in the Motivation, there are situations where dropping the global actor from a function type is safe and useful. In addition, there are scenarios where adding a global actor is unsafe or misleading.
+For methods that are isolated to a global-actor, partial applications of those methods can more simply state their exact isolation, rather than using `@isolated`. Thus, a `@Sendable` partially-applied method that is isolated to a global-actor is not _required_ to be `async`. Nor is it required to have `Sendable` input and output types. But, as discussed in the Motivation, there are still situations where losing or dropping the global-actor isolation from a function's type is useful. In addition, there are scenarios where adding a global actor is unsafe or misleading.
 
 #### Dropping global actors from function types
 
-For methods that are isolated to a global-actor, partial applications of those methods do not need to erase the isolation from the type. Thus, a `@Sendable` partially-applied method that is isolated to a global-actor is not _required_ to carry `async` in its type. Nor is it required to have `Sendable` input and output types. But, there are still situations where losing or dropping the global-actor isolation from a function's type is useful. The proposed rules for when it's safe to perform such a conversion resemble the actor-instance isolation case:
+Global-actors can also be dropped from a function's type by first implicitly converting it to `@isolated`, which will ensure the context matches _and_ the function is `@Sendable`. 
+But there is one additional scenario where we can drop the global-actor when only the context matches:
 
-1. When within a matching isolation domain, it is permitted to simply drop the global-actor if the function type is not `@Sendable`, when any of the following are true:
-  - the function is non-async.
-  - the function is `async` and the argument and return types are `Sendable`.
-2. In all other cases, the global actor in its type is exchanged for becoming `async` and having `Sendable` argument/return types.
+**Extra Rule for Dropping Global-actor:**
+- The function is _not_ `async`.
+- The function is _not_ `@Sendable`.
+- The context must be isolated to the same actor.
 
-Here are a few example type conversion chains that rely on these rules, where all intermediate steps are shown:
+Here is an example of a type conversion that relies on this Extra Rule:
 
 ```swift
-// Example 1 - matching context isolation.
-@GlobalActor func ex1(_ a: @Sendable @GlobalActor (T) -> V) {
-  let b = a as @GlobalActor (T) -> V  // by subtyping of @Sendable functions
-  let c = b as (T) -> V               // because we are in GlobalActor's isolation
-  use1(c)
+@GlobalActor func example(_ f: @GlobalActor (T) -> V) {
+  let g = f as (T) -> V
+  sameDomain(g)
 }
+```
 
-// Example 2 - non-matching context isolation.
-func ex2(_ x: @Sendable @GlobalActor (T) -> V) {
-  let y = x as @Sendable (T) async -> V // only if T: Sendable and V: Sendable
-  use2(y)
-}
+Each aspect of this Extra Rule serves an important purpose. First, if the function is `async`, then dropping the global-actor is incorrect, as the Sendability of arguments to the function becomes ambiguous:
 
-// Example 3 - `async` can prevent dropping the actor in some cases.
-@MainActor 
-func balanceData(withBalancer balancer: @MainActor (MutableRef) async -> ()) async {
+```
+// Counter-example 1 - `async` can prevent dropping the actor.
+@GlobalActor 
+func balanceData(withBalancer balancer: @GlobalActor (MutableRef) async -> ()) async {
   // This cast will be rejected because MutableRef is not a Sendable type.
   let unusable = balancer as (MutableRef) async -> ()
   unusable(MutableRef()) // error: cannot pass non-Sendable value 'MutableRef' to nonisolated function.
 }
+```
+
+For the same reason, the function cannot be `@Sendable`, because adding `async` while dropping the `@GlobalActor` would lead to the same ambiguity. Finally, if we drop the global-actor while in a differing context, then our `example` function above 
+
+TODO: wait wouldn't our example basically lead to a totally unusable function too??
+
+---
+
+```swift
+// Example 1a - matching context, initially @Sendable, _not_ required to be @Sendable.
+@GlobalActor func ex1a(_ x: @Sendable @GlobalActor (T) -> V, 
+                       _ a: @Sendable @GlobalActor (T) async -> V) {
+  let y = x as @isolated (T) -> V // because we are in GlobalActor's isolation and it is @Sendable
+  let z = y as (T) -> V
+
+  let b = a as @isolated (T) async -> V // because we are in GlobalActor's isolation and it is @Sendable
+  let c = b as (T) async -> V           // only if T: Sendable and V: Sendable
+
+  sameDomain(z, c)
+}
+
+// Example 1b - matching context, initially @Sendable, required to be @Sendable.
+@GlobalActor func ex1b(_ x: @Sendable @GlobalActor (T) -> V, 
+                       _ a: @Sendable @GlobalActor (T) async -> V) async {
+  let y = x as @Sendable (T) async -> V    // only if T: Sendable and V: Sendable
+
+  let b = a as @Sendable (T) async -> V    // only if T: Sendable and V: Sendable
+  
+  await differentDomain(y, b)
+}
+
+// Exception for global-actors - matching context and not @Sendable can still drop the global actor, if
+// the value is n
+func ex2a(_ x: @Sendable @GlobalActor (T) -> V, 
+          _ a: @Sendable @GlobalActor (T) async -> V) {
+  let y = (T) -> V
+
+  use2(y)
+}
+
+
 ```
 
 Example 3 in particular is quite interesting. The cast of `balancer` cannot be allowed because it would produce a function value that is completely unusable. Since `MutableRef` is not a `Sendable` type, there is currently no way for the `MainActor` to pass a value to it. It cannot even be passed to a `nonisolated` context which _could_ pass an argument to it, because the function value itself is also not `@Sendable`.
@@ -355,22 +460,25 @@ None.
 
 Herein lies some ideas cut, discarded, or deferred from this proposal.
 
+### Replace global-actors in function types with `@isolated`.
+
+In a number of ways, it is tempting to 
+
 ### Forced discarding of non-Sendable return values.
 
 We could loosen some of the rules about `Sendable` return types in Swift if we
 added a rule stating that if the return value is non-Sendable and crosses an
 actor's boundary, the value is required to be discarded. For example, this rule
-would eliminate any diagnostics in the following examples:
+would eliminate any diagnostics in the following situations:
 
 ```swift
 func foreign() async -> MutableRef { return MutableRef() }
 
+// Invoking `foreign` from a different actor would be possible:
 @MainActor func mainFn() async {
   await foreign() // warning: non-sendable type 'MutableRef' returned by call from main actor-isolated context to non-isolated global function 'foreign()' cannot cross actor boundary
 }
-```
 
-```swift
 // Dropping a global actor from an 'async' function, where only the return value
 // is non-Sendable, would now be allowed.
 @MainActor 
@@ -378,11 +486,10 @@ func balanceData(withBalancer balancer: @MainActor () async -> (MutableRef)) asy
   let discardOnly = balancer as () async -> (MutableRef)
   _ = discardOnly()
 }
-```
 
-```swift
 class StatusRef { var status = 0 }
 
+// awaiting the completion of a Task with a non-Sendable result would become possible.
 @MainActor func example(_ t: Task<StatusRef, Never>) async {
   // warning: non-sendable type 'Result<StatusRef, Never>' in asynchronous access from main actor-isolated context to non-isolated property 'result' cannot cross actor boundary
   _ = await t.result
