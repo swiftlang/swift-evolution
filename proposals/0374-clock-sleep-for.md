@@ -142,7 +142,9 @@ extension Clock {
   /// Suspends for the given duration.
   ///
   /// Prefer to use the `sleep(until:tolerance:)` method on `Clock` if you have access to an 
-  /// absolute instant. 
+  /// absolute instant.
+  @available(SwiftStdlib 5.7, *)
+  @_alwaysEmitIntoClient
   public func sleep(
     for duration: Duration,
     tolerance: Duration? = nil
@@ -152,17 +154,37 @@ extension Clock {
 }
 ```
 
-<!-- We should make sure that we talk in the documentation about why this kind of method should only be used as a convenience API and why the primary API should traffic in absolute clock values. But with that said, I absolutely agree that it's pretty much always going to be useful to have this kind of convenience alongside that primary API, and so this proposal seems like a nice addition. -->
-
 This will allow one to sleep for a duration with a clock rather than sleeping until an instant.
+
+Further, to make the APIs between `clock.sleep` and `Task.sleep` similar, we will also add a `tolerance` argument to `Task.sleep(for:)`:
+
+```swift
+/// Suspends the current task for the given duration on a continuous clock.
+///
+/// If the task is cancelled before the time ends, this function throws 
+/// `CancellationError`.
+///
+/// This function doesn't block the underlying thread.
+///
+///       try await Task.sleep(for: .seconds(3))
+///
+/// - Parameter duration: The duration to wait.
+@available(SwiftStdlib 5.7, *)
+@_alwaysEmitIntoClient
+public static func sleep(
+  for duration: Duration,
+  tolerance: C.Instant.Duration? = nil
+) async throws {
+  try await sleep(until: .now + duration, tolerance: tolerance, clock: .continuous)
+}
+```
 
 ## Detailed design
 
 ## Source compatibility, effect on ABI stability, effect on API resilience
 
 As this is an additive change, it should not have any compatibility, stability or resilience 
-problems. The only potential problem would be if someone has already run into this shortcoming
-and decided to define their own `sleep(for:)` method on clocks.
+problems.
 
 ## Alternatives considered
 
