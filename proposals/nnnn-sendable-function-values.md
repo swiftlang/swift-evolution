@@ -106,20 +106,7 @@ func pass(_ a: MyActor) async {
 
 In the example above, the call to `g` should raise an error about passing a non-Sendable value from an actor-isolated domain into a non-isolated one. That fact is inferred purely based on the `async` in the type of `g` with no other isolation listed. But if we make that an error, then `f` would also be an error, despite not actually crossing actors! As of today, this example raises no diagnostics in Swift.
 
-To solve this type confusion, a new type-level attribute `@isolated` is proposed to distinguish functions that are isolated to the actor whose context in which the value resides. Here are some of the rules about this attribute:
-
-- A function value with `@isolated` type be produced when a function is used as a first-class value and all of the following apply:
-  - The function is isolated to an actor.
-  - The isolation of the function matches the context of the first-class use.
-  - The function is `@Sendable`.
-- An function type that is `@isolated` is mutually exclusive with the following type attributes:
-  - `@Sendable`
-  - any global-actor
-- A function value whose type contains global-actor `@G`, is `@Sendable`, and appears in `G`'s isolation domain can be cast to or from `@isolated`.
-
-> **Rationale:** The purpose of `@isolated` is to track first-class functions that are isolated to the same actor as the context in which the value appears. That is why `@Sendable` must be mutually-exclusive with `@isolated`. We could no longer infer anything about the `@isolated` function once it crosses actors, because the isolation described by the attribute must match its context. That is why it is impossible to cast a `@Sendable` function value to `@isolated`.
-
-To solve the type confusion above, the partial-application `self.update` will always yield a value of type `@isolated (MutableRef) -> ()`, which can then be converted to `@isolated (MutableRef) async -> ()`. The type checker can then correctly distinguish the two calls when performing `Sendable` checking on the argument:
+To solve this type confusion, a new type-level attribute `@isolated` is proposed to distinguish functions that are isolated to the actor whose context in which the value is bound. Thus, any uses of an `@isolated` function will rely on the location in which that value was bound to determine its isolation. To solve the type confusion above, the partial-application `self.update` will always yield a value of type `@isolated (MutableRef) -> ()`, which can then be converted to `@isolated (MutableRef) async -> ()`. The type checker can then correctly distinguish the two calls when performing `Sendable` checking on the argument:
 
 ```swift
 extension MyActor {
@@ -134,6 +121,44 @@ extension MyActor {
   }
 }
 ```
+
+Notice how `g` is bound as a parameter of `distinction`, which is isolated to the actor instance. We could also store an `@isolated` function in the instance's isolated storage, like this:
+
+```swift
+actor Responder {
+  private var takeAction : @isolated (Request) -> Response
+
+  func denyAll(_ r: Request) -> Response { /* ... */ }
+
+  func changeState() {
+    // ...
+    takeAction = denyAll
+  }
+  
+  func handle(_ r: Request) -> Response {
+    return takeAction(r)
+  }
+
+  func handleAll(_ rs: [Request]) -> Response {
+    return rs.map(takeAction)
+  }
+}
+```
+
+Because the declaration `takeAction` is isolated and itself serves as the binding of a value of type `@isolated`, that value has the same isolation as the declaration. The rules about `@isolated` are as follows:
+
+- The isolation of a value of type `@isolated` matches the isolation of the declaration to which it is bound.
+- A function value with `@isolated` type is produced when a function is used as a first-class value and all of the following apply:
+  - The function is isolated to an actor.
+  - The isolation of the function matches the context of the first-class use.
+  - The function is `@Sendable`.
+- An function type that is `@isolated` is mutually exclusive with the following type attributes:
+  - `@Sendable`
+  - any global-actor
+- A function value whose type contains global-actor `@G`, is `@Sendable`, and appears in `G`'s isolation domain can be cast to or from `@isolated`.
+
+> **Rationale:** The purpose of `@isolated` is to track first-class functions that are isolated to the same actor as the context in which the value appears. That is why `@Sendable` must be mutually-exclusive with `@isolated`. We could no longer infer anything about the `@isolated` function once it crosses actors, because the isolation described by the attribute must match its context. That is why it is impossible to cast a `@Sendable` function value to `@isolated`.
+
 
 Going further, `@isolated` provides the needed capability to share partially-applied methods across actors, when it is safe to do so:
 
