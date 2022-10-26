@@ -3,9 +3,9 @@
 * Proposal: [SE-0373](0373-vars-without-limits-in-result-builders.md)
 * Author: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (September 30...October 10th, 2022)**
+* Status: **Accepted**
 * Implementation: [apple/swift#60839](https://github.com/apple/swift/pull/60839)
-* Review: ([pitch](https://forums.swift.org/t/pitch-lift-all-limitations-on-variables-in-result-builders/60460)) ([review](https://forums.swift.org/t/se-0373-lift-all-limitations-on-variables-in-result-builders/60592))
+* Review: ([pitch](https://forums.swift.org/t/pitch-lift-all-limitations-on-variables-in-result-builders/60460)) ([review](https://forums.swift.org/t/se-0373-lift-all-limitations-on-variables-in-result-builders/60592)) ([acceptance](https://forums.swift.org/t/accepted-se-0373-lift-all-limitations-on-variables-in-result-builders/61041))
 
 ## Introduction
 
