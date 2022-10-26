@@ -130,6 +130,7 @@ If the presence of reflection metadata is mandatory, the requirement on Reflecta
 Since Reflection metadata might be used by the debugger, we propose to always keep that metadata if full emission of debugging information is enabled (`-gdwarf-types` or `-g` flags).
 
 ### Changes in flags
+
 To handle behavior change between Swift pre-6 and 6, we can introduce a new upcoming feature, which will allow to enable Opt-In mode explicitly for pre-6 Swift with `-enable-upcoming-feature OptInReflection` and will set this mode by default in Swift 6.
 
 A new flag `-enable-full-reflection-metadata` will also have to be introduced to allow developers to enable reflection in full if they desire in Swift 6 and later.
@@ -154,6 +155,7 @@ For Swift 6, flags `-disable-reflection-metadata` and `-emit-reflection-for-debu
 Introducing a new flag to control the feature will allow us to safely roll it out and avoid breakages of the existing code. For those modules that get compiled with fully enabled metadata, nothing will change (all symbols will stay present). For modules that have the metadata disabled, but are consumers of reflectable API, the compiler will emit the error enforcing the guarantee.
 
 ### Casts implementation
+
 Casting might be a good way to improve the feature's ergonomics because currently there is no way to check if reflection is available at runtime. (`Mirror.children.count` doesn't really help because it doesn't distinguish between the absence of reflection metadata and the absence of fields on a type)
 
 To implement this feature, we propose to introduce a new runtime function `swift_reflectableCast`, and emit a call to it instead of `swift_dynamicCast`during IRGen if Reflectable is a target type.
@@ -196,3 +198,8 @@ The optimiser could use a conformance to a `Reflectable` protocol as a hint abou
 However, turned out it was quite challenging to statically determine all usages of Reflection metadata even with hints.  
 
 It was also considered to use an attribute `@reflectable` on nominal type declaration to express the requirement to have reflection metadata, however, a lot of logic had to be re-implemented outside of type-checker to ensure all guarantees are fulfilled.
+
+
+## Acknowledgments
+
+Thanks to [Joe Groff](https://github.com/jckarter) for various useful pieces of advice, general help along the journey, and for suggesting several useful features like Reflectable casts!
