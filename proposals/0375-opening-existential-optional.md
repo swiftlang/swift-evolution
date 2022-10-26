@@ -3,9 +3,9 @@
 * Proposal: [SE-0375](0375-opening-existential-optional.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active Review (October 11...25, 2022)**
+* Status: **Accepted**
 * Implementation: [apple/swift#61321](https://github.com/apple/swift/pull/61321)
-* Review: ([pitch](https://forums.swift.org/t/mini-pitch-for-se-0352-amendment-allow-opening-an-existential-argument-to-an-optional-parameter/60501)) ([review](https://forums.swift.org/t/se-0375-opening-existential-arguments-to-optional-parameters/60802))
+* Review: ([pitch](https://forums.swift.org/t/mini-pitch-for-se-0352-amendment-allow-opening-an-existential-argument-to-an-optional-parameter/60501)) ([review](https://forums.swift.org/t/se-0375-opening-existential-arguments-to-optional-parameters/60802)) ([acceptance](https://forums.swift.org/t/accepted-se-0375-opening-existential-arguments-to-optional-parameters/61045))
 
 ## Introduction
 
@@ -55,7 +55,7 @@ func testOpenToOptional(p: any P) {
 
 ## Source compatibility
 
-Generally speaking, opening an existential argument in one more case will make code that would have been rejected by the compiler (e.g., with an error like "`P` does not conform to `P`") into code that is accepted, because the existential is opened. This can change the behavior of overload resulting, in the same manner as was [discussed in SE-0352](https://github.com/apple/swift-evolution/blob/main/proposals/0352-implicit-open-existentials.md#source-compatibility). Experience with SE-0352's integration into Swift 5.7 implies that the practical effect of these changes is quite small.
+Generally speaking, opening an existential argument in one more case will make code that would have been rejected by the compiler (e.g., with an error like "`P` does not conform to `P`") into code that is accepted, because the existential is opened. This can change the behavior of overload resolution, in the same manner as was [discussed in SE-0352](https://github.com/apple/swift-evolution/blob/main/proposals/0352-implicit-open-existentials.md#source-compatibility). Experience with SE-0352's integration into Swift 5.7 implies that the practical effect of these changes is quite small.
 
 ## Effect on ABI stability
 
@@ -64,8 +64,3 @@ This proposal changes the type system but has no ABI impact whatsoever.
 ## Effect on API resilience
 
 This proposal changes the use of APIs, but not the APIs themselves, so it doesn't impact API resilience per se.
-
-## Alternatives considered
-
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
