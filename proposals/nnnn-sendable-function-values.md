@@ -11,7 +11,7 @@ This proposal is focused on a few corner-cases in the language surrounding funct
 
 ## Motivation
 
-The partial application of methods and other first-class uses of functions have a few rough [edges](https://forums.swift.org/t/sendable-func-on-sendable-types/60708) when combined with concurrency. For example, today you can create a function-value representing an actor's method by writing an expression that only accesses (but does not call) a method using one of its instances. More precisely, this access is referred to as a "partial application" of a method to one of its (curried) arguments, the object instance. One can think of `StatefulTransformer.transform`'s type signature as being `(isolated StatefulTransformer) -> ((Data) -> Data)` to support partial applications:
+The partial application of methods and other first-class uses of functions have a few rough edges when combined with concurrency. For example, today you can create a function-value representing an actor's method by writing an expression that only accesses (but does not call) a method using one of its instances. More precisely, this access is referred to as a "partial application" of a method to one of its (curried) arguments, the object instance. One can think of `StatefulTransformer.transform`'s type signature as being `(isolated StatefulTransformer) -> ((Data) -> Data)` to support partial applications:
 
 ```swift
 typealias Data = Int
@@ -124,7 +124,7 @@ extension MyActor {
 }
 ```
 
-Notice that `g` is bound as a parameter of `distinction`, which is isolated to the actor instance. That means the `@isolated` in `g`'s type refers to the actor instance in that method. We could also store an `@isolated` function in the instance's isolated storage, like this:
+Notice that `g` is bound as a parameter of `distinction`, which is isolated to the actor instance. That means the `@isolated` in `g`'s type refers to the actor instance in that method. When checking whether it is safe to pass `ref`, we now know `f` is safe and `g` is not. We could also store an `@isolated` function in the instance's isolated storage, like this:
 
 ```swift
 actor Responder {
@@ -147,7 +147,7 @@ actor Responder {
 }
 ```
 
-Because the declaration `takeAction` is isolated and itself serves as the binding of a value of type `@isolated`, that value has the same isolation as the declaration. The rules about `@isolated` are as follows:
+Because the declaration `takeAction` is isolated and itself serves as the location of a value of type `@isolated`, any values stored there have the same isolation as the declaration. The rules about `@isolated` are as follows:
 
 - The isolation of a value of type `@isolated` matches the isolation of the declaration in which it resides. A value bound to an identifier is said to _reside_ in the context of that binding, otherwise, an expression producing a value resides in the context that evaluates the expression.
 - A function value with `@isolated` type is produced when a function is used as a first-class value and all of the following apply:
@@ -332,9 +332,9 @@ If `Data` is not a `Sendable` type, then the conversion is unsafe and must be pr
 This proposal aims to clear up this confusion and make it safe by proposing two rules that, when combined with the rest of this proposal, yield an overall safety improvement and simplification of the language:
 
 1. Casts that add a global actor to an `async` function type are prohibited.
-2. Writing an `async` function type with a global actor is not permitted if its argument and return types are `Sendable`.
+2. Given an `async` function type where its argument and return types are `Sendable`, writing a global-actor on the type is considered redundant.
 
-Overall, this simplification says that the only scenario where an `async` function needs to have a global actor in its type signature is when its argument and/or return type is _not_ `Sendable`. Keep in mind that `async` functions _with_ `Sendable` argument/return types are still allowed to be isolated to a global actor. The attribute can simply be dropped from its type whenever it is used as a first-class value. Take this for example:
+Keep in mind that `async` functions with `Sendable` argument/return types are still allowed to be isolated to a global actor. The isolation attribute can simply be dropped from its type whenever it is desired. Take this for example:
 
 ```swift
 extension SendableData: Sendable {}
@@ -356,9 +356,9 @@ func doWork() async {
 }
 ```
 
-Swift will suggest removing the `@MainActor` in the type of the `withFetcher` parameter, since its argument and return types are `Sendable`. Any function such as `mainActorFetcher` passed to it will be implicitly cast to drop its `@MainActor`.
+Swift will suggest removing the `@MainActor` in the type of the `withFetcher` parameter, since its argument and return types are `Sendable`. Any function such as `mainActorFetcher` passed to it will be implicitly cast to drop its `@MainActor`, despite not being in a context isolated to that actor (i.e., `@isolated` does not apply).
 
-
+<!--
 ## Detailed design
 
 In an attempt to leave no stone unturned, we now analyze the most general types of various methods based on the isolation context in which they are referenced. The following code example will serve as a vehicle for this discussion. It defines three nominal types, each one having different kinds of actor isolation, Sendable conformance, and asynchrony:
@@ -404,7 +404,7 @@ I.isoTakingNonSendable : @Sendable (isolated A) -> (@Sendable (NonSendableType) 
 I.asyncIsoTakingNonSendable : @Sendable (isolated A) -> (@Sendable (NonSendableType) async -> V))
 ``` 
 
-But the types above are invalid, because after partial application, the type can be confused with a function that is simply `async` and `nonisolated`. That matters because the argument type is not `Sendable`. The same principle applies to a full-application of these methods, because the argument couldn't be sent across actors.
+But the types above are invalid, because after partial application, the type can be confused with a function that is simply `async` and `nonisolated`. This is the same rule as the one for exchanging `@isolated` for `@Sendable`, but during the reference. to the function.
 
 Next, we have a situation where, even when we _can_ accurately represent the isolation of the function value in its type, because the function value _itself_ is not `@Sendable`, the function is uncallable!
 
@@ -414,7 +414,7 @@ PG.isoTakingNonSendable      : @Sendable (PG) -> (@MainActor (NonSendableType) -
 PG.asyncIsoTakingNonSendable : @Sendable (PG) -> (@MainActor (NonSendableType) async -> V)
 ```
 
-Because `PG` represents a non-`Sendable` type with global-actor isolated methods, partial applications of these methods are _not_ `@Sendable`, because they always are assumed to capture the object instance. Thus, when references to these methods originate from a `nonisolated` context, we cannot pass the function value to a `@MainActor` context, which is the only context that can pass an argument to it!
+Because `PG` represents a non-`Sendable` type with global-actor isolated methods, partial applications of these methods are _not_ `@Sendable`, because they always are assumed to capture the object instance. That instance is not `Sendable` and originates from an arbitrary isolation context. Thus, when references to these methods originate from a `nonisolated` context, we cannot pass the function value to a `@MainActor` context, which is the only context that can pass an argument to it!
 
 Here is the full listing of types if the methods were referenced from a `nonisolated` context:
 
@@ -463,13 +463,23 @@ PG.asyncIsoTakingNonSendable : @Sendable (PG) -> (@MainActor (NonSendableType) -
 PG.isoTakingSendable         : @Sendable (PG) -> (@MainActor (V) -> V)
 ```
 
+TODO: this is wrong, it's actually OK to capture in a partial application because `Sendable` was already enforced on the caller. It's OK to capture non-Sendable values as long as the isolation matches:
+
+```swift
+@MainActor func getPlusOneMethod(_ instance: NonSendableType) -> (@Sendable @MainActor () -> ()) {
+  return {
+    instance.x += 1
+  }
+}
+```
+
 Casts to make these function values `@Sendable` within its own isolation domain are possible by the rules for exchanging `@isolated`. These exchanges will automatically happen if the value passed across actors, or if there is an explicit coercion to `@Sendable`.
+
+-->
 
 ## Source compatibility
 
 This proposal highlights at least one source break for the type confusion between `async` functions. This will need to become an error diagnostic eventually, but will start as a warning until Swift 6 to provide time for fixes. The rules about dropping a global actor from function types as being redundant will at most be a warning about the redundancy with a fix-it to delete the global actor.
-
-**TODO:** add more details about this
 
 ## Effect on ABI stability
 
