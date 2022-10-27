@@ -192,7 +192,7 @@ A type can be described as having one of the following three `Sendable` conforma
 A type can be made explicitly non-`Sendable` by creating an unavailable conformance to `Sendable`, e.g.,
 
 ```swift
-@available(unavailable, *)
+@available(*, unavailable)
 extension Point: Sendable { }
 ```
 
