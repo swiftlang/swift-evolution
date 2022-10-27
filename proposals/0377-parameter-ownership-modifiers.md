@@ -3,19 +3,9 @@
 * Proposal: [SE-0377](0377-parameter-ownership-modifiers.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (Oct 25 - Nov 8, 2022)**
+* Status: **Active Review (October 25 - November 8, 2022)**
 * Implementation: available using the internal names `__shared` and `__owned`
-* Pitch v1: [https://github.com/gottesmm/swift-evolution/blob/consuming-nonconsuming-pitch-v1/proposals/000b-consuming-nonconsuming.md](https://github.com/gottesmm/swift-evolution/blob/consuming-nonconsuming-pitch-v1/proposals/000b-consuming-nonconsuming.md)
-
-<!--
-*During the review process, add the following fields as needed:*
-
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
+* Review: ([first pitch](https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers/54313)) ([second pitch](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)) ([review](https://forums.swift.org/t/se-0377-borrow-and-take-parameter-ownership-modifiers/61020))
 
 ## Introduction
 
@@ -25,11 +15,6 @@ immutable parameters. This allows for fine-tuning of performance by reducing
 the number of ARC calls or copies needed to call a function, and provides a
 necessary prerequisite feature for move-only types to specify whether a function
 consumes a move-only value or not.
-
-Pitch threads:
-
-- First pitch thread: [https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers](https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers)
-- Second pitch thread: [https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)
 
 ## Motivation
 
