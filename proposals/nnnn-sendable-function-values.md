@@ -1,4 +1,4 @@
-# Function Values and Sendable
+# Isolated Function Values and Sendable
 
 - Proposal: [SE-NNNN](NNNN-filename.md)
 - Authors: [Kavon Farvardin](https://github.com/kavon)
