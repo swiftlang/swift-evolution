@@ -408,7 +408,7 @@ As explored above, the parsing of `/.../` does have potential to break source in
 
 However we expect these cases will be uncommon, and can be disambiguated with parentheses or closures if needed.
 
-To accommodate the cases where source may be broken, `/.../` regex literals will be introduced in Swift 6 mode. However, projects may adopt the syntax earlier by passing the compiler flag `-enable-bare-regex-syntax`. Note this does not affect the extended delimiter syntax `#/.../#`, which will be usable immediately.
+To accommodate the cases where source may be broken, `/.../` regex literals will be introduced in Swift 6 mode. However, projects may adopt the syntax earlier by passing the compiler flag `-enable-bare-slash-regex`. Note this does not affect the extended delimiter syntax `#/.../#`, which will be usable immediately.
 
 ## Future Directions
 
