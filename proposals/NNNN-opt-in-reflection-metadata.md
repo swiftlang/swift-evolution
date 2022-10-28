@@ -143,7 +143,9 @@ struct Bar: Foo {} // Reflection is emitted
 consume(Bar())
 ```
 
-Since Reflection metadata might be used by the debugger, we propose to always keep that metadata if full emission of debugging information is enabled (`-gdwarf-types` or `-g` flags).
+### Changes for debugging
+
+Since Reflection metadata might be used by the debugger, we propose to always keep that metadata if full emission of debugging information is enabled (with`-gdwarf-types` or `-g` flags).
 
 ### Changes in flags
 
