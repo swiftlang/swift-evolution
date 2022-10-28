@@ -174,7 +174,7 @@ let b: Reflectable = cast(1) // expression can't be implicitly converted to Refl
 Some diagnostics and optimizations will also have to be disabled even if conformance is statically visible to the compiler because all casts will have to go through the runtime call.
 
 **Availability checks**
-Since reflectable casting will require a new runtime function, it should be gated by availability checks. If a deployment target is lower than supported, an error will be emitted.
+Since reflectable casting will require a new runtime function, it should be gated by availability checks. If a deployment target is lower than supported, an error will be emitted. However, it might be possible to embed new runtime functions into a compatibility library for back deployment.
 
 
 ## Source compatibility
