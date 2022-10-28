@@ -127,6 +127,22 @@ If the presence of reflection metadata is mandatory, the requirement on Reflecta
 
 ## Detailed design
 
+To decide when to emit reflection metadata IRGen will check the conformance of a type to the `Reflectable` protocol and if the type conforms, IRGen will emit reflection.
+
+Conformance to Reflectable should be only allowed at type declarations level, to avoid confusing behavior, when a developer adds conformance on an imported from another module type that doesn't have reflection enabled.
+
+Transitive conformance to Reflectable should be allowed to give API authors an opportunity to hide reflection logic from APIs users as implementation details.
+
+```swift
+// Library
+public protocol Foo: Reflectable {}
+public func consume<T: Foo>(_ t: T) {}
+
+// User
+struct Bar: Foo {} // Reflection is emitted
+consume(Bar())
+```
+
 Since Reflection metadata might be used by the debugger, we propose to always keep that metadata if full emission of debugging information is enabled (`-gdwarf-types` or `-g` flags).
 
 ### Changes in flags
