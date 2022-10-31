@@ -217,6 +217,10 @@ However, turned out it was quite challenging to statically determine all usages 
 
 It was also considered to use an attribute `@reflectable` on nominal type declaration to express the requirement to have reflection metadata, however, a lot of logic had to be re-implemented outside of type-checker to ensure all guarantees are fulfilled.
 
+## Future directions
+
+Currently, there is only one kind of Reflection Metadata - Field Descriptor Metadata. In the future, it is possible that other kinds will be added (e.g methods, computed properties, etc) `Reflectable` should be able to cover all of them.
+
 
 ## Acknowledgments
 
