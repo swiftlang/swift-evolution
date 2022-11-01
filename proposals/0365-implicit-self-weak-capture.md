@@ -3,8 +3,8 @@
 * Proposal: [SE-0365](0365-implicit-self-weak-capture.md)
 * Author: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Accepted (2022-08-08)**
-* Implementation: [apple/swift#40702](https://github.com/apple/swift/pull/40702)
+* Status: **Implemented (Swift 5.8)**
+* Implementation: [apple/swift#40702](https://github.com/apple/swift/pull/40702), [apple/swift#61520](https://github.com/apple/swift/pull/61520)
 
 ## Introduction
 
@@ -227,3 +227,5 @@ That would effectively add implicit control flow, however. `dismiss()` would onl
 Thanks to the authors of [SE-0269](https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md) for laying the foundation for this proposal.
 
 Thanks to Kyle Sluder for [the suggestion](https://forums.swift.org/t/allow-implicit-self-for-weak-self-captures-after-self-is-unwrapped/54262/2) to not permit implicit `self` in cases where the unwrapped `self` value doesn't necessarily refer to the closure's `self` capture, like in `let self = self ?? C.global`.
+
+Many thanks to Pavel Yaskevich, John McCall, and Xiaodi Wu for providing significant feedback and advice regarding the implementation of this proposal.
