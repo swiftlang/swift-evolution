@@ -138,7 +138,8 @@ There are rules that limit which declarations may have a `@backDeploy` attribute
 * Only functions that can be invoked with static dispatch are eligible to back deploy, so back deployed instance and class methods must be `final`. The `@objc` attribute also implies dynamic dispatch and therefore is incompatible with `@backDeploy`.
 * Explicit availability must be specified with `@available` on the same declaration for each of the platforms that the declaration is back deployed on.
 * The declaration should be available earlier than the platform versions specified in `@backDeploy` (otherwise the fallback functions would never be called).
-* The `@_alwaysEmitIntoClient` and `@_transparent` attributes are incompatible with `@backDeploy` because they require that the function body to always be emitted into the client, defeating the purpose of `@backDeploy`. Declarations with `@inlinable` are also restricted from using `@backDeploy` since inlining behavior is dictated by the optimizer and use of the library function when it is available could be inconsistent as a result.
+* The `@_alwaysEmitIntoClient` and `@_transparent` attributes are incompatible with `@backDeploy` because they require the function body to always be emitted into the client, defeating the purpose of `@backDeploy`.
+* Declarations with `@inlinable` _may_ use `@backDeploy`. As usual with `@inlinable`, the bodies of these functions may be emitted into the client at the discretion of the optimizer. The copy of the function in the client may therefore be used even when a copy of the function is available in the library.
 
 ### Requirements for the bodies of back deployed functions
 
