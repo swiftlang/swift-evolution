@@ -44,7 +44,7 @@ Log in to a package registry. SwiftPM will verify the credentials using
 the registry service's [`login` API](#login-api). If it returns a successful 
 response, credentials will be persisted to the operating system's 
 credential store if supported, or the user-level `.netrc` file otherwise. 
-The global configuration file located at `~/.swiftpm/configuration/registries.json` 
+The user-level configuration file located at `~/.swiftpm/configuration/registries.json` 
 will also be updated.
 
 ```manpage
@@ -56,13 +56,15 @@ OPTIONS:
   
   --token        Access token
 
-  --no-confirm    Allow writing to .netrc file without confirmation
+  --no-confirm   Allow writing to .netrc file without confirmation
   --netrc-file   Specify the .netrc file path
 ```
 
 `url` should be the registry's base URL (e.g., `https://example-registry.com`). 
 In case the location of the `login` API is something other than `/login` 
 (e.g., `https://example-registry.com/api/v1/login`), provide the full URL.
+
+The URL must be HTTPS.
 
 The table below shows the supported authentication types and their 
 required option(s):
@@ -112,7 +114,7 @@ requires basic authentication:
 }
 ```
 
-##### Example: basic authentication (non-macOS, interactive)
+##### Example: basic authentication (operating system's credential store not supported, interactive)
 
 ```console
 > swift package-registry login https://example-registry.com \
@@ -122,10 +124,10 @@ Enter password for 'jappleseed':
 Login successful.
 
 WARNING: Secure credential storage is not supported on this platform. 
-Your credentials will be written out to ~/.netrc. 
+Your credentials will be written out to .netrc. 
 Continue? (Y/N): Y
 
-Credentials have been saved to ~/.netrc.
+Credentials have been saved to .netrc.
 ```
 
 An entry for `example-registry.com` would be added to the `.netrc` file:
@@ -151,15 +153,15 @@ requires basic authentication:
 }
 ```
 
-##### Example: basic authentication (non-macOS, non-interactive)
+##### Example: basic authentication (operating system's credential store not supported, non-interactive)
 
 ```console
 > swift package-registry login https://example-registry.com \
     --username jappleseed \
-    --password alpine
+    --password alpine \
     --no-confirm
     
-Login successful. Credentials have been saved to ~/.netrc.
+Login successful. Credentials have been saved to .netrc.
 ```
 
 An entry for `example-registry.com` would be added to the `.netrc` file:
@@ -185,15 +187,17 @@ requires basic authentication:
 }
 ```
 
-##### Example: basic authentication (non-macOS, non-interactive, non-default `login` URL)
+<a name="override-login-url"></a>
+
+##### Example: basic authentication (operating system's credential store not supported, non-interactive, non-default `login` URL)
 
 ```console
 > swift package-registry login https://example-registry.com/api/v1/login \
     --username jappleseed \
-    --password alpine
+    --password alpine \
     --no-confirm
     
-Login successful. Credentials have been saved to ~/.netrc.
+Login successful. Credentials have been saved to .netrc.
 ```
 
 An entry for `example-registry.com` would be added to the `.netrc` file:
@@ -255,7 +259,7 @@ requires token authentication:
 #### New `logout` subcommand
 
 Log out from a registry. Credentials are removed from the operating system's 
-credential store if supported, and the global configuration file 
+credential store if supported, and the user-level configuration file 
 (`registries.json`).
 
 To avoid accidental removal of sensitive data, `.netrc` file needs to be 
@@ -268,7 +272,7 @@ SYNOPSIS
 
 ### Changes to registry configuration
 
-We will introduce a new `authentication` key to the global 
+We will introduce a new `authentication` key to the user-level 
 `registries.json` file, which by default is located at 
 `~/.swiftpm/configuration/registries.json`. Any package
 registry that requires authentication must have a corresponding
@@ -305,6 +309,11 @@ credentials for each authentication type.
 
 ### Credential storage
 
+SwiftPM will always use the most secure way to handle credentials 
+on the platform. In general, this would mean using the operating
+system's credential store (e.g., Keychain on macOS). It falls 
+back to `.netrc` only if there is no other solution available.
+
 #### Basic Authentication
 
 ##### macOS Keychain
@@ -313,7 +322,7 @@ Registry credentials should be stored as "Internet password"
 items in the macOS Keychain. The "item name" should be the 
 registry URL, including `https://` (e.g., `https://example-registry.com`).
 
-##### `.netrc` file (non-macOS platforms only)
+##### `.netrc` file (only if operating system's credential store is not supported)
 
 A `.netrc` entry for basic authentication looks as follows:
 
@@ -354,9 +363,14 @@ the new API endpoint(s) covered in this section.
 
 #### `login` API
 
-SwiftPM will send a HTTP `POST` request to `/login` to validate 
-user credentials provided by the `login` subcommand. The request 
-will include an `Authorization` HTTP header constructed as follows:
+SwiftPM will send a HTTP `POST` request to this API to validate 
+user credentials provided by the `login` subcommand. 
+
+The default API path is `/login`, but this [can be overridden](#override-login-url)
+by providing the full API URL to the `login` subcommand.
+
+The API request will include an `Authorization` HTTP header 
+constructed as follows:
 
 * Basic authentication: `Authorization: Basic <base64 encoded username:password>`
 * Token authentication: `Authorization: Bearer <token>`
