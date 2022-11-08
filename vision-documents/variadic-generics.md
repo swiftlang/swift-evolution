@@ -384,7 +384,7 @@ This design for variadic generics results introduces 2 new meanings of `...`, le
 3. Type parameter pack declaration
 4. Pack expansion operator
 
-Choosing an alternative syntax may alleviate ambiguities with existing meanings of ... in Swift. The authors of this vision document are open to considering an alternative syntax, but have yet to find a more compelling one.
+Choosing an alternative syntax may alleviate ambiguities with existing meanings of `...` in Swift. The authors of this vision document are open to considering an alternative syntax, but have yet to find a more compelling one.
 
 ### Pack and unpack keywords
 
@@ -400,6 +400,7 @@ The downsides to choosing a keyword syntax are:
 
 * A keyword with a parenthesized operand in expression context is subtle because it looks like a function call rather than a built in expansion operation.
 * A new keyword in expression context would break existing code that uses that keyword name, e.g. as the name of a function.
+* A contextual keyword must be resolved in the parser, meaning there is no room for moving resolution of the unpack/expansion operation to later in type checking, e.g. to support member packs. The `unpack` keyword would need to instead be a special built-in function or method at the expression level, and a keyword at the type level.
 
 ### Alternative postfix operators
 
