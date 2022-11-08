@@ -281,6 +281,26 @@ func iterate(over tuple: Tuple<Int, String, Bool>) {
 }
 ```
 
+### Multi-dimensional packs
+
+Enabling associated type packs is necessary for writing protocols that express an interface for variadic generic types. For example:
+
+```swift
+protocol HeterogeneousSequence<Element...> {
+  associatedtype Element...
+}
+
+struct List<Element...>: HeterogeneousSequence {}
+```
+
+In full generality, associated type packs introduce multi-dimensional packs into the language:
+
+```swift
+func twoDimensional<T...>(_ t: T...) where T: HeterogeneousSequence {}
+```
+
+In the above generic signature for `twoDimensional`, `T.Element` is a multi-dimensional pack. It may be useful to introduce a way to express pack expansions of multi-dimensional packs, e.g. to flatten all of the `Element` values into a single list, but it's unclear how this might be expressed. To enable associated type packs in the short term, it may be possible to restrict conformance requirements involving protocols with associated type packs to scalar, non-pack type parameters.
+
 ### Accessing tuple elements as a pack
 
 To achieve the goal of using variadic generics to generalize tuple types, this design includes the ability to access the elements of a tuple value as a value pack, unlocking all the same expressivity for tuples without introducing an additional set of operations for mapping, iteration, concatenation, and de-structuring.
