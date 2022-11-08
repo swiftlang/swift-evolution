@@ -281,36 +281,29 @@ func iterate(over tuple: Tuple<Int, String, Bool>) {
 }
 ```
 
-### Value expansion operator (aka "tuple splat")
+### Accessing tuple elements as a pack
 
-To achieve the goal of using variadic generics to generalize structural types, this design includes the ability to expand tuple values into a list of individual element types, unlocking all the same expressivity for tuples without introducing an additional set of operations for mapping, iteration, concatenation, and de-structuring.
+To achieve the goal of using variadic generics to generalize tuple types, this design includes the ability to access the elements of a tuple value as a value pack, unlocking all the same expressivity for tuples without introducing an additional set of operations for mapping, iteration, concatenation, and de-structuring.
 
-An abstract tuple value contains a list of zero or more individual values. The *value expansion operator*, spelled with `...`, removes the tuple structure, leaving a comma-separated list of zero or more individual values that can be used anywhere that accepts a value pack expansion:
+An abstract tuple value contains a list of zero or more individual values. Packing the elements of a tuple removes the tuple structure, and collects the individual tuple elements into a value pack. This operation is a special property on tuple types called `.element`:
 
 ```swift
 struct Mapped<Value> {}
 
 func map<T...>(tuple: (T...)) -> (Mapped<T>...) {
-  let element = tuple... // expands 'tuple' into a local variable pack
-  return (Mapped(element)...)
+  return (Mapped(tuple.element)...)
 }
 ```
 
-Similar to concrete value packs, using the value expansion operator on concrete or partially concrete tuples requires a type annotation for the abstract element type:
+The `element` property returns the elements of a tuple in a single pack. For an abstract tuple `(T...)`, the signature of this property is `(T...) -> T`, which is otherwise not expressible in the language. For a tuple of length *n*, the complexity of converting a tuple value to a pack is *O(n)*.
+
+Similar to concrete value packs, using the pack operation on concrete or partially concrete tuples requires a type annotation for the abstract element type:
 
 ```swift
 func iterate(over tuple: (Int, String, Bool)) {
-  for value: some Equatable in tuple... {
+  for value: some Equatable in tuple.element... {
     // do something with an 'Equatable' value
   }
-}
-```
-
-To express individual tuple elements in repetition patterns, e.g. to expand the elements of a tuple in parallel with a pack or another tuple, the tuple must first be expanded into a local variable pack. This may become a common pattern in variadic generic code, and it may be useful to add an explicit operator to turn a tuple value into a pack directly in the pattern of a pack expansion. For illustrative purposes, a possible syntax for converting a tuple to a pack without an intermediate local variable is `tuple as T` where `T` is a reference to a type pack:
-
-```swift
-func map<T...>(tuple: (T...)) -> (T?...) {
-  return ((tuple as T)?...)
 }
 ```
 
@@ -384,13 +377,12 @@ Packs can also be used in the parameter list of a function type; if packs were t
 
 ## Exploring syntax alternatives
 
-This design for variadic generics results introduces 3 new meanings of `...`, leaving Swift with 5 total meanings of `...`:
+This design for variadic generics results introduces 2 new meanings of `...`, leaving Swift with 4 total meanings of `...`:
 
 1. Non-pack variadic parameters
 2. Postfix partial range operator
 3. Type parameter pack declaration
 4. Pack expansion operator
-5. Value expansion operator
 
 Choosing an alternative syntax may alleviate ambiguities with existing meanings of ... in Swift. The authors of this vision document are open to considering an alternative syntax, but have yet to find a more compelling one.
 
