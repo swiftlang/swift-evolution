@@ -354,12 +354,52 @@ extension<Element...> (Element...): Hashable where Element: Hashable {
 
 ## The distinction between packs and tuples
 
-Packs and tuples differ in the type system because a type pack itself is not a type while a tuple itself is a type. A type pack is composed of individual types, and type packs are only usable in positions that naturally accept a list of zero or more types, such as generic argument lists. On the other hand, a tuple can be used anywhere an individual type can be used. For example, a tuple can be used as a return value, but a value pack cannot:
+Packs and tuples differ in the type system because a type pack itself is not a type while a tuple itself is a type. A type pack is composed of individual types, and type packs are only usable in positions that naturally accept a list of zero or more types, such as generic argument lists. On the other hand, a tuple can be used anywhere an individual type can be used. The following code demonstrates the semantic differences between using a tuple value versus accessing its elements as a pack:
 
 ```swift
-func tuplify<T...>(_ t: T...) -> (T...) { return (t...) } // okay
+func printPack<U...>(_ u: U...) {
+  print("u := {\(u...)}")
+}
 
-func identity<T...>(_ t: T...) -> T... { return t... } // error
+func print4Ways<T...>(tuple: (T...), pack: T...) {
+  print("Concatenating tuple with pack")
+  printPacks(tuple, pack...)
+  print("\n")
+
+  print("Concatenating tuple element pack with pack")
+  printPacks(tuple.element..., pack...)
+  print("\n")
+
+  print("Expanding tuple with pack")
+  _ = (printPacks(tuple, pack)...)
+  print("\n")
+
+  print("Expanding tuple element pack with pack")
+  _ = (printPacks(tuple.element, pack)...)
+  print("\n")
+}
+
+print4Ways(tuple: (1, "hello", true), pack: 2, "world", false)
+```
+
+The output of the above code is:
+
+```
+Concatenating tuple with pack
+u := {(1, "hello", true), 2, "world", false}
+
+Concatenating tuple element pack with pack
+u := {1, "hello", true, 2, "world", false}
+
+Expanding tuple with pack
+u := {(1, "hello", true), 2}
+u := {(1, "hello", true), "world"}
+u := {(1, "hello", true), false}
+
+Expanding tuple element pack with pack
+u := {1, 2}
+u := {"hello", "world"}
+u := {true, false}
 ```
 
 The concept of a pack is necessary in the language because though tuples can have an abstract length, there is a fundamental ambiguity between whether a tuple is meant to be used as a single type, or whether it was meant to be exploded to form a flattened comma-separated list of its elements:
