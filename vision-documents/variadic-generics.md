@@ -340,12 +340,13 @@ extension <Element...> (Element...): Equatable where Element: Equatable {
 
 extension<Element...> (Element...): Comparable where Element: Comparable {
   public static func <(lhs: Self, rhs: Self) -> Bool { 
-    let leftElenent = lhs...
+    let leftElement = lhs...
     let rightElement = rhs...
     for (left, right) in (leftElement, rightElement)... {
-      guard left < right else { return false }
+      if left < right { return true }
+      if left > right { break }
     }
-    return true
+    return false
   }
 }
 
