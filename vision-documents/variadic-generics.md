@@ -275,7 +275,7 @@ struct Tuple<Element...> {
 }
 
 func iterate(over tuple: Tuple<Int, String, Bool>) {
-  for value: some Equatable in tuple... {
+  for value: some Equatable in tuple.element... {
     // do something with an 'Equatable' value
   }
 }
