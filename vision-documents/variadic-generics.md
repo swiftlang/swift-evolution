@@ -342,9 +342,7 @@ And with that, [SE-0283](https://github.com/apple/swift-evolution/blob/main/prop
 ```swift
 extension <Element...> (Element...): Equatable where Element: Equatable {
    public static func ==(lhs: Self, rhs: Self) -> Bool {
-    let leftElement = lhs...
-    let rightElement = rhs...
-    for (left, right) in (leftElement, rightElement)... {
+    for (left, right) in (lhs.element, rhs.element)... {
       guard left == right else { return false }
     }
     return true
@@ -353,9 +351,7 @@ extension <Element...> (Element...): Equatable where Element: Equatable {
 
 extension<Element...> (Element...): Comparable where Element: Comparable {
   public static func <(lhs: Self, rhs: Self) -> Bool { 
-    let leftElement = lhs...
-    let rightElement = rhs...
-    for (left, right) in (leftElement, rightElement)... {
+    for (left, right) in (lhs.element, rhs.element)... {
       if left < right { return true }
       if left > right { break }
     }
@@ -365,7 +361,7 @@ extension<Element...> (Element...): Comparable where Element: Comparable {
 
 extension<Element...> (Element...): Hashable where Element: Hashable {
   public func hash(into hasher: inout Hasher) {
-    for element in self... {
+    for element in self.element... {
       hasher.combine(element)
     }
   }
