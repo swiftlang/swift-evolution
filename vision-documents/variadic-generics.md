@@ -376,19 +376,19 @@ func printPack<U...>(_ u: U...) {
 
 func print4Ways<T...>(tuple: (T...), pack: T...) {
   print("Concatenating tuple with pack")
-  printPacks(tuple, pack...)
+  printPack(tuple, pack...)
   print("\n")
 
   print("Concatenating tuple element pack with pack")
-  printPacks(tuple.element..., pack...)
+  printPack(tuple.element..., pack...)
   print("\n")
 
   print("Expanding tuple with pack")
-  _ = (printPacks(tuple, pack)...)
+  _ = (printPack(tuple, pack)...)
   print("\n")
 
   print("Expanding tuple element pack with pack")
-  _ = (printPacks(tuple.element, pack)...)
+  _ = (printPack(tuple.element, pack)...)
   print("\n")
 }
 
