@@ -191,7 +191,7 @@ Consider the following `ChainCollection` data structure, which has a type parame
 
 ```swift
 struct ChainCollection<Element, C...> where C: Collection, C.Element == Element {
-  var collections: (C...)
+  var collection: C...
 }
 ```
 
@@ -212,10 +212,7 @@ Now, a `ChainCollection` subscript can be implemented by first indexing into the
 ```swift
 extension ChainCollection {
   subscript(position: ChainCollectionIndex) -> Element {
-    // Expand the stored tuple into a local variable pack
-    let collection = collections...
-    
-    func element<C: Collection<Element>>(in c: Collection, at index: any Comparable) -> Element {
+    func element<C: Collection<Element>>(in c: C, at index: any Comparable) -> Element {
       guard let index = index as? C.Index else { fatalError() }
       return c[index]
     }
