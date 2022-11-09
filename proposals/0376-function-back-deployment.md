@@ -72,7 +72,7 @@ extension Toaster {
 }
 ```
 
-The API is now available on toasterOS 1.0 and later so clients may now reference `makeBatchOfToast(_:)` unconditionally. The compiler detects applications of `makeBatchOfToast(_:)` and generates code to automatically handle the potentially runtime unavailability of the API.
+The API is now available on toasterOS 1.0 and later so clients may now reference `makeBatchOfToast(_:)` unconditionally. The compiler detects applications of `makeBatchOfToast(_:)` and generates code to automatically handle the potential runtime unavailability of the API.
 
 ## Detailed design
 
