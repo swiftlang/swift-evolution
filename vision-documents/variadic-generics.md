@@ -106,6 +106,51 @@ map(1, "hello", true)
 
 In the above code, the call to the variadic `map` function infers the type parameter pack substitution `T:= {Int, String, Bool}` from the argument values. Expanding the repetition pattern `Mapped<T>` into a tuple type produces a tuple return type of `(Mapped<Int>, Mapped<String>, Mapped<Bool>)`. Substituting the value parameter pack with `t := {1, "hello", true}` and expanding the repetition pattern `Mapped(t)` into a tuple value produces a tuple return value `(Mapped(1), Mapped("hello"), Mapped(true))`.
 
+#### A note on naming convention
+
+In code, programmers naturally use plural names for variables representing lists. However, in this design for variadic generics, pack names can only appear in repetition patterns where the type or expression represents an individual type or value that is repeated under expansion. The recommended naming convention is to use singular names for parameter packs, and plural names only in argument labels:
+
+```swift
+struct List<Element...> {
+  let element: Element...
+  init(elements element: Element...)
+}
+
+List(elements: 1, "hello", true)
+```
+
+More broadly, packs are fundamentally different from first-class types and values in Swift. Packs themselves are not types or values; they are a special kind of entity that allow you to write one piece of code that is repeated for *N* individual types or values. For example, consider the `element` stored property pack in the `List` type:
+
+```swift
+struct List<Element...> {
+  let element: Element...
+}
+```
+
+The way to think about the property pack `let element: Element...` is "a property called `element` with type `Element`, repeated *N* times". When `List` is initialized with 3 concrete arguments, e.g. `List<Int, String, Bool>`, the stored property pack expands into 3 respective stored properties of type `Int`, `String`, and `Bool`. You might conceptualize `List` specialization for `{Int, String, Bool}` like this:
+
+```swift
+struct List<Int, String, Bool> {
+  let element.0: Int
+  let element.1: String
+  let element.2: Bool
+}
+```
+
+The singular nature of pack names becomes more evident with more sophisticated repetition patterns. Consider the following `withOptionalElements` method, which returns a new list containing optional elements:
+
+```swift
+extension List {
+  func withOptionalElements() -> List<Optional<Element>...> {
+    return List(elements: Optional(element)...)
+  }
+}
+```
+
+In the return type, the repetition pattern `Optional<Element>...` means there is an optional type for each individual element in the parameter pack. When this method is called on `List<Int, String, Bool>`, the pattern is repeated once for each individual type in the list, replacing the reference to `Element` with that individual type, resulting in `Optional<Int>, Optional<String>, Optional<Bool>`.
+
+The singular naming convention encourages this model of thinking about parameter packs.
+
 #### Static shape of a parameter pack
 
 Validating variadic generic code separately from its application requires introducing the notion of abstract length of a list of type parameters into the type system. Operations over parallel lists, such as statically zipping two separate lists of type parameters to create a new list of 2-element tuple types, require that multiple lists have the length.
@@ -135,13 +180,12 @@ The statically-known shape of a pack can enable destructing packs with concrete 
 
 ```swift
 struct List<Element...> {
-  let elements: (Element...)
-  init(_ element: Element) { elements = (element...) }
+  let element: Element...
 }
 
 extension List {
   func firstRemoved<First, Rest...>() -> List<Rest...> where (Element...) == (First, Rest...) {
-    let (first, rest) = (value...)
+    let (first, rest) = (element...)
     return List(rest...)
   }
 }
