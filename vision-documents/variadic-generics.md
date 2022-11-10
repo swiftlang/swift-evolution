@@ -38,12 +38,11 @@ Using variadic generics, the above operator overloads can be written as a single
 
 ```swift
 func < <Element...>(lhs: (Element...), rhs: (Element...) -> Bool where Element: Comparable {
-  let leftElement = lhs...
-  let rightElement = rhs...
-  for (left, right) in (leftElement, rightElement)... {
-    guard left < right else { return false }
+  for (left, right) in (lhs.element, rhs.element)... {
+    if left < right { return true }
+    if left > right { break }
   }
-  return true
+  return false
 }
 ```
 
@@ -153,7 +152,7 @@ The singular naming convention encourages this model of thinking about parameter
 
 #### Static shape of a parameter pack
 
-Validating variadic generic code separately from its application requires introducing the notion of abstract length of a list of type parameters into the type system. Operations over parallel lists, such as statically zipping two separate lists of type parameters to create a new list of 2-element tuple types, require that multiple lists have the length.
+Validating variadic generic code separately from its application requires introducing the notion of abstract length of a list of type parameters into the type system. Operations over parallel lists, such as statically zipping two separate lists of type parameters to create a new list of 2-element tuple types, require that multiple lists have the same length.
 
 Same-type requirements will further characterize packs. For example, consider the following generic signature of `firstRemoved`, which contains a same-type requirement involving two pack expansions:
 
@@ -191,7 +190,7 @@ extension List {
 }
 
 let list = List(1, "Hello", true)
-let firstRemoved = list.firstRemoved() // 'List("Hello, true)'
+let firstRemoved = list.firstRemoved() // 'List("Hello", true)'
 ```
 
 The body of `firstRemoved` decomposes `Element` into the components of its shape -- one value of type `First` and a value pack of type `Rest...` -- effectively removing the first element from the list.
@@ -372,7 +371,7 @@ func iterate(over tuple: (Int, String, Bool)) {
 
 The above features together provide the necessary tools for writing abstractions over tuples with variable length. The last major expressivity gap between tuples and nominal types is the ability to declare conformances on tuples. This design finally closes that gap, using a parameterized extension syntax to declare the conformance:
 
-```
+```swift
 extension <T...> (T...): P where T: P {
   // Implementation of tuples to 'P'
 }
