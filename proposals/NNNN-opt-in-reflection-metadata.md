@@ -9,31 +9,46 @@
 
 ## Introduction
 
-This proposal seeks to increase the safety, efficiency and privacy of Swift Reflection Metadata by improving the existing mechanism and providing the opportunity to express a requirement on Reflection Metadata in APIs that consume it. 
+This proposal seeks to increase the safety, efficiency, and secrecy of Swift Reflection Metadata by improving the existing mechanism and providing the opportunity to express a requirement on Reflection Metadata in APIs that consume it.
   
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-3-opt-in-reflection-metadata/58852)
 
 
 ## Motivation
 
-There are two kinds of Swift metadata emitted by the compiler:
+There are two main kinds of Swift metadata emitted by the compiler:
 
-1. Core Metadata (type metadata record, nominal type descriptor, etc).
-2. Reflection metadata (reflection metadata field descriptor).
+1. Core Metadata (type metadata records, nominal type descriptors, etc).
+2. Reflection metadata (reflection metadata field descriptors).
 
-Core metadata must constantly be emitted and may only be stripped if provenly not used. (This metadata isn't affected by this proposal.)
-Reflection metadata contains optional information about declarations' fields - their names and references to their types.
-This metadata isn't used by the language's runtime features, and the emission may be skipped if such types aren't passed to reflection-consuming APIs.
+Core metadata must constantly be emitted and may only be stripped if provenly not used. (This kind of metadata isn't affected by this proposal.)
+On the other hand, reflection metadata contains optional information about declaration fields - their names and references to their types.
+The language's runtime features don't use this metadata, and the emission may be skipped if such types aren't passed to reflection-consuming APIs.
 
-APIs can use Reflection Metadata differently. Some like `print`, and `dump` will still work with disabled reflection, but the output will be limited.
+
+Currently, there is no way to selectively enable the emission of reflectable metadata for a type or understand if an API consumes reflection metadata under the hood.
+Moreover, compiler's flags exist that allow to completely disable emission.
+
+A developer has two ways right now - either
+1. To just in case enable Reflection in full.
+2. To try to guess which used APIs consume Reflection, and enable it only for modules that are users of such APIs.
+
+Both of those options have flaws. The first one leads to exsessive contribution of reflection metadta to binary size and might affects the secrecy of generated code.
+The second one isn't safe because many APIs are black boxes if the guess is wrong, an app might behave not as expected at runtime.
+
+Furthermore, APIs can use Reflection Metadata differently. Some like `print`, `debugPrint`, and `dump` will still work with disabled reflection, but the output will be limited.
 Others, like SwiftUI, rely on it and won't work correctly if the reflection metadata is missing.
 While the former can benefit as well, the main focus of this proposal is on the latter.
 
-A developer can mistakenly turn off Reflection Metadata for a Swift module and won't be warned at compile-time if APIs that consume reflection are used by that module. An app with such a module won't behave as expected at runtime which may be challenging to notice and track down such bugs back to Reflection.
+A developer can mistakenly turn off Reflection Metadata for a Swift module and won't be warned at compile-time if APIs that consume reflection are used by that module.
+An app with such a module won't behave as expected at runtime which may be challenging to notice and track down such bugs back to Reflection.
 For instance, SwiftUI implementation uses reflection metadata from user modules to trigger the re-rendering of the view hierarchy when a state has changed.
-If for some reason a user module was compiled with metadata generation disabled, changing the state won't trigger that behavior and will cause inconsistency between state and representation which will make such API less safe since it becomes a runtime issue rather than a compile-time one.
+If for some reason a user module was compiled with metadata generation disabled, changing the state won't trigger that behavior and will cause inconsistency
+between state and representation which will make such API less safe since it becomes a runtime issue rather than a compile-time one.
 
-On the other hand, excessive Reflection metadata may be preserved in a binary even if not used, because there is currently no way to statically determine its usage. There was an attempt to limit the amount of unused reflection metadata by improving its stripability by the Dead Code Elimination LLVM pass, but in many cases, it’s still preserved in the binary because it’s referenced by Full Type Metadata which prevents Reflection Metadata from stripping.
+On the other hand, excessive Reflection metadata may be preserved in a binary even if not used, because there is currently no way to statically determine its usage.
+There was an attempt to limit the amount of unused reflection metadata by improving its stripability by the Dead Code Elimination LLVM pass, but in many cases,
+it’s still preserved in the binary because it’s referenced by Full Type Metadata which prevents Reflection Metadata from stripping.
 This unnecessarily increases the binary size and may simplify reverse-engineering.
 
 Introducing a static compilation check can help to solve both of mentioned issues by adding to the language a way to express the requirement to have Reflection metadata at runtime.
@@ -41,14 +56,14 @@ Introducing a static compilation check can help to solve both of mentioned issue
 
 ## Proposed solution
 
-Teaching the Type-checker and IRGen to ensure Reflection metadata is preserved in a binary if reflection-consuming APIs are used, will help to move the issue from runtime to compile time.
+Teaching the Type-checker and IRGen to ensure Reflection metadata is preserved in a binary if reflection-consuming APIs are used, will help to move the problem from runtime to compile time.
 
 To achieve that, a new marker protocol `Reflectable` will be introduced. Firstly, APIs developers will gain an opportunity to express a dependency on Reflection Metadata through a generic requirement of their functions, which will make such APIs safer.
 Secondly, during IRGen, the compiler will be able to selectively emit Reflection symbols for the types that explicitly conform to the `Reflectable` protocol, which will reduce the overhead from reflection symbols for cases when reflection is emitted but not consumed.
 
 ### Case Study 1:
 
-SwiftUI Framework:
+SwiftUI:
 ```swift
 protocol SwiftUI.View: Reflectable {}  
 class NSHostingView<Content> where Content : View {  
@@ -121,13 +136,13 @@ We also propose to deprecate the compiler's options that can lead to missing ref
 ### Stdlib behavior changes
 
 In Swift `Mirror(reflecting:)` is the only official way to access Reflection metadata, all other APIs are using it under the hood.
-We intentionally do not propose adding a Reflectable constraint on Mirror type, because it would impose restrictions on those developers who still don't want to require it.
+We intentionally do not propose adding a Reflectable constraint on Mirror type, because it would impose restrictions on those developers who still don't want to require it and consume Reflection optionally.
 If the presence of reflection metadata is mandatory, the requirement on Reflectable protocol should be expressed in the signatures of calling functions.
 
 
 ## Detailed design
 
-To decide when to emit reflection metadata IRGen will check the conformance of a type to the `Reflectable` protocol and if the type conforms, IRGen will emit reflection.
+To decide when to emit reflection metadata IRGen will check the conformance of a type to the `Reflectable` protocol and if the type conforms, IRGen will emit reflection symbols.
 
 Conformance to Reflectable should be only allowed at type declarations level, to avoid confusing behavior, when a developer adds conformance on an imported from another module type that doesn't have reflection enabled.
 
@@ -145,11 +160,15 @@ consume(Bar())
 
 ### Changes for debugging
 
-Since Reflection metadata might be used by the debugger, we propose to always keep that metadata if full emission of debugging information is enabled (with`-gdwarf-types` or `-g` flags).
+Since Reflection metadata might be used by the debugger, we propose to always keep that metadata
+if full emission of debugging information is enabled (with `-gdwarf-types` or `-g` flags).
+However, such Reflection metadata won't be accessible through the nominal type descriptor
+which will allow to avoid inconsistencies between APIs' outputs in Release and Debug modes.
 
 ### Changes in flags
 
-To handle behavior change between Swift pre-6 and 6, we can introduce a new upcoming feature, which will allow to enable Opt-In mode explicitly for pre-6 Swift with `-enable-upcoming-feature OptInReflection` and will set this mode by default in Swift 6.
+To handle behavior change between Swift pre-6 and 6, we can introduce a new upcoming feature,
+which will allow to enable Opt-In mode explicitly for Swift pre-6 with `-enable-upcoming-feature OptInReflection` and will set this mode by default in Swift 6.
 
 A new flag `-enable-full-reflection-metadata` will also have to be introduced to allow developers to enable reflection in full if they desire in Swift 6 and later.
 
@@ -220,8 +239,8 @@ It was also considered to use an attribute `@reflectable` on nominal type declar
 ## Future directions
 
 Currently, there is only one kind of Reflection Metadata - Field Descriptor Metadata. In the future, it is possible that other kinds will be added (e.g methods, computed properties, etc) `Reflectable` should be able to cover all of them.
-
+If this proposal is approved, it will become easier and more native to migrate Codable to the usage of Reflection metadata for encoding/decoding logic instead of autogenerating code at compile time.
 
 ## Acknowledgments
 
-Thanks to [Joe Groff](https://github.com/jckarter) for various useful pieces of advice, general help along the journey, and for suggesting several useful features like Reflectable casts!
+Thanks to [Joe Groff](https://github.com/jckarter) for various useful pieces of advice, general help along the way, and for suggesting several useful features like Reflectable casts!
