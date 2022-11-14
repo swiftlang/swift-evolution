@@ -1,10 +1,12 @@
 # Package Registry Authentication
 
-* Proposal: [SE-NNNN](NNNN-package-registry-auth.md)
+* Proposal: [SE-0378](0378-package-registry-auth.md)
 * Author: [Yim Lee](https://github.com/yim-lee)
-* Review Manager: TBD
-* Status: **Draft implementation**
+* Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Active Review (Nov 14 - Dec 2, 2022)**
 * Implementation: [apple/swift-package-manager#5838](https://github.com/apple/swift-package-manager/pull/5838)
+* Review:
+  * Pitch: https://forums.swift.org/t/pitch-package-registry-authentication/61047
 
 ## Introduction
 
