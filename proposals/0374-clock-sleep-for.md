@@ -167,8 +167,8 @@ extension Task where Success == Never, Failure == Never {
   /// - Parameter duration: The duration to wait.
   public static func sleep<C: Clock>(
     for duration: C.Duration,
-    clock: C = ContinuousClock(),
-    tolerance: C.Duration? = nil
+    tolerance: C.Duration? = nil,
+    clock: C = ContinuousClock()
   ) async throws {
     try await sleep(until: clock.now.advanced(by: duration), tolerance: tolerance, clock: clock)
   }
