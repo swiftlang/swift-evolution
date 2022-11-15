@@ -151,7 +151,7 @@ extension Clock {
 
 This will allow one to sleep for a duration with a clock rather than sleeping until an instant.
 
-Further, to make the APIs between `clock.sleep` and `Task.sleep` similar, we will also add a `tolerance` argument to `Task.sleep(for:)`:
+Further, to make the APIs between `clock.sleep` and `Task.sleep` similar, we will also add a `clock` and `tolerance` argument to `Task.sleep(for:)`:
 
 ```swift
 extension Task where Success == Never, Failure == Never {
@@ -165,11 +165,12 @@ extension Task where Success == Never, Failure == Never {
   ///       try await Task.sleep(for: .seconds(3))
   ///
   /// - Parameter duration: The duration to wait.
-  public static func sleep(
-    for duration: Duration,
-    tolerance: Duration? = nil
+  public static func sleep<C: Clock>(
+    for duration: C.Duration,
+    clock: C = ContinuousClock(),
+    tolerance: C.Duration? = nil
   ) async throws {
-    try await sleep(until: .now + duration, tolerance: tolerance, clock: .continuous)
+    try await sleep(until: clock.now.advanced(by: duration), tolerance: tolerance, clock: clock)
   }
 }
 ```
