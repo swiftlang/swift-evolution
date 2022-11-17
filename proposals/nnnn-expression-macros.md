@@ -49,7 +49,7 @@ Macro arguments are type-checked against the parameter types of the macro. For e
 * Tools can treat macros much like functions, providing the same affordances for code completion, syntax highlighting, and so on, because the macro arguments follow the same rules as other Swift code. 
 * A macro expansion expression can be partially type-checked without having to expand the macro. This allows tools to still have reasonable results without performing macro expansion, as well as improving compile-time performance because the same macro will not be expanded repeatedly during type inference.
 
-When the macro is expanded, the expanded syntax tree is type-checked against the result type of the macro. In the `#simplify(x + y)` case, this means that if `x + y` had type `Int`, the expanded syntax tree (`(x + y, "x + y")`) is type-checked with a contextual type of `(Int, String)`. 
+When the macro is expanded, the expanded syntax tree is type-checked against the result type of the macro. In the `#stringify(x + y)` case, this means that if `x + y` had type `Int`, the expanded syntax tree (`(x + y, "x + y")`) is type-checked with a contextual type of `(Int, String)`.
 
 ### Syntactic translation
 
