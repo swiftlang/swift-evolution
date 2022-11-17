@@ -339,3 +339,4 @@ Macros are a source-to-source transformation tool that have no effect on API res
 
 ## Acknowledgments
 
+Richard Wei implemented the compiler plugin mechanism on which the current implementation of macros depends. John McCall provided numerous insights into the design and practical implementation of macros. 
