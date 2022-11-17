@@ -43,13 +43,21 @@ macro stringify<T>(_: T) -> (T, String)
 
 ### Type-checked macro arguments and results
 
-Macro arguments are type-checked against the parameter types of the macro. For example, the macro argument `x + y` will be type-checked; if it is ill-formed (for example, if `x` is an `Int` and `y` is a `String`), the macro will never be expanded. If it is well-formed, the generic parameter `T` will be inferred to the result of `x + y`, and that type is carried through to the result type of the macro. There are several benefits to this type-checked model:
+Macro arguments are type-checked against the parameter types of the macro prior to instantiating the macro. For example, the macro argument `x + y` will be type-checked; if it is ill-formed (for example, if `x` is an `Int` and `y` is a `String`), the macro will never be expanded. If it is well-formed, the generic parameter `T` will be inferred to the result of `x + y`, and that type is carried through to the result type of the macro. There are several benefits to this type-checked model:
 
 * Macro implementations are guaranteed to have well-typed arguments as inputs, so they don't need to be concerned about incorrect code being passed into the macro.
 * Tools can treat macros much like functions, providing the same affordances for code completion, syntax highlighting, and so on, because the macro arguments follow the same rules as other Swift code. 
 * A macro expansion expression can be partially type-checked without having to expand the macro. This allows tools to still have reasonable results without performing macro expansion, as well as improving compile-time performance because the same macro will not be expanded repeatedly during type inference.
 
 When the macro is expanded, the expanded syntax tree is type-checked against the result type of the macro. In the `#stringify(x + y)` case, this means that if `x + y` had type `Int`, the expanded syntax tree (`(x + y, "x + y")`) is type-checked with a contextual type of `(Int, String)`.
+
+The type checking of macro expressions is similar to type-checking a call, allowing type inference information to flow from the macro arguments to the result type and vice-versa. For example, given:
+
+```swift
+let (a, b): (Double, String) = #stringify(1 + 2)
+```
+
+the integer literals `1` and `2` would be assigned the type `Double`.
 
 ### Syntactic translation
 
@@ -110,14 +118,14 @@ public struct StringifyMacro: ExpressionMacro {
       fatalError("compiler bug: the macro does not have any arguments")
     }
 
-    return MacroResult("(\(argument), #\"\(argument.description)\"#)")
+    return MacroResult("(\(argument), \(StringLiteralExprSyntax(content: argument.description)))")
   }
 }
 ```
 
-The `apply` function is fairly small, because the `stringify` macro is pretty simple. It extracts the macro argument from the syntax tree (the `x + y` in `#stringify(x + y)`) and then forms the resulting tuple expression by interpolating in the original argument both as a value and then as source code within the string literal. That string is then parsed as an expression (producing an `ExprSyntax` node) and returned as the result of the macro expansion. This is a simple form of quasi-quoting provided by the `SwiftSyntaxBuilder` module, implemented by making the major syntax nodes (`ExprSyntax` in this case, for expressions) conform to [`ExpressibleByStringInterpolation`](https://developer.apple.com/documentation/swift/expressiblebystringinterpolation), where existing syntax nodes can be interpolated into string literals containing the expanded Swift code.
+The `apply` function is fairly small, because the `stringify` macro is pretty simple. It extracts the macro argument from the syntax tree (the `x + y` in `#stringify(x + y)`) and then forms the resulting tuple expression by interpolating in the original argument both as a value and then as source code in [a string literal](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftSyntaxBuilder/ConvenienceInitializers.swift#L259-L265). That string is then parsed as an expression (producing an `ExprSyntax` node) and returned as the result of the macro expansion. This is a simple form of quasi-quoting provided by the `SwiftSyntaxBuilder` module, implemented by making the major syntax nodes (`ExprSyntax` in this case, for expressions) conform to [`ExpressibleByStringInterpolation`](https://developer.apple.com/documentation/swift/expressiblebystringinterpolation), where existing syntax nodes can be interpolated into string literals containing the expanded Swift code.
 
-The `StringifyMacro` struct is the implementation for the `stringify` macro declared earlier. We will need to tie these together in the source code via some mechanism. One approach is to name the module and `ExpressionMacro` struct name within the macro declaration, e.g.,
+The `StringifyMacro` struct is the implementation for the `stringify` macro declared earlier. We will need to tie these together in the source code via some mechanism. We propose to name the module and `ExpressionMacro` struct name within the macro declaration following an `=`, e.g.,
 
 ```swift
 macro stringify<T>(_: T) -> (T, String) = ExampleMacros.StringifyMacro
@@ -138,13 +146,15 @@ macro-declaration -> macro-head identifier generic-parameter-clause[opt] macro-s
 
 macro-head -> attributes[opt] declaration-modifiers[opt] 'macro'
 
-macro-signature -> parameter-clause '->' type
+macro-signature -> parameter-clause macro-function-signature-result[opt]
 macro-signature -> ':' type
+
+macro-function-signature-result -> '->' type
 
 external-macro-name -> identifier '.' identifier
 ```
 
-The signature of a macro is either function-like (`(T) -> (T, String)`) or value-like (`: Int`), depending on the form of the `macro-signature`.
+The signature of a macro is either function-like (`(_ argument: T) -> (T, String)`) or value-like (`: Int`), depending on the form of the `macro-signature`.
 
 Macros can only be declared at file scope. They can be overloaded in the same way as functions, so long as the argument labels, parameter types, or result type differ.
 
@@ -204,7 +214,7 @@ public struct MacroEvaluationContext {
   public let sourceLocationConverter: SourceLocationConverter
 
   /// Generate a unique local name for use in the macro.
-  public mutating func createUniqueLocalName() -> String
+  public mutating func createUniqueLocalName() -> TokenSyntax
   
   /// Create a new macro evaluation context.
   public init(
@@ -216,7 +226,7 @@ public struct MacroEvaluationContext {
 
 The `SourceLocationConverter` allows one to map syntax nodes to their line and column within the file, as well as providing the file name. It is useful for cases where the macro expansion wants to refer to the original source location, for example as part of logging or an assertion failure.
 
-The `createUniqueLocalName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
+The `createUniqueLocalName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
 
 #### `MacroResult` 
 
