@@ -208,7 +208,8 @@ lexer- and type checker-level change which does not
 affect the storage or entry points of `Character` and 
 `Unicode.Scalar`. The new initializers for integers 
 for literals `ExpressibleByASCIILiteral` are marked
- `@_transperent` and are therefore inlined.
+ `@_transperent` and are therefore inlined and will
+back deploy.
 
  ## Effect on API resilience
 
