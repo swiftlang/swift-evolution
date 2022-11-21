@@ -1,4 +1,4 @@
-# Borrow Operator, Pass-by-Borrow, and Pass-by-Value
+# Borrow Operator, Pass-by-Immutable-Borrow, and Pass-by-Value
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: ...
@@ -20,149 +20,156 @@
 ## Introduction
 
 In this document, we propose adding a new operator to the language, marked by
-the context sensitive keyword `borrow`, that causes the compiler to pass
-arguments using a `pass-by-borrow` convention instead of a `pass-by-value`
-convention.
+the context sensitive keyword `borrow`, that causes the compiler to pass vars
+and inout arguments to callees as arguments using a `pass-by-immutable-borrow`
+convention instead of a `pass-by-value` convention.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
 ## Motivation
 
-Swift normally passes arguments using a `pass-by-value` convention. A
-`pass-by-value` argument convention implies that each argument is passed as a
-separate value to the callee. This has the effect that the compiler is allowed
-(and sometimes required) to introduce temporary copies of arguments into the
-program in caller callsites.
-
-As an elucidating example, consider the following code:
+Swift normally passes vars as non-`inout` parameters to callees using a
+`pass-by-value` convention. A `pass-by-value` argument convention is defined
+formally by the `var` being implicitly copied at the relevant callsite so that
+each argument appears to the callee as formally independent values. As an
+example, consider the following code:
 
 ```
-func useValueTwice(_ x: Type, _ y: Type) {}
+func useValueTwice(_ x: Type, _ y: inout Type) {}
 
 var a: Type = ...
-useValueTwice(a, a)
+useValueTwice(a, &a)
 ```
 
-Since `useValueTwice` is using default Swift conventions, we pass `a` as two
-separate guaranteed parameters to `useValueTwice`. Inside `useValueTwice`, `x`
-and `y` both appears to be separate truly borrowed values in the sense that
-`useValueTwice` has immutable access to two different values and does not take
-ownership of those values. In order for the compiler to achieve this, it must
-necessarily copy `a` to ensure that it can pass two different values to
-`useValueTwice`. These copies are observable program behavior and are in fact a
-desired default behavior since otherwise in general cases we couldn't write code
-like the above that takes the same argument multiple times. We instead would
-necessarily require the compiler to insert an error similar to an exclusivity
-violation which is undesireable:
+Formally during evaluation of `useValueTwice`, the compiler will perform an
+immutable exclusive access to `a`'s storage and copy `a` before beginning a
+mutable exclusive access to `a`'s storage. The reason that function evaluation
+is performed in this way is that otherwise, we could suffer from several
+undesireable outcomes, for example:
 
-```
-useValueTwiceWithoutPassByValue(a, a) // Error! Cannot pass a value twice!
-```
+1. Potentially trigger exclusivity violations. For instance, if we formally
+accessed the inout parameters memory before performing the `pass-by-value`, we
+would have an exclusivity violation when attempting to exclusively access the
+`var` memory to perform our copy.
 
-In certain cases though, this `pass-by-value` behavior and the implicit copies
-it requires the compiler to insert may be undesireable due to the author needing
-strict performance guarantees that implicit copies like the above are never
-generated. For most programs this guarantee is not needed since the optimizer
-generally does a good enough job eliminating such copies. But in critical system
-code, good enough is not an acceptable constraint and a true semantic guarantee
-is needed.
+2. If we did not copy the parameter, we would need to either perform a `take` of
+the non-`inout` parameter meaning that said memory would now be
+invalidated. This would mean that we couldn't pass in var storage directly as an
+`inout` parameter since the memory would be invalidated.
+
+For this and other reasons, we pass these arguments as `pass-by-value`
+formally. These copies are observable program behavior and as shown above are
+desireable in our formal model of callsite evaluation. In certain cases though,
+this `pass-by-value` behavior and the implicit copies it requires the compiler
+to insert may be undesireable due to the author needing strict performance
+guarantees that implicit copies like the above are never generated. For most
+programs this guarantee is not needed since the optimizer generally does a good
+enough job eliminating such copies. But in critical system code, "good enough"
+is not an acceptable constraint and a true semantic language level guarantee is
+needed.
 
 ## Proposed solution
 
 We propose introducing a new context sensitive keyword called `borrow` that when
-applied to a function argument forces Swift to use a `pass-by-borrow` convention
-on a specific argument instead of a `pass-by-value` convention. This would thus
-forbid the compiler from inserting such copies and instead cause the compiler to
-emit an error in such a case:
-
-```
-var a: Type = ...
-useValueTwice(borrow a, borrow a) // Error! Cannot overlapping borrows of 'a'!
-```
-
-The result of the usage of borrow is that a performance minded programmer would
-be able to sleep well at night knowing that their code doesn't have copies in
-this code.
+applied to a local var, computed var, or global var passed as a function
+argument forces Swift to use a `pass-by-immutable-borrow` convention on a
+specific argument instead of a `pass-by-value` convention. This would forbid the
+compiler from inserting such copies and instead cause the compiler to pass the
+argument in the same manner as an inout argument except performing an immutable
+exclusive access to memory instead of a mutable exclusive access. The result of
+the usage of borrow is that a performance minded programmer would be able to
+sleep well at night knowing that their code doesn't have copies in this code.
 
 ## Detailed design
 
-The `borrow` keyword can be applied in argument positions to lets, vars, and
-arguments. The application of the keyword would cause the compiler to use a
-`pass-by-borrow` convention for that parameter instead of a `pass-by-value`
-convention. First we define the `pass-by-value` convention as follows:
-
-1. `let` and non-`inout` parameters: Formally, the compiler always copies the
-   `let` or non-`inout` parameter into a new independent value and passes the
-   value as the parameter. To the callee this value appears as an independent
-   immutable value that is different from all other parameters.
-
-2. `var` and `inout` parameters: Formally the compiler after formal evaluations
-   have completed, emits an access to the lvalue and then copies the value from
-   the lvalue into a new rvalue. The rvalue is then passed as an independent
-   value to the guaranteed parameter. Similar to the `let` case, this rvalue in
-   the callee appears as an independent immutable value that is different from
-   all other parameters.
-
-We define the `pass-by-borrow` convention as follows:
-
-1. `let` and non-inout parameters: This would cause the compiler to not emit
-   defensive copies when calling guaranteed parameters. Since a let is immutable
-   and a guaranteed parameter is immutable, we would allow for a let to be
-   passed multiple times as a `pass-by-borrow` parameter.
-
-2. `var` and `inout` parameters: This would cause the compiler to formally
-   evaluate the `var`/`inout` using a read exclusivity scope and then use a
-   borrowed formal access to pass the value to the function argument. This is
-   the same mechanism used to pass vars as an inout parameter except we have
-   exclusive read access instead of exclusive write access to the given memory.
-
-Since the `var`/`inout` case takes exclusive read access to the underlying
-memory, once cannot pass such a binding multiple times to the same function:
+The `borrow` keyword can be applied in argument positions to local, computed,
+and global `vars`. It will cause the `var` to use a `pass-by-immutable-borrow`
+convention. Lets revisit our `useValueTwice` example from above in more detail:
 
 ```
+func useValueTwice(_ x: Type, _ y: inout Type) {}
+
 var a: Type = ...
-// Error! Cannot take exclusive access to the same variable twice
-useValueTwice(borrow a, borrow a)
+useValueTwice(a, &a)
 ```
 
-necessarily this implies that we must also error if one passes a `var`/`inout`
-once as a `by-borrow` parameter and once as a `by-value` parameter, one will
-also achieve an exclusivity violation since one will attempt to access the
-`var`/`inout` for the lvalue-to-rvalue conversion /after/ the formal evaluation
-of the borrowed argument has begun. Example:
+Formally the compiler evaluates `useValueTwice` by:
+
+1. Performing the first part of the `pass-by-exclusive-borrow` convention for
+   `inout` parameters by "formally evaluating" all `inout` arguments. Formally
+   evaluating a parameter means performing any operations needed to materialize
+   such arguments into memory that can later be accessed by the second part of
+   the `pass-by-exclusive-borrow` convention. In the case of `a` this is a no-op
+   since `a` is a local `var` meaning we can just use its raw memory. In
+   contrast, if `a` was a computed property, we would perform a "get" to place
+   `a` into temporary memory. NOTE: We at this point have not actually taken
+   exclusive access to any memory that will be passed into `useValueTwice`.
+
+2. Implementing the `pass-by-value` convention for non-`inout` parameters. For a
+   `var` this means taking immutable exclusive access to the `var`'s storage and
+   then performing the aforementioned implicit copy. Once the copy is performed,
+   we then close the immutable exclusivity access. The copy is independent from
+   the original `a`.
+
+3. Then, we perform the second part of the `pass-by-exclusive-borrow` convention
+   for `inout` parameters. This involves formally accessing the (potentially
+   materialized) `inout` parameters. In this specific case, since we can just
+   access `a`'s storage directly, we begin a mutable exclusive access to `a`'s
+   storage.
+
+4. Then, we call our callee passing in the relevant temporary copies and mutable
+   references to our exclusive accessed inout parameters.
+
+5. Finally we clean up by:
+
+   a. Ending any mutable exclusive accesses to the memory of any `inout` parameters.
+
+   b. Destroying any non-`inout` parameter temporaries
+
+   c. Setting any computed properties that were materialized into a temporary to
+      pass into our callee as an `inout` parameter.
+
+This ensures that we can with ease pass both `a` and `&a` to the same function
+without worry. We then define the `pass-by-immutable-borrow` convention by
+modifying 1., 3., and 5.a. to include performing an immutable exclusive borrow
+of any caller parameters marked with `borrow`. This works just like the `inout`
+parameter evaluation except that we perform immutable exclusivity accesses and
+do not perform a write back during clean up if we have a computed `var`.
+
+The effect of this is that just like with `inout`, there is a guarantee that
+copies will not be made to non-computed `var`s to pass them. Additionally, one
+will still be able to pass the same `var` to a function as multiple `borrow`
+parameters as well as any `pass-by-value` parameters. In contrast, one will have
+an exclusivity violation if one passes a var as a `borrow` if one additionally
+passes it as an `inout` parameter or as a capture of an escaping
+closure. Example:
 
 ```
-var a: Type = ...
-// Error! Cannot take exclusive access to the same variable twice
-useValueTwice(borrow a, a)
+// Ok. We copy x and borrow x.
+takeTwoValues(x, borrow x)
+
+// Ok! Immutable exclusivity doesn't conflict.
+takeBorrowAndBorrow(borrow x, borrow x)
+
+// Error! Exclusivity violation!
+takeInOutAndBorrow(&x, borrow x)
+
+// Error! Exclusivity violation!
+takeBorrowAndClosure(borrow x, { x = Type() })
 ```
 
-In pseudo-code this would look as follows:
+The compiler will error specifically (with a fixit) if one attempts to attach
+`borrow` to any of the following:
 
-```
-var a: Type = ...
-// Formal evaluation
-let firstArgAddr = access a
-
-// RValue access
-let secondArgAddr = access a // Error! Cannot take exclusive access to the same variable twice
-let rvalue = copy secondArgAddr
-end_access secondArgAddr
-
-// Formal access (nothing to do)
-
-// Call function
-useValueTwice(firstArgAddr, rvalue)
-
-// Tear down
-end_access firstArgAddr
-```
+1. A let. This is similar to the way the compiler handles '&' today.
+2. An inout parameter. This would be an exclusivity violation.
 
 ## Source compatibility
 
-`borrow` will only be allowed to be applied to lvalues (similar to `take`) and
-thus should not create any source breaks with function or variable names that
-use the phrase borrow. So there shouldn't be any source compatibility breaks.
+`borrow` will be a contextual keyword that is only allowed to be applied to
+local, computed, and global `var`s thus should not create any source breaks with
+function or variable names that use the phrase borrow. So there shouldn't be any
+source compatibility breaks.
 
 ## Effect on ABI stability
 
@@ -181,9 +188,8 @@ the caller or the callee.
 
 ## Future Directions
 
-1. Automatic use of pass-by-borrow for borrowed parameters.
-2. Require this for initialization of borrowed var decls?
+???
 
 ## Acknowledgments
 
-??
+???
