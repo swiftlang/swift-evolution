@@ -1,4 +1,4 @@
- Single Quoted Character Literals
+# Single Quoted Character Literals
 
  * Proposal: [SE-XXXX](0000-single-quoted-character-literals.md)
  * Authors: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13), [John Holdsworth](https://github.com/johnno1962)
@@ -7,7 +7,7 @@
  * Implementation: [https://github.com/apple/swift/pull/61477)
  * Threads: [1](https://forums.swift.org/t/prepitch-character-integer-literals/10442) [2](https://forums.swift.org/t/se-0243-codepoint-and-character-literals/21188)
 
- ## Introduction
+## Introduction
 
  Swift emphasizes a unicode-correct definition of 
 what constitutes a `Character`, but unlike most 
@@ -15,7 +15,7 @@ common programming languages, Swift does not have a
 dedicated syntax for `Character` literals. Instead, 
 three overlapping “ExpressibleBy” protocols and 
 Swift’s type inference come together to produce a 
-confusing syntax where a double quoted string literal 
+syntax where a double quoted string literal 
 can take the role of a `String`, `Character`, or 
 `Unicode.Scalar` value depending on its content, and 
 the expression context. 
@@ -55,7 +55,7 @@ syntax for all textual literal types up to and
 including `ExtendedGraphemeClusterLiteral`, but not 
 including `StringLiteral`. These literals will be 
 used to express `Character`, `Unicode.Scalar`, and 
-types like `UTF16.CodeUnit` in the standard library. 
+types like `Unicode.UTF16.CodeUnit` in the standard library (a.k.a. UInt16). 
 These literals would have a default type of 
 `Character`, as `Character` is the preferred element 
 type of `String`. In addition where the character 
@@ -81,13 +81,13 @@ double quotes.
  Advantages for a developer to migrate to the single 
 quote distinction:
  
-  * Differentiate in the source when a literal is intended to be used in a `Character` or `UnicodeScalar` context as opposed to `String`
+  * Differentiate in the source when a literal is intended to be used in a `Character` or `Unicode.Scalar` context as opposed to `String`
   * Distinct default type of `Character` making available that type's methods and properties.
 
  Improvements to the new implementation over that 
 previously reviewed:
  
-  * SingleQuoted literals have their own new `ExpressibleBy` marker protocols preventing source breaking changes to the use of double quoted literals in existing source.
+  * Single-quoted literals have their own new `ExpressibleBy` marker protocols preventing source breaking changes to the use of double quoted literals in existing source.
   * A distinct protocol for ASCII literals further ensures the more contentious integer conversions are only available for literals that are a single ASCII codepoint.
  
  ### Example usage
@@ -95,8 +95,9 @@ previously reviewed:
  Some expressions using single quoted literal syntax, 
 their value and their type:
 
+ **Basic type identities**
+
 ```Swift
-	// Basic type identities
 	'€' // >€< Character
 	'€' as String // >€< String
 	// Literal "arithmetic"
@@ -104,24 +105,34 @@ their value and their type:
 	"1"+'€' // >1€< String
 	'1'+'1' as String // >11< String
 	'1'+'1' as Int // >98< Int
-	// Initialzers of integers
+```
+ **Initializers of integers**
+
+```Swift
 	Int("0123") as Any // >Optional(123)< Optional<Int>
 	Int('€') as Any // >nil< Optional<Int>
 	Int('3') // >51< Int
 	['a', 'b'] as [Int8], // >[97, 98]< Array<Int8>
-	// more arithetic
+```
+ **More arithmetic**
+
+```
 	'a' + 1 //  >98< Int
 	'b' - 'a' + 10 // >11< Int
 	// difficult to avoid allowing
 	'a' * 'b' as Int8, // overflows at compilation
 	"123".firstIndex(of: '2') as Any 
 		// >Optional(Swift.String.Index(_rawBits: 65799))< Optional<Index>
-	// Subtleties involving joined graphemes
+```
+ **Subtleties involving joined graphemes**
+
+```
 	'👩🏼‍🚀'.asciiValue as Any /// >nil< Optional<UInt8>
 	('😎' as UnicodeScalar).value // >128526< UInt32
 	('👩🏼‍🚀' as UnicodeScalar).value // compilation error
 ```
- ### Single quotes in Swift, a historical perspective
+
+### Single quotes in Swift, a historical perspective
 
  In Swift 1.0, single quotes were reserved for some 
 yet-to-be determined syntactical purpose. Since then, 
@@ -208,7 +219,7 @@ lexer- and type checker-level change which does not
 affect the storage or entry points of `Character` and 
 `Unicode.Scalar`. The new initializers for integers 
 for literals `ExpressibleByASCIILiteral` are marked
- `@_transperent` and are therefore inlined and will
+ `@_transparent` and are therefore inlined and will
 back deploy.
 
  ## Effect on API resilience
@@ -222,7 +233,7 @@ are not used directly.
 
  The most obvious alternative is to simply leave 
 things the way they are where double quoted `String` 
-literals can perform service as `Character` or 
+literals can perform service as `Character`s or 
 `UnicodeScalar` values as required. At its heart, 
 while this is transparent to users, this devalues the 
 role of `Characters` in source code — a distinction 
