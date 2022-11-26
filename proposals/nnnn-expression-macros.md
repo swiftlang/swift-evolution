@@ -142,7 +142,7 @@ A macro declaration is described by the following grammar:
 ```
 declaration -> macro-declaration
 
-macro-declaration -> macro-head identifier generic-parameter-clause[opt] macro-signature '=' external-macro-name
+macro-declaration -> macro-head identifier generic-parameter-clause[opt] macro-signature '=' external-macro-name generic-where-clause[opt]
 
 macro-head -> attributes[opt] declaration-modifiers[opt] 'macro'
 
