@@ -160,6 +160,8 @@ Macros can only be declared at file scope. They can be overloaded in the same wa
 
 The `external-macro-name` refers to the module name (before the `.`) and type name (after the `.`) of the macro implementation. The library used to implement macros is defined below.
 
+Macro result types cannot include opaque result types.
+
 ### Macro expansions
 
 A macro expansion expression is described by the following grammar:
