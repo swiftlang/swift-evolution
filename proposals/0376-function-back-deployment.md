@@ -62,35 +62,35 @@ While `@_alwaysEmitIntoClient` can be used to back deploy APIs, there are some d
 
 ## Proposed solution
 
-Add a `@backDeploy(before: ...)` attribute to Swift that can be used to indicate that a copy of the function should be emitted into the client to be used at runtime when executing on an OS prior to a specific version. The attribute can be adopted by ToastKit's authors like this:
+Add a `@backDeployed(upTo: ...)` attribute to Swift that can be used to indicate that a copy of the function should be emitted into the client to be used at runtime when executing on an OS prior to a specific version. The attribute can be adopted by ToastKit's authors like this:
 
 ```swift
 extension Toaster {
   @available(toasterOS 1.0, *)
-  @backDeploy(before: toasterOS 2.0)
+  @backDeployed(upTo: toasterOS 2.0)
   public func makeBatchOfToast(_ breadSlices: [BreadSlice]) -> [Toast] { ... }
 }
 ```
 
-The API is now available on toasterOS 1.0 and later so clients may now reference `makeBatchOfToast(_:)` unconditionally. The compiler detects applications of `makeBatchOfToast(_:)` and generates code to automatically handle the potential runtime unavailability of the API.
+The API is now available on toasterOS 1.0 and later so clients may now reference `makeBatchOfToast(_:)` unconditionally. The compiler detects applications of `makeBatchOfToast(_:)` and generates code to automatically handle the potentially runtime unavailability of the API.
 
 ## Detailed design
 
-The `@backDeploy` attribute may apply to functions, methods, and subscripts. Properties may also have the attribute as long as the they do not have storage. The attribute takes a comma separated list of one or more platform versions, so declarations that are available on more than one platform can be back deployed to multiple platforms with a single attribute. The following are examples of legal uses of the attribute:
+The `@backDeployed` attribute may apply to functions, methods, and subscripts. Properties may also have the attribute as long as the they do not have storage. The attribute takes a comma separated list of one or more platform versions, so declarations that are available on more than one platform can be back deployed to multiple platforms with a single attribute. The following are examples of legal uses of the attribute:
 
 ```swift
 extension Temperature {
   @available(toasterOS 1.0, ovenOS 1.0, *)
-  @backDeploy(before: toasterOS 2.0, ovenOS 2.0)
+  @backDeployed(upTo: toasterOS 2.0, ovenOS 2.0)
   public var degreesFahrenheit: Double {
-    return (degreesCelsius * 9 / 5) + 32
+    return (degreesCelcius * 9 / 5) + 32
   }
 }
 
 extension Toaster {
   /// Returns whether the slot at the given index can fit a bagel.
   @available(toasterOS 1.0, *)
-  @backDeploy(before: toasterOS 2.0)
+  @backDeployed(upTo: toasterOS 2.0)
   public subscript(fitsBagelsAt index: Int) -> Bool {
     get { return index < 2 }
   }
@@ -132,18 +132,18 @@ When the deployment target of the client app is at least toasterOS 2.0, the opti
 
 ### Restrictions on declarations that may be back deployed
 
-There are rules that limit which declarations may have a `@backDeploy` attribute:
+There are rules that limit which declarations may have a `@backDeployed` attribute:
 
 * The declaration must be `public` or `@usableFromInline` since it only makes sense to offer back deployment for declarations that would be used by other modules.
-* Only functions that can be invoked with static dispatch are eligible to back deploy, so back deployed instance and class methods must be `final`. The `@objc` attribute also implies dynamic dispatch and therefore is incompatible with `@backDeploy`.
+* Only functions that can be invoked with static dispatch are eligible to back deploy, so back deployed instance and class methods must be `final`. The `@objc` attribute also implies dynamic dispatch and therefore is incompatible with `@backDeployed`.
 * Explicit availability must be specified with `@available` on the same declaration for each of the platforms that the declaration is back deployed on.
-* The declaration should be available earlier than the platform versions specified in `@backDeploy` (otherwise the fallback functions would never be called).
-* The `@_alwaysEmitIntoClient` and `@_transparent` attributes are incompatible with `@backDeploy` because they require the function body to always be emitted into the client, defeating the purpose of `@backDeploy`.
-* Declarations with `@inlinable` _may_ use `@backDeploy`. As usual with `@inlinable`, the bodies of these functions may be emitted into the client at the discretion of the optimizer. The copy of the function in the client may therefore be used even when a copy of the function is available in the library.
+* The declaration should be available earlier than the platform versions specified in `@backDeployed` (otherwise the fallback functions would never be called).
+* The `@_alwaysEmitIntoClient` and `@_transparent` attributes are incompatible with `@backDeployed` because they require the function body to always be emitted into the client, defeating the purpose of `@backDeployed`.
+* Declarations with `@inlinable` _may_ use `@backDeployed`. As usual with `@inlinable`, the bodies of these functions may be emitted into the client at the discretion of the optimizer. The copy of the function in the client may therefore be used even when a copy of the function is available in the library.
 
 ### Requirements for the bodies of back deployed functions
 
-The restrictions on the bodies of back deployed functions are the same as `@inlinable` functions. The body may only reference declarations that are accessible to the client, such as `public` and `@usableFromInline` declarations. Similarly, those referenced declarations must also be at least as available the back deployed function, or `if #available` must be used to handle potential unavailability. Type checking in `@backDeploy` function bodies must ignore the library's deployment target since the body will be copied into clients with unknown deployment targets. 
+The restrictions on the bodies of back deployed functions are the same as `@inlinable` functions. The body may only reference declarations that are accessible to the client, such as `public` and `@usableFromInline` declarations. Similarly, those referenced declarations must also be at least as available the back deployed function, or `if #available` must be used to handle potential unavailability. Type checking in `@backDeployed` function bodies must ignore the library's deployment target since the body will be copied into clients with unknown deployment targets.
 
 ## Source compatibility
 
@@ -151,11 +151,11 @@ The introduction of this attribute to the language is an additive change and the
 
 ## Effect on ABI stability
 
-The `@backDeploy` attribute has no effect on the ABI of Swift libraries. A Swift function with and without a `@backDeploy` attribute has the same ABI; the attribute simply controls whether the compiler automatically generates additional logic in the client module. The thunk and fallback functions that are emitted into the client do have a special mangling to disambiguate them from the original function in the library, but these symbols are never referenced across separately compiled modules.
+The `@backDeployed` attribute has no effect on the ABI of Swift libraries. A Swift function with and without a `@backDeployed` attribute has the same ABI; the attribute simply controls whether the compiler automatically generates additional logic in the client module. The thunk and fallback functions that are emitted into the client do have a special mangling to disambiguate them from the original function in the library, but these symbols are never referenced across separately compiled modules.
 
 ## Effect on API resilience
 
-By itself, adding a `@backDeploy` attribute to a declaration does not affect source compatibility for clients of a library, and neither does removing the attribute. However, adding a `@backDeploy` attribute would typically be done simultaneously with expanding the availability of the declaration. Expansion of the availability of an API is source compatible for clients, but reversing that expansion would not be.
+By itself, adding a `@backDeployed` attribute to a declaration does not affect source compatibility for clients of a library, and neither does removing the attribute. However, adding a `@backDeployed` attribute would typically be done simultaneously with expanding the availability of the declaration. Expansion of the availability of an API is source compatible for clients, but reversing that expansion would not be.
 
 ## Alternatives considered
 
