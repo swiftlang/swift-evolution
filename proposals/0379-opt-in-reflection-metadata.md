@@ -47,11 +47,11 @@ If for some reason a user module was compiled with metadata generation disabled,
 between state and representation which will make such API less safe since it becomes a runtime issue rather than a compile-time one.
 
 On the other hand, excessive Reflection metadata may be preserved in a binary even if not used, because there is currently no way to statically determine its usage.
-There was an attempt to limit the amount of unused reflection metadata by improving its stripability by the Dead Code Elimination LLVM pass, but in many cases,
-it’s still preserved in the binary because it’s referenced by Full Type Metadata which prevents Reflection Metadata from stripping.
+There was an attempt to limit the amount of unused reflection metadata by improving the Dead Code Elimination LLVM pass, but in many cases
+it’s still preserved in the binary because it’s referenced by Full Type Metadata. This prevents Reflection Metadata from being stripped.
 This unnecessarily increases the binary size and may simplify reverse-engineering.
 
-Introducing a static compilation check can help to solve both of mentioned issues by adding to the language a way to express the requirement to have Reflection metadata at runtime.
+Introducing a static compilation check can help to solve both of mentioned issues by adding to the language a way to express the requirement to have Reflection metadata available at runtime.
 
 
 ## Proposed solution
