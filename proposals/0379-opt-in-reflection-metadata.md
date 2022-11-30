@@ -1,10 +1,10 @@
 
 # Swift Opt-In Reflection Metadata
 
-*   Proposal: [SE-NNNN](NNNN-opt-in-reflection-metadata.md)
+*   Proposal: [SE-0379](0379-opt-in-reflection-metadata.md)
 *   Authors: [Max Ovtsin](https://github.com/maxovtsin)
-*   Review Manager: TBD
-*   Status: **Awaiting implementation**
+*   Review Manager: [Joe Groff](https://github.com/jckarter)
+*   Status: **Active review (November 30...December 14, 2022)**
 *   Implementation: [apple/swift#34199](https://github.com/apple/swift/pull/34199)
 
 ## Introduction
