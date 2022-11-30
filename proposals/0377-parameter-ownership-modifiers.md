@@ -1,4 +1,4 @@
-# `borrow` and `take` parameter ownership modifiers
+# `borrow` and `consume` parameter ownership modifiers
 
 * Proposal: [SE-0377](0377-parameter-ownership-modifiers.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Joe Groff](https://github.com/jckarter)
@@ -6,10 +6,11 @@
 * Status: **Active Review (October 25 - November 8, 2022)**
 * Implementation: available using the internal names `__shared` and `__owned`
 * Review: ([first pitch](https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers/54313)) ([second pitch](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)) ([review](https://forums.swift.org/t/se-0377-borrow-and-take-parameter-ownership-modifiers/61020))
+* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/3f984e6183ce832307bb73ec72c842f6cb0aab86/proposals/0377-parameter-ownership-modifiers.md)
 
 ## Introduction
 
-We propose new `borrow` and `take` parameter modifiers to allow developers to
+We propose new `borrow` and `consume` parameter modifiers to allow developers to
 explicitly choose the ownership convention that a function uses to receive
 immutable parameters. This allows for fine-tuning of performance by reducing
 the number of ARC calls or copies needed to call a function, and provides a
@@ -27,11 +28,11 @@ callee in a function call:
   guarantees that its argument object will stay alive for the duration of the
   call, and the callee does not need to release it (except to balance any
   additional retains it performs itself).
-* The callee can **take** the parameter. The callee
+* The callee can **consume** the parameter. The callee
   becomes responsible for either releasing the parameter or passing ownership
   of it along somewhere else. If a caller doesn't want to give up its own
   ownership of its argument, it must retain the argument so that the callee
-  can take the extra reference count.
+  can consume the extra reference count.
 
 These two conventions generalize to value types, where a "retain"
 becomes an independent copy of the value, and "release" the destruction and
@@ -39,7 +40,7 @@ deallocation of the copy. By default Swift chooses which convention to use
 based on some rules informed by the typical behavior of Swift code:
 initializers and property setters are more likely to use their parameters to
 construct or update another value, so it is likely more efficient for them to
-*take* their parameters and forward ownership to the new value they construct.
+*consume* their parameters and forward ownership to the new value they construct.
 Other functions default to *borrowing* their parameters, since we have found
 this to be more efficient in most situations.
 
@@ -58,7 +59,7 @@ move-only values and types. Since move-only types do not have the ability to
 be copied, the distinction between the two conventions becomes an important
 part of the API contract: functions that *borrow* move-only values make
 temporary use of the value and leave it valid for further use, like reading
-from a file handle, whereas functions that *take* a move-only value consume
+from a file handle, whereas functions that *consume* a move-only value consume
 it and prevent its further use, like closing a file handle. Relying on
 implicit selection of the parameter convention will not suffice for these
 types.
@@ -66,18 +67,18 @@ types.
 ## Proposed solution
 
 We give developers direct control over the ownership convention of
-parameters by introducing two new parameter modifiers `borrow` and `take`.
+parameters by introducing two new parameter modifiers `borrow` and `consume`.
 
 ## Detailed design
 
-`borrow` and `take` become contextual keywords inside parameter type
+`borrow` and `consume` become contextual keywords inside parameter type
 declarations.  They can appear in the same places as the `inout` modifier, and
 are mutually exclusive with each other and with `inout`. In a `func`,
 `subscript`, or `init` declaration, they appear as follows:
 
 ```swift
 func foo(_: borrow Foo)
-func foo(_: take Foo)
+func foo(_: consume Foo)
 func foo(_: inout Foo)
 ```
 
@@ -85,7 +86,7 @@ In a closure:
 
 ```swift
 bar { (a: borrow Foo) in a.foo() }
-bar { (a: take Foo) in a.foo() }
+bar { (a: consume Foo) in a.foo() }
 bar { (a: inout Foo) in a.foo() }
 ```
 
@@ -93,47 +94,47 @@ In a function type:
 
 ```swift
 let f: (borrow Foo) -> Void = { a in a.foo() }
-let f: (take Foo) -> Void = { a in a.foo() }
+let f: (consume Foo) -> Void = { a in a.foo() }
 let f: (inout Foo) -> Void = { a in a.foo() }
 ```
 
-Methods can use the `taking` or `borrowing` modifier to indicate that they
-take ownership of their `self` parameter, or they borrow it. These modifiers
+Methods can use the `consuming` or `borrowing` modifier to indicate respectively
+that they consume ownership of their `self` parameter or that they borrow it. These modifiers
 are mutually exclusive with each other and with the existing `mutating` modifier:
 
 ```swift
 struct Foo {
-  taking func foo() // `take` ownership of self
+  consuming func foo() // `consume` ownership of self
   borrowing func foo() // `borrow` self
   mutating func foo() // modify self with `inout` semantics
 }
 ```
 
-`take` cannot be applied to parameters of nonescaping closure type, which by
+`consume` cannot be applied to parameters of nonescaping closure type, which by
 their nature are always borrowed:
 
 ```swift
-// ERROR: cannot `take` a nonescaping closure
-func foo(f: take () -> ()) {
+// ERROR: cannot `consume` a nonescaping closure
+func foo(f: consume () -> ()) {
 }
 ```
 
-`take` or `borrow` on a parameter do not affect the caller-side syntax for
-passing an argument to the affected declaration, nor do `taking` or
+`consume` or `borrow` on a parameter do not affect the caller-side syntax for
+passing an argument to the affected declaration, nor do `consuming` or
 `borrowing` affect the application of `self` in a method call. For typical
 Swift code, adding, removing, or changing these modifiers does not have any
 source-breaking effects. (See "related directions" below for interactions with
 other language features being considered currently or in the near future which
 might interact with these modifiers in ways that cause them to break source.)
 
-Protocol requirements can also use `take` and `borrow`, and the modifiers will
+Protocol requirements can also use `consume` and `borrow`, and the modifiers will
 affect the convention used by the generic interface to call the requirement.
 The requirement may still be satisfied by an implementation that uses different
 conventions for parameters of copyable types:
 
 ```swift
 protocol P {
-  func foo(x: take Foo, y: borrow Foo)
+  func foo(x: consume Foo, y: borrow Foo)
 }
 
 // These are valid conformances:
@@ -143,29 +144,29 @@ struct A: P {
 }
 
 struct B: P {
-  func foo(x: borrow Foo, y: take Foo)
+  func foo(x: borrow Foo, y: consume Foo)
 }
 
 struct C: P {
-  func foo(x: take Foo, y: borrow Foo)
+  func foo(x: consume Foo, y: borrow Foo)
 }
 ```
 
 Function values can also be implicitly converted to function types that change
 the convention of parameters of copyable types among unspecified, `borrow`,
-or `take`:
+or `consume`:
 
 ```swift
 let f = { (a: Foo) in print(a) }
 
 let g: (borrow Foo) -> Void = f
-let h: (take Foo) -> Void = f
+let h: (consume Foo) -> Void = f
 
 let f2: (Foo) -> Void = h
 ```
 
-Inside of a function or closure body, `take` parameters may be mutated, as can
-the `self` parameter of a `taking func` method. These
+Inside of a function or closure body, `consume` parameters may be mutated, as can
+the `self` parameter of a `consuming func` method. These
 mutations are performed on the value that the function itself took ownership of,
 and will not be evident in any copies of the value that might still exist in
 the caller. This makes it easy to take advantage of the uniqueness of values
@@ -175,7 +176,7 @@ after ownership transfer to do efficient local mutations of the value:
 extension String {
   // Append `self` to another String, using in-place modification if
   // possible
-  taking func plus(_ other: String) -> String {
+  consuming func plus(_ other: String) -> String {
     // Modify our owned copy of `self` in-place, taking advantage of
     // uniqueness if possible
     self += other
@@ -189,13 +190,13 @@ let helloWorld = "hello ".plus("cruel ").plus("world")
 
 ## Source compatibility
 
-Adding `take` or `borrow` to a parameter in the language today does not
+Adding `consume` or `borrow` to a parameter in the language today does not
 otherwise affect source compatibility. Callers can continue to call the
 function as normal, and the function body can use the parameter as it already
-does. A method with `take` or `borrow` modifiers on its parameters can still
+does. A method with `consume` or `borrow` modifiers on its parameters can still
 be used to satisfy a protocol requirement with different modifiers. The
 compiler will introduce implicit copies as needed to maintain the expected
-conventions. This allows for API authors to use `take` and `borrow` annotations
+conventions. This allows for API authors to use `consume` and `borrow` annotations
 to fine-tune the copying behavior of their implementations, without forcing
 clients to be aware of ownership to use the annotated APIs. Source-only
 packages can add, remove, or adjust these annotations on copyable types
@@ -203,29 +204,29 @@ over time without breaking their clients.
 
 This will change if we introduce features that limit the compiler's ability
 to implicitly copy values, such as move-only types, "no implicit copy" values
-or scopes, and `take` or `borrow` operators in expressions. Changing the
+or scopes, and `consume` or `borrow` operators in expressions. Changing the
 parameter convention changes where copies may be necessary to perform the call.
-Passing an uncopyable value as an argument to a `take` parameter ends its
-lifetime, and that value cannot be used again after it's taken.
+Passing an uncopyable value as an argument to a `consume` parameter ends its
+lifetime, and that value cannot be used again after it's consumed.
 
 ## Effect on ABI stability
 
-`take` or `borrow` affects the ABI-level calling convention and cannot be
+`consume` or `borrow` affects the ABI-level calling convention and cannot be
 changed without breaking ABI-stable libraries (except on "trivial types"
 for which copying is equivalent to `memcpy` and destroying is a no-op; however,
-`take` or `borrow` also has no practical effect on parameters of trivial type).
+`consume` or `borrow` also has no practical effect on parameters of trivial type).
 
 ## Effect on API resilience
 
-`take` or `borrow` break ABI for ABI-stable libraries, but are intended to have
+`consume` or `borrow` break ABI for ABI-stable libraries, but are intended to have
 minimal impact on source-level API. When using copyable types, adding or
 changing these annotations to an API should not affect its existing clients.
 
 ## Alternatives considered
 
-### Leaving `take` parameter bindings immutable inside the callee
+### Leaving `consume` parameter bindings immutable inside the callee
 
-We propose that `take` parameters should be mutable inside of the callee,
+We propose that `consume` parameters should be mutable inside of the callee,
 because it is likely that the callee will want to perform mutations using
 the value it has ownership of. There is a concern that some users may find this
 behavior unintuitive, since those mutations would not be visible in copies
@@ -234,20 +235,20 @@ of the value in the caller. This was the motivation behind
 which explicitly removed the former ability to declare parameters as `var`
 because of this potential for confusion. However, whereas `var` and `inout`
 both suggest mutability, and `var` does not provide explicit directionality as
-to where mutations become visible, `take` on the other hand does not
+to where mutations become visible, `consume` on the other hand does not
 suggest any kind of mutability to the caller, and it explicitly states the
 directionality of ownership transfer. Furthermore, with move-only types, the
 chance for confusion is moot, because the transfer of ownership means the
 caller cannot even use the value after the callee takes ownership anyway.
 
-Another argument for `take` parameters to remain immutable is to serve the
+Another argument for `consume` parameters to remain immutable is to serve the
 proposal's stated goal of minimizing the source-breaking impact of
-parameter ownership modifiers. When `take` parameters are mutable,
-changing a `take` parameter to `borrow`, or removing the
-`take` annotation altogether, is potentially source-breaking. However,
+parameter ownership modifiers. When `consume` parameters are mutable,
+changing a `consume` parameter to `borrow`, or removing the
+`consume` annotation altogether, is potentially source-breaking. However,
 any such breakage is purely localized to the callee; callers are still
 unaffected (as long as copyable arguments are involved). If a developer wants
-to change a `take` parameter back into a `borrow`, they can still assign the
+to change a `consume` parameter back into a `borrow`, they can still assign the
 borrowed value to a local variable and use that local variable for local
 mutation.
 
@@ -259,28 +260,46 @@ We have considered several alternative naming schemes for these modifiers:
   and we could remove the underscores to make these simply `shared` and
   `owned`. These names refer to the way a borrowed parameter receives a
   "shared" borrow (as opposed to the "exclusive" borrow on an `inout`
-  parameter), whereas a taken parameter becomes "owned" by the callee.
+  parameter), whereas a consumed parameter becomes "owned" by the callee.
   found that the "shared" versus "exclusive" language for discussing borrows,
   while technically correct, is unnecessarily confusing for explaining the
   model.
 - A previous pitch used the names `nonconsuming` and `consuming`. The current
   implementation also uses `__consuming func` to notate a method that takes
-  ownership of its `self` parameter.
-
-The names `take` and `borrow` arose during [the first review of
+  ownership of its `self` parameter. `consuming` parallels `mutating` as a
+  method modifier for a method that consumes `self`, but we like the imperative
+  form `consume` for parameter modifiers as a parallel with the `consume` operator
+  in callers.
+- The first reviewed revision used `take` instead of `consume`. Along with
+  `borrow`, `take` arose during [the first review of
 SE-0366](https://forums.swift.org/t/se-0366-move-function-use-after-move-diagnostic/59202).
-These names also work well as names for operators that explicitly
-transfer ownership of a variable or borrow it in place, discussed below as the
-`take` and `borrow` operators under Related Directions. We think it is helpful
-to align the naming of those operators with the naming of these parameter
-modifiers, since it helps reinforce the relationship between the calling
-conventions and the expression operators: to explicitly transfer ownership
-of an argument in a call site to a parameter in a function, use `foo(take x)`
-at the call site, and use `func foo(_: take T)` in the function declaration.
+  These names also work well as names for operators that explicitly
+  transfer ownership of a variable or borrow it in place. However,
+  reviewers observed that `take` is possibly confusing, since it conflicts with
+  colloquial discussion of function calls "taking their arguments". `consume`
+  reads about as well while being more specific.
+- Reviewers offered `use`, `own`, or `sink` as alternatives to `consume`.
+
+We think it is helpful to align the naming of these parameter modifiers with
+the corresponding `consume` and `borrow` operators (discussed below under
+Future Directions), since it helps reinforce the relationship between the
+calling conventions and the expression operators: to explicitly transfer
+ownership of an argument in a call site to a parameter in a function, use
+`foo(consume x)` at the call site, and use `func foo(_: consume T)` in the
+function declaration. Similarly, to explicitly pass an argument by borrow
+without copying, use `foo(borrow x)` at the call site, and `func foo(_: borrow T)`
+in the function declaration.
+
+Some review discussion explored the possibility of
+using different verb forms for the various roles; since we're already using
+`consuming func` and `borrowing func` as the modifiers for the `self` parameter,
+we could also conjugate the parameter modifiers so you write
+`foo(x: borrowed T)` or `bar(x: consumed T)`, while still using `foo(borrow x)`
+and `bar(consume x)` as the call-site operators.
 
 ### Effect on call sites and uses of the parameter
 
-This proposal designs the `take` and `borrow` modifiers to have minimal source
+This proposal designs the `consume` and `borrow` modifiers to have minimal source
 impact when applied to parameters, on the expectation that, in typical Swift
 code that isn't using move-only types or other copy-controlling features,
 adjusting the convention is a useful optimization on its own without otherwise
@@ -292,7 +311,7 @@ a value argument indicates that the developer is interested in guaranteeing
 that the optimization occurs, and having the annotation imply changed behavior
 at call sites or inside the function definition, such as disabling implicit
 copies of the parameter inside the function, or implicitly taking an argument
-to a `take` parameter and ending its lifetime inside the caller after the
+to a `consume` parameter and ending its lifetime inside the caller after the
 call site. We believe that it is better to keep the behavior of the call in
 expressions independent of the declaration (to the degree possible with
 implicitly copyable values), and that explicit operators on the call site
@@ -305,12 +324,12 @@ optimizer behavior is insufficient to get optimal code.
 
 There are a number of caller-side operators we are considering to allow for
 performance-sensitive code to make assertions about call behavior. These
-are closely related to the `take` and `borrow` parameter modifiers and so
+are closely related to the `consume` and `borrow` parameter modifiers and so
 share their names. See also the
 [Selective control of implicit copying behavior](https://forums.swift.org/t/selective-control-of-implicit-copying-behavior-take-borrow-and-copy-operators-noimplicitcopy/60168)
 thread on the Swift forums for deeper discussion of this suite of features
 
-#### `take` operator
+#### `consume` operator
 
 Currently under review as
 [SE-0366](https://github.com/apple/swift-evolution/blob/main/proposals/0366-move-function.md),
@@ -318,15 +337,15 @@ it is useful to have an operator that explicitly ends the lifetime of a
 variable before the end of its scope. This allows the compiler to reliably
 destroy the value of the variable, or transfer ownership, at the point of its
 last use, without depending on optimization and vague ARC optimizer rules.
-When the lifetime of the variable ends in an argument to a `take` parameter,
+When the lifetime of the variable ends in an argument to a `consume` parameter,
 then we can transfer ownership to the callee without any copies:
 
 ```swift
-func consume(x: take Foo)
+func consume(x: consume Foo)
 
 func produce() {
   let x = Foo()
-  consume(x: take x)
+  consume(x: consume x)
   doOtherStuffNotInvolvingX()
 }
 ```
@@ -394,13 +413,13 @@ while the caller is borrowing it, an exclusivity failure would be raised.
 
 #### Move-only types, uncopyable values, and related features
 
-The `take` versus `borrow` distinction becomes much more important and
+The `consume` versus `borrow` distinction becomes much more important and
 prominent for values that cannot be implicitly copied. We have plans to
 introduce move-only types, whose values are never copyable, as well as
 attributes that suppress the compiler's implicit copying behavior selectively
 for particular variables or scopes. Operations that borrow
 a value allow the same value to continue being used, whereas operations that
-take a value destroy it and prevent its continued use. This makes the
+consume a value destroy it and prevent its continued use. This makes the
 convention used for move-only parameters a much more important part of their
 API contract, since it directly affects whether the value is still available
 after the operation:
@@ -415,18 +434,18 @@ func open(path: FilePath) throws -> FileHandle
 // borrow the FileHandle
 func read(from: borrow FileHandle) throws -> Data
 
-// Operations that close the file handle and make it unusable take
+// Operations that close the file handle and make it unusable consume
 // the FileHandle
-func close(file: take FileHandle)
+func close(file: consume FileHandle)
 
 func hackPasswords() throws -> HackedPasswords {
   let fd = try open(path: "/etc/passwd")
   // `read` borrows fd, so we can continue using it after
   let contents = try read(from: fd)
-  // `close` takes fd from us, so we can't use it again
+  // `close` consumes fd, so we can't use it again
   close(fd)
 
-  let moreContents = try read(from: fd) // compiler error: use after take
+  let moreContents = try read(from: fd) // compiler error: use after consume
 
   return hackPasswordData(contents)
 }
@@ -445,7 +464,7 @@ extension String: WritableToFileHandle {
   // error: does not satisfy protocol requirement, ownership modifier for
   // parameter of move-only type `FileHandle` does not match
   /*
-  func write(to fh: take FileHandle) {
+  func write(to fh: consume FileHandle) {
     ...
   }
    */
@@ -468,13 +487,13 @@ conforming types to be copyable.
 
 ### `set`/`out` parameter convention
 
-By making the `borrow` and `take` conventions explicit, we mostly round out
+By making the `borrow` and `consume` conventions explicit, we mostly round out
 the set of possibilities for how to handle a parameter. `inout` parameters get
 **exclusive access** to their argument, allowing them to mutate or replace the
 current value without concern for other code. By contrast, `borrow` parameters
 get **shared access** to their argument, allowing multiple pieces of code to
 share the same value without copying, so long as none of them mutate the
-shared value. A `take` parameter consumes a value, leaving nothing behind, but
+shared value. A `consume` parameter consumes a value, leaving nothing behind, but
 there still isn't a parameter analog to the opposite convention, which would
 be to take an uninitialized argument and populate it with a new value. Many
 languages, including C# and Objective-C when used with the "Distributed
@@ -489,3 +508,9 @@ to add some kind of `out` parameter, but a future proposal could.
 
 Thanks to Robert Widmann for the original underscored implementation of
 `__owned` and `__shared`: [https://forums.swift.org/t/ownership-annotations/11276](https://forums.swift.org/t/ownership-annotations/11276).
+
+## Revision history
+
+The [first reviewed revision](https://github.com/apple/swift-evolution/blob/3f984e6183ce832307bb73ec72c842f6cb0aab86/proposals/0377-parameter-ownership-modifiers.md)
+of this proposal used `take` and `taking` instead of `consume` and `consuming`
+as the name of the callee-destroy convention.
