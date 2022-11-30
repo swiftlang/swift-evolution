@@ -163,7 +163,7 @@ consume(Bar())
 Since Reflection metadata might be used by the debugger, we propose to always keep that metadata
 if full emission of debugging information is enabled (with `-gdwarf-types` or `-g` flags).
 However, such Reflection metadata won't be accessible through the nominal type descriptor
-which will allow to avoid inconsistencies between APIs' outputs in Release and Debug modes.
+which will avoid inconsistencies in API behavior between Release and Debug modes.
 
 ### Changes in flags
 
