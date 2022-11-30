@@ -98,9 +98,10 @@ let f: (consume Foo) -> Void = { a in a.foo() }
 let f: (inout Foo) -> Void = { a in a.foo() }
 ```
 
-Methods can use the `consuming` or `borrowing` modifier to indicate respectively
-that they consume ownership of their `self` parameter or that they borrow it. These modifiers
-are mutually exclusive with each other and with the existing `mutating` modifier:
+Methods can use the `consuming` or `borrowing` modifier to indicate
+respectively that they consume ownership of their `self` parameter or that they
+borrow it. These modifiers are mutually exclusive with each other and with the
+existing `mutating` modifier:
 
 ```swift
 struct Foo {
