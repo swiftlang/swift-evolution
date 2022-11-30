@@ -33,7 +33,7 @@ A developer has two ways right now - either
 1. To just in case enable Reflection in full.
 2. To try to guess which used APIs consume Reflection, and enable it only for modules that are users of such APIs.
 
-Both of those options have flaws. The first one leads to exsessive contribution of reflection metadta to binary size and might affects the secrecy of generated code.
+Both of those options have flaws. The first one leads to excessive contribution of reflection metadata to binary size and might affects the secrecy of generated code.
 The second one isn't safe because many APIs are black boxes if the guess is wrong, an app might behave not as expected at runtime.
 
 Furthermore, APIs can use Reflection Metadata differently. Some like `print`, `debugPrint`, and `dump` will still work with disabled reflection, but the output will be limited.
