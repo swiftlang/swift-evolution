@@ -79,9 +79,10 @@ not `inout`). (Extending to mutable bindings is discussed as a future direction.
 ### Non-transitivity
 
 One key property of the `@noImplicitCopy` annotation is that it is
-*non-transitive*. Only the binding with the attribute is restricted, but
-its value can be moved into other bindings, or passed in an argument to other
-functions, and those other bindings are not affected by the constraint.
+*non-transitive*. The binding with the attribute is restricted from being
+copied, but its value can be moved into other bindings, or passed in an
+argument to other functions, and those other bindings are not affected by the
+constraint.
 
 ```swift
 // This is fine, `value` is implicitly copyable
