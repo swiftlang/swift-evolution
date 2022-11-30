@@ -230,6 +230,8 @@ The `SourceLocationConverter` allows one to map syntax nodes to their line and c
 
 The `createUniqueLocalName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
 
+It is intended that `MacroEvaluationContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
+
 #### `MacroResult` 
 
 The `MacroResult` structure describes the result of macro expansion. It contains the rewritten syntax node, as well as a set of diagnostics that the macro implementation itself produces:
