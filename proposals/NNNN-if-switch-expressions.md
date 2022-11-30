@@ -113,7 +113,9 @@ Each of these expressions become the value of the overall expression if the bran
 
 This does have the downside of requiring fallback to the existing techniques when, for example, a single expression has a log line above it. This is in keeping with the current behavior of `return` omission.
 
-An exception to this rule is if a branch either returns, throws, or traps, in which case no value for the overall expression need be produced.
+An exception to this rule is if a branch either returns or throws, in which case no value for the overall expression need be produced. In these cases, multiple expressions could be executed on that branch prior to the `throw` or `return`.
+
+Within a branch, further `if` or `switch` expressions may be nested.
 
 **Each of those expressions, when type checked independently, must produce the same type.**
 
@@ -197,6 +199,16 @@ let x = if p {
 
 With full bidirectional inference, the `Array` in the `if` branch would force the `.lazy.map` in the `else` branch to be unexpectedly eager.
 
+The one exception to this rule is that some branches could produce a `Never` type. This would be allowed, so long as all non-`Never` branches are of the same type:
+
+```swift
+// x is of type Int, discounting the type of the second branch
+let x = if .random() {
+  1
+} else {
+  fatalError()
+}
+
 **In the case of `if` statements, the branches must include an `else`**
 
 This rule is consistent with the current rules for definitive initialization and return statements with `if` e.g.
@@ -214,17 +226,38 @@ func f() -> String {
 
 This could be revisited in the future across the board (to DI, return values, and `if` expressions) if logic similar to that of exhaustive switches were applied, but this would be a separate proposal.
 
-**The expression is not part of a result builder**
+**Pattern matching bindings may occur within an `if` or `case`
+
+For example, returns could be dropped from
+
+```swift
+    private func balance() -> Tree {
+        switch self {
+        case let .node(.B, .node(.R, .node(.R, a, x, b), y, c), z, d):
+            .node(.R, .node(.B,a,x,b),y,.node(.B,c,z,d))
+        case let .node(.B, .node(.R, a, x, .node(.R, b, y, c)), z, d):
+            .node(.R, .node(.B,a,x,b),y,.node(.B,c,z,d))
+        case let .node(.B, a, x, .node(.R, .node(.R, b, y, c), z, d)):
+            .node(.R, .node(.B,a,x,b),y,.node(.B,c,z,d))
+        case let .node(.B, a, x, .node(.R, b, y, .node(.R, c, z, d))):
+            .node(.R, .node(.B,a,x,b),y,.node(.B,c,z,d))
+        default:
+            self
+        }
+    }
+```
+
+**The expression is not part of a result builder expression**
 
 `if` and `switch` statements are already expressions when used in the context of a result builder, via the `buildEither` function. This proposal does not change this feature.
 
+The variable declaration form of an `if` will be allowed in result builders.
+
 ## Future Directions
 
-This 
+This proposal chooses a narrow path of only enabling expressions in the 3 cases laid out at the start. This is intended to cover the vast majority of use cases, but could be followed up by expanded functionality covering many other use cases. Further cases could be added in later proposals once the community has had a chance to use this feature in practice – including source breaking versions introduced under a language variant.
 
 ### Full Expressions
-
-This proposal chooses a narrow path of only enabling these expressions in the 3 cases laid out at the start. An alternative would be to make them full-blown expressions everywhere.
 
 A feel for the kind of expressions this could produce can be found in [this commit](https://github.com/apple/swift/compare/main...hamishknight:express-yourself#diff-7db38bc4b6f7872e5a631989c2925f5fac21199e221aa9112afbbc9aae66a2de) which adds this functionality to the parser.
 
@@ -247,7 +280,21 @@ var body: some View {
 
 In this case, if `if` expressions were allowed to have postfix member expressions (which they aren't today, even in result builders), it would be ambiguous whether this should be parsed as a modifier on the `if` expression, or as a new expression. This could only be an issue for result builders, but the parser does not have the ability to specialize behavior for result builders. Note, this issue can happen today (and is why `One` exists for Regex Builders) but could introduce a new ambiguity for code that works this way today.
 
-This proposal suggests keeping the initial implementation narrow, as assignment and returns are hoped to cover at least 95% of use cases. Further cases could be added in later proposals once the community has had a chance to use this feature in practice – including source breaking versions introduced under a language variant.
+### `do` Expressions
+
+`do` blocks could similarly be transformed into expressions, for example:
+
+```swift
+let foo: String = do {
+        try bar()
+    } catch {
+        "Error \(error)"
+	}
+```
+
+### Support for `break` and `continue`
+
+Similar to `return`, statements that break or continue to a label, could be permitted in branches. There is likely a larger number of edge cases to consider here, possibly requiring enhancements to DI to ensure variables remain initialized on all paths. 
 
 ### Guard
 
@@ -279,6 +326,8 @@ This is consistent with other cases, like multi-statement closures. But unlike i
 
 The trouble is, there is no great solution here. The approach taken by some other languages such as rust is to allow a bare expression at the end of the scope to be the expression value for that scope. There are stylistic preferences for and against this. More importantly, this would be a fairly radical new direction for Swift, and if proposed should probably be considered for all such cases (like function and closure return values too).
 
+Alternatively, a new keyword could be introduced to make explicit that an expression value is being used as the value for this branch (Java uses `yield` for this in `switch` expressions).
+
 ### Either
 
 As mentioned above, in result builders an `if` can be used to construct an `Either` type, which means the expressions in the branches could be of different types.
@@ -299,7 +348,25 @@ The lack of this feature puts Swift's [claim](https://www.swift.org/about/) to b
 
 ### Alternative syntax
 
-tk
+Instead of extending the current implicit return mechanism, where a single expression is treated as the returned value, this proposal could introduce a new syntax for expression versions of `if`/`switch`. For example, 
+
+```java
+var response = switch (utterance) {
+    case "thank you" -> "you’re welcome";
+    case "atchoo" -> "gesundheit";
+    case "fire!" -> {
+        log.warn("fire detected");
+        yield "everybody out!";  // yield = value of multi-statement branch
+    };
+    default -> {
+		throw new IllegalStateException(utterance)
+	}
+}
+```
+
+The main benefit to the alternate `->` syntax is to make it more explicit, but comes at the cost of needing to know about two different kinds of switch syntax. Note that this is orthoganal to, and does not solve, the separate goal of providing a clear way of "yielding" an expression value in the case of multi-statement branches (also shown here in this java example).
+
+A similar suggestion was made during [SE-0255: Implicit Returns from Single-Expression Functions](https://forums.swift.org/t/se-0255-implicit-returns-from-single-expression-functions/), where an alternate syntax for single-expression functions was discussed e.g. `func sum() -> Element = reduce(0, +)`. In that case, the core team did not consider introduction of a separate syntax for functions to be sufficiently motivated.
 
 ## Source compatibility
 
