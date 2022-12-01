@@ -136,7 +136,7 @@ This can be resolved by providing type context to each of the branches:
     case 0..<0x80: 1
     case 0x80..<0x0800: 2.0
     case 0x0800..<0x1_0000: 3.0
-    default: return 4.5
+    default: 4.5
   }
 ```
 
