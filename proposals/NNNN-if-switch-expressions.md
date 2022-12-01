@@ -208,6 +208,7 @@ let x = if .random() {
 } else {
   fatalError()
 }
+```
 
 **In the case of `if` statements, the branches must include an `else`**
 
@@ -226,7 +227,13 @@ func f() -> String {
 
 This could be revisited in the future across the board (to DI, return values, and `if` expressions) if logic similar to that of exhaustive switches were applied, but this would be a separate proposal.
 
-**Pattern matching bindings may occur within an `if` or `case`
+**The expression is not part of a result builder expression**
+
+`if` and `switch` statements are already expressions when used in the context of a result builder, via the `buildEither` function. This proposal does not change this feature.
+
+The variable declaration form of an `if` will be allowed in result builders.
+
+**Pattern matching bindings may occur within an `if` or `case`**
 
 For example, returns could be dropped from
 
@@ -247,11 +254,12 @@ For example, returns could be dropped from
     }
 ```
 
-**The expression is not part of a result builder expression**
+and optional unwrapping could be used with `if let`:
 
-`if` and `switch` statements are already expressions when used in the context of a result builder, via the `buildEither` function. This proposal does not change this feature.
-
-The variable declaration form of an `if` will be allowed in result builders.
+```swift
+// equivalent to let x = foo.map(process) ?? someDefaultValue
+let x = if let foo { process(foo) } else { someDefaultValue }
+```
 
 ## Future Directions
 
