@@ -187,7 +187,7 @@ It differs from the behavior of the ternary operator (`let x = p ? 0 : 1.0` comp
 
 However, the impact of bidirectional inference on the performance of the type checker would likely prohibit this feature from being implemented today, even if it were considered preferable. This is especially true in cases where there are many branches. This decision could be revisited in future: switching to full bidirectional type inference may be source breaking in theory, but probably not in practice (the proposal authors can't think of any examples where it would be).
 
-Bidirectional inference also makes it very difficult to reason about each of the branches individuall, leading to sometimes unexpected results:
+Bidirectional inference also makes it very difficult to reason about each of the branches individually, leading to sometimes unexpected results:
 
 ```swift
 let x = if p {
