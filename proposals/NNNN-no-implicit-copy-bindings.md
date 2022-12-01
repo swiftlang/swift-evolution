@@ -1,9 +1,9 @@
 # `@noImplicitCopy` variable bindings and parameters
 
 * Proposal: [SE-NNNN](NNNN-no-implicit-copy-bindings.md)
-* Authors: [Joe Groff](https://github.com/jckarter), [Andrew Trick](https://github.com/swiftdev)
+* Authors: [Joe Groff](https://github.com/jckarter), [Andrew Trick](https://github.com/atrick)
 * Review Manager: TBD
-* Status: **Implemented** as `@_noImplicitCopy`
+* Status: **Implemented** as `@_noImplicitCopy` with `-enable-experimental-move-only`
 
 ## Introduction
 
@@ -11,7 +11,7 @@ We propose to introduce an attribute, `@noImplicitCopy`, which can be
 applied to variable bindings and function parameters to suppress the
 language's ability to copy the value bound to the variable.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [`@noImplicitCopy` attribute for local variables and function parameters](https://forums.swift.org/t/pitch-noimplicitcopy-attribute-for-local-variables-and-function-parameters/61506)
 
 ## Motivation
 
@@ -32,7 +32,7 @@ move-only types, which can never be copied, but making a type move-only affects
 all values of that type, and making an existing type move-only just to get
 control of its copying behavior will be a very disruptive API change.
 Other language features like the
-[`take` operator](0366-move-function.md) can provide spot control for some
+[`consume` operator](0366-move-function.md) can provide spot control for some
 copies, but developers should also have the means to take complete control of
 copying behavior in sensitive parts of their code bases without compromising on
 safety or imposing nonlocal changes to their APIs.
@@ -41,10 +41,10 @@ safety or imposing nonlocal changes to their APIs.
 
 We propose introducing an attribute, `@noImplicitCopy`, to prevent the compiler
 from introducing implicit copies in certain situations. To begin with, we
-propose allowing `@noImplicitCopy` to be applied to local `let` bindings and to
-non-`inout` function parameters, to prevent the value bound to the attributed
-binding from being implicitly copied. We also propose a contextual keyword
-operator, `copy x`, which can be used to explicitly allow a copy.
+propose allowing `@noImplicitCopy` to be applied to local `let` and `var`
+bindings, as well as function parameters, to prevent the value bound to the
+attributed binding from being implicitly copied. We also propose a contextual
+keyword operator, `copy x`, which can be used to explicitly allow a copy.
 
 For example: 
 
@@ -72,9 +72,8 @@ func uncopyableLocalVariable(x: String) {
 
 ## Detailed design
 
-The `@noImplicitCopy` attribute can be applied to local `let` bindings
-(but not `var`) or to parameters that have `borrow` or `take` ownership (but
-not `inout`). (Extending to mutable bindings is discussed as a future direction.)
+The `@noImplicitCopy` attribute can be applied to local `let` or `var` bindings,
+or to function parameters.
 
 ### Non-transitivity
 
@@ -146,10 +145,10 @@ consuming uses (TODO: but this is not currently a complete list):
     use(x) // ERROR: x consumed by capture into closure
     ```
 
-- passing the binding as an argument to a `take` parameter of a function:
+- passing the binding as an argument to a `consume` parameter of a function:
 
     ```swift
-    func consume(_: take Value) {}
+    func consume(_: consume Value) {}
 
     @noImplicitCopy let x1 = getValue()
     consume(x1)
@@ -182,12 +181,12 @@ consuming uses (TODO: but this is not currently a complete list):
     use(x) // ERROR: x consumed by method `consume`
     ```
 
-- explicitly consuming the binding with the `take` operator:
+- explicitly consuming the binding with the `consume` operator:
 
     ```swift
     @noImplicitCopy let x = getValue()
-    _ = take x
-    use(x) // ERROR: x consumed by explicit `take`
+    _ = consume x
+    use(x) // ERROR: x consumed by explicit `consume`
     ```
 
 - pattern-matching a value with `switch`, `if let`, or `if case`:
@@ -206,7 +205,7 @@ consuming uses (TODO: but this is not currently a complete list):
     use(xs) // ERROR: xs consumed by `for` loop
     ```
 
-This is similar to the situations in which the `take` operator can transfer
+This is similar to the situations in which the `consume` operator can transfer
 ownership of a value.
 
 Consuming is flow-sensitive, so if one branch of an `if` or other control flow
@@ -224,6 +223,59 @@ guard let condition = getCondition() else {
 // consumed it
 use(x)
 ```
+
+### `@noImplicitCopy` mutable bindings
+
+When a mutable `var` declaration is marked
+`@noImplicitCopy`, then the value of the variable is eagerly moved by any
+consuming use, as noted above. However, the binding may also be reinitialized
+by assigning a new value to the binding after a consuming use, which will make
+the variable available again with the new value:
+
+```
+@noImplicitCopy var x = getValue()
+consume(x)
+// ERROR: use after `x`'s previous value was consumed
+use(x)
+
+// Reinitialize `x`
+x = getValue()
+// OK, `x` has a value again
+use(x)
+```
+
+A `var` binding can also be left to go out of scope without having a new
+value assigned. `@noImplicitCopy` `inout` bindings work similarly; however,
+if the value of an `inout` parameter is consumed, the parameter *must* be
+reinitialized before the function returns:
+
+```
+func update(@noImplicitCopy _ value: inout Value) {
+  consume(value)
+
+  // ERROR: `value` not reinitialized on function exit
+}
+
+func attemptUpdate(@noImplicitCopy _ value: inout Value) throws {
+  consume(value)
+
+  // ERROR: `value` not reinitialized if function exits with an error
+  try somethingThatMightFail()
+
+  value = getValue()
+}
+
+func goodUpdate(@noImplicitCopy _ value: inout Value) throws {
+  consume(value)
+  defer { value = getValue() }
+
+  // OK: value reinitialized on all paths thanks to `defer`
+  try somethingThatMightFail()
+}
+```
+
+This behavior is similar to how the [`consume` operator works to explicitly
+consume a mutable binding's current value](https://github.com/apple/swift-evolution/blob/main/proposals/0366-move-function.md#proposed-solution-consume-operator).
 
 ### Borrowing uses
 
@@ -245,13 +297,13 @@ borrowing the original, aside from the overhead of the copy, so the compiler
 will introduce copies in any places a borrow violation would be evident. For
 instance, a copyable value can normally be passed as an argument to the same
 function multiple times, or even both by
-`borrow` and by `take` in the same call, and the compiler will copy as
+`borrow` and by `consume` in the same call, and the compiler will copy as
 necessary to make all of the function's parameters valid according to their
 ownership specifiers:
 
 ```
 func borrow(_: borrow Value, and _: borrow Value) {}
-func consume(_: take Value, butBorrow _: borrow Value) {}
+func consume(_: consume Value, butBorrow _: borrow Value) {}
 
 let x = getValue()
 borrow(x, and: x) // this is fine, multiple borrows can share
@@ -275,7 +327,7 @@ More generally, *any* consuming use of a `@noImplicitCopy` binding is not
 allowed while it is being borrowed:
 
 ```
-func consume(_: take Value) -> Value { ... }
+func consume(_: consume Value) -> Value { ... }
 
 @noImplicitCopy let x = getValue()
 borrow(x, and: consume(x)) // ERROR: `x` consumed while being borrowed
@@ -287,26 +339,74 @@ The following operations are borrowing uses (TODO: not a complete list):
   have an ownership modifier, or an argument to any `func`, `subscript`, or
   `init` parameter which is explicitly marked `borrow`. The
   argument is borrowed for the duration of the callee's execution.
-- Borrowing a stored property of a struct or class borrows the struct or
+- Borrowing a stored property of a struct, or projecting a stored property of
+  a class either for mutation or for borrowing, borrows the struct or
   object reference for the duration of the access to the stored property.
 - Borrowing an element of a tuple borrows only that element from the tuple.
 - Invoking a `borrowing` method on a value, or a method which is not annotated
   as any of `borrowing`, `taking` or `mutating`, borrows the `self` parameter
   for the duration of the callee's execution.
-- Accessing a computed property through `borrowing` or `nonmutating` getter
-  or setter borrows the `self` parameter for the duration of the accessor's
+- Accessing a computed property or subscript through `borrowing` or
+  `nonmutating` getter or setter borrows the `self` parameter for the duration
+  of the accessor's execution.
+- Capturing an immutable local binding into a nonescaping closure borrows the
+  binding for the duration of the callee that receives the nonescaping closure.
+
+### Mutating uses
+
+As noted above, borrowing and consuming also interact with the
+"law of exclusivity" for mutating uses. Currently, Swift will copy a binding
+if it is passed both by value and `inout`, so that the by-value parameter
+receives a copy of the current value while leaving the original binding
+available for the `inout` parameter to exclusively access:
+
+```
+func update(_: inout Value, butBorrow _: borrow Value) {}
+func update(_: inout Value, butConsume _: consume Value) {}
+
+var x = getValue()
+update(&x, butBorrow: x) // this is fine, we'll copy `x` in the second parameter
+update(&x, butConsume: x) // also fine, we'll also copy
+```
+
+Again, introducing `@noImplicitCopy` on a binding prevents the implicit copy
+from happening, making these attempted calls raise an error because they
+cannot provide exclusive access for the `inout` parameter without copying:
+
+```
+@noImplicitCopy var y = getValue()
+update(&y, butBorrow: y) // ERROR: cannot borrow `y` while exclusively accessed
+update(&y, butConsume: y) // ERROR: cannot consume `y` while exclusively accessed
+```
+
+More generally, *any* mutating use of a `@noImplicitCopy` binding is not
+allowed while it is being borrowed. The binding also cannot undergo any
+consuming use while it is being either mutated or borrowed.
+
+The following operations are mutating uses (TODO: not a complete list):
+
+- Passing an argument to a `func` parameter that is `inout`. The argument is
+  exclusively accessed for the duration of the call.
+- Projecting a stored property of a struct for mutation is a mutating use of
+  the entire struct.
+- Projecting a tuple element is a mutating use of only that tuple element.
+- Invoking a `mutating` method on a value is a mutating use of the `self`
+  parameter for the duration of the callee's execution.
+- Accessing a computed property or subscript through a `mutating` getter
+  and/or setter is a mutating use of `self` for the duration of the accessor's
   execution.
-- Capturing a local binding into a nonescaping closure borrows the binding
-  for the duration of the callee that receives the nonescaping closure.
+- Capturing a mutable local binding into a nonescaping closure is a mutating
+  use of the binding for the duration of the callee that receives the
+  nonescaping closure.
 
 ### `copy` operator
 
 The `copy` operator can be used to allow for a binding's value to be copied,
 even if it's annotated with `@noImplicitCopy`.
-`copy` takes the value of the binding and produces an independent
-copy of the value, which can then be borrowed or consumed from without affecting
+`copy` borrows the value of the binding and produces an independent
+copy of it, which can then be borrowed or consumed from without affecting
 the original binding. (The compiler may still optimize out the actual copy if
-it ends up unnecessary.)
+it ends up to be unnecessary.)
 
 `copy` can generally be used to suppress errors raised because of borrow
 violations or eager-move consumption of a value, by offering a copy of the
@@ -319,10 +419,10 @@ let y = copy x
 use(x) // This is OK, we consumed a copy of `x` instead of the original `x`
 
 
-func consume(_: take Value, butBorrow _: borrow Value) {}
+func consume(_: consume Value, butBorrow _: borrow Value) {}
 // This is OK, because we consume the copy of x and leave the original to be
 // borrowable.
-consume(copy x, butBorrow: x) 
+consume(copy x, butBorrow: x)
 ```
 
 ## Source compatibility
@@ -350,13 +450,13 @@ func process(@noImplicitCopy value: String) {
 }
 ```
 
-However, if either `foo` or `bar` is later changed to `take` ownership of its
+However, if either `foo` or `bar` is later changed to `consume` ownership of its
 parameter, then the call inside of `process(value:)` will end the lifetime
 of `value` according to "eager move" rules, making further references an error:
 
 ```swift
 func foo(_: String) {}
-func bar(_: take String) {}
+func bar(_: consume String) {}
 func bas(_: String) {}
 
 func process(@noImplicitCopy value: String) {
@@ -387,7 +487,7 @@ names.
 ### The form and spelling of `copy`
 
 We propose `copy` to be a contextual keyword operator, to align it with the
-related [`take` operator](0366-move-function.md) and `borrow` operator. However,
+related [`consume` operator](0366-move-function.md) and `borrow` operator. However,
 without any special language handling at all, it could also be defined as a
 standard library function:
 
@@ -407,13 +507,6 @@ we want the operation to be concise and consistently spelled.
 
 The `@noImplicitCopy` attribute can be useful in more contexts than we
 initially propose to support, including:
-
-#### `var` bindings and `inout` parameters
-
-Mutable variables and `inout` parameters could also be marked as `@noImplicitCopy`.
-This could be taken to mean that the current value bound to the variable cannot
-be implicit copied, but it can be taken or replaced with a new value, which
-would then also be restricted from being copied out of the variable.
 
 #### Scopes
 
@@ -440,7 +533,7 @@ It would be useful to tag properties of a struct or class, or cases of an enum,
 as `@noImplicitCopy`. This would have the consequence of preventing accesses
 to the property from introducing implicit copies.
 
-### Variations of language features that borrow instead of consume
+### Variations of language features that borrow or mutate instead of consume
 
 It is obviously not ideal for basic operations like binding new variables,
 pattern-matching values, and iterating sequences to always consume their
@@ -465,20 +558,23 @@ operations on borrowed and/or `inout` exclusively accessed values:
     ```
 
 - Pattern matching operations should also exist to project out of `Optional`
-  values and other enums without consuming the enum:
+  values and other enums without consuming the enum, or project their values
+  for in-place mutation:
 
     ```
-    @noImplicitCopy let x: Optional = getValue()
+    @noImplicitCopy var x: Optional = getValue()
 
     if borrow y = x {}
 
     // We can still use x because we only borrowed its payload
 
-    switch x {
-    case .some(borrow y):
+    switch &x {
+    case .some(inout z):
+      update(&z)
       break
     }
 
+    // Again, we can still use x
     use(x)
     ```
 
