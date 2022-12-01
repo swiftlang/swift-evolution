@@ -261,7 +261,17 @@ This proposal chooses a narrow path of only enabling expressions in the 3 cases 
 
 A feel for the kind of expressions this could produce can be found in [this commit](https://github.com/apple/swift/compare/main...hamishknight:express-yourself#diff-7db38bc4b6f7872e5a631989c2925f5fac21199e221aa9112afbbc9aae66a2de) which adds this functionality to the parser.
 
-This includes various fairly conventional examples not proposed here, but also some pretty strange ones such as `for b in [true] where switch b { case true: true case false: false } {}`.
+Full expressions would include various fairly conventional examples not proposed here:
+
+```
+let x = 1 + if .random() { 3 } else { 4 }
+```
+
+but also some pretty strange ones such as
+
+```
+for b in [true] where switch b { case true: true case false: false } {}
+```
 
 The strange examples can mostly be considered "weird but harmless" but there are some source breaking edge cases, in particular in result builders:
 
@@ -364,13 +374,84 @@ var response = switch (utterance) {
 }
 ```
 
-The main benefit to the alternate `->` syntax is to make it more explicit, but comes at the cost of needing to know about two different kinds of switch syntax. Note that this is orthoganal to, and does not solve, the separate goal of providing a clear way of "yielding" an expression value in the case of multi-statement branches (also shown here in this java example).
-
 A similar suggestion was made during [SE-0255: Implicit Returns from Single-Expression Functions](https://forums.swift.org/t/se-0255-implicit-returns-from-single-expression-functions/), where an alternate syntax for single-expression functions was discussed e.g. `func sum() -> Element = reduce(0, +)`. In that case, the core team did not consider introduction of a separate syntax for functions to be sufficiently motivated.
+
+The main benefit to the alternate `->` syntax is to make it more explicit, but comes at the cost of needing to know about two different kinds of switch syntax. Note that this is orthoganal to, and does not solve, the separate goal of providing a way of explicitly "yielding" an expression value in the case of multi-statement branches (also shown here in this java example) versus taking the "last expression" approach.
+
+Java did not introduce this syntax for `if` expressions. Since this is a goal for Swift, this implies:
+
+```swift
+let x = 
+  if .random() -> 1
+  else -> fatalError()
+```
+
+However, this then poses an issue when evolving to multi-statement branches. Unlike with `switch`, these would require introducing braces, leaving a combination of both braces _and_ a "this is an expresion" sigil:
+
+```swift
+let x = 
+  if .random() -> {
+    let y = someComputation()
+	y * 2
+  } else -> fatalError()
+```
+
+Unlike Java and C, this "braces for 2+ arguments" style of `if` is out of keeping in Swift.
+
+It is also not clear if the `->` would work well if expression status is brought to more kinds of statement e.g.
+
+```swift
+let foo: String = 
+  do ->
+    try bar()
+  catch ns as NSError ->
+    "Error \(error)"
+```
+
+or mixed branches with expressions and a return:
+
+```
+let x = 
+  if .random() -> 1
+  else -> return 2
+
+If a future direction of full expressions is considered, the `->` form may not work so well, especially when single-line expressions are desired e.g.
+
+```
+// is this (p ? 1 : 2) + 3
+// or p ? 1 : (2 + 3)
+let x = if p -> 1 else -> 2 + 4 
+``` 
 
 ## Source compatibility
 
-As proposed, this addition has no known source incompatabilities. Some of the future directions could result in source breaks – if proposed, the subset of functionality that causes these may need to be guarded under a language mode.
+As proposed, this addition has one source incompatability, related to unreachable code. The following currently compiles, albeit with a warning that the `if` statement is unreachable (and the values in the branches unused):
+
+```
+func foo() {
+  return
+  if .random() { 0 } else { 0 }
+}
+```
+
+but under this proposal, it would fail to compile with an error of "Unexpected non-void return value in void function" because it now parses as returning the `Int` expression from the `if`. This could be fixed in various ways (with `return;` or `return ()` or by `#if`-ing out the dead code explicitly).
+
+Another similar case can occur if constant evaluation leads the compiler to ignore dead code:
+
+```
+func foo() -> Int {
+  switch true {
+  case true:
+    return 0
+  case false:
+    print("unreachable")
+  }
+}
+```
+
+This currently _doesn't_ warn that the `false` case is unreachable (though probably should), but without special handling would after this proposal result in a type error that `()` does not match expected type `Int`.
+
+Given these examples all require dead code, it seems reasonable to accept this source break rather than gate this change under a language version or add special handling to avoid the break.
 
 ## Effect on ABI stability
 
