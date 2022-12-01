@@ -33,7 +33,7 @@ A developer has two ways right now - either
 1. To just in case enable Reflection in full.
 2. To try to guess which used APIs consume Reflection, and enable it only for modules that are users of such APIs.
 
-Both of those options have flaws. The first one leads to exsessive contribution of reflection metadta to binary size and might affects the secrecy of generated code.
+Both of those options have flaws. The first one leads to excessive contribution of reflection metadata to binary size and might affects the secrecy of generated code.
 The second one isn't safe because many APIs are black boxes if the guess is wrong, an app might behave not as expected at runtime.
 
 Furthermore, APIs can use Reflection Metadata differently. Some like `print`, `debugPrint`, and `dump` will still work with disabled reflection, but the output will be limited.
@@ -47,11 +47,11 @@ If for some reason a user module was compiled with metadata generation disabled,
 between state and representation which will make such API less safe since it becomes a runtime issue rather than a compile-time one.
 
 On the other hand, excessive Reflection metadata may be preserved in a binary even if not used, because there is currently no way to statically determine its usage.
-There was an attempt to limit the amount of unused reflection metadata by improving its stripability by the Dead Code Elimination LLVM pass, but in many cases,
-it’s still preserved in the binary because it’s referenced by Full Type Metadata which prevents Reflection Metadata from stripping.
+There was an attempt to limit the amount of unused reflection metadata by improving the Dead Code Elimination LLVM pass, but in many cases
+it’s still preserved in the binary because it’s referenced by Full Type Metadata. This prevents Reflection Metadata from being stripped.
 This unnecessarily increases the binary size and may simplify reverse-engineering.
 
-Introducing a static compilation check can help to solve both of mentioned issues by adding to the language a way to express the requirement to have Reflection metadata at runtime.
+Introducing a static compilation check can help to solve both of mentioned issues by adding to the language a way to express the requirement to have Reflection metadata available at runtime.
 
 
 ## Proposed solution
@@ -163,7 +163,7 @@ consume(Bar())
 Since Reflection metadata might be used by the debugger, we propose to always keep that metadata
 if full emission of debugging information is enabled (with `-gdwarf-types` or `-g` flags).
 However, such Reflection metadata won't be accessible through the nominal type descriptor
-which will allow to avoid inconsistencies between APIs' outputs in Release and Debug modes.
+which will avoid inconsistencies in API behavior between Release and Debug modes.
 
 ### Changes in flags
 
