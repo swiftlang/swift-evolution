@@ -422,6 +422,7 @@ or mixed branches with expressions and a return:
 let x = 
   if .random() -> 1
   else -> return 2
+```
 
 If a future direction of full expressions is considered, the `->` form may not work so well, especially when single-line expressions are desired e.g.
 
