@@ -1,7 +1,7 @@
 # `@noImplicitCopy` variable bindings and parameters
 
 * Proposal: [SE-NNNN](NNNN-no-implicit-copy-bindings.md)
-* Authors: [Joe Groff](https://github.com/jckarter), [Andrew Trick](https://github.com/atrick)
+* Authors: [Joe Groff](https://github.com/jckarter), [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick)
 * Review Manager: TBD
 * Status: **Implemented** as `@_noImplicitCopy` with `-enable-experimental-move-only`
 
