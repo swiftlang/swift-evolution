@@ -89,17 +89,17 @@ We propose the latter approach, where a macro definition is a separate program t
 
 ```swift
 public protocol ExpressionMacro: Macro {
-  /// Evaluate a macro described by the given macro expansion expression
+  /// Expand a macro described by the given macro expansion expression
   /// within the given context to produce a replacement expression.
-  static func apply(
-    _ macro: MacroExpansionExprSyntax, in context: inout MacroEvaluationContext
-  ) -> MacroResult<ExprSyntax>
+  static func expansion(
+    of node: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
+  ) -> ExprSyntax
 }
 ```
 
-The `apply` method takes as arguments the syntax node for the macro expansion (e.g., `#stringify(x + y)`) and a "context" that provides more information about the compilation context in which the macro is being expanded. It produces a macro result that includes the rewritten syntax tree.
+The `expansion(of:in:)` method takes as arguments the syntax node for the macro expansion expression (e.g., `#stringify(x + y)`) and a "context" that provides more information about the compilation context in which the macro is being expanded. It produces a macro result that includes the rewritten syntax tree.
 
-The specifics of  `Macro`, `MacroEvaluationContext`, and `MacroResult` will follow in the Detailed Design section.
+The specifics of  `Macro` and `MacroExpansionContext` will follow in the Detailed Design section.
 
 ### The `stringify` macro implementation
 
@@ -111,19 +111,19 @@ import SwiftSyntaxBuilder
 import _SwiftSyntaxMacros
 
 public struct StringifyMacro: ExpressionMacro {
-  public static func apply(
-    _ macro: MacroExpansionExprSyntax, in context: inout MacroEvaluationContext
-  ) -> MacroResult<ExprSyntax> {
-    guard let argument = macro.argumentList.first?.expression else {
+  public static func expansion(
+    of node: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
+  ) -> ExprSyntax {
+    guard let argument = node.argumentList.first?.expression else {
       fatalError("compiler bug: the macro does not have any arguments")
     }
 
-    return MacroResult("(\(argument), \(StringLiteralExprSyntax(content: argument.description)))")
+    return "(\(argument), \(literal: argument.description))"
   }
 }
 ```
 
-The `apply` function is fairly small, because the `stringify` macro is pretty simple. It extracts the macro argument from the syntax tree (the `x + y` in `#stringify(x + y)`) and then forms the resulting tuple expression by interpolating in the original argument both as a value and then as source code in [a string literal](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftSyntaxBuilder/ConvenienceInitializers.swift#L259-L265). That string is then parsed as an expression (producing an `ExprSyntax` node) and returned as the result of the macro expansion. This is a simple form of quasi-quoting provided by the `SwiftSyntaxBuilder` module, implemented by making the major syntax nodes (`ExprSyntax` in this case, for expressions) conform to [`ExpressibleByStringInterpolation`](https://developer.apple.com/documentation/swift/expressiblebystringinterpolation), where existing syntax nodes can be interpolated into string literals containing the expanded Swift code.
+The `expansion(of:in:)` function is fairly small, because the `stringify` macro is relatively simple. It extracts the macro argument from the syntax tree (the `x + y` in `#stringify(x + y)`) and then forms the resulting tuple expression by interpolating in the original argument both as a value and then as source code in [a string literal](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftSyntaxBuilder/ConvenienceInitializers.swift#L259-L265). That string is then parsed as an expression (producing an `ExprSyntax` node) and returned as the result of the macro expansion. This is a simple form of quasi-quoting provided by the `SwiftSyntaxBuilder` module, implemented by making the major syntax nodes (`ExprSyntax` in this case, for expressions) conform to [`ExpressibleByStringInterpolation`](https://developer.apple.com/documentation/swift/expressiblebystringinterpolation), where existing syntax nodes can be interpolated into string literals containing the expanded Swift code.
 
 The `StringifyMacro` struct is the implementation for the `stringify` macro declared earlier. We will need to tie these together in the source code via some mechanism. We propose to name the module and `ExpressionMacro` struct name within the macro declaration following an `=`, e.g.,
 
@@ -173,6 +173,8 @@ macro-expansion-expression -> '#' identifier generic-argument-clause[opt] functi
 
 When either a `function-call-argument-clause` or a `trailing-closures` term is present, the identifier must refer to a function-like macro. When neither is present, the identifier must refer to a value-like macro. There is no such thing as a value of macro type.
 
+The `#` syntax for macro expansion expressions was specifically chosen because Swift already contains a number of a `#`-prefixed expressions that are macro-like in nature, some of which could be implemented directly as expression macros.
+
 ### Macro implementation library
 
 Macro definitions will make use of the [swift-syntax](https://github.com/apple/swift-syntax) package, which provides the Swift syntax tree manipulation and parsing capabilities for Swift tools. The `SwiftSyntaxMacros` module will provide the functionality required to define macros.
@@ -189,130 +191,92 @@ The `ExpressionMacro` protocol is used to describe expression macros:
 
 ```swift
 public protocol ExpressionMacro: Macro {
-  /// Evaluate a macro described by the given macro expansion expression
+  /// Expand a macro described by the given macro expansion expression
   /// within the given context to produce a replacement expression.
-  static func apply(
-    _ macro: MacroExpansionExprSyntax, in context: inout MacroEvaluationContext
-  ) -> MacroResult<ExprSyntax>
+  static func expansion(
+    of macro: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
+  ) -> ExprSyntax
 }
 ```
 
 The `MacroExpansionExprSyntax` type is the `swift-syntax` node describing the `macro-expansion-expression` grammar term from above, so it carries the complete syntax tree (including all whitespace and comments) of the macro expansion as it appears in the source code. 
 
-Macro definitions should conform to the `ExpressionMacro` protocol and implement their syntactic transformation via `apply`.
+Macro definitions should conform to the `ExpressionMacro` protocol and implement their syntactic transformation via `expansion(of:in:)`.
 
-#### `MacroEvaluationContext`
+#### `MacroExpansionContext`
 
-The macro evaluation context provides additional information about the environment in which the macro is being expanded. This context can be queried as part of the macro expansion:
+The macro expansion context provides additional information about the environment in which the macro is being expanded. This context can be queried as part of the macro expansion:
 
 ```swift
 /// System-supplied structure that provides information about the context in
 /// which a given macro is being expanded.
-public struct MacroEvaluationContext {
-  /// The name of the module in which the macro is being evaluated.
+public struct MacroExpansionContext {
+  /// The name of the module in which the macro is being expanded.
   public let moduleName: String
 
-  /// Used to map the provided syntax nodes into source locations.
-  public let sourceLocationConverter: SourceLocationConverter
-
-  /// Generate a unique local name for use in the macro.
-  public mutating func createUniqueLocalName() -> TokenSyntax
+  /// The name of the file in which the macro is being expanded, without
+  /// any additional path information.
+  public let fileName: String  
+  /// Create a new macro expansion context.
+  public init(moduleName: String, fileName: String)
   
-  /// Create a new macro evaluation context.
-  public init(
-    moduleName: String,
-    sourceLocationConverter: SourceLocationConverter
-  )
+   /// Generate a unique local name for use in the macro.
+  public mutating func createUniqueLocalName() -> TokenSyntax
+
+  /// Emit a diagnostic (i.e., warning or error) that indicates a problem with the macro
+  /// expansion.
+  public mutating func diagnose(_: Diagnostic)
 }
 ```
-
-The `SourceLocationConverter` allows one to map syntax nodes to their line and column within the file, as well as providing the file name. It is useful for cases where the macro expansion wants to refer to the original source location, for example as part of logging or an assertion failure.
 
 The `createUniqueLocalName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
 
-It is intended that `MacroEvaluationContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
+It is intended that `MacroExpansionContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
 
-#### `MacroResult` 
+The `diagnose` method allows a macro implementation to provide diagnostics that as part of macro expansion. The [`Diagnostic`](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftDiagnostics/Diagnostic.swift) type used in the parameter is part of the swift-syntax library, and its form is likely to change over time, but it is able to express the different kinds of diagnostics a compiler or other tool might produce, such as warnings and errors, along with range highlights, Fix-Its, and attached notes to provide more clarity. A macro definition can introduce diagnostics if, for example, the macro argument successfully type-checked but used some Swift syntax that the macro implementation does not understand. The diagnostics will be presented by whatever tool is expanding the macro, such as the compiler. A macro that emits diagnostics is still expected to produce an expansion result, but if an error was emitted, that result will be ignored.
 
-The `MacroResult` structure describes the result of macro expansion. It contains the rewritten syntax node, as well as a set of diagnostics that the macro implementation itself produces:
+### Example expression macros
 
-```swift
-public struct MacroResult<Rewritten: SyntaxProtocol> {
-  public let rewritten: Rewritten
-  public let diagnostics: [Diagnostic]
+There are many uses for expression macros beyond what has presented here. This section will collect several examples of macro implementations based on existing built-in `#` expressions as well as ones that come from the Swift forums and other sources of inspiration. Prototype implementations of a number of these macros are [available in the swift-syntax repository](https://github.com/apple/swift-syntax/blob/main/Sources/_SwiftSyntaxMacros/MacroSystem%2BBuiltin.swift)
 
-  public init(_ rewritten: Rewritten, diagnostics: [Diagnostic] = []) {
-    self.rewritten = rewritten
-    self.diagnostics = diagnostics
-  }
-}
-```
+* The `#colorLiteral` macro provides syntax for declaring a color with a given red, green, blue, and alpha values. It can be declared and implemented as follows
 
-The [`Diagnostic`](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftDiagnostics/Diagnostic.swift) type is part of the swift-syntax library, and its form is likely to change over time, but it is able to express the different kinds of diagnostics a compiler or other tool might produce, such as warnings and errors, along with range highlights, Fix-Its, and attached notes to provide more clarity. A macro definition can introduce diagnostics if, for example, the macro argument successfully type-checked but used some Swift syntax that the macro implementation does not understand. The diagnostics will be presented by whatever tool is expanding the macro, such as the compiler.
-
-### "Builtin" macro examples
-
-The `#` syntax for macro expansion expressions was specifically chosen because Swift already contains a number of a `#`-prefixed expressions that are somewhat macro-like in nature. For example, `#line`, `#column`, and `#filePath`, all give source-location information; `#function` gives information about the current function; and`#colorLiteral(red:green:blue:alpha:)` are syntactic sugar for forming color literals. Many of these can be implemented as expression macros, which may imply a future simplification to the compiler and tools (use a macro instead of a built-in implementation) but also demonstrates ways in which macros can take the place of new language features. Prototype implementations of these and other builtin macros are [available in the swift-syntax repository](https://github.com/apple/swift-syntax/blob/main/Sources/_SwiftSyntaxMacros/MacroSystem%2BBuiltin.swift).
-
-First up, the humble `#column` macro:
-
-```swift
-// Declaration of #column
-macro column<T: ExpressibleByIntegerLiteral>: T = BuiltinMacros.ColumnMacro
-
-// Implementation of #column
-struct ColumnMacro: ExpressionMacro {
-  static func apply(
-    _ macro: MacroExpansionExprSyntax, in context: MacroEvaluationContext
-  ) -> MacroResult<ExprSyntax> {
-    let line = macro.startLocation(
-      converter: context.sourceLocationConverter
-    ).column ?? 0
-    return .init("\(line)")
-  }
-}
-```
-
-The `#colorLiteral` macro introduces some parameters and does a simple rewrite of the argument labels:
-
-```swift
-// Declaration of #colorLiteral
-macro colorLiteral<T: ExpressibleByColorLiteral>(red: Float, green: Float, blue: Float, alpha: Float) -> T
-  = BuiltinMacros.ColorLiteralMacro
-
-// Implementation of #colorLiteral
-struct ColorLiteralMacro: ExpressionMacro {
-  /// Replace the label of the first element in the tuple with the given
-  /// new label.
-  func replaceFirstLabel(
-    of tuple: TupleExprElementListSyntax, with newLabel: String
-  ) -> TupleExprElementListSyntax{
-    guard let firstElement = tuple.first else {
-      return tuple
+  ```swift
+  // Declaration of #colorLiteral
+  macro colorLiteral(red: Float, green: Float, blue: Float, alpha: Float) -> _ColorLiteralType
+    = SwiftBuiltinMacros.ColorLiteralMacro
+  
+  // Implementation of #colorLiteral
+  struct ColorLiteralMacro: ExpressionMacro {
+    /// Replace the label of the first element in the tuple with the given
+    /// new label.
+    func replaceFirstLabel(
+      of tuple: TupleExprElementListSyntax, with newLabel: String
+    ) -> TupleExprElementListSyntax{
+      guard let firstElement = tuple.first else {
+        return tuple
+      }
+  
+      return tuple.replacing(
+        childAt: 0, with: firstElement.withLabel(.identifier(newLabel)))
     }
-
-    return tuple.replacing(
-      childAt: 0, with: firstElement.withLabel(.identifier(newLabel)))
+   
+    static func expansion(
+      of node: MacroExpansionExprSyntax, in context: MacroExpansionContext
+    ) -> MacroResult<ExprSyntax> {
+      let argList = replaceFirstLabel(
+        of: node.argumentList, with: "_colorLiteralRed"
+      )
+      let initSyntax: ExprSyntax = ".init(\(argList))"
+      if let leadingTrivia = node.leadingTrivia {
+        return MacroResult(initSyntax.withLeadingTrivia(leadingTrivia))
+      }
+      return initSyntax
+    }  
   }
- 
-  static func apply(
-    _ macro: MacroExpansionExprSyntax, in context: MacroEvaluationContext
-  ) -> MacroResult<ExprSyntax> {
-    let argList = replaceFirstLabel(
-      of: macro.argumentList, with: "_colorLiteralRed"
-    )
-    let initSyntax: ExprSyntax = ".init(\(argList))"
-    if let leadingTrivia = macro.leadingTrivia {
-      return MacroResult(initSyntax.withLeadingTrivia(leadingTrivia))
-    }
-    return MacroResult(initSyntax)
-  }  
-}
-```
+  ```
 
-### Additional macro examples
-
-There are many other uses for expression macros. This section will collect some of the more interesting ones that come from the Swift forums and other sources of inspiration:
+  The same approach can be used for file and image literals.
 
 * [Power assertions](https://forums.swift.org/t/a-possible-vision-for-macros-in-swift/60900/87) by Kishikawa Katsumi: this assertion macro captures intermediate values within the assertion expression so that when the assertion fails, those values are displayed. The results are exciting!
 
@@ -326,6 +290,40 @@ There are many other uses for expression macros. This section will collect some 
                |               false
                Person(name: "Mike", age: 13)
   ```
+
+### Builtin macro declarations
+
+As previously noted, expression macros use the same leading `#` syntax as number of built-in expressions like `#line`. With the introduction of expression macros, we propose to subsume those built-in expressions into macros that come as part of the Swift standard library. The actual macro implementations are provided by the compiler, and may even involve things that aren't necessarily implementable with the pure syntactic macro. However, by providing macro declarations we remove special cases from the language and benefit from all of the tooling affordances provided for macros.
+
+We propose to introduce the following macro declarations into the Swift standard library:
+
+```swift
+// File and path-related information
+macro fileID<T: ExpressibleByStringLiteral>: T
+macro file<T: ExpressibleByStringLiteral>: T
+macro filePath<T: ExpressibleByStringLiteral>: T
+
+// Current function
+macro function<T: ExpressibleByStringLiteral>: T
+
+// Source-location information
+macro line<T: ExpressibleByIntegerLiteral>: T
+macro column<T: ExpressibleByIntegerLiteral>: T
+
+// Current shared object handle.
+macro dsohandle: UnsafeRawPointer
+
+// Object literals.
+macro colorLiteral(red: Float, green: Float, blue: Float, alpha: Float) -> _ColorLiteralType
+macro imageLiteral(resourceName: String) -> _ImageLiteralType
+macro fileLiteral(resourceName: String) -> _FileReferenceLiteralType
+
+// Objective-C.
+macro selector<T>(_ method: T) -> Selector
+macro selector<T>(getter property: T) -> Selector
+macro selector<T>(setter property: T) -> Selector
+macro keyPath<T>(property: T) -> String
+```
 
 ### Tools for using and developing macros
 
@@ -347,10 +345,27 @@ Macros are a source-to-source transformation tool that have no ABI impact.
 
 Macros are a source-to-source transformation tool that have no effect on API resilience.
 
+## Future Directions
+
+There are a lot of potential directions one could take macros, both by expanding the scope of expresssion macros and 
+
+
+
 ## Alternatives considered
 
 (To be written as alternatives get discussed)
 
+## Revision History
+
+* Revisions from the first pitch:
+  * Rename `MacroEvaluationContext` to `MacroExpansionContext`. 
+  * Remove `MacroResult` and instead allow macros to emit diagnostics via the macro expansion context.
+  * Remove `sourceLocationConverter` from the macro expansion context; it provides access to the whole source file, which interferes with incremental builds.
+  * Rename `ExpressionMacro.apply` to `expansion(of:in)` to make it clear that it's producing the expansion of a syntax node within a given context.
+  * Remove the implementations of `#column`, as well as the implication that things like `#line` can be implemented with macros. Based on the above changes, they cannot.
+  * Introduce a new section providing declarations of macros for the various `#` expressions that exist in the language, but will be replaced with (built-in) macros.
+
+
 ## Acknowledgments
 
-Richard Wei implemented the compiler plugin mechanism on which the current implementation of macros depends. John McCall provided numerous insights into the design and practical implementation of macros. 
+Richard Wei implemented the compiler plugin mechanism on which the prototype implementation depends, as well as helping identify use cases. John McCall and Becca Royal-Gordon provided numerous insights into the design and practical implementation of macros. 
