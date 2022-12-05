@@ -30,11 +30,11 @@ Currently, there is no way to selectively enable the emission of reflectable met
 Moreover, compiler's flags exist that allow to completely disable emission.
 
 A developer has two ways right now - either
-1. To just in case enable Reflection in full.
-2. To try to guess which used APIs consume Reflection, and enable it only for modules that are users of such APIs.
+1. To enable Reflection in full just in case.
+2. To try to guess which used APIs consume Reflection, and enable it only for modules that use such APIs.
 
 Both of those options have flaws. The first one leads to excessive contribution of reflection metadata to binary size and might affects the secrecy of generated code.
-The second one isn't safe because many APIs are black boxes if the guess is wrong, an app might behave not as expected at runtime.
+The second one isn't safe because many APIs are black boxes. If the developer's guess is wrong, an app might behave not as expected at runtime.
 
 Furthermore, APIs can use Reflection Metadata differently. Some like `print`, `debugPrint`, and `dump` will still work with disabled reflection, but the output will be limited.
 Others, like SwiftUI, rely on it and won't work correctly if the reflection metadata is missing.
@@ -133,7 +133,7 @@ Library authors will have to prepare their APIs for Swift 6 and introduce generi
 We also propose to deprecate the compiler's options that can lead to missing reflection - `-reflection-metadata-for-debugger-only` and `-disable-reflection-metadata` and starting with Swift 6, ignore these arguments in favor of the default opt-in mode.
 
 
-### Stdlib behavior changes
+### No stdlib behavior changes
 
 In Swift `Mirror(reflecting:)` is the only official way to access Reflection metadata, all other APIs are using it under the hood.
 We intentionally do not propose adding a Reflectable constraint on Mirror type, because it would impose restrictions on those developers who still don't want to require it and consume Reflection optionally.
