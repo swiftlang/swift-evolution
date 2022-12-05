@@ -125,10 +125,10 @@ public struct StringifyMacro: ExpressionMacro {
 
 The `expansion(of:in:)` function is fairly small, because the `stringify` macro is relatively simple. It extracts the macro argument from the syntax tree (the `x + y` in `#stringify(x + y)`) and then forms the resulting tuple expression by interpolating in the original argument both as a value and then as source code in [a string literal](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftSyntaxBuilder/ConvenienceInitializers.swift#L259-L265). That string is then parsed as an expression (producing an `ExprSyntax` node) and returned as the result of the macro expansion. This is a simple form of quasi-quoting provided by the `SwiftSyntaxBuilder` module, implemented by making the major syntax nodes (`ExprSyntax` in this case, for expressions) conform to [`ExpressibleByStringInterpolation`](https://developer.apple.com/documentation/swift/expressiblebystringinterpolation), where existing syntax nodes can be interpolated into string literals containing the expanded Swift code.
 
-The `StringifyMacro` struct is the implementation for the `stringify` macro declared earlier. We will need to tie these together in the source code via some mechanism. We propose to name the module and `ExpressionMacro` struct name within the macro declaration following an `=`, e.g.,
+The `StringifyMacro` struct is the implementation for the `stringify` macro declared earlier. We will need to tie these together in the source code via some mechanism. We propose to provide a builtin macro that names the module and the `ExpressionMacro` type name within the macro declaration following an `=`, e.g.,
 
 ```swift
-macro stringify<T>(_: T) -> (T, String) = ExampleMacros.StringifyMacro
+macro stringify<T>(_: T) -> (T, String) = #externalMacro(module: "ExampleMacros", struct: "StringifyMacro")
 ```
 
 ## Detailed design
@@ -142,7 +142,7 @@ A macro declaration is described by the following grammar:
 ```
 declaration -> macro-declaration
 
-macro-declaration -> macro-head identifier generic-parameter-clause[opt] macro-signature '=' external-macro-name generic-where-clause[opt]
+macro-declaration -> macro-head identifier generic-parameter-clause[opt] macro-signature macro-definition[opt] generic-where-clause[opt]
 
 macro-head -> attributes[opt] declaration-modifiers[opt] 'macro'
 
@@ -151,18 +151,18 @@ macro-signature -> ':' type
 
 macro-function-signature-result -> '->' type
 
-external-macro-name -> identifier '.' identifier
+macro-definition -> '=' macro-expansion-expression
 ```
 
 The signature of a macro is either function-like (`(_ argument: T) -> (T, String)`) or value-like (`: Int`), depending on the form of the `macro-signature`.
 
 Macros can only be declared at file scope. They can be overloaded in the same way as functions, so long as the argument labels, parameter types, or result type differ.
 
-The `external-macro-name` refers to the module name (before the `.`) and type name (after the `.`) of the macro implementation. The library used to implement macros is defined below.
+The `macro-definition` provides the implementation used to expand the macro. It is always a macro expansion expression, so all non-builtin macros are defined in terms of other macros, terminating in a builtin macro whose definition is provided by the compiler. The arguments provided within the `macro-expansion-expression` of the macro definition must either be direct references to the parameters of the enclosing macro or must be literals. The `macro-expansion-expression` is type-checked (to ensure that the argument and result types make sense), but no expansion is performed at the time of definition. Rather, expansion of the macro referenced by the `macro-definition` occurs when the macro being declared is expanded. See the following section on macro expansions for more information.
 
-Macro result types cannot include opaque result types.
+Macro result types cannot include opaque result types. Macro parameters cannot have default arguments.
 
-### Macro expansions
+### Macro expansion
 
 A macro expansion expression is described by the following grammar:
 
@@ -174,6 +174,38 @@ macro-expansion-expression -> '#' identifier generic-argument-clause[opt] functi
 When either a `function-call-argument-clause` or a `trailing-closures` term is present, the identifier must refer to a function-like macro. When neither is present, the identifier must refer to a value-like macro. There is no such thing as a value of macro type.
 
 The `#` syntax for macro expansion expressions was specifically chosen because Swift already contains a number of a `#`-prefixed expressions that are macro-like in nature, some of which could be implemented directly as expression macros.
+
+When a macro expansion is encountered in the source code, it's expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call (for function-like macros) or a property reference (for value-like macros), and does not involve the macro definition.
+
+The second phase is the macro expansion phase, during which the syntax of the macro arguments is provided to the macro definition. For builtin-macro definitions, the behavior at this point depends on the semantics of the macro, e.g., the `externalMacro` macro invokes the external program and provides it with the source code of the macro expansion. For other macros, the arguments are substituted into the `macro-expansion-expression` of the definition. For example:
+
+```swift
+macro prohibitBinaryOperators<T>(_ value: T, operators: [String]) -> T =
+    #externalMacro(module: "ExampleMacros", struct: "ProhibitBinaryOperators")
+macro addBlocker<T>(_ value: T) -> T = #prohibitBinaryOperators(value, operators: ["+"])
+
+#addBlocker(x + y * z)
+```
+
+Here, the macro expansion of `#addBlocker(x + y * z)` will first expand to `#prohibitBinaryOperators(x + y * z, operators: ["+"])`. Then that expansion will be processed by the `ExampleMacros.ProhibitBinaryOperators`, which would be defined as a struct conforming to `ExpressionMacro`. 
+
+Macro expansion produces new source code (in a syntax tree), which is then type-checked using the original macro result type as its contextual type. For example, the `stringify` example macro returned a `(T, String)`, so when given an argument of type `Int`, the result of expanding the macro would be type-checked as if it were on the right-hand side of
+
+```swift
+let _: (Int, String) = <macro expansion result>
+```
+
+Macro expansion expressions can occur within the arguments to a macro. For example, consider:
+
+```swift
+#addBlocker(#stringify(x + 1))
+```
+
+The first phase of the macro type-check does not perform any macro expansion: the macro expansion expression `#stringify(1 + 2)` will infer that it's `T` is `Int`, and will produce a value of type `(Int, String)`. The `addBlocker` macro expansion expression will infer that it's `T` is `(Int, String)`, and the result is the same.
+
+The second phase of macro expansions occurs outside-in. First, the `addBlocker` macro is expanded, to `#prohibitBinaryOperators(#stringify(1 + 2), operators: ["+"])`. Then, the `prohibitBinaryOperators` macro is expanded given those (textual) arguments. The expansion result it produces will be type-checked, which will end up type-checking `#stringify(1 + 2)` again and, finally, expanding `#stringify(1 + 2)`.
+
+From an implementation perspective, the compiler reserves the right to avoid performing repeated type checking of the same macro arguments. For example, we type-checked `#stringify(1 + 2)` in the first phase of the expansion of `prohibitBinaryOperators`, and then again on the expanded result. When the compiler recognizes that the same syntax node is being re-used unmodified, it can re-use the types computed in the first phase. This is an important performance optimization for the type checker.
 
 ### Macro implementation library
 
@@ -217,6 +249,7 @@ public struct MacroExpansionContext {
   /// The name of the file in which the macro is being expanded, without
   /// any additional path information.
   public let fileName: String  
+  
   /// Create a new macro expansion context.
   public init(moduleName: String, fileName: String)
   
@@ -225,7 +258,7 @@ public struct MacroExpansionContext {
 
   /// Emit a diagnostic (i.e., warning or error) that indicates a problem with the macro
   /// expansion.
-  public mutating func diagnose(_: Diagnostic)
+  public mutating func diagnose(_ diagnostic: Diagnostic)
 }
 ```
 
@@ -234,6 +267,18 @@ The `createUniqueLocalName()` function allows one to create new, unique names so
 It is intended that `MacroExpansionContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
 
 The `diagnose` method allows a macro implementation to provide diagnostics that as part of macro expansion. The [`Diagnostic`](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftDiagnostics/Diagnostic.swift) type used in the parameter is part of the swift-syntax library, and its form is likely to change over time, but it is able to express the different kinds of diagnostics a compiler or other tool might produce, such as warnings and errors, along with range highlights, Fix-Its, and attached notes to provide more clarity. A macro definition can introduce diagnostics if, for example, the macro argument successfully type-checked but used some Swift syntax that the macro implementation does not understand. The diagnostics will be presented by whatever tool is expanding the macro, such as the compiler. A macro that emits diagnostics is still expected to produce an expansion result, but if an error was emitted, that result will be ignored.
+
+### `externalMacro` definition
+
+The builtin `externalMacro` macro has several forms:
+
+```swift
+macro externalMacro<T>(module: String, struct: String) -> T
+macro externalMacro<T>(module: String, enum: String) -> T
+macro externalMacro<T>(module: String, class: String) -> T
+```
+
+The arguments identify the module name and type name of the type that provides an external macro definition. We require its kind (struct, enum, or class) to be specified as well, because that information is needed to find the type correctly at runtime.
 
 ### Example expression macros
 
@@ -364,6 +409,8 @@ There are a lot of potential directions one could take macros, both by expanding
   * Rename `ExpressionMacro.apply` to `expansion(of:in)` to make it clear that it's producing the expansion of a syntax node within a given context.
   * Remove the implementations of `#column`, as well as the implication that things like `#line` can be implemented with macros. Based on the above changes, they cannot.
   * Introduce a new section providing declarations of macros for the various `#` expressions that exist in the language, but will be replaced with (built-in) macros.
+  * Replace the `external-macro-name` production for defining macros with the more-general `macro-expansion-expression`, and a builtin macro `externalMacro` that makes it far more explicit that we're dealing with external types that are looked up by name. This also provides additional capabilities for defining macros in terms of other macros.
+  * Add much more detail about how macro expansion works in practice.
 
 
 ## Acknowledgments
