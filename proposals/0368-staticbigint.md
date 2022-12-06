@@ -3,10 +3,9 @@
 * Proposal: [SE-0368](0368-staticbigint.md)
 * Author: [Ben Rimmington](https://github.com/benrimmington)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.8)**
 * Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722)
-* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545))([review](https://forums.swift.org/t/se-0368-staticbigint/59421))
-* Decision notes: [Acceptance](https://forums.swift.org/t/accepted-se-0368-staticbigint/59962)
+* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545)) ([review](https://forums.swift.org/t/se-0368-staticbigint/59421)) ([acceptance](https://forums.swift.org/t/accepted-se-0368-staticbigint/59962))
 
 <details>
 <summary><b>Revision history</b></summary>
