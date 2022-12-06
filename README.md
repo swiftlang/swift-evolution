@@ -1,6 +1,8 @@
-# Swift Programming Language Evolution
+# Swift Evolution
 
-This repository tracks the ongoing evolution of Swift.
+<https://www.swift.org/swift-evolution/>
+
+This repository tracks the ongoing evolution of the Swift programming language, standard library, and package manager.
 
 ## Goals and Release Notes
 
