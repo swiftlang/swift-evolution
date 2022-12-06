@@ -171,7 +171,7 @@ and will not be evident in any copies of the value that might still exist in
 the caller. This makes it easy to take advantage of the uniqueness of values
 after ownership transfer to do efficient local mutations of the value:
 
-```
+```swift
 extension String {
   // Append `self` to another String, using in-place modification if
   // possible
@@ -436,7 +436,7 @@ When protocol requirements have parameters of move-only type, the ownership
 convention of the corresponding parameters in an implementing method will need to
 match exactly, since they cannot be implicitly copied in a thunk:
 
-```
+```swift
 protocol WritableToFileHandle {
   func write(to fh: borrow FileHandle)
 }
