@@ -1,13 +1,6 @@
 # Swift Programming Language Evolution
 
-**Before you initiate a pull request**, please read the [process](process.md) document.
-Ideas should be thoroughly discussed on the [swift-evolution forums](https://swift.org/community/#swift-evolution) first.
-
-This repository tracks the ongoing evolution of Swift. It contains:
-
-* The [status page](https://apple.github.io/swift-evolution/), tracking proposals to change Swift.
-* The [process](process.md) document that governs the evolution of Swift.
-* [Commonly Rejected Changes](commonly_proposed.md), proposals that have been denied in the past.
+This repository tracks the ongoing evolution of Swift.
 
 ## Goals and Release Notes
 
