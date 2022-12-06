@@ -1,5 +1,8 @@
-# Contributing
+# Contributing to Swift Evolution
 
-## Participating in the Swift Evolution Process
+Before you initiate a pull request, please read:
 
-See [Participating in the Swift Evolution Process](https://swift.org/contributing/#participating-in-the-swift-evolution-process) on Swift.org and [process.md](process.md).
+* [Swift Evolution Process](process.md)
+* [Commonly Rejected Changes](commonly_proposed.md)
+
+Ideas should be thoroughly discussed on the [forums](https://forums.swift.org/c/evolution/18) first.
