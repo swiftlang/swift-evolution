@@ -280,6 +280,72 @@ macro externalMacro<T>(module: String, class: String) -> T
 
 The arguments identify the module name and type name of the type that provides an external macro definition. We require its kind (struct, enum, or class) to be specified as well, because that information is needed to find the type correctly at runtime.
 
+### Macro plugins in SwiftPM
+
+Macros implemented in an external program can be declared as SwiftPM plugins through an extension of [SE-0303 "Package Manager Extensible Build Tools"](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md). The `PluginCapability` type will be extended with a new `macro` capability:
+
+```swift
+extension PluginCapability {
+    /// Plugins that specify a `macro` capability define types that conform to the `Macro` protocol,
+    /// extending the set of macro definitions available to programs.
+    public static func macro(
+      /// The name of the target that contains the corresponding `macro` declaration. For example, if the
+      /// module FontLiterals contained a declaration such as
+      ///
+      ///   public macro fontLiteral(name: String, weight: Int, attributes: [FontAttribute]) -> Font =
+      ///       #externalMacro(module: "FontLiteralMacroPlugin", struct: "FontLiteralMacro")
+      ///
+      /// then the declaring target should be "FontLiterals", and the macro plugin capability should be on the
+      /// target "FontLiteralMacroPlugin".
+      declaringTarget: String
+    ) -> PluginCapability
+}
+```
+
+Like other SwiftPM plugins, macro plugins are built for the host (i.e, where the compiler is run). The plugin will need to be available for any target that has a dependency on the target described by `declaringTarget`.
+
+A package containing both targets might look like this:
+
+```swift
+let package = Package(
+    name: "FontLiterals",
+    products: [
+      .library(name: "FontLiterals", type: .static, targets: ["FontLiterals"])
+    ],
+    targets: [
+        .plugin(
+            name: "FontLiteralsMacroPlugin",
+            capability: .macro(declaringTarget: "FontLiterals"),
+            dependencies: ["SwiftSyntaxMacros"]
+        ),
+        
+        .target(
+          name: "FontLiterals"
+        )
+    ]
+)
+```
+
+Where `Sources/FontLiterals/FontLiteral.swift` contains the macro declaration, e.g.,
+
+```swift
+public macro fontLiteral(name: String, weight: Int, attributes: [FontAttribute]) -> Font =
+    #externalMacro(module: "FontLiteralMacroPlugin", struct: "FontLiteralMacro")
+```
+
+and `Plugins/FontLiteralsMacroPlugin/FontLiteralMacro.swift` contains the macro definition, e.g.,
+
+```swift
+public struct FontLiteralMacro: ExpressionMacro {
+  public static func expansion(
+    of node: MacroExpansionExprSyntax, 
+    in context: inout MacroExpansionContext
+  ) -> ExprSyntax { ... }
+}
+```
+
+Macro implementations will be executed in a sandbox [like other SwiftPM plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md#security), preventing file system and network access. This is both a security precaution and a practical way of encouraging macros to not depend on any state other than the specific macro expansion node they are given to expand and its child nodes (but not its parent nodes), and the information specifically provided by the macro expansion context. If in the future macros need access to other information, this will be accomplished by extending the macro expansion context, which also provides a mechanism for the compiler to track what information the macro actually queried.
+
 ### Example expression macros
 
 There are many uses for expression macros beyond what has presented here. This section will collect several examples of macro implementations based on existing built-in `#` expressions as well as ones that come from the Swift forums and other sources of inspiration. Prototype implementations of a number of these macros are [available in the swift-syntax repository](https://github.com/apple/swift-syntax/blob/main/Sources/_SwiftSyntaxMacros/MacroSystem%2BBuiltin.swift)
@@ -411,6 +477,7 @@ There are a lot of potential directions one could take macros, both by expanding
   * Introduce a new section providing declarations of macros for the various `#` expressions that exist in the language, but will be replaced with (built-in) macros.
   * Replace the `external-macro-name` production for defining macros with the more-general `macro-expansion-expression`, and a builtin macro `externalMacro` that makes it far more explicit that we're dealing with external types that are looked up by name. This also provides additional capabilities for defining macros in terms of other macros.
   * Add much more detail about how macro expansion works in practice.
+  * Introduce SwiftPM manifest extensions to define macro plugins.
 
 
 ## Acknowledgments
