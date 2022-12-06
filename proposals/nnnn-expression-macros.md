@@ -268,7 +268,9 @@ It is intended that `MacroExpansionContext` will grow over time to include more 
 
 The `diagnose` method allows a macro implementation to provide diagnostics that as part of macro expansion. The [`Diagnostic`](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftDiagnostics/Diagnostic.swift) type used in the parameter is part of the swift-syntax library, and its form is likely to change over time, but it is able to express the different kinds of diagnostics a compiler or other tool might produce, such as warnings and errors, along with range highlights, Fix-Its, and attached notes to provide more clarity. A macro definition can introduce diagnostics if, for example, the macro argument successfully type-checked but used some Swift syntax that the macro implementation does not understand. The diagnostics will be presented by whatever tool is expanding the macro, such as the compiler. A macro that emits diagnostics is still expected to produce an expansion result, but if an error was emitted, that result will be ignored.
 
-### `externalMacro` definition
+### Macros in the Standard Library
+
+#### `externalMacro` definition
 
 The builtin `externalMacro` macro has several forms:
 
@@ -279,6 +281,40 @@ macro externalMacro<T>(module: String, class: String) -> T
 ```
 
 The arguments identify the module name and type name of the type that provides an external macro definition. We require its kind (struct, enum, or class) to be specified as well, because that information is needed to find the type correctly at runtime.
+
+#### Builtin macro declarations
+
+As previously noted, expression macros use the same leading `#` syntax as number of built-in expressions like `#line`. With the introduction of expression macros, we propose to subsume those built-in expressions into macros that come as part of the Swift standard library. The actual macro implementations are provided by the compiler, and may even involve things that aren't necessarily implementable with the pure syntactic macro. However, by providing macro declarations we remove special cases from the language and benefit from all of the tooling affordances provided for macros.
+
+We propose to introduce the following macro declarations into the Swift standard library:
+
+```swift
+// File and path-related information
+macro fileID<T: ExpressibleByStringLiteral>: T
+macro file<T: ExpressibleByStringLiteral>: T
+macro filePath<T: ExpressibleByStringLiteral>: T
+
+// Current function
+macro function<T: ExpressibleByStringLiteral>: T
+
+// Source-location information
+macro line<T: ExpressibleByIntegerLiteral>: T
+macro column<T: ExpressibleByIntegerLiteral>: T
+
+// Current shared object handle.
+macro dsohandle: UnsafeRawPointer
+
+// Object literals.
+macro colorLiteral<T: ExpressibleByColorLiteral>(red: Float, green: Float, blue: Float, alpha: Float) -> T
+macro imageLiteral<T: _ExpressibleByImageLiteral>(resourceName: String) -> T
+macro fileLiteral<T: _ExpressibleByFileReferenceLiteral>(resourceName: String) -> T
+
+// Objective-C.
+macro selector<T>(_ method: T) -> Selector
+macro selector<T>(getter property: T) -> Selector
+macro selector<T>(setter property: T) -> Selector
+macro keyPath<T>(property: T) -> String
+```
 
 ### Macro plugins in SwiftPM
 
@@ -346,7 +382,15 @@ public struct FontLiteralMacro: ExpressionMacro {
 
 Macro implementations will be executed in a sandbox [like other SwiftPM plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md#security), preventing file system and network access. This is both a security precaution and a practical way of encouraging macros to not depend on any state other than the specific macro expansion node they are given to expand and its child nodes (but not its parent nodes), and the information specifically provided by the macro expansion context. If in the future macros need access to other information, this will be accomplished by extending the macro expansion context, which also provides a mechanism for the compiler to track what information the macro actually queried.
 
-### Example expression macros
+## Tools for using and developing macros
+
+One of the primary concerns with macros is their ease of use and development: how do we know what a macro does to a program? How does one develop and debug a new macro?
+
+With the right tool support, the syntactic model of macro expansion makes it easy to answer the first question. The tools will need to be able to show the developer what the expansion of any use of a macro is. At a minimum, this should include flags that can be passed to the compiler to expand macros (the prototype provides `-Xfrontend -dump-macro-expansions` for this),  and possibly include a mode to write out a "macro-expanded" source file akin to how C compilers can emit a preprocessed source file. Other tools such as IDEs should be able to show the expansion of a given use of a macro so that developers can inspect what a macro is doing. Because the result is always Swift source code, one can reason about it more easily than (say) inspecting the implementation of a macro that manipules an AST or IR.
+
+The fact that macro implementations are separate programs actually makes it easier to develop macros. One can write unit tests for a macro implementation that provides the input source code for the macro (say, `#stringify(x + y)`), expands that macro using facilities from swift-syntax, and verifies that the resulting code is free of syntax errors and matches the expected result. Most of the "builtin" macro examples were developed this way in the [syntax macro test file](https://github.com/apple/swift-syntax/blob/main/Tests/SwiftSyntaxMacrosTest/MacroSystemTests.swift).
+
+## Example expression macros
 
 There are many uses for expression macros beyond what has presented here. This section will collect several examples of macro implementations based on existing built-in `#` expressions as well as ones that come from the Swift forums and other sources of inspiration. Prototype implementations of a number of these macros are [available in the swift-syntax repository](https://github.com/apple/swift-syntax/blob/main/Sources/_SwiftSyntaxMacros/MacroSystem%2BBuiltin.swift)
 
@@ -402,47 +446,7 @@ There are many uses for expression macros beyond what has presented here. This s
                Person(name: "Mike", age: 13)
   ```
 
-### Builtin macro declarations
-
-As previously noted, expression macros use the same leading `#` syntax as number of built-in expressions like `#line`. With the introduction of expression macros, we propose to subsume those built-in expressions into macros that come as part of the Swift standard library. The actual macro implementations are provided by the compiler, and may even involve things that aren't necessarily implementable with the pure syntactic macro. However, by providing macro declarations we remove special cases from the language and benefit from all of the tooling affordances provided for macros.
-
-We propose to introduce the following macro declarations into the Swift standard library:
-
-```swift
-// File and path-related information
-macro fileID<T: ExpressibleByStringLiteral>: T
-macro file<T: ExpressibleByStringLiteral>: T
-macro filePath<T: ExpressibleByStringLiteral>: T
-
-// Current function
-macro function<T: ExpressibleByStringLiteral>: T
-
-// Source-location information
-macro line<T: ExpressibleByIntegerLiteral>: T
-macro column<T: ExpressibleByIntegerLiteral>: T
-
-// Current shared object handle.
-macro dsohandle: UnsafeRawPointer
-
-// Object literals.
-macro colorLiteral(red: Float, green: Float, blue: Float, alpha: Float) -> _ColorLiteralType
-macro imageLiteral(resourceName: String) -> _ImageLiteralType
-macro fileLiteral(resourceName: String) -> _FileReferenceLiteralType
-
-// Objective-C.
-macro selector<T>(_ method: T) -> Selector
-macro selector<T>(getter property: T) -> Selector
-macro selector<T>(setter property: T) -> Selector
-macro keyPath<T>(property: T) -> String
-```
-
-### Tools for using and developing macros
-
-One of the primary concerns with macros is their ease of use and development: how do we know what a macro does to a program? How does one develop and debug a new macro?
-
-With the right tool support, the syntactic model of macro expansion makes it easy to answer the first question. The tools will need to be able to show the developer what the expansion of any use of a macro is. At a minimum, this should include flags that can be passed to the compiler to expand macros (the prototype provides `-Xfrontend -dump-macro-expansions` for this),  and possibly include a mode to write out a "macro-expanded" source file akin to how C compilers can emit a preprocessed source file. Other tools such as IDEs should be able to show the expansion of a given use of a macro so that developers can inspect what a macro is doing. Because the result is always Swift source code, one can reason about it more easily than (say) inspecting the implementation of a macro that manipules an AST or IR.
-
-The fact that macro implementations are separate programs actually makes it easier to develop macros. One can write unit tests for a macro implementation that provides the input source code for the macro (say, `#stringify(x + y)`), expands that macro using facilities from swift-syntax, and verifies that the resulting code is free of syntax errors and matches the expected result. Most of the "builtin" macro examples were developed this way in the [syntax macro test file](https://github.com/apple/swift-syntax/blob/main/Tests/SwiftSyntaxMacrosTest/MacroSystemTests.swift).
+### 
 
 ## Source compatibility
 
