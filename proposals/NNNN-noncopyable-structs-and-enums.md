@@ -11,7 +11,7 @@ This proposal introduces the concept of **noncopyable** types (also known
 as "move-only" types). An instance of a noncopyable type always has unique
 ownership, unlike normal Swift types which can be freely copied.
 
-Swift-evolution thread: [TBD](https://forums.swift.org/)
+Swift-evolution thread: [Noncopyable (or "move-only") structs and enums](https://forums.swift.org/t/pitch-noncopyable-or-move-only-structs-and-enums/61903)
 
 ## Motivation
 
