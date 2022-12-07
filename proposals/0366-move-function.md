@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (December 7 - December 14, 2022)**
 * Implementation: Implemented on main as stdlib SPI (`_move` instead of `consume` keyword)
-* Review: ([pitch](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic/53983)) ([first review](https://forums.swift.org/t/se-0366-move-function-use-after-move-diagnostic/59202)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0366-move-operation-use-after-move-diagnostic/59687)) ([second review](https://forums.swift.org/t/se-0366-second-review-take-operator-to-end-the-lifetime-of-a-variable-binding/61021))
+* Review: ([pitch](https://forums.swift.org/t/pitch-move-function-use-after-move-diagnostic/53983)) ([first review](https://forums.swift.org/t/se-0366-move-function-use-after-move-diagnostic/59202)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0366-move-operation-use-after-move-diagnostic/59687)) ([second review](https://forums.swift.org/t/se-0366-second-review-take-operator-to-end-the-lifetime-of-a-variable-binding/61021)) ([third review](https://forums.swift.org/t/combined-se-0366-third-review-and-se-0377-second-review-rename-take-taking-to-consume-consuming/61904))
 * Previous Revisions:
   * [1](https://github.com/apple/swift-evolution/blob/567fb1a66c784bcc5394491d24f72a3cb393674f/proposals/0366-move-function.md)
   * [2](https://github.com/apple/swift-evolution/blob/43849aa9ae3e87c434866c5a5e389af67537ca26/proposals/0366-move-function.md)
