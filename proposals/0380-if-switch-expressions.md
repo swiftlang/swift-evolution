@@ -437,7 +437,7 @@ let x = if p -> 1 else -> 2 + 4
 
 As proposed, this addition has one source incompatability, related to unreachable code. The following currently compiles, albeit with a warning that the `if` statement is unreachable (and the values in the branches unused):
 
-```
+```swift
 func foo() {
   return
   if .random() { 0 } else { 0 }
@@ -448,7 +448,7 @@ but under this proposal, it would fail to compile with an error of "Unexpected n
 
 Another similar case can occur if constant evaluation leads the compiler to ignore dead code:
 
-```
+```swift
 func foo() -> Int {
   switch true {
   case true:
