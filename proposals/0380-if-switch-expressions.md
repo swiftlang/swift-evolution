@@ -5,6 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (Decembe 7...December 21, 2022)**
 * Implementation: [apple/swift#612178](https://github.com/apple/swift/pull/62178), including a downloadable toolchain.
+* Review: ([pitch](https://forums.swift.org/t/pitch-if-and-switch-expressions/61149)), ([review](https://forums.swift.org/t/se-0380-if-and-switch-expressions/61899))
 
 ## Introduction
 
