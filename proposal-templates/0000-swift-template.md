@@ -134,8 +134,8 @@ it was not possible to back-deploy the necessary ABI additions.
 API resilience describes the changes one can make to a public API
 without breaking its ABI. Does this proposal introduce features that
 would become part of a public API? If so, what kinds of changes can be
-made without breaking ABI? Can this feature be added/removed without
-breaking ABI? For more information about the resilience model, see the
+made without breaking API? Can this feature be added/removed without
+breaking API? For more information about the resilience model, see the
 [library evolution
 document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
 in the Swift repository.
@@ -147,7 +147,7 @@ why you chose this approach instead.
 
 ## Acknowledgments
 
-If significant changes or improvements suggested by members of the 
+If significant changes or improvements suggested by members of the
 community were incorporated into the proposal as it developed, take a
-moment here to thank them for their contributions. Swift evolution is a 
+moment here to thank them for their contributions. Swift evolution is a
 collaborative process, and everyone's input should receive recognition!
