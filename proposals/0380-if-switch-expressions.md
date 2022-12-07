@@ -1,9 +1,9 @@
 # `if` and `switch` expressions
 
-* Proposal: [SE-NNNN](NNNN-if-switch-expressions.md)
+* Proposal: [SE-0380](0380-if-switch-expressions.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Hamish Knight](https://github.com/hamishknight)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (Decembe 7...December 21, 2022)**
 * Implementation: [apple/swift#612178](https://github.com/apple/swift/pull/62178), including a downloadable toolchain.
 
 ## Introduction
