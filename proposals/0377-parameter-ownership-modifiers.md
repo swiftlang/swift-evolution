@@ -3,7 +3,7 @@
 * Proposal: [SE-0377](0377-parameter-ownership-modifiers.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (October 25 - November 8, 2022)**
+* Status: **Active Review (December 7 - December 14, 2022)**
 * Implementation: available using the internal names `__shared` and `__owned`
 * Review: ([first pitch](https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers/54313)) ([second pitch](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)) ([review](https://forums.swift.org/t/se-0377-borrow-and-take-parameter-ownership-modifiers/61020))
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/3f984e6183ce832307bb73ec72c842f6cb0aab86/proposals/0377-parameter-ownership-modifiers.md)
