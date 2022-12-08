@@ -205,6 +205,8 @@ consuming uses (TODO: but this is not currently a complete list):
     use(xs) // ERROR: xs consumed by `for` loop
     ```
 
+- `return`-ing a value.
+
 This is similar to the situations in which the `consume` operator can transfer
 ownership of a value.
 
