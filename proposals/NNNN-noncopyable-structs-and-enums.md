@@ -41,7 +41,7 @@ unique instance's lifetime.
 
 For example, a basic file handle type could be defined as:
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   private var fd: Int32
@@ -61,7 +61,7 @@ struct FileDescriptor {
 ```
 
 Like a class, instances of this type can provide managed access to a file
-handle, automatically closing the handle once the value's lifetime ends; unlike
+handle, automatically closing the handle once the value's lifetime ends. Unlike
 a class, no object needs to be allocated; only a simple struct containing the
 file descriptor ID needs to be stored in the stack frame or aggregate type
 that uniquely owns the instance.
@@ -73,7 +73,7 @@ that uniquely owns the instance.
 A `struct` or `enum` type can be declared as noncopyable using the `@noncopyable`
 attribute:
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   private var fd: Int32
@@ -84,7 +84,7 @@ If a `struct` has a stored property of noncopyable type, or an `enum` has
 a case with an associated value of noncopyable type, then the containing type
 must also be declared `@noncopyable`:
 
-```
+```swift
 @noncopyable
 struct SocketPair {
   var in, out: FileDescriptor
@@ -108,7 +108,7 @@ struct FileWithPath {
 Classes, on the other hand, may contain noncopyable stored properties without
 themselves becoming noncopyable:
 
-```
+```swift
 class SharedFile {
   var file: FileDescriptor
 }
@@ -116,7 +116,7 @@ class SharedFile {
 
 Noncopyable types may have generic parameters:
 
-```
+```swift
 // A type that reads from a file descriptor consisting of binary values of type T
 // in sequence.
 @noncopyable
@@ -133,7 +133,7 @@ generic types or calling generic functions. A value of noncopyable type also
 cannot be stored inside of an `Any` or other existential.
 (Lifting these limitations is discussed under Future Directions.)
 
-```
+```swift
 // ERROR: Cannot use noncopyable type FileDescriptor in generic type Optional
 let x = Optional(FileDescriptor(open("/etc/passwd", O_RDONLY)))
 ```
@@ -162,7 +162,7 @@ As such, when a function parameter is declared with an noncopyable type, it
 **must** declare whether the parameter uses the `borrow`, `consume`, or
 `inout` convention:
 
-```
+```swift
 // Redirect a file descriptor
 // Require exclusive access to the FileDescriptor to replace it
 func redirect(_ file: inout FileDescriptor, to otherFile: FileDescriptor) {
@@ -187,7 +187,7 @@ func close(file: consume FileDescriptor) {
 Methods of the noncopyable type are considered to be `borrowing` unless
 declared `mutating` or `consuming`:
 
-```
+```swift
 extension FileDescriptor {
   mutating func replace(with otherFile: FileDescriptor) {
     dup2(otherFile.fd, self.fd)
@@ -212,7 +212,7 @@ A `@noncopyable` struct or enum may declare a `deinit`, which will run
 implicitly when the lifetime of the value ends (unless explicitly suppressed
 as noted below):
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   private var fd: Int32
@@ -239,7 +239,7 @@ circumstances:
   deinitialization gets forwarded to the consumer (which may in turn forward
   it somewhere else).
 
-    ```
+    ```swift
     do {
       var x = FileDescriptor(42)
 
@@ -260,7 +260,7 @@ circumstances:
   the member is destroyed, and its `deinit` is run, after the container's
   `deinit` if any runs.
 
-    ```
+    ```swift
     @noncopyable
     struct Inner {
       deinit { print("destroying inner") }
@@ -279,7 +279,7 @@ circumstances:
 
     will print:
 
-    ```
+    ```swift
     destroying outer
     destroying inner
     ```
@@ -292,7 +292,7 @@ under normal circumstances, a `consuming` method will still invoke the type's
 `deinit` after the last use of `self`, which is undesirable when the method's
 own logic already invalidates the value:
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   private var fd: Int32
@@ -312,10 +312,10 @@ struct FileDescriptor {
 In the above example, the double-close could be avoided by having the
 `close()` method do nothing on its own and just allow the `deinit` to
 implicitly run. However, we may want the method to have different behavior
-from the deinit, such as raising an error to handle if the `close` system call
-encounters an OS error (which a normal `deinit` is unable to do):
+from the deinit, such as raising an error (which a normal `deinit` is unable to
+do) if the `close` system call triggers an OS error :
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   private var fd: Int32
@@ -335,7 +335,7 @@ struct FileDescriptor {
 or it could be useful to take manual control of the file descriptor back from
 the type, such as to pass to a C API that will take care of closing it:
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   // Take ownership of the C file descriptor away from this type,
@@ -351,7 +351,7 @@ struct FileDescriptor {
 We propose to introduce a special operator, `forget self`, which ends the
 lifetime of `self` without running its `deinit`:
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   // Take ownership of the C file descriptor away from this type,
@@ -383,7 +383,7 @@ writing destructive operations to avoid triggering the deinit on alternative
 exit paths, such as early `return`s, `throw`s, or implicit propagation of
 errors from `try` operations. For instance, if we write:
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   private var fd: Int32
@@ -410,7 +410,7 @@ the standard `deinit`. This will make
 the above code an error, alerting that the code should be rewritten to ensure
 `forget self` always executes:
 
-```
+```swift
 @noncopyable
 struct FileDescriptor {
   private var fd: Int32
@@ -433,7 +433,7 @@ struct FileDescriptor {
 
 ## Source compatibility
 
-For existing Swift code, this proposal is primarily additive.
+For existing Swift code, this proposal is additive.
 
 ## Effect on ABI stability
 
@@ -451,20 +451,24 @@ A non-`@frozen` class may add fields of noncopyable type without changing ABI.
 ## Effect on API resilience
 
 Introducing new APIs using noncopyable types is an additive change. APIs that
-use noncopyable types have some notable restrictions on how they can evolve
-while maintaining source compatibility.
+adopt noncopyable types have some notable restrictions on how they can further
+evolve while maintaining source compatibility.
 
 A noncopyable type can be made copyable while generally maintaining source
 compatibility. Values in client source would acquire normal ARC lifetime
-semantics instead of eager-move semantics when recompiled with the type as
-copyable, which could affect the order of destruction and cleanup, but
-copyable types cannot directly define `deinit`s so this is unlikely.
+semantics instead of eager-move semantics when those clients are recompiled
+with the type as copyable, and that could affect the observable order of
+destruction and cleanup. Since copyable value types cannot directly define
+`deinit`s, being able to observe these order differences is unlikely, but not
+impossible when references to classes are involved.
 
 A `consume` parameter of noncopyable type can be changed into a `borrow`
 parameter without breaking source for clients (and likewise, a `consuming`
 method can be made `borrowing`). Conversely, changing
 a `borrow` parameter to `consume` may break client source. (Either direction
-is an ABI breaking change.)
+is an ABI breaking change.) This is because a consuming use is required to
+be the final use of a noncopyable value, whereas a borrowing use may or may not
+be.
 
 Adding or removing a `deinit` to a noncopyable type does not affect source
 for clients.
@@ -478,14 +482,16 @@ vision documents. However, as we've evolved related proposals like the
 `consume` operator and parameter modifiers, the community has drifted away
 from exposing the term "move" in the language elsewhere. When explaining these
 types to potential users, we've also found that the name "move-only" incorrectly
-suggests that being non-copyable is a new capability of types, and that there
+suggests that being noncopyable is a new capability of types, and that there
 should be generic functions that only operate on "move-only" types, when really
 the opposite is the case: all existing types in Swift today conform to
 effectively an implicit "Copyable" requirement, and what this feature does is
-allow types not to fulfill that requirement. This proposal prefers the term
-"noncopyable" to make the relationship to the `Copyable` constraint, and the
-fact that annotated types lack the ability to satisfy this constraint, more
-explicit.
+allow types not to fulfill that requirement. When generics grow support for
+move-only types, then generic functions and types that accept noncopyable
+type parameters will also work with copyable types, since copyable types
+are strictly more capable.This proposal prefers the term "noncopyable" to make
+the relationship to an eventual `Copyable` constraint, and the fact that annotated
+types lack the ability to satisfy this constraint, more explicit.
 
 ### English language bikeshedding
 
@@ -532,7 +538,7 @@ ownership of some or all of the resources owned by those members. In the current
 proposal, this isn't possible without allowing for an intermediate invalid
 state:
 
-```
+```swift
 struct SocketPair {
   let input, output: FileDescriptor
 
