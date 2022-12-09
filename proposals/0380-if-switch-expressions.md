@@ -469,6 +469,6 @@ This proposal has no impact on ABI stability.
 
 ## Acknowledgments
 
-Much of this implementation layers on top of ground work done by [Pavel Yaskovich](https://github.com/xedin), particularly the work done to allow [multi-statement closure type inference](https://github.com/apple/swift-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md).
+Much of this implementation layers on top of ground work done by [Pavel Yaskevich](https://github.com/xedin), particularly the work done to allow [multi-statement closure type inference](https://github.com/apple/swift-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md).
 
 Both [Nate Cook](https://forums.swift.org/t/if-else-expressions/22366/48) and [Michael Ilseman](https://forums.swift.org/t/omitting-returns-in-string-case-study-of-se-0255/24283) provided analysis of use cases in the standard library and elsewhere. Many community members have made a strong case for this change, most recently [Dave Abrahams](https://forums.swift.org/t/if-else-expressions/22366).
