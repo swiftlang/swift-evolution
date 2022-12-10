@@ -3,7 +3,7 @@
 * Proposal: [SE-0380](0380-if-switch-expressions.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Hamish Knight](https://github.com/hamishknight)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (Decembe 7...December 21, 2022)**
+* Status: **Active Review (December 7...December 21, 2022)**
 * Implementation: [apple/swift#612178](https://github.com/apple/swift/pull/62178), including a downloadable toolchain.
 * Review: ([pitch](https://forums.swift.org/t/pitch-if-and-switch-expressions/61149)), ([review](https://forums.swift.org/t/se-0380-if-and-switch-expressions/61899))
 
@@ -16,9 +16,9 @@ This proposal introduces the ability to use `if` and `switch` statements as expr
 
 ## Motivation
 
-Swift has always had a terse but readable syntax for closures, which allows the `return` to be omitted when the body is a single expression. [SE-0255: Implicit Returns from Single-Expression Functions](https://github.com/apple/swift-evolution/blob/master/proposals/0255-omit-return.md) extended this to functions and properties with a single expression as their body.
+Swift has always had a terse but readable syntax for closures, which allows the `return` to be omitted when the body is a single expression. [SE-0255: Implicit Returns from Single-Expression Functions](https://github.com/apple/swift-evolution/blob/main/proposals/0255-omit-return.md) extended this to functions and properties with a single expression as their body.
 
-This omission of the `return` keyword is in keeping with Swift's low-ceremony approach, and is in common with many of Swift's peer "modern" languages. However, Swift differs from its peers in the lack support for `if` and `switch` expressions.
+This omission of the `return` keyword is in keeping with Swift's low-ceremony approach, and is in common with many of Swift's peer "modern" languages. However, Swift differs from its peers in the lack of support for `if` and `switch` expressions.
 
 In some cases, this causes ceremony to make a return (ahem), for example:
 
@@ -128,17 +128,17 @@ It has the effect of requiring more type context in ambiguous cases. The followi
 let x = if p { 0 } else { 1.0 }
 ```
 
-since when type checked individually, `0` is of type `Int` and `1.0`. The fix would be to disambiguate each branch. In this case, either by rewriting `0` as `0.0`, or by providing type context e.g. `0 as Double`.
+since when type checked individually, `0` is of type `Int`, and `1.0` is of type `Double`. The fix would be to disambiguate each branch. In this case, either by rewriting `0` as `0.0`, or by providing type context e.g. `0 as Double`.
 
 This can be resolved by providing type context to each of the branches:
 
 ```swift
-  let y: Float = switch x.value {
+let y: Float = switch x.value {
     case 0..<0x80: 1
     case 0x80..<0x0800: 2.0
     case 0x0800..<0x1_0000: 3.0
     default: 4.5
-  }
+}
 ```
 
 This decision is in keeping with other recent proposals such as [SE-0244: Opaque Result Types](https://github.com/apple/swift-evolution/blob/main/proposals/0244-opaque-result-types.md):
@@ -272,13 +272,13 @@ A feel for the kind of expressions this could produce can be found in [this comm
 
 Full expressions would include various fairly conventional examples not proposed here:
 
-```
+```swift
 let x = 1 + if .random() { 3 } else { 4 }
 ```
 
 but also some pretty strange ones such as
 
-```
+```swift
 for b in [true] where switch b { case true: true case false: false } {}
 ```
 
@@ -305,10 +305,10 @@ In this case, if `if` expressions were allowed to have postfix member expression
 
 ```swift
 let foo: String = do {
-        try bar()
-    } catch {
-        "Error \(error)"
-	}
+    try bar()
+} catch {
+    "Error \(error)"
+}
 ```
 
 ### Support for `break` and `continue`
@@ -320,7 +320,7 @@ Similar to `return`, statements that break or continue to a label, could be perm
 Often enthusiasm for `guard` leads to requests for `guard` to have parity with `if`. Returning a value from a `guard`'s else is very common, and could potentially be sugared as
 
 ```swift
-  guard hasNativeStorage else { nil }
+guard hasNativeStorage else { nil }
 ```
 
 This is appealing, but is really a different proposal, of allowing omission `return` in `guard` statements.
@@ -367,7 +367,7 @@ The lack of this feature puts Swift's [claim](https://www.swift.org/about/) to b
 
 ### Alternative syntax
 
-Instead of extending the current implicit return mechanism, where a single expression is treated as the returned value, this proposal could introduce a new syntax for expression versions of `if`/`switch`. For example, 
+Instead of extending the current implicit return mechanism, where a single expression is treated as the returned value, this proposal could introduce a new syntax for expression versions of `if`/`switch`. For example, in Java:
 
 ```java
 var response = switch (utterance) {
@@ -378,9 +378,9 @@ var response = switch (utterance) {
         yield "everybody out!";  // yield = value of multi-statement branch
     };
     default -> {
-		throw new IllegalStateException(utterance)
-	}
-}
+        throw new IllegalStateException(utterance);
+    };
+};
 ```
 
 A similar suggestion was made during [SE-0255: Implicit Returns from Single-Expression Functions](https://forums.swift.org/t/se-0255-implicit-returns-from-single-expression-functions/), where an alternate syntax for single-expression functions was discussed e.g. `func sum() -> Element = reduce(0, +)`. In that case, the core team did not consider introduction of a separate syntax for functions to be sufficiently motivated.
@@ -401,7 +401,7 @@ However, this then poses an issue when evolving to multi-statement branches. Unl
 let x = 
   if .random() -> {
     let y = someComputation()
-	y * 2
+    y * 2
   } else -> fatalError()
 ```
 
@@ -419,7 +419,7 @@ let foo: String =
 
 or mixed branches with expressions and a return:
 
-```
+```swift
 let x = 
   if .random() -> 1
   else -> return 2
@@ -427,10 +427,10 @@ let x =
 
 If a future direction of full expressions is considered, the `->` form may not work so well, especially when single-line expressions are desired e.g.
 
-```
+```swift
 // is this (p ? 1 : 2) + 3
 // or p ? 1 : (2 + 3)
-let x = if p -> 1 else -> 2 + 4 
+let x = if p -> 1 else -> 2 + 3
 ``` 
 
 ## Source compatibility
