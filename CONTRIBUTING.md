@@ -4,5 +4,6 @@ Before you initiate a pull request, please read:
 
 * [Swift Evolution Process](process.md)
 * [Commonly Rejected Changes](commonly_proposed.md)
+* [Code of Conduct](https://www.swift.org/code-of-conduct/)
 
 Ideas should be thoroughly discussed on the [forums](https://forums.swift.org/c/evolution/18) first.
