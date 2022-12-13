@@ -316,71 +316,9 @@ macro selector<T>(setter property: T) -> Selector
 macro keyPath<T>(property: T) -> String
 ```
 
-### Macro plugins in SwiftPM
+### Sandboxing macro implementations
 
-Macros implemented in an external program can be declared as SwiftPM plugins through an extension of [SE-0303 "Package Manager Extensible Build Tools"](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md). The `PluginCapability` type will be extended with a new `macro` capability:
-
-```swift
-extension PluginCapability {
-    /// Plugins that specify a `macro` capability define types that conform to the `Macro` protocol,
-    /// extending the set of macro definitions available to programs.
-    public static func macro(
-      /// The name of the target that contains the corresponding `macro` declaration. For example, if the
-      /// module FontLiterals contained a declaration such as
-      ///
-      ///   public macro fontLiteral(name: String, weight: Int, attributes: [FontAttribute]) -> Font =
-      ///       #externalMacro(module: "FontLiteralMacroPlugin", struct: "FontLiteralMacro")
-      ///
-      /// then the declaring target should be "FontLiterals", and the macro plugin capability should be on the
-      /// target "FontLiteralMacroPlugin".
-      declaringTarget: String
-    ) -> PluginCapability
-}
-```
-
-Like other SwiftPM plugins, macro plugins are built for the host (i.e, where the compiler is run). The plugin will need to be available for any target that has a dependency on the target described by `declaringTarget`.
-
-A package containing both targets might look like this:
-
-```swift
-let package = Package(
-    name: "FontLiterals",
-    products: [
-      .library(name: "FontLiterals", type: .static, targets: ["FontLiterals"])
-    ],
-    targets: [
-        .plugin(
-            name: "FontLiteralsMacroPlugin",
-            capability: .macro(declaringTarget: "FontLiterals"),
-            dependencies: ["SwiftSyntaxMacros"]
-        ),
-        
-        .target(
-          name: "FontLiterals"
-        )
-    ]
-)
-```
-
-Where `Sources/FontLiterals/FontLiteral.swift` contains the macro declaration, e.g.,
-
-```swift
-public macro fontLiteral(name: String, weight: Int, attributes: [FontAttribute]) -> Font =
-    #externalMacro(module: "FontLiteralMacroPlugin", struct: "FontLiteralMacro")
-```
-
-and `Plugins/FontLiteralsMacroPlugin/FontLiteralMacro.swift` contains the macro definition, e.g.,
-
-```swift
-public struct FontLiteralMacro: ExpressionMacro {
-  public static func expansion(
-    of node: MacroExpansionExprSyntax, 
-    in context: inout MacroExpansionContext
-  ) -> ExprSyntax { ... }
-}
-```
-
-Macro implementations will be executed in a sandbox [like other SwiftPM plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md#security), preventing file system and network access. This is both a security precaution and a practical way of encouraging macros to not depend on any state other than the specific macro expansion node they are given to expand and its child nodes (but not its parent nodes), and the information specifically provided by the macro expansion context. If in the future macros need access to other information, this will be accomplished by extending the macro expansion context, which also provides a mechanism for the compiler to track what information the macro actually queried.
+The details of how macro implementation modules are built and provided to the compiler will be left to a separate proposal. However, it's important to call out here that macro implementations will be executed in a sandbox [like SwiftPM plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md#security), preventing file system and network access. This is both a security precaution and a practical way of encouraging macros to not depend on any state other than the specific macro expansion node they are given to expand and its child nodes (but not its parent nodes), and the information specifically provided by the macro expansion context. If in the future macros need access to other information, this will be accomplished by extending the macro expansion context, which also provides a mechanism for the compiler to track what information the macro actually queried.
 
 ## Tools for using and developing macros
 
@@ -544,6 +482,9 @@ Expressions are just one place in the language where macros could be valuable. O
 
 ## Revision History
 
+* Revisions from the second pitch:
+  * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
+  
 * Revisions from the first pitch:
   * Rename `MacroEvaluationContext` to `MacroExpansionContext`. 
   * Remove `MacroResult` and instead allow macros to emit diagnostics via the macro expansion context.
@@ -559,4 +500,4 @@ Expressions are just one place in the language where macros could be valuable. O
 
 ## Acknowledgments
 
-Richard Wei implemented the compiler plugin mechanism on which the prototype implementation depends, as well as helping identify use cases. John McCall and Becca Royal-Gordon provided numerous insights into the design and practical implementation of macros. 
+Richard Wei implemented the compiler plugin mechanism on which the prototype implementation depends, as well as helping identify and explore additional use cases for macros. John McCall and Becca Royal-Gordon provided numerous insights into the design and practical implementation of macros. Tony Allevato provided additional feedback on building and sandboxing.
