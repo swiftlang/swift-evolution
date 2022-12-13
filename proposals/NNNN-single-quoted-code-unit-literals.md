@@ -49,13 +49,15 @@ This proposal:
 
 3.  Adds **conformances for standard library types** to the new expression domains:
 
-    i.      [`UInt8`]()`:ExpressibleByASCIILiteral`
+    i.      [`Int8`](https://swiftinit.org/reference/swift/int8)`:ExpressibleByASCIILiteral`
 
-    ii.     [`UInt16`]()`:ExpressibleByBMPLiteral`
+    ii.     [`UInt8`](https://swiftinit.org/reference/swift/uint8)`:ExpressibleByASCIILiteral`
 
-    iii.    [`Unicode.Scalar`]()`:ExpressibleByCodepointLiteral`
+    iii.    [`UInt16`](https://swiftinit.org/reference/swift/uint16)`:ExpressibleByBMPLiteral`
 
-    iv.     [`Character`]()`:ExpressibleByCharacterLiteral`
+    iv.     [`Unicode.Scalar`](https://swiftinit.org/reference/swift/unicode/scalar)`:ExpressibleByCodepointLiteral`
+
+    v.      [`Character`](https://swiftinit.org/reference/swift/character)`:ExpressibleByCharacterLiteral`
 
     This was not part of SE-0243, but a related feature, that would have allowed users to enable expressing [`FixedWidthInteger`](https://swiftinit.org/reference/swift/fixedwidthinteger) types with single-quoted literals via retroactive `ExpressibleByUnicodeScalarLiteral` conformances, was.
 
@@ -81,7 +83,7 @@ To summarize differences from these previous proposals:
 
     SE-0243 [mapped out a path to deprecate](https://github.com/apple/swift-evolution/blob/main/proposals/0243-codepoint-and-character-literals.md#existing-double-quote-initializers-for-characters) this syntax.
 
-2.  This proposal **does not introduce character-to-integer ‘conversions’ in the general case**, only for the UTF code unit types `UInt8` and `UInt16`.
+2.  This proposal **does not introduce character-to-integer ‘conversions’ in the general case**, only for the UTF code unit types `UInt8` and `UInt16`, and the [`CChar`](https://swiftinit.org/reference/swift/cchar) type `Int8`.
 
     Previous proposals called for general `FixedWidthInteger` convertibility, including `Int` convertibility.
 
@@ -375,7 +377,7 @@ This proposal **contradicts** two recommendations the 2018 core team made in its
 
 *   As we have explored this design space with respect to syntax migration strategies, we have also come to believe that introducing an independent protocol hierarchy holds value on its own, because it gives users greater control over opting types in to using the new syntax, and migrating types off of using the old syntax. It also reinforces the concept that single-quoted literals are a new and different construct, rather than just “prettier double-quoted literals”.
 
-Some components of **Part 3** (3.i., 3.ii.) overlap with or resemble features **Recommendation B** called for jettisoning from SE-0243. In our view this is justified, because some of the design choices we make in **Part 2** only make sense in the context of **Part 3.i. – 3.ii.**
+Some components of **Part 3** (3.i. – iii.) overlap with or resemble features **Recommendation B** called for jettisoning from SE-0243. In our view this is justified, because some of the design choices we make in **Part 2** only make sense in the context of **Part 3.i. – 3.ii.**
 
 *   The ASCII and BMP literal expression domains only exist to support UTF-8 and UTF-16 use cases. At the `Unicode.Scalar` abstraction level and above, there is no value in having more-restricted domains available.
 
@@ -422,7 +424,7 @@ The compiler today can reject **Case I**’s double-quoted equivalent *with* typ
 
 The compiler today can already reject **Case J**’s double-quoted equivalent without type context.
 
-**The following would *not* be a valid single-quoted literals, even though they are valid double-quoted literals today**:
+**The following would *not* be valid single-quoted literals, even though they are valid double-quoted literals today**:
 
 ```swift
 ('' as Never)           //  K
@@ -561,15 +563,21 @@ The criteria for a valid extended grapheme cluster literal changes slowly over t
 
 We propose adding conformances for the following standard library types to the new expression domain protocols:
 
-i.      [`UInt8`](https://swiftinit.org/reference/swift/uint8)`:ExpressibleByASCIILiteral`
+i.      [`Int8`](https://swiftinit.org/reference/swift/int8)`:ExpressibleByASCIILiteral`
 
-ii.     [`UInt16`](https://swiftinit.org/reference/swift/uint16)`:ExpressibleByBMPLiteral`
+ii.     [`UInt8`](https://swiftinit.org/reference/swift/uint8)`:ExpressibleByASCIILiteral`
 
-iii.    [`Unicode.Scalar`](https://swiftinit.org/reference/swift/unicode/scalar)`:ExpressibleByCodepointLiteral`
+iii.    [`UInt16`](https://swiftinit.org/reference/swift/uint16)`:ExpressibleByBMPLiteral`
 
-iv.     [`Character`](https://swiftinit.org/reference/swift/character)`:ExpressibleByCharacterLiteral`
+iv.     [`Unicode.Scalar`](https://swiftinit.org/reference/swift/unicode/scalar)`:ExpressibleByCodepointLiteral`
 
-For the avoidance of confusion, each type in the list above is its own promoted literal type, and it is this conformance, not the role they play as promoted single-quoted literal types, that enables the single-quoted syntax.
+v.      [`Character`](https://swiftinit.org/reference/swift/character)`:ExpressibleByCharacterLiteral`
+
+For the avoidance of confusion, each type in the list above (except for `Int8`) is its own promoted literal type, and it is this conformance, not the role they play as promoted single-quoted literal types, that enables the single-quoted syntax.
+
+Although `Int8` is not as common a buffer element type as `UInt8`, it is the type aliased by `CChar` on some platforms. It would not make for a good user experience if code using code unit literals with `CChar` stopped working when ported to a different platform, so we propose enabling expressing `Int8` with an ASCII literal. To avoid introducing excessive `associatedtype` requirements, the promoted literal type of `Int8` is still `UInt8`.
+
+Windows uses `UInt16` as its native [`PlatformChar`](https://swiftinit.org/reference/swift-system/systempackage/cinterop/platformchar), so there is no need at this time to enable BMP literals for `Int16`.
 
 Users can also conform their own types to the new expression domain protocols to opt-in to the single-quoted syntax.
 
@@ -581,7 +589,7 @@ let auto = 'x' // as Character
 
 #### Diagnostics for `+`
 
-As a special case, we propose that **the compiler will emit a warning diagnostic if it detects usage of the binary operators `+` on two single-quoted literal expressions that are inferred to have type `UInt8` or `UInt16`**.
+As a special case, we propose that **the compiler will emit a warning diagnostic if it detects usage of the binary operators `+` on two single-quoted literal expressions that are inferred to have type `Int8`, `UInt8`, or `UInt16`**.
 
 ```swift
 let _:UInt8 = '1' + '1'
@@ -589,7 +597,7 @@ let _:UInt8 = '1' + '1'
 //  warning: addition of two single-quoted literal expressions
 ```
 
-To silence the warning, one of the operands must be parenthesized with an `as UInt8` or `as UInt16` annotation.
+To silence the warning, one of the operands must be parenthesized with an `as Int8`, `as UInt8`, or `as UInt16` annotation.
 
 ```swift
 let _:UInt8 = '1' + ('1' as UInt8)
@@ -629,7 +637,7 @@ let _:UInt8 = '1' + '1'
 //  warning: addition of two single-quoted literal expressions
 ```
 
-The warning will not apply to user defined operand types, standard library types that are retroactively-conformed to enable the single-quoted syntax, or mixed-type operators, even if they return `UInt8` or `UInt16`.
+The warning will not apply to user defined operand types, standard library types that are retroactively-conformed to enable the single-quoted syntax, or mixed-type operators, even if they return `Int8`, `UInt8`, or `UInt16`.
 
 ```swift
 extension Int:ExpressibleByBMPLiteral
@@ -843,6 +851,15 @@ extension ExpressibleByCharacterLiteral
 The following standard library types would gain conformances:
 
 ```swift
+extension Int8:ExpressibleByASCIILiteral
+{
+    @_alwaysEmitIntoClient
+    public
+    init(asciiLiteral:UInt8)
+    {
+        self = .init(bitPattern: asciiLiteral)
+    }
+}
 extension Unicode.UTF8.CodeUnit:ExpressibleByASCIILiteral
 {
     @_alwaysEmitIntoClient
@@ -922,7 +939,7 @@ TicTacToe.genericExample(
     someCharacterExpression: 'x' as TicTacToe.Cell)
 ```
 
-Passing a generic type to a a generic ABI-stable API without the double-quoted type constraint will not work.
+Passing a generic type to a generic ABI-stable API without the double-quoted type constraint will not work.
 
 ```swift
 func foo(x:some ExpressibleByCharacterLiteral)
@@ -947,7 +964,8 @@ func addGossipGirlSignature(
 }
 ```
 
-Back-deploying an implementation that uses single-quoted literals to express library types will not work by default, can be made to work by adding a retroactive protocol conformance.
+Back-deploying an implementation that uses single-quoted literals to express library types will not work by default, but can be made to work by adding a retroactive protocol conformance.
+
 ```swift
 import TicTacToe
 
