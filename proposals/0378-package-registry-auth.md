@@ -46,7 +46,7 @@ registry credentials.
 Log in to a package registry. SwiftPM will verify the credentials using
 the registry service's [`login` API](#login-api). If it returns a successful 
 response, credentials will be persisted to the operating system's 
-credential store if supported, or the user-level `.netrc` file otherwise. 
+credential store if supported, or the user-level netrc file otherwise. 
 The user-level configuration file located at `~/.swiftpm/configuration/registries.json` 
 will also be updated.
 
@@ -59,8 +59,9 @@ OPTIONS:
   
   --token        Access token
 
-  --no-confirm   Allow writing to .netrc file without confirmation
-  --netrc-file   Specify the .netrc file path
+  --no-confirm   Allow writing to netrc file without confirmation
+  --netrc-file   Specify the netrc file path
+  --netrc        Use netrc file even in cases where other credential stores are preferred
 ```
 
 `url` should be the registry's base URL (e.g., `https://example-registry.com`). 
@@ -87,8 +88,11 @@ option as required or make sure the secret is present in credential storage.
 
 If the operating system's credential store is not supported, the 
 tool will prompt user for confirmation before writing credentials 
-to the less secured `.netrc` file. Use `--no-confirm` to disable 
+to the less secured netrc file. Use `--no-confirm` to disable 
 this confirmation.
+
+To force usage of netrc file instead of the operating system's 
+credential store, pass the `--netrc` flag.
 
 ##### Example: basic authentication (macOS, interactive)
 
@@ -97,7 +101,8 @@ this confirmation.
     --username jappleseed
 Enter password for 'jappleseed':
 
-Login successful. Credentials have been saved to the operating system's secure credential store.
+Login successful.
+Credentials have been saved to the operating system's secure credential store.
 ```
 
 An entry for `example-registry.com` would be added to Keychain.
@@ -126,14 +131,54 @@ Enter password for 'jappleseed':
 
 Login successful.
 
-WARNING: Secure credential storage is not supported on this platform. 
-Your credentials will be written out to .netrc. 
-Continue? (Y/N): Y
+WARNING: Secure credential store is not supported on this platform.
+Your credentials will be written out to netrc file.
+Continue? (Yes/No): Yes
 
-Credentials have been saved to .netrc.
+Credentials have been saved to netrc file.
 ```
 
-An entry for `example-registry.com` would be added to the `.netrc` file:
+An entry for `example-registry.com` would be added to the netrc file:
+
+```
+machine example-registry.com
+login jappleseed
+password alpine
+```
+
+`registries.json` would be updated to indicate that `example-registry.com` 
+requires basic authentication:
+
+```json
+{
+  "authentication": {
+    "example-registry.com": {
+      "type": "basic"
+    },
+    ...
+  },
+  ...
+}
+```
+
+##### Example: basic authentication (use netrc file instead of operating system's credential store, interactive)
+
+```console
+> swift package-registry login https://example-registry.com \
+    --username jappleseed
+    --netrc
+Enter password for 'jappleseed':
+
+Login successful.
+
+WARNING: You choose to use netrc file instead of the operating system's secure credential store. 
+Your credentials will be written out to netrc file.
+Continue? (Yes/No): Yes
+
+Credentials have been saved to netrc file.
+```
+
+An entry for `example-registry.com` would be added to the netrc file:
 
 ```
 machine example-registry.com
@@ -164,10 +209,11 @@ requires basic authentication:
     --password alpine \
     --no-confirm
     
-Login successful. Credentials have been saved to .netrc.
+Login successful.
+Credentials have been saved to netrc file.
 ```
 
-An entry for `example-registry.com` would be added to the `.netrc` file:
+An entry for `example-registry.com` would be added to the netrc file:
 
 ```
 machine example-registry.com
@@ -200,10 +246,11 @@ requires basic authentication:
     --password alpine \
     --no-confirm
     
-Login successful. Credentials have been saved to .netrc.
+Login successful.
+Credentials have been saved to netrc file.
 ```
 
-An entry for `example-registry.com` would be added to the `.netrc` file:
+An entry for `example-registry.com` would be added to the netrc file:
 
 ```
 machine example-registry.com
@@ -235,7 +282,7 @@ requires basic authentication:
 ```
 
 An entry for `example-registry.com` would be added to the operating 
-system's credential store if supported, or the user-level `.netrc` 
+system's credential store if supported, or the user-level netrc
 file otherwise:
 
 ```
@@ -265,7 +312,7 @@ Log out from a registry. Credentials are removed from the operating system's
 credential store if supported, and the user-level configuration file 
 (`registries.json`).
 
-To avoid accidental removal of sensitive data, `.netrc` file needs to be 
+To avoid accidental removal of sensitive data, netrc file needs to be 
 updated manually by the user. 
 
 ```manpage
@@ -304,7 +351,7 @@ entry in this dictionary.
 
 Credentials are to be specified in the native credential store 
 of the operating system if supported, otherwise in the user-level 
-`.netrc` file. (Only macOS Keychain will be supported in the 
+netrc file. (Only macOS Keychain will be supported in the 
 initial feature release; more might be added in the future.)
 
 See [credential storage](#credential-storage) for more details on configuring 
@@ -315,7 +362,7 @@ credentials for each authentication type.
 SwiftPM will always use the most secure way to handle credentials 
 on the platform. In general, this would mean using the operating
 system's credential store (e.g., Keychain on macOS). It falls 
-back to `.netrc` only if there is no other solution available.
+back to netrc file only if there is no other solution available.
 
 #### Basic Authentication
 
@@ -325,9 +372,9 @@ Registry credentials should be stored as "Internet password"
 items in the macOS Keychain. The "item name" should be the 
 registry URL, including `https://` (e.g., `https://example-registry.com`).
 
-##### `.netrc` file (only if operating system's credential store is not supported)
+##### netrc file (if operating system's credential store is not supported)
 
-A `.netrc` entry for basic authentication looks as follows:
+A netrc entry for basic authentication looks as follows:
 
 ```
 machine example-registry.com
@@ -335,8 +382,8 @@ login jappleseed
 password alpine
 ```
 
-By default, SwiftPM looks for `.netrc` file in the user's 
-home directory. A custom `.netrc` file can be specified using 
+By default, SwiftPM looks for netrc file in the user's 
+home directory. A custom netrc file can be specified using 
 the `--netrc-file` option.
 
 #### Token Authentication
@@ -345,7 +392,7 @@ User can configure access token for a registry as similarly
 done for basic authentication, but with `token` as the login/username 
 and the access token as the password. 
 
-For example, a `.netrc` entry would look like:
+For example, a netrc entry would look like:
 
 ```
 machine example-registry.com
@@ -355,8 +402,8 @@ password jappleseedstoken
 
 ### Additional changes in SwiftPM
 
-1. Only the user-level `.netrc` file will be used. Project-level `.netrc` file will not be supported.
-2. SwiftPM will perform lookups in one credential store only. For macOS, it will be Keychain. For all other platforms, it will be the user-level `.netrc` file.
+1. Only the user-level netrc file will be used. Project-level netrc file will not be supported.
+2. SwiftPM will perform lookups in one credential store only. For macOS, it will be Keychain. For all other platforms, it will be the user-level netrc file.
 3. The `--disable-keychain` and `--disable-netrc` options will be removed.
 
 ### New package registry service API
@@ -393,12 +440,12 @@ This proposal moves SwiftPM to use operating system's native credential
 store (e.g., macOS Keychain) on supported platforms, which should yield
 better security.
 
-We are also eliminating the use of project-level `.netrc` file. This should
-prevent accidental checkin of `.netrc` file and thus leakage of sensitive
+We are also eliminating the use of project-level netrc file. This should
+prevent accidental checkin of netrc file and thus leakage of sensitive
 information.
 
 ## Impact on existing packages
 
-This proposal eliminates the project-level `.netrc` file. There should be 
+This proposal eliminates the project-level netrc file. There should be 
 no other impact on existing packages.
 
