@@ -1,4 +1,4 @@
-# Package Manager Feature name
+# Cross-Compilation Destination Bundles
 
 * Proposal: [SE-NNNN](NNNN-cross-compilation-destinations.md)
 * Authors: [Max Desiatov](https://github.com/MaxDesiatov)
@@ -137,7 +137,7 @@ Authors of this document intend to publish source code for a macOS → Linux CC 
 
 As an example, destination publishers looking to add a library to an Ubuntu 22.04 destination environment would modify a `Dockerfile` similar to this one in CC destination generator source code:
 
-```docker
+```dockerfile
 FROM swift:5.7-jammy
 
 apt-get install -y \
@@ -194,7 +194,7 @@ Different formats of destination bundles can be considered, but we don't think t
 
 Platform triples are not specific enough in certain cases. For example, `aarch64-unknown-linux` host triple can’t prevent a user from installing a CC destination bundle on an unsupported Linux distribution. In the future we could deprecate `hostTriple` and `destinationTriple` JSON properties in favor of dictionaries with keys and values that describe aspects of platforms that are important for destinations. Such dictionaries could look like this:
 
-```json
+```json5
 "destination": {
   "kernel": "Linux",
   "libcFlavor": "Glibc",
