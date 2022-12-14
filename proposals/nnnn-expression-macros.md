@@ -272,15 +272,13 @@ The `diagnose` method allows a macro implementation to provide diagnostics that 
 
 #### `externalMacro` definition
 
-The builtin `externalMacro` macro has several forms:
+The builtin `externalMacro` macro is declared as follows:
 
 ```swift
-macro externalMacro<T>(module: String, struct: String) -> T
-macro externalMacro<T>(module: String, enum: String) -> T
-macro externalMacro<T>(module: String, class: String) -> T
+macro externalMacro<T>(module: String, type: String) -> T
 ```
 
-The arguments identify the module name and type name of the type that provides an external macro definition. We require its kind (struct, enum, or class) to be specified as well, because that information is needed to find the type correctly at runtime.
+The arguments identify the module name and type name of the type that provides an external macro definition. Note that the `externalMacro` macro is special in that it can only be expanded to define another macro. It is an error to use it anywhere else.
 
 #### Builtin macro declarations
 
@@ -484,6 +482,7 @@ Expressions are just one place in the language where macros could be valuable. O
 
 * Revisions from the second pitch:
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
+  * Simplified the type signature of the `#externalMacro` built-in macro.
   
 * Revisions from the first pitch:
   * Rename `MacroEvaluationContext` to `MacroExpansionContext`. 
