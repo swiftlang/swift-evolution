@@ -93,13 +93,13 @@ public protocol ExpressionMacro: Macro {
   /// within the given context to produce a replacement expression.
   static func expansion(
     of node: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
-  ) -> ExprSyntax
+  ) throws -> ExprSyntax
 }
 ```
 
 The `expansion(of:in:)` method takes as arguments the syntax node for the macro expansion expression (e.g., `#stringify(x + y)`) and a "context" that provides more information about the compilation context in which the macro is being expanded. It produces a macro result that includes the rewritten syntax tree.
 
-The specifics of  `Macro` and `MacroExpansionContext` will follow in the Detailed Design section.
+The specifics of  `Macro`, `ExpressionMacro`, and `MacroExpansionContext` will follow in the Detailed Design section.
 
 ### The `stringify` macro implementation
 
@@ -228,13 +228,15 @@ public protocol ExpressionMacro: Macro {
   /// within the given context to produce a replacement expression.
   static func expansion(
     of macro: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
-  ) -> ExprSyntax
+  ) throws -> ExprSyntax
 }
 ```
 
 The `MacroExpansionExprSyntax` type is the `swift-syntax` node describing the `macro-expansion-expression` grammar term from above, so it carries the complete syntax tree (including all whitespace and comments) of the macro expansion as it appears in the source code. 
 
-Macro definitions should conform to the `ExpressionMacro` protocol and implement their syntactic transformation via `expansion(of:in:)`.
+Macro definitions should conform to the `ExpressionMacro` protocol and implement their syntactic transformation via `expansion(of:in:)`, returning the new expression as a syntax node.
+
+If the macro expansion cannot proceed for some reason, the `expansion(of:in:)` operation can throw an error rather than try to produce a new syntax node. The compiler will then report the error to the user. More detailed diagnostics can be provided via the macro expansion context.
 
 #### `MacroExpansionContext`
 
@@ -267,7 +269,7 @@ The `createUniqueLocalName()` function allows one to create new, unique names so
 
 It is intended that `MacroExpansionContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
 
-The `diagnose` method allows a macro implementation to provide diagnostics that as part of macro expansion. The [`Diagnostic`](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftDiagnostics/Diagnostic.swift) type used in the parameter is part of the swift-syntax library, and its form is likely to change over time, but it is able to express the different kinds of diagnostics a compiler or other tool might produce, such as warnings and errors, along with range highlights, Fix-Its, and attached notes to provide more clarity. A macro definition can introduce diagnostics if, for example, the macro argument successfully type-checked but used some Swift syntax that the macro implementation does not understand. The diagnostics will be presented by whatever tool is expanding the macro, such as the compiler. A macro that emits diagnostics is still expected to produce an expansion result, but if an error was emitted, that result will be ignored.
+The `diagnose` method allows a macro implementation to provide diagnostics that as part of macro expansion. The [`Diagnostic`](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftDiagnostics/Diagnostic.swift) type used in the parameter is part of the swift-syntax library, and its form is likely to change over time, but it is able to express the different kinds of diagnostics a compiler or other tool might produce, such as warnings and errors, along with range highlights, Fix-Its, and attached notes to provide more clarity. A macro definition can introduce diagnostics if, for example, the macro argument successfully type-checked but used some Swift syntax that the macro implementation does not understand. The diagnostics will be presented by whatever tool is expanding the macro, such as the compiler. A macro that emits diagnostics is still expected to produce an expansion result unless it also throws an error, in which case both emitted diagnostics and the error will be reported.
 
 ### Macros in the Standard Library
 
@@ -383,8 +385,6 @@ There are many uses for expression macros beyond what has presented here. This s
                Person(name: "Mike", age: 13)
   ```
 
-### 
-
 ## Source compatibility
 
 Macros are a pure extension to the language, utilizing new syntax, so they don't have an impact on source compatibility.
@@ -399,20 +399,6 @@ Macros are a source-to-source transformation tool that have no effect on API res
 
 ## Alternatives considered
 
-### Throwing macro expansion errors
-
-The `expansion(of:in:)` operation for an expression macro could be marked as `throws`, e.g.,
-
-```swift
-  static func expansion(
-    of macro: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
-  ) throws -> ExprSyntax
-```
-
-A macro expansion function could throw an error to indicate that macro expansion failed. The thrown error would either contain a `Diagnostic` or be rendered into one, which would be an error that would be emitted by the compiler, halting compilation of the program. 
-
-Throwing an error is a natural way to indicate that a the macro expansion could not be completed, and saves the macro from still forming an expression syntax node for the expansion result. However, a single thrown error is not sufficient for reporting more complex cases where a macro might want to produce diagnostics for several different subexpressions of the macro arguments. This manner of error reporting would be in addition to the `diagnose` operation on macro expansion contexts, not a replacement for it. Therefore, despite the convenience of throwing an error to indicate a failed macro expansion, we have omitted it from this proposal.
-
 ### Asynchronous macro expansion
 
 The `expansion(of:in:)` operation for an expression macro could be marked as `async`, e.g.,
@@ -420,7 +406,7 @@ The `expansion(of:in:)` operation for an expression macro could be marked as `as
 ```swift
  static func expansion(
     of macro: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
-  ) async -> ExprSyntax
+  ) async throws -> ExprSyntax
 ```
 
 to allow it to perform asynchronous computations as part of macro expansion. This could be useful if certain macros were provided with access to asynchronous I/O or required some kind of non-blocking communication with a separate compiler process.
@@ -485,6 +471,7 @@ Expressions are just one place in the language where macros could be valuable. O
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
   * Simplified the type signature of the `#externalMacro` built-in macro.
   * Added `@expression` to the macro to distinguish it from other kinds of macros that could come in the future.
+  * Make `expansion(of:in:)` throwing, and have that error be reported back to the user.
   
 * Revisions from the first pitch:
   * Rename `MacroEvaluationContext` to `MacroExpansionContext`. 
