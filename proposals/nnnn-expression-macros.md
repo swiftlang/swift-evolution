@@ -287,7 +287,9 @@ The arguments identify the module name and type name of the type that provides a
 
 As previously noted, expression macros use the same leading `#` syntax as number of built-in expressions like `#line`. With the introduction of expression macros, we propose to subsume those built-in expressions into macros that come as part of the Swift standard library. The actual macro implementations are provided by the compiler, and may even involve things that aren't necessarily implementable with the pure syntactic macro. However, by providing macro declarations we remove special cases from the language and benefit from all of the tooling affordances provided for macros.
 
-We propose to introduce the following macro declarations into the Swift standard library:
+We propose to introduce a number of macro declarations into the Swift standard library. There are several different kinds of such macros.
+
+##### Source-location macros
 
 ```swift
 // File and path-related information
@@ -304,18 +306,44 @@ We propose to introduce the following macro declarations into the Swift standard
 
 // Current shared object handle.
 @expression macro dsohandle: UnsafeRawPointer
+```
 
-// Object literals.
-@expression macro colorLiteral<T: ExpressibleByColorLiteral>(red: Float, green: Float, blue: Float, alpha: Float) -> T
-@expression macro imageLiteral<T: _ExpressibleByImageLiteral>(resourceName: String) -> T
-@expression macro fileLiteral<T: _ExpressibleByFileReferenceLiteral>(resourceName: String) -> T
+With the exception of `#fileID` (and `#file` when [SE-0274](https://github.com/apple/swift-evolution/blob/main/proposals/0274-magic-file.md) is enabled), the operations that provide information about the current location in source code are not implementable as `ExpressionMacro`-conforming types, because specific source-location information is intentionally unavailable to macro definitions. The type signatures of these macros capture most of the type system behavior of the existing `#file`, `#line`, etc., because they are treated like literals and therefore can pick up any contextual type that implements the proper `ExpressiblyBy*` protocol. However, the implementations above would fail to type-check code like this:
 
-// Objective-C.
+```swift
+let x = #file
+```
+
+with an error such as 
+
+```
+error: generic parameter 'T' could not be inferred
+```
+
+To match the existing behavior of the built-in `#file`, `#line`, etc. would require a defaulting rule that matches what we get for literal types. At present, this requires special handling in the compiler, but a future extension to the language to enable default generic arguments would likely allow us to express this notion directly in the type system.
+
+##### Objective-C helper macros
+
+The Swift `#selector` and `#keyPath` expressions can have their syntax and type-checking behavior expressed in terms of macro declarations:
+
+```swift
 @expression macro selector<T>(_ method: T) -> Selector
 @expression macro selector<T>(getter property: T) -> Selector
 @expression macro selector<T>(setter property: T) -> Selector
 @expression macro keyPath<T>(property: T) -> String
 ```
+
+These macros cannot be implemented in terms of `ExpressionMacro` based on the facilities in this proposal, because one would need to determine which declarations are referenced within the argument of a macro expansion such as `#selector(getter: Person.name)`. However, providing them with macro declarations that have built-in implementations makes them less special, removing some special cases from more of the language.
+
+##### Object literals
+
+```swift
+@expression macro colorLiteral<T: ExpressibleByColorLiteral>(red: Float, green: Float, blue: Float, alpha: Float) -> T
+@expression macro imageLiteral<T: ExpressibleByImageLiteral>(resourceName: String) -> T
+@expression macro fileLiteral<T: ExpressibleByFileReferenceLiteral>(resourceName: String) -> T
+```
+
+The object literals allow one to reference a resource in a program of various kinds. The three kinds of object literals (color, image, and file) can be described as expression macros. The type signatures provided above are not exactly how type checking currently works for object literals, because they aren't necessarily generic. Rather, when they are used, the compiler currently looks for a specially-named type (e.g., `_ColorLiteralType`) in the current module and uses that as the type of the corresponding color literal. To maintain that behavior, we propose to type-check macro expansions for object literals by performing the same lookup that is done today (e.g., for `_ColorLiteralType`) and then using that type as the generic argument for the corresponding macro. That way, the type checking behavior is unchanged when moving from special object literal expressions in the language to macro declarations with built-in implementations.
 
 ### Sandboxing macro implementations
 
@@ -472,6 +500,7 @@ Expressions are just one place in the language where macros could be valuable. O
   * Simplified the type signature of the `#externalMacro` built-in macro.
   * Added `@expression` to the macro to distinguish it from other kinds of macros that could come in the future.
   * Make `expansion(of:in:)` throwing, and have that error be reported back to the user.
+  * Expand on how the various builtin standard library macros will work.
   
 * Revisions from the first pitch:
   * Rename `MacroEvaluationContext` to `MacroExpansionContext`. 
