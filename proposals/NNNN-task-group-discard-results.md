@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-task-group-discard-results.md)
 * Authors: [Cory Benfield](https://github.com/Lukasa), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: Pull request available at https://github.com/apple/swift/pull/62271
+* Status: Pull request available at https://github.com/apple/swift/pull/62361
 
 ### Introduction
 
