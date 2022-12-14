@@ -38,7 +38,7 @@ and would be expanded into
 The type signature of a macro is part of its declaration, which looks a lot like a function:
 
 ```swift
-macro stringify<T>(_: T) -> (T, String)
+@expression macro stringify<T>(_: T) -> (T, String)
 ```
 
 ### Type-checked macro arguments and results
@@ -128,7 +128,8 @@ The `expansion(of:in:)` function is fairly small, because the `stringify` macro 
 The `StringifyMacro` struct is the implementation for the `stringify` macro declared earlier. We will need to tie these together in the source code via some mechanism. We propose to provide a builtin macro that names the module and the `ExpressionMacro` type name within the macro declaration following an `=`, e.g.,
 
 ```swift
-macro stringify<T>(_: T) -> (T, String) = #externalMacro(module: "ExampleMacros", struct: "StringifyMacro")
+@expression macro stringify<T>(_: T) -> (T, String) =
+  #externalMacro(module: "ExampleMacros", type: "StringifyMacro")
 ```
 
 ## Detailed design
@@ -154,7 +155,7 @@ macro-function-signature-result -> '->' type
 macro-definition -> '=' macro-expansion-expression
 ```
 
-The signature of a macro is either function-like (`(_ argument: T) -> (T, String)`) or value-like (`: Int`), depending on the form of the `macro-signature`.
+The signature of a macro is either function-like (`(_ argument: T) -> (T, String)`) or value-like (`: Int`), depending on the form of the `macro-signature`. The `@expression` attribute applies only to macros. It indicates that the macro is an expression macro.
 
 Macros can only be declared at file scope. They can be overloaded in the same way as functions, so long as the argument labels, parameter types, or result type differ.
 
@@ -173,16 +174,16 @@ macro-expansion-expression -> '#' identifier generic-argument-clause[opt] functi
 
 When either a `function-call-argument-clause` or a `trailing-closures` term is present, the identifier must refer to a function-like macro. When neither is present, the identifier must refer to a value-like macro. There is no such thing as a value of macro type.
 
-The `#` syntax for macro expansion expressions was specifically chosen because Swift already contains a number of a `#`-prefixed expressions that are macro-like in nature, some of which could be implemented directly as expression macros.
+The `#` syntax for macro expansion expressions was specifically chosen because Swift already contains a number of a `#`-prefixed expressions that are macro-like in nature, some of which could be implemented directly as expression macros. The macro referenced by the `identifier` must be an an expression macro, as indicated by `@expression` on the corresponding macro declaration.
 
 When a macro expansion is encountered in the source code, it's expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call (for function-like macros) or a property reference (for value-like macros), and does not involve the macro definition.
 
 The second phase is the macro expansion phase, during which the syntax of the macro arguments is provided to the macro definition. For builtin-macro definitions, the behavior at this point depends on the semantics of the macro, e.g., the `externalMacro` macro invokes the external program and provides it with the source code of the macro expansion. For other macros, the arguments are substituted into the `macro-expansion-expression` of the definition. For example:
 
 ```swift
-macro prohibitBinaryOperators<T>(_ value: T, operators: [String]) -> T =
-    #externalMacro(module: "ExampleMacros", struct: "ProhibitBinaryOperators")
-macro addBlocker<T>(_ value: T) -> T = #prohibitBinaryOperators(value, operators: ["+"])
+@expression macro prohibitBinaryOperators<T>(_ value: T, operators: [String]) -> T =
+    #externalMacro(module: "ExampleMacros", type: "ProhibitBinaryOperators")
+@expression macro addBlocker<T>(_ value: T) -> T = #prohibitBinaryOperators(value, operators: ["+"])
 
 #addBlocker(x + y * z)
 ```
@@ -278,7 +279,7 @@ The builtin `externalMacro` macro is declared as follows:
 macro externalMacro<T>(module: String, type: String) -> T
 ```
 
-The arguments identify the module name and type name of the type that provides an external macro definition. Note that the `externalMacro` macro is special in that it can only be expanded to define another macro. It is an error to use it anywhere else.
+The arguments identify the module name and type name of the type that provides an external macro definition. Note that the `externalMacro` macro is special in that it can only be expanded to define another macro. It is an error to use it anywhere else, which is why it does not include an `@expression` attribute.
 
 #### Builtin macro declarations
 
@@ -288,30 +289,30 @@ We propose to introduce the following macro declarations into the Swift standard
 
 ```swift
 // File and path-related information
-macro fileID<T: ExpressibleByStringLiteral>: T
-macro file<T: ExpressibleByStringLiteral>: T
-macro filePath<T: ExpressibleByStringLiteral>: T
+@expression macro fileID<T: ExpressibleByStringLiteral>: T
+@expression macro file<T: ExpressibleByStringLiteral>: T
+@expression macro filePath<T: ExpressibleByStringLiteral>: T
 
 // Current function
-macro function<T: ExpressibleByStringLiteral>: T
+@expression macro function<T: ExpressibleByStringLiteral>: T
 
 // Source-location information
-macro line<T: ExpressibleByIntegerLiteral>: T
-macro column<T: ExpressibleByIntegerLiteral>: T
+@expression macro line<T: ExpressibleByIntegerLiteral>: T
+@expression macro column<T: ExpressibleByIntegerLiteral>: T
 
 // Current shared object handle.
-macro dsohandle: UnsafeRawPointer
+@expression macro dsohandle: UnsafeRawPointer
 
 // Object literals.
-macro colorLiteral<T: ExpressibleByColorLiteral>(red: Float, green: Float, blue: Float, alpha: Float) -> T
-macro imageLiteral<T: _ExpressibleByImageLiteral>(resourceName: String) -> T
-macro fileLiteral<T: _ExpressibleByFileReferenceLiteral>(resourceName: String) -> T
+@expression macro colorLiteral<T: ExpressibleByColorLiteral>(red: Float, green: Float, blue: Float, alpha: Float) -> T
+@expression macro imageLiteral<T: _ExpressibleByImageLiteral>(resourceName: String) -> T
+@expression macro fileLiteral<T: _ExpressibleByFileReferenceLiteral>(resourceName: String) -> T
 
 // Objective-C.
-macro selector<T>(_ method: T) -> Selector
-macro selector<T>(getter property: T) -> Selector
-macro selector<T>(setter property: T) -> Selector
-macro keyPath<T>(property: T) -> String
+@expression macro selector<T>(_ method: T) -> Selector
+@expression macro selector<T>(getter property: T) -> Selector
+@expression macro selector<T>(setter property: T) -> Selector
+@expression macro keyPath<T>(property: T) -> String
 ```
 
 ### Sandboxing macro implementations
@@ -334,7 +335,7 @@ There are many uses for expression macros beyond what has presented here. This s
 
   ```swift
   // Declaration of #colorLiteral
-  macro colorLiteral(red: Float, green: Float, blue: Float, alpha: Float) -> _ColorLiteralType
+  @expression macro colorLiteral(red: Float, green: Float, blue: Float, alpha: Float) -> _ColorLiteralType
     = SwiftBuiltinMacros.ColorLiteralMacro
   
   // Implementation of #colorLiteral
@@ -476,13 +477,14 @@ The main complexity of this future direction is in defining the APIs to be used 
 
 ### Additional kinds of macros
 
-Expressions are just one place in the language where macros could be valuable. Other places could include function or closure bodies (e.g., to add tracing or logging), within type or extension definitions (e.g., to add new member), or on protocol conformances (e.g., to synthesize a protocol conformance). A number of potential ideas are presented in the [vision for macros in Swift](https://forums.swift.org/t/a-possible-vision-for-macros-in-swift/60900). For each of them, we assume that the basic `macro` declaration will stay roughly the same, but the contexts in which the macro can be used would be different, as might the spelling of the expansion (e.g., `@` might be more appropriate if the macro expansion occurs on a declaration), and there would be another protocol that inherits from `Macro` in the `SwiftSyntaxMacros` module.
+Expressions are just one place in the language where macros could be valuable. Other places could include function or closure bodies (e.g., to add tracing or logging), within type or extension definitions (e.g., to add new member), or on protocol conformances (e.g., to synthesize a protocol conformance). A number of potential ideas are presented in the [vision for macros in Swift](https://forums.swift.org/t/a-possible-vision-for-macros-in-swift/60900). For each of them, we assume that the basic `macro` declaration will stay roughly the same, but the contexts in which the macro can be used would be different, as might the spelling of the expansion (e.g., `@` might be more appropriate if the macro expansion occurs on a declaration), there would be an attribute on the `macro` declaration that indicates what type of macro it is, and there would be a corresponding protocol that inherits from `Macro` in the `SwiftSyntaxMacros` module.
 
 ## Revision History
 
 * Revisions from the second pitch:
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
   * Simplified the type signature of the `#externalMacro` built-in macro.
+  * Added `@expression` to the macro to distinguish it from other kinds of macros that could come in the future.
   
 * Revisions from the first pitch:
   * Rename `MacroEvaluationContext` to `MacroExpansionContext`. 
