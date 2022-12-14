@@ -3,9 +3,9 @@
 * Proposal: [SE-NNNN](NNNN-expression-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting review**
 
-* Implementation: Partial implementation is available in `main` under the experimental feature flag `Macros`.
+* Implementation: Partial implementation is available in `main` under the experimental feature flag `Macros`. An [example macro repository](https://github.com/DougGregor/swift-macro-examples) provides a way to experiment with this feature.
 
 ## Introduction
 
