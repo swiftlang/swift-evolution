@@ -165,7 +165,7 @@ As such, when a function parameter is declared with an noncopyable type, it
 ```swift
 // Redirect a file descriptor
 // Require exclusive access to the FileDescriptor to replace it
-func redirect(_ file: inout FileDescriptor, to otherFile: FileDescriptor) {
+func redirect(_ file: inout FileDescriptor, to otherFile: borrow FileDescriptor) {
   dup2(otherFile.fd, file.fd)
 }
 
@@ -189,7 +189,7 @@ declared `mutating` or `consuming`:
 
 ```swift
 extension FileDescriptor {
-  mutating func replace(with otherFile: FileDescriptor) {
+  mutating func replace(with otherFile: borrow FileDescriptor) {
     dup2(otherFile.fd, self.fd)
   }
 
@@ -205,6 +205,61 @@ extension FileDescriptor {
   }
 }
 ```
+
+### Using stored properties and enum cases of `@noncopyable` type
+
+When classes or `@noncopyable` types contain members that are of `@noncopyable`
+type, then the container is the unique owner of the member value. Outside of
+the type's definition, client code cannot perform consuming operations on
+the value, since it would need to take away the container's ownership to do
+so:
+
+```
+@noncopyable
+struct Inner {}
+
+@noncopyable
+struct Outer {
+  var inner = Inner()
+}
+
+let outer = Outer()
+let i = outer.inner // ERROR: can't take `inner` away from `outer`
+```
+
+However, when code has the ability to mutate the member, it may freely modify,
+reassign, or replace the value in the field:
+
+```
+var outer = Outer()
+let newInner = Inner()
+// OK, transfers ownership of `newInner` to `outer`, destroying its previous
+// value
+outer.inner = newInner
+```
+
+Note that, as currently defined, `switch` to pattern-match an `enum` is a
+consuming operation, so it can only be performed inside `consuming` methods
+on the type's original definition:
+
+```
+@noncopyable
+enum OuterEnum {
+  case inner(Inner)
+  case file(FileDescriptor)
+}
+
+// Error, can't partially consume a value outside of its definition
+let enum = OuterEnum.inner(Inner())
+switch enum {
+case .inner(let inner):
+  break
+default:
+  break
+}
+```
+
+Borrowing pattern matches will address this shortcoming.
 
 ### Deinitializers
 
@@ -493,6 +548,59 @@ are strictly more capable.This proposal prefers the term "noncopyable" to make
 the relationship to an eventual `Copyable` constraint, and the fact that annotated
 types lack the ability to satisfy this constraint, more explicit.
 
+### Spelling as a generic constraint
+
+It's a reasonable question why declaring a type as noncopyable isn't spelled
+like a protocol constraint:
+
+```
+struct Foo: NonCopyable {}
+```
+
+As noted in the previous discussion, an issue with this notation is that it
+implies that `NonCopyable` is a new capability or requirement, rather than
+really being the lack of a `Copyable` capability. For an example of why
+this might be misleading, consider what would happen if we expand
+standard library collection types to support noncopyable elements. Value types
+like `Array` and `Dictionary` would become copyable only when the elements they
+contain are copyable. However, we cannot write this in terms of `NonCopyable`
+conditional requirements, since if we write:
+
+```
+extension Dictionary: NonCopyable where Key: NonCopyable, Value: NonCopyable {}
+```
+
+this says that the dictionary is noncopyable only when both the key and value
+are noncopyable, which is wrong because we also can't copy the dictionary if only
+the keys or only the values are noncopyable. If we flip the constraint to
+`Copyable`, the correct thing would fall out naturally:
+
+```
+extension Dictionary: Copyable where Key: Copyable, Value: Copyable {}
+```
+
+However, for progressive disclosure and source compatibility reasons, we still
+want the majority of types to be `Copyable` by default, without making them
+explicitly declare it; noncopyable types are likely to remain the exception
+rather than the rule, with automatic lifetime management via ARC by the
+compiler being sufficient for most code like it is today.
+
+We could conversely borrow another idea from Rust, which uses the syntax
+`?Trait` to declare that a normally implicit trait is not required by
+a generic declaration, or not satisfied by a concrete type. So in Swift we
+might write:
+
+```
+struct Foo: ?Copyable {
+}
+```
+
+`Copyable` is currently the only such implicit constraint we are considering,
+so the `@noncopyable` attribute is appealing as a specific solution to address
+this case. If we were to consider making other requirements implicit (perhaps
+`Sendable` in some situations?) then a more general opt-out syntax would be
+called for.
+
 ### English language bikeshedding
 
 Some dictionaries specify that "copiable" is the standard spelling for "able to
@@ -525,6 +633,30 @@ also has the benefit of being adoptable without additional runtime requirements,
 so developers can begin making use of the feature without giving up backward
 compatibility with existing Swift runtime deployments.
 
+### Conditionally copyable types
+
+This proposal states that a type, including one with generic parameters, is
+currently always copyable or always noncopyable. However, some types may
+eventually be generic over copyable and non-copyable types, with the ability
+to be copyable for some generic arguments but not all. A simple case might be
+a tuple-like `Pair` struct:
+
+```
+@noncopyable
+// : ?Copyable is strawman syntax for declaring T and U don't require copying
+struct Pair<T: ?Copyable, U: ?Copyable> {
+  var first: T
+  var second: U
+}
+```
+
+We will need a way to express this conditional copyability, perhaps using
+conditional conformance style declarations:
+
+```
+extension Pair: Copyable where T: Copyable, U: Copyable {}
+```
+
 ### Finer-grained destructuring in `consuming` methods and `deinit`
 
 As currently specified, noncopyable types are (outside of `init` implementations)
@@ -539,6 +671,7 @@ proposal, this isn't possible without allowing for an intermediate invalid
 state:
 
 ```swift
+@noncopyable
 struct SocketPair {
   let input, output: FileDescriptor
 
