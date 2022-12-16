@@ -1,17 +1,17 @@
 # Expression Macros
 
-* Proposal: [SE-NNNN](NNNN-expression-macros.md)
+* Proposal: [SE-0382](0382-expression-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
-
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (December 16...30, 2022)**
 * Implementation: Partial implementation is available in `main` under the experimental feature flag `Macros`. An [example macro repository](https://github.com/DougGregor/swift-macro-examples) provides a way to experiment with this feature.
+* Review: ([pitch](https://forums.swift.org/t/pitch-expression-macros/61499)) ([pitch #2](https://forums.swift.org/t/pitch-2-expression-macros/61861/16))
 
 ## Introduction
 
 Expression macros provide a way to extend Swift with new kinds of expressions, which can perform arbitary syntactic transformations on their arguments to produce new code. Expression macros make it possible to extend Swift in ways that were only previously possible by introducing new language features, helping developers build more expressive libraries and eliminate extraneous boilerplate.
 
-Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-expression-macros/61499)
+Swift-evolution thread: 
 
 ## Motivation
 
