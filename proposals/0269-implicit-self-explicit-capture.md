@@ -65,7 +65,7 @@ It also results in a lot of unnecessary repetition. The motivation for requiring
 
 In codebases that make heavy use of asynchronous code, such as clients of [PromiseKit](https://github.com/mxcl/PromiseKit), or even Apple's new [Combine](https://developer.apple.com/documentation/combine) and [SwiftUI](https://developer.apple.com/documentation/swiftui) libraries, maintainers must either choose to adopt style guides which require the use of explicit `self` in all cases, or else resign to the reality that explicit usage of `self` will appear inconsistently throughout the code. Given that Apple's preferred/recommended style is to omit `self` where possible (as evidenced by examples throughout [The Swift Programming Language](https://docs.swift.org/swift-book/) and the [SwiftUI Tutorials](https://developer.apple.com/tutorials/swiftui)), having any asynchronous code littered with `self.` is a suboptimal state of affairs.
 
-The error is also overly conservative—it will prevent the usage of implicit `self` even when it is very unlikely that the capture of `self` will somehow cause a reference cycle. With function builders in SwiftUI, the automatic resolution to the "make capture semantics explicit" error (and indeed, the fix-it that is currently supplied to the programmer) is just to slap a `self.` on wherever the compiler tells you to. While this likely fine when `self` is a value type, building this habit could cause users to ignore the error and apply the fix-it in cases where it is not in fact appropriate.
+The error is also overly conservative—it will prevent the usage of implicit `self` even when it is very unlikely that the capture of `self` will somehow cause a reference cycle. With function builders in SwiftUI, the automatic resolution to the "make capture semantics explicit" error (and indeed, the fix-it that is currently supplied to the programmer) is just to slap a `self.` on wherever the compiler tells you to. While this is likely fine when `self` is a value type, building this habit could cause users to ignore the error and apply the fix-it in cases where it is not in fact appropriate.
 
 There are also cases that are just as (if not more) likely to cause reference cycles that the tool currently misses. Once such instance is discussed in **Future Directions** below. These false negatives are not addressed in this proposal, but improving the precision of this diagnostic will make the tool more powerful and less likely to be dismissed if (or when) new diagnostic cases are introduced.
 
@@ -126,7 +126,7 @@ The existing errors and fix-its have their language updated accordingly to indic
 Error: call to method <method name> in closure requires explicit use of 'self' to make capture semantics explicit.
 ```
 
-The new fix-it for explicitly capturing `self` will take slightly different forms depending on whether there is a capture list already present ("insert '`self, `'"), whether there are explicit parameters ("insert '`[self]`'"), and whether the user the user has already captured a variable with the name `self` (in which case the fix-it would not be offered). Since empty capture lists are allowed (`{ [] in ... }`), the fix-it will cover this case too.
+The new fix-it for explicitly capturing `self` will take slightly different forms depending on whether there is a capture list already present ("insert '`self, `'"), whether there are explicit parameters ("insert '`[self]`'"), and whether the user has already captured a variable with the name `self` (in which case the fix-it would not be offered). Since empty capture lists are allowed (`{ [] in ... }`), the fix-it will cover this case too.
 
 This new rule would only apply when `self` is captured directly, and with the name `self`. This includes captures of the form `[self = self]` but would still not permit implicit `self` if the capture were `[y = self]`. In the unusual event that the user has captured another variable with the name `self` (e.g. `[self = "hello"]`), we will offer a note that this does not enable use of implicit `self` (in addition to the existing error attached to the attempted use of implicit `self`):
 
@@ -140,7 +140,7 @@ If the user has a capture of `weak self` already, we offer a special diagnostic 
 Note: weak capture of 'self' here does not enable implicit 'self'.
 ```
 
-If either of the two above notes are present, we will not offer the usual fix-its for resolving this error, since the code inserted would be erroneous.
+If either of the two above notes is present, we will not offer the usual fix-its for resolving this error, since the code inserted would be erroneous.
 
 ## Source compatibility
 
