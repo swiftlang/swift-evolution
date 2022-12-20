@@ -398,10 +398,10 @@ The combination of `@Sendable` closures and `Sendable` types allows type safe co
 
 #### Inference of `@Sendable` for Closure Expressions
 
-The inference rule for `@Sendable` attribute for closure expressions is similar to closure `@escaping` inference.  A closure expression is inferred to be `@Sendable` if:
+The inference rule for `@Sendable` attribute for closure expressions is similar to closure `@escaping` inference.  A closure expression is inferred to be `@Sendable` if either:
 
-*   It is used in a context that expects a `@Sendable` function type (e.g. `parallelMap` or `Task.runDetached`).
-*   When `@Sendable` is in the closure “in” specification.
+* it is used in a context that expects a `@Sendable` function type (e.g. `parallelMap` or `Task.runDetached`) or
+* `@Sendable` is in the closure's `in` specification.
 
 The difference from `@escaping` is that a context-less closure defaults to be non-`@Sendable`, but defaults to being `@escaping`:
 
