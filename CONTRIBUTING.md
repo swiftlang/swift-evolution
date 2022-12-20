@@ -1,16 +1,17 @@
-# Contributing
+# Contributing to Swift Evolution
 
-## Participating in the Swift Evolution Process
+Before you initiate a pull request, please read:
 
-See [Participating in the Swift Evolution Process](https://swift.org/contributing/#participating-in-the-swift-evolution-process) on Swift.org and [process.md](process.md).
+* [Swift Evolution Process](process.md)
+* [Commonly Rejected Changes](commonly_proposed.md)
+* [Code of Conduct](https://www.swift.org/code-of-conduct/)
 
-## Contributing to the status page
-The [status page](https://apple.github.io/swift-evolution/) shows community activity related to the Swift Evolution Process. Changes to it should focus on supporting the efforts of the community in that process.
+Pull requests that make minor editorial and administrative changes to this repository are always welcome, including fixing typos and grammar mistakes, repairing links, and maintaining document and repository metadata.
 
-Before making a pull request to change the status page, consider the following steps:
-                
-- **Socialize the idea**: Is there a broader desire in the Swift community for the feature? Ask. Ensure that the feature can be implemented using data from the Swift project itself, rather than depending externally derived data.
-  
-- **Develop a working copy**: Ideas are easiest to understand with a complete implementation. A quick prototype may be good enough for early stage feedback. Once the idea is understood, clean up the code, test it, and format it according to [JavaScript Standard](http://standardjs.com) style.
-  
-- **Request a review**: Initiate a pull request to the [swift-evolution repository](https://github.com/apple/swift-evolution) when a proposed change has a complete implementation. Include a link to a working copy, then assign the review to @krilnon. When everything looks good, the pull request will be merged.
+Pull requests that add new proposals must follow the Swift evolution process, including the proposal having first been pitched on the [evolution forums](https://forums.swift.org/c/evolution/pitches/5).
+
+Pull requests that make substantive changes to existing proposals should only be made with the permission of the proposal authors.  Substantive changes to a proposal in the Accepted or Rejected are discouraged and require the approval of the appropriate evolution workgroup.  Substantive changes to a proposal in the Active Review state require the approval of the appropriate evolution workgroup and should be advertised in the review thread.
+
+Pull requests that add or substantively change vision documents require the approval of the appropriate evolution workgroup.
+
+Pull requests that substantively change the documented evolution process require the approval of the Core Team.
