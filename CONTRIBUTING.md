@@ -10,7 +10,7 @@ Pull requests that make minor editorial and administrative changes to this repos
 
 Pull requests that add new proposals must follow the Swift evolution process, including the proposal having first been pitched on the [evolution forums](https://forums.swift.org/c/evolution/pitches/5).
 
-Pull requests that make substantive changes to existing proposals should only be made with the permission of the proposal authors; furthermore, if the proposal review is complete, such changes are discouraged and require the approval of the appropriate evolution workgroup.
+Pull requests that make substantive changes to existing proposals should only be made with the permission of the proposal authors.  Substantive changes to a proposal in the Accepted or Rejected are discouraged and require the approval of the appropriate evolution workgroup.  Substanative changes to a proposal in the Active Review state require the approval of the appropriate evolution workgroup and should be advertised in the review thread.
 
 Pull requests that add or change vision documents require the approval of the appropriate evolution workgroup.
 
