@@ -101,7 +101,7 @@ public func withDiscardingTaskGroup<GroupResult>(
 public func withThrowingDiscardingTaskGroup<GroupResult>(
   returning returnType: GroupResult.Type = GroupResult.self,
   body: (inout ThrowingDiscardingTaskGroup<Error>) async throws -> GroupResult
-) async rethrows -> GroupResult { ... }
+) async throws -> GroupResult { ... }
 ```
 
 And the types themselfes, mostly mirroring the APIs of `TaskGroup`, except that they're missing `next()` and related functionality:
@@ -265,4 +265,4 @@ A number of concerns were raised during the pitch process that the "throw the fi
 
 The proposers feel that introducing this API surface in the first version of this feature adds significant complexity to this type. This requires us to be confident that the API surface proposed is going to serve the necessary use-cases, without adding unnecessary cognitive load. It's also not entirely clear where the line is between features that can be handled using `try`/`catch` and features that require a new error filter function.
 
-As a result, the proposrs have elected to defer implementing anything here until there are real-world examples to generalise from. Having some sort of error filter is likely to be valuable, and the implementation will preserve the capability to implement such a function, but for now the proposal is going to be kept relatively small.
+As a result, the proposal authors have elected to defer implementing anything here until there are real-world examples to generalise from. Having some sort of error filter is likely to be valuable, and the implementation will preserve the capability to implement such a function, but for now the proposal is going to be kept relatively small.
