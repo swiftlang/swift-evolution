@@ -224,19 +224,19 @@ After feedback on the the initial pitch, we attempted to avoid introducing a new
 
 The group would also have very different implicit cancellation behavior, ultimately leading us to conclude during the Swift Evolution review that these two behaviors should not be conflated into one type.
 
-### Error throwing behaviour
+### Alternate Error throwing behaviour
 
-The pitch proposes that `ThrowingTaskGroup` with `discardResults` set to `true` will throw only the _first_ error thrown by a child `Task`. This means that all subsequent errors will be discarded, which is an unfortunate loss of information. Two alternative behaviours could be chosen: we could not add `discardResults` to `ThrowingTaskGroup` at all, or we could throw an aggregate error that contains all errors thrown by the child `Task`s.
+The pitch proposes that `ThrowingDiscardingTaskGroup` will throw only the _first_ error thrown by a child `Task`. This means that all subsequent errors will be discarded, which is an unfortunate loss of information. Two alternative behaviours could be chosen: we could not provide `ThrowingDiscardingTaskGroup` at all, or we could throw an aggregate error that contains *all* errors thrown by the child `Task`s.
 
-Not allowing `discardResults` on `ThrowingTaskGroup` is a substantial ergonomic headache. Automatic error propagation is one of the great features of structured concurrency, and not being able to use it in servers or other long-running processes is an unnecessary limitation, especially as it's not particularly technically challenging to propagate errors. For this reason, we do not think it's wise to omit `discardResults` on `ThrowingTaskGroup`.
+Not allowing offering `ThrowingDiscardingTaskGroup` at all is a substantial ergonomic headache. Automatic error propagation is one of the great features of structured concurrency, and not being able to use it in servers or other long-running processes is an unnecessary limitation, especially as it's not particularly technically challenging to propagate errors. For this reason, we do not think it's wise to omit `discardResults` on `ThrowingDiscardingTaskGroup`.
 
-The other alternative is to throw an aggregate error. This would require that `ThrowingTaskGroup` persist all (or almost all) errors thrown by child tasks and merge them together into a single error `struct` that is thrown. This idea is a mixed bag.
+The other alternative is to throw an aggregate error. This would require that `ThrowingDiscardingTaskGroup` persist all (or almost all) errors thrown by child tasks and merge them together into a single error `struct` that is thrown. This idea is a mixed bag.
 
 The main advantage of throwing an aggregate error is that no information is lost. Programs can compute on all errors that were thrown, and at the very least can log or provide other metrics based on those errors. Avoiding data loss in this way is valuable, and gives programmers more flexibility.
 
 Throwing an aggregate error has two principal disadvantages. The first is that aggregate errors do not behave gracefully in `catch` statements. If a child task has thrown `MyModuleError`, programmers would like to write `catch MyModuleError` in order to handle it. Aggregate errors break this situation, even if only one error is thrown: programmers have to write `catch let error = error as? MyAggregateError where error.baseErrors.contains(where: { $0 is MyModuleError })`, or something else equally painful.
 
-The other main disadvantage is the storage bloat from `CancellationError`. The first thrown error will auto-cancel all child `Task`s. This is great, but that cancellation will likely manifest in a thrown `CancellationError`, which will presumably bubble to the top and be handled by the `ThrowingTaskGroup`. This means that a `ThrowingTaskGroup` will likely store a substantial collection of errors, where all but the first are `CancellationError`. This is a substantial regression in convenience for the mainline case, with additional costs in storage, without providing any more meaningful information.
+The other main disadvantage is the storage bloat from `CancellationError`. The first thrown error will auto-cancel all child `Task`s. This is great, but that cancellation will likely manifest in as series of `CancellationError`s, which will presumably bubble to the top and be handled by the `ThrowingDiscardingTaskGroup`. This means that a `ThrowingDiscardingTaskGroup` will likely store a substantial collection of errors, where all but the first are `CancellationError`. This is a substantial regression in convenience for the mainline case, with additional costs in storage, without providing any more meaningful information.
 
 For these reasons we've chosen the middle behaviour, where only one error is thrown. We think there is merit in throwing an aggregate error, however, and we'd like community feedback on this alternative.
 
