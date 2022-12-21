@@ -119,14 +119,11 @@ public struct DiscardingTaskGroup {
     operation: @Sendable @escaping () async -> Void
   ) -> Bool 
 
-  public mutating func waitForAll() async
-  
   public var isEmpty: Bool
   
   public func cancelAll()
   public var isCancelled: Bool
 }
-/// Task groups are by-design not sendable, this is expressed by the following:
 @available(*, unavailable)
 extension DiscardingTaskGroup: Sendable { }
 
@@ -142,14 +139,11 @@ public struct ThrowingDiscardingTaskGroup {
     operation: @Sendable @escaping () async throws -> Void
   ) -> Bool 
 
-  public mutating func waitForAll() async throws
-  
   public var isEmpty: Bool
   
   public func cancelAll()
   public var isCancelled: Bool
 }
-/// Task groups are by-design not sendable, this is expressed by the following:
 @available(*, unavailable)
 extension DiscardingThrowingTaskGroup: Sendable { }
 ```
