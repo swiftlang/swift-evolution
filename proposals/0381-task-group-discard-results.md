@@ -1,4 +1,4 @@
-# discardResults for TaskGroups
+# DiscardingTaskGroups
 
 * Proposal: [SE-0381](0381-task-group-discard-results.md)
 * Authors: [Cory Benfield](https://github.com/Lukasa), [Konrad Malawski](https://github.com/ktoso)
@@ -79,44 +79,156 @@ While this is workable, it forces users to determine a value for `maxConcurrency
 
 ## Proposed Solution
 
-We propose adding a new Boolean option to `TaskGroup` and `ThrowingTaskGroup` factory functions (`withTaskGroup` and `withThrowingTaskGroup`), called `discardResults`. This option defaults to `false`, which causes `TaskGroup` and `ThrowingTaskGroup` to behave as they do today. When the user sets this value to `true`, the runtime behaviour of `TaskGroup` and `ThrowingTaskGroup` changes in the following ways:
+We propose adding new `DiscardingTaskGroup` and `ThrowingDiscardingTaskGroup` group types (obtained by `withDiscardingTaskGroup` and `withThrowingDiscardingTaskGroup`). These groups, are somewhat similar to the normal `TaskGroups` implementations, however they differ in the following important ways:
 
-1. `[Throwing]TaskGroup` automatically cleans up its child `Task`s when those `Task`s complete.
-2. `[Throwing]TaskGroup` always returns `nil` from its `next()` method, behaving like an empty `AsyncSequence`.
+1. `[Throwing]DiscardingTaskGroup` automatically cleans up its child `Task`s when those `Task`s complete.
+2. `[Throwing]DiscardingTaskGroup` do not have a `next()` method, nor do they conform to `AsyncSequence`.
 
-This has the effect of automatically discarding the return type from the child tasks.
+These group types are _not_ parameterized with the `ChildTaskResult`, and it is assumed to be `Void`, because as the name implies, they are always _discarding the results_ of their child tasks.
 
-In this mode, `[Throwing]TaskGroup` maintains many of the same behaviours as when `discardResults` is set to `false`, albeit in some cases with slightly different manifestations:
+Cancellation and error propagation of `[Throwing]DiscardingTaskGroup` works the same way one comes to expect a task group to behave, however due to the inability to explicitly use `next()` to "re-throw" a child task error, the discarding task group types must handle this behavior implicitly by re-throwing the _first_ encountered error and cancelling the group.
 
-1. `ThrowingTaskGroup`s are automatically cancelled when one of their child `Task`s terminates with a thrown error, as if `next()` had been immediately called in the parent `Task`.
-2. `ThrowingTaskGroup`s that are cancelled in this way will, after awaiting all their child `Task`s, throw the error that originally caused them to be auto-cancelled, again as if `next()` had been immediately called in the parent `Task`.
-3. Automatic cancellation propagation works as usual, so cancelling the `Task` that owns a `[Throwing]TaskGroup` automatically cancels all child `Task`s.
+`[Throwing]DiscardingTaskGroup` is a structured concurrency primitive, the same way as `[Throwing]TaskGroup` and _must_ automatically await all submitted tasks before the body of the `[try] await with[Throwing]DiscardingTaskGroup { body }` returns.
 
 ### API Surface
 
 ```swift
-public func withTaskGroup<ChildTaskResult, GroupResult>(
-  of childTaskResultType: ChildTaskResult.Type,
+public func withDiscardingTaskGroup<GroupResult>(
   returning returnType: GroupResult.Type = GroupResult.self,
-  discardResults: Bool = false,
-  body: (inout TaskGroup<ChildTaskResult>) async -> GroupResult
-) async -> GroupResult {
+  body: (inout DiscardingTaskGroup) async -> GroupResult
+) async -> GroupResult { ... } 
 
-public func withThrowingTaskGroup<ChildTaskResult, GroupResult>(
-  of childTaskResultType: ChildTaskResult.Type,
+public func withThrowingDiscardingTaskGroup<GroupResult>(
   returning returnType: GroupResult.Type = GroupResult.self,
-  discardResults: Bool = false,
-  body: (inout ThrowingTaskGroup<ChildTaskResult, Error>) async throws -> GroupResult
-) async rethrows -> GroupResult {
+  body: (inout ThrowingDiscardingTaskGroup<Error>) async throws -> GroupResult
+) async rethrows -> GroupResult { ... }
 ```
+
+And the types themselfes, mostly mirroring the APIs of `TaskGroup`, except that they're missing `next()` and related functionality:
+
+```swift
+public struct DiscardingTaskGroup {
+  
+  public mutating func addTask(
+    priority: TaskPriority? = nil,
+    operation: @Sendable @escaping () async -> Void
+  )
+
+  public mutating func addTaskUnlessCancelled(
+    priority: TaskPriority? = nil,
+    operation: @Sendable @escaping () async -> Void
+  ) -> Bool 
+
+  public mutating func waitForAll() async
+  
+  public var isEmpty: Bool
+  
+  public func cancelAll()
+  public var isCancelled: Bool
+}
+/// Task groups are by-design not sendable, this is expressed by the following:
+@available(*, unavailable)
+extension DiscardingTaskGroup: Sendable { }
+
+public struct ThrowingDiscardingTaskGroup {
+  
+  public mutating func addTask(
+    priority: TaskPriority? = nil,
+    operation: @Sendable @escaping () async throws -> Void
+  )
+
+  public mutating func addTaskUnlessCancelled(
+    priority: TaskPriority? = nil,
+    operation: @Sendable @escaping () async throws -> Void
+  ) -> Bool 
+
+  public mutating func waitForAll() async throws
+  
+  public var isEmpty: Bool
+  
+  public func cancelAll()
+  public var isCancelled: Bool
+}
+/// Task groups are by-design not sendable, this is expressed by the following:
+@available(*, unavailable)
+extension DiscardingThrowingTaskGroup: Sendable { }
+```
+
+## Detailed Design
+
+### Discarding results
+
+As indicated by the name a `[Throwing]DiscardingTaskGroup` will discard results of its child tasks _immediately_ and release the child task that produced the result. This allows for efficient and "running forever" request accepting loops such as HTTP or RPC servers.
+
+Specifically, the first example shown in the Motivation section of this proposal, _is_ safe to be expressed using a discarding task group, as follows:
+
+```swift
+// GOOD, no leaks!
+try await withThrowingDiscardingTaskGroup() { group in
+    while let newConnection = try await listeningSocket.accept() {
+        group.addTask {
+            handleConnection(newConnection)
+        }
+    }
+}
+```
+
+This code–unlike the `withThrowingTaskGroup` version shown earlier–does not leak tasks and therefore is safe and the recommended way to express such handler loops. 
+
+### Error propagation and group cancellation
+
+Throwing task groups rely on the `next()` (or `waitForAll()`) being throwing and end users consuming the child tasks this way in order to surface any error that the child tasks may have thrown. It is possible for a `ThrowingTaskGroup` to explicitly collect results (and failures), and react to them, like this:
+
+```swift
+try await withThrowingTaskGroup(of: Void.self) { group in 
+  group.addTask { try boom() }
+  group.addTask { try boom() }
+  group.addTask { try boom() }
+  
+  try await group.next() // re-throws whichever error happened first
+} // since body threw, the group and remaining tasks are immediately cancelled 
+```
+
+The above snippet illustrates a simple case of the error propagation out of a child task, through `try await next()` (or `try await group.waitForAll()`) out of the `withThrowingTaskGroup` closure body. As soon as an error is thrown out of the closure body, the group cancels itself and all remaining tasks implicitly, finally proceeding to await all the pending tasks.
+
+This pattern is not possible with `ThrowingDiscardingTaskGroup` because the the results collecting methods are not available on discarding groups. In order to properly support the common use-case of discarding groups, the failure of a single task, should implicitly and _immediately_ cancel the group and all of its siblings.
+
+This can be seen as the implicit immediate consumption of the child tasks inspecting the task for failures, and "re-throwing" the failure automatically. The error is then also re-thrown out of the `withThrowingDiscardingTaskGroup` method, like this:
+
+```swift
+try await withThrowingDiscardingTaskGroup() { group in 
+  group.addTask { try boom(1) }
+  group.addTask { try boom(2) }
+  group.addTask { try boom(3) }
+  // whichever failure happened first, is collected, stored, and re-thrown out of the method when exiting.
+}
+```
+
+In other words, discarding task groups follow the "one for all, and all for one" pattern for failure handling. A failure of a single child task, _immediately_ causes cancellation of the group and its siblings. 
+
+Preventing this behavior can be done in two ways:
+
+- using `withDiscardingTaskGroup`, since the child tasks won't be allowed to throw, and must handle their errors in some other way,
+- including normal `do {} catch {}` error handling logic inside the child-tasks, which only re-throws.
+
+We feel this is the right approach for this structured concurrency primitive, as we should be leaning on normal swift code patterns, rather than introduce special one-off ways to handle and deal with errors. Although, if it were necessary, we could introduce a "failure reducer" in the future.
 
 ## Alternatives Considered
 
-### Introducing new types
+### Introducing new "TaskPool" type (initial pitch)
 
 The [original pitch](https://forums.swift.org/t/pitch-task-pools/61703) introduced two new types, `TaskPool` and `ThrowingTaskPool`. These types were introduced in order to expose at the type system level the inability to iterate the pool for new tasks. This would avoid the `next()` behaviour introduced in this pitch, where `next()` always returns `nil`. This was judged a worthwhile change to justify introducing new types.
 
 Several reviewers of the pitch felt that this was not a sufficiently useful capability to justify the introduction of the new types, and that the pitched behaviour more properly belonged as a "mode" of operation on `TaskGroup`. In line with that feedback, this proposal has moved to using the `discardResults` option.
+
+### Extending [Throwing]TaskGroup with discardResults flag
+
+After feedback on the the initial pitch, we attempted to avoid introducing a new type, and instead handle it using a `discardResults: Bool` flag on `with[Throwing]TaskGroup()` this was fairly problematic because:
+
+- the group would have the `next()` method as well as `AsyncSequence` conformance present, but non-functional, i.e. always returning `nil` from `next()` which could lead to subtle bugs and confusion.
+- we'd end up constraining this new option only to child task result types of `Void`, making access to this functionality a bit hard to discover
+
+The group would also have very different implicit cancellation behavior, ultimately leading us to conclude during the Swift Evolution review that these two behaviors should not be conflated into one type.
 
 ### Error throwing behaviour
 
