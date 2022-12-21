@@ -3,7 +3,7 @@
 * Proposal: [SE-0380](0380-if-switch-expressions.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Hamish Knight](https://github.com/hamishknight)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (December 7...December 21, 2022)**
+* Status: **Active Review (December 7...December 30, 2022)**
 * Implementation: [apple/swift#612178](https://github.com/apple/swift/pull/62178), including a downloadable toolchain.
 * Review: ([pitch](https://forums.swift.org/t/pitch-if-and-switch-expressions/61149)), ([review](https://forums.swift.org/t/se-0380-if-and-switch-expressions/61899))
 
