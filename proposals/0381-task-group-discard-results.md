@@ -8,7 +8,7 @@
 
 ### Introduction
 
-We propose to introduce a new boolean parameter, `discardResults`, to `TaskGroup` and `ThrowingTaskGroup`. This parameter controls whether the `TaskGroup` retains the results of its completed child `Task`s for passing to `next()`, or whether it discards those results immediately.
+We propose to introduce a new type of structured concurrency task group:  `Discarding[Throwing]TaskGroup`. This type of group is similar to `TaskGroup` however it discards results of its child tasks immediately. It is specialized for potentially never-ending task groups, such as top-level loops of http or other kinds of rpc servers.
 
 Pitch thread: [Task Pools](https://forums.swift.org/t/pitch-task-pools/61703).
 
