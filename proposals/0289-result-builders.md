@@ -1067,7 +1067,7 @@ let other = Def.otherThings
 let v1 = ThingBuilder.buildDeclaration(other)
 
 let v2 = <result of translating show expression>
-let v3 = <result of transalation filter expression>
+let v3 = <result of translation filter expression>
 let v4 = ThingBuilder.buildBlock(v0, v1, v2, v3)
 ```
 
