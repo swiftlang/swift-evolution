@@ -127,7 +127,7 @@ public struct DiscardingTaskGroup {
 @available(*, unavailable)
 extension DiscardingTaskGroup: Sendable { }
 
-public struct ThrowingDiscardingTaskGroup {
+public struct ThrowingDiscardingTaskGroup<Failure: Error> {
   
   public mutating func addTask(
     priority: TaskPriority? = nil,
