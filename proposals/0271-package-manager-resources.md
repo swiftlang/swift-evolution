@@ -52,7 +52,7 @@ We propose the following to support resources in Swift packages:
 
 - Add two new rules "copy" and "process" to existing list of rules. At this time, there will be no additional built-in file type that use these two new rules. 
 
-- Vend an API in libSwiftPM to allow its clients to register additional file types supported by those clients. SwiftPM will automatially detect the matching files in a target and report them in the package model data structure. Similar to source files, package authors will not need to explicitly declare these files in the package manifest. This ability is useful for clients like Xcode to support platform-specific file types (such as `.metal`) without having to bake in a hardcoded list in SwiftPM’s codebase.
+- Vend an API in libSwiftPM to allow its clients to register additional file types supported by those clients. SwiftPM will automatically detect the matching files in a target and report them in the package model data structure. Similar to source files, package authors will not need to explicitly declare these files in the package manifest. This ability is useful for clients like Xcode to support platform-specific file types (such as `.metal`) without having to bake in a hardcoded list in SwiftPM’s codebase.
 
 - Add a new `resources` parameter in `target` and `testTarget` APIs to allow declaring resource files explicitly.
 
