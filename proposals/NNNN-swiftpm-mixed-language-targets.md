@@ -152,23 +152,22 @@ The role of the `MixedTargetBuildDescription` is to generate auxiliary
 artifacts needed for the build and pass specific build flags to the underlying 
 `SwiftTargetBuildDescription` and `ClangTargetBuildDescription`.
 
-The following diagram shows the relationship between the various types
-
+The following diagram shows the relationship between the various types.
 ```mermaid
-graph LR
+flowchart LR
     A>Swift sources] --> B[SwiftTarget] --> C[SwiftTargetBuildDescription]
     D>Clang sources] --> E[ClangTarget] --> F[ClangTargetBuildDescription]
- 
+    
     subgraph MixedTarget
-    SwiftTarget
-    ClangTarget
+      SwiftTarget
+      ClangTarget
     end
- 
+    
     subgraph MixedTargetBuildDescription
-    SwiftTargetBuildDescription
-    ClangTargetBuildDescription
+      SwiftTargetBuildDescription
+      ClangTargetBuildDescription
     end
- 
+    
     G>Mixed sources] --> MixedTarget --> MixedTargetBuildDescription
 ```
 
