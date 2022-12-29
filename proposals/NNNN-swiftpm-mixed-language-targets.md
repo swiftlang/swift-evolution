@@ -70,34 +70,28 @@ The [following example][mixed-package] defines a package containing mixed
 language sources.
 
 ```
-// Manifest
-MixedPackage/Package.swift
-
-// Clang sources
-// - Public headers
-MixedPackage/Sources/MixedPackage/include/MixedPackage.h
-MixedPackage/Sources/MixedPackage/include/Sith.h
-MixedPackage/Sources/MixedPackage/include/droid_debug.h
-
-// - Implementations and internal headers
-MixedPackage/Sources/MixedPackage/Sith.m
-MixedPackage/Sources/MixedPackage/droid_debug.c
-MixedPackage/Sources/MixedPackage/SithRegistry.h
-MixedPackage/Sources/MixedPackage/SithRegistry.m
-
-// Swift sources
-MixedPackage/Sources/MixedPackage/Jedi.swift
-MixedPackage/Sources/MixedPackage/Lightsaber.swift
-
-// Resources
-MixedPackage/Sources/MixedPackage/hello_there.txt
-
-// Tests
-MixedPackage/Tests/MixedPackageTests/JediTests.swift
-MixedPackage/Tests/MixedPackageTests/SithTests.m
-MixedPackage/Tests/MixedPackageTests/TestConstants.swift
-MixedPackage/Tests/MixedPackageTests/ObjcTestConstants.h
-MixedPackage/Tests/MixedPackageTests/ObjcTestConstants.m
+MixedPackage
+├── Package.swift
+├── Sources
+│   └── MixedPackage
+│       ├── Jedi.swift          ⎤-- Swift sources  
+│       ├── Lightsaber.swift    ⎦ 
+│       ├── Sith.m              ⎤-- Implementations & internal headers
+│       ├── SithRegistry.h      ⎟ 
+│       ├── SithRegistry.m      ⎟
+│       ├── droid_debug.c       ⎦
+│       ├── hello_there.txt     ]-- Resources
+│       └── include             ⎤-- Public headers 
+│           ├── MixedPackage.h  ⎟ 
+│           ├── Sith.h          ⎟
+│           └── droid_debug.h   ⎦
+└── Tests
+    └── MixedPackageTests
+        ├── JediTests.swift     ]-- Swift tests
+        ├── SithTests.m         ]-- Objective-C tests
+        ├── ObjcTestConstants.h ⎤-- Mixed language test utils
+        ├── ObjcTestConstants.m ⎟
+        └── TestConstants.swift ⎦
 ```
 
 The proposed solution would enable the above package to have the following
