@@ -274,9 +274,9 @@ without a custom module map.
         "type": "directory",
         "contents":
           [
-   // Note #2: Including the below file has no effect when there is
-   // no custom module map because the module.modulemap already
-   // exists in the Intermediates subdirectory.
+            // Note #2: Including the below file has no effect when there is
+            // no custom module map because the module.modulemap already
+            // exists in the Intermediates subdirectory.
             {
               "name": "module.modulemap",
               "type": "file",
@@ -358,8 +358,8 @@ without a custom module map.
   "roots":
     [
       {
-       // Note #1: If a custom module map exists, the below directory will 
-       // instead be the custom module map's parent directory.
+        // Note #1: If a custom module map exists, the below directory will 
+        // instead be the custom module map's parent directory.
         "name": "/Users/crusty/Developer/MixedTarget/.build/.../MixedTarget.build/Intermediates",
         "type": "directory",
         "contents":
@@ -624,6 +624,7 @@ listed in the Future Directions section as an area of future work.
   package manager. 
 
 <!-- Links -->
+
 [SE-0038]: https://github.com/apple/swift-evolution/blob/main/proposals/0038-swiftpm-c-language-targets.md
 
 [mixed-package]: https://github.com/ncooke3/MixedPackage
