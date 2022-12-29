@@ -123,13 +123,14 @@ following requirements:
 ## Detailed design
 
 ### Modeling a mixed language target and its build process
+
 Up until this proposal, when a package was loading, each target was represented
 programmatically as either a [`SwiftTarget`] or [`ClangTarget`]. Which of these
 types to use was informed by the sources found in the target. For targets with
 mixed language sources, an error was thrown and surfaced to the client. During
 the build process, each of those types mapped to another type
-([`SwiftTargetBuildDescription`] or [`ClangTargetBuildDescription`]) that described
-how the target should be built.
+([`SwiftTargetBuildDescription`] or [`ClangTargetBuildDescription`]) that
+described how the target should be built.
 
 This proposal adds two new types, `MixedTarget` and `MixedTargetDescription`,
 that represent targets with mixed language sources during the package loading
@@ -197,6 +198,7 @@ would look like such:
 ```
 
 #### module.modulemap
+
 A mixed target will either have a custom module map defined by the package
 author or it won’t. In both cases, the package manager creates an intermediary
 module map in the `Intermediates` subdirectory that exposes the generated
@@ -230,6 +232,7 @@ module MixedTarget.Swift {
 ```
 
 #### all-product-headers.yaml
+
 This overlay file’s purpose is to facilitate the building of the Clang sources
 by positioning the above module map and the generated interop header
 accordingly so that the build can be successful. The positioning is determined
@@ -243,7 +246,7 @@ the mixed target:
        contents will instead come from the intermediary module map. This is
        done to avoid a module redeclaration error from there being two
        discoverable, distinct module maps.
-    2. Add the generated interop header to the directory. This will enabled the
+    2. Add the generated interop header to the directory. This will enable the
        header to be imported within this target via
        `#import MixedTarget-Swift.h`.
 - If there is no custom module map, then the overlay is created over the
@@ -270,7 +273,8 @@ without a custom module map.
           [
             // Note #2: Including the below file has no effect when there is
             // no custom module map because the module.modulemap already
-            // exists in the Intermediates subdirectory.
+            // exists in the Intermediates subdirectory. It is included to
+            // simplify the VFS templating logic between the two cases. 
             {
               "name": "module.modulemap",
               "type": "file",
@@ -291,8 +295,8 @@ without a custom module map.
 #### unextended-module.modulemap
 
 The unextended module map is used when compiling the target’s Swift sources.
-The unextended part of its name comes from the fact that it does not include a
-submodule to expose the generated interop header, as is done in the
+The *unextended* part of its name comes from the fact that it does not include
+a submodule to expose the generated interop header, as is done in the
 intermediary `module.modulemap`. This is intentionally excluded for two
 reasons:
 - This module map is only used to build the target’s Swift sources; therefore,
@@ -323,6 +327,7 @@ module MixedTarget {
 ```
 
 #### unextended-module-overlay.yaml
+
 This overlay file is similar in purpose to the previously discussed
 `all-product-headers.yaml` overlay file except that it instead facilitates the
 building of the target’s Swift sources. Like with the
@@ -375,16 +380,18 @@ without a custom module map.
 The Swift part of the target is built before the Clang part. This is because
 the C language sources may require resolving an import of the generated interop
 header, and that header is emitted alongside the Swift module when the Swift
-part of the target is built.This relationship is enforced in that the generated
-interop header is listed as an input to the compilation commands for the
-target’s C language sources.This is specified in the llbuild manifest
-(debug.yaml in the .build directory).
+part of the target is built. This relationship is enforced in that the
+generated interop header is listed as an input to the compilation commands for
+the target’s C language sources. This is specified in the llbuild manifest
+(`debug.yaml` in the packag's `.build` directory).
 
 ##### Build flags for the Swift part of the target
+
 The following flags are used when compiling the **Swift** part of the target:
 1. `-import-underlying-module` This flag triggers a partial build of the
    underlying C language sources when building the Swift module. This critical
-   flag enables the Swift sources to use C language types.
+   flag enables the Swift sources to use C language types defined in the Clang
+   part of the target.
 1. `-I /path/to/overlay_directory` The above `-import-underlying-module` flag
    will look for a module map in the given header search path. The overlay
    directory chosen when creating the above VFS overlay files is used here.
@@ -419,10 +426,11 @@ modifying [LLBuildManifestBuilder.swift] to convert a
 `MixedTargetBuildDescription` intentionally wraps and configures an underlying
 `SwiftTargetBuildDescription` and `ClangTargetBuildDescription`. This means
 that creating a llbuild build node for a mixed target is really just creating
-build nodes for the `SwiftTargetBuildDescription` and
+build nodes for the its `SwiftTargetBuildDescription` and
 `ClangTargetBuildDescription`, respectively.
 
 #### Build artifacts for client targets
+
 As explained above, intermediary artifacts support the mixed target’s
 build process. For example, the intermediary module maps intentionally expose
 all headers so all types defined in the target’s headers can be used in the
@@ -471,13 +479,19 @@ There are two cases when creating the product module map:
 > primary module declaration will not specify any headers or umbrella
 > directories.
 
+Below is an example of a module map for a target that has an umbrella
+header in its public headers directory (`include`).
+
 ```
 // module.modulemap 
 
+// This declaration is either copied from the custom module map or generated
+// via the rules from SE-0038.
 module MixedTarget {
-    umbrella "/Users/crusty/Developer/MixedTarget/Sources/MixedTarget"
+    umbrella header "/Users/crusty/Developer/MixedTarget/Sources/MixedTarget/include/MixedTarget.h"
     export *
 }
+// This is added on by the package manager.
 module MixedTarget.Swift {
     header "/Users/crusty/Developer/MixedTarget/.build/.../MixedTarget.build/MixedTarget-Swift.h"
     requires objc
@@ -485,6 +499,7 @@ module MixedTarget.Swift {
 ```
 
 ##### all-product-headers.yaml
+
 The product `all-product-headers.yaml` overlay file is only created when there
 exists a custom module map that needs to be swapped out for the product module
 map. 
@@ -533,7 +548,40 @@ The below sample shows what this overlay file may look like:
 }
 ```
 
+### Mixed language Test Targets
+
+To complement library targets with mixed languages, mixed test targets are
+also supported as part of this proposal. Using the same strategy, mixed test
+targets are built with intermediary module maps that enable the sharing of
+mixed language testing utilities.
+
+Using the [example package][mixed-package] from before, consider the following
+layout of the package's `Tests` directory.
+
+```
+MixedPackage
+├── ...
+└── Tests
+    └── MixedPackageTests
+        ├── JediTests.swift     ]-- Swift tests
+        ├── SithTests.m         ]-- Objective-C tests
+        ├── ObjcTestConstants.h ⎤-- Mixed language test utils
+        ├── ObjcTestConstants.m ⎟
+        └── TestConstants.swift ⎦
+```
+
+The types defined in `ObjcTestConstants.h` are visible in `SithTests.m` (via
+importing the header) and implicitly visible in `JediTests.swift`.
+
+The Objective-C compatible types defined in `TestConstants.swift` are visible
+in `SithTests.m` (via importing the generated `MixedPackageTests-Swift.h`
+header) and implicitly visible in `JediTests.swift`.
+
+This design should give package authors flexibility in designing test suites
+for their mixed targets.
+
 ### Failure cases
+
 There are several failure cases that may surface to end users:
 - Attempting to build a mixed target using a tools version that does not
   include this proposal’s implementation.
@@ -559,6 +607,7 @@ There are several failure cases that may surface to end users:
   ```
 
 ### Testing
+
 This feature was tested with a mix of unit and integration tests.
 - `Tests/BuildTests/BuildPlanTests.swift`: Added several unit tests to assert
   behavior for fundamental mixed target use cases. 
@@ -589,6 +638,7 @@ feature will continue to [throw an error][mixed-target-error].
 ## Alternatives considered
 
 ### Provide custom implementations for `MixedTarget` and `MixedTargetBuildDescription`
+
 As explained in the Detailed Design section, these two types effectively wrap
 the Swift and Clang parts necessary to define or build the target. One
 alternative approach was to provide custom implementations that did not heavily
@@ -596,6 +646,7 @@ rely on code reuse of existing types. The deciding drawback of this approach
 was that it would have resulted in a lot of duplicated code.
 
 ### Consolidate target modeling logic so that all targets are `MixedTarget`s
+
 The deciding drawback here was the risk of introducing a regression in how
 Swift or Clang targets are built. A benefit of the chosen design over this
 alternative is that the code paths introduced in this proposal have little
@@ -609,6 +660,7 @@ can be bubbled up to the mixed target types accordingly. This alternative is
 listed in the Future Directions section as an area of future work.
 
 ## Future Directions
+
 - Investigate uses cases for extending mixed language target support to
   currently unsupported types of targets (e.g. executables).
 - Investigate uses cases for expanding the level of mixed target support when
