@@ -21,16 +21,17 @@ in Swift 6 a hard error.
 ## Motivation
 
 UIKit and AppKit have fully embraced the `@main` attribute and have made
-application adoption as simple as conforming to the `UIApplicationDelegate` and
-`NSApplicationDelegate` protocols. This now means that an author of an
+adoption by applications as simple as conforming to the `UIApplicationDelegate`
+and `NSApplicationDelegate` protocols. This now means that an author of an
 application is presented with two different, but ultimately needless, choices
 for an entrypoint:
 
-* Use one of the hard coded framework-specific attributes `@UIApplicationMain`
-* or `@NSApplicationMain` Use the more general `@main` attribute
+* use one of the hard coded framework-specific attributes `@UIApplicationMain` or `@NSApplicationMain`, or
+* use the more general `@main` attribute.
 
-At runtime, the behavior of the `@main` attribute and the framework-specific
-attributes is identical. Having two functionally identical ways to express the
+At runtime, the behavior of the `@main` attribute on classes that conform to
+one of the application delegate protocols above is identical to the corresponding
+framework-specific attribute. Having two functionally identical ways to express the
 concept of an app-specific entrypoint is clutter at best and confusing at worst.
 This proposal seeks to complete the migration work implied by
 [SE-0281](https://github.com/apple/swift-evolution/blob/main/proposals/0281-main-attribute.md)
