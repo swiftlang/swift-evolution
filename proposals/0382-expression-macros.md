@@ -150,14 +150,14 @@ macro-signature -> ':' type
 
 macro-function-signature-result -> '->' type
 
-macro-definition -> '=' macro-expansion-expression
+macro-definition -> '=' expression
 ```
 
 The signature of a macro is either function-like (`(_ argument: T) -> (T, String)`) or value-like (`: Int`), depending on the form of the `macro-signature`. The `@expression` attribute applies only to macros. It indicates that the macro is an expression macro.
 
 Macros can only be declared at file scope. They can be overloaded in the same way as functions, so long as the argument labels, parameter types, or result type differ.
 
-The `macro-definition` provides the implementation used to expand the macro. It is always a macro expansion expression, so all non-builtin macros are defined in terms of other macros, terminating in a builtin macro whose definition is provided by the compiler. The arguments provided within the `macro-expansion-expression` of the macro definition must either be direct references to the parameters of the enclosing macro or must be literals. The `macro-expansion-expression` is type-checked (to ensure that the argument and result types make sense), but no expansion is performed at the time of definition. Rather, expansion of the macro referenced by the `macro-definition` occurs when the macro being declared is expanded. See the following section on macro expansions for more information.
+The `macro-definition` provides the implementation used to expand the macro. It is parsed as a general expression, but must always be a `macro-expansion-expression`, so all non-builtin macros are defined in terms of other macros, terminating in a builtin macro whose definition is provided by the compiler. The arguments provided within the `macro-expansion-expression` of the macro definition must either be direct references to the parameters of the enclosing macro or must be literals. The `macro-expansion-expression` is type-checked (to ensure that the argument and result types make sense), but no expansion is performed at the time of definition. Rather, expansion of the macro referenced by the `macro-definition` occurs when the macro being declared is expanded. See the following section on macro expansion for more information.
 
 Macro result types cannot include opaque result types. Macro parameters cannot have default arguments.
 
