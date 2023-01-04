@@ -11,8 +11,6 @@
 
 `@UIApplicationMain` and `@NSApplicationMain` used to be the standard way for iOS and macOS apps respectively to declare a synthesized platform-specific entrypoint for an app. These functions have since been obsoleted by [SE-0281](https://github.com/apple/swift-evolution/blob/main/proposals/0281-main-attribute.md) and the `@main` attribute, and now represent a confusing bit of duplication in the language. This proposal seeks to deprecate these alternative entrypoint attributes in favor of `@main` in Swift 5.8, and makes their use in Swift 6 a hard error.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/deprecate-uiapplicationmain-and-nsapplicationmain/)
-
 ## Motivation
 
 UIKit and AppKit have fully embraced the `@main` attribute and have made application adoption as simple as conforming to the `UIApplicationDelegate` and `NSApplicationDelegate` protocols. This now means that an author of an application is presented with two different, but ultimately needless, choices for an entrypoint:
@@ -28,8 +26,7 @@ The use of both `@UIApplicationMain` and `@NSApplicationMain` under Swift 5 lang
 
 ## Detailed design
 
->Because `@UIApplicationMain` and `@NSApplicationMain` have remarkably similar usages in abstract, this portion of the document will only use examples of `@UIApplicationMain` and assume that the case for `@NSApplicationMain` follows similarly.
-
+Because `@UIApplicationMain` and `@NSApplicationMain` have remarkably similar usages in abstract, this portion of the document will only use examples of `@UIApplicationMain` and assume that the case for `@NSApplicationMain` follows similarly.
 
 Issue a diagnostic asking the user to remove `@UIApplicationMain`. The existing conformance to `UIApplicationDelegate` will kick in when the code is next built and the general-purpose entrypoint will be added instead.
 
