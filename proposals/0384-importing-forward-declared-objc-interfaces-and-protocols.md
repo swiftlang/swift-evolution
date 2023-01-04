@@ -1,17 +1,17 @@
 # Importing Forward Declared Objective-C Interfaces and Protocols
 
-* Proposal: [SE-NNNN](NNNN-importing-forward-declared-objc-interfaces-and-protocols.md)
-* Authors: [Nuri Amari](https://github.com/NuriAmari)
-* Review Manager: TBD
+* Proposal: [SE-0384](0384-importing-forward-declared-objc-interfaces-and-protocols.md)
+* Author: [Nuri Amari](https://github.com/NuriAmari)
+* Review Manager: Tony Allevato (https://github.com/allevato)
+* Status: **Active review (January 4, 2023...January 18, 2023)**
 * Implementation: https://github.com/apple/swift/pull/61606
+* Review: ([pitch](https://forums.swift.org/t/pitch-importing-forward-declared-objective-c-classes-and-protocols/61926))
 
 ## Introduction
 
 This proposal seeks to improve the usability of existing Objective-C libraries from Swift by reducing the negative
 impact forward declarations have on API visibility from Swift. We wish to start synthesizing placeholder types to
 represent forward declared Objective-C interfaces and protocols in Swift.
-
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-importing-forward-declared-objective-c-classes-and-protocols/61926)
 
 ## Motivation
 
