@@ -1,9 +1,11 @@
 # Deprecate @UIApplicationMain and @NSApplicationMain
 
-* Proposal: [SE-NNNN](NNNN-filename.md) 
+* Proposal: [SE-0383](0383-deprecate-uiapplicationmain-and-nsapplicationmain.md)
 * Authors: [Robert Widmann](https://github.com/codafi)
-* Review Manager: TBD 
-* Status: **[Implemented](https://github.com/apple/swift/pull/62151)**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (January 3rd...16th, 2023)**
+* Implementation: [PR 62151](https://github.com/apple/swift/pull/62151)
+* Review: ([pitch](https://forums.swift.org/t/deprecate-uiapplicationmain-and-nsapplicationmain/61493))
 
 ## Introduction
 
@@ -15,9 +17,6 @@ introduction of the `@main` attribute, and they now represent a confusing bit of
 duplication in the language. This proposal seeks to deprecate these alternative
 entrypoint attributes in favor of `@main` in pre-Swift 6, and it makes their use
 in Swift 6 a hard error.
-
-Swift-evolution thread: [Discussion thread topic for that
-proposal](https://forums.swift.org/t/deprecate-uiapplicationmain-and-nsapplicationmain/)
 
 ## Motivation
 
