@@ -3,7 +3,7 @@
 * Proposal: [SE-0382](0382-expression-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active review (December 16...30, 2022)**
+* Status: **Active review (December 16, 2022...January 15, 2023)**
 * Implementation: Partial implementation is available in `main` under the experimental feature flag `Macros`. An [example macro repository](https://github.com/DougGregor/swift-macro-examples) provides a way to experiment with this feature.
 * Review: ([pitch](https://forums.swift.org/t/pitch-expression-macros/61499)) ([pitch #2](https://forums.swift.org/t/pitch-2-expression-macros/61861/16)) ([review](https://forums.swift.org/t/se-0382-expression-macros/62090))
 
