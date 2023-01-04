@@ -1,9 +1,11 @@
 # Deprecate @UIApplicationMain and @NSApplicationMain
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-deprecate-uiapplicationmain-and-nsapplicationmain.md)
 * Authors: [Robert Widmann](https://github.com/codafi)
-* Review Manager: TBD
-* Status: **[Implemented](https://github.com/apple/swift/pull/62151)**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Awaiting review**
+* Implementation: [PR 62151](https://github.com/apple/swift/pull/62151)
+* Review: ([pitch](https://forums.swift.org/t/deprecate-uiapplicationmain-and-nsapplicationmain/61493))
 
 ## Introduction
 
