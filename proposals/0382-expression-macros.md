@@ -208,6 +208,8 @@ The second phase of macro expansions occurs outside-in. First, the `addBlocker` 
 
 From an implementation perspective, the compiler reserves the right to avoid performing repeated type checking of the same macro arguments. For example, we type-checked `#stringify(1 + 2)` in the first phase of the expansion of `prohibitBinaryOperators`, and then again on the expanded result. When the compiler recognizes that the same syntax node is being re-used unmodified, it can re-use the types computed in the first phase. This is an important performance optimization for the type checker.
 
+Macro expansion cannot be recursive: if the expansion of a given macro produces source code that expands that same macro, the program is ill-formed. This prevents unbounded macro expansion.
+
 ### Macro implementation library
 
 Macro definitions will make use of the [swift-syntax](https://github.com/apple/swift-syntax) package, which provides the Swift syntax tree manipulation and parsing capabilities for Swift tools. The `SwiftSyntaxMacros` module will provide the functionality required to define macros.
@@ -498,6 +500,7 @@ Expressions are just one place in the language where macros could be valuable. O
 * Revisions based on review feedback:
   * Make `MacroExpansionContext` a class, because the state involving diagnostics and unique names needs to be shared.
   * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
+  * Clarify that macro expansion cannot be recursive.
   
 * Revisions from the second pitch:
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
