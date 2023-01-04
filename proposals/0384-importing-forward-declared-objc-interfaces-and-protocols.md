@@ -5,7 +5,7 @@
 * Review Manager: Tony Allevato (https://github.com/allevato)
 * Status: **Active review (January 4, 2023...January 18, 2023)**
 * Implementation: https://github.com/apple/swift/pull/61606
-* Review: ([pitch](https://forums.swift.org/t/pitch-importing-forward-declared-objective-c-classes-and-protocols/61926))
+* Review: ([pitch](https://forums.swift.org/t/pitch-importing-forward-declared-objective-c-classes-and-protocols/61926)) ([review](https://forums.swift.org/t/se-0384-importing-forward-declared-objective-c-interfaces-and-protocols/62392))
 
 ## Introduction
 
