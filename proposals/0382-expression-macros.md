@@ -11,8 +11,6 @@
 
 Expression macros provide a way to extend Swift with new kinds of expressions, which can perform arbitary syntactic transformations on their arguments to produce new code. Expression macros make it possible to extend Swift in ways that were only previously possible by introducing new language features, helping developers build more expressive libraries and eliminate extraneous boilerplate.
 
-Swift-evolution thread: 
-
 ## Motivation
 
 Expression macros are one part of the [vision for macros in Swift](https://forums.swift.org/t/a-possible-vision-for-macros-in-swift/60900), which lays out general motivation for introducing macros into the language. Expressions in particular are an area where the language already provides decent abstractions for factoring out runtime behavior, because one can create a function that you call as an expression from anywhere. However, with a few hard-coded exceptions like `#file` and `#line`, an expression cannot reason about or modify the source code of the program being compiled. Such use cases will require external source-generating tools, which don't often integrate cleanly with other tooling.
@@ -92,7 +90,7 @@ public protocol ExpressionMacro: Macro {
   /// Expand a macro described by the given macro expansion expression
   /// within the given context to produce a replacement expression.
   static func expansion(
-    of node: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
+    of node: MacroExpansionExprSyntax, in context: MacroExpansionContext
   ) throws -> ExprSyntax
 }
 ```
@@ -112,7 +110,7 @@ import _SwiftSyntaxMacros
 
 public struct StringifyMacro: ExpressionMacro {
   public static func expansion(
-    of node: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
+    of node: MacroExpansionExprSyntax, in context: MacroExpansionContext
   ) -> ExprSyntax {
     guard let argument = node.argumentList.first?.expression else {
       fatalError("compiler bug: the macro does not have any arguments")
@@ -152,16 +150,18 @@ macro-signature -> ':' type
 
 macro-function-signature-result -> '->' type
 
-macro-definition -> '=' macro-expansion-expression
+macro-definition -> '=' expression
 ```
 
 The signature of a macro is either function-like (`(_ argument: T) -> (T, String)`) or value-like (`: Int`), depending on the form of the `macro-signature`. The `@expression` attribute applies only to macros. It indicates that the macro is an expression macro.
 
 Macros can only be declared at file scope. They can be overloaded in the same way as functions, so long as the argument labels, parameter types, or result type differ.
 
-The `macro-definition` provides the implementation used to expand the macro. It is always a macro expansion expression, so all non-builtin macros are defined in terms of other macros, terminating in a builtin macro whose definition is provided by the compiler. The arguments provided within the `macro-expansion-expression` of the macro definition must either be direct references to the parameters of the enclosing macro or must be literals. The `macro-expansion-expression` is type-checked (to ensure that the argument and result types make sense), but no expansion is performed at the time of definition. Rather, expansion of the macro referenced by the `macro-definition` occurs when the macro being declared is expanded. See the following section on macro expansions for more information.
+The `macro-definition` provides the implementation used to expand the macro. It is parsed as a general expression, but must always be a `macro-expansion-expression`, so all non-builtin macros are defined in terms of other macros, terminating in a builtin macro whose definition is provided by the compiler. The arguments provided within the `macro-expansion-expression` of the macro definition must either be direct references to the parameters of the enclosing macro or must be literals. The `macro-expansion-expression` is type-checked (to ensure that the argument and result types make sense), but no expansion is performed at the time of definition. Rather, expansion of the macro referenced by the `macro-definition` occurs when the macro being declared is expanded. See the following section on macro expansion for more information.
 
-Macro result types cannot include opaque result types. Macro parameters cannot have default arguments.
+Macro result types cannot include opaque result types.
+
+Macro parameters may have default arguments, but those default arguments can only consist of literal expressions and other macro expansions.
 
 ### Macro expansion
 
@@ -208,6 +208,8 @@ The second phase of macro expansions occurs outside-in. First, the `addBlocker` 
 
 From an implementation perspective, the compiler reserves the right to avoid performing repeated type checking of the same macro arguments. For example, we type-checked `#stringify(1 + 2)` in the first phase of the expansion of `prohibitBinaryOperators`, and then again on the expanded result. When the compiler recognizes that the same syntax node is being re-used unmodified, it can re-use the types computed in the first phase. This is an important performance optimization for the type checker.
 
+Macro expansion cannot be recursive: if the expansion of a given macro produces source code that expands that same macro, the program is ill-formed. This prevents unbounded macro expansion.
+
 ### Macro implementation library
 
 Macro definitions will make use of the [swift-syntax](https://github.com/apple/swift-syntax) package, which provides the Swift syntax tree manipulation and parsing capabilities for Swift tools. The `SwiftSyntaxMacros` module will provide the functionality required to define macros.
@@ -227,7 +229,7 @@ public protocol ExpressionMacro: Macro {
   /// Expand a macro described by the given macro expansion expression
   /// within the given context to produce a replacement expression.
   static func expansion(
-    of macro: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
+    of macro: MacroExpansionExprSyntax, in context: MacroExpansionContext
   ) throws -> ExprSyntax
 }
 ```
@@ -243,9 +245,9 @@ If the macro expansion cannot proceed for some reason, the `expansion(of:in:)` o
 The macro expansion context provides additional information about the environment in which the macro is being expanded. This context can be queried as part of the macro expansion:
 
 ```swift
-/// System-supplied structure that provides information about the context in
+/// System-supplied class that provides information about the context in
 /// which a given macro is being expanded.
-public struct MacroExpansionContext {
+public class MacroExpansionContext {
   /// The name of the module in which the macro is being expanded.
   public let moduleName: String
 
@@ -256,16 +258,16 @@ public struct MacroExpansionContext {
   /// Create a new macro expansion context.
   public init(moduleName: String, fileName: String)
   
-   /// Generate a unique local name for use in the macro.
-  public mutating func createUniqueLocalName() -> TokenSyntax
+   /// Generate a unique name for use in the macro.
+  public func createUniqueName() -> TokenSyntax
 
   /// Emit a diagnostic (i.e., warning or error) that indicates a problem with the macro
   /// expansion.
-  public mutating func diagnose(_ diagnostic: Diagnostic)
+  public func diagnose(_ diagnostic: Diagnostic)
 }
 ```
 
-The `createUniqueLocalName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
+The `createUniqueName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
 
 It is intended that `MacroExpansionContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
 
@@ -433,7 +435,7 @@ The `expansion(of:in:)` operation for an expression macro could be marked as `as
 
 ```swift
  static func expansion(
-    of macro: MacroExpansionExprSyntax, in context: inout MacroExpansionContext
+    of macro: MacroExpansionExprSyntax, in context: MacroExpansionContext
   ) async throws -> ExprSyntax
 ```
 
@@ -495,13 +497,18 @@ Expressions are just one place in the language where macros could be valuable. O
 
 ## Revision History
 
+* Revisions based on review feedback:
+  * Make `MacroExpansionContext` a class, because the state involving diagnostics and unique names needs to be shared.
+  * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
+  * Clarify that macro expansion cannot be recursive.
+  * Rename `createUniqueLocalName` to `createUniqueName`; the names might not always be local in scope.
+  
 * Revisions from the second pitch:
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
   * Simplified the type signature of the `#externalMacro` built-in macro.
   * Added `@expression` to the macro to distinguish it from other kinds of macros that could come in the future.
   * Make `expansion(of:in:)` throwing, and have that error be reported back to the user.
   * Expand on how the various builtin standard library macros will work.
-  
 * Revisions from the first pitch:
   * Rename `MacroEvaluationContext` to `MacroExpansionContext`. 
   * Remove `MacroResult` and instead allow macros to emit diagnostics via the macro expansion context.
