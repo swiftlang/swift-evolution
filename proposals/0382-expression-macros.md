@@ -258,8 +258,8 @@ public class MacroExpansionContext {
   /// Create a new macro expansion context.
   public init(moduleName: String, fileName: String)
   
-   /// Generate a unique local name for use in the macro.
-  public func createUniqueLocalName() -> TokenSyntax
+   /// Generate a unique name for use in the macro.
+  public func createUniqueName() -> TokenSyntax
 
   /// Emit a diagnostic (i.e., warning or error) that indicates a problem with the macro
   /// expansion.
@@ -267,7 +267,7 @@ public class MacroExpansionContext {
 }
 ```
 
-The `createUniqueLocalName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
+The `createUniqueName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
 
 It is intended that `MacroExpansionContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
 
@@ -501,6 +501,7 @@ Expressions are just one place in the language where macros could be valuable. O
   * Make `MacroExpansionContext` a class, because the state involving diagnostics and unique names needs to be shared.
   * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
   * Clarify that macro expansion cannot be recursive.
+  * Rename `createUniqueLocalName` to `createUniqueName`; the names might not always be local in scope.
   
 * Revisions from the second pitch:
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
