@@ -1,17 +1,16 @@
-
 # Swift Opt-In Reflection Metadata
 
 *   Proposal: [SE-0379](0379-opt-in-reflection-metadata.md)
 *   Authors: [Max Ovtsin](https://github.com/maxovtsin)
 *   Review Manager: [Joe Groff](https://github.com/jckarter)
-*   Status: **Active review (November 30...December 14, 2022)**
+*   Status: **Returned for revision**
 *   Implementation: [apple/swift#34199](https://github.com/apple/swift/pull/34199)
+*   Review: ([first pitch](https://forums.swift.org/t/proposal-opt-in-reflection-metadata/40981)) ([second pitch](https://forums.swift.org/t/pitch-2-opt-in-reflection-metadata/41696)) ([third pitch](https://forums.swift.org/t/pitch-3-opt-in-reflection-metadata/58852)) ([review](https://forums.swift.org/t/se-0379-opt-in-reflection-metadata/61714)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0379-opt-in-reflection-metadata/62390))
+
 
 ## Introduction
 
 This proposal seeks to increase the safety, efficiency, and secrecy of Swift Reflection Metadata by improving the existing mechanism and providing the opportunity to express a requirement on Reflection Metadata in APIs that consume it.
-  
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-3-opt-in-reflection-metadata/58852)
 
 
 ## Motivation
