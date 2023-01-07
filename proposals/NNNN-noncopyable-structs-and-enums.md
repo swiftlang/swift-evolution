@@ -18,28 +18,28 @@ Swift-evolution thread: [Noncopyable (or "move-only") structs and enums](https:/
 All currently existing types in Swift are **copyable**, meaning it is possible
 to create multiple identical, interchangeable representations of any value of
 the type. However, copyable structs and enums are not a great model for
-unique resources. Classes on the other hand can represent a unique resource,
-since an object remains unique once initialized, and only references to the
-object get copied, but because those references are still copyable, classes
-always demand *shared ownership* of the resource. This
+unique resources. Classes by contrast *can* represent a unique resource,
+since an object has a unique identity once initialized, and only references to
+that unique object get copied. However, because the references to the object are
+still copyable, classes always demand *shared ownership* of the resource. This
 imposes overhead in the form of heap allocation (since the overall lifetime of
 the object is indefinite) and reference counting (to keep track of the number
-of copies of the reference currently existing), and may complicate or introduce
-unsafety into the object's interface needing to account for multiple
-references to access it simultaneously. Swift does not yet have a mechanism
-for defining types that represent unique resources with *unique ownership*.
+of co-owners currently accessing the object), and shared access often
+complicates or introduces unsafety or additional overhead into an object's
+APIs. Swift does not yet have a mechanism for defining types that
+represent unique resources with *unique ownership*.
 
 ## Proposed solution
 
 We propose to allow for `struct` and `enum` types to be declared with the
-`@noncopyable` attribute, which specifies that the declared type is *noncopyable*.
-Values of noncopyable type always have unique ownership, and can never be
-copied (at least, not using Swift's implicit copy mechanism). Since values
-of noncopyable structs and enums have unique identities, they can also have
-`deinit` declarations, like classes, that run automatically at the end of the
-unique instance's lifetime.
+`@noncopyable` attribute, which specifies that the declared type is
+*noncopyable*.  Values of noncopyable type always have unique ownership, and
+can never be copied (at least, not using Swift's implicit copy mechanism).
+Since values of noncopyable structs and enums have unique identities, they can
+also have `deinit` declarations, like classes, which run automatically at the
+end of the unique instance's lifetime.
 
-For example, a basic file handle type could be defined as:
+For example, a basic file descriptor type could be defined as:
 
 ```swift
 @noncopyable
@@ -63,7 +63,7 @@ struct FileDescriptor {
 Like a class, instances of this type can provide managed access to a file
 handle, automatically closing the handle once the value's lifetime ends. Unlike
 a class, no object needs to be allocated; only a simple struct containing the
-file descriptor ID needs to be stored in the stack frame or aggregate type
+file descriptor ID needs to be stored in the stack frame or aggregate value
 that uniquely owns the instance.
 
 ## Detailed design
@@ -149,29 +149,30 @@ are used as function parameters, the ownership convention becomes a much more
 important part of the API contract:
 
 - an `inout` parameter temporarily takes exclusive ownership of the value, and
-  can freely mutate or replace the value for the duration of the call, giving
-  ownership of the possibly-modified value back to the caller on function exit;
-- a `borrow` parameter temporarily borrows the value, without the ability to
+  the callee can freely mutate or replace the value for the duration of the
+  call, giving ownership of the possibly-modified value back to the caller on
+  function exit;
+- a `borrowing` parameter temporarily borrows the value, without the ability to
   mutate or consume it, leaving the value valid on function exit;
-- a `consume` parameter takes exclusive ownership of the value away from the
+- a `consuming` parameter takes exclusive ownership of the value away from the
   caller, making the callee responsible for eventually destroying it or
   forwarding ownership to another owner, and invalidating the argument in the
   caller.
 
 As such, when a function parameter is declared with an noncopyable type, it
-**must** declare whether the parameter uses the `borrow`, `consume`, or
+**must** declare whether the parameter uses the `borrowing`, `consuming`, or
 `inout` convention:
 
 ```swift
 // Redirect a file descriptor
 // Require exclusive access to the FileDescriptor to replace it
-func redirect(_ file: inout FileDescriptor, to otherFile: borrow FileDescriptor) {
+func redirect(_ file: inout FileDescriptor, to otherFile: borrowing FileDescriptor) {
   dup2(otherFile.fd, file.fd)
 }
 
 // Write to a file descriptor
 // Only needs shared access
-func write(_ data: [UInt8], to file: borrow FileDescriptor) {
+func write(_ data: [UInt8], to file: borrowing FileDescriptor) {
   data.withUnsafeBytes {
     write(file.fd, $0.baseAddress, $0.count)
   }
@@ -179,7 +180,7 @@ func write(_ data: [UInt8], to file: borrow FileDescriptor) {
 
 // Close a file descriptor
 // Consumes the file descriptor
-func close(file: consume FileDescriptor) {
+func close(file: consuming FileDescriptor) {
   close(file.fd)
 }
 ```
@@ -189,7 +190,7 @@ declared `mutating` or `consuming`:
 
 ```swift
 extension FileDescriptor {
-  mutating func replace(with otherFile: borrow FileDescriptor) {
+  mutating func replace(with otherFile: borrowing FileDescriptor) {
     dup2(otherFile.fd, self.fd)
   }
 
@@ -259,7 +260,7 @@ default:
 }
 ```
 
-Borrowing pattern matches will address this shortcoming.
+Being able to borrow in pattern matches would address this shortcoming.
 
 ### Deinitializers
 
@@ -288,7 +289,7 @@ a future direction.)
 A value's lifetime ends, and its `deinit` runs if present, in the following
 circumstances:
 
-- For a local `var` or `let` binding, or `consume` function parameter, that
+- For a local `var` or `let` binding, or `consuming` function parameter, that
   is not itself consumed, `deinit` runs after the last non-consuming use.
   If, on the other hand, the binding is consumed, then responsibility for
   deinitialization gets forwarded to the consumer (which may in turn forward
@@ -486,6 +487,43 @@ struct FileDescriptor {
 }
 ```
 
+The [consume operator](https://github.com/apple/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md)
+must be used to explicitly end the value's lifetime using its `deinit` if
+`forget` is used to conditionally destroy the value on other paths through
+the method.
+
+```
+@noncopyable
+struct MemoryBuffer {
+  private var address: UnsafeRawPointer
+
+  init(size: Int) throws {
+    guard let address = malloc(size) else {
+      throw MallocError()
+    }
+    self.address = address
+  }
+
+  deinit {
+    free(address)
+  }
+
+  consuming func takeOwnership(if condition: Bool) -> UnsafeRawPointer? {
+    if condition {
+      // Save the memory buffer and give it to the caller, who
+      // is promising to free it when they're done.
+      let address = self.address
+      forget self
+      return address
+    } else {
+      // We still want to free the memory if we aren't giving it away.
+      _ = consume self
+      return nil
+    }
+  }
+}
+```
+
 ## Source compatibility
 
 For existing Swift code, this proposal is additive.
@@ -501,7 +539,7 @@ affecting the type's ABI; if frozen, then a deinit cannot be added or removed,
 but the deinit implementation may change (if the deinit is not additionally
 `@inlinable`).
 
-A non-`@frozen` class may add fields of noncopyable type without changing ABI.
+A class may add fields of noncopyable type without changing ABI.
 
 ## Effect on API resilience
 
@@ -517,10 +555,10 @@ destruction and cleanup. Since copyable value types cannot directly define
 `deinit`s, being able to observe these order differences is unlikely, but not
 impossible when references to classes are involved.
 
-A `consume` parameter of noncopyable type can be changed into a `borrow`
+A `consuming` parameter of noncopyable type can be changed into a `borrowing`
 parameter without breaking source for clients (and likewise, a `consuming`
 method can be made `borrowing`). Conversely, changing
-a `borrow` parameter to `consume` may break client source. (Either direction
+a `borrowing` parameter to `consuming` may break client source. (Either direction
 is an ABI breaking change.) This is because a consuming use is required to
 be the final use of a noncopyable value, whereas a borrowing use may or may not
 be.
