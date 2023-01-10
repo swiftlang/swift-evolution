@@ -580,6 +580,29 @@ header) and implicitly visible in `JediTests.swift`.
 This design should give package authors flexibility in designing test suites
 for their mixed targets.
 
+#### Testing Visibility
+
+Documented below are several strategies for testing types defined in mixed
+targets.
+
+- **Expose non-public C-Language types to Objective-C test files**: This is
+  done by configuring the test target's [C settings][CSetting] to search for
+  the mixed target's headers via the
+  [`.headerSearchPaths(_:_:)`][headerSearchPath] setting. 
+
+- **Expose non-public C-Language types to Swift test files**: This can be done
+  by adding a header to the test target that imports the desired non-public
+  header(s). Note that the test target will need to be configured to include
+  the mixed test target's header in its header search paths (see above
+  strategy). Additionally, the test target will need at least one `.m` file
+  (e.g. a blank `Dummy.m` file). 
+
+- **Expose `internal` Swift types to Swift test files**: As expected, Swift
+  types with `internal` access be tested within a Swift test file by importing
+  with `@testable`.
+
+Note: Objective-C test files cannot import non-public Swift types.
+
 ### Failure cases
 
 There are several failure cases that may surface to end users:
@@ -688,3 +711,7 @@ listed in the Future Directions section as an area of future work.
 [LLBuildManifestBuilder.swift]: https://github.com/apple/swift-package-manager/blob/14d05ccaa13b768449cd405fff81d630a520e04a/Sources/Build/LLBuildManifestBuilder.swift
 
 [mixed-target-error]: https://github.com/apple/swift-package-manager/blob/ce099264a187759c2f587393bd209d317a0352b4/Sources/PackageLoading/TargetSourcesBuilder.swift#L183-L189
+
+[CSetting]: https://developer.apple.com/documentation/packagedescription/target/csettings
+
+[headerSearchPath]: https://developer.apple.com/documentation/packagedescription/csetting/headersearchpath(_:_:)
