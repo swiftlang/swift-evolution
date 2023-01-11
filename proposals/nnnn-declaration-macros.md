@@ -302,7 +302,47 @@ The implementation of the `dictionaryStorage` macro would create the accessor de
 
 The presence of an accessor macro on a stored property removes the initializer. It's up to the implementation of the accessor macro to either diagnose the presence of the initializer (if it cannot be used) or incorporate it in the result.
 
-### Composing macro kinds
+#### Body macros
+
+A body macro allows one to create or replace the body of a function, initializer, or closure through syntactic manipulation. Body macros are attached to one of these entities, e.g.,
+
+```swift
+@traced(logLevel: 2)
+func myFunction(a: Int, b: Int) { ... }
+```
+
+where the `traced` macro is declared as something like:
+
+```swift
+@declaration(body) macro traced(logLevel: Int = 0)
+```
+
+and implemented in a conformance to the `BodyMacro` protocol:
+
+```swift
+protocol BodyMacro: Macro {
+  /// Expand a macro described by the given custom attribute to
+  /// produce or modify a body for the given entity to which
+  /// the attribute is attached.
+  static func expansion(
+    of node: CustomAttributeSyntax,
+    bodyOf entity: some WithCodeBlockSyntax,
+    in context: inout MacroExpansionContext
+  ) throws -> CodeBlockSyntax
+}
+```
+
+The `WithCodeBlockSyntax` protocol describes all entities that have an optional "body". The `traced` macro could inject a log-level check and a call to log the values of each of the parameters, e.g.,
+
+```swift
+if shouldLog(atLevel: 2) {
+  log("Entering myFunction((a: \(a), b: \(b)))")
+}
+```
+
+Body macros will only be applied when the body is required, e.g., to generate code. A body macro will be applied whether the entity has an existing body or not; if the entity does have an existing body, it will be type-checked before the macro is invoked, as with other macro arguments.
+
+### Composing macro roles
 
 A given macro can have several different roles, allowing the various macro features to be composed. Each of the roles is considered independently, so a single use of a macro in source code can result in different macro expansion functions being called. These calls are independent, and could even happen concurrently. As an example, let's define a macro that emulates property wrappers fairly closely.  The property wrappers proposal has an example for a [clamping property wrapper](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#clamping-a-value-within-bounds):
 
@@ -443,7 +483,7 @@ extension ClampingMacro: AccessorMacro {
 }
 ```
 
-This formulation of `@Clamping` offers some benefits over the property-wrapper version: we don't need to store the min and max values as part of the backing storage (so the presence of `@Clamping` doesn't add any storage), nor do we need to define a new type. More importantly, it demonstrates how the composition of different macro kinds together can produce interesting effects.
+This formulation of `@Clamping` offers some benefits over the property-wrapper version: we don't need to store the min and max values as part of the backing storage (so the presence of `@Clamping` doesn't add any storage), nor do we need to define a new type. More importantly, it demonstrates how the composition of different macro roles together can produce interesting effects.
 
 ### Up-front declarations of newly-introduced macro names
 
@@ -506,7 +546,7 @@ It might be possible to provide a macro implementation API that is expressed in 
 Revisions from the first pitch:
 
 * Split peer/member/accessor macro implementations into separate protocols and attribute spellings, so the compiler can query them in a more fine-grained manner.
-* Removed function-body macros... for the moment. We'll come back to them.
+* Added "body" macros as a separate macro role.
 * Add example showing composition of different macro roles for the same macro to effect property-wrappers behavior.
 
 ## Appendix
