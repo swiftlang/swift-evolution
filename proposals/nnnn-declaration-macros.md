@@ -435,6 +435,63 @@ The `property` field is the syntax node for the stored property. Typically, this
 
 Providing stored properties to this expansion method does require us to introduce a limitation on default-witness macro implementations, which is that they cannot themselves introduce stored properties. This eliminates a potential circularity in the language model, where the list of stored properties could grow due to expansion of a macro, thereby potentially invalidating the results of already-expanded macros that saw a subset of the stored properties. Note that directly preventing default-witness macros from defining stored properties isn't a complete solution, because one could (for example) have a default-witness macro produce a witness function that itself involves a peer-declaration macro that introduces a stored property. Such problems will be detected as a dependency cycle in the compiler and reported as an error.
 
+#### Member attribute macros
+
+Member declaration macros allow one to introduce new member declarations within the type or extension to which they apply. In contrast, member *attribute* macros allow one to modify the member declarations that were explicitly written within the type or extension by adding new attributes to them. Those new attributes could then refer to other macros, such as peer or accessor macros, or builtin attributes. As such, they are primarily a means of *composition*, since they have fairly little effect on their own.
+
+Member attribute macros allow a macro to provide similar behavior to how many built-in attributes work, where declaring the attribute on a type or extension will apply that attribute to each of the members. For example, a global actor `@MainActor` written on an extension applies to each of the members of that extension (unless they specify another global actor or `nonisolated`), an access specifier on an extension applies to each of the members of that extension, and so on.
+
+As an example, we'll define a macro that partially mimics the behavior of the `@objcMembers` attributes introduced long ago in [SE-0160](https://github.com/apple/swift-evolution/blob/main/proposals/0160-objc-inference.md#re-enabling-objc-inference-within-a-class-hierarchy). Our `myObjCMembers` macro is a member-attribute macro:
+
+```swift
+@declaration(memberAttribute)
+macro myObjCMembers: Void
+```
+
+The implementation of this macro will add the `@objc` attribute to every member of the type or extension, unless that member either already has an `@objc` macro or has `@nonobjc` on it. For example, this:
+
+```swift
+@myObjCMembers extension MyClass {
+  func f() { }
+
+  var answer: Int { 42 }
+
+  @objc(doG) func g() { }
+
+  @nonobjc func h() { }
+}
+```
+
+would result in:
+
+```swift
+extension MyClass {
+  @objc func f() { }
+
+  @objc var answer: Int { 42 }
+
+  @objc(doG) func g() { }
+
+  @nonobjc func h() { }
+}
+```
+
+Member-attribute macro implementations should conform to the `MemberAttributeMacro` protocol:
+
+```swift
+protocol MemberAttributeMacro: Macro {
+  /// Expand a macro described by the given custom attribute to
+  /// produce additional attributes for the members of the type.
+  static func expansion(
+    of node: CustomAttributeSyntax,
+    memberAttributesOf declaration: DeclSyntax,
+    in context: inout MacroExpansionContext
+  ) throws -> [DeclSyntax: [AttributeSyntax]]
+}
+```
+
+The `expansion` operation accepts the attribute syntax `node` for the spelling of the member attribute macro and the declaration to which that attribute is attached (i.e., the type or extension). The implementation of the macro can walk the members of the `declaration` to determine which members require additional attributes. The returned dictionary will map from those members to the additional attributes that should be added to each of the members.
+
 ### Composing macro roles
 
 A given macro can have several different roles, allowing the various macro features to be composed. Each of the roles is considered independently, so a single use of a macro in source code can result in different macro expansion functions being called. These calls are independent, and could even happen concurrently. As an example, let's define a macro that emulates property wrappers fairly closely.  The property wrappers proposal has an example for a [clamping property wrapper](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#clamping-a-value-within-bounds):
@@ -641,6 +698,7 @@ Revisions from the first pitch:
 * Split peer/member/accessor macro implementations into separate protocols and attribute spellings, so the compiler can query them in a more fine-grained manner.
 * Added "body" macros as a separate macro role.
 * Added default-witness macros.
+* Added member-attribute macros.
 * Add example showing composition of different macro roles for the same macro to effect property-wrappers behavior.
 
 ## Appendix
