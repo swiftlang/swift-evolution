@@ -578,9 +578,9 @@ extension ClampingMacro: AccessorMacro {
 
 This formulation of `@Clamping` offers some benefits over the property-wrapper version: we don't need to store the min and max values as part of the backing storage (so the presence of `@Clamping` doesn't add any storage), nor do we need to define a new type. More importantly, it demonstrates how the composition of different macro roles together can produce interesting effects.
 
-### Up-front declarations of newly-introduced macro names
+### Up-front declarations of newly-introduced names
 
-Declaration macros require one to declare the names of entities that will be declared. These can involve member and/or peer declaration names, and are provided as an array consisting of a few different kinds:
+Declaration macros require one to declare the names of entities that will be declared by the expansion of the macro. These can involve member and/or peer declaration names, and are provided as an array consisting of a few different kinds:
 
 * Declarations with a specific fixed name: `.named("rawValue")`
 * Declarations that have the same base name as the declaration to which the macro is attached, and are therefore overloaded with it: `.overloaded`.
