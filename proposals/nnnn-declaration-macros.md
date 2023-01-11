@@ -342,6 +342,99 @@ if shouldLog(atLevel: 2) {
 
 Body macros will only be applied when the body is required, e.g., to generate code. A body macro will be applied whether the entity has an existing body or not; if the entity does have an existing body, it will be type-checked before the macro is invoked, as with other macro arguments.
 
+#### Default witness macros
+
+Swift provides default "witness" synthesis for a number of protocols in the standard library, including `Equatable`, `Hashable`, `Encodable`, and `Decodable`. This behavior is triggered when a type has a conformance to a known protocol, and there is no suitable implementation for one of the protocol's requirements, e.g.,
+
+```swift
+struct Point: Equatable {
+  var x: Int
+  var y: Int
+  
+  // no suitable function
+  //
+  //   
+  //
+  // to satisfy the protocol requirement, so the compiler creates one like the following
+  //
+
+}
+```
+
+There is no suitable function to meet the protocol requirement
+
+```swift
+static func ==(lhs: Self, rhs: Self) -> Bool
+```
+
+so the compiler as bespoke logic to synthesize the following:
+
+```swift
+  static func ==(lhs: Point, rhs: Point) -> Bool {
+    lhs.x == rhs.x && lhs.y == rhs.y
+  }
+```
+
+Default witness macros bring this capability to the macro system, by allowing a macro to define a witness to satisfy a requirement when there is no suitable witness. Consider an `equatableSyntax` macro declared as follows:
+
+```swift
+@declaration(witness)
+macro equatableSynthesis: Void
+```
+
+This default-witness macro would be written on the protocol requirement itself, i.e.,
+
+```swift
+protocol Equatable {
+  @equatableSynthesis
+  static func ==(lhs: Self, rhs: Self) -> Bool
+
+  static func !=(lhs: Self, rhs: Self) -> Bool
+}
+```
+
+The macro type would implement the following protocol:
+
+```swift
+protocol DefaultWitnessMacro: DeclarationMacro {
+  /// Expand a macro described by the given custom attribute to
+  /// produce a witness definition for the requirement to which
+  /// the attribute is attached.
+  static func expansion(
+    of node: CustomAttributeSyntax,
+    witness: DeclSyntax,
+    conformingType: TypeSyntax,
+    storedProperties: [StoredProperty],
+    in context: inout MacroExpansionContext
+  ) throws -> DeclSyntax
+}
+```
+
+The contract with the compiler here is interesting. The compiler would use the `@equatableSynthesis` macro to define the witness only when there is no other potential witness. The compiler will then produce a declaration for the witness based on the requirement, performing substitutions as necessary to (e.g.) replace `Self` with the conforming type, and provide that declaration via the `witness` parameter. For `Point`, the `==` declaration would look like this:
+
+```swift
+static func ==(lhs: Point, rhs: Point) -> Bool
+```
+
+The `expansion` operation then augments the provided `witness` with a body, and could perform other adjustments if necessary, before returning it. The resulting definition will be inserted as a member into the conforming type (or extension), wherever the protocol conformance is declared. This approach gives a good balance between making macro writing easier, because the compiler is providing a witness declaration that will match the requirement, while still allowing the macro implementation freedom to alter that witness as needed. Its design also follows how witnesses are currently synthesized in the compiler today, which has fairly well-understood implementation properties (at least, to compiler implementers).
+
+The `conformingType` parameter provides the syntax of the conforming type, which can be used to refer to the type anywhere in the macro. The `storedProperties` parameter provides the set of stored properties of the conforming type, which are needed for many (most?) kinds of witness synthesis. The `StoredProperty` struct is defined as follows:
+
+```swift
+struct StoredProperty {
+  /// The stored property syntax node.
+  var property: VariableDeclSyntax
+  
+  /// The original declaration from which the stored property was created, if the stored property was
+  /// synthesized.
+  var original: Syntax?
+}
+```
+
+The `property` field is the syntax node for the stored property. Typically, this is the syntax node as written in the source code. However, some stored properties are formed in other ways, e.g., as the backing property of a property wrapper (`_foo`) or due to some other macro expansion (member, peer, freestanding, etc.). In these cases, `property` refers to the syntax of the generated property, and `original` refers to the syntax node that caused the stored property to be generated. This `original` value can be used, for example, to find information from the original declaration that can affect the synthesis of the default witness.
+
+Providing stored properties to this expansion method does require us to introduce a limitation on default-witness macro implementations, which is that they cannot themselves introduce stored properties. This eliminates a potential circularity in the language model, where the list of stored properties could grow due to expansion of a macro, thereby potentially invalidating the results of already-expanded macros that saw a subset of the stored properties. Note that directly preventing default-witness macros from defining stored properties isn't a complete solution, because one could (for example) have a default-witness macro produce a witness function that itself involves a peer-declaration macro that introduces a stored property. Such problems will be detected as a dependency cycle in the compiler and reported as an error.
+
 ### Composing macro roles
 
 A given macro can have several different roles, allowing the various macro features to be composed. Each of the roles is considered independently, so a single use of a macro in source code can result in different macro expansion functions being called. These calls are independent, and could even happen concurrently. As an example, let's define a macro that emulates property wrappers fairly closely.  The property wrappers proposal has an example for a [clamping property wrapper](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#clamping-a-value-within-bounds):
@@ -547,6 +640,7 @@ Revisions from the first pitch:
 
 * Split peer/member/accessor macro implementations into separate protocols and attribute spellings, so the compiler can query them in a more fine-grained manner.
 * Added "body" macros as a separate macro role.
+* Added default-witness macros.
 * Add example showing composition of different macro roles for the same macro to effect property-wrappers behavior.
 
 ## Appendix
