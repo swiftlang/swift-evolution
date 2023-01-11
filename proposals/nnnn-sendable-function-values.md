@@ -104,10 +104,13 @@ let obj = NominalType()
 let g = f(obj)
 ```
 
-1. the inference of `@Sendable` for all expressions referencing methods of a type that conforms to `Sendable`.
-2. the inference of `@Sendable` for all expressions referencing non-local functions.
-3. prohibition of marking methods `@Sendable` when the type they belong to is not `@Sendable`.
-4. deprecation of explicitly marking the functions in (1) and (2) with the `@Sendable` attribute, as it is now automatically determined.
+To summarize, here are the proposed changes:
+
+1. the inference of `@Sendable` for unapplied references to methods of a type.
+2. the inference of `@Sendable` for partially-applied methods of a type, if that type conforms to `Sendable`.
+3. the inference of `@Sendable` for when referencing non-local functions.
+4. prohibition of marking methods `@Sendable` when the type they belong to is not `@Sendable`.
+5. deprecation of explicitly marking the functions in (1-3) with the `@Sendable` attribute, as it is now automatically determined.
 
 <!-- TODO: directing users to remove it will cause an ABI break if done naively! how should we handle that? I guess we can emit aliases for all symbols when back-deploying to Swift 5, but if it's only Swift 6 those symbols can go away?
 
@@ -187,13 +190,19 @@ func pass(_ a: MyActor) async {
 }
 ```
 
-In the example above, the call to `g` should raise an error about passing a non-Sendable value from an actor-isolated domain into a non-isolated one. That fact is inferred purely based on the `async` in the type of parameter `g`, which has no other isolation listed. But if we raise that error based on the types, then the call to `f` would also be an error, despite not actually crossing actors! As of today, the example above raises no diagnostics in Swift, despite having a race.
+In the example above, the call to `g` should raise an error about passing a non-Sendable value from an actor-isolated domain into a non-isolated one. That fact can only be inferred based on the `async` in the type of parameter `g`, which has no other isolation listed. But if we raise that error based on the types alone, then the call to `f` would also be an error, despite not actually crossing actors! As of today, the example above raises no diagnostics in Swift, despite having a race.
 
 >**Proposed Solution:** Partial-applications of actor-instance isolated functions are only permitted if the method's argument and return types all conform to `Sendable`.
 
-This proposed solution is simple and completes the existing erasure of actor-instance isolation with its missing safety guarantee. That is, because we cannot represent the instance's isolation in the type of the function, we should enforce all of the method's isolation requirements during the partial application, as though it were fully applied in an arbitrary isolation context.
+The proposed solution adds a safety check when producing a first-class function value from an actor-instance isolated method. The check is the same one that would be performed if that method were called from a non-isolated context. By performing this check when producing partial applications of the method, we ensure that no matter where the function is eventually called, it is will be used safely.
 
-One benefit of this solution is that it also lifts the restriction on where partial-applications of actor-instance isolated methods can happen. Since all actor types are `Sendable` and we now ensure the argument and return types are all `Sendable`, the resulting function value can become `@Sendable`.
+One benefit of this solution is that it is now safe pass these partial-applications around. That is, we can lift the current restriction that partial-applications of actor-instance isolated methods only appear within isolated contexts. Since all actor types are `Sendable`, these partial-applications are also `@Sendable` functions.
+
+To summarize, here are the proposed changes for actor-instance isolated methods:
+
+1. their partial-applications are only permitted if the input and return types all conform to `Sendable`.
+2. their partial-applications can appear in any isolation context.
+3. their partial-applications result in `async` functions (with `throws` if it is a distributed actor) that are `@Sendable`.
 
 <!-- Side-effect: we can remove this weird warning, though I don't know if it's just a bug or what:
 
@@ -214,76 +223,24 @@ func recieveFunc(_ h: @Sendable (MutableRef) async -> ()) async {}
 -->
 
 
-
-<!-- STOPPED HERE -->
-
-
-<!-- MERGE THIS WITH THE GLOBAL ACTOR DROPPING / ADDING RULES BELOW -->
-
-#### Removing `@isolated` from a function's type
-
-The primary function of `@isolated` is to track function values from their origin point, which is a context isolated to some actor, until it reaches a boundary of that isolation. That is when `@isolated` must be removed. These boundaries are not only cross-actor. A plain function not-otherwise-isolated is considered a boundary:
-
-```swift
-func process(_ e: Element, _ f: (Element) -> ()) { /* ... */ }
-
-func crunchNumbers(_ a: isolated MyActor, 
-                   _ es: [Element],
-                   _ cruncher: @isolated (Element) -> ()) {
-  for e in es {
-    process(e, es, cruncher)
-  }
-}
-```
-
-Here, because arguments passed to `process` do not cross actors, there's no need for it to become `@Sendable`. Since it is not `@Sendable`, the `cruncher` does not need any additional conversions and the `@isolated` can simply be dropped.
-
-Now, had `cruncher` been `async`, an additional requirement that the `Element` conforms to `Sendable`. The reason is subtle: without specifying the isolation of an `async` function, it can only be inferred to be `nonisolated`, which is a distinct isolation domain. Thus, whenever we drop isolation from an `async` function, we must enforce `Sendable` conformance for the input and output types, _even if_ the function is not `@Sendable`. Thus, we have the following rule:
-
-<!--To make this concrete, here is an example:
-
-```swift
-func getFunc() -> (@Sendable (MutableRef) async -> ()) {
-  @Sendable func nonIsolatedFn(_ ref: MutableRef) async { /* do evil */ }
-  return nonIsolatedFn
-}
-
-@MainActor func callIt(_ g: (MutableRef) async -> (), _ ref: MutableRef) async {
-  await g(ref)
-}
-
-@MainActor func example() async {
-  let ref = MutableRef()
-  let f: (MutableRef) async -> () = getFunc()
-  await callIt(f, ref)
-}
-```
-
-In this example, we use the subtyping of `@Sendable` functions to strip away knowledge that the `async` function returned by `getFunc` is may be from another isolation domain. Thus, the only isolation we can correctly infer for the function parameter of `callIt` is `nonisolated`, despite it not being `@Sendable`. We can summarize the rules about dropping `@isolated` (_without_ adding `@Sendable`) as:
--->
-
-**Rule for Dropping `@isolated`:**
-- If the function is `async`, then its argument and return types must conform to `Sendable`.
-- Otherwise, the attribute can be dropped.
-
-Once an attempt is made to pass an `@isolated` method across isolation domains, it must become `@Sendable`. This follows directly from rules about actor-isolation: whether an argument passed to an actor-isolated function is required to be `Sendable` depends on the isolation of the context in which the call appears. Since we cannot statically reason about the context in which a `@Sendable` function will be invoked, we have the following rule:
-
-**Rule for Exchanging `@isolated` for `@Sendable`:**
-- The function becomes `async`.
-- If the function is isolated to a distributed actor, then it also gains `throws`.
-- The function's argument and return types must conform to `Sendable`.
-
-> **Rationale:** For a normal call to a non-async method of an actor from a different isolation domain, you must `await` as it is implicitly treated as an `async` call (and `throws` for distributed actors) because actors are non-blocking. To maintain isolation principles once isolation information is lost, the argument and return types of an actor-isolated function must also conform to `Sendable`.
-
 ### Global-actors and function types
 
-For methods that are isolated to a global-actor, partial applications of those methods can more simply state their exact isolation in a way that is independent of the context in which the value resides. A `@Sendable` partially-applied method that is isolated to a global-actor is not _required_ to be `async`. Nor is it required to have `Sendable` input and output types.
-
-But, as discussed in the Motivation, there are still situations where losing or dropping the global-actor isolation from a function's type is useful. In addition, there are scenarios where adding a global actor is unsafe or misleading.
+For methods that are isolated to a global-actor, partial applications of those methods can carry their underlying isolation in the resulting function. But, as discussed in the Motivation, there are still situations where losing or dropping the global-actor isolation from a function's type is useful. In addition, there are scenarios where adding a global actor is unsafe or misleading.
 
 #### Dropping global actors from function types
 
-When there is a desire to drop a global-actor from a function type, then the same exact rules behind dropping `@isolated` apply. That is, whenever the function value qualifies for being converted to an `@isolated` function, and then the rules for dropping or exchanging the `@isolated` are used.
+When there is a need to convert a function's type from one which has a global-actor in it, to one that does not, then we can do so safely in various circumstances. In the general case, it's only safe to perform the conversion if:
+
+1. The function's type becomes `async`.
+2. The function's argument and return types must conform to `Sendable`.
+
+> **Rationale:** This is no different than the conundrum for partial-applications of actor-instance isolated methods. By removing the isolation from the type, we must apply the same rules to ensure the function can be called anywhere.
+
+But, we can do better for global-actors  if the resulting function's type will also drop `@Sendable` (or does not have it), then we can be more flexible
+
+If the context in which the conversion appears is _not_ isolated to `G`, then the conversion is unsafe: it removes 
+
+bahhhhh <!-- stopped here -->
 
 <!--
 But there is just one additional scenario where we can safely drop the global-actor in a situation where the function value _cannot_ be converted to `@isolated`:
