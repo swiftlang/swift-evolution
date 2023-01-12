@@ -231,7 +231,7 @@ To allow module aliasing, the following requirements need to be met, which come 
 * For resources, only asset catalogs and localized strings are allowed.
 * Higher chance of running into the following existing issues:
     * [Retroactive conformance](https://forums.swift.org/t/retroactive-conformances-vs-swift-in-the-os/14393): this is already not a recommended practice and should be avoided.   
-    * Extension member “leaks”: this is [considered a bug](https://bugs.swift.org/browse/SR-3908) which hasn’t been fixed yet. More discussions [here](https://forums.swift.org/t/pre-pitch-import-access-control-a-modest-proposal/50087). 
+    * Extension member “leaks”: this is [considered a bug](https://github.com/apple/swift/issues/46493) which hasn’t been fixed yet. More discussions [here](https://forums.swift.org/t/pre-pitch-import-access-control-a-modest-proposal/50087). 
 * Code size increase will be more implicit thus requires a caution, although module aliasing will be opt-in and a size threshold could be added to provide a warning. 
 
 ## Source compatibility
@@ -245,7 +245,7 @@ This proposal does not introduce features that would be part of a public API.
 
 ## Future Directions
 
-* Currently when a module contains a type with the same name, fully qualifying a decl in the module results in an error; it treats the left most qualifier as a type instead of the module ([SR-14195](https://bugs.swift.org/browse/SR-14195), [pitch](https://forums.swift.org/t/fixing-modules-that-contain-a-type-with-the-same-name/3025), [pitch](https://forums.swift.org/t/pitch-fully-qualified-name-syntax/28482)); `XCTest` is a good example as it contains a class called `XCTest`. Trying to access a top level function `XCTAssertEqual` via `XCTest.XCTAssertEqual(...)` results in `Type 'XCTest' has no member 'XCTAssertEqual'` error. Module aliasing could mitigate this issue by renaming `XCTest` as `XCTestFramework` without requiring source changes in the `XCTest` module and allowing the function access via `XCTestFramework.XCTAssertEqual(...)` in the user code.
+* Currently when a module contains a type with the same name, fully qualifying a decl in the module results in an error; it treats the left most qualifier as a type instead of the module ([apple/swift#56573](https://github.com/apple/swift/issues/56573), [pitch](https://forums.swift.org/t/fixing-modules-that-contain-a-type-with-the-same-name/3025), [pitch](https://forums.swift.org/t/pitch-fully-qualified-name-syntax/28482)); `XCTest` is a good example as it contains a class called `XCTest`. Trying to access a top level function `XCTAssertEqual` via `XCTest.XCTAssertEqual(...)` results in `Type 'XCTest' has no member 'XCTAssertEqual'` error. Module aliasing could mitigate this issue by renaming `XCTest` as `XCTestFramework` without requiring source changes in the `XCTest` module and allowing the function access via `XCTestFramework.XCTAssertEqual(...)` in the user code.
 
 * Introducing new import syntax such as `import Utils as GameUtils` has been discussed in forums to improve module disambiguation. The module aliasing infrastructure described in this proposal paves the way towards using such syntax that could allow more explicit (in source code) aliasing.  
 

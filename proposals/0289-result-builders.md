@@ -923,7 +923,7 @@ init(@ViewBuilder content: () -> Content) {
 }
 ```
 
-This idea was reported as [SR-13188](https://bugs.swift.org/browse/SR-13188), and the examples are pulled from there.
+This idea was reported as [apple/swift#55628](https://github.com/apple/swift/issues/55628), and the examples are pulled from there.
 
 ## Source compatibility
 

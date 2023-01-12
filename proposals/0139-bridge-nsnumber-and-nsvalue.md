@@ -51,7 +51,7 @@ explicitly asked for.
 There are also many Cocoa APIs that accept `NSArray` and `NSDictionary`
 objects with members that are `NSValue`-boxed structs.
 Matt Neuberg highlights Core Animation as an example in
-[this bug report](https://bugs.swift.org/browse/SR-2414). With `id`-as-`Any`,
+[this bug report](https://github.com/apple/swift/issues/45019). With `id`-as-`Any`,
 it's natural to expect this to work:
 
 ```swift

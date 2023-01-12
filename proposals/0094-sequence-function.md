@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0094-add-sequence-initial-next-and-sequence-state-next-to-the-stdlib/2775)
-* Bug: [SR-1622](https://bugs.swift.org/browse/SR-1622)
+* Bug: [apple/swift#44231](https://github.com/apple/swift/issues/44231)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7d220a152a681e28761493c7d9781dd867a04cf7/proposals/0094-sequence-function.md)
 * Previous Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 

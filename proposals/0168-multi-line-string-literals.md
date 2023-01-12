@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 4)**
 * Implementation: [apple/swift#8813](https://github.com/apple/swift/pull/8813)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0168-multi-line-string-literals/5715)
-* Bugs: [SR-170](https://bugs.swift.org/browse/SR-170), [SR-4701](https://bugs.swift.org/browse/SR-4701), [SR-4708](https://bugs.swift.org/browse/SR-4708), [SR-4874](https://bugs.swift.org/browse/SR-4874)
+* Bugs: [apple/swift#42792](https://github.com/apple/swift/issues/42792), [apple/swift#47278](https://github.com/apple/swift/issues/47278), [apple/swift#47285](https://github.com/apple/swift/issues/47285), [apple/swift#47451](https://github.com/apple/swift/issues/47451)
 
 ## Introduction
 

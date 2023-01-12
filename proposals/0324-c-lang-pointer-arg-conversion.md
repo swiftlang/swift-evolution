@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 5.6)**
 * Implementation: [apple/swift#37956](https://github.com/apple/swift/pull/37956)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0324-relax-diagnostics-for-pointer-arguments-to-c-functions/52599)
-* Bugs: [SR-10246](https://bugs.swift.org/browse/SR-10246)
+* Bugs: [apple/swift#52646](https://github.com/apple/swift/issues/52646)
 
 ## Introduction
 

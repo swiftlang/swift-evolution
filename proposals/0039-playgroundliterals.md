@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0039-modernizing-playground-literals/1746)
-* Bug: [SR-917](https://bugs.swift.org/browse/SR-917)
+* Bug: [apple/swift#43529](https://github.com/apple/swift/issues/43529)
 
 ## Introduction
 

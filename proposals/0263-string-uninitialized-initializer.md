@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#26007](https://github.com/apple/swift/pull/26007),
                   [apple/swift#30106](https://github.com/apple/swift/pull/30106)
-* Bug: [SR-10288](https://bugs.swift.org/browse/SR-10288)
+* Bug: [apple/swift#52688](https://github.com/apple/swift/issues/52688)
 
 ## Introduction
 

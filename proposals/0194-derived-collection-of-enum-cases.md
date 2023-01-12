@@ -6,7 +6,7 @@
 * Review Thread: [SE-0194 review][se8]
 * Status: **Implemented (Swift 4.2)**
 * Implementation: [apple/swift#13655](https://github.com/apple/swift/pull/13655)
-* Bugs: [SR-7151](https://bugs.swift.org/browse/SR-7151), [SR-7152](https://bugs.swift.org/browse/SR-7152)
+* Bugs: [apple/swift#49699](https://github.com/apple/swift/issues/49699), [apple/swift#49700](https://github.com/apple/swift/issues/49700)
 
 ## Introduction
 
@@ -46,7 +46,7 @@ _**†** = a precursor to this proposal_
 [so2]: http://stackoverflow.com/questions/27094878/how-do-i-get-the-count-of-a-swift-enum
 
 [enums]: https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Enumerations.html
-[SR-30]: https://bugs.swift.org/browse/SR-30
+[SR-30]: https://github.com/apple/swift/issues/42653
 [nateblog]: http://natecook.com/blog/2014/10/loopy-random-enum-ideas/
 [ericablog]: http://ericasadun.com/2015/07/12/swift-enumerations-or-how-to-annoy-tom/
 [sourcery]: https://cdn.rawgit.com/krzysztofzablocki/Sourcery/master/docs/enum-cases.html

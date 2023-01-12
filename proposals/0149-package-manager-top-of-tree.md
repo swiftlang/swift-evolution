@@ -5,7 +5,7 @@
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0149-package-manager-support-for-top-of-tree-development/5072)
-* Bug: [SR-3709](https://bugs.swift.org/browse/SR-3709)
+* Bug: [apple/swift-package-manager#5128](https://github.com/apple/swift-package-manager/issues/5128)
 
 ## Introduction
 

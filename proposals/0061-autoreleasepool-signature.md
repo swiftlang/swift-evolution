@@ -5,7 +5,7 @@
 * Review Manager: [Dave Abrahams](http://github.com/dabrahams)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0061-add-generic-result-and-error-handling-to-autoreleasepool/2425)
-* Bugs: [SR-842](https://bugs.swift.org/browse/SR-842), [SR-1394](https://bugs.swift.org/browse/SR-1394)
+* Bugs: [apple/swift#43454](https://github.com/apple/swift/issues/43454), [apple/swift#44003](https://github.com/apple/swift/issues/44003)
 
 ## Introduction
 
@@ -96,7 +96,7 @@ No impact expected.
 
 ## Alternatives considered
 
-The [original request, SR-842](https://bugs.swift.org/browse/SR-842) only
+The [original request, apple/swift#43454](https://github.com/apple/swift/issues/43454), only
 suggested adding `throws`, but Dmitri Gribenko pointed out that adding a generic
 return type would be better.
 

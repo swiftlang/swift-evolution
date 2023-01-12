@@ -7,7 +7,7 @@
 * Next Proposal: [SE-0245](0245-array-uninitialized-initializer.md)
 * Decision Notes: [Returned for revision](https://forums.swift.org/t/se-0223-accessing-an-arrays-uninitialized-buffer/15194/41)
 * Implementation: [apple/swift#17389](https://github.com/apple/swift/pull/17389)
-* Bug: [SR-3087](https://bugs.swift.org/browse/SR-3087)
+* Bug: [apple/swift#45677](https://github.com/apple/swift/issues/45677)
 
 ## Introduction
 

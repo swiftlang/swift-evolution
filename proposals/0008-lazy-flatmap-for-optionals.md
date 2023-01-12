@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0008-add-a-lazy-flatmap-for-sequences-of-optionals/748)
-* Bug: [SR-361](https://bugs.swift.org/browse/SR-361)
+* Bug: [apple/swift#42981](https://github.com/apple/swift/issues/42981)
 
 ## Introduction ##
 

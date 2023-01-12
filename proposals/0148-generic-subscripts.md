@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0148-generic-subscripts/5017)
-* Bug: [SR-115](https://bugs.swift.org/browse/SR-115)
+* Bug: [apple/swift#42737](https://github.com/apple/swift/issues/42737)
 
 ## Introduction
 

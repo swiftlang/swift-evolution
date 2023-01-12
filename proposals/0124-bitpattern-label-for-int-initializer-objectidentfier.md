@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0124-int-init-objectidentifier-and-uint-init-objectidentifier-should-have-a-bitpattern-label/3474)
-* Bug: [SR-2064](https://bugs.swift.org/browse/SR-2064)
+* Bug: [apple/swift#44673](https://github.com/apple/swift/issues/44673)
 
 ## Introduction
 
@@ -20,7 +20,7 @@ as a bit pattern.
 ```
 
 - Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-int-init-objectidentifier-and-uint-init-objectidentifier-should-have-a-bitpattern-label/3384)
-- Swift Bug: [SR-2064](https://bugs.swift.org/browse/SR-2064)
+- Swift Bug: [apple/swift#44673](https://github.com/apple/swift/issues/44673)
 - Branch with change to stdlib: [int_init_objectidentifier_label] (https://github.com/aschwaighofer/swift/tree/int_init_objectidentifier_label)
 
 ## Motivation

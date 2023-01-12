@@ -5,7 +5,7 @@
 * Review Manager: [Rick Ballard](https://github.com/rballard)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0019-swift-testing-package-manager/1155)
-* Bug: [SR-592](https://bugs.swift.org/browse/SR-592)
+* Bug: [apple/swift-package-manager#5324](https://github.com/apple/swift-package-manager/issues/5324)
 
 ## Introduction
 

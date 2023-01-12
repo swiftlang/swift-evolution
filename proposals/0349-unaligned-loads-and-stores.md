@@ -13,7 +13,7 @@ Swift does not currently provide a clear way to load data from an arbitrary sour
 
 ## Motivation
 
-The method `UnsafeRawPointer.load<T>(fromByteOffset offset: Int, as type: T.Type) -> T` requires the address at `self+offset` to be properly aligned to access an instance of type `T`. Attempts to use a combination of pointer and byte offset that is not aligned for `T` results in a runtime crash. Unfortunately, in general, data saved to files or network streams does not adhere to the same restrictions as in-memory layouts do, and tends to not be properly aligned. When copying data from such sources to memory, Swift users therefore frequently encounter aligment mismatches that require using a workaround. This is a longstanding issue reported in e.g. [SR-10273](https://bugs.swift.org/browse/SR-10273).
+The method `UnsafeRawPointer.load<T>(fromByteOffset offset: Int, as type: T.Type) -> T` requires the address at `self+offset` to be properly aligned to access an instance of type `T`. Attempts to use a combination of pointer and byte offset that is not aligned for `T` results in a runtime crash. Unfortunately, in general, data saved to files or network streams does not adhere to the same restrictions as in-memory layouts do, and tends to not be properly aligned. When copying data from such sources to memory, Swift users therefore frequently encounter aligment mismatches that require using a workaround. This is a longstanding issue reported in e.g. [apple/swift#52673](https://github.com/apple/swift/issues/52673).
 
 For example, given an arbitrary data stream in which a 4-byte value is encoded between byte offsets 3 through 7:
 

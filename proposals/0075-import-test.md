@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 4.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0075-adding-a-build-configuration-import-test/2683)
-* Bug: [SR-1560](https://bugs.swift.org/browse/SR-1560)
+* Bug: [apple/swift#44169](https://github.com/apple/swift/issues/44169)
 
 ## Introduction
 

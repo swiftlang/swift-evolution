@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 4.2)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0204-add-last-where-and-lastindex-where-methods-rename-index-of-and-index-where-methods/11486/21)
 * Implementation: [apple/swift#13337](https://github.com/apple/swift/pull/13337)
-* Bug: [SR-1504](https://bugs.swift.org/browse/SR-1504)
+* Bug: [apple/swift#44113](https://github.com/apple/swift/issues/44113)
 
 ## Introduction
 

@@ -5,7 +5,7 @@
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0150-package-manager-support-for-branches/5074)
-* Bug: [SR-666](https://bugs.swift.org/browse/SR-666)
+* Bug: [apple/swift-package-manager#5430](https://github.com/apple/swift-package-manager/issues/5430)
 
 ## Introduction
 

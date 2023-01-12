@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0076-add-overrides-taking-an-unsafepointer-source-to-non-destructive-copying-methods-on-unsafemutablepointer/2577)
-* Bug: [SR-1490](https://bugs.swift.org/browse/SR-1490)
+* Bug: [apple/swift#44099](https://github.com/apple/swift/issues/44099)
 
 ## Introduction
 

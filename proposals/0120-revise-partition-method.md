@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0120-revise-partition-method-signature/3475)
-* Bug: [SR-1965](https://bugs.swift.org/browse/SR-1965)
+* Bug: [apple/swift#44574](https://github.com/apple/swift/issues/44574)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/1dcfd35856a6f9c86af2cf7c94a9ab76411739e3/proposals/0120-revise-partition-method.md)
 
 ## Introduction
@@ -13,7 +13,7 @@
 This proposal revises the signature for the collection partition algorithm. Partitioning is a foundational API for sorting and for searching through sorted collections.
 
 - Swift-evolution thread: [Feedback from standard library team](https://forums.swift.org/t/review-se-0074-implementation-of-binary-search-functions/2438/5)
-- Swift Bug: [SR-1965](https://bugs.swift.org/browse/SR-1965)
+- Swift Bug: [apple/swift#44574](https://github.com/apple/swift/issues/44574)
 
 ## Motivation
 

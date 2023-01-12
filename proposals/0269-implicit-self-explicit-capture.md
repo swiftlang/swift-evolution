@@ -5,7 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#23934](https://github.com/apple/swift/pull/23934)
-* Bug: [SR-10218](https://bugs.swift.org/browse/SR-10218)
+* Bug: [apple/swift#52618](https://github.com/apple/swift/issues/52618)
 * Forum threads: [Discussion](https://forums.swift.org/t/review-capture-semantics-of-self/22017), [Pitch](https://forums.swift.org/t/allow-implicit-self-in-escaping-closures-when-self-is-explicitly-captured/22590), [Review thread](https://forums.swift.org/t/se-0269-increase-availability-of-implicit-self-in-escaping-closures-when-reference-cycles-are-unlikely-to-occur/30376)
 
 ## Introduction

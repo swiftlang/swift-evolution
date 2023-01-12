@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 2.2)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0028-modernizing-swifts-debugging-identifiers-line-etc/1303)
-* Bug: [SR-669](https://bugs.swift.org/browse/SR-669)
+* Bug: [apple/swift#43284](https://github.com/apple/swift/issues/43284)
 
 ## Introduction
 
@@ -51,7 +51,7 @@ Additional points to be considered by the Swift team for inclusion:
 
 ## Possible Future Extensions
 
-[SR-198](https://bugs.swift.org/browse/SR-198) requested the coalescing of existing identifiers. A structured `#sourcelocation` identifier could be added as a follow-on if and when the Swift team decides to tackle a standardized source location type, which would provide individual field or keyword access.
+[apple/swift#42820](https://github.com/apple/swift/issues/42820) requested the coalescing of existing identifiers. A structured `#sourcelocation` identifier could be added as a follow-on if and when the Swift team decides to tackle a standardized source location type, which would provide individual field or keyword access.
 
 In support of summaries, Remy Demerest writes, "[I] love the idea that source location would be one object that you can print to get the full story while still retaining the possibility to use each individual components as needed, which is probably the rarer case. I never find myself wanting only some of properties and usually don't include them simply because it takes longer to write the format properly, if I can get them all in one go it's certainly a win."
 

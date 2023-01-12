@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0102-remove-noreturn-attribute-and-introduce-an-empty-never-type/3213)
-* Bug: [SR-1953](https://bugs.swift.org/browse/SR-1953)
+* Bug: [apple/swift#44562](https://github.com/apple/swift/issues/44562)
 
 ## Introduction
 

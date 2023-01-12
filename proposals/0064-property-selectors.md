@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0064-referencing-the-objective-c-selector-of-property-getters-and-setters/2199)
-* Bug: [SR-1239](https://bugs.swift.org/browse/SR-1239)
+* Bug: [apple/swift#43847](https://github.com/apple/swift/issues/43847)
 
 ## Introduction
 

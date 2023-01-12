@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 2.2)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0014-constraining-anysequence-init/924)
-* Bug: [SR-474](https://bugs.swift.org/browse/SR-474)
+* Bug: [apple/swift#43091](https://github.com/apple/swift/issues/43091)
 
 
 ## Introduction

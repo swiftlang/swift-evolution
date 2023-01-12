@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0111-remove-type-system-significance-of-function-argument-labels/3306), [Additional Commentary](https://forums.swift.org/t/update-commentary-se-0111-remove-type-system-significance-of-function-argument-labels/3391)
-* Bug: [SR-2009](https://bugs.swift.org/browse/SR-2009)
+* Bug: [apple/swift#44618](https://github.com/apple/swift/issues/44618)
 
 ## Introduction
 

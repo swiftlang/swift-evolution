@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0037-clarify-interaction-between-comments-operators/1833)
-* Bug: [SR-960](https://bugs.swift.org/browse/SR-960)
+* Bug: [apple/swift#43572](https://github.com/apple/swift/issues/43572)
 
 
 ## Introduction
@@ -27,7 +27,7 @@ A draft implementation is [available here](https://github.com/apple/swift/compar
 
 At the moment, comments next to operators are usually treated as
 non-whitespace for the purpose of [determining whether an operator is prefix/postfix/binary](https://developer.apple.com/library/mac/documentation/Swift/Conceptual/Swift_Programming_Language/LexicalStructure.html#//apple_ref/doc/uid/TP40014097-CH30-ID418),
-meaning that this fails to compile ([SR-186](https://bugs.swift.org/browse/SR-186)):
+meaning that this fails to compile ([apple/swift#42808](https://github.com/apple/swift/issues/42808)):
 
 ```
 if /* comment */!foo { ... }

@@ -6,7 +6,7 @@
 * Status: **Returned for revision**
 * Decision notes: [Rationale](https://forums.swift.org/t/se-0330-conditionals-in-collections/53375/22)
 * Implementation: [apple/swift#19347](https://github.com/apple/swift/pull/19347)
-* Bugs: [SR-8743](https://bugs.swift.org/browse/SR-8743)
+* Bugs: [apple/swift#51252](https://github.com/apple/swift/issues/51252)
 
 ## Introduction
 

@@ -5,7 +5,7 @@
 * Review Manager: [Rick Ballard](https://github.com/rballard)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0162-package-manager-custom-target-layouts/5647)
-* Bug: [SR-29](https://bugs.swift.org/browse/SR-29)
+* Bug: [apple/swift-package-manager#5339](https://github.com/apple/swift-package-manager/issues/5339)
 
 ## Introduction
 

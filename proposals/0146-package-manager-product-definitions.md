@@ -5,7 +5,7 @@
 * Review manager: Daniel Dunbar
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/review-se-0146-package-manager-product-definitions/4540/2)
-* Bug: [SR-3606](https://bugs.swift.org/browse/SR-3606)
+* Bug: [apple/swift-package-manager#5133](https://github.com/apple/swift-package-manager/issues/5133)
 
 ## Introduction
 
@@ -67,7 +67,7 @@ The initial types of products that can be defined are executables and libraries.
 
 Note that tests are not considered to be products, and do not need to be explicitly defined.
 
-A product definition lists the root targets to include in the product; for product types that vend interfaces (e.g. libraries), the root targets are those whose modules will be available to clients.  Any dependencies of those targets will also be included in the product, but won't be made visible to clients.  The Swift compiler does not currently provide this granularity of module visibility control, but the set of root targets still constitutes a declaration of intent that can be used by IDEs and other tools.  We also hope that the compiler will one day support this level of visibility control.  See [SR-3205](https://bugs.swift.org/browse/SR-3205) for more details.
+A product definition lists the root targets to include in the product; for product types that vend interfaces (e.g. libraries), the root targets are those whose modules will be available to clients.  Any dependencies of those targets will also be included in the product, but won't be made visible to clients.  The Swift compiler does not currently provide this granularity of module visibility control, but the set of root targets still constitutes a declaration of intent that can be used by IDEs and other tools.  We also hope that the compiler will one day support this level of visibility control.  See [apple/swift#45793](https://github.com/apple/swift/issues/45793) for more details.
 
 For example, in the package definition shown above, the library product `ClientLib` would only vend the interface of the `ClientAPI` module to clients.  Since `ClientAPI` depends on `HTTP` and `Utilities`, those two targets would also be compiled and linked into `ClientLib`, but their interfaces should not be visible to clients of `ClientLib`.
 

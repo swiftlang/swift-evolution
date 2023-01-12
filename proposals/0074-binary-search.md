@@ -12,7 +12,7 @@ Swift does not offer any way to efficiently search sorted collections.
 This proposal seeks to add a few different functions that implement the binary search algorithm.
 
 - Swift-evolution thread: [\[Proposal\] Add Binary Search functions to SequenceType](https://forums.swift.org/t/proposal-add-binary-search-functions-to-sequencetype/1827)
-- JIRA: [Swift/SR-368](https://bugs.swift.org/browse/SR-368)
+- JIRA: [apple/swift#42987](https://github.com/apple/swift/issues/42987)
 
 ## Motivation
 

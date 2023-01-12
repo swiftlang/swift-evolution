@@ -4,7 +4,7 @@
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
 * Status: **Partially implemented (Swift 5.2):** Implemented the manifest API to disregard targets not concerned by any dependency products, which avoids building dependency test targets.
-* Bug: [SR-8658](https://bugs.swift.org/browse/SR-8658)
+* Bug: [apple/swift-package-manager#4759](https://github.com/apple/swift-package-manager/issues/4759)
 * Previous Revision: [1](hhttps://github.com/apple/swift-evolution/blob/e833c4d00bef253452b7d546e1303565ba584b58/proposals/0226-package-manager-target-based-dep-resolution.md)
 * Review: [Review](https://forums.swift.org/t/se-0226-package-manager-target-based-dependency-resolution/), [Acceptance](https://forums.swift.org/t/accepted-se-0226-package-manager-target-based-dependency-resolution/15616), [Amendment](https://forums.swift.org/t/amendment-se-0226-package-manager-target-based-dependency-resolution/), [Amendment Acceptance](https://forums.swift.org/t/accepted-se-0226-amendment-package-manager-target-based-dependency-resolution/)
 

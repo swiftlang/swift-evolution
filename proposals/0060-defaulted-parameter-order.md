@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0060-enforcing-order-of-defaulted-parameters/2573)
-* Bug: [SR-1489](https://bugs.swift.org/browse/SR-1489)
+* Bug: [apple/swift#44098](https://github.com/apple/swift/issues/44098)
 
 ## Introduction
 

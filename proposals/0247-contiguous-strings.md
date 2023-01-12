@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 5.1)**
 * Implementation: [apple/swift#23051](https://github.com/apple/swift/pull/23051)
-* Bugs: [SR-6475](https://bugs.swift.org/browse/SR-6475)
+* Bugs: [apple/swift-corelibs-foundation#3780](https://github.com/apple/swift-corelibs-foundation/issues/3780)
 
 ## Introduction
 

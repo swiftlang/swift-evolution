@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#26632](https://github.com/apple/swift/pull/26632)
-* Bug: [SR-5982](https://bugs.swift.org/browse/SR-5982)
+* Bug: [apple/swift#48541](https://github.com/apple/swift/issues/48541)
 
 ## Introduction
 
@@ -121,7 +121,7 @@ foo.baz = 2
 
 This applies to a `didSet` on an overridden property as well - the call to the superclass getter will be skipped if the `oldValue` is not referenced in the body of the overridden property's `didSet`.
 
-This also resolves some pending bugs such as [SR-11297](https://bugs.swift.org/browse/SR-11297) and [SR-11280](https://bugs.swift.org/browse/SR-11280).
+This also resolves some pending bugs such as [apple/swift#53698](https://github.com/apple/swift/issues/53698) and [apple/swift#53681](https://github.com/apple/swift/issues/53681).
 
 As a bonus, if the property has a "simple" `didSet` and no `willSet`, then we could allow for modifications to happen in-place. For example:
 

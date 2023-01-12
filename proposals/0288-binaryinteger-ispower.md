@@ -267,7 +267,7 @@ This proposal has been greatly improved by the community. Below are some cases o
 
 - Steve Canon followed the pitch all the way through and provided a lot of valuable comments to keep the work on the right track.
 - Jens Persson showed some inspiration in [an earlier thread](https://forums.swift.org/t/even-and-odd-integers/11774/117), and discussed some use cases as well as its extendability to floating point types.
-- Nevin Brackett-Rozinsky gave many details to optimize the implementation, and discovered [SR-10657](https://bugs.swift.org/browse/SR-10657) during the discussion.
+- Nevin Brackett-Rozinsky gave many details to optimize the implementation, and discovered [apple/swift#53057](https://github.com/apple/swift/issues/53057) during the discussion.
 - Michel Fortin provided an efficient solution to the fast path for base 10 (i.e. checking if an integer is power of ten), together with thorough explanation.
 - Jordan Rose gave prompt and continued comments on the PR, and advised the API should better be an extension method rather than a protocol requirement.
 - Erik Strottmann suggested a more appropriate naming `_isPowerOfTwo` instead of `_isPowerOf2`.

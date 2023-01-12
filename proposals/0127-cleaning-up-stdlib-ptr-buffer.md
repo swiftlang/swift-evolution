@@ -5,9 +5,9 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0127-cleaning-up-stdlib-pointer-and-buffer-routines/3549)
-* Bugs: [SR-1937](https://bugs.swift.org/browse/SR-1937),
-        [SR-1955](https://bugs.swift.org/browse/SR-1955),
-        [SR-1957](https://bugs.swift.org/browse/SR-1957)
+* Bugs: [apple/swift#44546](https://github.com/apple/swift/issues/44546),
+        [apple/swift#44564](https://github.com/apple/swift/issues/44564),
+        [apple/swift#44566](https://github.com/apple/swift/issues/44566)
 
 ## Introduction
 
@@ -22,10 +22,10 @@ Swift-evolution thread: [Cleaning up stdlib Pointer and Buffer Routines](https:/
 The Swift standard library has been thoroughly updated to follow the new API guidelines and these are
 the few places that need to be updated in pointer and buffer APIs:
 
-- `withUnsafe[Mutable]Pointer`'s `arg` argument should have a `to:` label ([SR-1937](https://bugs.swift.org/browse/SR-1937))
+- `withUnsafe[Mutable]Pointer`'s `arg` argument should have a `to:` label ([apple/swift#44546](https://github.com/apple/swift/issues/44546))
 - `withUnsafe[Mutable]Pointers` (multiple pointers) functions should be removed.
 - `unsafeAddressOf` should be removed since there is a limited number of use cases and there are 
-better alternatives to it ([SR-1957](https://bugs.swift.org/browse/SR-1957)).
+better alternatives to it ([apple/swift#44566](https://github.com/apple/swift/issues/44566)).
 - `ManagedProtoBuffer` should be removed. It is a superclass of `ManagedBuffer` and its
 sole purpose is to conceal the `header` property during invocation of the closure 
 creating the initial header in `ManagedBuffer.create` since the `header` isn't 
