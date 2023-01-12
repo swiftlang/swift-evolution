@@ -135,6 +135,8 @@ My initial pitch was using a tuple as the return paramter of the factory;
 however, I walked back on it since I think we can provide better documentation on
 the concrete type. Furthermore, it makes it more discoverable as well.
 
+The upside of using a tuple based approach is that we can backdeploy it. 
+
 An implementation returning a tuple would look like this;
 
 ```swift
