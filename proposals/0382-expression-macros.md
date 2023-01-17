@@ -90,7 +90,7 @@ public protocol ExpressionMacro: Macro {
   /// Expand a macro described by the given macro expansion expression
   /// within the given context to produce a replacement expression.
   static func expansion(
-    of node: MacroExpansionExprSyntax, in context: MacroExpansionContext
+    of node: MacroExpansionExprSyntax, in context: any MacroExpansionContext
   ) throws -> ExprSyntax
 }
 ```
@@ -110,7 +110,7 @@ import _SwiftSyntaxMacros
 
 public struct StringifyMacro: ExpressionMacro {
   public static func expansion(
-    of node: MacroExpansionExprSyntax, in context: MacroExpansionContext
+    of node: MacroExpansionExprSyntax, in context: any MacroExpansionContext
   ) -> ExprSyntax {
     guard let argument = node.argumentList.first?.expression else {
       fatalError("compiler bug: the macro does not have any arguments")
@@ -229,7 +229,7 @@ public protocol ExpressionMacro: Macro {
   /// Expand a macro described by the given macro expansion expression
   /// within the given context to produce a replacement expression.
   static func expansion(
-    of macro: MacroExpansionExprSyntax, in context: MacroExpansionContext
+    of macro: MacroExpansionExprSyntax, in context: any MacroExpansionContext
   ) throws -> ExprSyntax
 }
 ```
@@ -245,19 +245,9 @@ If the macro expansion cannot proceed for some reason, the `expansion(of:in:)` o
 The macro expansion context provides additional information about the environment in which the macro is being expanded. This context can be queried as part of the macro expansion:
 
 ```swift
-/// System-supplied class that provides information about the context in
+/// Protocol whose conforming types provide information about the context in
 /// which a given macro is being expanded.
-public class MacroExpansionContext {
-  /// The name of the module in which the macro is being expanded.
-  public let moduleName: String
-
-  /// The name of the file in which the macro is being expanded, without
-  /// any additional path information.
-  public let fileName: String  
-  
-  /// Create a new macro expansion context.
-  public init(moduleName: String, fileName: String)
-  
+public protocol MacroExpansionContext: AnyObject {
    /// Generate a unique name for use in the macro.
   public func createUniqueName() -> TokenSyntax
 
@@ -310,7 +300,7 @@ We propose to introduce a number of macro declarations into the Swift standard l
 @expression macro dsohandle: UnsafeRawPointer
 ```
 
-With the exception of `#fileID` (and `#file` when [SE-0274](https://github.com/apple/swift-evolution/blob/main/proposals/0274-magic-file.md) is enabled), the operations that provide information about the current location in source code are not implementable as `ExpressionMacro`-conforming types, because specific source-location information is intentionally unavailable to macro definitions. The type signatures of these macros capture most of the type system behavior of the existing `#file`, `#line`, etc., because they are treated like literals and therefore can pick up any contextual type that implements the proper `ExpressiblyBy*` protocol. However, the implementations above would fail to type-check code like this:
+The operations that provide information about the current location in source code are not implementable as `ExpressionMacro`-conforming types, because specific source-location information is intentionally unavailable to macro definitions. The type signatures of these macros capture most of the type system behavior of the existing `#file`, `#line`, etc., because they are treated like literals and therefore can pick up any contextual type that implements the proper `ExpressibleBy*` protocol. However, the implementations above would fail to type-check code like this:
 
 ```swift
 let x = #file
@@ -386,7 +376,7 @@ There are many uses for expression macros beyond what has presented here. This s
     }
    
     static func expansion(
-      of node: MacroExpansionExprSyntax, in context: MacroExpansionContext
+      of node: MacroExpansionExprSyntax, in context: any MacroExpansionContext
     ) -> MacroResult<ExprSyntax> {
       let argList = replaceFirstLabel(
         of: node.argumentList, with: "_colorLiteralRed"
@@ -435,7 +425,7 @@ The `expansion(of:in:)` operation for an expression macro could be marked as `as
 
 ```swift
  static func expansion(
-    of macro: MacroExpansionExprSyntax, in context: MacroExpansionContext
+    of macro: MacroExpansionExprSyntax, in context: any MacroExpansionContext
   ) async throws -> ExprSyntax
 ```
 
@@ -498,7 +488,8 @@ Expressions are just one place in the language where macros could be valuable. O
 ## Revision History
 
 * Revisions based on review feedback:
-  * Make `MacroExpansionContext` a class, because the state involving diagnostics and unique names needs to be shared.
+  * Make `MacroExpansionContext` a class-bound protocol, because the state involving diagnostics and unique names needs to be shared, and the implementations could vary significantly between (e.g.) the compiler and a test harness.
+  * Remove the `moduleName` and `fileName` from the `MacroExpansionContext` for now.
   * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
   * Clarify that macro expansion cannot be recursive.
   * Rename `createUniqueLocalName` to `createUniqueName`; the names might not always be local in scope.
