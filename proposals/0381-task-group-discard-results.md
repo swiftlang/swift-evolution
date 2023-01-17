@@ -3,8 +3,9 @@
 * Proposal: [SE-0381](0381-task-group-discard-results.md)
 * Authors: [Cory Benfield](https://github.com/Lukasa), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (December 15...December 29, 2022)**
+* Status: **Accepted**
 * Implementation: https://github.com/apple/swift/pull/62361
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0381-discardingtaskgroups/62615)
 
 ### Introduction
 
