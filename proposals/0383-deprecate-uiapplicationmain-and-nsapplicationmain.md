@@ -3,9 +3,9 @@
 * Proposal: [SE-0383](0383-deprecate-uiapplicationmain-and-nsapplicationmain.md)
 * Authors: [Robert Widmann](https://github.com/codafi)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (January 3rd...16th, 2023)**
+* Status: **Accepted**
 * Implementation: [PR 62151](https://github.com/apple/swift/pull/62151)
-* Review: ([pitch](https://forums.swift.org/t/deprecate-uiapplicationmain-and-nsapplicationmain/61493)) ([review](https://forums.swift.org/t/se-0383-deprecate-uiapplicationmain-and-nsapplicationmain/62375))
+* Review: ([pitch](https://forums.swift.org/t/deprecate-uiapplicationmain-and-nsapplicationmain/61493)) ([review](https://forums.swift.org/t/se-0383-deprecate-uiapplicationmain-and-nsapplicationmain/62375)) ([acceptance](https://forums.swift.org/t/accepted-se-0383-deprecate-uiapplicationmain-and-nsapplicationmain/62645))
 
 ## Introduction
 
