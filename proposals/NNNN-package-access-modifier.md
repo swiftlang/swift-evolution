@@ -186,7 +186,7 @@ Subclassable  |  package    |     open      |   packageopen  |   (illegal)
 
 Some of the boxes are naturally illegal: it of course doesn't make sense for a class to be subclassable when it can't access at all. 
 
-A `package` class is accessible from outside of its defining modules as long as they are within the same package. Similar to `public`, it can only be subclass-able within its defining module. If the `package` class needs to be subclassed outside of its defining module, a `package open` or `packageopen` (exact name TBD) needs to be used. This proposal focuses on `package`; the subclassing functionality (and the exact name) will be addressed in the future. 
+A `package` class is accessible from outside of its defining modules as long as they are within the same package. Similar to `public`, it can only be subclassed within its defining module. If the `package` class needs to be subclassed outside of its defining module, a `package open` or `packageopen` (exact name TBD) needs to be used. This proposal focuses on `package`; the subclassing functionality (and the exact name) will be addressed in the future. 
 
 The reason for not allowing both accessing and subclassing under `package` is as follows:
 
