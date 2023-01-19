@@ -21,7 +21,7 @@ Packages, as expressed by the Swift Package Manager, are a unit of code distribu
 
 However, because Swift does not recognize organizations of code above the module level, it is not possible to create APIs like this that are purely internal to the package. To be usable from other modules within the package, the API must be public, but this means it can also be used outside of the package. This allows clients to form unwanted source dependencies on the API. It also means the built module has to export the API, which has negative implications for code size and performance.
 
-For example, here’s a scenario where a client (App) has access to a utility API from a package (gamePkg) it depends on.
+For example, here’s a scenario where a client (`App`) has access to a utility API from a package (`gamePkg`) it depends on.
 
 ```
 App (Xcode project or appPkg)
