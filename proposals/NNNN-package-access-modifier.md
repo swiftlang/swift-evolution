@@ -76,7 +76,7 @@ This also paves the path to include a package name in the namespace in the futur
 
 ### `package` keyword
 
-A new keyword `package` is introduced. It is a contextual keyword, i.e. a symbol can be named `package`.
+`package` is introduced as an access modifier.  It cannot be combined with other access modifiers.
 For example, the following is allowed.
 
 ```
