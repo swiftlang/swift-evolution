@@ -4,7 +4,7 @@
 * Authors: [Ellie Shin](https://github.com/elsh), [Alexis Laferriere](https://github.com/xymus)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Awaiting review**
-* Implementation: [apple/swift#61546](https://github.com/apple/swift/pull/62700), [apple/swift#62704](https://github.com/apple/swift/pull/62704), [apple/swift#62652](https://github.com/apple/swift/pull/62652)
+* Implementation: [apple/swift#61546](https://github.com/apple/swift/pull/62700), [apple/swift#62704](https://github.com/apple/swift/pull/62704), [apple/swift#62652](https://github.com/apple/swift/pull/62652), [apple/swift#62652](https://github.com/apple/swift/pull/62652)
 * Review: ([pitch](https://forums.swift.org/t/new-access-modifier-package/61459))
 
 ## Introduction
@@ -66,7 +66,7 @@ Our goal is to introduce a mechanism to Swift to recognize a package as a unit i
 
 ## Detailed design
 
-### `package` keyword
+### `package` Keyword
 
 `package` is introduced as an access modifier.  It cannot be combined with other access modifiers.
 `package` is a contextual keyword, so existing declarations named `package` will continue to work.  This follows the precedent of `open`, which was also added as a contextual keyword.  For example, the following is allowed:
@@ -94,7 +94,7 @@ public struct MainEngine {
 The `package` access modifier can be added to any types where an existing access modifier can be added, e.g. `class`, `struct`, `enum`, `func`, `var`, `protocol`, etc.  It is less restrictive than `internal` and more restrictive than `public`.  For example, a `public` function cannot have `internal` or `package` parameters or return type in its signature, and a `package` function cannot have `internal` parameters or return type in its signature.  
 
 
-### Use site
+### Use Site
 
 The Game module can access the helper API `run` since it is in the same package as Engine.
 
@@ -120,7 +120,7 @@ let engine = MainEngine()
 engine.run() // Error: cannot find `run` in scope
 
 ```
-### Package names
+### Package Names
 
 A package name is a unique string with c99 identifier characters, and is passed down to Swift frontend via a new flag `-package-name`.  It is then stored in the module binary and used to compare with package names of other modules to determine if they are part of the same package.  
 
@@ -158,32 +158,33 @@ However, there are two exceptions.  The first is that Swift allows `var` and `su
 
 Because setter access levels are controlled by writing a separate modifier from the primary access, the syntax naturally extends to allow `package(set)`.  However, subclassing and overriding are different because they are controlled by writing a specific keyword as the primary access modifier.  This proposal has to decide what `package` by itself means for classes and class members.  It also has to decide whether to support the options not covered by `package` alone or to leave them as a possible future direction.
 
-Here is a matrix showing what access levels currently allow accessing or subclassing:
+Here is a matrix showing where each current access level can be used or overridable:
 
 <table>
 <thead>
 <tr>
-<th>Subclassable in... \ Accessible in...</th>
-<th>anywhere</th>
-<th>module</th>
+<th></th>
+<th>Use</th>
+<th>Override/Subclass</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>anywhere</th>
-<td align="center">open</td>
-<td align="center">(illegal)</td>
+<th>internal</th>
+<td align="center">in-module</td>
+<td align="center">in-module</td>
 </tr>
 <tr>
-<th>module</th>
-<td align="center">public</td>
-<td align="center">internal</td>
+<th>public</th>
+<td align="center">cross-module</td>
+<td align="center">in-module</td>
 </tr>
 <tr>
-<th>nowhere</th>
-<td align="center">public final</td>
-<td align="center">internal final</td>
+<th>open</th>
+<td align="center">cross-module</td>
+<td align="center">cross-module</td>
 </tr>
+<tr>
 </tbody>
 </table>
 
@@ -192,37 +193,43 @@ With `package` as a new access modifier, the matrix is modified like so:
 <table>
 <thead>
 <tr>
-<th>Subclassable in... \ Accessible in...</th>
-<th>anywhere</th>
-<th>package</th>
-<th>module</th>
+<th></th>
+<th>Use</th>
+<th>Override/Subclass</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>anywhere</th>
-<td align="center">open</td>
-<td align="center">(illegal)</td>
-<td align="center">(illegal)</td>
+<th>internal</th>
+<td align="center">in-module</td>
+<td align="center">in-module</td>
 </tr>
 <tr>
 <th>package</th>
-<td align="center">?</td>
-<td align="center">?</td>
-<td align="center">(illegal)</td>
+<td align="center">cross-module (in package)</td>
+<td align="center">in-module</td>
 </tr>
 <tr>
-<th>module</th>
-<td align="center">public</td>
-<td align="center">package</td>
-<td align="center">internal</td>
+<th>?(1)</th>
+<td align="center">cross-module (in package)</td>
+<td align="center">cross-module (in package)</td>
 </tr>
 <tr>
-<th>nowhere</th>
-<td align="center">public final</td>
-<td align="center">package final</td>
-<td align="center">internal final</td>
+<th>?(2)</th>
+<td align="center">cross-module (cross-package)</td>
+<td align="center">cross-module (in package)</td>
 </tr>
+<tr>
+<th>public</th>
+<td align="center">cross-module (cross-package)</td>
+<td align="center">in-module</td>
+</tr>
+<tr>
+<th>open</th>
+<td align="center">cross-module (cross-package)</td>
+<td align="center">cross-module (cross-package)</td>
+</tr>
+<tr>
 </tbody>
 </table>
 
@@ -233,13 +240,15 @@ However, this choice leaves no way to spell the two combinations marked in the t
 
 ## Future Directions
 
-### Subclassing
-The package/package entity marked with `?` from the matrix corresponds to allowing accessing and subclassing a class from outside of its defining module within the same package (`open` within a package and hidden from another package). The package/anywhere entity also marked with `?` means allowing accessing a class from outside of the package but subclassing only within the package (`open` within a package and `public` from another package). 
+### Subclassing and Overrides
+The entities marked with `?(1)` and `?(2)` from the matrix above both require accessing and subclassing cross-modules in a package (`open` within a package). The only difference is that (1) hides the symbol from outside of the package and (2) makes it visible outside. Use cases involving (2) should be rare but its underlying flow should be the same as (1) except its symbol visibility. 
 
-We will most likely need to introduce a new access modifier for each or one of them with an option to export or hide the symbol from outside of its defining package (via an attribute).
+We will need to expand on the existing `open` access modifier or introduce a new access modifier. The exact name is TBD, but so far suggestions include `packageopen`, `package open`, `open(package)`, and `open package(set)`. The `open package(set)` might be a good candidate since we can utilize the existing flow between `open` and `public` that allows subclasses to be `public` and expand on it to control the visibility of the base class. If we were to use a new access modifier, we might need more than one, e.g. `packageopen` that corresponds to (1) and `public packageopen` that corresponds to (2), and will also need to handle the inheritance access level hirearchy, i.e. whether subclasses can be `public` when their base class is `packageopen`.
+
+We will add a function that returns a two-dimensioned value for use and override. It will return the correct access level for use and indication on whether it's overridable. From the use aspect, the access level determined should just be `package` if not one of the existing access level. The overridable bit should return whether it's subclassable or overridable for all access levels.
 
 ### Package-private 
-If modules in a package only contain symbols that `package` or more restrictive, none of the symbols from the package are visible outside of it.  
+If a module in a package only contains symbols that are `package` or more restrictive, the whole module can be treated as private to the package. This "package-only" module can be useful for organizing modules (a utility module vs a public facing module) and enforcing the boundary with diagnostics. It can also allow module aliasing to apply automatically without the explicit module aliases parameter, which could be useful for multi-version dependencies of a package.
 
 ### Optimizations
 * A package containing several modules can be treated as a resilience domain.  If same-package clients need access to module binaries, they don't need to be independently rebuildable and could have an unstable ABI; they could avoid resilience overhead and unnecessary language rules.  
@@ -256,10 +265,10 @@ Boundaries between separately-built modules within a package are still potential
 
 ## Alternatives considered
 
-### Use current workarounds
+### Use Current Workarounds
 A current workaround for the scenario in the Motivation is to use `@_spi` or `@_implemenationOnly`.  Each option has caveats.  The `@_spi` requires a group name, which makes it verbose to use and harder to keep track of, and `@_implementationOnly` can be too limiting as we want to be able to restrict access to only portions of APIs.  There are also hacky workarounds such as `@testable` and the `-disable-access-control` flag.  They elevate all `internal` (and `private` with the flag) symbols to `public`.  These options are unstable and also quickly lead to an increase of the binary and the shared cache size, not to mention symbol name clashes.
 
-### Introduce submodules 
+### Introduce Submodules
 Instead of adding a new package access level above modules, we could allow modules to contain other modules as components.  This is an idea often called "submodules".  Packages would then define an "umbrella" module that contains the package's modules as components.  However, there are several weaknesses in this approach:
 
 * It doesn't actually solve the problem by itself.  Submodule APIs would still need to be able to declare whether they're usable outside of the umbrella or not, and that would require an access modifier.  It might be written in a more general way, like `internal(MyPackage)`, but that generality would also make it more verbose.
