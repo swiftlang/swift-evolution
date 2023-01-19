@@ -205,7 +205,7 @@ Namespacing
 Optimizations
 * A package containing several modules can be treated as a resilience domain. If same-package clients need access to module binaries, they don't need to be independently rebuildable and could have an unstable ABI; they could avoid resilience overhead and unnecessary language rules. 
 
-* By default package symbols are exported in the final libraries/executables. We plan to introduce a build setting that allows users to decide whether to hide package symbols for staticaly linked libraries. Enabling package symbols to be hidden would help with size optimizations.
+* By default, `package` symbols are exported in the final libraries/executables. We plan to introduce a build setting that allows users to decide whether to hide package symbols for statically linked libraries. Enabling package symbols to be hidden would help with size optimizations.
 
 ## Source compatibility
 
