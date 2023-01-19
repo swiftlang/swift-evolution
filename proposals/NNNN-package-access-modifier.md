@@ -159,7 +159,7 @@ We plan to introduce an option to hide package symbols. By default, all package 
 
 Library evolution makes modules resilient. We can incorporate a package name into a resiliency check and bypass it if modules are in the same package. This will remove the need for resilience overhead such as indirection and language requirements such as `@unknown default` for an unfrozen `enum`.  
 
-### Subclassing / Overrides
+### Subclassing and Overrides
 
 Below is a matrix showing what access levels currently allow accessing or subclassing. 
 
