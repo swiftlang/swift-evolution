@@ -77,7 +77,7 @@ This also paves the path to include a package name in the namespace in the futur
 ### `package` keyword
 
 `package` is introduced as an access modifier.  It cannot be combined with other access modifiers.
-For example, the following is allowed.
+`package` is a contextual keyword, so existing declarations named `package` will continue to work.  This follows the precedent of `open`, which was also added as a contextual keyword.  For example, the following is allowed:
 
 ```
 package var package: String {...}
