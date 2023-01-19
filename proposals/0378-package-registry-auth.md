@@ -3,7 +3,7 @@
 * Proposal: [SE-0378](0378-package-registry-auth.md)
 * Author: [Yim Lee](https://github.com/yim-lee)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active Review (November 14 - December 2, 2022)**
+* Status: **Accepted**
 * Implementation: [apple/swift-package-manager#5838](https://github.com/apple/swift-package-manager/pull/5838)
 * Review:
   * Pitch: https://forums.swift.org/t/pitch-package-registry-authentication/61047
