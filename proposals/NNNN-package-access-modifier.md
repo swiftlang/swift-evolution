@@ -120,7 +120,6 @@ let engine = MainEngine()
 engine.run() // Error: cannot find `run` in scope
 
 ```
-
 ### Package names
 
 A package name is a unique string with c99 identifier characters, and is passed down to Swift frontend via a new flag `-package-name`.  It is then stored in the module binary and used to compare with package names of other modules to determine if they are part of the same package.  
@@ -161,58 +160,71 @@ Because setter access levels are controlled by writing a separate modifier from 
 
 Here is a matrix showing what access levels currently allow accessing or subclassing:
 
-```
-                                Accessible in...
-                             ___anywhere___|____module_____
-              |  anywhere   |     open     |   (illegal)
-Subclassable  |  module     |    public    |    internal
-    in...     |  nowhere    | public final | internal final
-
-```
 <table>
 <thead>
 <tr>
-<th>Accessible in...</th>
-<tr>
-</tr>
-<th>                  </th>
+<th>Subclassable in... \ Accessible in...</th>
 <th>anywhere</th>
 <th>module</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th></th>
 <th>anywhere</th>
-<td>open</td>
-<td>(illegal)</td>
+<td align="center">open</td>
+<td align="center">(illegal)</td>
 </tr>
 <tr>
-<th>Subclassable in...</th>
 <th>module</th>
-<td>public</td>
-<td>internal</td>
+<td align="center">public</td>
+<td align="center">internal</td>
 </tr>
 <tr>
-<th>                  </th>
 <th>nowhere</th>
-<td>public final</td>
-<td>internal final</td>
+<td align="center">public final</td>
+<td align="center">internal final</td>
 </tr>
 </tbody>
 </table>
 
 With `package` as a new access modifier, the matrix is modified like so:
 
-```
-                                      Accessible in...
-                             ___anywhere____|_____package____|____module_____
-              |  anywhere   |     open      |    (illegal)   |   (illegal)
-Subclassable  |  package    |       ?       |        ?       |   (illegal)
-    in...     |  module     |    public     |     package    |    internal
-              |  nowhere    |  public final |  package final |  internal final
-
-```
+<table>
+<thead>
+<tr>
+<th>Subclassable in... \ Accessible in...</th>
+<th>anywhere</th>
+<th>package</th>
+<th>module</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>anywhere</th>
+<td align="center">open</td>
+<td align="center">(illegal)</td>
+<td align="center">(illegal)</td>
+</tr>
+<tr>
+<th>package</th>
+<td align="center">?</td>
+<td align="center">?</td>
+<td align="center">(illegal)</td>
+</tr>
+<tr>
+<th>module</th>
+<td align="center">public</td>
+<td align="center">package</td>
+<td align="center">internal</td>
+</tr>
+<tr>
+<th>nowhere</th>
+<td align="center">public final</td>
+<td align="center">package final</td>
+<td align="center">internal final</td>
+</tr>
+</tbody>
+</table>
 
 This proposal takes the position that `package` alone should not allow subclassing or overriding outside of the defining module.  This is consistent with the behavior of `public` and makes `package` fit into a simple continuum of ever-expanding privileges.  It also allows the normal optimization model of `public` classes and methods to still be applied to `package` classes and methods, implicitly making them `final` when they aren't subclassed or overridden, without requiring a new "whole package optimization" build mode.
 
