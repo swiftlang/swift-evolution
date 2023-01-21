@@ -274,7 +274,7 @@ The `ChainCollection` use case above requires using the same index type for all 
 struct Tuple<Elements...> {
   var elements: (Elements...)
   
-  subscript<Value>(keyPath: KeyPath<(Element...), Value>) -> Value {
+  subscript<Value>(keyPath: KeyPath<(Elements...), Value>) -> Value {
     return elements[keyPath: keyPath]
   }
 }
