@@ -308,7 +308,7 @@ to preserve the original value in order to rollback
 a failed operation).
 For that reason, we also propose a new `copy` keyword
 operator that allows an explicit copy operation of
-it's argument.
+its argument.
 
 For implicitly-copyable types, this new keyword
 has no effect:
