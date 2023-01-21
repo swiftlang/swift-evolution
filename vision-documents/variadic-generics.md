@@ -233,7 +233,7 @@ func element<T...>(at index: Int, in t: T...) where T: P -> any P {
 Consider the following `ChainCollection` data structure, which has a type parameter pack of collections with the same `Element` type:
 
 ```swift
-struct ChainCollection<Element, C...> where C: Collection, C.Element == Element {
+struct ChainCollection<Element, C...>: Collection where C: Collection, C.Element == Element {
   var collection: C...
 }
 ```
