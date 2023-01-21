@@ -277,7 +277,6 @@ do {
 }
 ```
 
-
 ### Not implicitly copyable
 
 These new binding keywords express a programmer's
@@ -296,10 +295,50 @@ func consuming_use(_ a: consuming A) { ... }
 consuming_use(x) // Illegal; requires copying x 
 func borrowing_use(_ a: borrow A) { ... }
 borrowing_use(x) // Legal; `borrow` argument marker avoids copy
-func copy(_ a: borrow A) -> A { ... }
-let z = copy(x)  // Legal way to explicitly copy x
+let z = copy x  // Legal way to explicitly copy x
 ```
 
+### Explicit `copy` operator
+
+As illustrated above, `borrow` and `inout` bindings
+create a new name that is not implicitly copyable.
+But if the underlying type is in fact copyable, there
+can be a need to make an explicit copy (for example,
+to preserve the original value in order to rollback
+a failed operation).
+For that reason, we also propose a new `copy` keyword
+operator that allows an explicit copy operation of
+it's argument.
+
+For implicitly-copyable types, this new keyword
+has no effect:
+```
+struct CopyableStruct { ... }
+let a = CopyableStruct()
+let b = copy a // Same as `let b = a`
+```
+
+Also note that this new keyword does not provide a way
+to copy values that are inherently noncopyable:
+```
+@noncopyable struct NoncopyableStruct { ... }
+let a = NoncopyableStruct()
+let b = a // Illegal: `a` is noncopyable
+let b = copy a // Illegal: `a` is noncopyable
+```
+
+This keyword only has an effect on values that
+are inherently copyable (according to their type)
+but are currently restricted from being implicitly
+copied:
+```
+struct CopyableStruct { ... }
+let a = CopyableStruct()
+borrow b = a
+let c = b // Illegal: `b` is not implicitly copyable
+let d = a // Legal: `a` is implicitly copyable
+let e = copy b // Legal: Explicit copy is okay
+```
 
 ### Optional unwrapping
 
