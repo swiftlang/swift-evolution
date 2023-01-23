@@ -114,7 +114,9 @@ Each of these expressions become the value of the overall expression if the bran
 
 This does have the downside of requiring fallback to the existing techniques when, for example, a single expression has a log line above it. This is in keeping with the current behavior of `return` omission.
 
-An exception to this rule is if a branch either returns or throws, in which case no value for the overall expression need be produced. In these cases, multiple expressions could be executed on that branch prior to the `throw` or `return`.
+An exception to this rule is if a branch either explicitly throws, or terminates the program (e.g. with `fatalError`), in which case no value for the overall expression need be produced. In these cases, multiple expressions could be executed on that branch prior to that point.
+
+In the case where a branch throws, either because a call in the expression throws (which requires a `try`) or with an explicit `throw`, there is no requirement to mark the overall expression with an additional `try` (e.g. before the `if`).
 
 Within a branch, further `if` or `switch` expressions may be nested.
 
@@ -311,10 +313,6 @@ let foo: String = do {
 }
 ```
 
-### Support for `break` and `continue`
-
-Similar to `return`, statements that break or continue to a label, could be permitted in branches. There is likely a larger number of edge cases to consider here, possibly requiring enhancements to DI to ensure variables remain initialized on all paths. 
-
 ### Guard
 
 Often enthusiasm for `guard` leads to requests for `guard` to have parity with `if`. Returning a value from a `guard`'s else is very common, and could potentially be sugared as
@@ -433,9 +431,15 @@ If a future direction of full expressions is considered, the `->` form may not w
 let x = if p -> 1 else -> 2 + 3
 ``` 
 
+### Support for control flow
+
+An earlier version of this proposal allowed use of `return` in a branch. Similar to `return`, statements that `break` or `continue` to a label, were considered a future direction.
+
+Allowing new control flow out of expressions could be unexpected and error-prone. Swift currently only allows control flow out of expressions through thrown errors, which must be explicitly marked with `try` (or, in the case of `if` or `switch` branches, with `throw`) as an indication of the control flow to the programmer. Allowing other control flow out of expressions would undermine this principle. The control flow impact of nested return statements would become more difficult to reason about if we extend SE-0380 to support multiple-statement branches in the future. The use-cases for this functionality presented in the review thread were also fairly niche. Given the weak motivation and the potential problems introduced, the Language Workgroup accepts SE-0380 without this functionality.
+
 ## Source compatibility
 
-As proposed, this addition has one source incompatability, related to unreachable code. The following currently compiles, albeit with a warning that the `if` statement is unreachable (and the values in the branches unused):
+As proposed, this addition has one source incompatibility, related to unreachable code. The following currently compiles, albeit with a warning that the `if` statement is unreachable (and the values in the branches unused):
 
 ```swift
 func foo() {
