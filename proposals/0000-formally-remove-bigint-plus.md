@@ -17,7 +17,7 @@ This was included so that prefix `+` could be included as a literal prefix in co
 let signs: [StaticBigInt] = [-1, 0, +1]
 ```
 
-It turns out that this was a accidental source breaking change, because of examples like the following:
+It turns out that this was an accidental source breaking change, because of examples like the following:
 ```
 let a: Int = 7
 let b = +1     // Inferred as `StaticBigInt` because concrete `+` beats
