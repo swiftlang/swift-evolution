@@ -90,7 +90,9 @@ public struct MainEngine {
 }
 ```
 
-The `package` access modifier can be added to any types where an existing access modifier can be added, e.g. `class`, `struct`, `enum`, `func`, `var`, `protocol`, etc.  It is less restrictive than `internal` and more restrictive than `public`.  For example, a `public` function cannot have `internal` or `package` parameters or return type in its signature, and a `package` function cannot have `internal` parameters or return type in its signature.  
+The `package` access modifier can be used anywhere that the existing access modifiers can be used, e.g. `class`, `struct`, `enum`, `func`, `var`, `protocol`, etc.
+
+Swift requires that the declarations used in certain places (such as the signature of a function) be at least as accessible as the containing declaration. For the purposes of this rule, `package` is less accessible than `open` and `public` and more accessible than `internal`, `fileprivate`, and `private`. For example, a `public` function cannot use a `package` type in its parameters or return type, and a `package` function cannot use an `internal` type in its parameters or return type. Similarly, an `@inlinable` `public` function cannot use a `package` declaration in its implementation, and an `@inlinable` `package` function cannot use an `internal` declaration in its implementation.
 
 
 ### Use Site
