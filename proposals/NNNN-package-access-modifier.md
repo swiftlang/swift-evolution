@@ -75,7 +75,6 @@ Our goal is to introduce a mechanism to Swift to recognize a package as a unit i
 package var package: String {...}
 ```
 
-This is similar to `open`, which is also a contextual keyword.
 
 ### Declaration Site
 
