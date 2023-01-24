@@ -135,7 +135,7 @@ swiftc -module-name Engine -package-name gamePkg ...
 [App] swiftc App -package-name appPkg ...
 ```
 
-When building the Engine module, the package name 'gamePkg' and package symbols is stored in the Engine binary.  When building Game, the input to its package name 'gamePkg' is compared with Engine's package name; since they match, access to package symbols is allowed.  When building App, the name comparison shows 'appPkg' is different from its dependency module's so access to package symbols is deined, which is what we want.
+When building the Engine module, the package name 'gamePkg' is recorded in the built interface to the module.  When building Game, its package name 'gamePkg' is compared with the package name recorded in Engine's built interface; since they match, Game is allowed to access Engine's `package` declarations.  When building App, its package name 'appPkg' is different from `gamePkg`, so it is not allowed to access `package` symbols in either Engine or Game, which is what we want.
 
 Swift Package Manager has a package identity per package, an identifier that's verified to be unique via a registry, and it will pass it down automatically.  Other build systems such as Bazel can introduce a new build setting to set the value for a package name.  Since it needs to be unique, a reverse-DNS name could be used to avoid clashing.
 
