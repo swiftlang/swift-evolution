@@ -123,9 +123,7 @@ engine.run() // Error: cannot find `run` in scope
 ```
 ### Package Names
 
-A package name is a unique string with c99 identifier characters, and is passed down to Swift frontend via a new flag `-package-name`.  It is then stored in the module binary and used to compare with package names of other modules to determine if they are part of the same package.  
-
-If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.
+Two modules belong to the same package if they were built with the same package name.  A package name must be unique and a valid C99 identifier, i.e. a string consisting of alphanumeric characters and an underscore, starting with a letter.  It is passed to the Swift frontend via a new flag `-package-name`.  Swift Package Manager has a package identity per package, an identifier that's verified to be unique via a registry, and it will pass the identifier down automatically.  Note that the package identity can contain URL characters, and such character will be transposed to an underscore.  Other build systems such as Bazel will need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing; a dot in such string will be transposed to an underscore.  
 
 Here's an example of how a package name is passed to a commandline invocation.
 
@@ -137,15 +135,13 @@ swiftc -module-name Engine -package-name gamePkg ...
 
 When building the Engine module, the package name 'gamePkg' is recorded in the built interface to the module.  When building Game, its package name 'gamePkg' is compared with the package name recorded in Engine's built interface; since they match, Game is allowed to access Engine's `package` declarations.  When building App, its package name 'appPkg' is different from `gamePkg`, so it is not allowed to access `package` symbols in either Engine or Game, which is what we want.
 
-Swift Package Manager has a package identity per package, an identifier that's verified to be unique via a registry, and it will pass it down automatically.  Other build systems such as Bazel can introduce a new build setting to set the value for a package name.  Since it needs to be unique, a reverse-DNS name could be used to avoid clashing.
-
-### Exportability
+If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.
 
 When the Swift frontend builds a `.swiftmodule` file directly from source, the file will include the package name and all of the `package` declarations in the module.  When the Swift frontend builds a `.swiftinterface` file from source, the file will include the package name, but it will put `package` declarations in a secondary `.package.swiftinterface` file.  When the Swift frontend builds a `.swiftmodule` file from a `.swiftinterface` file that includes a package name, but it does not have the corresponding `.package.swiftinterface` file, it will record this in the `.swiftmodule`, and it will prevent this file from being used to build other modules in the same package.
 
-`package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the function: they must be `open`, `public`, `package`, or `@usableFromInline`.  Note that `@usableFromInline` allows the use of a symbol from `@inlinable` functions whether they're `package` or `public`.  `@usableFromPackageInline` will be introduced to export a symbol only for use by `@inlinable package` functions.
+### Exportability
 
-We plan to introduce an option to hide package symbols.  By default, all package symbols will be exported in the final library/executable.
+`package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the function: they must be `open`, `public`, `package`, or `@usableFromInline`.  Note that `@usableFromInline` allows the use of a symbol from `@inlinable` functions whether they're `package` or `public`.  `@usableFromPackageInline` is introduced to export a symbol only for use by `@inlinable package` functions.
 
 ### Resiliency
 
@@ -254,7 +250,7 @@ If a module in a package only contains symbols that are `package` or more restri
 ### Optimizations
 * A package containing several modules can be treated as a resilience domain.  If same-package clients need access to module binaries, they don't need to be independently rebuildable and could have an unstable ABI; they could avoid resilience overhead and unnecessary language rules.  
 
-* By default, `package` symbols are exported in the final libraries/executables.  We plan to introduce a build setting that allows users to decide whether to hide package symbols for statically linked libraries.  Enabling package symbols to be hidden would help with size optimizations.
+* By default, `package` symbols are exported in the final libraries/executables.  We plan to introduce a build setting that allows users to hide package symbols for statically linked libraries.  Enabling package symbols to be hidden would help with code size optimizations.
 
 ## Source compatibility
 
