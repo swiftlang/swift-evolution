@@ -172,7 +172,7 @@ Likewise, if the maintainer tries to access the original `value` parameter insid
 of `doStuffUniquely` after being consumed to initialize `newValue`, they will
 get an error:
 
-```
+```swift
 func doStuffUniquely(with value: consume [Int]) {
   // If we received the last remaining reference to `value`, we'd like
   // to be able to efficiently update it without incurring more copies.
@@ -348,7 +348,7 @@ with existing code that calls functions named `consume`, the operand to
 `consume` must begin with another identifier, and must consist of an
 identifier or postfix expression:
 
-```
+```swift
 consume x // OK
 consume [1, 2, 3] // Subscript access into property named `consume`, not a consume operation
 consume (x) // Call to function `consume`, not a consume operation
@@ -466,7 +466,7 @@ state can use the static `consume` operator to provide API that
 dynamically takes ownership of the current value inside of them
 while leaving them in their empty state:
 
-```
+```swift
 extension Optional {
   mutating func take() -> Wrapped {
     switch consume self {
@@ -510,7 +510,7 @@ with it, which means that a function which `consume`s an instance, or a
 `taking func` method on the type itself, would run the deinit if it does not
 forward ownership anywhere else:
 
-```
+```swift
 moveonly struct FileHandle {
   var fd: Int32
 
@@ -529,7 +529,7 @@ an operation that invalidates the value some other way, making it unnecessary
 or incorrect for `deinit` to run on it, or because the function wants to be able
 to take ownership of parts away from the value:
 
-```
+```swift
 extension FileHandle {
   // Return the file descriptor back to the user for manual management
   // and disable automatic management with the FileHandle value.
@@ -549,7 +549,7 @@ This doesn't require a new parameter convention (since it fits within the
 ABI of a `consume T` parameter), but could be spelled as a new operator
 inside of a `taking func`:
 
-```
+```swift
 extension FileHandle {
   // Return the file descriptor back to the user for manual management
   // and disable automatic management with the FileHandle value.
@@ -653,7 +653,7 @@ we're considering:
     `borrow` operator would let the developer communicate this to the
     compiler:
 
-    ```
+    ```swift
     var global = Foo()
 
     func useFoo(x: Foo) {
@@ -674,7 +674,7 @@ we're considering:
   with static lifetime, types, or scopes should not admit implicit
   copies:
 
-    ```
+    ```swift
     // we're not allowed to implicitly copy `x`
     func foo(@noImplicitCopy x: String) {
     }
