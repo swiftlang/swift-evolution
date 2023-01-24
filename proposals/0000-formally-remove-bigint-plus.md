@@ -56,5 +56,5 @@ None.
 
 We could keep prefix `+` around but implement it in a different fashion.
 However, at this point there is little value in doing so.
-No existing Swift programs need it, and contexts where it would make an actual difference are few and far between; it will only ever matter when you explicitly want to have values of type `StaticBigInt`, which is rare.
+No existing Swift programs need it, and contexts where it would make any difference are few and far between; it will only ever matter when you explicitly want to have values of type `StaticBigInt`, which is rare.
 If it turns out that people have significant use cases for this operation in the future, we can consider a proposal to add it via some other mechanism.
