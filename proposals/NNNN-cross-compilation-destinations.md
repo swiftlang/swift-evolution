@@ -9,12 +9,17 @@
 
 ## Introduction
 
-Cross-compilation is a common development use case. When cross-compiling, we need to refer to these two main concepts:
+Cross-compilation is a common development use case. When cross-compiling, we need to refer to these concepts:
 
-* **host platform**, where developer's code is built;
-* **target platform**, where developer's code is running.
+* **toolchain**, which is a set of tools used to build an application or a library;
+* **build platform**, where the toolchain is built;
+* **host platform**, where application or library code is built;
+* **target platform**, where application or library code is running natively.
+* **SDK**, which is a set of dynamic and/or static libraries, headers, and other resources required to generate code for the target platform. 
 
-Another important term is **toolchain**, which is a set of executable binaries running on the host platform. Additionally, we define **SDK** as a set of dynamic and/or static libraries, headers, and other resources required to produce a binary for a target platform. Let’s call a toolchain and an SDK bundled together a **destination**.
+Let’s call a toolchain and an SDK bundled together a **destination**.
+
+The proposal is designed for use cases where host and target platforms are different from each other. Cases where build platform is different from the host platform are out of scope for this proposal.
 
 ## Motivation
 
@@ -86,18 +91,18 @@ Here each artifact directory is dedicated to a specific CC destination, while bi
 
 Note the presence of `destination.json` files in each `<host variant>` subdirectory. These files should contain a JSON dictionary with an evolved version of the schema of [existing destination.json files that SwiftPM already supports](https://github.com/apple/swift-package-manager/pull/1098) (hence `"version": 2` )
 
-```
+```json
 {
   "version": 2,
-  "sdkRootDir": <relative path to a sysroot directory in the destination tree>,
-  "toolchainBinDir": <relative path to toolchain executables in the destination tree>,
-  "runtimeDir": <optional relative path to runtime components in the destination tree>,
-  "hostTriples": [<an array of supported host platform triples>],
-  "targetTriples": [<an array of supported target platform triples>],
-  "extraSwiftCFlags": [<an array of flags passed to the Swift compiler>],
-  "extraCCFlags": [<an array of flags passed to the C compiler>],
-  "extraCXXFlags": [<an array of flags passed to the C++ compiler>],
-  "extraLinkerFlags": [<an array of flags passed to the linker>]
+  "sdkRootDir": "<relative path to a sysroot directory in the destination tree>",
+  "toolchainBinDir": "<relative path to toolchain executables in the destination tree>",
+  "runtimeDir": "<optional relative path to runtime components in the destination tree>",
+  "hostTriples": ["<an array of supported host platform triples>"],
+  "targetTriples": ["<an array of supported target platform triples>"],
+  "extraSwiftCFlags": ["<an array of flags passed to the Swift compiler>"],
+  "extraCCFlags": ["<an array of flags passed to the C compiler>"],
+  "extraCXXFlags": ["<an array of flags passed to the C++ compiler>"],
+  "extraLinkerFlags": ["<an array of flags passed to the linker>"]
 }
 ```
 
