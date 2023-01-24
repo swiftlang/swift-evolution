@@ -123,7 +123,7 @@ engine.run() // Error: cannot find `run` in scope
 ```
 ### Package Names
 
-Two modules belong to the same package if they were built with the same package name.  A package name must be unique and a valid C99 identifier, i.e. a string consisting of alphanumeric characters and an underscore, starting with a letter.  It is passed to the Swift frontend via a new flag `-package-name`.  Swift Package Manager has a package identity per package, an identifier that's verified to be unique via a registry, and it will pass the identifier down automatically.  Note that the package identity can contain URL characters, and such character will be transposed to an underscore.  Other build systems such as Bazel will need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing; a dot in such string will be transposed to an underscore.  
+Two modules belong to the same package if they were built with the same package name.  A package name must be a unique string with the following characters; `A-Z, a-z, 0-9, _, ., and -`. It is passed to the Swift frontend via a new flag `-package-name`.  
 
 Here's an example of how a package name is passed to a commandline invocation.
 
@@ -134,6 +134,8 @@ swiftc -module-name Engine -package-name gamePkg ...
 ```
 
 When building the Engine module, the package name 'gamePkg' is recorded in the built interface to the module.  When building Game, its package name 'gamePkg' is compared with the package name recorded in Engine's built interface; since they match, Game is allowed to access Engine's `package` declarations.  When building App, its package name 'appPkg' is different from `gamePkg`, so it is not allowed to access `package` symbols in either Engine or Game, which is what we want.
+
+Swift Package Manager has a package identity per package, an identifier that's verified to be unique via a registry, and it will pass the identifier down automatically.  Other build systems such as Bazel will need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.  
 
 If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.
 
