@@ -1,9 +1,9 @@
 # Custom Reflection Metadata
 
-* Proposal: [SE-NNNN](NNNN-custom-reflection-metadata.md)
+* Proposal: [SE-0385](385-custom-reflection-metadata.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Holly Borla](https://github.com/hborla), [Alejandro Alonso](https://github.com/Azoy), [Stuart Montgomery](https://github.com/stmontgomery)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (January 24, 2023...February 7, 2023)**
 * Implementation: [PR#1](https://github.com/apple/swift/pull/62426), [PR#2](https://github.com/apple/swift/pull/62738), [PR#3](https://github.com/apple/swift/pull/62818), [PR#4](https://github.com/apple/swift/pull/62850), [PR#5](https://github.com/apple/swift/pull/62920), [PR#6](https://github.com/apple/swift/pull/63057)
 
 ## Introduction
