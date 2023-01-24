@@ -62,7 +62,7 @@ Allowing this kind of unintended public access to package APIs is especially bad
 
 ## Proposed solution
 
-Our goal is to introduce a mechanism to Swift to recognize a package as a unit in the aspect of access control.  We proposed to do so by introducing a new access modifier `package`.  The `package` access modifier will allow accessing symbols from outside of its defining module as long as they are within the same package.  This will help set clear boundaries between packages.  
+Our goal is to introduce a mechanism to Swift to recognize a package as a unit in the aspect of access control.  We propose to do so by introducing a new access modifier called `package`.  The `package` access modifier allows symbols to be accessed from outside of their defining module, but only from other modules in the same package.  This helps to set clear boundaries between packages.  
 
 ## Detailed design
 
