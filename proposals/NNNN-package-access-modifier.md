@@ -145,6 +145,41 @@ When the Swift frontend builds a `.swiftmodule` file directly from source, the f
 
 `package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the function: they must be `open`, `public`, `package`, or `@usableFromInline`.  Note that `@usableFromInline` allows the use of a symbol from `@inlinable` functions whether they're `package` or `public`.  `@usableFromPackageInline` is introduced to export a symbol only for use by `@inlinable package` functions.
 
+`package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the `@inlinable package` function: they must be `open`, `public`, `package`, `@usableFromInline`, or `usableFromPackageInline`.
+`@usableFromPackageInline` is a new attribute which allows a symbol to be used from `@inlinable package` functions (that are defined in the same module) without having to make the symbol `package` or `public`.  It can be used anywhere that `@usableFromInline` can be used, but the attributes cannot be combined.  A `@usableFromPackageInline` symbol must be `internal`. For example: 
+
+```
+@usableFromPackageInline func internalFuncA() {}
+
+@inlinable package func pkgUse() {
+    internalFuncA() // OK
+}
+
+@inlinable public func publicUse() {
+    internalFuncA() // OK
+}
+```
+
+The existing `@usableFromInline` attribute can be applied to `package` symbols as well as `internal` symbols.  This allows those symbols to be used from `@inlinable public` functions (that are defined anywhere in the same package) without having to make them `public`.  The Swift frontend will include `@usableFromInline package` symbols in the ordinary `.swiftinterface` for a module, not its `.package.swiftinterface`.
+
+```
+@usableFromPackageInline func internalFuncA() {}
+@usableFromInline func internalFuncB() {}
+@usableFromInline package func packageFunc() {}
+
+@inlinable package func pkgUse() {
+    internalFuncA() // OK
+    internalFuncB() // OK
+    packageFunc() // OK
+}
+
+@inlinable public func publicUse() {
+    internalFuncA() // ERROR
+    internalFuncB() // OK
+    packageFunc() // OK
+}
+```
+ 
 ### Resiliency
 
 Library evolution makes modules resilient.  We can incorporate a package name into a resiliency check and bypass it if modules are in the same package.  This will remove the need for resilience overhead such as indirection and language requirements such as `@unknown default` for an unfrozen `enum`.  
@@ -234,19 +269,20 @@ However, this choice leaves no way to spell the two combinations marked in the t
 ## Future Directions
 
 ### Subclassing and Overrides
+
 The entities marked with `?(a)` and `?(b)` from the matrix above both require accessing and subclassing cross-modules in a package (`open` within a package). The only difference is that (b) hides the symbol from outside of the package and (a) makes it visible outside. Use cases involving (a) should be rare but its underlying flow should be the same as (b) except its symbol visibility. 
 
-We will need to expand on the existing `open` access modifier or introduce a new access modifier. The exact name is TBD, but so far suggestions include `packageopen`, `package open`, `open(package)`, and `open package(set)`. The `open package(set)` might be a good candidate since we can utilize the existing flow between `open` and `public` that allows subclasses to be `public` and expand on it to control the visibility of the base class. If we were to use a new access modifier, we might need more than one, e.g. `packageopen` that corresponds to (1) and `public packageopen` that corresponds to (2), and will also need to handle the inheritance access level hirearchy, i.e. whether subclasses can be `public` when their base class is `packageopen`.
-
-We will add a function that returns a two-dimensioned value for use and override. It will return the correct access level for use and indication on whether it's overridable. From the use aspect, the access level determined should just be `package` if not one of the existing access level. The overridable bit should return whether it's subclassable or overridable for all access levels.
+Potential solutions include introducing new keywords for specific access combinations (e.g. `packageopen`), allowing `open` to be access-qualified (e.g. `open(package)`), and allowing access modifiers to be qualified with specific purposes (e.g. `package(override)`).
 
 ### Package-Private Modules
+
 Sometimes entire modules are meant to be private to the package that provides them.  Allowing this to be expressed directly would allow these utility modules to be completely hidden outside of the package, avoiding unwanted dependencies on the existence of the module.  It would also allow the build system to automatically namespace the module within the package, reducing the need for [explicit module aliases](https://github.com/apple/swift-evolution/blob/main/proposals/0339-module-aliasing-for-disambiguation.md) when utility modules of different packages share a name (such as `Utility`) or when multiple versions of a package need to be built into the same program.
 
 ### Optimizations
+
 * A package containing several modules can be treated as a resilience domain.  If same-package clients need access to module binaries, they don't need to be independently rebuildable and could have an unstable ABI; they could avoid resilience overhead and unnecessary language rules.  
 
-* By default, `package` symbols are exported in the final libraries/executables.  We plan to introduce a build setting that allows users to hide package symbols for statically linked libraries.  Enabling package symbols to be hidden would help with code size optimizations.
+* By default, `package` symbols are exported in the final libraries/executables.  It would be useful to introduce a build setting that allows users to hide package symbols for statically linked libraries; this would help with code size and build time optimizations.
 
 ## Source compatibility
 
@@ -254,22 +290,21 @@ A new keyword `package` is added as a new access modifier.  It is a contextual k
 
 ## Effect on ABI stability
 
-Boundaries between separately-built modules within a package are still potentially ABI boundaries.  The ABI for package symbols is not different from the ABI for public symbols, although in the future we plan to add an option to not export package symbols that can be resolved within an image.  
+Boundaries between separately-built modules within a package are still potentially ABI boundaries.  The ABI for package symbols is not different from the ABI for public symbols, although it might be considered in the future to add an option to not export package symbols that can be resolved within an image.  
 
 ## Alternatives considered
 
-### Use Current Workarounds
 ### `@_spi`
 
 One workaround for the scenario in the Motivation would be to use the `@_spi(groupName)` attribute, which allows part of the API of a module to be hidden unless it is imported in a special way that explicitly requests access to it.  This is an unsatisfying alternative to package-level access control because it is designed around a very different situation.  An SPI is a "hole" in the normal public interface, one meant for the use of a specific client.  That client is typically outside of the module's normal code-distribution boundary, but the module authors still have a cooperative working relationship.  This relationship is reflected in the design of `@_spi` in multiple ways:
 
-- First, access to the SPI is granted to a specific client by name.  This is a clear and unavoidable communication of intent about who is meant to be using the SPI.  Other clients can still pose as this client and use the SPI, but that would be a clear breach of trust with predictable consequences.
+* First, access to the SPI is granted to a specific client by name.  This is a clear and unavoidable communication of intent about who is meant to be using the SPI.  Other clients can still pose as this client and use the SPI, but that would be a clear breach of trust with predictable consequences.
 
-- Second, clients must explicitly request the SPI by name.  This means that clients must opt in to using the SPI in every file, which works to limit its accidental over-use even by the intended client.  It also means that SPI use is obvious in the code, which code reviewers can see and raise questions about, and which SPI authors can easily find with a code search.
+* Second, clients must explicitly request the SPI by name.  This means that clients must opt in to using the SPI in every file, which works to limit its accidental over-use even by the intended client.  It also means that SPI use is obvious in the code, which code reviewers can see and raise questions about, and which SPI authors can easily find with a code search.
 
 The level of care implied by these properties is appropriate for a carefully-targeted hole in an API that must cross a code-distribution boundary and will therefore require equal amounts of care to ever modify or close.  That rarely applies to two modules within the same package, where a package-level interface can ideally be changed with just a quick edit to a few different parts of a repository.  The `@_spi` attribute is intentionally designed to not be as lightweight as a package-local change should be.
 
-`@_spi` would also not be easy to optimize.  By design, clients of an SPI can be anywhere, making it effectively part of the public ABI of a module.  To avoid exporting an SPI, the build system would have to know about that specific SPI group and promise the compiler that it was only used in the current built image.  Recognizing that all of the modules in a package are being linked into the same image and can be optimized together is comparatively easy for a build system and so is a much more feasible future direction.
+* `@_spi` would also not be easy to optimize.  By design, clients of an SPI can be anywhere, making it effectively part of the public ABI of a module.  To avoid exporting an SPI, the build system would have to know about that specific SPI group and promise the compiler that it was only used in the current built image.  Recognizing that all of the modules in a package are being linked into the same image and can be optimized together is comparatively easy for a build system and so is a much more feasible future direction.
 
 ### `@_implementationOnly`
 
@@ -280,6 +315,7 @@ Another workaround for the scenario in the Motivation is to use the `@_implement
 There are a few other workarounds to the absence of package-level access control, such as using `@testable` or the `-disable-access-control` flag.  These are hacky subversions of Swift's language design, and they severely undermine the use of module boundaries for encapsulation.  `-disable-access-control` is also an unstable and unsupported feature that can introduce build failures by causing symbol name collisions.
 
 ### Introduce Submodules
+
 Instead of adding a new package access level above modules, we could allow modules to contain other modules as components.  This is an idea often called "submodules".  Packages would then define an "umbrella" module that contains the package's modules as components.  However, there are several weaknesses in this approach:
 
 * It doesn't actually solve the problem by itself.  Submodule APIs would still need to be able to declare whether they're usable outside of the umbrella or not, and that would require an access modifier.  It might be written in a more general way, like `internal(MyPackage)`, but that generality would also make it more verbose.
