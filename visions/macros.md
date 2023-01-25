@@ -10,7 +10,7 @@ There is another large category of language features that provide syntactic suga
 
 Macros are a feature present in a number of languages that allow one to perform some kind of transformation on the program's input source code to produce a different program. The mechanism of transformation varies greatly, from lexical expansion in C macros, to custom rules that rewrite one syntax into other syntax, to programs that arbitrarily manipulate the abstract syntax tree (AST) of the program. Macro systems exist in C, LISP, Scheme, Scala, Rust, and a number of other languages, and each design has its own tradeoffs.
 
-In all of these languages, macros have the effect of democratizing syntactic sugar. Many tasks that would have required a new language feature or an external source-generating tool could, instead, be implemented as a macro. Doing so has trade-offs: many more people can implement a macro than can take a feature through the language's evolution process, but the macro implementation will likely have some compromises---non-ideal syntax, worse diagnostics, worse compile-time performance. Overall, the hope is that a macro system can keep the language smaller and more focused, yet remain expressive because it the language itself is extensible enough to support libraries for many different domains. As a project, a macro system should reduce the desire for new syntactic-sugar features, leaving more time for more transformative feature work. Even in the cases where a new language feature is warranted, a macro system can allow more experimentation with the feature to best understand how it should work, and then be "promoted" to a full language feature once we've gained experience from the macro version.
+In all of these languages, macros have the effect of democratizing syntactic sugar. Many tasks that would have required a new language feature or an external source-generating tool could, instead, be implemented as a macro. Doing so has trade-offs: many more people can implement a macro than can take a feature through the language's evolution process, but the macro implementation will likely have some compromises---non-ideal syntax, worse diagnostics, worse compile-time performance. Overall, the hope is that a macro system can keep the language smaller and more focused, yet remain expressive because it is extensible enough to support libraries for many different domains. As a project, a macro system should reduce the desire for new syntactic-sugar features, leaving more time for more transformative feature work. Even in the cases where a new language feature is warranted, a macro system can allow more experimentation with the feature to best understand how it should work, and then be "promoted" to a full language feature once we've gained experience from the macro version.
 
 ### Use cases for macros
 
@@ -23,7 +23,7 @@ There are many use cases for macros, but before we look forward to the new use c
 
 ### When is a language feature better than a macro?
 
-As noted above, a macro system has the potential to replace large parts of existing Swift langauge features, and enable many new ones. But a macro system is not necessarily a good replacement for a special-built feature:
+As noted above, a macro system has the potential to replace large parts of existing Swift language features, and enable many new ones. But a macro system is not necessarily a good replacement for a special-built feature:
 
 * A special-built feature might benefit from special ABI rules.
 * A special-built feature might benefit from analyses that would be infeasible to apply in a macro, such as those dependent on data or control flow.
@@ -121,7 +121,7 @@ A macro declaration indicates how the macro can be used in source code, much lik
 macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "MyMacros", type: "StringifyMacro")
 ```
 
-The `macro` introducer indicates that this is a macro, named `stringify`. The `@freestanding` attribute notes that this is a freestanding macro (used with the `#` syntax) and that it is usable as an expression. The macro is defined (after the `=`) to have an externally-provided macro expansion operation that is the type named `MyMacros.Stringify`.  Because the definition is external, the `stringify` macro function doesn't need a function body. If Swift were to grow a way to implement macros directly here (rather than via a separate package), such macros could have a body but not an `#externalMacro` argument.
+The `macro` introducer indicates that this is a macro, named `stringify`. The `@freestanding` attribute notes that this is a freestanding macro (used with the `#` syntax) and that it is usable as an expression. The macro is defined (after the `=`) to have an externally-provided macro expansion operation that is the type named `MyMacros.StringifyMacro`.  Because the definition is external, the `stringify` macro function doesn't need a function body. If Swift were to grow a way to implement macros directly here (rather than via a separate package), such macros could have a body but not an `#externalMacro` argument.
 
 A given macro can inhabit several different macro *roles*, each of which can expand in different ways. For example, consider a `Clamping` macro that implements behavior similar to the [property wrapper by the same name](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#clamping-a-value-within-bounds):
 
@@ -190,13 +190,13 @@ public struct StringifyMacro: ExpressionMacro {
 }
 ```
 
-Conformance to `ExpressionMacro` indicates a macro definition for an expression macro, and corresponds to `@freestanding(expression)`. There will be several protocols, corresponding to the various roles that macros inhabit. Each protocol as an `expansion` method that will be called with the syntax nodes that are involved in the macro expansion, along with a `context` instance that provides more information about how the macro is being invoked. 
+Conformance to `ExpressionMacro` indicates a macro definition for an expression macro, and corresponds to `@freestanding(expression)`. There will be several protocols, corresponding to the various roles that macros inhabit. Each protocol has an `expansion` method that will be called with the syntax nodes that are involved in the macro expansion, along with a `context` instance that provides more information about how the macro is being invoked. 
 
 The implementation of these functions makes extensive use of Swift syntax manipulation via the `swift-syntax` package. The inputs and outputs are in terms of syntax nodes: `ExprSyntax` describes the syntax for any kind of expression in Swift, whereas `MacroExpansionExprSyntax` is the syntax for an explicitly-written macro expansion. The `expansion` operation will return a new syntax node that will replace the ones it was given in the program. We use string interpolation as a form of quasi-quoting: the return of `StringifyMacro.expansion` forms a tuple `(\(argument), "\(literal: argument.description)")` where the first argument is the expression itself and the second is the source code translated into a string literal. The resulting string will be parsed into an expression that is returned to the compiler.
 
 #### Diagnostics
 
-A macro implementation can be used to produce diagnostics (e.g., warnings and errors) to indicate problems encountered during macro expansion. The `stringify` and macro described above doesn't really have a failure case, but imagine an `#embed("somefile.txt")` macro that takes the contents of a file at build time and turns them into an array of bytes. The macro could have several different failure modes:
+A macro implementation can be used to produce diagnostics (e.g., warnings and errors) to indicate problems encountered during macro expansion. The `stringify` macro described above doesn't really have a failure case, but imagine an `#embed("somefile.txt")` macro that takes the contents of a file at build time and turns them into an array of bytes. The macro could have several different failure modes:
 
 * The macro argument isn't a string literal, so it doesn't know what the file name is.
 * The file might not be available for reading because it is missing, inaccessible, etc.
@@ -207,7 +207,7 @@ In its limit, a macro might perform no translation whatsoever on the syntax tree
 
 ### Macro roles
 
-The `@freestanding ` and `@attached` attributes for macro declarations specify the roles that the macro can inhabit, each of which corresponds to a different place in the source code where the macro can be expanded. Here is a potential set of roles where macro expansion could be warranted. The set of roles could certainly grow over time to enable new capabilities in the language:
+The `@freestanding` and `@attached` attributes for macro declarations specify the roles that the macro can inhabit, each of which corresponds to a different place in the source code where the macro can be expanded. Here is a potential set of roles where macro expansion could be warranted. The set of roles could certainly grow over time to enable new capabilities in the language:
 
 * **Expression**: A freestanding macro that can occur anywhere that an expression can occur, and must produce an expression. `#colorLiteral` could fall into this category:
 
@@ -268,7 +268,7 @@ The `@freestanding ` and `@attached` attributes for macro declarations specify t
           let \(maxValueName) = \(maxValue)
           if \(newValueName) < \(minValueName) {
             \(storageName) = \(minValueName)
-          } else if \(newValueName) > maxValue {
+          } else if \(newValueName) > \(maxValueName) {
             \(storageName) = \(maxValueName)
           } else {
             \(storageName) = \(newValueName)
@@ -384,6 +384,6 @@ The `@freestanding ` and `@attached` attributes for macro declarations specify t
 
 One of the primary concerns with macros is their ease of use and development: how do we know what a macro does to a program? How does one develop and debug a new macro?
 
-With the right tool support, the syntactic model of macro expansion makes it easy to answer the first question. The tools will need to be able to show the developer what the expansion of any use of a macro is. At a minimum, this should include flags that can be passed to the compiler to expand macros (the prototype provides `-Xfrontend -dump-macro-expansions` for this),  and possibly include a mode to write out a "macro-expanded" source file akin to how C compilers can emit a preprocessed source file. Other tools such as IDEs should be able to show the expansion of a given use of a macro so that developers can inspect what a macro is doing. Because the result is always Swift source code, one can reason about it more easily than (say) inspecting the implementation of a macro that manipules an AST or IR.
+With the right tool support, the syntactic model of macro expansion makes it easy to answer the first question. The tools will need to be able to show the developer what the expansion of any use of a macro is. At a minimum, this should include flags that can be passed to the compiler to expand macros (the prototype provides `-Xfrontend -dump-macro-expansions` for this),  and possibly include a mode to write out a "macro-expanded" source file akin to how C compilers can emit a preprocessed source file. Other tools such as IDEs should be able to show the expansion of a given use of a macro so that developers can inspect what a macro is doing. Because the result is always Swift source code, one can reason about it more easily than (say) inspecting the implementation of a macro that manipulates an AST or IR.
 
-The fact that macro implementations are separate programs actually makes it easier to develop macros. One can write unit tests for a macro implementation that provides the input source code for the macro (say, `#stringify(x + y)`), expands that macro using facilities from swift-syntax, and verifies that the resulting code is free of syntax errors and matches the expected result. As 
+The fact that macro implementations are separate programs actually makes it easier to develop macros. One can write unit tests for a macro implementation that provides the input source code for the macro (say, `#stringify(x + y)`), expands that macro using facilities from swift-syntax, and verifies that the resulting code is free of syntax errors and matches the expected result.
