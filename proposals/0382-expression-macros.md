@@ -238,7 +238,7 @@ public protocol ExpressionMacro: FreestandingMacro {
   static func expansion(
     of macro: some FreestandingMacroSyntax, 
     in context: any MacroExpansionContext
-  ) throws -> ExprSyntax
+  ) async throws -> ExprSyntax
 }
 ```
 
@@ -247,6 +247,8 @@ The `FreestandingMacroSyntax` type is the `swift-syntax` node describing the `ma
 Macro definitions should conform to the `ExpressionMacro` protocol and implement their syntactic transformation via `expansion(of:in:)`, returning the new expression as a syntax node.
 
 If the macro expansion cannot proceed for some reason, the `expansion(of:in:)` operation can throw an error rather than try to produce a new syntax node. The compiler will then report the error to the user. More detailed diagnostics can be provided via the macro expansion context.
+
+The macro expansion operation is asynchronous, to account for potentially-asynchronous operations that will eventually be added to `MacroExpansionContext`. For example, operations that require additional communication with the compiler to get types of subexpressions, access files in the program, and so on.
 
 #### `MacroExpansionContext`
 
@@ -425,20 +427,6 @@ Macros are a source-to-source transformation tool that have no ABI impact.
 
 Macros are a source-to-source transformation tool that have no effect on API resilience.
 
-## Alternatives considered
-
-### Asynchronous macro expansion
-
-The `expansion(of:in:)` operation for an expression macro could be marked as `async`, e.g.,
-
-```swift
- static func expansion(
-    of macro: MacroExpansionExprSyntax, in context: any MacroExpansionContext
-  ) async throws -> ExprSyntax
-```
-
-to allow it to perform asynchronous computations as part of macro expansion. This could be useful if certain macros were provided with access to asynchronous I/O or required some kind of non-blocking communication with a separate compiler process.
-
 ## Future Directions
 
 There are a number of potential directions one could take macros, both by providing additional information to the macro implementations themselves and expanding the scope of macros.
@@ -497,6 +485,7 @@ Expressions are just one place in the language where macros could be valuable. O
 
 * Revisions based on review feedback:
   * Switch `@expression` to `@freestanding(expression)` to align with the other macros proposals and vision document.
+  * Make the `ExpressionMacro.expansion(of:in:)` requirement `async`.
   * Make `MacroExpansionContext` a class-bound protocol, because the state involving diagnostics and unique names needs to be shared, and the implementations could vary significantly between (e.g.) the compiler and a test harness.
   * Remove the `moduleName` and `fileName` from the `MacroExpansionContext` for now.
   * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
