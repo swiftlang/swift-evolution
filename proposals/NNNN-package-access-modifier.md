@@ -123,7 +123,7 @@ engine.run() // Error: cannot find `run` in scope
 ```
 ### Package Names
 
-Two modules belong to the same package if they were built with the same package name.  A package name must be a unique string with the following characters; `A-Z, a-z, 0-9, _, ., and -`. It is passed to the Swift frontend via a new flag `-package-name`.  
+Two modules belong to the same package if they were built with the same package name.  A package name must be a unique string of US-ASCII alphanumeric characters, `_`, `.`, or `-`; that is, it must match the regular expression `\A[A-Za-z0-9_.-]+\z`. It is passed to the Swift frontend via a new flag `-package-name`.  
 
 Here's an example of how a package name is passed to a commandline invocation.
 
