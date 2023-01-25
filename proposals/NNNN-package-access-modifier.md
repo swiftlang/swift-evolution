@@ -141,7 +141,7 @@ If `-package-name` is not given, the `package` access modifier is disallowed.  S
 
 When the Swift frontend builds a `.swiftmodule` file directly from source, the file will include the package name and all of the `package` declarations in the module.  When the Swift frontend builds a `.swiftinterface` file from source, the file will include the package name, but it will put `package` declarations in a secondary `.package.swiftinterface` file.  When the Swift frontend builds a `.swiftmodule` file from a `.swiftinterface` file that includes a package name, but it does not have the corresponding `.package.swiftinterface` file, it will record this in the `.swiftmodule`, and it will prevent this file from being used to build other modules in the same package.
 
-### Exportability
+### Package Symbols and `@inlinable` Functions
 
 `package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the function: they must be `open`, `public`, `package`, or `@usableFromInline`.  Note that `@usableFromInline` allows the use of a symbol from `@inlinable` functions whether they're `package` or `public`.  `@usableFromPackageInline` is introduced to export a symbol only for use by `@inlinable package` functions.
 
