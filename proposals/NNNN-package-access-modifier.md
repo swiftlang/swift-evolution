@@ -246,7 +246,7 @@ We will need to expand on the existing `open` access modifier or introduce a new
 
 We will add a function that returns a two-dimensioned value for use and override. It will return the correct access level for use and indication on whether it's overridable. From the use aspect, the access level determined should just be `package` if not one of the existing access level. The overridable bit should return whether it's subclassable or overridable for all access levels.
 
-### Package-private 
+### Package-Private Modules
 If a module in a package only contains symbols that are `package` or more restrictive, the whole module can be treated as private to the package. This "package-only" module can be useful for organizing modules (a utility module vs a public facing module) and enforcing the boundary with diagnostics. It can also allow module aliasing to apply automatically without the explicit module aliases parameter, which could be useful for multi-version dependencies of a package.
 
 ### Optimizations
