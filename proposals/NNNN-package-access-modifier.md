@@ -265,7 +265,25 @@ Boundaries between separately-built modules within a package are still potential
 ## Alternatives considered
 
 ### Use Current Workarounds
-A current workaround for the scenario in the Motivation is to use `@_spi` or `@_implemenationOnly`.  Each option has caveats.  The `@_spi` requires a group name, which makes it verbose to use and harder to keep track of, and `@_implementationOnly` can be too limiting as we want to be able to restrict access to only portions of APIs.  There are also hacky workarounds such as `@testable` and the `-disable-access-control` flag.  They elevate all `internal` (and `private` with the flag) symbols to `public`.  These options are unstable and also quickly lead to an increase of the binary and the shared cache size, not to mention symbol name clashes.
+### `@_spi`
+
+One workaround for the scenario in the Motivation would be to use the `@_spi(groupName)` attribute, which allows part of the API of a module to be hidden unless it is imported in a special way that explicitly requests access to it.  This is an unsatisfying alternative to package-level access control because it is designed around a very different situation.  An SPI is a "hole" in the normal public interface, one meant for the use of a specific client.  That client is typically outside of the module's normal code-distribution boundary, but the module authors still have a cooperative working relationship.  This relationship is reflected in the design of `@_spi` in multiple ways:
+
+- First, access to the SPI is granted to a specific client by name.  This is a clear and unavoidable communication of intent about who is meant to be using the SPI.  Other clients can still pose as this client and use the SPI, but that would be a clear breach of trust with predictable consequences.
+
+- Second, clients must explicitly request the SPI by name.  This means that clients must opt in to using the SPI in every file, which works to limit its accidental over-use even by the intended client.  It also means that SPI use is obvious in the code, which code reviewers can see and raise questions about, and which SPI authors can easily find with a code search.
+
+The level of care implied by these properties is appropriate for a carefully-targeted hole in an API that must cross a code-distribution boundary and will therefore require equal amounts of care to ever modify or close.  That rarely applies to two modules within the same package, where a package-level interface can ideally be changed with just a quick edit to a few different parts of a repository.  The `@_spi` attribute is intentionally designed to not be as lightweight as a package-local change should be.
+
+`@_spi` would also not be easy to optimize.  By design, clients of an SPI can be anywhere, making it effectively part of the public ABI of a module.  To avoid exporting an SPI, the build system would have to know about that specific SPI group and promise the compiler that it was only used in the current built image.  Recognizing that all of the modules in a package are being linked into the same image and can be optimized together is comparatively easy for a build system and so is a much more feasible future direction.
+
+### `@_implementationOnly`
+
+Another workaround for the scenario in the Motivation is to use the `@_implementationOnly` attribute on the import of a module.  This attribute causes the module to be imported only for the use of the current module; clients of the current module don't implicitly transitively import the target module, and the symbols of the target module are restricted from appearing in the `public` API of the current module.  This would prevent clients from accidentally using APIs from the target module.  However, this is a very incomplete workaround for the lack of package-level access control.  For one, it doesn't actually prevent access to the module, which can still be explicitly imported and used.  For another, it only works on an entire module at a time, so a module cannot restrict some of its APIs to the package while making others available publicly.  Taming transitive import would be a good future direction for Swift, but it does not solve the problems of package-level APIs.
+
+### Other workarounds
+
+There are a few other workarounds to the absence of package-level access control, such as using `@testable` or the `-disable-access-control` flag.  These are hacky subversions of Swift's language design, and they severely undermine the use of module boundaries for encapsulation.  `-disable-access-control` is also an unstable and unsupported feature that can introduce build failures by causing symbol name collisions.
 
 ### Introduce Submodules
 Instead of adding a new package access level above modules, we could allow modules to contain other modules as components.  This is an idea often called "submodules".  Packages would then define an "umbrella" module that contains the package's modules as components.  However, there are several weaknesses in this approach:
