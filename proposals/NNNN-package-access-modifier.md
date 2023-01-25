@@ -25,9 +25,8 @@ For example, here’s a scenario where a client has access to a utility API from
 
 Here are source code examples.
 
+Module `Engine` (in `gamePkg`):
 ```
-[Engine (a module in gamePkg)]
-
 public struct MainEngine {
     public init() { ...  }
     // Intended to be public
@@ -35,17 +34,19 @@ public struct MainEngine {
     // A helper function made public only to be accessed by Game
     public func run() { ...  }
 }
+```
 
-[Game (a module in gamePkg)]
-
+Module `Game` (in `gamePkg`):
+```
 import Engine
 
 public func play() {
     MainEngine().run() // Can access `run` as intended since it's within the same package
 }
+```
 
-[App (an executable in `appPkg`)]
-
+Client `App` (in `appPkg`):
+```
 import Game
 import Engine
 
@@ -55,7 +56,7 @@ Game.play()
 print(engine.stats) // Can access `stats` as intended
 ```
 
-In the above scenario, App can import Engine (a utility module in 'gamePkg') and access its helper API directly, even though the API is not intended to be used outside of its package.
+In the above scenario, `App` can import `Engine` (a utility module in 'gamePkg') and access its helper API directly, even though the API is not intended to be used outside of its package.
 
 Allowing this kind of unintended public access to package APIs is especially bad because packages are a unit of code distribution. Swift wants to encourage programs to be divided into modules with well-defined interfaces, so it enforces the boundaries between modules with access control. Despite being divided this way, it's not uncommon for closely-related modules to be written by closely-related (or even the same) people. Access control between such modules still serves a purpose — it promotes the separation of concerns — but if a module's interface needs to be fixed, that's usually easy to coordinate, maybe even as simple as a single commit. However, packages allow code to be shared much more broadly than a single small organization. The boundaries between packages often represent significant differences between programmers, making coordination around API changes much more difficult. For example, the developers of an open source package generally don't know most of their clients, and the standard recommendation is for such packages to only ever remove existing APIs in major-version releases. It's therefore particularly important to allow programmers to enforce these boundaries between packages.
 
@@ -75,14 +76,12 @@ Our goal is to introduce a mechanism to Swift to recognize a package as a unit i
 package var package: String {...}
 ```
 
-
 ### Declaration Site
 
 The `package` keyword is added at the declaration site.  Using the scenario above, the helper API `run` can be declared with the new access modifier like so:
 
+Module `Engine`:
 ```
-[Engine]
-
 public struct MainEngine {
     public init() { ...  }
     public var stats: String { ...  }
@@ -97,11 +96,10 @@ Swift requires that the declarations used in certain places (such as the signatu
 
 ### Use Site
 
-The Game module can access the helper API `run` since it is in the same package as Engine.
+The `Game` module can access the helper API `run` since it is in the same package as `Engine`.
 
+Module `Game`:
 ```
-[Game]
-
 import Engine
 
 public func play() {
@@ -111,16 +109,15 @@ public func play() {
 
 However, if a client outside of the package tries to access the helper API, it will not be allowed.
 
+Client `App`:
 ```
-[App]
-
 import Game
 import Engine
 
 let engine = MainEngine()
 engine.run() // Error: cannot find `run` in scope
-
 ```
+
 ### Package Names
 
 Two modules belong to the same package if they were built with the same package name.  A package name must be a unique string of US-ASCII alphanumeric characters, `_`, `.`, or `-`; that is, it must match the regular expression `\A[A-Za-z0-9_.-]+\z`. It is passed to the Swift frontend via a new flag `-package-name`.  
@@ -129,13 +126,13 @@ Here's an example of how a package name is passed to a commandline invocation.
 
 ```
 swiftc -module-name Engine -package-name gamePkg ...
-[Game] swiftc -module-name Game -package-name gamePkg ...
-[App] swiftc App -package-name appPkg ...
+swiftc -module-name Game -package-name gamePkg ...
+swiftc App -package-name appPkg ...
 ```
 
-When building the Engine module, the package name 'gamePkg' is recorded in the built interface to the module.  When building Game, its package name 'gamePkg' is compared with the package name recorded in Engine's built interface; since they match, Game is allowed to access Engine's `package` declarations.  When building App, its package name 'appPkg' is different from `gamePkg`, so it is not allowed to access `package` symbols in either Engine or Game, which is what we want.
+When building the `Engine` module, the package name 'gamePkg' is recorded in the built interface to the module.  When building `Game`, its package name 'gamePkg' is compared with the package name recorded in `Engine`'s built interface; since they match, `Game` is allowed to access `Engine`'s `package` declarations.  When building `App`, its package name 'appPkg' is different from `gamePkg`, so it is not allowed to access `package` symbols in either `Engine` or `Game`, which is what we want.
 
-The Swift Package Manager already has a concept of a package identity string for every package, as specified by [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md).  This string is verified to be unique via a registry, and it always works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
+The Swift Package Manager already has a concept of a package idpackage identity string for every package, as specified by [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md).  This string is verified to be unique via a registry, and it always works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
 
 If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.
 
@@ -310,7 +307,7 @@ The level of care implied by these properties is appropriate for a carefully-tar
 
 Another workaround for the scenario in the Motivation is to use the `@_implementationOnly` attribute on the import of a module.  This attribute causes the module to be imported only for the use of the current module; clients of the current module don't implicitly transitively import the target module, and the symbols of the target module are restricted from appearing in the `public` API of the current module.  This would prevent clients from accidentally using APIs from the target module.  However, this is a very incomplete workaround for the lack of package-level access control.  For one, it doesn't actually prevent access to the module, which can still be explicitly imported and used.  For another, it only works on an entire module at a time, so a module cannot restrict some of its APIs to the package while making others available publicly.  Taming transitive import would be a good future direction for Swift, but it does not solve the problems of package-level APIs.
 
-### Other workarounds
+### Other Workarounds
 
 There are a few other workarounds to the absence of package-level access control, such as using `@testable` or the `-disable-access-control` flag.  These are hacky subversions of Swift's language design, and they severely undermine the use of module boundaries for encapsulation.  `-disable-access-control` is also an unstable and unsupported feature that can introduce build failures by causing symbol name collisions.
 
