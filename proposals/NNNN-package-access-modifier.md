@@ -157,33 +157,32 @@ However, there are two exceptions.  The first is that Swift allows `var` and `su
 
 Because setter access levels are controlled by writing a separate modifier from the primary access, the syntax naturally extends to allow `package(set)`.  However, subclassing and overriding are controlled by choosing a specific keyword (`public` or `open`) as the primary access modifier, so the syntax does not extend to `package` the same way.  This proposal has to decide what `package` by itself means for classes and class members.  It also has to decide whether to support the options not covered by `package` alone or to leave them as a possible future direction.
 
-Here is a matrix showing where each current access level can be used or overridable:
+Here is a matrix showing where symbols with each current access level can be used or overridden:
 
 <table>
 <thead>
 <tr>
-<th></th>
-<th>Use</th>
-<th>Override/Subclass</th>
+<th>Subclassable in... \ Accessible in...</th>
+<th>anywhere</th>
+<th>module</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>internal</th>
-<td align="center">in-module</td>
-<td align="center">in-module</td>
+<th>anywhere</th>
+<td align="center">open</td>
+<td align="center">(illegal)</td>
 </tr>
 <tr>
-<th>public</th>
-<td align="center">cross-module</td>
-<td align="center">in-module</td>
+<th>module</th>
+<td align="center">public</td>
+<td align="center">internal</td>
 </tr>
 <tr>
-<th>open</th>
-<td align="center">cross-module</td>
-<td align="center">cross-module</td>
+<th>nowhere</th>
+<td align="center">public final</td>
+<td align="center">internal final</td>
 </tr>
-<tr>
 </tbody>
 </table>
 
@@ -192,45 +191,40 @@ With `package` as a new access modifier, the matrix is modified like so:
 <table>
 <thead>
 <tr>
-<th></th>
-<th>Use</th>
-<th>Override/Subclass</th>
+<th>Subclassable in... \ Accessible in...</th>
+<th>anywhere</th>
+<th>package</th>
+<th>module</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>internal</th>
-<td align="center">in-module</td>
-<td align="center">in-module</td>
+<th>anywhere</th>
+<td align="center">open</td>
+<td align="center">(illegal)</td>
+<td align="center">(illegal)</td>
 </tr>
 <tr>
 <th>package</th>
-<td align="center">cross-module (in package)</td>
-<td align="center">in-module</td>
+<td align="center">?(a)</td>
+<td align="center">?(b)</td>
+<td align="center">(illegal)</td>
 </tr>
 <tr>
-<th>?(1)</th>
-<td align="center">cross-module (in package)</td>
-<td align="center">cross-module (in package)</td>
+<th>module</th>
+<td align="center">public</td>
+<td align="center">package</td>
+<td align="center">internal</td>
 </tr>
 <tr>
-<th>?(2)</th>
-<td align="center">cross-module (cross-package)</td>
-<td align="center">cross-module (in package)</td>
+<th>nowhere</th>
+<td align="center">public final</td>
+<td align="center">package final</td>
+<td align="center">internal final</td>
 </tr>
-<tr>
-<th>public</th>
-<td align="center">cross-module (cross-package)</td>
-<td align="center">in-module</td>
-</tr>
-<tr>
-<th>open</th>
-<td align="center">cross-module (cross-package)</td>
-<td align="center">cross-module (cross-package)</td>
-</tr>
-<tr>
 </tbody>
 </table>
+
 
 This proposal takes the position that `package` alone should not allow subclassing or overriding outside of the defining module.  This is consistent with the behavior of `public` and makes `package` fit into a simple continuum of ever-expanding privileges.  It also allows the normal optimization model of `public` classes and methods to still be applied to `package` classes and methods, implicitly making them `final` when they aren't subclassed or overridden, without requiring a new "whole package optimization" build mode.
 
@@ -240,7 +234,7 @@ However, this choice leaves no way to spell the two combinations marked in the t
 ## Future Directions
 
 ### Subclassing and Overrides
-The entities marked with `?(1)` and `?(2)` from the matrix above both require accessing and subclassing cross-modules in a package (`open` within a package). The only difference is that (1) hides the symbol from outside of the package and (2) makes it visible outside. Use cases involving (2) should be rare but its underlying flow should be the same as (1) except its symbol visibility. 
+The entities marked with `?(a)` and `?(b)` from the matrix above both require accessing and subclassing cross-modules in a package (`open` within a package). The only difference is that (b) hides the symbol from outside of the package and (a) makes it visible outside. Use cases involving (a) should be rare but its underlying flow should be the same as (b) except its symbol visibility. 
 
 We will need to expand on the existing `open` access modifier or introduce a new access modifier. The exact name is TBD, but so far suggestions include `packageopen`, `package open`, `open(package)`, and `open package(set)`. The `open package(set)` might be a good candidate since we can utilize the existing flow between `open` and `public` that allows subclasses to be `public` and expand on it to control the visibility of the base class. If we were to use a new access modifier, we might need more than one, e.g. `packageopen` that corresponds to (1) and `public packageopen` that corresponds to (2), and will also need to handle the inheritance access level hirearchy, i.e. whether subclasses can be `public` when their base class is `packageopen`.
 
