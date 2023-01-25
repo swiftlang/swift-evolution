@@ -344,7 +344,7 @@ the mixed target:
 
 The below sample shows what the overlay file would look like for a target
 without a custom module map.
-```
+```yaml
 // all-product-headers.yaml
 {
   "version": 0,
@@ -435,7 +435,7 @@ exist at the time of the module map’s evaluation.
 The below sample shows what the overlay file would look like for a target
 without a custom module map.
 
-```
+```yaml
 // unextended-module-overlay.yaml
 
 {
@@ -610,7 +610,7 @@ the product module map needs to appear as if it is in the original directory
 that the custom module map resides in.
 
 The below sample shows what this overlay file may look like:
-```
+```yaml
 // all-product-headers.yaml
 
 {
