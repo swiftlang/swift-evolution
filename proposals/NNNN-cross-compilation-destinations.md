@@ -1,7 +1,8 @@
 # Cross-Compilation Destination Bundles
 
 * Proposal: [SE-NNNN](NNNN-cross-compilation-destinations.md)
-* Authors: [Max Desiatov](https://github.com/MaxDesiatov)
+* Authors: [Max Desiatov](https://github.com/MaxDesiatov), [Saleem Abdulrasool](https://github.com/compnerd/),
+[Evan Wilde](https://github.com/etcwilde)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: [apple/swift-package-manager#5911](https://github.com/apple/swift-package-manager/pull/5911),
