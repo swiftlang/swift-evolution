@@ -24,7 +24,7 @@ However, because Swift does not recognize organizations of code above the module
 For example, here’s a scenario where a client has access to a utility API from a package it depends on.  The client `App` could be an executable or an Xcode project.  It depends on a package called `gamePkg`, which contains two modules, `Game` and `Engine`.  
 
 
-Module `Engine` (in `gamePkg`):
+Module `Engine` in `gamePkg`:
 ```
 public struct MainEngine {
     public init() { ...  }
@@ -35,7 +35,7 @@ public struct MainEngine {
 }
 ```
 
-Module `Game` (in `gamePkg`):
+Module `Game` in `gamePkg`:
 ```
 import Engine
 
@@ -44,7 +44,7 @@ public func play() {
 }
 ```
 
-Client `App` (in `appPkg`):
+Client `App` in `appPkg`:
 ```
 import Game
 import Engine
@@ -55,10 +55,9 @@ Game.play()
 print(engine.stats) // Can access `stats` as intended
 ```
 
-In the above scenario, `App` can import `Engine` (a utility module in 'gamePkg') and access its helper API directly, even though the API is not intended to be used outside of its package.
+In the above scenario, `App` can import `Engine` (a utility module in `gamePkg`) and access its helper API directly, even though the API is not intended to be used outside of its package.
 
 Allowing this kind of unintended public access to package APIs is especially bad because packages are a unit of code distribution. Swift wants to encourage programs to be divided into modules with well-defined interfaces, so it enforces the boundaries between modules with access control. Despite being divided this way, it's not uncommon for closely-related modules to be written by closely-related (or even the same) people. Access control between such modules still serves a purpose — it promotes the separation of concerns — but if a module's interface needs to be fixed, that's usually easy to coordinate, maybe even as simple as a single commit. However, packages allow code to be shared much more broadly than a single small organization. The boundaries between packages often represent significant differences between programmers, making coordination around API changes much more difficult. For example, the developers of an open source package generally don't know most of their clients, and the standard recommendation is for such packages to only ever remove existing APIs in major-version releases. It's therefore particularly important to allow programmers to enforce these boundaries between packages.
-
 
 ## Proposed solution
 
@@ -126,10 +125,10 @@ Here's an example of how a package name is passed to a commandline invocation.
 ```
 swiftc -module-name Engine -package-name gamePkg ...
 swiftc -module-name Game -package-name gamePkg ...
-swiftc App -package-name appPkg ...
+swiftc -module-name App -package-name appPkg ...
 ```
 
-When building the `Engine` module, the package name 'gamePkg' is recorded in the built interface to the module.  When building `Game`, its package name 'gamePkg' is compared with the package name recorded in `Engine`'s built interface; since they match, `Game` is allowed to access `Engine`'s `package` declarations.  When building `App`, its package name 'appPkg' is different from `gamePkg`, so it is not allowed to access `package` symbols in either `Engine` or `Game`, which is what we want.
+When building the `Engine` module, the package name `gamePkg` is recorded in the built interface to the module.  When building `Game`, its package name `gamePkg` is compared with the package name recorded in `Engine`'s built interface; since they match, `Game` is allowed to access `Engine`'s `package` declarations.  When building `App`, its package name `appPkg` is different from `gamePkg`, so it is not allowed to access `package` symbols in either `Engine` or `Game`, which is what we want.
 
 The Swift Package Manager already has a concept of a package identity string for every package, as specified by [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md).  This string is verified to be unique via a registry, and it always works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
 
@@ -138,8 +137,6 @@ If `-package-name` is not given, the `package` access modifier is disallowed.  S
 When the Swift frontend builds a `.swiftmodule` file directly from source, the file will include the package name and all of the `package` declarations in the module.  When the Swift frontend builds a `.swiftinterface` file from source, the file will include the package name, but it will put `package` declarations in a secondary `.package.swiftinterface` file.  When the Swift frontend builds a `.swiftmodule` file from a `.swiftinterface` file that includes a package name, but it does not have the corresponding `.package.swiftinterface` file, it will record this in the `.swiftmodule`, and it will prevent this file from being used to build other modules in the same package.
 
 ### Package Symbols and `@inlinable` Functions
-
-`package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the function: they must be `open`, `public`, `package`, or `@usableFromInline`.  Note that `@usableFromInline` allows the use of a symbol from `@inlinable` functions whether they're `package` or `public`.  `@usableFromPackageInline` is introduced to export a symbol only for use by `@inlinable package` functions.
 
 `package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the `@inlinable package` function: they must be `open`, `public`, `package`, `@usableFromInline`, or `usableFromPackageInline`.
 `@usableFromPackageInline` is a new attribute which allows a symbol to be used from `@inlinable package` functions (that are defined in the same module) without having to make the symbol `package` or `public`.  It can be used anywhere that `@usableFromInline` can be used, but the attributes cannot be combined.  A `@usableFromPackageInline` symbol must be `internal`. For example: 
@@ -176,10 +173,6 @@ The existing `@usableFromInline` attribute can be applied to `package` symbols a
 }
 ```
  
-### Resiliency
-
-Library evolution makes modules resilient.  We can incorporate a package name into a resiliency check and bypass it if modules are in the same package.  This will remove the need for resilience overhead such as indirection and language requirements such as `@unknown default` for an unfrozen `enum`.  
-
 ### Subclassing and Overrides
 
 Access control in Swift usually doesn't distinguish between different kinds of use.  If a program has access to a type, for example, that gives the programmer a broad set of privileges: the type name can be used in most places, values of the type can be borrowed, copied, and destroyed, members of the type can be accessed (up to the limits of their own access control), and so on.  This is because access control is a tool for enforcing encapsulation and allowing the future evolution of code.  Broad privileges are granted because restricting them more precisely usually doesn't serve that goal.
@@ -193,24 +186,24 @@ Here is a matrix showing where symbols with each current access level can be use
 <table>
 <thead>
 <tr>
-<th>Subclassable in... \ Accessible in...</th>
-<th>anywhere</th>
-<th>module</th>
+<th></th>
+<th>Accessible Anywhere</th>
+<th>Accessible in Module</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>anywhere</th>
+<th>Subclassable Anywhere</th>
 <td align="center">open</td>
 <td align="center">(illegal)</td>
 </tr>
 <tr>
-<th>module</th>
+<th>Subclassable in Module</th>
 <td align="center">public</td>
 <td align="center">internal</td>
 </tr>
 <tr>
-<th>nowhere</th>
+<th>Subclassable Nowhere</th>
 <td align="center">public final</td>
 <td align="center">internal final</td>
 </tr>
@@ -222,33 +215,33 @@ With `package` as a new access modifier, the matrix is modified like so:
 <table>
 <thead>
 <tr>
-<th>Subclassable in... \ Accessible in...</th>
-<th>anywhere</th>
-<th>package</th>
-<th>module</th>
+<th></th>
+<th>Accessible Anywhere</th>
+<th>Accessible in Package</th>
+<th>Accessible in Module</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>anywhere</th>
+<th>Subclassable Anywhere</th>
 <td align="center">open</td>
 <td align="center">(illegal)</td>
 <td align="center">(illegal)</td>
 </tr>
 <tr>
-<th>package</th>
+<th>Subclassable in Package</th>
 <td align="center">?(a)</td>
 <td align="center">?(b)</td>
 <td align="center">(illegal)</td>
 </tr>
 <tr>
-<th>module</th>
+<th>Subclassable in Module</th>
 <td align="center">public</td>
 <td align="center">package</td>
 <td align="center">internal</td>
 </tr>
 <tr>
-<th>nowhere</th>
+<th>Subclassable Nowhere</th>
 <td align="center">public final</td>
 <td align="center">package final</td>
 <td align="center">internal final</td>
@@ -260,7 +253,6 @@ With `package` as a new access modifier, the matrix is modified like so:
 This proposal takes the position that `package` alone should not allow subclassing or overriding outside of the defining module.  This is consistent with the behavior of `public` and makes `package` fit into a simple continuum of ever-expanding privileges.  It also allows the normal optimization model of `public` classes and methods to still be applied to `package` classes and methods, implicitly making them `final` when they aren't subclassed or overridden, without requiring a new "whole package optimization" build mode.
 
 However, this choice leaves no way to spell the two combinations marked in the table above with `?`.  These are more complicated to design and implement and are discussed in Future Directions.
-
 
 ## Future Directions
 
@@ -276,7 +268,7 @@ Sometimes entire modules are meant to be private to the package that provides th
 
 ### Optimizations
 
-* A package containing several modules can be treated as a resilience domain.  If same-package clients need access to module binaries, they don't need to be independently rebuildable and could have an unstable ABI; they could avoid resilience overhead and unnecessary language rules.  
+* A package can be treated as a resilience domain, even with library evolution enabled which makes modules resilient.  The Swift frontend will assume that modules defined in the same package will always be rebuilt together and do not require a resilient ABI boundary between them. This removes the need for performance and code size overhead introduced by ABI-resilient code generation, and it also eliminates language requirements such as `@unknown default` for a non-`frozen enum`.
 
 * By default, `package` symbols are exported in the final libraries/executables.  It would be useful to introduce a build setting that allows users to hide package symbols for statically linked libraries; this would help with code size and build time optimizations.
 
