@@ -81,32 +81,6 @@ struct UnitRectangle {
 
 Property wrappers with `let` declarations will be allowed both as members and local declarations, as envisioned by SE-0258 for `var` declared property wrappers. All other property wrapper traits also remain unchanged from SE-0258.
 
-### Property wrappers with `nonmutating set`
-
-Property wrappers that have a `wrappedValue` property with a `nonmutating set` (e.g., SwiftUI's [`@State`](https://developer.apple.com/documentation/swiftui/state/wrappedvalue) and [`@Binding`](https://developer.apple.com/documentation/swiftui/binding/wrappedvalue)) will preserve the reference semantics of the `wrappedValue` implementation even when marked as a `let` declaration. For example:  
-
-```
-@State let weekday: String = "Monday"
-```
-Here, `weekday` is an immutable instance of the `@State` property wrapper, but its `wrappedValue` storage will retain its mutability and reference type traits. This will translate to:
-```
-private let _weekday: State<String> = State<String>(wrappedValue: "Monday")
-var weekday : String {
-  get { 
-    return _weekday.wrappedValue 
-  }
-  nonmutating set {
-    self._weekday.wrappedValue = value
-  }
-  nonmutating _modify { 
-    yield () 
-  }
-}
-var $weekday: Binding<String> {
-  get { return _weekday.projectedValue }
-}
-```
-
 ## Detailed design
 
 Here are three examples of how a `let` wrapped property can make current iterations more effortless.
@@ -153,6 +127,44 @@ struct ContentView: View {
 ```
 
 Similarly, other SwiftUI property wrappers could be `let` declared when they do not require more than a single initialization.
+
+### Property wrappers with `nonmutating set`
+
+Property wrappers that have a `wrappedValue` property with a `nonmutating set` (e.g., SwiftUI's [`@State`](https://developer.apple.com/documentation/swiftui/state/wrappedvalue) and [`@Binding`](https://developer.apple.com/documentation/swiftui/binding/wrappedvalue)) will preserve the reference semantics of the `wrappedValue` implementation even when marked as a `let` declaration. For example:  
+
+```
+@State let weekday: String = "Monday"
+```
+Here, `weekday` is an immutable instance of the `@State` property wrapper, but its `wrappedValue` storage will retain its mutability and reference type traits. This will translate to:
+```
+private let _weekday: State<String> = State<String>(wrappedValue: "Monday")
+var weekday : String {
+  get { 
+    return _weekday.wrappedValue 
+  }
+  nonmutating set {
+    self._weekday.wrappedValue = value
+  }
+  nonmutating _modify { 
+    yield () 
+  }
+}
+var $weekday: Binding<String> {
+  get { return _weekday.projectedValue }
+}
+```
+
+Marking `weekday` as a let declared property will not remove access to its `wrappedValue`'s nonmutating set and the `wrappedValue` can be assigned via the backing property, `_weekday`:
+
+```
+_weekday.wrappedValue = "Tuesday"
+```
+
+However, this does not affect the immutability of `weekday`, which can only be assigned to once like any ordinary let wrapped property. Any attempt to reassign `weekday` will result in an error:
+
+```
+weekday = "Wednesday" // Error: Cannot assign to value: 'weekday' is a 'let' constant
+```
 
 ## Source compatibility
 
