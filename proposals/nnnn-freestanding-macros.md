@@ -45,7 +45,7 @@ protocol FreestandingMacro: Macro { }
 
 ### Expression macros
 
-As previously noted, expression macros are one form of freestanding macro. As such, we revise the definition of the `ExpressionMacro` protocol provided in [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md)  by making it refine `FreestandingMacro`:
+As previously noted, expression macros are one form of freestanding macro. [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md)  already introduced the `FreestandingMacro` protocol and the `ExpressionMacro` protocol that inherits from it:
 
 ```swift
 protocol ExpressionMacro: FreestandingMacro {
@@ -53,7 +53,7 @@ protocol ExpressionMacro: FreestandingMacro {
 }
 ```
 
-Additionally, we replace the `@expression` attribute introduced in SE-0382 with `@freestanding(expression)`. For example, the `stringify` macro would be declared as follows:
+As well as the `@freestanding(expression)` syntax:
 
 ```swift
 @freestanding(expression) macro stringify<T>(_: T) -> (T, String)
