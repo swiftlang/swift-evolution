@@ -245,8 +245,8 @@ as well:
   - `cert-chain-paths`: Required for package signing unless `signing-identity` is specified, this is the signing certificate chain.
 
 Prerequisites:
-- Register the package `id` (should be one-time operation)
-- Run [`swift package-registry login`](https://github.com/apple/swift-evolution/blob/main/proposals/0378-package-registry-auth.md#new-login-subcommand) to authenticate registry user if needed. Ensure the logged in user has the necessary permissions to call the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6).
+- Run [`swift package-registry login`](https://github.com/apple/swift-evolution/blob/main/proposals/0378-package-registry-auth.md#new-login-subcommand) to authenticate registry user if needed. 
+- The user has the necessary permissions to call the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6) for the package identifier.
 
 Using these inputs, SwiftPM will:
   - Generate source archive for the package release
