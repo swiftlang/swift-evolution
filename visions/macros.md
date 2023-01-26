@@ -323,8 +323,8 @@ The `@freestanding` and `@attached` attributes for macro declarations specify th
 
   ```swift
   // In the standard library
-  @attached(member) = #externalMacro(module: "MyMacros", type: "MemberwiseInit")
-  macro memberwiseInit(access: Access = .public)
+  @attached(member)
+  macro memberwiseInit(access: Access = .public) = #externalMacro(module: "MyMacros", type: "MemberwiseInit")
   
   // In the macro definition library
   struct MemberwiseInit: MemberMacro {
