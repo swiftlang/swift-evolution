@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (January 26th...Feburary 8th, 2023**
 * Implementation: [apple/swift#61546](https://github.com/apple/swift/pull/62700), [apple/swift#62704](https://github.com/apple/swift/pull/62704), [apple/swift#62652](https://github.com/apple/swift/pull/62652), [apple/swift#62652](https://github.com/apple/swift/pull/62652)
-* Review: ([pitch](https://forums.swift.org/t/new-access-modifier-package/61459))
+* Review: ([pitch](https://forums.swift.org/t/new-access-modifier-package/61459)) ([review](https://forums.swift.org/t/se-0386-package-access-modifier/62808))
 
 ## Introduction
 
