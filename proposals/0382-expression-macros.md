@@ -160,9 +160,16 @@ Macros can only be declared at file scope. They can be overloaded in the same wa
 
 The `macro-definition` provides the implementation used to expand the macro. It is parsed as a general expression, but must always be a `macro-expansion-expression`, so all non-builtin macros are defined in terms of other macros, terminating in a builtin macro whose definition is provided by the compiler. The arguments provided within the `macro-expansion-expression` of the macro definition must either be direct references to the parameters of the enclosing macro or must be literals. The `macro-expansion-expression` is type-checked (to ensure that the argument and result types make sense), but no expansion is performed at the time of definition. Rather, expansion of the macro referenced by the `macro-definition` occurs when the macro being declared is expanded. See the following section on macro expansion for more information.
 
-Macro result types cannot include opaque result types.
-
 Macro parameters may have default arguments, but those default arguments can only consist of literal expressions and other macro expansions.
+
+Macros can have opaque result types. The rules for uniqueness of opaque result types for macros are somewhat different from opaque result types of functions, because each macro expansion can easily produce a different type. Therefore, each macro expansion producing an opaque result type will be considered to have a distinct type, e.g., the following is ill-formed:
+
+```swift
+@freestanding(expression) macro someMacroWithOpaqueResult: some Collection<UInt8>
+
+var a = #someMacroWithOpaqueResult
+a = #someMacroWithOpaqueResult // cannot assign value with type of macro expansion here to opaque type from macro expansion above
+```
 
 ### Macro expansion
 
@@ -486,6 +493,7 @@ Expressions are just one place in the language where macros could be valuable. O
 * Revisions based on review feedback:
   * Switch `@expression` to `@freestanding(expression)` to align with the other macros proposals and vision document.
   * Make the `ExpressionMacro.expansion(of:in:)` requirement `async`.
+  * Allow macro declarations to have opaque result types, and define the uniqueness rules.
   * Make `MacroExpansionContext` a class-bound protocol, because the state involving diagnostics and unique names needs to be shared, and the implementations could vary significantly between (e.g.) the compiler and a test harness.
   * Remove the `moduleName` and `fileName` from the `MacroExpansionContext` for now.
   * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
