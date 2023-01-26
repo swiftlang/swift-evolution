@@ -23,7 +23,6 @@ However, because Swift does not recognize organizations of code above the module
 
 For example, here’s a scenario where a client has access to a utility API from a package it depends on.  The client `App` could be an executable or an Xcode project.  It depends on a package called `gamePkg`, which contains two modules, `Game` and `Engine`.  
 
-Here are source code examples.
 
 Module `Engine` (in `gamePkg`):
 ```
