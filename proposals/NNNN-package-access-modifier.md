@@ -1,9 +1,9 @@
 # New access modifier: `package`
 
-* Proposal: [SE-NNNN](NNNN-package-access-modifier.md)
+* Proposal: [SE-0386](0386-package-access-modifier.md)
 * Authors: [Ellie Shin](https://github.com/elsh), [Alexis Laferriere](https://github.com/xymus)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Awaiting review**
+* Status: **Active Review (January 26th...Feburary 8th, 2023**
 * Implementation: [apple/swift#61546](https://github.com/apple/swift/pull/62700), [apple/swift#62704](https://github.com/apple/swift/pull/62704), [apple/swift#62652](https://github.com/apple/swift/pull/62652), [apple/swift#62652](https://github.com/apple/swift/pull/62652)
 * Review: ([pitch](https://forums.swift.org/t/new-access-modifier-package/61459))
 
@@ -91,7 +91,6 @@ The `package` access modifier can be used anywhere that the existing access modi
 
 Swift requires that the declarations used in certain places (such as the signature of a function) be at least as accessible as the containing declaration. For the purposes of this rule, `package` is less accessible than `open` and `public` and more accessible than `internal`, `fileprivate`, and `private`. For example, a `public` function cannot use a `package` type in its parameters or return type, and a `package` function cannot use an `internal` type in its parameters or return type. Similarly, an `@inlinable` `public` function cannot use a `package` declaration in its implementation, and an `@inlinable` `package` function cannot use an `internal` declaration in its implementation.
 
-
 ### Use Site
 
 The `Game` module can access the helper API `run` since it is in the same package as `Engine`.
@@ -139,6 +138,7 @@ When the Swift frontend builds a `.swiftmodule` file directly from source, the f
 ### Package Symbols and `@inlinable` Functions
 
 `package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the `@inlinable package` function: they must be `open`, `public`, `package`, `@usableFromInline`, or `usableFromPackageInline`.
+
 `@usableFromPackageInline` is a new attribute which allows a symbol to be used from `@inlinable package` functions (that are defined in the same module) without having to make the symbol `package` or `public`.  It can be used anywhere that `@usableFromInline` can be used, but the attributes cannot be combined.  A `@usableFromPackageInline` symbol must be `internal`. For example: 
 
 ```
@@ -307,10 +307,12 @@ There are a few other workarounds to the absence of package-level access control
 Instead of adding a new package access level above modules, we could allow modules to contain other modules as components.  This is an idea often called "submodules".  Packages would then define an "umbrella" module that contains the package's modules as components.  However, there are several weaknesses in this approach:
 
 * It doesn't actually solve the problem by itself.  Submodule APIs would still need to be able to declare whether they're usable outside of the umbrella or not, and that would require an access modifier.  It might be written in a more general way, like `internal(MyPackage)`, but that generality would also make it more verbose.
-* Submodule structure would be part of the source language, so it would naturally be source- and ABI-affecting.  For example, programmers could use the parent module's name to qualify identifiers, and symbols exported by a submodule would include the parent module's name.  This means that splitting a module into submodules or adding an umbrella parent module would be much more impactful than desired; ideally, those changes would be purely internal and not change a module's public interface.  It also means that these changes would end up permanently encoding package structure.
-* The "umbrella" submodule structure doesn't work for all packages.  Some packages include multiple "top-level" modules which share common dependencies.  Forcing these to share a common umbrella in order to use package-private dependencies is not desirable.
-* In a few cases, the ABI and source impact above would be desirable.  For example, many packages contain internal Utility modules; if these were declared as submodules, they would naturally be namespaced to the containing package, eliminating spurious collisions.  However, such modules are generally not meant to be usable outside of the package at all.  It is a reasonable future direction to allow whole modules to be made package-private, which would also make it reasonable to automatically namespace them.
 
+* Submodule structure would be part of the source language, so it would naturally be source- and ABI-affecting.  For example, programmers could use the parent module's name to qualify identifiers, and symbols exported by a submodule would include the parent module's name.  This means that splitting a module into submodules or adding an umbrella parent module would be much more impactful than desired; ideally, those changes would be purely internal and not change a module's public interface.  It also means that these changes would end up permanently encoding package structure.
+
+* The "umbrella" submodule structure doesn't work for all packages.  Some packages include multiple "top-level" modules which share common dependencies.  Forcing these to share a common umbrella in order to use package-private dependencies is not desirable.
+
+* In a few cases, the ABI and source impact above would be desirable.  For example, many packages contain internal Utility modules; if these were declared as submodules, they would naturally be namespaced to the containing package, eliminating spurious collisions.  However, such modules are generally not meant to be usable outside of the package at all.  It is a reasonable future direction to allow whole modules to be made package-private, which would also make it reasonable to automatically namespace them.
 
 ## Acknowledgments
 
