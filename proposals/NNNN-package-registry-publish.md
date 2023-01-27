@@ -22,7 +22,7 @@ Publishing package release to a Swift package registry generally involves these 
   1. Prepare package source archive by using the [`swift package archive-source` subcommand](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md#archive-source-subcommand)
   1. Sign the archive (if required by the registry)
   1. Gather package release metadata
-  1. [Authenticate](0378-package-registry-auth.md) (if required by the registry)
+  1. [Authenticate](https://github.com/apple/swift-evolution/blob/main/proposals/0378-package-registry-auth.md) (if required by the registry)
   1. Send the archive (and signature if any) and metadata by calling the ["create package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6)
   1. Check registry server response to determine if publication has succeeded or failed (if the registry processes request synchronously), or is pending (if the registry processes request asynchronously).
 
