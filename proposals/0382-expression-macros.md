@@ -86,13 +86,13 @@ Macro definitions operate on syntax trees. Broadly speaking, there are two diffe
 We propose the latter approach, where a macro definition is a separate program that operates on Swift syntax trees using the [swift-syntax](https://github.com/apple/swift-syntax/) package. Expression macros are defined as types that conform to the `ExpressionMacro ` protocol:
 
 ```swift
-public protocol ExpressionMacro: Macro {
+public protocol ExpressionMacro: FreestandingMacro {
   /// Expand a macro described by the given freestanding macro expansion
   /// within the given context to produce a replacement expression.
   static func expansion(
     of node: some FreestandingMacroExpansionSyntax,
     in context: any MacroExpansionContext
-  ) throws -> ExprSyntax
+  ) async throws -> ExprSyntax
 }
 ```
 
@@ -168,7 +168,7 @@ Macro parameters may have default arguments, but those default arguments can onl
 Macros can have opaque result types. The rules for uniqueness of opaque result types for macros are somewhat different from opaque result types of functions, because each macro expansion can easily produce a different type. Therefore, each macro expansion producing an opaque result type will be considered to have a distinct type, e.g., the following is ill-formed:
 
 ```swift
-@freestanding(expression) macro someMacroWithOpaqueResult: some Collection<UInt8>
+@freestanding(expression) macro someMacroWithOpaqueResult() -> some Collection<UInt8>
 
 var a = #someMacroWithOpaqueResult
 a = #someMacroWithOpaqueResult // cannot assign value with type of macro expansion here to opaque type from macro expansion above
@@ -185,7 +185,7 @@ macro-expansion-expression -> '#' identifier generic-argument-clause[opt] functi
 
 The `#` syntax for macro expansion expressions was specifically chosen because Swift already contains a number of a `#`-prefixed expressions that are macro-like in nature, some of which could be implemented directly as expression macros. The macro referenced by the `identifier` must be an an expression macro, as indicated by `@freestanding(expression)` on the corresponding macro declaration.
 
-Both `function-call-argument-clause` and `trailing-closures` are optional. When both are omitted, the macro is expanded as-if the empty argument list `()` were provided. Macros are not first-class entities in the way functions are, so they cannot be passed around as values and do not need an "unapplied macro" syntax. This allows `#line` et al to be macros without requiring a them to be written as `#line()`. There is some precedent for this with property wrappers, which will also be used for attached macros.
+Both `function-call-argument-clause` and `trailing-closures` are optional. When both are omitted, the macro is expanded as-if the empty argument list `()` were provided. Macros are not first-class entities in the way functions are, so they cannot be passed around as values and do not need an "unapplied macro" syntax. This allows `#line` et al to be macros without requiring them to be written as `#line()`. There is some precedent for this with property wrappers, which will also be used for attached macros.
 
 When a macro expansion is encountered in the source code, it's expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call (for function-like macros) or a property reference (for value-like macros), and does not involve the macro definition.
 
@@ -246,7 +246,7 @@ public protocol ExpressionMacro: FreestandingMacro {
   /// Expand a macro described by the given freestanding macro expansion syntax node
   /// within the given context to produce a replacement expression.
   static func expansion(
-    of macro: some FreestandingMacroExpansionSyntax,
+    of node: some FreestandingMacroExpansionSyntax,
     in context: any MacroExpansionContext
   ) async throws -> ExprSyntax
 }
@@ -342,7 +342,7 @@ The Swift `#selector` and `#keyPath` expressions can have their syntax and type-
 @freestanding(expression) macro selector<T>(_ method: T) -> Selector
 @freestanding(expression) macro selector<T>(getter property: T) -> Selector
 @freestanding(expression) macro selector<T>(setter property: T) -> Selector
-@freestanding(expression) macro keyPath<T>(property: T) -> String
+@freestanding(expression) macro keyPath<T>(_ property: T) -> String
 ```
 
 These macros cannot be implemented in terms of `ExpressionMacro` based on the facilities in this proposal, because one would need to determine which declarations are referenced within the argument of a macro expansion such as `#selector(getter: Person.name)`. However, providing them with macro declarations that have built-in implementations makes them less special, removing some special cases from more of the language.
@@ -398,7 +398,7 @@ There are many uses for expression macros beyond what has presented here. This s
     static func expansion(
       of node: some FreestandingMacroExpansionSyntax,
       in context: any MacroExpansionContext
-    ) -> MacroResult<ExprSyntax> {
+    ) -> ExprSyntax {
       let argList = replaceFirstLabel(
         of: node.argumentList, with: "_colorLiteralRed"
       )
@@ -498,7 +498,7 @@ Expressions are just one place in the language where macros could be valuable. O
   * Switch `@expression` to `@freestanding(expression)` to align with the other macros proposals and vision document.
   * Make the `ExpressionMacro.expansion(of:in:)` requirement `async`.
   * Allow macro declarations to have opaque result types, and define the uniqueness rules.
-  * Simplify the grammar of macro declarations to be more function-like: they always require a parameter list, and if they have a return value, it's type is specified following `->`. To account for macros that take no arguments, omitting both an argument list and trailing closures from a macro expansion expression will implicitly add `()`.
+  * Simplify the grammar of macro declarations to be more function-like: they always require a parameter list, and if they have a return value, its type is specified following `->`. To account for macros that take no arguments, omitting both an argument list and trailing closures from a macro expansion expression will implicitly add `()`.
   * Make `MacroExpansionContext` a class-bound protocol, because the state involving diagnostics and unique names needs to be shared, and the implementations could vary significantly between (e.g.) the compiler and a test harness.
   * Remove the `moduleName` and `fileName` from the `MacroExpansionContext` for now.
   * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
@@ -507,7 +507,7 @@ Expressions are just one place in the language where macros could be valuable. O
 * Revisions from the second pitch:
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
   * Simplified the type signature of the `#externalMacro` built-in macro.
-  * Added `@freestanding(expression)` to the macro to distinguish it from other kinds of macros that could come in the future.
+  * Added `@expression` to the macro to distinguish it from other kinds of macros that could come in the future.
   * Make `expansion(of:in:)` throwing, and have that error be reported back to the user.
   * Expand on how the various builtin standard library macros will work.
 * Revisions from the first pitch:
