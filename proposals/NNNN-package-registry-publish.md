@@ -593,3 +593,11 @@ this information.
   "version": 2
 }
 ```
+
+### Support encrypted private keys
+
+Private keys are encrypted typically. SwiftPM commands that have private key
+as input, such as `package sign` and `package-registry publish`, should support
+reading encrypted private key. This could mean modifying the command to prompt
+user for the passphrase if needed, and adding a `--private-key-passphrase` 
+option to the command for non-interactive/automation use-cases.
