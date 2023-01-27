@@ -86,7 +86,7 @@ public protocol DeclarationMacro: FreestandingMacro {
   /// within the given context to produce a set of declarations.
   static func expansion(
     of node: MacroExpansionDeclSyntax, in context: any MacroExpansionContext
-  ) throws -> [DeclSyntax]
+  ) async throws -> [DeclSyntax]
 }
 ```
 
@@ -170,7 +170,7 @@ public protocol CodeItemMacro: FreestandingMacro {
   /// expressions, statements, and declarations.
   static func expansion(
     of node: MacroExpansionDeclSyntax, in context: any MacroExpansionContext
-  ) throws -> [CodeBlockItemSyntax]
+  ) async throws -> [CodeBlockItemSyntax]
 }
 ```
 
