@@ -380,6 +380,23 @@ The `@freestanding` and `@attached` attributes for macro declarations specify th
   }
   ```
 
+* **Body**: A body macro would allow one to create or replace the body of a function, initializer, or closure through syntactic manipulation. Body macros are attached to one of these entities, e.g.,
+
+  ```swift
+  @traced(logLevel: 2)
+  func myFunction(a: Int, b: Int) { ... }
+  ```
+
+  where the `traced` macro is declared as something like:
+
+  ```swift
+  @attached(body) macro traced(logLevel: Int = 0)
+  ```
+
+  and can introduce new code into the body to, e.g., perform logging.
+
+* **Conformance**: Conformance macros could introduce protocol conformances to the type or extension to which they are attached. For example, this could be useful when composed with macro roles that create other members, such as a macro that both adds a protocol conformance and also a stored property required by that conformance. 
+
 ## Tools for using and developing macros
 
 One of the primary concerns with macros is their ease of use and development: how do we know what a macro does to a program? How does one develop and debug a new macro?
