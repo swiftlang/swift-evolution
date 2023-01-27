@@ -50,46 +50,128 @@ The current [registry service specification](https://github.com/apple/swift-pack
 It does not, however, define any requirements or server-client API contract on the 
 metadata contents. We would like to change that by proposing the following:
   - Package release metadata will continue to be sent as a JSON object.
-  - Package release metadata must be sent as part of the "create a package release" request and adhere to the [schema](#package-release-metadata-schema).
+  - Package release metadata must be sent as part of the "create a package release" request and adhere to the [schema](#package-release-metadata-standards).
   - Package release metadata may be included in the "create a package release" request in one of these ways, depending on registry server support:
     + A multipart section named `metadata` in the request body
     + A file named `package-metadata.json` **inside** the source archive being published
-  - Registry server may populate additional metadata.
+  - Registry server may allow and/or populate additional metadata by expanding the schema, but not alter any predefined properties.
   - Registry server will continue to include metadata in the "fetch information about a package release" response.
   
 #### Package release metadata standards
 
-Package release metadata submitted to a registry be of JSON object of type 
+Package release metadata submitted to a registry must be a JSON object of type 
 [`PackageRelease`](#packagerelease-type), the schema of which is defined below.
+
+<details>
+
+<summary>Expand to view <a href="https://json-schema.org/specification.html">JSON schema</a></summary>  
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md",
+  "title": "Package Release Metadata",
+  "description": "Metadata of a package release.",
+  "type": "object",
+  "properties": {
+    "author": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",      
+          "description": "Name of the author."
+        },  
+        "email": {
+          "type": "string",      
+          "description": "Email address of the author."
+        },              
+        "description": {
+          "type": "string",      
+          "description": "A description of the author."
+        },
+        "organization": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",      
+              "description": "Name of the organization"
+            },  
+            "email": {
+              "type": "string",      
+              "description": "Email address of the organization."
+            },              
+            "description": {
+              "type": "string",      
+              "description": "A description of the organization."
+            },        
+            "url": {
+              "type": "string",      
+              "description": "URL of the organization."
+            },        
+          },
+          "required": ["name"]
+        },                
+        "url": {
+          "type": "string",      
+          "description": "URL of the author."
+        },        
+      },
+      "required": ["name"]
+    },
+    "description": {
+      "type": "string",      
+      "description": "A description of the package release."
+    },
+    "license": {
+      "type": "string",
+      "description": "URL of the package release's license document."
+    },
+    "readmeURL": {
+      "type": "string",      
+      "description": "URL of the README specifically for the package release or broadly for the package."
+    },
+    "repositoryURLs": {
+      "type": "array",
+      "description": "Code repository URL(s) of the package release.",
+      "items": {
+        "type": "string",
+        "description": "Code repository URL"
+      }      
+    }
+  }
+}
+```
+
+</details>
 
 ##### `PackageRelease` type
 
 | Property          | Type                | Description                                      | Required |
 | ----------------- | :-----------------: | ------------------------------------------------ | :------: |
-| `author`          | [Organization](#organization-type) or [Person](#person-type) | Author of the package release. | |
-| `description`     | [Text](https://schema.org/Text) | A description of the package release. | |
-| `license`         | [URL](https://schema.org/URL) | URL of the package release's license document. | |
-| `readmeURL`       | [URL](https://schema.org/URL) | URL of the README specifically for the package release or broadly for the package. | |
-| `repositoryURLs`  | Array of [URL](https://schema.org/URL) | Code repository URL(s) of the package. This can be omitted if the package does not have source control representation. Otherwise, the registry server must ensure that these URLs are searchable using the ["lookup package identifiers registered for a URL" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#45-lookup-package-identifiers-registered-for-a-url). | |
+| `author`          | [Author](#author-type) | Author of the package release. | |
+| `description`     | String | A description of the package release. | |
+| `license`         | String | URL of the package release's license document. | |
+| `readmeURL`       | String | URL of the README specifically for the package release or broadly for the package. | |
+| `repositoryURLs`  | Array | Code repository URL(s) of the package. This can be omitted if the package does not have source control representation. Otherwise, the registry server must ensure that these URLs are searchable using the ["lookup package identifiers registered for a URL" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#45-lookup-package-identifiers-registered-for-a-url). | |
+
+##### `Author` type
+
+| Property          | Type                | Description                                      | Required |
+| ----------------- | :-----------------: | ------------------------------------------------ | :------: |
+| `name`            | String | Name of the author. | ✓ |
+| `email`           | String | Email address of the author. | |
+| `description`     | String | A description of the author. | |
+| `organization`    | [Organization](#organization-type) | Organization that the author belongs to. | |
+| `url`             | String | URL of the author. | |
 
 ##### `Organization` type
 
 | Property          | Type                | Description                                      | Required |
 | ----------------- | :-----------------: | ------------------------------------------------ | :------: |
-| `name`            | [Text](https://schema.org/Text) | Name of the organization. | ✓ |
-| `email`           | [Text](https://schema.org/Text) | Email address of the organization. | |
-| `description`     | [Text](https://schema.org/Text) | A description of the organization. | |
-| `subOrganization` | [Organization](#organization-type) | Sub-organization within the organization, such as team or department. | |
-| `url`             | [URL](https://schema.org/URL) | URL of the organization. | |
-
-##### `Person` type
-
-| Property          | Type                | Description                                      | Required |
-| ----------------- | :-----------------: | ------------------------------------------------ | :------: |
-| `name`            | [Text](https://schema.org/Text) | Name of the person. | ✓ |
-| `email`           | [Text](https://schema.org/Text) | Email address of the person. | |
-| `description`     | [Text](https://schema.org/Text) | A description of the person. | |
-| `url`             | [URL](https://schema.org/URL) | URL of the person. | |
+| `name`            | String | Name of the organization. | ✓ |
+| `email`           | String | Email address of the organization. | |
+| `description`     | String | A description of the organization. | |
+| `url`             | String | URL of the organization. | |
 
 ### Package signing
 
