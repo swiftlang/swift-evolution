@@ -187,6 +187,15 @@ Code item macros can only introduce new declarations that have unique names, cre
 
 ## Detailed design
 
+### Permitted declaration kinds
+
+A macro can expand to any declaration that is syntatically and semantically well-formed within the context where the macro is expanded, with a few notable exceptions:
+
+* `import` declarations can never be produced by a macro. Swift tooling depends on the ability to resolve import declarations based on a simple scan of the original source files. Allowing a macro expansion to introduce an import declaration would complicate import resolution considerably.
+* `extension` declarations can never be produced by a macro. The effect of an extension declaration is wide-ranging, with the ability to add conformances, members, and so on. These capabilities are meant to be introduced in a more fine-grained manner.
+* `operator` and `precedencegroup` declarations can never be produced by a macro, because they could allow one to reshape the precedence graph for existing code causing subtle differences in the semantics of code that sees the macro expansion vs. code that does not.
+* `macro` declarations can never be produced by a macro, because allowing this would allow a macro to trivially produce infinitely recursive macro expansion.
+
 ### Up-front declarations of newly-introduced names
 
 Whenever a macro produces declarations that are visible to other Swift code, it is required to declare the names in advance. This enables the Swift compiler and related tools to better reason about the set of names that can be introduced by a given use of a macro without having to expand the macro (or type-check its arguments), which can reduce the compile-time cost of macros and improve incremental builds. All of the names need to be specified within the attribute declaring the macro role, using the following forms:
@@ -263,7 +272,7 @@ f(1) { x in
 
 Therefore, a macro used within a closure or function body can only introduce declarations using names produced by `createUniqueName`. This maintains the [two-phase of checking macros](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-expansion) where type checking and inference is performed without expanding the macro, then the macro is expanded and its result type-checked independently, with no ability to influence type inference further.
 
-### Macros in he Standard Library
+### Macros in the Standard Library
 
 #### SE-0196 `warning` and `error`
 
