@@ -114,6 +114,8 @@ class SharedFile {
 }
 ```
 
+### Restrictions on use in generics
+
 Noncopyable types may have generic parameters:
 
 ```swift
@@ -138,27 +140,295 @@ cannot be stored inside of an `Any` or other existential.
 let x = Optional(FileDescriptor(open("/etc/passwd", O_RDONLY)))
 ```
 
+(more examples here)
+
 ### Using values of `@noncopyable` type
 
-Values of noncopyable type are subject to the same constraints as
-[`@noImplicitCopy` values](https://github.com/apple/swift-evolution/blob/7b18475e8f7988475933273400ccda4dc8be1895/proposals/NNNN-no-implicit-copy-bindings.md#eager-move-lifetime-semantics),
-including "eager move" lifetime and the restrictions on overlapping borrows
-with consuming and/or mutating uses. Noncopyable values, however, cannot use
-even the explicit `copy` operator to induce a copy. When noncopyable types
-are used as function parameters, the ownership convention becomes a much more
-important part of the API contract:
+As the name suggests, values of noncopyable type cannot be copied, a major break
+from most other types in Swift. Many operations are currently defined as
+working as pass-by-value, and use copying as an implementation technique
+to give that semantics, but they need to be defined more precisely in terms of
+how they *borrow* or *consume* their operands in order to define their
+effects on values that cannot be copied. 
 
-- an `inout` parameter temporarily takes exclusive ownership of the value, and
-  the callee can freely mutate or replace the value for the duration of the
-  call, giving ownership of the possibly-modified value back to the caller on
-  function exit;
-- a `borrowing` parameter temporarily borrows the value, without the ability to
-  mutate or consume it, leaving the value valid on function exit;
-- a `consuming` parameter takes exclusive ownership of the value away from the
-  caller, making the callee responsible for eventually destroying it or
-  forwarding ownership to another owner, and invalidating the argument in the
-  caller.
+We use the term **consume** to refer to an operation
+that invalidates the value that it operates on. It may do this by directly
+destroying the value, freeing its resources such as memory and file handles,
+or forwarding ownership of the value to yet another owner who takes
+responsibility for keeping it alive. Performing a consuming operation on
+a noncopyable value generally requires having ownership of the value to begin
+with, and invalidates the value the operation was performed on after it is
+completed.
 
+We use the term **borrow** to refer to
+a shared borrow of a single instance of a value; the operation that borrows
+the value allows other operations to borrow the same value simultaneously, and
+it does not take ownership of the value away from its current owner. This
+generally means that borrowers are not allowed to mutate the value, since doing
+so would invalidate the value as seen by the owner or other simultaneous
+borrowers. Borrowers also cannot *consume* the value. They can, however,
+initiate arbitrarily many additional borrowing operations on all or part of
+the value they borrow.
+
+Both of these conventions stand in contrast to **mutating** (or **inout**)
+operations, which take an *exclusive* borrow of their operands. The behavior
+of mutating operations on noncopyable values is much the same as `inout`
+parameters of copyable type today, which are already subject to the
+"law of exclusivity". A mutating operation has exclusive access to its operand
+for the duration of the operation, allowing it to freely mutate the value
+without concern for aliasing or data races, since not even the owner may
+access the value simultaneously. A mutating operation may pass its operand
+to another mutating operation, but transfers exclusivity to that other operation
+until it completes. A mutating operation may also pass its operand to
+any number of borrowing operations, but cannot assume exclusivity while those
+borrows are enacted; when the borrowing operations complete, the mutating
+operation may assume exclusivity again. Unlike having true ownership of a
+value, mutating operations give ownership back to the owner at the end of an
+operation.  A mutating operation therefore may consume the current value of its
+operand, but if it does, it must replace it with a new value before completing.
+
+For copyable types, the distinction between borrowing and consuming operations
+is largely hidden from the programmer, since Swift will implicitly insert
+copies as needed to maintain the apparent value semantics of operations; a
+consuming operation can be turned into a borrowing one by copying the value and
+giving the operation the copy to consume, allowing the program to continue
+using the original. This of course becomes impossible for values that cannot
+be copied, forcing the distinction.
+
+Many code patterns that are allowed for copyable types also become errors for
+noncopyable values because they would lead to conflicting uses of the same
+value, without the ability to insert copies to avoid the conflict. For example,
+a copyable value can normally be passed as an argument to the same function
+multiple times, even to a `borrowing` and `consuming` parameter of the same
+call, and the compiler will copy as necessary to make all of the function's
+parameters valid according to their ownership specifiers:
+
+```
+func borrow(_: borrowing Value, and _: borrowing Value) {}
+func consume(_: consuming Value, butBorrow _: borrowing Value) {}
+let x = Value()
+borrow(x, and: x) // this is fine, multiple borrows can share
+consume(x, butBorrow: x) // also fine, we'll copy x to let a copy be consumed
+                         // while the other is borrowed
+```
+
+By contrast, a noncopyable value *must* be passed by borrow or consumed,
+without copying. This makes the second call above impossible for a noncopyable
+`x`, since attempting to consume `x` would end the binding's lifetime while
+it also needs to be borrowed:
+
+```
+func borrow(_: borrowing FileDescriptor, and _: borrowing FileDescriptor) {}
+func consume(_: consuming FileDescriptor, butBorrow _: borrowing FileDescriptor) {}
+let x = FileDescriptor()
+borrow(x, and: x) // still OK to borrow multiple times
+consume(x, butBorrow: x) // ERROR: consuming use of `x` would end its lifetime
+                         // while being borrowed
+```
+
+A similar effect happens when `inout` parameters take noncopyable arguments.
+Swift will copy the value of a variable if it is passed both by value and
+`inout`, so that the by-value parameter receives a copy of the current value
+while leaving the original binding available for the `inout` parameter to
+exclusively access:
+
+```
+func update(_: inout Value, butBorrow _: borrow Value) {}
+func update(_: inout Value, butConsume _: consume Value) {}
+var x = Value()
+update(&x, butBorrow: x) // this is fine, we'll copy `x` in the second parameter
+update(&x, butConsume: x) // also fine, we'll also copy
+```
+
+But again, for a noncopyable value, this implicit copy is impossible, so
+these sorts of calls become exclusivity errors:
+
+```
+func update(_: inout FileDescriptor, butBorrow _: borrow FileDescriptor) {}
+func update(_: inout FileDescriptor, butConsume _: consume FileDescriptor) {}
+
+var y = FileDescriptor()
+update(&y, butBorrow: y) // ERROR: cannot borrow `y` while exclusively accessed
+update(&y, butConsume: y) // ERROR: cannot consume `y` while exclusively accessed
+```
+
+The following sections attempt to classify existing language operations
+according to what ownership semantics they have when performed on noncopyable
+values.
+
+### Consuming operations
+
+The following operations are consuming:
+
+- assigning a value to a new `let` or `var` binding, or setting an existing
+  variable or property to the binding:
+
+    ```swift
+    let x = FileDescriptor()
+    let y = x
+    use(x) // ERROR: x consumed by assignment to `y`
+    ```
+
+    ```swift
+    var y = FileDescriptor()
+    let x = FileDescriptor()
+    y = x
+    use(x) // ERROR: x consumed by assignment to `y`
+    ```
+
+    ```swift
+    class C {
+      var property = FileDescriptor()
+    }
+    let c = C()
+    let x = FileDescriptor()
+    c.property = x
+    use(x) // ERROR: x consumed by assignment to `c.property`
+    ```
+- passing an argument to a `consuming` parameter of a function:
+
+    ```swift
+    func consume(_: consuming FileDescriptor) {}
+    let x1 = FileDescriptor()
+    consume(x1)
+    use(x1) // ERROR: x1 consumed by call to `consume`
+    ```
+
+- passing an argument to an `init` parameter that is not explicitly
+  `borrowing`:
+
+    ```swift
+    @noncopyable
+    struct S {
+      var x: FileDescriptor, y: Int
+    }
+    let x = FileDescriptor()
+    let s = S(x: x, y: 219)
+    use(x) // ERROR: x consumed by `init` of struct `S`
+    ```
+
+- invoking a `consuming` method on a value, or accessing a property of the
+  value through a `consuming get` or `consuming set` accessor:
+
+    ```swift
+    extension FileDescriptor {
+      consuming func consume() {}
+    }
+    let x = FileDescriptor()
+    x.consume()
+    use(x) // ERROR: x consumed by method `consume`
+    ```
+
+- explicitly consuming a value with the `consume` operator:
+
+    ```swift
+    let x = FileDescriptor()
+    _ = consume x
+    use(x) // ERROR: x consumed by explicit `consume`
+    ```
+
+- `return`-ing a value;
+
+- pattern-matching a value with `switch`, `if let`, or `if case`:
+
+    ```swift
+    let x: Optional = getValue()
+    if let y = consume x { ... }
+    use(x) // ERROR: x consumed by `if let`
+
+    @noncopyable
+    enum FileDescriptorOrBuffer {
+      case file(FileDescriptor)
+      case buffer(String)
+    }
+
+    let x = FileDescriptorOrBuffer.file(FileDescriptor())
+
+    switch x {
+    case .file(let f):
+      break
+    case .buffer(let b):
+      break
+    }
+
+    use(x) // ERROR: x consumed by `switch`
+    ```
+
+- iterating a `Sequence` with a `for` loop:
+
+    ```swift
+    let xs = [1, 2, 3]
+    for x in consume xs {}
+    use(xs) // ERROR: xs consumed by `for` loop
+    ```
+
+(Although noncopyable types are not currently allowed to conform to
+protocols, preventing them from implementing the `Sequence` protocol,
+and cannot be used as generic parameters, preventing the formation of
+`Optional` noncopyable types, these last two cases are listed for completeness,
+since they would affect the behavior of other language features that
+suppress implicit copying when applied to copyable types.)
+
+The `consume` operator can always transfer ownership of its operand when the
+`consume` expression is itself the operand of a consuming operation.
+
+Consuming is flow-sensitive, so if one branch of an `if` or other control flow
+consumes a noncopyable value, then other branches where the value
+is not consumed may continue using it:
+
+```swift
+let x = FileDescriptor()
+guard let condition = getCondition() else {
+  consume(x)
+}
+// We can continue using x here, since only the exit branch of the guard
+// consumed it
+use(x)
+```
+
+### Borrowing operations
+
+The following operations are borrowing:
+
+- Passing an argument to a `func` or `subscript` parameter that does not
+  have an ownership modifier, or an argument to any `func`, `subscript`, or
+  `init` parameter which is explicitly marked `borrow`. The
+  argument is borrowed for the duration of the callee's execution.
+- Borrowing a stored property of a struct, or projecting a stored property of
+  a class either for mutation or for borrowing, borrows the struct or
+  object reference for the duration of the access to the stored property.
+- Borrowing an element of a tuple borrows only that element from the tuple.
+- Invoking a `borrowing` method on a value, or a method which is not annotated
+  as any of `borrowing`, `taking` or `mutating`, borrows the `self` parameter
+  for the duration of the callee's execution.
+- Accessing a computed property or subscript through `borrowing` or
+  `nonmutating` getter or setter borrows the `self` parameter for the duration
+  of the accessor's execution.
+- Capturing an immutable local binding into a nonescaping closure borrows the
+  binding for the duration of the callee that receives the nonescaping closure.
+
+### Mutating operations
+
+The following operations are mutating uses:
+
+- Passing an argument to a `func` parameter that is `inout`. The argument is
+  exclusively accessed for the duration of the call.
+- Projecting a stored property of a struct for mutation is a mutating use of
+  the entire struct.
+- Projecting a tuple element is a mutating use of only that tuple element.
+- Invoking a `mutating` method on a value is a mutating use of the `self`
+  parameter for the duration of the callee's execution.
+- Accessing a computed property or subscript through a `mutating` getter
+  and/or setter is a mutating use of `self` for the duration of the accessor's
+  execution.
+- Capturing a mutable local binding into a nonescaping closure is a mutating
+  use of the binding for the duration of the callee that receives the
+  nonescaping closure.
+
+### Declaring functions and methods with noncopyable parameters
+
+When noncopyable types are used as function parameters, the ownership
+convention becomes a much more important part of the API contract.
 As such, when a function parameter is declared with an noncopyable type, it
 **must** declare whether the parameter uses the `borrowing`, `consuming`, or
 `inout` convention:
@@ -261,6 +531,94 @@ default:
 ```
 
 Being able to borrow in pattern matches would address this shortcoming.
+
+### Noncopyable stored properties in classes
+
+Since objects may have any number of simultaneous references, Swift uses
+dynamic exclusivity checking to prevent simultaneous writes of the same
+stored property. This dynamic checking extends to borrows of noncopyable
+stored properties; the compiler will attempt to diagnose obvious borrowing
+failures, as it will for local variables and value types, but a runtime error
+will occur if an uncaught exclusivity error occurs, such as an attempt to mutate
+an object's stored property while it is being borrowed:
+
+```
+class Foo {
+  var fd: FileDescriptor
+
+  init(fd: FileDescriptor) { self.fd = fd }
+}
+
+func update(_: inout FileDescriptor, butBorrow _: borrow FileDescriptor) {}
+
+func updateFoo(_ a: Foo, butBorrowFoo b: Foo) {
+  update(&a.fd, butBorrow: b.fd)
+}
+
+let foo = Foo(fd: FileDescriptor())
+
+// Will trap at runtime when foo.fd is borrowed and mutated at the same time
+updateFoo(foo, butBorrowFoo: foo)
+```
+
+`let` properties do not allow mutating accesses, and this continues to hold for
+noncopyable types. The value of a `let` property in a class therefore does not
+need dynamic checking, even if the value is noncopyable; the value behaves as
+if it is always borrowed, since there may potentially be a borrow through
+some reference to the object at any point in the program. Such values can
+thus never be consumed or mutated.
+
+### Noncopyable variables captured by escaping closures
+
+Nonescaping closures have scoped lifetimes, so they can borrow their captures,
+as noted in the "borrowing operations" and "consuming operations" sections
+above. Escaping closures, on the other hand, have indefinite lifetimes, since
+they can be copied and passed around arbitrarily, and multiple escaping closures
+can capture and access the same local variables alongside the local context
+from which those captures were taken. Variables captured by escaping closures
+thus behave like class properties; immutable captures are treated as always
+borrowed both inside the closure body and in the capture's original context
+after the closure was formed.
+
+```
+func escape(_: @escaping () -> ()) {...}
+
+func borrow(_: borrowing FileDescriptor) {}
+func consume(_: consuming FileDescriptor) {}
+
+func foo() {
+  let x = FileDescriptor()
+
+  escape {
+    borrow(x) // OK
+    consume(x) // ERROR: cannot consume captured variable
+  }
+
+  // OK
+  borrow(x)
+
+  // ERROR: cannot consume variable after it's been captured by an escaping
+  // closure
+  consume(x)
+}
+```
+
+Mutable captures are subject to dynamic exclusivity checking like class
+properties are.
+
+```
+var escapedClosure: (@escaping (inout FileDescriptor) -> ())?
+
+func foo() {
+  var x = FileDescriptor()
+
+  escapedClosure = { _ in borrow(x) }
+
+  // Runtime error when exclusive access to `x` dynamically conflicts
+  // with attempted borrow of `x` during `escapedClosure`'s execution
+  escapedClosure!(&x)
+}
+```
 
 ### Deinitializers
 
