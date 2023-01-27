@@ -394,12 +394,16 @@ The following operations are borrowing:
   have an ownership modifier, or an argument to any `func`, `subscript`, or
   `init` parameter which is explicitly marked `borrow`. The
   argument is borrowed for the duration of the callee's execution.
-- Borrowing a stored property of a struct, or projecting a stored property of
-  a class either for mutation or for borrowing, borrows the struct or
-  object reference for the duration of the access to the stored property.
-- Borrowing an element of a tuple borrows only that element from the tuple.
+- Borrowing a stored property of a struct or tuple borrows the struct or tuple
+  for the duration of the access to the stored property. This means that one
+  field of a struct cannot be borrowed while another is being mutated, as in
+  `call(struc.fieldA, &struc.fieldB)`. Allowing for fine-grained subelement
+  borrows in some circumstances is discussed as a Future Direction below.
+- A stored property of a class may be borrowed using a dynamic exclusivity
+  check, to assert that there are no aliasing mutations attempted during the
+  borrow, as discussed under "Noncopyable stored properties in classes" below.
 - Invoking a `borrowing` method on a value, or a method which is not annotated
-  as any of `borrowing`, `taking` or `mutating`, borrows the `self` parameter
+  as any of `borrowing`, `consuming` or `mutating`, borrows the `self` parameter
   for the duration of the callee's execution.
 - Accessing a computed property or subscript through `borrowing` or
   `nonmutating` getter or setter borrows the `self` parameter for the duration
@@ -415,11 +419,15 @@ The following operations are mutating uses:
   exclusively accessed for the duration of the call.
 - Projecting a stored property of a struct for mutation is a mutating use of
   the entire struct.
-- Projecting a tuple element is a mutating use of only that tuple element.
+- A stored property of a class may be mutated using a dynamic exclusivity
+  check, to assert that there are no aliasing mutations, as happens today.
+  For noncopyable properties, the assertion also enforces that no borrows
+  are attempted during the mutation, as discussed under "Noncopyable stored
+  properties in classes" below.
 - Invoking a `mutating` method on a value is a mutating use of the `self`
   parameter for the duration of the callee's execution.
-- Accessing a computed property or subscript through a `mutating` getter
-  and/or setter is a mutating use of `self` for the duration of the accessor's
+- Accessing a computed property or subscript through a `mutating` getter and/or
+  setter is a mutating use of `self` for the duration of the accessor's
   execution.
 - Capturing a mutable local binding into a nonescaping closure is a mutating
   use of the binding for the duration of the callee that receives the
@@ -567,6 +575,61 @@ need dynamic checking, even if the value is noncopyable; the value behaves as
 if it is always borrowed, since there may potentially be a borrow through
 some reference to the object at any point in the program. Such values can
 thus never be consumed or mutated.
+
+The dynamic borrow state of properties is tracked independently for every
+stored property in the class, so it is safe to mutate one property while other
+properties of the same object are also being mutated or borrowed:
+
+```
+class SocketTriple {
+  var in, middle, out: FileDescriptor
+}
+
+func update(_: inout FileDescriptor, and _: inout FileDescriptor,
+            whileBorrowing _: borrowing FileDescriptor) {}
+
+// This is OK
+let object = SocketTriple(...)
+update(&object.in, and: &object.out, whileBorrowing: object.middle)
+```
+
+This dynamic tracking, however, cannot track accesses at finer resolution
+than properties, so in circumstances where we might otherwise eventually be
+able to support independent borrowing of fields in structs, tuples, and enums,
+that support will not extend to fields within class properties, since the
+entire property must be in the borrowing or mutating state.
+
+Dynamic borrowing or mutating accesses require that the enclosing object be
+kept alive for the duration of the assertion of the access. Normally, this 
+is transparent to the developer, as the compiler will keep a copy of a
+reference to the object retained while these accesses occur. However, if
+we introduce noncopyable bindings to class references, such as [the `borrow`
+and `inout` bindings](https://forums.swift.org/t/pitch-borrow-and-inout-declaration-keywords/62366)
+currently being pitched, this would manifest as a borrow of the noncopyable
+reference, preventing mutation or consumption of the reference during
+dynamically-asserted accesses to its properties:
+
+```
+class SocketTriple {
+  var in, middle, out: FileDescriptor
+}
+
+func borrow(_: borrowing FileDescriptor,
+            whileReplacingObject _: inout SocketTriple) {}
+
+var object = SocketTriple(...)
+
+// This is OK, since ARC will keep a copy of the `object` reference retained
+// while `object.in` is borrowed
+borrow(object.in, whileReplacingObject: &object)
+
+inout objectAlias = &object
+
+// This is an error, since we aren't allowed to implicitly copy through
+// an `inout` binding, and replacing `objectAlias` without keeping a copy
+// retained might invalidate the object while we're accessing it.
+borrow(objectAlias.in, whileReplacingObject: &objectAlias)
+```
 
 ### Noncopyable variables captured by escaping closures
 
@@ -1010,6 +1073,73 @@ parameters and and `nonisolated` actor members, so we choose to follow that
 precedent.
 
 ## Future directions
+
+### Noncopyable tuples
+
+It should be possible for a tuple to contain noncopyable elements, rendering
+the tuple noncopyable if any of its elements are. Since tuples' structure is
+always known, it would be reasonable to allow for the elements within a tuple
+to be independently borrowed, mutated, and consumed, as the language allows
+today for the elements of a tuple to be independently mutated via `inout`
+accesses. (Due to the limitations of dynamic exclusivity checking, this would
+not be possible for class properties, globals, and escaping closure captures.)
+
+### Noncopyable `Optional`
+
+This proposal initiates support for noncopyable types without any support for
+generics at all, which precludes their use in most standard library types,
+including `Optional`. We expect the lack of `Optional` support in particular
+to be extremely limiting, since `Optional` can be used to manage dynamic
+consumption of noncopyable values in situations where the language's static
+rules cannot soundly support consumption. For instance, the static rules above
+state that a stored property of a class can never be consumed, because it is
+not knowable if other references to an object exist that expect the property
+to be inhabited. This could be avoided using `Optional` with `mutating`
+operation that forwards ownership of the `Optional` value's payload, if any,
+writing `nil` back. Eventually this could be written as an extension method
+on `Optional`:
+
+```
+@noncopyable
+extension Optional {
+  mutating func take() -> Wrapped {
+    switch self {
+    case .some(let wrapped):
+      self = nil
+      return wrapped
+    case .none:
+      fatalError("trying to take from an Optional that's already empty")
+    }
+  }
+}
+
+class Foo {
+  var fd: FileDescriptor?
+
+  func close() {
+    // We normally would not be able to close `fd` except via the
+    // object's `deinit` destroying the stored property. But using
+    // `Optional` assignment, we can dynamically end the value's lifetime
+    // here.
+    fd = nil
+  }
+
+  func takeFD() -> FileDescriptor {
+    // We normally would not be able to forward `fd`'s ownership to
+    // anyone else. But using
+    // `Optional.take`, we can dynamically end the value's lifetime
+    // here.
+    return fd.take()
+  }
+}
+```
+
+Without `Optional` support, the alternative would be for every noncopyable type
+to provide its own ad-hoc `nil`-like state, which would be very unfortunate,
+and go against Swift's general desire to encourage structural code correctness
+by making invalid states unrepresentable. Therefore, `Optional` is likely to
+be worth considering as a special case for noncopyable support, ahead of full
+generics support for noncopyable types.
 
 ### Generics support for noncopyable types
 
