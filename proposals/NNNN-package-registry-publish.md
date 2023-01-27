@@ -310,7 +310,7 @@ When SwiftPM downloads a package release from registry via the
   - Extract security settings for the registry from `registries.json`, which would be a combination of default values and any registry-specific overrides.
   - Check if the package is allowed based on security settings
   - Validate the signature according to the signature format
-  - Save the package signature and checksum to the local fingerprint storage for [TOFU](https://en.wikipedia.org/wiki/Trust_on_first_use)
+  - Save the package signature and checksum to the local fingerprint storage for [trust on first use (TOFU)](https://en.wikipedia.org/wiki/Trust_on_first_use)
 
 ### New `package-registry publish` subcommand
 
@@ -555,9 +555,17 @@ The steps to download a signed package are:
 
 ## Future directions
 
+### Support encrypted private keys
+
+Private keys are encrypted typically. SwiftPM commands that have private key
+as input, such as `package sign` and `package-registry publish`, should support
+reading encrypted private key. This could mean modifying the command to prompt
+user for the passphrase if needed, and adding a `--private-key-passphrase` 
+option to the command for non-interactive/automation use-cases.
+
 ### Transitive trust
 
-SwiftPM's Trust on First Use (TOFU) mitigation could be further improved by 
+SwiftPM's trust on first use (TOFU) mitigation could be further improved by 
 including fingerprint and signature information in `Package.resolved` 
 (or another similar file), which then gets included in the package content. 
 Including such security metadata would allow distributing information about 
@@ -593,11 +601,3 @@ this information.
   "version": 2
 }
 ```
-
-### Support encrypted private keys
-
-Private keys are encrypted typically. SwiftPM commands that have private key
-as input, such as `package sign` and `package-registry publish`, should support
-reading encrypted private key. This could mean modifying the command to prompt
-user for the passphrase if needed, and adding a `--private-key-passphrase` 
-option to the command for non-interactive/automation use-cases.
