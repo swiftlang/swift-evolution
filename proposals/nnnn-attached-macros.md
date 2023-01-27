@@ -69,7 +69,7 @@ public PeerMacro: AttachedMacro {
     of node: AttributeSyntax,
     providingPeersOf declaration: DeclSyntax,
     in context: any MacroExpansionContext
-  ) throws -> [DeclSyntax]
+  ) async throws -> [DeclSyntax]
 }
 ```
 
@@ -160,7 +160,7 @@ protocol MemberMacro: AttachedMacro {
     of node: AttributeSyntax,
     providingMembersOf declaration: DeclSyntax,
     in context: inout MacroExpansionContext
-  ) throws -> [DeclSyntax]  
+  ) async throws -> [DeclSyntax]
 }
 ```
 
@@ -229,7 +229,7 @@ protocol AccessorMacro: AttachedMacro {
     of node: AttributeSyntax,
     providingAccessorsOf declaration: DeclSyntax,
     in context: any MacroExpansionContext
-  ) throws -> [AccessorDeclSyntax]  
+  ) async throws -> [AccessorDeclSyntax]
 }
 ```
 
@@ -289,7 +289,7 @@ protocol MemberAttributeMacro: AttachedMacro {
     attachedTo declaration: DeclSyntax,
     providingAttributesFor member: DeclSyntax,
     in context: any MacroExpansionContext
-  ) throws -> [AttributeSyntax]
+  ) async throws -> [AttributeSyntax]
 }
 ```
 
