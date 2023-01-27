@@ -50,16 +50,46 @@ The current [registry service specification](https://github.com/apple/swift-pack
 It does not, however, define any requirements or server-client API contract on the 
 metadata contents. We would like to change that by proposing the following:
   - Package release metadata will continue to be sent as a JSON object.
-  - Package release metadata must be sent as part of the "create a package release" request.
-  	+ Required key(s) in the metadata JSON object:
-  	  * `repositoryURLs`: A string array of repository URLs. This can be empty if the package does not have source control representation. Otherwise, the registry server must ensure that these URLs are searchable using the ["lookup package identifiers registered for a URL" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#45-lookup-package-identifiers-registered-for-a-url).
-  	+ Reserved (optional) key(s) in the metadata JSON object:
-  	  * `readmeURL`: URL string of the package or package release's README  
+  - Package release metadata must be sent as part of the "create a package release" request and adhere to the [schema](#package-release-metadata-schema).
   - Package release metadata may be included in the "create a package release" request in one of these ways, depending on registry server support:
     + A multipart section named `metadata` in the request body
     + A file named `package-metadata.json` **inside** the source archive being published
   - Registry server may populate additional metadata.
   - Registry server will continue to include metadata in the "fetch information about a package release" response.
+  
+#### Package release metadata standards
+
+Package release metadata submitted to a registry be of JSON object of type 
+[`PackageRelease`](#packagerelease-type), the schema of which is defined below.
+
+##### `PackageRelease` type
+
+| Property          | Type                | Description                                      | Required |
+| ----------------- | :-----------------: | ------------------------------------------------ | :------: |
+| `author`          | [Organization](#organization-type) or [Person](#person-type) | Author of the package release. | |
+| `description`     | [Text](https://schema.org/Text) | A description of the package release. | |
+| `license`         | [URL](https://schema.org/URL) | URL of the package release's license document. | |
+| `readmeURL`       | [URL](https://schema.org/URL) | URL of the README specifically for the package release or broadly for the package. | |
+| `repositoryURLs`  | Array of [URL](https://schema.org/URL) | Code repository URL(s) of the package. This can be omitted if the package does not have source control representation. Otherwise, the registry server must ensure that these URLs are searchable using the ["lookup package identifiers registered for a URL" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#45-lookup-package-identifiers-registered-for-a-url). | |
+
+##### `Organization` type
+
+| Property          | Type                | Description                                      | Required |
+| ----------------- | :-----------------: | ------------------------------------------------ | :------: |
+| `name`            | [Text](https://schema.org/Text) | Name of the organization. | ✓ |
+| `email`           | [Text](https://schema.org/Text) | Email address of the organization. | |
+| `description`     | [Text](https://schema.org/Text) | A description of the organization. | |
+| `subOrganization` | [Organization](#organization-type) | Sub-organization within the organization, such as team or department. | |
+| `url`             | [URL](https://schema.org/URL) | URL of the organization. | |
+
+##### `Person` type
+
+| Property          | Type                | Description                                      | Required |
+| ----------------- | :-----------------: | ------------------------------------------------ | :------: |
+| `name`            | [Text](https://schema.org/Text) | Name of the person. | ✓ |
+| `email`           | [Text](https://schema.org/Text) | Email address of the person. | |
+| `description`     | [Text](https://schema.org/Text) | A description of the person. | |
+| `url`             | [URL](https://schema.org/URL) | URL of the person. | |
 
 ### Package signing
 
