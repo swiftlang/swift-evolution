@@ -11,7 +11,7 @@
 
 Attached macros provide a way to extend Swift by creating and extending declarations based on arbitrary syntactic transformations on their arguments. They make it possible to extend Swift in ways that were only previously possible by introducing new language features, helping developers build more expressive libraries and eliminate extraneous boilerplate.
 
-Attached macros are one part of the [vision for macros in Swift](https://forums.swift.org/t/a-possible-vision-for-macros-in-swift/60900), which lays out general motivation for introducing macros into the language. They build on the ideas and motivation of [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) and [freestanding macros](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md) to cover a large new set of use cases; we will refer to those proposals often for the basic model of how macros integrate into the language. While freestanding macros are designed as standalone entities introduced by `#`, attached macros are associated with a specific declaration in the program that they can augment and extend. This supports many new use cases, greatly expanding the expressiveness of the macro system: 
+Attached macros are one part of the [vision for macros in Swift](https://github.com/apple/swift-evolution/pull/1927), which lays out general motivation for introducing macros into the language. They build on the ideas and motivation of [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) and [freestanding macros](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md) to cover a large new set of use cases; we will refer to those proposals often for the basic model of how macros integrate into the language. While freestanding macros are designed as standalone entities introduced by `#`, attached macros are associated with a specific declaration in the program that they can augment and extend. This supports many new use cases, greatly expanding the expressiveness of the macro system:
 
 * Creating trampoline or wrapper functions, such as automatically creating a completion-handler version of an `async` function.
 * Creating members of a type based on its definition, such as forming an [`OptionSet`](https://developer.apple.com/documentation/swift/optionset) from an enum containing flags.
@@ -20,7 +20,7 @@ Attached macros are one part of the [vision for macros in Swift](https://forums.
 
 ## Proposed solution
 
-The proposal adds *attached macros*, so-called because they are attached to a particular declaration. They are written using the custom attribute syntax (e.g., `@addCompletionHandler`) that was introduced for property wrappers, and is also used for result builders . Attached macros can reason about the declaration to which they are attached, and provide additions and changes based on one or more different macro *roles*. Each role has a specific purpose, such as adding members, creating accessors, or adding peers alongside the declaration. A given attached macro can inhabit several different roles, and as such will be expanded multiple times corresponding to do the different roles, which allows the various roles to be composed. For example, an attached macro emulating property wrappers might inhabit both the "peer" and "accessor" roles, allowing it to introduce a backing storage  property and also synthesize a getter/setter that go through that backing storage property. Composition of macro roles will be discussed in more depth once the basic macro roles have been established.
+The proposal adds *attached macros*, so-called because they are attached to a particular declaration. They are written using the custom attribute syntax (e.g., `@addCompletionHandler`) that was introduced for property wrappers, and is also used for result builders and global actors. Attached macros can reason about the declaration to which they are attached, and provide additions and changes based on one or more different macro *roles*. Each role has a specific purpose, such as adding members, creating accessors, or adding peers alongside the declaration. A given attached macro can inhabit several different roles, and as such will be expanded multiple times corresponding to the different roles, which allows the various roles to be composed. For example, an attached macro emulating property wrappers might inhabit both the "peer" and "accessor" roles, allowing it to introduce a backing storage  property and also synthesize a getter/setter that go through that backing storage property. Composition of macro roles will be discussed in more depth once the basic macro roles have been established.
 
 As with freestanding macros, attached declaration macros are declared with `macro`, and have [type-checked macro arguments](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#type-checked-macro-arguments-and-results) that allow their behavior to be customized. Attached macros are identified with the `@attached` attribute, which also provides the specific role as well as [any names they introduce](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md#up-front-declarations-of-newly-introduced-names). For example, the aforemented macro emulating property wrappers could be declared as follows:
 
@@ -43,7 +43,7 @@ Each attached macro role will have its own protocol that inherits `AttachedMacro
 Peer macros produce new declarations alongside the declaration to which they are attached.  For example, here is a declaration of a macro that introduces a completion-handler version of a given asynchronous function:
 
 ```swift
-@attached(peer, names: overloaded) macro addCompletionHandler
+@attached(peer, names: overloaded) macro addCompletionHandler()
 ```
 
 This macro uses the `@attached` attribute to indicate that it is an attached peer attribute. The `names` argument specifies that how the names of the peer declarations are created, using an extended form of the scheme introduced with [freestanding macros](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md#up-front-declarations-of-newly-introduced-names). In this case, `overloaded` means that this macro will produce a peer that is overloaded with the declaration to which it is attached, i.e., it has the same base name.
@@ -90,7 +90,7 @@ The actual implementation of this macro involves a bit of syntax manipulation, s
 public struct AddCompletionHandler: PeerDeclarationMacro {
   public static func expansion(
     of node: CustomAttributeSyntax,
-    peersOf declaration: DeclSyntax,
+    providingPeersOf declaration: DeclSyntax,
     in context: inout MacroExpansionContext
   ) throws -> [DeclSyntax] {
     // make sure we have an async function to start with
@@ -227,8 +227,8 @@ protocol AccessorMacro: AttachedMacro {
   /// the attribute is attached.
   static func expansion(
     of node: AttributeSyntax,
-    accessorsOf declaration: DeclSyntax,
-    in context: inout MacroExpansionContext
+    providingAccessorsOf declaration: DeclSyntax,
+    in context: any MacroExpansionContext
   ) throws -> [AccessorDeclSyntax]  
 }
 ```
@@ -480,163 +480,7 @@ It might be possible to provide a macro implementation API that is expressed in 
 
 ### Additional attached macro roles
 
-There are numerous ways in which this proposal could be extended to provide new macro roles. Each new macro role would introduce a new role kind to the `@attached` attribute, along with a corresponding protocol. Here are several possibilities, omitted from this proposal primarily to reduce scope. 
-
-#### Body macros
-
-A body macro would allow one to create or replace the body of a function, initializer, or closure through syntactic manipulation. Body macros are attached to one of these entities, e.g.,
-
-```swift
-@traced(logLevel: 2)
-func myFunction(a: Int, b: Int) { ... }
-```
-
-where the `traced` macro is declared as something like:
-
-```swift
-@attached(body) macro traced(logLevel: Int = 0)
-```
-
-and implemented in a conformance to the `BodyMacro` protocol:
-
-```swift
-protocol BodyMacro: AttachedMacro {
-  /// Expand a macro described by the given custom attribute to
-  /// produce or modify a body for the given entity to which
-  /// the attribute is attached.
-  static func expansion(
-    of node: CustomAttributeSyntax,
-    providingBodyOf entity: some WithCodeBlockSyntax,
-    in context: inout MacroExpansionContext
-  ) throws -> CodeBlockSyntax
-}
-```
-
-The `WithCodeBlockSyntax` protocol describes all entities that have an optional "body". The `traced` macro could inject a log-level check and a call to log the values of each of the parameters, e.g.,
-
-```swift
-if shouldLog(atLevel: 2) {
-  log("Entering myFunction((a: \(a), b: \(b)))")
-}
-```
-
-Body macros will only be applied when the body is required, e.g., to generate code. A body macro will be applied whether the entity has an existing body or not; if the entity does have an existing body, it will be type-checked before the macro is invoked, as with other macro arguments.
-
-#### Conformance macros
-
-Conformance macros could introduce protocol conformances to the type or extension to which they are attached. For example, this could be useful when composed with macro roles that create other members, such as a macro that both adds a protocol conformance and also a stored property required by that conformance. For example, one could extend the `dictionaryStorage` macro from earlier in the proposal to introduce the dictionary when placed on the struct itself:
-
-```swift
-protocol HasDictionaryStorage {
-  var storage: [AnyHashable: Any] { get set }
-}
-
-@dictionaryStorage
-struct MyStruct /* macro introduces conformance to HasDictionaryStorage */ {
-  // macro introduces this property, which satisfies the HasDictionarySrorage.storage requirement
-  //   var storage: [AnyHashable: Any] = [:]
-  
-  // macro introduces @dictionaryStorage attribute on members that don't already have one
-  //   @dictionaryStorage
-  var name: String
-  
-  @dictionaryStorage(key: "birth_date")
-  var birthDate: Date?
-}
-```
-
-#### Default witness macros
-
-Swift provides default "witness" synthesis for a number of protocols in the standard library, including `Equatable`, `Hashable`, `Encodable`, and `Decodable`. This behavior is triggered when a type has a conformance to a known protocol, and there is no suitable implementation for one of the protocol's requirements, e.g.,
-
-```swift
-struct Point: Equatable {
-  var x: Int
-  var y: Int
-  
-  // no suitable function
-  //
-  //   
-  //
-  // to satisfy the protocol requirement, so the compiler creates one like the following
-  //
-
-}
-```
-
-There is no suitable function to meet the protocol requirement
-
-```swift
-static func ==(lhs: Self, rhs: Self) -> Bool
-```
-
-so the compiler as bespoke logic to synthesize the following:
-
-```swift
-  static func ==(lhs: Point, rhs: Point) -> Bool {
-    lhs.x == rhs.x && lhs.y == rhs.y
-  }
-```
-
-Default witness macros would bring this capability to the macro system, by allowing a macro to define a witness to satisfy a requirement when there is no suitable witness. Consider an `equatableSyntax` macro declared as follows:
-
-```swift
-@declaration(witness)
-macro equatableSynthesis
-```
-
-This default-witness macro would be written on the protocol requirement itself, i.e.,
-
-```swift
-protocol Equatable {
-  @equatableSynthesis
-  static func ==(lhs: Self, rhs: Self) -> Bool
-
-  static func !=(lhs: Self, rhs: Self) -> Bool
-}
-```
-
-The macro type would implement the following protocol:
-
-```swift
-protocol DefaultWitnessMacro: AttachedMacro {
-  /// Expand a macro described by the given custom attribute to
-  /// produce a witness definition for the requirement to which
-  /// the attribute is attached.
-  static func expansion(
-    of node: CustomAttributeSyntax,
-    witness: DeclSyntax,
-    conformingType: TypeSyntax,
-    storedProperties: [StoredProperty],
-    in context: inout MacroExpansionContext
-  ) throws -> DeclSyntax
-}
-```
-
-The contract with the compiler here is interesting. The compiler would use the `@equatableSynthesis` macro to define the witness only when there is no other potential witness. The compiler will then produce a declaration for the witness based on the requirement, performing substitutions as necessary to (e.g.) replace `Self` with the conforming type, and provide that declaration via the `witness` parameter. For `Point`, the `==` declaration would look like this:
-
-```swift
-static func ==(lhs: Point, rhs: Point) -> Bool
-```
-
-The `expansion` operation then augments the provided `witness` with a body, and could perform other adjustments if necessary, before returning it. The resulting definition will be inserted as a member into the conforming type (or extension), wherever the protocol conformance is declared. This approach gives a good balance between making macro writing easier, because the compiler is providing a witness declaration that will match the requirement, while still allowing the macro implementation freedom to alter that witness as needed. Its design also follows how witnesses are currently synthesized in the compiler today, which has fairly well-understood implementation properties (at least, to compiler implementers).
-
-The `conformingType` parameter provides the syntax of the conforming type, which can be used to refer to the type anywhere in the macro. The `storedProperties` parameter provides the set of stored properties of the conforming type, which are needed for many (most?) kinds of witness synthesis. The `StoredProperty` struct is defined as follows:
-
-```swift
-struct StoredProperty {
-  /// The stored property syntax node.
-  var property: VariableDeclSyntax
-  
-  /// The original declaration from which the stored property was created, if the stored property was
-  /// synthesized.
-  var original: Syntax?
-}
-```
-
-The `property` field is the syntax node for the stored property. Typically, this is the syntax node as written in the source code. However, some stored properties are formed in other ways, e.g., as the backing property of a property wrapper (`_foo`) or due to some other macro expansion (member, peer, freestanding, etc.). In these cases, `property` refers to the syntax of the generated property, and `original` refers to the syntax node that caused the stored property to be generated. This `original` value can be used, for example, to find information from the original declaration that can affect the synthesis of the default witness.
-
-Providing stored properties to this expansion method does require us to introduce a limitation on default-witness macro implementations, which is that they cannot themselves introduce stored properties. This eliminates a potential circularity in the language model, where the list of stored properties could grow due to expansion of a macro, thereby potentially invalidating the results of already-expanded macros that saw a subset of the stored properties. Note that directly preventing default-witness macros from defining stored properties isn't a complete solution, because one could (for example) have a default-witness macro produce a witness function that itself involves a peer-declaration macro that introduces a stored property. Such problems will be detected as a dependency cycle in the compiler and reported as an error.
+There are numerous ways in which this proposal could be extended to provide new macro roles. Each new macro role would introduce a new role kind to the `@attached` attribute, along with a corresponding protocol. The macro vision document has a number of such suggestions.
 
 ## Appendix
 
