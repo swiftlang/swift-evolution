@@ -951,14 +951,57 @@ For existing Swift code, this proposal is additive.
 
 ## Effect on ABI stability
 
+### Adding or removing `@noncopyable` breaks ABI
+
 An existing copyable struct or enum cannot be made `@noncopyable` without
-breaking ABI, since existing clients may copy values of the type. However,
-an noncopyable type can be made copyable without breaking its ABI.
+breaking ABI, since existing clients may copy values of the type.
+
+Ideally, we would allow noncopyable types to become copyable without breaking
+ABI; however, we cannot promise this, due to existing implementation choices we
+have made in the ABI that cause the copyability of a type to have unavoidable
+knock-on effects. In particular, when properties are declared in classes,
+protocols, or public non-`@frozen` structs, we define the property's ABI to use
+accessors even if the property is stored, with the idea that it should be
+possible to change a property's implementation to change it from a stored to
+computed property, or vice versa, without breaking ABI.
+
+The accessors used as ABI today are the traditional `get` and `set`
+computed accessors, as well as a `_modify` coroutine which can optimize `inout`
+operations and projections into stored properties. `_modify` and `set` are
+not problematic for noncopyable types. However, `get` behaves like a
+function, producing the property's value by returning it like a function would,
+and returning requires *consuming* the return value to transfer it to the
+caller. This is not possible for noncopyable stored properties, since the
+value of the property cannot be copied in order to return a copy without
+invalidating the entire containing struct or object.
+
+Therefore, properties of noncopyable type need a different ABI in order to
+properly abstract them. In particular, instead of exposing a `get` accessor
+through abstract interfaces, they must use a `_read` coroutine, which is the
+read-only analog to `_modify`, allowing the implementation to yield a borrow of
+the property value in-place instead of returning by value. This allows for
+noncopyable stored properties to be exposed while still being abstracted enough
+that they can be replaced by a computed implementation, since a `get`-based
+implementation could still work underneath the `read` coroutine by evaluating
+the getter, yielding a borrow of the returned value, then disposing of the
+temporary value.
+
+As such, we cannot simply say that making a noncopyable type copyable is an
+ABI-safe change, since doing so will have knock-on effects on the ABI of any
+properties of the type. We could potentially provide a "born noncopyable"
+attribute to indicate that a copyable type should use the noncopyable ABI
+for any properties, as a way to enable the evolution into a copyable type
+while preserving existing ABI. However, it also seems unlikely to us that many
+types would need to evolve between being copyable or not frequently.
+
+### Adding, removing, or changing `deinit` in a struct or enum
 
 An noncopyable type that is not `@frozen` can add or remove its deinit without
-affecting the type's ABI; if frozen, then a deinit cannot be added or removed,
+affecting the type's ABI. If `@frozen`, a deinit cannot be added or removed,
 but the deinit implementation may change (if the deinit is not additionally
 `@inlinable`).
+
+### Adding noncopyable fields to classes
 
 A class may add fields of noncopyable type without changing ABI.
 
