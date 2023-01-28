@@ -68,7 +68,7 @@ public PeerMacro: AttachedMacro {
   static func expansion(
     of node: AttributeSyntax,
     providingPeersOf declaration: DeclSyntax,
-    in context: any MacroExpansionContext
+    in context: some MacroExpansionContext
   ) async throws -> [DeclSyntax]
 }
 ```
@@ -91,7 +91,7 @@ public struct AddCompletionHandler: PeerDeclarationMacro {
   public static func expansion(
     of node: CustomAttributeSyntax,
     providingPeersOf declaration: DeclSyntax,
-    in context: inout MacroExpansionContext
+    in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
     // make sure we have an async function to start with
     // form a new function "completionHandlerFunc" by starting with that async function and
@@ -158,8 +158,8 @@ protocol MemberMacro: AttachedMacro {
   /// the attribute is attached.
   static func expansion(
     of node: AttributeSyntax,
-    providingMembersOf declaration: DeclSyntax,
-    in context: inout MacroExpansionContext
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
   ) async throws -> [DeclSyntax]
 }
 ```
@@ -227,8 +227,8 @@ protocol AccessorMacro: AttachedMacro {
   /// the attribute is attached.
   static func expansion(
     of node: AttributeSyntax,
-    providingAccessorsOf declaration: DeclSyntax,
-    in context: any MacroExpansionContext
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
   ) async throws -> [AccessorDeclSyntax]
 }
 ```
@@ -286,9 +286,9 @@ protocol MemberAttributeMacro: AttachedMacro {
   /// produce additional attributes for the members of the type.
   static func expansion(
     of node: AttributeSyntax,
-    attachedTo declaration: DeclSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
     providingAttributesFor member: DeclSyntax,
-    in context: any MacroExpansionContext
+    in context: some MacroExpansionContext
   ) async throws -> [AttributeSyntax]
 }
 ```
@@ -371,7 +371,7 @@ extension ClampingMacro: PeerDeclarationMacro {
   static func expansion(
     of node: CustomAttributeSyntax,
     providingPeersOf declaration: DeclSyntax,
-    in context: any MacroExpansionContext
+    in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
     // create a new variable declaration that is the same as the original, but...
     //   - prepend an underscore to the name
@@ -405,7 +405,7 @@ extension ClampingMacro: AccessorMacro {
   static func expansion(
     of node: CustomAttributeSyntax,
     providingAccessorsOf declaration: DeclSyntax,
-    in context: inout MacroExpansionContext
+    in context: some MacroExpansionContext
   ) throws -> [AccessorDeclSyntax] {
     let originalName = /* get from declaration */, 
         minValue = /* get from custom attribute node */,
@@ -491,7 +491,7 @@ public struct AddCompletionHandler: PeerDeclarationMacro {
   public static func expansion(
     of node: CustomAttributeSyntax,
     providingPeersOf declaration: DeclSyntax,
-    in context: inout MacroExpansionContext
+    in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
     // Only on functions at the moment. We could handle initializers as well
     // with a little bit of work.
