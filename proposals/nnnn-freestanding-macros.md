@@ -85,7 +85,8 @@ public protocol DeclarationMacro: FreestandingMacro {
   /// Expand a macro described by the given freestanding macro expansion declaration
   /// within the given context to produce a set of declarations.
   static func expansion(
-    of node: MacroExpansionDeclSyntax, in context: any MacroExpansionContext
+    of node: MacroExpansionDeclSyntax,
+    in context: some MacroExpansionContext
   ) async throws -> [DeclSyntax]
 }
 ```
@@ -169,7 +170,8 @@ public protocol CodeItemMacro: FreestandingMacro {
   /// within the given context to produce a set of code items, which can be any mix of
   /// expressions, statements, and declarations.
   static func expansion(
-    of node: MacroExpansionDeclSyntax, in context: any MacroExpansionContext
+    of node: MacroExpansionDeclSyntax,
+    in context: some MacroExpansionContext
   ) async throws -> [CodeBlockItemSyntax]
 }
 ```
