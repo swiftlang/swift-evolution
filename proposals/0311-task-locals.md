@@ -424,7 +424,7 @@ detach(priority: Task.currentPriority) {        // manually propagate priority
 }
 ```
 
-While this is quite labor intensive and boilerplate heavy, it is intentional that detached tasks never carry any of their legacy around with them. So if a detached task really has to carry some information, it should to so explicitly.
+While this is quite labor intensive and boilerplate heavy, it is intentional that detached tasks never carry any of their legacy around with them. So if a detached task really has to carry some information, it should do so explicitly.
 
 At the same time, the new `async` (naming pending, perhaps `send` (?!)) operation _does_ inherit all of the following properties of the creating task: execution context, task priority, and task-local values. 
 
