@@ -142,6 +142,9 @@ version of this proposal, hence `"schemaVersion": "3.0"`:
 }
 ```
 
+Thanks to the availability of Universal Binaries on macOS and multiarch layouts on Linux, `buildTimeTriples` and
+`runTimeTriples` properties use plural in their naming and use arrays as their values.
+
 We propose that all relative paths in `destination.json` files should be validated not to "escape" the destination
 bundle for security reasons. That is, `../` components, if present in paths, will not be allowed to reference files and
 directories outside of a corresponding destination bundle. Symlinks will also be validated to prevent them from escaping
