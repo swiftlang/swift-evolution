@@ -163,7 +163,7 @@ that, a separate `toolset.json` file is introduced:
 {
   "schemaVersion": "1.0",
   "toolsetRootPath": "optional path to a root directory containing toolchain executables",
-  // If `toolsetRootPath` is specified, all of the relative paths below will be resolved relative to `toolsetRootPath`.
+  // If `toolsetRootPath` is specified, all relative paths below will be resolved relative to `toolsetRootPath`.
   "swiftCompiler": {
     "path": "<optional path to the Swift compiler>",
     "extraFlags": ["<optional array of additional flags passed to the Swift compiler>"]
