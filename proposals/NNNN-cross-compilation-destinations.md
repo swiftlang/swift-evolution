@@ -143,7 +143,7 @@ version of this proposal, hence `"schemaVersion": "3.0"`:
 ```
 
 Thanks to the availability of Universal Binaries on macOS and multiarch layouts on Linux, `buildTimeTriples` and
-`runTimeTriples` properties use plural in their naming and use arrays as their values.
+`runTimeTriples` properties use plural in their naming and their values are arrays.
 
 We propose that all relative paths in `destination.json` files should be validated not to "escape" the destination
 bundle for security reasons. That is, `../` components, if present in paths, will not be allowed to reference files and
@@ -226,6 +226,11 @@ in subsequent `--toolset` options will shadow tools from previous options with t
 `swift build --toolset toolset1.json --toolset toolset2.json` will build with `/custom/swiftc` and no extra flags, as
 specified in `toolset2.json`, but `/usr/bin/clang -pedantic` from `toolset1.json` will still be used.
 
+Tools not specified in any of the supplied toolset files will be looked up in existing implied search paths that are
+used without any presence of toolset files, even when `toolsetRootPath` is present in any toolset file. We'd like
+toolsets to be explicit enough in this regard: if any tool would like to participate in toolsets path lookups, it must
+have its path provided, either relative or absolute, in any of the provided toolset files.
+
 When cross-compiling, paths in `toolset.json` files supplied in destination artifact bundles should be self-contained
 with same rules applied as in `destination.json`: no absolute paths and no escaping symlinks are allowed. Users are
 still able to provide their own `toolset.json` files outside of artifact bundles to specify additional developer tools
@@ -257,7 +262,7 @@ After a destination is installed, users can refer to it via its identifier passe
 swift build --destination ubuntu-jammy
 ```
 
-We'd also like to make `--destination` flexible enough to recognize destination triples when there's only a single CC
+We'd also like to make `--destination` flexible enough to recognize run-time triples when there's only a single CC
 destination installed for such triple:
 
 ```
@@ -265,7 +270,7 @@ swift build --destination x86_64-unknown-linux-gnu
 ```
 
 When multiple destinations support the same triple, an error message will be printed listing these destinations and
-asking the user to select a single one via its identifier.
+asking the user to select a single one via its identifier instead.
 
 ### CC Destination Bundle Generation
 
