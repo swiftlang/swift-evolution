@@ -1,12 +1,13 @@
 # Cross-Compilation Destination Bundles
 
-- Proposal: [SE-NNNN](NNNN-cross-compilation-destinations.md)
+- Proposal: [SE-0387](0387-cross-compilation-destinations.md)
 - Authors: [Max Desiatov](https://github.com/MaxDesiatov), [Saleem Abdulrasool](https://github.com/compnerd/), [Evan
   Wilde](https://github.com/etcwilde)
 - Review Manager: [Mishal Shah](https://github.com/shahmishal)
-- Status: **Waiting for review**
+- Status: **Active Review (January 31st...Feburary 14th, 2023**)
 - Implementation: [apple/swift-package-manager#5911](https://github.com/apple/swift-package-manager/pull/5911),
   [apple/swift-package-manager#5922](https://github.com/apple/swift-package-manager/pull/5922), [apple/swift-package-manager#6023](https://github.com/apple/swift-package-manager/pull/6023)
+- Review: ([pitch](https://forums.swift.org/t/pitch-cross-compilation-destination-bundles/61777)) ([review](https://forums.swift.org/t/se-0387-cross-compilation-destination-bundles/62875))
 
 ## Introduction
 
