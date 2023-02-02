@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0376](0376-function-back-deployment.md)
 * Author: [Allan Shortlidge](https://github.com/tshortli)
-* Implementation: Available as `@_backDeploy(before:)` in Swift 5.8
+* Implementation: [apple/swift#41271](https://github.com/apple/swift/pull/41271), [apple/swift#41348](https://github.com/apple/swift/pull/41348), [apple/swift#41416](https://github.com/apple/swift/pull/41416), [apple/swift#41612](https://github.com/apple/swift/pull/41612) as the underscored attribute `@_backDeploy`
 * Review Manager: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review: ([pitch](https://forums.swift.org/t/pitch-function-back-deployment/55769)) ([review](https://forums.swift.org/t/se-0376-function-back-deployment/61015)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0376-function-back-deployment/61507)) ([second review](https://forums.swift.org/t/se-0376-second-review-function-back-deployment/61671)) ([returned for revision (second review)](https://forums.swift.org/t/returned-for-revision-se-0376-second-review-function-back-deployment/62374))
 * Status: **Returned for revision**
