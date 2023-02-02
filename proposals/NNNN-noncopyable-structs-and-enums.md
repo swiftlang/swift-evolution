@@ -1,7 +1,7 @@
 # `@noncopyable` structs and enums
 
 * Proposal: [SE-NNNN](NNNN-noncopyable-structs-and-enums.md)
-* Authors: [Joe Groff](https://github.com/jckarter), [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick)
+* Authors: [Joe Groff](https://github.com/jckarter), [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick), [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: TBD
 * Status: **Partially implemented** as `@_moveOnly` with `-enable-experimental-move-only`
 
@@ -116,7 +116,7 @@ class SharedFile {
 
 ### Restrictions on use in generics
 
-Noncopyable types may have generic parameters:
+Noncopyable types may have generic type parameters:
 
 ```swift
 // A type that reads from a file descriptor consisting of binary values of type T
@@ -127,20 +127,104 @@ struct TypedFile<T> {
 
   func read() -> T { ... }
 }
+
+let byteFile: TypedFile<UInt8> // OK
 ```
 
-However, at this time, noncopyable types are not allowed to conform to
-protocols, and they cannot be used as type arguments when instantiating
-generic types or calling generic functions. A value of noncopyable type also
-cannot be stored inside of an `Any` or other existential.
-(Lifting these limitations is discussed under Future Directions.)
+However, at this time, noncopyable types themselves are not allowed to be used
+as a generic type. This means a noncopyable type _cannot_:
+
+- conform to protocols, like `Error` or `Sendable`.
+- serve as a type witness for an `associatedtype` requirement.
+- be used as a type argument when instantiating generic types or calling generic functions.
+- be cast to `Any` or any other existential.
+- be accessed through reflection.
+- appear in a tuple.
+
+The reasons for these restrictions and ways of lifting them are discussed under
+Future Directions.
+
+Since a good portion of Swift's standard library rely on generics, there are a
+a number of common types and functions that will not work with today's 
+noncopyable types:
 
 ```swift
 // ERROR: Cannot use noncopyable type FileDescriptor in generic type Optional
 let x = Optional(FileDescriptor(open("/etc/passwd", O_RDONLY)))
+
+// ERROR: Cannot use noncopyable type FileDescriptor in generic type Array
+let fds: [FileDescriptor] = []
+
+// ERROR: Cannot use noncopyable type FileDescriptor in generic type Any
+print(FileDescriptor(-1))
+
+// ERROR: Noncopyable struct SocketEvent cannot conform to Error
+@noncopyable enum SocketEvent: Error {
+  case requestedDisconnect(SocketPair)
+}
 ```
 
-(more examples here)
+For example, the `print` function expects to be able to convert its argument to
+`Any`, which is a copyable value. Internally, it also relies on either 
+reflection or conformance to `CustomStringConvertible`. Since a noncopyable type
+can't do any of those, a suggested workaround is to explicitly define a 
+conversion to `String`: 
+
+```swift
+extension FileDescriptor /*: CustomStringConvertible */ {
+  var description: String {
+    return "file descriptor #\(fd)"
+  }
+}
+
+let fd = FileDescriptor(-1)
+print(fd.description)
+```
+
+A more general kind of workaround to mix generics and noncopyable types
+is to wrap the value in an ordinary class instance, which itself can participate
+in generics. To transfer the noncopyable value in or out of the wrapper class
+instance, using `Optional<FileDescriptor>` for the class's field would be 
+ideal. But until that is supported, a concrete noncopyable enum can represent
+the case where the value of interest was taken out of the instance:
+
+```swift
+@noncopyable
+enum MaybeFileDescriptor {
+  case some(FileDescriptor)
+  case none
+}
+
+class WrappedFile {
+  var file: MaybeFileDescriptor
+
+  enum Err: Error { case noFile }
+
+  init(_ fd: consuming FileDescriptor) {
+    file = .some(fd)
+  }
+
+  func consume() throws -> FileDescriptor {
+    if case let .some(fd) = file { // consume `self.file`
+      file = .none // must reinitialize `self.file` before returning
+      return fd
+    }
+    throw Err.noFile
+  }
+}
+
+func example(_ fd1: consuming FileDescriptor, 
+             _ fd2: consuming FileDescriptor) -> [WrappedFile] {
+  // create an array of descriptors
+  return [WrappedFile(fd1), WrappedFile(fd2)]
+}
+```
+
+All of this boilerplate melts away once noncopyable types support generics.
+Even before then, one major improvement would be to eliminate the need to define
+types like `MaybeFileDescriptor` through a noncopyable `Optional` 
+(see Future Directions).
+
 
 ### Using values of `@noncopyable` type
 
