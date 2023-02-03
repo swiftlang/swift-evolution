@@ -145,53 +145,14 @@ The integer literal type has to be selected statically as the associated type. T
 
 - Xiaodi Wu [suggested](https://forums.swift.org/t/staticbigint/54545/23) that a different naming scheme and API design be chosen to accommodate other similar types, such as IEEE 754 interchange formats. However, specific alternatives weren't put forward for consideration. Using non-arithmetic types for interchange formats would seem to be a deliberate choice; whereas for `StaticBigInt` it's because of an inherent limitation.
 
-## Future directions
-
-- It may be possible to diagnose integer literal overflow at compile-time, if constant evaluation is added to the language.
-
-- A mutable `BigInt: SignedInteger` type (in the standard library) would either complement or [obsolete][] `StaticBigInt`:
-
-  > … there is very little reason to use `StaticString` these days over a regular `String`, as the regular `String` is initialized with a pointer to a string in the const section and won't perform any reference counting.
-
-- `StaticBigInt` (or a similar type) might be useful for [auto-generated][] constant data, if we also had *multiline* integer literals:
-
-  ```swift
-  let _swift_stdlib_graphemeBreakProperties: StaticBigInt = (((0x_
-    0x____________________________3DEE0100_0FEE0080_2BEE0020_03EE0000_B701F947_
-    0x_8121F93C_85C1F90C_8A21F8AE_80E1F888_80A1F85A_80E1F848_8061F80C_8541F7D5_
-    /* [74 lines redacted] */
-    0x_2280064B_0000061C_21400610_40A00600_200005C7_202005C4_202005C1_200005BF_
-    0x_25800591_20C00483_2DE00300_800000AE_000000AD_800000A9_0400007F_03E00000_
-  )))
-  ```
-
-- The unary `+` operator function isn't sufficient for all use cases:
-
-  ```swift
-  let a: StaticBigInt = -42  // OK
-  let b: StaticBigInt = +42  // OK
-  
-  let c = -42 as StaticBigInt  // OK
-  let d = +42 as StaticBigInt  // OK
-  
-  let e = StaticBigInt(-42)  // OK
-  let f = StaticBigInt(+42)  // error
-  ```
-
-  Could the plus sign be added to the language grammar of integer (and floating-point) literals?
-
 ## Acknowledgments
 
 John McCall made significant improvements to this proposal; and (in Swift 5.0) implemented arbitrary-precision integer literals. `StaticBigInt` is a thin wrapper around the existing [`Builtin.IntLiteral`][] type.
 
 <!----------------------------------------------------------------------------->
 
-[auto-generated]: <https://github.com/apple/swift/blob/4a451829f889a09b18a0d88bec234029c51cea9c/stdlib/public/stubs/Unicode/Common/GraphemeData.h>
-
 [`Builtin.IntLiteral`]: <https://forums.swift.org/t/how-to-find-rounding-error-in-floating-point-integer-literal-initializer/42039/8>
 
 [numeric protocols]: <https://developer.apple.com/documentation/swift/numeric-protocols>
-
-[obsolete]: <https://forums.swift.org/t/pitch-compile-time-constant-values/53606/9>
 
 [Swift Numerics]: <https://github.com/apple/swift-numerics/issues/4>
