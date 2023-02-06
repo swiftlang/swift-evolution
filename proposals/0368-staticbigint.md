@@ -2,10 +2,10 @@
 
 * Proposal: [SE-0368](0368-staticbigint.md)
 * Author: [Ben Rimmington](https://github.com/benrimmington)
-* Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 5.8)**
-* Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722)
-* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545)) ([review](https://forums.swift.org/t/se-0368-staticbigint/59421)) ([acceptance](https://forums.swift.org/t/accepted-se-0368-staticbigint/59962))
+* Review Manager: [Doug Gregor](https://github.com/DougGregor), [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (February 6, 2023...February 13, 2023)**
+* Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722), [apple/swift#62733](https://github.com/apple/swift/pull/62733)
+* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545)) ([review](https://forums.swift.org/t/se-0368-staticbigint/59421)) ([acceptance](https://forums.swift.org/t/accepted-se-0368-staticbigint/59962)) ([amendment](https://forums.swift.org/t/pitch-amend-se-0368-to-remove-prefix-operator/62173))
 
 <details>
 <summary><b>Revision history</b></summary>
@@ -16,6 +16,7 @@
 | 2022-02-01 | Updated with an "ABI-neutral" abstraction.        |
 | 2022-04-23 | Updated with an "infinitely-sign-extended" model. |
 | 2022-08-18 | Updated with a "non-generic" subscript.           |
+| 2023-02-03 | Amended to remove the prefix `+` operator.        |
 
 </details>
 
@@ -79,21 +80,18 @@ public struct StaticBigInt:
   ExpressibleByIntegerLiteral,
   Sendable
 {
-  /// Returns the given value unchanged.
-  public static prefix func + (_ rhs: Self) -> Self
-
-  /// Returns `-1`, `0`, or `+1` to indicate whether this value is less than,
-  /// equal to, or greater than zero.
+  /// Indicates the value's sign.
   ///
-  /// The return type is `Int` rather than `Self`.
+  /// - Returns: `-1` if the value is less than zero, `0` if it is equal to
+  ///   zero, or `+1` if it is greater than zero.
   public func signum() -> Int
 
   /// Returns the minimal number of bits in this value's binary representation,
   /// including the sign bit, and excluding the sign extension.
   ///
   /// The following examples show the least significant byte of each value's
-  /// binary representation, separated into excluded and included bits. Negative
-  /// values are in two's complement.
+  /// binary representation, separated (by an underscore) into excluded and
+  /// included bits. Negative values are in two's complement.
   ///
   /// * `-4` (`0b11111_100`) is 3 bits.
   /// * `-3` (`0b11111_101`) is 3 bits.
@@ -117,7 +115,7 @@ public struct StaticBigInt:
   ///     negative[1]        //-> 0xFFEEDDCCBBAA9988
   ///     negative[2]        //-> 0xFFFFFFFFFFFFFFFF
   ///
-  ///     let positive: StaticBigInt = +0x0011223344556677_8899AABBCCDDEEFF
+  ///     let positive: StaticBigInt =  0x0011223344556677_8899AABBCCDDEEFF
   ///     positive.signum()  //-> +1
   ///     positive.bitWidth  //-> 118
   ///     positive[0]        //-> 0x8899AABBCCDDEEFF
@@ -145,53 +143,37 @@ The integer literal type has to be selected statically as the associated type. T
 
 - Xiaodi Wu [suggested](https://forums.swift.org/t/staticbigint/54545/23) that a different naming scheme and API design be chosen to accommodate other similar types, such as IEEE 754 interchange formats. However, specific alternatives weren't put forward for consideration. Using non-arithmetic types for interchange formats would seem to be a deliberate choice; whereas for `StaticBigInt` it's because of an inherent limitation.
 
-## Future directions
-
-- It may be possible to diagnose integer literal overflow at compile-time, if constant evaluation is added to the language.
-
-- A mutable `BigInt: SignedInteger` type (in the standard library) would either complement or [obsolete][] `StaticBigInt`:
-
-  > … there is very little reason to use `StaticString` these days over a regular `String`, as the regular `String` is initialized with a pointer to a string in the const section and won't perform any reference counting.
-
-- `StaticBigInt` (or a similar type) might be useful for [auto-generated][] constant data, if we also had *multiline* integer literals:
+- A previously accepted version of this proposal included the following operator, for symmetry between negative and positive literals.
 
   ```swift
-  let _swift_stdlib_graphemeBreakProperties: StaticBigInt = (((0x_
-    0x____________________________3DEE0100_0FEE0080_2BEE0020_03EE0000_B701F947_
-    0x_8121F93C_85C1F90C_8A21F8AE_80E1F888_80A1F85A_80E1F848_8061F80C_8541F7D5_
-    /* [74 lines redacted] */
-    0x_2280064B_0000061C_21400610_40A00600_200005C7_202005C4_202005C1_200005BF_
-    0x_25800591_20C00483_2DE00300_800000AE_000000AD_800000A9_0400007F_03E00000_
-  )))
+  extension StaticBigInt {
+    /// Returns the given value unchanged.
+    public static prefix func + (_ rhs: Self) -> Self
+  }
   ```
 
-- The unary `+` operator function isn't sufficient for all use cases:
+  It was later discovered to be a source-breaking change. For example:
 
   ```swift
-  let a: StaticBigInt = -42  // OK
-  let b: StaticBigInt = +42  // OK
-  
-  let c = -42 as StaticBigInt  // OK
-  let d = +42 as StaticBigInt  // OK
-  
-  let e = StaticBigInt(-42)  // OK
-  let f = StaticBigInt(+42)  // error
+  let a = -7     // inferred as `a: Int`
+  let b = +6     // inferred as `b: StaticBigInt`
+  let c = a * b
+  //          ^
+  // error: Cannot convert value of type 'StaticBigInt' to expected argument type 'Int'
   ```
 
-  Could the plus sign be added to the language grammar of integer (and floating-point) literals?
+  The prefix `+` operator on [`AdditiveArithmetic`][numeric protocols] was no longer chosen, because concrete overloads are preferred over generic overloads.
 
 ## Acknowledgments
 
 John McCall made significant improvements to this proposal; and (in Swift 5.0) implemented arbitrary-precision integer literals. `StaticBigInt` is a thin wrapper around the existing [`Builtin.IntLiteral`][] type.
 
-<!----------------------------------------------------------------------------->
+Stephen Canon proposed an amendment to remove the prefix `+` operator.
 
-[auto-generated]: <https://github.com/apple/swift/blob/4a451829f889a09b18a0d88bec234029c51cea9c/stdlib/public/stubs/Unicode/Common/GraphemeData.h>
+<!----------------------------------------------------------------------------->
 
 [`Builtin.IntLiteral`]: <https://forums.swift.org/t/how-to-find-rounding-error-in-floating-point-integer-literal-initializer/42039/8>
 
 [numeric protocols]: <https://developer.apple.com/documentation/swift/numeric-protocols>
-
-[obsolete]: <https://forums.swift.org/t/pitch-compile-time-constant-values/53606/9>
 
 [Swift Numerics]: <https://github.com/apple/swift-numerics/issues/4>
