@@ -13,29 +13,81 @@
 * Previous Revision: *if applicable* [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Review: ([pitch](https://forums.swift.org/...))
 
-When filling out this template, you should delete or replace all of the text except for the section headers and the header fields above.  For example, you should delete everything from this paragraph down to the Introduction section below.
+When filling out this template, you should delete or replace all of
+the text except for the section headers and the header fields above.
+For example, you should delete everything from this paragraph down to
+the Introduction section below.
 
-As a proposal author, you should fill out all of the header fields except `Review Manager`.  The review manager will set that field and change several others as part of initiating the review.  Delete any header fields that are not applicable to your proposal.
+As a proposal author, you should fill out all of the header fields
+except `Review Manager`.  The review manager will set that field and
+change several others as part of initiating the review.  Delete any
+header fields marked *if applicable* that are not applicable to your
+proposal.
 
-When sharing a link to the proposal while it is still a PR, be sure to share a live link to the proposal, not an exact commit, so that readers will always see the latest version when you make changes.  On GitHub, you can find this link by browsing the PR branch: from the PR page, click the "username wants to merge ... from username:my-branch-name" link and find the proposal file in that branch.
+When sharing a link to the proposal while it is still a PR, be sure
+to share a live link to the proposal, not an exact commit, so that
+readers will always see the latest version when you make changes.
+On GitHub, you can find this link by browsing the PR branch: from the
+PR page, click the "username wants to merge ... from username:my-branch-name"
+link and find the proposal file in that branch.
 
-`Status` should reflect the current implementation status while the proposal is still a PR.  The proposal cannot be reviewed until an implementation is available, but early readers should see the correct status.
+`Status` should reflect the current implementation status while the
+proposal is still a PR.  The proposal cannot be reviewed until an
+implementation is available, but early readers should see the correct
+status.
 
-`Vision` should link to the [vision document](https://forums.swift.org/t/the-role-of-vision-documents-in-swift-evolution/62101) for this proposal, if it is part of a vision.  Most proposals are not part of a vision.  If a vision has been written but not yet accepted, link to the discussion thread for the vision.
+`Vision` should link to the [vision document](https://forums.swift.org/t/the-role-of-vision-documents-in-swift-evolution/62101)
+for this proposal, if it is part of a vision.  Most proposals are not
+part of a vision.  If a vision has been written but not yet accepted,
+link to the discussion thread for the vision.
 
-`Roadmap` should link to the discussion thread for the roadmap for this proposal, if applicable.  When a complex feature is broken down into several closely-related proposals to make evolution review easier and more focused, it's helpful to make a forum post concisely explaining what's going on and detailing how the proposals will be reviewed.  That post is called a "roadmap", and this field should link to it.  Most proposals don't need roadmaps.
+`Roadmap` should link to the discussion thread for the roadmap for
+this proposal, if applicable.  When a complex feature is broken down
+into several closely-related proposals to make evolution review easier
+and more focused, it's helpful to make a forum post explaining what's
+going on and detailing how the proposals are expected to be submitted
+to review.  That post is called a "roadmap".  Most proposals don't need
+roadmaps, but if this proposal was part of one, this field should link
+to it.
 
-`Bug` should be used when this proposal is fixing a bug with significant discussion in the bug report.  It is not necessary to link bugs that do not contain significant discussion or that merely duplicate discussion linked somewhere else.  Do not link bugs from private bug trackers.
+`Bug` should be used when this proposal is fixing a bug with significant
+discussion in the bug report.  It is not necessary to link bugs that do
+not contain significant discussion or that merely duplicate discussion
+linked somewhere else.  Do not link bugs from private bug trackers.
 
-`Implementation` should link to the PR(s) implementing the feature.  If the proposal has not been implemented yet, or if it simply codifies existing behavior, just say that.  If the implementation has already been committed to the main branch (as an experimental feature), say that and specify the experimental feature flag.  If the implementation is spread across multiple PRs, just link to the most important ones.
+`Implementation` should link to the PR(s) implementing the feature.
+If the proposal has not been implemented yet, or if it simply codifies
+existing behavior, just say that.  If the implementation has already
+been committed to the main branch (as an experimental feature), say
+that and specify the experimental feature flag.  If the implementation
+is spread across multiple PRs, just link to the most important ones.
 
-`Feature Identifier` should be the feature name used to identify this feature under [SE-0362](https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md#proposals-define-their-own-feature-identifier).  Not all proposals need a feature identifier.  You should think about whether one would be useful for your proposal as part of filling this field out.
+`Feature Identifier` should be the feature name used to identify this
+feature under [SE-0362](https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md#proposals-define-their-own-feature-identifier).
+Not all proposals need a feature identifier.  You should think about
+whether one would be useful for your proposal as part of filling this
+field out.
 
-`Previous Proposal` should be used when there is a specific line of succession between the linked proposal and this one.  For example, this proposal might have been removed from the previous proposal so that it can be reviewed separately, or this proposal might supersede the previous proposal in some way that was felt to exceed the scope of a "revision".
+`Previous Proposal` should be used when there is a specific line of
+succession between this proposal and another proposal.  For example,
+this proposal might have been removed from a previous proposal so
+that it can be reviewed separately, or this proposal might supersede
+a previous proposal in some way that was felt to exceed the scope of
+a "revision".  Include text briefly explaining the relationship,
+such as "Supersedes SE-1234" or "Extracted from SE-01234".  If possible,
+link to a post explaining the relationship, such as a review decision
+that asked for part of the proposal to be split off.  Otherwise, you
+can just link to the previous proposal.
 
-`Previous Revision` should be added after a major substantive revision of a proposal that has undergone review.  It links to the previously reviewed revision.  It is not necessary to add or update this field after minor editorial changes.
+`Previous Revision` should be added after a major substantive revision
+of a proposal that has undergone review.  It links to the previously
+reviewed revision.  It is not necessary to add or update this field
+after minor editorial changes.
 
-`Review` is a history of all discussion threads about this proposal, in chronological order.  Use these standardized link names: `pitch` `review` `revision` `acceptance` `rejection`.  If there are multiple such threads, spell the ordinal out: `first pitch` `second review` etc.
+`Review` is a history of all discussion threads about this proposal,
+in chronological order.  Use these standardized link names: `pitch`
+`review` `revision` `acceptance` `rejection`.  If there are multiple
+such threads, spell the ordinal out: `first pitch` `second review` etc.
 
 ## Introduction
 
@@ -136,7 +188,20 @@ names, conventions, or dynamic behavior?  Will newly-compiled code work
 on old library versions, and will new library versions work with
 previously-compiled code?
 
-## API resilience and other adoption concerns
+This section will often end up very short.  A proposal that just
+adds a new standard library feature, for example, will usually
+say either "This proposal is purely an extension of the ABI of the
+standard library and does not change any existing features" or
+"This proposal is purely an extension of the standard library which
+can be implemented without any ABI support" (whichever applies).
+Nonetheless, it is important to demonstrate that you've considered
+the ABI implications.
+
+If the design of the feature was significantly constrained by
+the need to maintain ABI compatibility, this section is a reasonable
+place to discuss that.
+
+## Implications on adoption
 
 The compatibility sections above are focused on the direct impact
 of the proposal on existing code.  In this section, describe issues
@@ -157,7 +222,10 @@ Will package authors be able to selectively adopt this feature depending
 on the tools version available, or will it require bumping the minimum
 tools version required by the package?
 
-If there are no concerns to raise in this section, it may be removed.
+If there are no concerns to raise in this section, leave it in with
+text like "This feature can be freely adopted and un-adopted in source
+code with no deployment constraints and without affecting source or ABI
+compatibility."
 
 ## Future directions
 
@@ -206,6 +274,15 @@ be neutral; after all, you are specifically proposing something
 else.  Describe any advantages these alternatives might have, but
 also be sure to explain the disadvantages that led you to prefer
 the approach in this proposal.
+
+You should update this section during the pitch phase to discuss
+any particularly interesting alternatives raised by the community.
+You do not need to list every idea raised during the pitch, just
+the ones you think raise points that are worth discussing.  Of course,
+if you decide the alternative is more compelling than what's in
+the current proposal, you should change the main proposal; be sure
+to then discuss your previous proposal in this section and explain
+why the new idea is better.
 
 ## Acknowledgments
 
