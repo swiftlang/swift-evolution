@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor), [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (February 6, 2023...February 13, 2023)**
 * Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722), [apple/swift#62733](https://github.com/apple/swift/pull/62733)
-* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545)) ([review](https://forums.swift.org/t/se-0368-staticbigint/59421)) ([acceptance](https://forums.swift.org/t/accepted-se-0368-staticbigint/59962)) ([amendment](https://forums.swift.org/t/pitch-amend-se-0368-to-remove-prefix-operator/62173))
+* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545)) ([review](https://forums.swift.org/t/se-0368-staticbigint/59421)) ([acceptance](https://forums.swift.org/t/accepted-se-0368-staticbigint/59962)) ([amendment](https://forums.swift.org/t/pitch-amend-se-0368-to-remove-prefix-operator/62173)), ([amendment review](https://forums.swift.org/t/amendment-se-0368-staticbigint/62992))
 
 <details>
 <summary><b>Revision history</b></summary>
