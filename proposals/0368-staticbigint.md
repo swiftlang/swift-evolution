@@ -4,8 +4,8 @@
 * Author: [Ben Rimmington](https://github.com/benrimmington)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 5.8)**
-* Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722)
-* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545)) ([review](https://forums.swift.org/t/se-0368-staticbigint/59421)) ([acceptance](https://forums.swift.org/t/accepted-se-0368-staticbigint/59962))
+* Implementation: [apple/swift#40722](https://github.com/apple/swift/pull/40722), [apple/swift#62733](https://github.com/apple/swift/pull/62733)
+* Review: ([pitch](https://forums.swift.org/t/staticbigint/54545)) ([review](https://forums.swift.org/t/se-0368-staticbigint/59421)) ([acceptance](https://forums.swift.org/t/accepted-se-0368-staticbigint/59962)) ([amendment](https://forums.swift.org/t/pitch-amend-se-0368-to-remove-prefix-operator/62173))
 
 <details>
 <summary><b>Revision history</b></summary>
@@ -16,6 +16,7 @@
 | 2022-02-01 | Updated with an "ABI-neutral" abstraction.        |
 | 2022-04-23 | Updated with an "infinitely-sign-extended" model. |
 | 2022-08-18 | Updated with a "non-generic" subscript.           |
+| 2023-02-03 | Amended to remove the prefix `+` operator.        |
 
 </details>
 
@@ -79,9 +80,6 @@ public struct StaticBigInt:
   ExpressibleByIntegerLiteral,
   Sendable
 {
-  /// Returns the given value unchanged.
-  public static prefix func + (_ rhs: Self) -> Self
-
   /// Indicates the value's sign.
   ///
   /// - Returns: `-1` if the value is less than zero, `0` if it is equal to
@@ -117,7 +115,7 @@ public struct StaticBigInt:
   ///     negative[1]        //-> 0xFFEEDDCCBBAA9988
   ///     negative[2]        //-> 0xFFFFFFFFFFFFFFFF
   ///
-  ///     let positive: StaticBigInt = +0x0011223344556677_8899AABBCCDDEEFF
+  ///     let positive: StaticBigInt =  0x0011223344556677_8899AABBCCDDEEFF
   ///     positive.signum()  //-> +1
   ///     positive.bitWidth  //-> 118
   ///     positive[0]        //-> 0x8899AABBCCDDEEFF
@@ -145,9 +143,32 @@ The integer literal type has to be selected statically as the associated type. T
 
 - Xiaodi Wu [suggested](https://forums.swift.org/t/staticbigint/54545/23) that a different naming scheme and API design be chosen to accommodate other similar types, such as IEEE 754 interchange formats. However, specific alternatives weren't put forward for consideration. Using non-arithmetic types for interchange formats would seem to be a deliberate choice; whereas for `StaticBigInt` it's because of an inherent limitation.
 
+- A previously accepted version of this proposal included the following operator, for symmetry between negative and positive literals.
+
+  ```swift
+  extension StaticBigInt {
+    /// Returns the given value unchanged.
+    public static prefix func + (_ rhs: Self) -> Self
+  }
+  ```
+
+  It was later discovered to be a source-breaking change. For example:
+
+  ```swift
+  let a = -7     // inferred as `a: Int`
+  let b = +6     // inferred as `b: StaticBigInt`
+  let c = a * b
+  //          ^
+  // error: Cannot convert value of type 'StaticBigInt' to expected argument type 'Int'
+  ```
+
+  The prefix `+` operator on [`AdditiveArithmetic`][numeric protocols] was no longer chosen, because concrete overloads are preferred over generic overloads.
+
 ## Acknowledgments
 
 John McCall made significant improvements to this proposal; and (in Swift 5.0) implemented arbitrary-precision integer literals. `StaticBigInt` is a thin wrapper around the existing [`Builtin.IntLiteral`][] type.
+
+Stephen Canon proposed an amendment to remove the prefix `+` operator.
 
 <!----------------------------------------------------------------------------->
 
