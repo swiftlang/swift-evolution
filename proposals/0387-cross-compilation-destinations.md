@@ -51,7 +51,7 @@ project is a daunting step that shouldn’t be required.
 
 The solution described below is general enough to scale for any build-time/run-time triple combination.
 
-## Proposed solution
+## Proposed Solution
 
 Since CC destination is a collection of binaries arranged in a certain directory hierarchy, it makes sense to distribute
 it as an archive. We'd like to build on top of
@@ -71,7 +71,7 @@ are invoked by `swift build` instead of tools from the top-level toolchain.
 The proposal is intentionally limited in scope to build-time experience and specifies only configuration metadata, basic
 directory layout for proposed artifact bundles, and some CLI helpers to operate on those.
 
-## Detailed design
+## Detailed Design
 
 ### CC Destination Artifact Bundles
 
@@ -103,6 +103,7 @@ macOS would look like this:
 ```
 swift-5.8_ubuntu.artifactbundle
 ├ info.json
+├ toolset.json
 ├ ubuntu_jammy
 │ ├ destination.json
 │ ├ toolset.json
@@ -126,11 +127,9 @@ Here each artifact directory is dedicated to a specific CC destination, while fi
 in `arm64-apple-darwin` and `x86_64-apple-darwin` subdirectories.
 
 `info.json` bundle manifests at the root of artifact bundles should specify `"type": "crossCompilationDestination"` for
-corresponding artifacts. Artifact identifiers in this manifest file uniquely identify a CC destination.
-`supportedTriples` property in `info.json` should contain build-time triples that a given destination supports. An
-optional `toolset` property may be supplied that specifies a toolset for the whole bundle, see [the corresponding
-section below](#toolsetjson-files) for more details. The rest of the properties of bundle manifests introduced in
-SE-0305 are preserved.
+corresponding artifacts. Artifact identifiers in this manifest file uniquely identify a CC destination, and
+`supportedTriples` property in `info.json` should contain build-time triples that a given destination supports. The rest
+of the properties of bundle manifests introduced in SE-0305 are preserved.
 
 Here's how `info.json` file could look like for `swift-5.8_ubuntu.artifactbundle` introduced in the example
 above:
@@ -141,6 +140,7 @@ above:
     "swift-5.8_ubuntu22.04" : {
       "type" : "crossCompilationDestination",
       "version" : "0.0.1",
+      "toolset": "toolset.json",
       "variants" : [
         {
           "path" : "ubuntu_jammy",
@@ -169,7 +169,7 @@ above:
 }
 ```
 
-### `toolset.json` files
+### `toolset.json` Files
 
 We find that properties dedicated to tools configuration are useful outside of the cross-compilation context. Due to
 that, separate toolset configuration files are introduced:
@@ -280,7 +280,7 @@ no absolute paths and no escaping symlinks are allowed. Users are still able to 
 outside of artifact bundles to specify additional developer tools for which no relative "non-escaping" path can be
 provided within the bundle.
 
-### `destination.json` files
+### `destination.json` Files
 
 Note the presence of `destination.json` files in each `<destination artifact>` subdirectory. These files should contain
 a JSON dictionary with an evolved version of the schema of [existing `destination.json` files that SwiftPM already
@@ -415,7 +415,7 @@ ready, the generator copies files from the image to a corresponding `.artifactbu
 The proposed `--checksum` flag provides basic means of verifying destination bundle's validity. As a future direction,
 we'd like to consider sandboxing and codesigning toolchains running on macOS.
 
-## Impact on existing packages
+## Impact on Existing Packages
 
 This is an additive change with no impact on existing packages.
 
@@ -507,7 +507,7 @@ After an application is built with a CC destination, there are other development
 introduce new types of plugins invoked by `swift run` and `swift test` for purposes of remote running, debugging, and
 testing. For Linux run-time triples, these plugins could delegate to Docker for running produced executables.
 
-### `swift destination select` subcommand
+### `swift destination select` Subcommand
 
 While `swift destination select` subcommand or a similar one make sense for selecting a CC destination instead of
 passing `--destination` to `swift build` every time, users will expect `swift run` and `swift test` to also work for any
@@ -515,7 +515,7 @@ destination previously passed to `swift destination select`. That’s out of sco
 depends on making plugins (from the previous subsection) or some other remote running and testing implementation to
 fully work.
 
-### SwiftPM and SourceKit-LSP improvements
+### SwiftPM and SourceKit-LSP Improvements
 
 It is a known issue that SwiftPM can’t run multiple concurrent builds for different run-time triples. This may cause
 issues when SourceKit-LSP is building a project for indexing purposes (for a host platform by default), while a user may
@@ -535,3 +535,9 @@ language](https://andrewkelley.me/post/zig-cc-powerful-drop-in-replacement-gcc-c
 cross-compilation destination binaries are produced on the fly when needed. We don't consider this option to be mutually
 exclusive with solutions proposed in this document, and so it could be explored in the future for Swift as well.
 However, this requires reducing the number of dependencies that Swift runtime and core libraries have.
+
+### Destination Bundles and Package Registries
+
+Since `info.json` manifest files contained within bundles contain versions, it would make sense to host destination
+bundles at package registries. Althouhg, it remains to be seen whether it makes sense for an arbitrary SwiftPM package
+to specify a destination bundle within its list of dependencies.
