@@ -134,7 +134,7 @@ of the properties of bundle manifests introduced in SE-0305 are preserved.
 Here's how `info.json` file could look like for `swift-5.8_ubuntu.artifactbundle` introduced in the example
 above:
 
-```json
+```json5
 {
   "artifacts" : {
     "swift-5.8_ubuntu22.04" : {
@@ -225,7 +225,7 @@ each file should be passed with a separate `--toolset` option, i.e. `swift build
 All of the properties related to names of the tools are optional, which allows merging configuration from multiple
 toolset files. For example, consider `toolset1.json`:
 
-```json
+```json5
 {
   "schemaVersion": "1.0",
   "swiftCompiler": {
@@ -241,7 +241,7 @@ toolset files. For example, consider `toolset1.json`:
 
 and `toolset2.json`:
 
-```json
+```json5
 {
   "schemaVersion": "1.0",
   "swiftCompiler": {
@@ -264,7 +264,7 @@ Tools that don't have `path` property but have `extraCLIOptions` present will ap
 tool with the same name specified in a preceding toolset file. If no other toolset files were provided, these options
 will be appended to the default tool invocation. For example `pedanticCCompiler.json` that looks like this
 
-```json
+```json5
 {
   "schemaVersion": "1.0",
   "cCompiler": {
@@ -287,7 +287,7 @@ a JSON dictionary with an evolved version of the schema of [existing `destinatio
 supports](https://github.com/apple/swift-package-manager/pull/1098) and `destination.json` files presented in the pitch
 version of this proposal, hence `"schemaVersion": "3.0"`:
 
-```json
+```json5
 {
   "schemaVersion": "3.0",
   "runTimeTriples": [
@@ -317,7 +317,7 @@ out of the bundle.
 
 Here's `destination.json` file for the `ubuntu_jammy` artifact previously introduced as an example:
 
-```json
+```json5
 {
   "schemaVersion": "3.0",
   "runTimeTriples": [
