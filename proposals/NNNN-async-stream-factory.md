@@ -7,23 +7,16 @@
 * Pitch: [Convenience Async[Throwing]Stream.makeStream methods](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030)
 * Implementation: [apple/swift#62968](https://github.com/apple/swift/pull/62968)
 
-<details>
-<summary><b>Revision history</b></summary>
-
-|            |                                                   |
-| ---------- | ------------------------------------------------- |
-| 2022-10-26 | Initial pitch.                                    |
-| 2023-01-12 | Switch to concrete return type                    |
-
-</details>
-
 ## Introduction
 
-With [SE-0314](https://github.com/apple/swift-evolution/blob/main/proposals/0314-async-stream.md)
-we introduced `AsyncStream` and `AsyncThrowingStream` which act as a source
-`AsyncSequence` that the standard library offers.
+We propose introducing helper methods for creating `AsyncStream` and `AsyncThrowingStream`
+instances which make the stream's continuation easier to access.
 
 ## Motivation
+
+With [SE-0314](https://github.com/apple/swift-evolution/blob/main/proposals/0314-async-stream.md)
+we introduced `AsyncStream` and `AsyncThrowingStream` which act as a root
+`AsyncSequence` that the standard library offers.
 
 After having used `Async[Throwing]Stream` for some time, a common usage
 is to pass the continuation and the `Async[Throwing]Stream` to different places.
@@ -31,13 +24,55 @@ This requires escaping the `Async[Throwing]Stream.Continuation` out of
 the closure that is passed to the initialiser.
 Escaping the continuation is slightly inconvenient since it requires a dance
 around an implicitly unwrapped optional. Furthermore, the closure implies
-that the continuation lifetime is scoped to the closure which it isn't.
+that the continuation lifetime is scoped to the closure which it isn't. This is how
+an example usage of the current `AsyncStream` API looks like.
+
+```swift
+var cont: AsyncStream<Int>.Continuation!
+let stream = AsyncStream<Int> { cont = $0 }
+// We have to assing the continuation to a let to avoid sendability warnings
+let continuation = cont
+
+await withTaskGroup(of: Void.self) { group in
+  group.addTask {
+    for i in 0...9 {
+      continuation.yield(i)
+    }
+    continuation.finish()
+  }
+
+  group.addTask {
+    for await i in stream {
+      print(i)
+    }
+  }
+}
+```
 
 ## Proposed solution
 
 In order to fill this gap, I propose to add a new static method `makeStream` on
 `AsyncStream` and `AsyncThrowingStream` that returns both the stream
-and the continuation.
+and the continuation. An example of using the new proposed convenience methods looks like this:
+
+```swift
+let newStream = AsyncStream.makeStream(of: Int.self)
+
+await withTaskGroup(of: Void.self) { group in
+  group.addTask {
+    for i in 0...9 {
+      newStream.continuation.yield(i)
+    }
+    newStream.continuation.finish()
+  }
+
+  group.addTask {
+    for await i in newStream.stream {
+      print(i)
+    }
+  }
+}
+```
 
 ## Detailed design
 
@@ -60,7 +95,7 @@ extension AsyncStream {
     /// The stream which should be passed to the consumer.
     public let stream: AsyncStream<Element>
 
-    public init(stream: AsyncStream<Element>, continuation: AsyncStream<Element>.Continuation) {
+    private init(stream: AsyncStream<Element>, continuation: AsyncStream<Element>.Continuation) {
       self.stream = stream
       self.continuation = continuation
     }
@@ -98,7 +133,7 @@ extension AsyncThrowingStream {
     /// The stream which should be passed to the consumer.
     public let stream: AsyncThrowingStream<Element, Failure>
 
-    public init(stream: AsyncThrowingStream<Element, Failure>, continuation: AsyncThrowingStream<Element, Failure>.Continuation) {
+    private init(stream: AsyncThrowingStream<Element, Failure>, continuation: AsyncThrowingStream<Element, Failure>.Continuation) {
       self.stream = stream
       self.continuation = continuation
     }
@@ -124,14 +159,19 @@ extension AsyncThrowingStream {
 }
 ```
 
-## Source compatibility, Effect on ABI stability, Effect on API resilience
+## Source compatibility
+This change is additive and does not affect source compatibility.
 
-As this is an additive change, it should not have any compatibility, stability or resilience problems. The only potential problem would be if someone has already run into this shortcoming and decided to define their own `makeStream` methods.
+## Effect on ABI stability
+This change introduces new concurrency library ABI in the form of the two `makeStream` methods and `NewStream` structs, but it does not affect the ABI of existing declarations.
+
+## Effect on API resilience
+None; adding nested types and static methods is permitted by the existing resilience model.
 
 ## Alternatives considered
 
 ### Return a tuple instead of a concrete type
-My initial pitch was using a tuple as the return paramter of the factory;
+My initial pitch was using a tuple as the result type of the factory;
 however, I walked back on it since I think we can provide better documentation on
 the concrete type. Furthermore, it makes it more discoverable as well.
 
@@ -140,7 +180,7 @@ The upside of using a tuple based approach is that we can backdeploy it.
 An implementation returning a tuple would look like this;
 
 ```swift
-extension AsyncStream 
+extension AsyncStream {
   /// Initializes a new ``AsyncStream`` and an ``AsyncStream/Continuation``.
   ///
   /// - Parameters:
@@ -159,6 +199,22 @@ extension AsyncStream
   }
 }
 ```
+
+### Expose an initilizer on the `NewStream` type
+During the pitch it was brought up that we could expose an `init` on the `NewStream` types
+that this proposal wants to add. I decided against that since one would have to spell out
+`AsyncStream<Element>.NewStream()` to access the `init`. This is quite hard to discover in
+my opinion.
+
+### Pass a continuation to the `AsyncStream<Element>.init()`
+During the pitch it was brought up that we could let users pass a continuation to the
+`AsyncStream<Element>.init()`; however, this opens up a few problems:
+1. A continuation could be passed to multiple streams
+2. A continuation which is not passed to a stream is useless
+
+In the end, the `AsyncStream.Continuation` is deeply coupled to one instance of an
+`AsyncStream` hence we should create an API that conveys this coupling and prevents
+users from misuse. 
 
 ### Do nothing alternative
 We could just leave the current creation of `Async[Throwing]Stream` as is;
