@@ -19,7 +19,7 @@ Previous Swift Forum discussions
 
 There are some problem domains in which it can be beneficial for a library author to let a client annotate within their own code certain declarations that the library should be made aware of, since requiring the client call an explicit API instead would be too onerous, repetitive, or easy to forget.
 
-One classic example is **testing**: there is a common pattern in unit testing libraries where users define a type that extends one of the library's types, they annotate some of its methods as tests, and the library locates and runs all tests automatically, after initializing a distinct instance of the containing type for each. There is no official mechanism in Swift to implement this test discovery pattern today, however XCTest—the language's current de-facto standard test library—has longstanding workarounds:
+One classic example is **testing**: there is a common pattern in unit testing libraries where users define a type that extends one of the library's types, they annotate some of its methods as tests, and the library locates, initializes, and runs all tests automatically. There is no official mechanism in Swift to implement this test discovery pattern today, however XCTest—the language's current de-facto standard test library—has longstanding workarounds:
 
 * On Apple platforms, XCTest relies on the Objective-C runtime to enumerate all subclasses of a known base class and their methods, and it considers all instance methods with a supported signature and name prefixed with "test" a test method.
 * On other platforms, XCTest is typically used from a package, and the Swift Package Manager has special logic to introspect build-time indexer data, locate test methods, and explicitly pass the list of discovered tests to XCTest to run.
@@ -30,16 +30,50 @@ XCTest's current approach has some drawbacks and limitations:
 * Since tests are declared implicitly, there is no way for a user to provide additional details about an individual test or group of tests. It would be useful to have a way to indicate whether a test is enabled, its requirements, or other metadata, for example, so that the testing library could use this information to inform how it executes tests and offer more powerful features.
 * The lack of a built-in runtime discovery mechanism means that related tools (such as Swift Package Manager) require specialized discovery logic for each test library they support. This makes adding support for alternate test libraries to those tools very difficult and increases their implementation complexity.
 
-The general pattern of registering code to be discovered by a framework is common across Swift programs. For example, a program that uses a plugin architecture commonly uses a protocol for the interface of the plugin, which is then implemented on concrete types in clients. This pattern imposes error-prone registration boilerplate, where clients must explicitly supply a list of concrete plugin types or explicitly register individual plugin types to be used by the framework before the framework needs them.
+Registering code to be discovered by a framework is a common pattern across Swift programs. For example, a program that uses a plugin architecture commonly uses a protocol for the interface of the plugin, which is then implemented on concrete types in clients. This pattern imposes error-prone registration boilerplate, where clients must explicitly supply a list of concrete plugin types or explicitly register individual plugin types to be used by the framework before the framework needs them.
 
-Java and C# programming languages both have a feature called “Java Annotations” and “C# attributes” respectively. It allows to add attributes on methods, variables, parameters, and, in case of Java, packages that are accessible to Java/C# compiler and at runtime via reflection APIs. We propose a similar addition to Swift called **custom reflection metadata**.
+More generally, annotating parts of a program with metadata to be used by other parts of the program has use-cases beyond registration patterns. Consider the `Persisted` property wrapper from the [Realm](https://github.com/realm/realm-swift) package:
+
+```swift
+@propertyWrapper
+public struct Persisted<Value: _Persistable> { ... }
+
+class Dog: Object {
+  @Persisted var name: String
+  @Persisted var age: Int
+}
+```
+
+To support [advanced schema customization](https://forums.swift.org/t/se-0385-custom-reflection-metadata/62777/19), the property wrapper could store a string that provides a custom name for the underlying database column, specified in the attribute arguments, e.g. `@Persisted(named: "CustomName")`. However, storing this metadata in the property wrapper requires additional storage for each _instance_ of the containing type, even though the metadata value is fixed for the declaration the property wrapper is attached to. In addition to higher memory overload, the metadata values are evaluated eagerly, and for each instantiation of the containing type, rendering property-wrapper instance metadata too expensive for this use case.
+
 
 ## Proposed solution
 
 * A new built-in attribute `@reflectionMetadata` that can be applied to structs, enums, classes, and actors.
 * Types annotated with this built-in attribute can be used as custom attributes on declarations that can be used as values.
     * The custom attribute can have additional arguments; the custom attribute application will turn into an initializer call on the attribute type, passing in the declaration value as the first argument.
-* A reflection API that can gather all declarations with a given custom attribute attached.
+* A reflection API that can gather all declarations with a given custom attribute attached, which lazily constructs the metadata values when invoked.
+
+Combined with [attached macros](https://forums.swift.org/t/pitch-attached-macros/62812), the `@Persisted` property wrapper in Realm can evolve into a macro attached to persistent types, combined with custom metadata attributes that provide schema customization for specific declarations:
+
+```swift
+@reflectionMetadata
+struct Named {
+  let name: String
+
+  init<T: _Persistable>(attachedTo: T.Type, _ name: String) {
+    self.name = name
+  }
+}
+
+@Persisted
+class Dog: Object {
+  var name: String
+  @Named("CustomName") var age: Int
+}
+```
+
+This approach completely eliminates initialization overhead of using property wrappers, provides separate storage of custom metadata values, and enables lazy initialization of metadata values that is only invoked when the framework requests the metadata.
 
 ## Detailed design
 
@@ -318,6 +352,10 @@ We considered several alternative spellings of the attribute used to declare a r
 ### Bespoke `@test` attribute
 
 A previous Swift Evolution discussion suggested [adding a built-in `@test` attribute](https://forums.swift.org/t/rfc-in-line-tests/12111) to the language. However, registration is a general code pattern that is also used outside of testing, so allowing libraries to declare their own domain-specific attributes is a more general approach that supports a wider set of use cases.
+
+## Acknowledgments
+
+Thank you to [Thomas Goyne](https://forums.swift.org/u/tgoyne) for surfacing use cases in the Realm Swift project and insights into alternative design directions.
 
 ## Revision history
 
