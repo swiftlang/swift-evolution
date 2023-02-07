@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0017-change-unmanaged-to-use-unsafepointer/2461)
-* Bug: [SR-1485](https://bugs.swift.org/browse/SR-1485)
+* Bug: [apple/swift#44094](https://github.com/apple/swift/issues/44094)
 
 ## Introduction
 

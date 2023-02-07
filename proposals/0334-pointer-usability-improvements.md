@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 5.7)**
 * Decision notes: [Acceptance](https://forums.swift.org/t/54700)
 * Implementation: [Draft pull request][draft-pr]
-* Bugs: [rdar://64342031](rdar://64342031), [SR-11156](https://bugs.swift.org/browse/SR-11156) ([rdar://53272880](rdar://53272880)), [rdar://22541346](rdar://22541346)
+* Bugs: [rdar://64342031](rdar://64342031), [apple/swift#53553](https://github.com/apple/swift/issues/53553) ([rdar://53272880](rdar://53272880)), [rdar://22541346](rdar://22541346)
 
 [draft-pr]: https://github.com/apple/swift/pull/39639
 [pitch-thread]: https://forums.swift.org/t/52736

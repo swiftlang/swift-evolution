@@ -45,8 +45,8 @@ The proposed changes are as follows:
 * Deprecate the `ExpressibleByStringInterpolation` protocol with a
   message indicating that its design is expected to change.  We know
   this protocol to be
-  [mis-designed](https://bugs.swift.org/browse/SR-1260) and
-  [limited](https://bugs.swift.org/browse/SR-2303), but there's no
+  [mis-designed](https://github.com/apple/swift/issues/43868) and
+  [limited](https://github.com/apple/swift/issues/44910), but there's no
   time to fix it for Swift 3.  If we knew how the new design should
   look, we might be able to calculate that the current API is
   supportable in a forward-compatible way (that's the case for

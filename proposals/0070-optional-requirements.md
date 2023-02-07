@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0070-make-optional-requirements-objective-c-only/2426)
-* Bug: [SR-1395](https://bugs.swift.org/browse/SR-1395)
+* Bug: [apple/swift#44004](https://github.com/apple/swift/issues/44004)
 
 ## Introduction
 

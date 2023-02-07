@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0142-permit-where-clauses-to-constrain-associated-types/4191)
-* Bugs: [SR-4506](https://bugs.swift.org/browse/SR-4506)
+* Bugs: [apple/swift#47083](https://github.com/apple/swift/issues/47083)
 
 ## Introduction
 

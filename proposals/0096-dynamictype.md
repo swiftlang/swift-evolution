@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0098-converting-dynamictype-from-a-property-to-an-operator/2853)
-* Bug: [SR-2218](https://bugs.swift.org/browse/SR-2218)
+* Bug: [apple/swift#44825](https://github.com/apple/swift/issues/44825)
 
 ## Introduction
 

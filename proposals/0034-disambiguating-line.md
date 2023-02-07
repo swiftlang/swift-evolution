@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0034-disambiguating-line-control-statements-from-debugging-identifiers/1614)
-* Bug: [SR-840](https://bugs.swift.org/browse/SR-840)
+* Bug: [apple/swift#43452](https://github.com/apple/swift/issues/43452)
 
 
 ## Introduction

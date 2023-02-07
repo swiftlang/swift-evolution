@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#11744](https://github.com/apple/swift/pull/11744)
 * [Review thread on swift-evolution](https://forums.swift.org/t/se-0186-remove-ownership-keyword-support-in-protocols/6678)
-* Bug: [SR-479](https://bugs.swift.org/browse/SR-479)
+* Bug: [apple/swift#43096](https://github.com/apple/swift/issues/43096)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0186-remove-ownership-keyword-support-in-protocols/6736)
 
 ## Introduction

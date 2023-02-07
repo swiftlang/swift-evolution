@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale][]
 * Previous Revision: [1][Revision 1], [Originally Accepted Proposal][], [Expired Proposal][]
-* Bugs: [SR-4691](https://bugs.swift.org/browse/SR-4691), [SR-12206](https://bugs.swift.org/browse/SR-12206), [SR-12229](https://bugs.swift.org/browse/SR-12229)
+* Bugs: [apple/swift#47268](https://github.com/apple/swift/issues/47268), [apple/swift#54632](https://github.com/apple/swift/issues/54632), [apple/swift#54655](https://github.com/apple/swift/issues/54655)
 
 ## Introduction
 

@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0046-establish-consistent-label-behavior-across-all-parameters-including-first-labels/1834)
-* Bug: [SR-961](https://bugs.swift.org/browse/SR-961)
+* Bug: [apple/swift#43573](https://github.com/apple/swift/issues/43573)
 
 ## Introduction
 We propose to normalize the first parameter declaration in methods 

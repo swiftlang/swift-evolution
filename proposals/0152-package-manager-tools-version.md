@@ -5,7 +5,7 @@
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
 * Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0152-package-manager-tools-version/5184)
-* Bug: [SR-3965](https://bugs.swift.org/browse/SR-3965)
+* Bug: [apple/swift-package-manager#5105](https://github.com/apple/swift-package-manager/issues/5105)
 
 ## Introduction
 

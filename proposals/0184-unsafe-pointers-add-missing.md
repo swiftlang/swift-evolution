@@ -119,7 +119,7 @@ func withMemoryRebound<T, Result>(to:capacity:_:) -> Result
 
 `UnsafePointer` does not get an allocator static method, since you almost always want a mutable pointer to newly allocated memory. Its type rebinding method is also written as a decorator, taking a trailing closure, for memory safety.
 
-Most immutable pointer types currently do not have a deallocation method. This proposal adds them, fixing [SR-3309](https://bugs.swift.org/browse/SR-3309). Note, immutable raw buffer pointers already support this API.
+Most immutable pointer types currently do not have a deallocation method. This proposal adds them, fixing [apple/swift#45897](https://github.com/apple/swift/issues/45897). Note, immutable raw buffer pointers already support this API.
 
 ### `UnsafeMutablePointer<Pointee>`
 

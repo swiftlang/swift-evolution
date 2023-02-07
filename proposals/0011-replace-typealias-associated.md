@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 2.2)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0011-replace-typealias-keyword-with-associatedtype-for-associated-type-declarations/990)
-* Bug: [SR-511](https://bugs.swift.org/browse/SR-511)
+* Bug: [apple/swift#43128](https://github.com/apple/swift/issues/43128)
 
 
 ## Introduction

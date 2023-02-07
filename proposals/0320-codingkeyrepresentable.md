@@ -33,7 +33,7 @@ The common situations where people have found the behavior confusing include:
 
 In the various discussions, there are clear and concise explanations for this behavior, but it is also mentioned that supporting encoding of `RawRepresentable` `String` and `Int` keys into keyed containers may indeed be considered to be a bug, and is an oversight in the implementation ([JSON Encoding / Decoding weird encoding of dictionary with enum values, reply by Itai Ferber](https://forums.swift.org/t/json-encoding-decoding-weird-encoding-of-dictionary-with-enum-values/12995/7)).
 
-There's a bug at [bugs.swift.org](http://bugs.swift.org) tracking the issue: [SR-7788](https://bugs.swift.org/browse/SR-7788)
+There's a bug at [bugs.swift.org](http://bugs.swift.org) tracking the issue: [apple/swift-corelibs-foundation#3690](https://github.com/apple/swift-corelibs-foundation/issues/3690)
 
 Unfortunately, it is too late to change the behavior now:
 

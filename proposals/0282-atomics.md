@@ -3,7 +3,7 @@
 * Proposal: [SE-0282](0282-atomics.md)
 * Author: [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Bug: [SR-9144](https://bugs.swift.org/browse/SR-9144)
+* Bug: [apple/swift#51640](https://github.com/apple/swift/issues/51640)
 * Implementation: Proof of concept [swift-atomics package][package]
 * Previous Revision: [v1][SE-0282v1] ([Returned for revision](https://forums.swift.org/t/se-0282-low-level-atomic-operations/35382/69))
 * Status: **Implemented (Swift 5.3)**

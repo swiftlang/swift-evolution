@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0047-defaulting-non-void-functions-so-they-warn-on-unused-results/1927)
-* Bug: [SR-1052](https://bugs.swift.org/browse/SR-1052)
+* Bug: [apple/swift#43664](https://github.com/apple/swift/issues/43664)
 
 
 ## Introduction

@@ -11,14 +11,6 @@
     [apple/swift#16073](https://github.com/apple/swift/pull/16073) (automatic synthesis, de-underscoring)<br>
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/f5a020ec79cdb64fc8700af91b1a1ece2d2fb141/proposals/0206-hashable-enhancements.md)
 
-<!--
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
-
 ## Table of contents
 
 * [Introduction](#intro)
@@ -480,7 +472,7 @@ Switching to `hash(into:)` gets us more robust hash values faster, and
 with cleaner, simpler code.
 
 
-[quadratic-copy]: https://bugs.swift.org/browse/SR-3268
+[quadratic-copy]: https://github.com/apple/swift/issues/45856
 
 
 ## <a name="detailed-design">Detailed design</a>

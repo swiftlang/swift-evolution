@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0183-substring-performance-affordances/6393)
-* Bug: [SR-4933](https://bugs.swift.org/browse/SR-4933)
+* Bug: [apple/swift#47510](https://github.com/apple/swift/issues/47510)
 
 ## Introduction
 

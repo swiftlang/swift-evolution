@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0113-add-integral-rounding-functions-to-floatingpoint/3308)
-* Bug: [SR-2010](https://bugs.swift.org/browse/SR-2010)
+* Bug: [apple/swift#44619](https://github.com/apple/swift/issues/44619)
 
 ## Introduction, Motivation
 

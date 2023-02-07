@@ -4,7 +4,7 @@
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Maxim Moiseev](https://github.com/moiseev)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 4)**
-* Bug: [SR-3196](https://bugs.swift.org/browse/SR-3196)
+* Bug: [apple/swift#45784](https://github.com/apple/swift/issues/45784)
 * Previous Revisions: 
   [1](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md), 
   [2](https://github.com/apple/swift-evolution/blob/957ab545e05adb94507792e7871b38e34b56a0a5/proposals/0104-improved-integers.md),

@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0081-move-where-clause-to-end-of-declaration/2685)
-* Bug: [SR-1561](https://bugs.swift.org/browse/SR-1561)
+* Bug: [apple/swift#44170](https://github.com/apple/swift/issues/44170)
 
 ## Introduction
 

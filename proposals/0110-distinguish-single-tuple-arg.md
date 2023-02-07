@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0110-distinguish-between-single-tuple-and-multiple-argument-function-types/3305), [Additional Commentary](https://forums.swift.org/t/core-team-addressing-the-se-0110-usability-regression-in-swift-4/6147)
-* Bug: [SR-2008](https://bugs.swift.org/browse/SR-2008)
+* Bug: [apple/swift#44617](https://github.com/apple/swift/issues/44617)
 * Previous Revision: [Originally Accepted Proposal](https://github.com/apple/swift-evolution/blob/9e44932452e1daead98f2bc2e58711eb489e9751/proposals/0110-distingish-single-tuple-arg.md)
 
 ## Introduction

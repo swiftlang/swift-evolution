@@ -9,7 +9,7 @@
 
 * Implementation: [apple/swift-package-manager#NNNNN](https://github.com/apple/swift-package-manager/pull/NNNNN)
 * Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
+* Bugs: [apple/swift-package-manager#NNNNN](https://github.com/apple/swift-package-manager/issues/NNNNN), [apple/swift-package-manager#MMMMM](https://github.com/apple/swift-package-manager/issues/MMMMM)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Previous Proposal: [SE-XXXX](XXXX-filename.md)
 

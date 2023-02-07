@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0164-remove-final-support-in-protocol-extensions/5687)
-* Bug: [SR-1762](https://bugs.swift.org/browse/SR-1762)
+* Bug: [apple/swift#44371](https://github.com/apple/swift/issues/44371)
 
 ## Introduction
 This proposal disallows the `final` keyword when declaring functions in protocol

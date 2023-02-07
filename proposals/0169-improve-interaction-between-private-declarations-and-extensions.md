@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0169-improve-interaction-between-private-declarations-and-extensions/5692)
 * Previous Revision: [1][Revision 1]
-* Bug: [SR-4616](https://bugs.swift.org/browse/SR-4616)
+* Bug: [apple/swift#47193](https://github.com/apple/swift/issues/47193)
 
 ## Introduction
 

@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 4.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0157-support-recursive-constraints-on-associated-types/5494)
-* Bug: [SR-1445](https://bugs.swift.org/browse/SR-1445)
+* Bug: [apple/swift#44054](https://github.com/apple/swift/issues/44054)
 
 ## Introduction
 

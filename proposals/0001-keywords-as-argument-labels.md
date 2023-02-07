@@ -3,7 +3,7 @@
 * Proposal: [SE-0001](0001-keywords-as-argument-labels.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 2.2)**
-* Bug: [SR-344](https://bugs.swift.org/browse/SR-344)
+* Bug: [apple/swift#42966](https://github.com/apple/swift/issues/42966)
 
 ## Introduction
 

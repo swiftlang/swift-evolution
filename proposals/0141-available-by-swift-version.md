@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0141-availability-by-swift-version/4190)
-* Bug: [SR-2709](https://bugs.swift.org/browse/SR-2709)
+* Bug: [apple/swift#45313](https://github.com/apple/swift/issues/45313)
 
 ## Introduction
 

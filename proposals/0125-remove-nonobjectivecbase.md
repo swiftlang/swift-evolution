@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0125-remove-nonobjectivecbase-and-isuniquelyreferenced/3548)
-* Bug: [SR-1962](http://bugs.swift.org/browse/SR-1962)
+* Bug: [apple/swift#44571](https://github.com/apple/swift/issues/44571)
 
 ## Introduction
 

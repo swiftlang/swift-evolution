@@ -5,8 +5,8 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0106-add-a-macos-alias-for-the-osx-platform-configuration-test/3176)
-* Bugs: [SR-1823](https://bugs.swift.org/browse/SR-1823),
-        [SR-1887](https://bugs.swift.org/browse/SR-1887)
+* Bugs: [apple/swift#44432](https://github.com/apple/swift/issues/44432),
+        [apple/swift#44496](https://github.com/apple/swift/issues/44496)
 
 ## Introduction
 
@@ -77,4 +77,4 @@ Charlie Monroe points out: "Since Swift 3.0 is a code-breaking change my guess i
 
 ## Unaddressed Issues
 
-This proposal is narrowly focused on conditional compilation blocks. Both `@available` and `#available` are also affected by the macOS rename. Current [platform names](https://github.com/apple/swift/blob/master/include/swift/AST/PlatformKinds.def) include both `OSX` and `OSXApplicationExtension`. The obvious alternatives for these are `macOS` and `macOSApplicationExtension`. A separate bug report [SR-1887](https://bugs.swift.org/browse/SR-1887) has been filed for this.
+This proposal is narrowly focused on conditional compilation blocks. Both `@available` and `#available` are also affected by the macOS rename. Current [platform names](https://github.com/apple/swift/blob/master/include/swift/AST/PlatformKinds.def) include both `OSX` and `OSXApplicationExtension`. The obvious alternatives for these are `macOS` and `macOSApplicationExtension`. A separate bug report [apple/swift#44496](https://github.com/apple/swift/issues/44496) has been filed for this.

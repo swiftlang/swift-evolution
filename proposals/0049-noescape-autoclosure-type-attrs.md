@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0049-move-noescape-and-autoclosure-to-be-type-attributes/2194)
-* Bug: [SR-1235](https://bugs.swift.org/browse/SR-1235)
+* Bug: [apple/swift#43843](https://github.com/apple/swift/issues/43843)
 
 ## Introduction
 

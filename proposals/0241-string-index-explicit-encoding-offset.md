@@ -9,7 +9,7 @@
 
 ## Introduction
 
-[SE-0180][] introduced a computed variable and initializer surrounding the concept of an `encodedOffset` for serialization purposes. Unfortunately, that approach is flawed for its intended purpose and is commonly misused in ways that Swift 5 is [more likely to expose](https://bugs.swift.org/browse/SR-9749). It is too late in the Swift 5.0 release to solve all existing problems, so we propose deprecating `encodedOffset` and introducing a targeted, semantics-preserving alternative.
+[SE-0180][] introduced a computed variable and initializer surrounding the concept of an `encodedOffset` for serialization purposes. Unfortunately, that approach is flawed for its intended purpose and is commonly misused in ways that Swift 5 is [more likely to expose](https://github.com/apple/swift/issues/52180). It is too late in the Swift 5.0 release to solve all existing problems, so we propose deprecating `encodedOffset` and introducing a targeted, semantics-preserving alternative.
 
 ## Motivation
 

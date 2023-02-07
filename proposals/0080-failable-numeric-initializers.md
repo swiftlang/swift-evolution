@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0080-failable-numeric-conversion-initializers/2578)
-* Bug: [SR-1491](https://bugs.swift.org/browse/SR-1491)
+* Bug: [apple/swift#44100](https://github.com/apple/swift/issues/44100)
 
 ## Introduction
 

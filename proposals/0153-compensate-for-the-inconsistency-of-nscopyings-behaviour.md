@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0153-compensate-for-the-inconsistency-of-nscopying-s-behaviour/5341), [Additional Commentary](https://forums.swift.org/t/addressing-unimplemented-evolution-proposals/40322)
-* Bug: [SR-4538](https://bugs.swift.org/browse/SR-4538)
+* Bug: [apple/swift#47115](https://github.com/apple/swift/issues/47115)
 
 **Note**: This proposal was initially accepted without an implementation on 2017-03-01, and has not been implemented since. The Core Team has decided to retroactively reject the proposal.
 

@@ -5,7 +5,7 @@
 * Status: **Implemented (Swift 3)**
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0044-import-as-member/1929)
-* Bug: [SR-1053](https://bugs.swift.org/browse/SR-1053)
+* Bug: [apple/swift#43665](https://github.com/apple/swift/issues/43665)
 
 ## Introduction
 

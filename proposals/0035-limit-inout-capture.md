@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0035-limiting-inout-capture-to-noescape-contexts/1544)
-* Bug: [SR-807](https://bugs.swift.org/browse/SR-807)
+* Bug: [apple/swift#43419](https://github.com/apple/swift/issues/43419)
 
 
 ## Introduction

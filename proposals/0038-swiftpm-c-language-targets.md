@@ -5,7 +5,7 @@
 * Review Manager: [Rick Ballard](https://github.com/rballard)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0038-package-manager-c-language-target-support/1569)
-* Bug: [SR-821](https://bugs.swift.org/browse/SR-821)
+* Bug: [apple/swift-package-manager#5314](https://github.com/apple/swift-package-manager/issues/5314)
 
 
 ## Introduction

@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0156-class-and-subtype-existentials/5477)
-* Bug: [SR-4296](https://bugs.swift.org/browse/SR-4296)
+* Bug: [apple/swift#46879](https://github.com/apple/swift/issues/46879)
 
 ## Introduction
 

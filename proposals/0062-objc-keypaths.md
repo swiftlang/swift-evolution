@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0062-referencing-objective-c-key-paths/2198)
-* Bug: [SR-1237](https://bugs.swift.org/browse/SR-1237)
+* Bug: [apple/swift#43845](https://github.com/apple/swift/issues/43845)
 
 ## Introduction
 

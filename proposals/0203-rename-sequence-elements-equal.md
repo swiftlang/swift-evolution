@@ -5,7 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Rejected**
 * Implementation: [apple/swift#12884](https://github.com/apple/swift/pull/12884)
-* Bugs: [SR-6102](https://bugs.swift.org/browse/SR-6102)
+* Bugs: [apple/swift#48657](https://github.com/apple/swift/issues/48657)
 * Review thread: [Swift evolution forum](https://forums.swift.org/t/se-0203-rename-sequence-elementsequal/11482)
 
 ## Introduction

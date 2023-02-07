@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0036-requiring-leading-dot-prefixes-for-enum-instance-member-implementations/2196)
-* Bug: [SR-1236](https://bugs.swift.org/browse/SR-1236)
+* Bug: [apple/swift#43844](https://github.com/apple/swift/issues/43844)
 
 
 ## Introduction

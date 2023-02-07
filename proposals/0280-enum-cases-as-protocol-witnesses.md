@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#28916](https://github.com/apple/swift/pull/28916)
-* Bug: [SR-3170](https://bugs.swift.org/browse/SR-3170)
+* Bug: [apple/swift#45758](https://github.com/apple/swift/issues/45758)
 * Toolchain: [macOS](https://ci.swift.org/job/swift-PR-toolchain-osx/477/artifact/branch-master/swift-PR-28916-477-osx.tar.gz) & [Linux](https://ci.swift.org/job/swift-PR-toolchain-Linux/346/artifact/branch-master/swift-PR-28916-346-ubuntu16.04.tar.gz)
 * Review: ([1](https://forums.swift.org/t/se-0280-enum-cases-as-protocol-witnesses/34257)) ([Acceptance](https://forums.swift.org/t/acceepted-se-0280-enum-cases-as-protocol-witnesses/34850))
 

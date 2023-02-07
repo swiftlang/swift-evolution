@@ -5,7 +5,7 @@
 * Status: **Implemented (Swift 3)**
 * Review Manager: [Doug Gregor](http://github.com/DougGregor)
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0025-scoped-access-level-next-steps/1797/131)
-* Bug: [SR-1275](https://bugs.swift.org/browse/SR-1275)
+* Bug: [apple/swift#43883](https://github.com/apple/swift/issues/43883)
 * Previous revision: [1](https://github.com/apple/swift-evolution/blob/e4328889a9643100177aef19f6f428855c5d0cf2/proposals/0025-scoped-access-level.md)
 
 ## Introduction

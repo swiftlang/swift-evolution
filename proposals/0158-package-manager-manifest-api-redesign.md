@@ -4,7 +4,7 @@
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
 * Status: **Implemented (Swift 4)**
-* Bug: [SR-3949](https://bugs.swift.org/browse/SR-3949)
+* Bug: [apple/swift-package-manager#5110](https://github.com/apple/swift-package-manager/issues/5110)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0158-package-manager-manifest-api-redesign/5468)
 
 ## Introduction

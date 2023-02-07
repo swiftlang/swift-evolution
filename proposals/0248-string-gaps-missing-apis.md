@@ -5,7 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 5.1)**
 * Implementation: [apple/swift#22869](https://github.com/apple/swift/pull/22869)
-* Bugs: [SR-9955](https://bugs.swift.org/browse/SR-9955)
+* Bugs: [apple/swift#52358](https://github.com/apple/swift/issues/52358)
 
 ## Introduction
 
@@ -15,7 +15,7 @@ Swift-evolution thread: [Pitch: String Gaps and Missing APIs](https://forums.swi
 
 ## Motivation
 
-These missing APIs address [commonly encountered](https://forums.swift.org/t/efficiently-retrieving-utf8-from-a-character-in-a-string/19916) gaps and [missing functionality](https://bugs.swift.org/browse/SR-9955) for users of String and its various types, often leading developers to [reinvent](https://github.com/apple/swift-nio-http2/blob/master/Sources/NIOHPACK/HPACKHeader.swift#L412) the same trivial definitions.
+These missing APIs address [commonly encountered](https://forums.swift.org/t/efficiently-retrieving-utf8-from-a-character-in-a-string/19916) gaps and [missing functionality](https://github.com/apple/swift/issues/52358) for users of String and its various types, often leading developers to [reinvent](https://github.com/apple/swift-nio-http2/blob/master/Sources/NIOHPACK/HPACKHeader.swift#L412) the same trivial definitions.
 
 ## Proposed solution
 

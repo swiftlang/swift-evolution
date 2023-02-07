@@ -5,7 +5,7 @@
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
 * Status: **Implemented (Swift 4.2)**
 * Implementation: [apple/swift-package-manager#1583](https://github.com/apple/swift-package-manager/pull/1583)
-* Bug: [SR-7433](https://bugs.swift.org/browse/SR-7433)
+* Bug: [apple/swift-package-manager#4824](https://github.com/apple/swift-package-manager/issues/4824)
 
 ## Introduction
 

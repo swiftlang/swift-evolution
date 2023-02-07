@@ -6,7 +6,7 @@
 * Status: **Rejected**
 * Decision Notes: [Original acceptance](https://forums.swift.org/t/accepted-se-0042-flattening-the-function-type-of-unapplied-method-references/1926). The proposal was not implemented in time for Swift 3, and is now source-breaking.
   
-* Bug: [SR-1051](https://bugs.swift.org/browse/SR-1051)
+* Bug: [apple/swift#43663](https://github.com/apple/swift/issues/43663)
 
 ## Introduction
 
