@@ -302,7 +302,7 @@ version of this proposal, hence `"schemaVersion": "3.0"`:
       "swiftResourcesPaths": ["<array with relative paths containing Swift resources in the destination tree>"],
       "includeSearchPaths": ["<array with relative paths containing headers in the destination tree>"],
       "librarySearchPaths": ["<array with relative paths containing libraries in the destination tree>"],
-      "toolsetPath": ["<array of paths relative to `destination.json` containing toolset configuration files>"]
+      "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset configuration files>"]
     }
     // more triples can be supported by a single destination if needed, primarily for sharing files between them.
   ]
@@ -325,13 +325,13 @@ Here's `destination.json` file for the `ubuntu_jammy` artifact previously introd
       "swiftResourcesPaths": ["aarch64-unknown-linux-gnu/usr/lib/swift"],
       "includeSearchPaths": ["aarch64-unknown-linux-gnu/usr/include"],
       "librarySearchPaths": ["aarch64-unknown-linux-gnu/usr/lib"],
-      "toolsetPath": "aarch64-unknown-linux-gnu/toolset.json"
+      "toolsetPaths": "aarch64-unknown-linux-gnu/toolset.json"
     },
     "x86_64-apple-darwin": {
       "swiftResourcesPaths": ["x86_64-unknown-linux-gnu/usr/lib/swift"],
       "includeSearchPaths": ["x86_64-unknown-linux-gnu/usr/include"],
       "librarySearchPaths": ["x86_64-unknown-linux-gnu/usr/lib"],
-      "toolsetPath": "x86_64-unknown-linux-gnu/toolset.json"
+      "toolsetPaths": "x86_64-unknown-linux-gnu/toolset.json"
     }
   ],
 }
@@ -485,7 +485,7 @@ publish their own artifact bundles with executables, as defined in SE-0305.
 
 Platform triples are not specific enough in certain cases. For example, `aarch64-unknown-linux` host triple can’t
 prevent a user from installing a CC destination bundle on an unsupported Linux distribution. In the future we could
-deprecate `buildTimeTriples` and `runTimeTriples` JSON properties in favor of dictionaries with keys and values that
+deprecate `supportedTriples` and `runTimeTriples` JSON properties in favor of dictionaries with keys and values that
 describe aspects of platforms that are important for destinations. Such dictionaries could look like this:
 
 ```json5
@@ -539,5 +539,5 @@ However, this requires reducing the number of dependencies that Swift runtime an
 ### Destination Bundles and Package Registries
 
 Since `info.json` manifest files contained within bundles contain versions, it would make sense to host destination
-bundles at package registries. Althouhg, it remains to be seen whether it makes sense for an arbitrary SwiftPM package
+bundles at package registries. Although, it remains to be seen whether it makes sense for an arbitrary SwiftPM package
 to specify a destination bundle within its list of dependencies.
