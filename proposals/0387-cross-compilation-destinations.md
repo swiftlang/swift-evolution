@@ -292,14 +292,14 @@ version of this proposal, hence `"schemaVersion": "3.0"`:
   "schemaVersion": "3.0",
   "runTimeTriples": [
     "<triple1>": {
-      "swiftResourcesPaths": ["<array of paths relative to `destination.json` containing Swift resources>"],
+      "swiftResourcesPath": "<an optional path relative to `destination.json` containing Swift resources>",
       "includeSearchPaths": ["<array of paths relative to `destination.json` containing headers>"],
       "librarySearchPaths": ["<array of paths relative to `destination.json` containing libraries>"],
       "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset configuration files>"]
     },
     // a destination can support more than one run-time triple:
     "<triple2>": {
-      "swiftResourcesPaths": ["<array with relative paths containing Swift resources in the destination tree>"],
+      "swiftResourcesPath": "<an optional path relative to `destination.json` containing Swift resources>",
       "includeSearchPaths": ["<array with relative paths containing headers in the destination tree>"],
       "librarySearchPaths": ["<array with relative paths containing libraries in the destination tree>"],
       "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset configuration files>"]
@@ -322,16 +322,16 @@ Here's `destination.json` file for the `ubuntu_jammy` artifact previously introd
   "schemaVersion": "3.0",
   "runTimeTriples": [
     "aarch64-unknown-linux-gnu": {
-      "swiftResourcesPaths": ["aarch64-unknown-linux-gnu/usr/lib/swift"],
+      "swiftResourcesPath": "aarch64-unknown-linux-gnu/usr/lib/swift",
       "includeSearchPaths": ["aarch64-unknown-linux-gnu/usr/include"],
       "librarySearchPaths": ["aarch64-unknown-linux-gnu/usr/lib"],
-      "toolsetPaths": "aarch64-unknown-linux-gnu/toolset.json"
+      "toolsetPaths": ["aarch64-unknown-linux-gnu/toolset.json"]
     },
     "x86_64-apple-darwin": {
-      "swiftResourcesPaths": ["x86_64-unknown-linux-gnu/usr/lib/swift"],
+      "swiftResourcesPath": "x86_64-unknown-linux-gnu/usr/lib/swift",
       "includeSearchPaths": ["x86_64-unknown-linux-gnu/usr/include"],
       "librarySearchPaths": ["x86_64-unknown-linux-gnu/usr/lib"],
-      "toolsetPaths": "x86_64-unknown-linux-gnu/toolset.json"
+      "toolsetPaths": ["x86_64-unknown-linux-gnu/toolset.json"]
     }
   ],
 }
