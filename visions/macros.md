@@ -106,7 +106,30 @@ The last option is more complicated, because it involves running arbitrary Swift
 
 Alternatively, the macro definition could be compiled separately from the program that uses the macro, for example into a standalone executable or a compiler plugin. The compiler would then invoke that executable or plugin to perform macro expansion each time it is necessary. This approach is taken both by Scala (which uses the JVM's JIT facilities to be able to compile the macro definition and load it into the compiler) and Rust procedural macros (which use a  [`proc-macro`](https://doc.rust-lang.org/reference/linkage.html) crate type for specifically this purpose). A significant benefit of this approach is that the full source code of the macro need not be available as Swift code (so one can use system libraries), macro expansion can be faster (because it's compiled code), and it's easy to test macro definitions outside of the compiler. On the other hand, it means having the Swift compiler run arbitrary code, which opens up questions about security and sandboxing that need to be considered.
 
+### (Un)hygienic macros
 
+A [hygienic macro](https://en.wikipedia.org/wiki/Hygienic_macro#cite_note-hygiene-3) is a macro whose expansion cannot change the binding of names used in its macro arguments. For example, imagine the given use of `myMacro`:
+
+```swift
+let x = 3.14159
+let y = 2.71828
+#myMacro(x + y)
+```
+
+The expression `x + y` is type-checked, and `x` and `y` are bound to local variables immediately above. With a hygienic macro, nothing the macro does can change the declarations to which `x` and `y` are bound. A non-hygienic macro could change these bindings. For example, imagine the macro use above expanded to the following:
+
+```swift
+{
+  let x = 42
+  return x + y
+}()
+```
+
+Here, the macro introduced a new local variable named `x`. With a hygienic macro, the newly-declared `x` is not found by the `x` in `x + y`: it is a different declaration (or it is not permitted to be introduced). With a non-hygienic macro, the `x` in `x + y` will now refer to the local variable introduced by the macro. In this case, the macro expansion for a non-hygienic macro will fail to type-check because one cannot add an `Int` and a `Double`.
+
+Hygienic macros do make some macros harder (or impossible) to write, if the macro intentionally wants to take over some of the names used in the its arguments. For example, if one wanted to have a macro intercept access to local variables to (say) record the number of times `x` was dynamically accessed. As such, systems that provide hygienic macros often have a way to intentionally provide names from the environment in which the macro is used, such as Racket's [syntax parameters](https://docs.racket-lang.org/reference/stxparam.html).
+
+A standard approach to dealing with the problem of unintentional name collision in an unhygienic macro is to provide a way to generate unique names within the macro implementation. This approach has been used in LISP macros for decades via [`gensym`](http://clhs.lisp.se/Body/f_gensym.htm, and requires some discipline on the part of the macro implementer to create unique names whenever the macro creates a new declaration.
 
 ## An approach to macros in Swift
 
