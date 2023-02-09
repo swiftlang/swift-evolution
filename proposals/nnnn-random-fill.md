@@ -5,6 +5,7 @@
 * Review Manager: TBD
 * Status: **Pitched**
 * Implementation: [apple/swift#63511](https://github.com/apple/swift/pull/63511)
+* Discussion: [pitch](https://forums.swift.org/t/an-api-for-bulk-random-bytes/63051)
 
 ## Introduction
 
