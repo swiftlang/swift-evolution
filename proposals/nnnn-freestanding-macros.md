@@ -197,6 +197,10 @@ A macro can expand to any declaration that is syntatically and semantically well
 * `extension` declarations can never be produced by a macro. The effect of an extension declaration is wide-ranging, with the ability to add conformances, members, and so on. These capabilities are meant to be introduced in a more fine-grained manner.
 * `operator` and `precedencegroup` declarations can never be produced by a macro, because they could allow one to reshape the precedence graph for existing code causing subtle differences in the semantics of code that sees the macro expansion vs. code that does not.
 * `macro` declarations can never be produced by a macro, because allowing this would allow a macro to trivially produce infinitely recursive macro expansion.
+* Top-level default literal type overrides, including `IntegerLiteralType`,
+  `FloatLiteralType`, `BooleanLiteralType`,
+  `ExtendedGraphemeClusterLiteralType`, `UnicodeScalarLiteralType`, and
+  `StringLiteralType`, can never be produced by a macro.
 
 ### Up-front declarations of newly-introduced names
 
