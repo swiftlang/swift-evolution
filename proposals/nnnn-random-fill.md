@@ -1,4 +1,4 @@
-# Feature name
+# An API for bulk random bytes
 
 * Proposal: [SE-NNNN](nnnn-random-fill.md)
 * Authors: [Stephen Canon](https://github.com/stephentyrone)
