@@ -45,6 +45,7 @@ without an availability check in concrete contexts.
 
 We also add a concrete implementation to SystemRandomNumberGenerator that
 does realize the performance benefits when used in non-generic contexts.
+Non-stdlib types may want to provide their own custom implementation of `fill(:)`; for most RNGs other than the SystemRNG, the benefits will be smaller, but they can still be significant for random sources that naturally produce more than 64b at a time, such as many fast counter-based RNGs. 
 
 _This proposal does not add any uses of the new `fill` method_, which raises
 the question of how it can possibly be beneficial to performance. I will adopt
