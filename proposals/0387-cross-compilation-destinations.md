@@ -292,7 +292,7 @@ version of this proposal, hence `"schemaVersion": "3.0"`:
   "schemaVersion": "3.0",
   "runTimeTriples": [
     "<triple1>": {
-      "sdkRootPath":  "<an optional path relative to `destination.json` containing SDK root>",
+      "sdkRootPath":  "<a required path relative to `destination.json` containing SDK root>",
       "swiftResourcesPath": "<an optional path relative to `destination.json` containing Swift resources>",
       "includeSearchPaths": ["<optional array of paths relative to `destination.json` containing headers>"],
       "librarySearchPaths": ["<optional array of paths relative to `destination.json` containing libraries>"],
@@ -300,7 +300,7 @@ version of this proposal, hence `"schemaVersion": "3.0"`:
     },
     // a destination can support more than one run-time triple:
     "<triple2>": {
-      "sdkRootPath":  "<an optional path relative to `destination.json` containing SDK root>",
+      "sdkRootPath":  "<a required path relative to `destination.json` containing SDK root>",
       "swiftResourcesPath": "<an optional path relative to `destination.json` containing Swift resources>",
       "includeSearchPaths": ["<optional array with relative paths containing headers in the destination tree>"],
       "librarySearchPaths": ["<optional array with relative paths containing libraries in the destination tree>"],
