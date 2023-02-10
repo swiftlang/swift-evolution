@@ -287,8 +287,8 @@ public protocol MacroExpansionContext: AnyObject {
   /// - Returns: the source location within the given node, or `nil` if the
   ///   given syntax node is not rooted in a source file that the macro
   ///   expansion context knows about.
-  func location<Node: SyntaxProtocol> (
-    of node: Node,
+  func location(
+    of node: some SyntaxProtocol,
     at position: PositionInSyntaxNode,
     filePathMode: SourceLocationFilePathMode
   ) -> AbstractSourceLocation?
@@ -389,7 +389,7 @@ We propose to introduce a number of macro declarations into the Swift standard l
 @freestanding(expression) macro dsohandle() -> UnsafeRawPointer
 ```
 
-The operations that provide information about the current location in source code are mostly implementable as `ExpressionMacro`-conforming types, using the `location` operation on the `MacroExpansionContext`. The exceptions are `#file`, which would need an extension to `MacroExpansionContext` to determine whether we are in a compilation mode where []`#file` behaves like `#fileID` vs. behaving like `#filePath`](https://github.com/apple/swift-evolution/blob/main/proposals/0285-ease-pound-file-transition.md); `dsohandle`, which requires specific compiler support; and `#function`, which would require contextual information that is not available in the `MacroExpansionContext`.
+The operations that provide information about the current location in source code are mostly implementable as `ExpressionMacro`-conforming types, using the `location` operation on the `MacroExpansionContext`. The exceptions are `#file`, which would need an extension to `MacroExpansionContext` to determine whether we are in a compilation mode where [`#file` behaves like `#fileID` vs. behaving like `#filePath`](https://github.com/apple/swift-evolution/blob/main/proposals/0285-ease-pound-file-transition.md); `dsohandle`, which requires specific compiler support; and `#function`, which would require contextual information that is not available in the `MacroExpansionContext`.
 
 The type signatures of these macros capture most of the type system behavior of the existing `#file`, `#line`, etc., because they are treated like literals and therefore can pick up any contextual type that implements the proper `ExpressibleBy*` protocol. However, the implementations above would fail to type-check code like this:
 
