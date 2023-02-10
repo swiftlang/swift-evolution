@@ -291,7 +291,7 @@ public protocol MacroExpansionContext: AnyObject {
     of node: Node,
     at position: PositionInSyntaxNode,
     filePathMode: SourceLocationFilePathMode
-  ) -> SourceLocation?
+  ) -> AbstractSourceLocation?
 }
 ```
 
@@ -336,7 +336,21 @@ public enum SourceLocationFilePathMode {
 }
 ```
 
+Source locations are described in an abstract form that can be interpolated into source code (they are expressions) in places that expect a string literal (for the file name) or integer literal (for line and column). As with `createUniqueName` returning a `TokenSyntax` rather than a `String`, this abstraction allows the compiler to introduce a different kind of syntax node (that might not even be expressible in normal Swift) to represent these values.
 
+```swift
+/// Abstractly represents a source location in the macro.
+public struct AbstractSourceLocation {
+  /// A primary expression that represents the file and is `ExpressibleByStringLiteral`.
+  public let file: ExprSyntax
+
+  /// A primary expression that represents the line and is `ExpressibleByIntegerLiteral`.
+  public let line: ExprSyntax
+
+  /// A primary expression that represents the column and is `ExpressibleByIntegerLiteral`.
+  public let column: ExprSyntax
+}
+```
 
 ### Macros in the Standard Library
 
