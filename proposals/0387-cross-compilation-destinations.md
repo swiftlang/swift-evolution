@@ -140,7 +140,6 @@ above:
     "swift-5.8_ubuntu22.04" : {
       "type" : "crossCompilationDestination",
       "version" : "0.0.1",
-      "toolset": "toolset.json",
       "variants" : [
         {
           "path" : "ubuntu_jammy",
@@ -285,7 +284,9 @@ provided within the bundle.
 Note the presence of `destination.json` files in each `<destination artifact>` subdirectory. These files should contain
 a JSON dictionary with an evolved version of the schema of [existing `destination.json` files that SwiftPM already
 supports](https://github.com/apple/swift-package-manager/pull/1098) and `destination.json` files presented in the pitch
-version of this proposal, hence `"schemaVersion": "3.0"`:
+version of this proposal, hence `"schemaVersion": "3.0"`. We'll keep parsing `"version": 1` and `"version": 2` for
+backward compatibility, but for consistency with `info.json` this field is renamed to `"schemaVersion"`. Here's an
+informally defined schema for these files:
 
 ```json5
 {
@@ -331,7 +332,7 @@ Here's `destination.json` file for the `ubuntu_jammy` artifact previously introd
       "sdkRootPath": "aarch64-unknown-linux-gnu/ubuntu-jammy.sdk",
       "toolsetPaths": ["aarch64-unknown-linux-gnu/toolset.json"]
     },
-    "x86_64-apple-darwin": {
+    "x86_64-unknown-linux-gnu": {
       "sdkRootPath": "x86_64-unknown-linux-gnu/ubuntu-jammy.sdk",
       "toolsetPaths": ["x86_64-unknown-linux-gnu/toolset.json"]
     }
