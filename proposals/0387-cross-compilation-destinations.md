@@ -293,7 +293,7 @@ informally defined schema for these files:
   "schemaVersion": "3.0",
   "runTimeTriples": [
     "<triple1>": {
-      "sdkRootPath":  "<a required path relative to `destination.json` containing SDK root>",
+      "sdkRootPath": "<a required path relative to `destination.json` containing SDK root>",
       // all of the properties listed below are optional:
       "swiftResourcesPath": "<a path relative to `destination.json` containing Swift resources for dynamic linking>",
       "swiftStaticResourcesPath": "<a path relative to `destination.json` containing Swift resources for static linking>",
@@ -303,7 +303,7 @@ informally defined schema for these files:
     },
     // a destination can support more than one run-time triple:
     "<triple2>": {
-      "sdkRootPath":  "<a required path relative to `destination.json` containing SDK root>",
+      "sdkRootPath": "<a required path relative to `destination.json` containing SDK root>",
       // all of the properties listed below are optional:
       "swiftResourcesPath": "<a path relative to `destination.json` containing Swift resources for dynamic linking>",
       "swiftStaticResourcesPath": "<a path relative to `destination.json` containing Swift resources for static linking>",
