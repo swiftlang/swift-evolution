@@ -80,10 +80,10 @@ The proposed macro design attempts to mitigate these problems, but they are some
 
 Macro definitions operate on syntax trees. Broadly speaking, there are two different ways in which a macro's expansion operation can be defined:
 
-* *A declarative set of transformations*: this involves extending the language with a special syntax that allows macros to define how the macro is expanded given the macro inputs, and the compiler applies those rules for each macro expansion. The C preprocessor employs a simplistic form of this, but Racket's [pattern-based macros](https://docs.racket-lang.org/guide/pattern-macros.html) and Rust's [declarative macros](https://doc.rust-lang.org/book/ch19-06-macros.html#declarative-macros-with-macro_rules-for-general-metaprogramming)  offer more advanced rules that match the macro arguments to a pattern and then perform a a rewrite to new syntax as described in the macro. For Swift to adopt this approach, we would likely need to invent a pattern language for matching and rewriting syntax trees.
+* *A declarative set of transformations*: this involves extending the language with a special syntax that allows macros to define how the macro is expanded given the macro inputs, and the compiler applies those rules for each macro expansion. The C preprocessor employs a simplistic form of this, but Racket's [pattern-based macros](https://docs.racket-lang.org/guide/pattern-macros.html) and Rust's [declarative macros](https://doc.rust-lang.org/book/ch19-06-macros.html#declarative-macros-with-macro_rules-for-general-metaprogramming)  offer more advanced rules that match the macro arguments to a pattern and then perform a rewrite to new syntax as described in the macro. For Swift to adopt this approach, we would likely need to invent a pattern language for matching and rewriting syntax trees.
 * *An executable program that transforms the source*: this involves running a program that manipulates the program syntax directly. How the program is executed depends a lot on the environment: [Scala 3 macros](https://docs.scala-lang.org/scala3/guides/macros/macros.html) benefit from the use of the JVM so they can intertwine target code (the program being generated) and host code (where the compiler is running), whereas Rust's [procedural macros](https://doc.rust-lang.org/reference/procedural-macros.html) are built into a separate crate that the compiler interacts with. For Swift to adopt this approach, we would either need to build a complete interpreter for Swift code in the compiler, or take an approach similar to Rust's and build macro definitions as separate programs that the compiler can interact with.
 
-We propose the latter approach, where a macro definition is a separate program that operates on Swift syntax trees using the [swift-syntax](https://github.com/apple/swift-syntax/) package. Expression macros are defined as types that conform to the `ExpressionMacro ` protocol:
+We propose the latter approach, where a macro definition is a separate program that operates on Swift syntax trees using the [swift-syntax](https://github.com/apple/swift-syntax/) package. Expression macros are defined as types that conform to the `ExpressionMacro` protocol:
 
 ```swift
 public protocol ExpressionMacro: FreestandingMacro {
@@ -187,7 +187,7 @@ The `#` syntax for macro expansion expressions was specifically chosen because S
 
 Both `function-call-argument-clause` and `trailing-closures` are optional. When both are omitted, the macro is expanded as-if the empty argument list `()` were provided. Macros are not first-class entities in the way functions are, so they cannot be passed around as values and do not need an "unapplied macro" syntax. This allows `#line` et al to be macros without requiring them to be written as `#line()`. There is some precedent for this with property wrappers, which will also be used for attached macros.
 
-When a macro expansion is encountered in the source code, it's expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call (for function-like macros) or a property reference (for value-like macros), and does not involve the macro definition.
+When a macro expansion is encountered in the source code, it's expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call, and does not involve the macro definition.
 
 The second phase is the macro expansion phase, during which the syntax of the macro arguments is provided to the macro definition. For builtin-macro definitions, the behavior at this point depends on the semantics of the macro, e.g., the `externalMacro` macro invokes the external program and provides it with the source code of the macro expansion. For other macros, the arguments are substituted into the `macro-expansion-expression` of the definition. For example:
 
@@ -210,7 +210,7 @@ let _: (Int, String) = <macro expansion result>
 Macro expansion expressions can occur within the arguments to a macro. For example, consider:
 
 ```swift
-#addBlocker(#stringify(x + 1))
+#addBlocker(#stringify(1 + 2))
 ```
 
 The first phase of the macro type-check does not perform any macro expansion: the macro expansion expression `#stringify(1 + 2)` will infer that it's `T` is `Int`, and will produce a value of type `(Int, String)`. The `addBlocker` macro expansion expression will infer that it's `T` is `(Int, String)`, and the result is the same.
@@ -301,7 +301,7 @@ The `createUniqueName()` function allows one to create new, unique names so that
 
 It is intended that `MacroExpansionContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
 
-The `diagnose` method allows a macro implementation to provide diagnostics that as part of macro expansion. The [`Diagnostic`](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftDiagnostics/Diagnostic.swift) type used in the parameter is part of the swift-syntax library, and its form is likely to change over time, but it is able to express the different kinds of diagnostics a compiler or other tool might produce, such as warnings and errors, along with range highlights, Fix-Its, and attached notes to provide more clarity. A macro definition can introduce diagnostics if, for example, the macro argument successfully type-checked but used some Swift syntax that the macro implementation does not understand. The diagnostics will be presented by whatever tool is expanding the macro, such as the compiler. A macro that emits diagnostics is still expected to produce an expansion result unless it also throws an error, in which case both emitted diagnostics and the error will be reported.
+The `diagnose` method allows a macro implementation to provide diagnostics as part of macro expansion. The [`Diagnostic`](https://github.com/apple/swift-syntax/blob/main/Sources/SwiftDiagnostics/Diagnostic.swift) type used in the parameter is part of the swift-syntax library, and its form is likely to change over time, but it is able to express the different kinds of diagnostics a compiler or other tool might produce, such as warnings and errors, along with range highlights, Fix-Its, and attached notes to provide more clarity. A macro definition can introduce diagnostics if, for example, the macro argument successfully type-checked but used some Swift syntax that the macro implementation does not understand. The diagnostics will be presented by whatever tool is expanding the macro, such as the compiler. A macro that emits diagnostics is still expected to produce an expansion result unless it also throws an error, in which case both emitted diagnostics and the error will be reported.
 
 The `location` operation allows one to determine source location information for a syntax node. The resulting source location contains the file, line, and column for the corresponding syntax node. The `position` and `filePathMode` can be used to customize the resulting output, e.g., which part of the syntax node to point at and how to render the file name.
 
@@ -368,7 +368,7 @@ The arguments identify the module name and type name of the type that provides a
 
 #### Builtin macro declarations
 
-As previously noted, expression macros use the same leading `#` syntax as number of built-in expressions like `#line`. With the introduction of expression macros, we propose to subsume those built-in expressions into macros that come as part of the Swift standard library. The actual macro implementations are provided by the compiler, and may even involve things that aren't necessarily implementable with the pure syntactic macro. However, by providing macro declarations we remove special cases from the language and benefit from all of the tooling affordances provided for macros.
+As previously noted, expression macros use the same leading `#` syntax as a number of built-in expressions like `#line`. With the introduction of expression macros, we propose to subsume those built-in expressions into macros that come as part of the Swift standard library. The actual macro implementations are provided by the compiler, and may even involve things that aren't necessarily implementable with the pure syntactic macro. However, by providing macro declarations we remove special cases from the language and benefit from all of the tooling affordances provided for macros.
 
 We propose to introduce a number of macro declarations into the Swift standard library. There are several different kinds of such macros.
 
@@ -444,7 +444,7 @@ The fact that macro implementations are separate programs actually makes it easi
 
 ## Example expression macros
 
-There are many uses for expression macros beyond what has presented here. This section will collect several examples of macro implementations based on existing built-in `#` expressions as well as ones that come from the Swift forums and other sources of inspiration. Prototype implementations of a number of these macros are [available in the swift-syntax repository](https://github.com/apple/swift-syntax/blob/main/Sources/_SwiftSyntaxMacros/MacroSystem%2BBuiltin.swift)
+There are many uses for expression macros beyond what has been presented here. This section will collect several examples of macro implementations based on existing built-in `#` expressions as well as ones that come from the Swift forums and other sources of inspiration. Prototype implementations of a number of these macros are [available in the swift-syntax repository](https://github.com/apple/swift-syntax/blob/main/Tests/SwiftSyntaxMacrosTest/MacroSystemTests.swift).
 
 * The `#colorLiteral` macro provides syntax for declaring a color with a given red, green, blue, and alpha values. It can be declared and implemented as follows
 
@@ -523,7 +523,7 @@ The arguments to a macro are fully type-checked before the macro implementation 
 #assert(Color(parsing: "red") == .red)
 ```
 
-The implementation would likely want to separate the two operands to `==` into local variables (with fresh names generated by `createUniqueLocalName`) to capture the values, so they can be printed later. For example, the assertion could be translated into code like the following:
+The implementation would likely want to separate the two operands to `==` into local variables (with fresh names generated by `createUniqueName`) to capture the values, so they can be printed later. For example, the assertion could be translated into code like the following:
 
 ```swift
 {
@@ -559,11 +559,11 @@ When given one of the expression syntax nodes that is part of the macro expansio
 
 Additional information could be provided about the actual resolved declarations. For example, the syntax node for `.red` could be queried to produce a full declaration name `Color.red`, and the syntax node for `==` could resolve to the full name of the declaration of the `==` operator that compares two `Color` values. A macro could then distinguish between different `==` operator implementations.
 
-The main complexity of this future direction is in defining the APIs to be used by macro implementations to describe the Swift type system and related information. It would likely be a simplified form of a type checker's internal representation of types, but would need to maintain stable. Therefore, while we feel that the addition of type information is a highly valuable extension for expression macros, the scope of the addition means it would best be introduced as a follow-on proposal.
+The main complexity of this future direction is in defining the APIs to be used by macro implementations to describe the Swift type system and related information. It would likely be a simplified form of a type checker's internal representation of types, but would need to remain stable. Therefore, while we feel that the addition of type information is a highly valuable extension for expression macros, the scope of the addition means it would best be introduced as a follow-on proposal.
 
 ### Additional kinds of macros
 
-Expressions are just one place in the language where macros could be valuable. Other places could include function or closure bodies (e.g., to add tracing or logging), within type or extension definitions (e.g., to add new member), or on protocol conformances (e.g., to synthesize a protocol conformance). A number of potential ideas are presented in the [vision for macros in Swift](https://forums.swift.org/t/a-possible-vision-for-macros-in-swift/60900). For each of them, we assume that the basic `macro` declaration will stay roughly the same, but the contexts in which the macro can be used would be different, as might the spelling of the expansion (e.g., `@` might be more appropriate if the macro expansion occurs on a declaration), there would be an attribute on the `macro` declaration that indicates what type of macro it is, and there would be a corresponding protocol that inherits from `Macro` in the `SwiftSyntaxMacros` module.
+Expressions are just one place in the language where macros could be valuable. Other places could include function or closure bodies (e.g., to add tracing or logging), within type or extension definitions (e.g., to add new members), or on protocol conformances (e.g., to synthesize a protocol conformance). A number of potential ideas are presented in the [vision for macros in Swift](https://forums.swift.org/t/a-possible-vision-for-macros-in-swift/60900). For each of them, we assume that the basic `macro` declaration will stay roughly the same, but the contexts in which the macro can be used would be different, as might the spelling of the expansion (e.g., `@` might be more appropriate if the macro expansion occurs on a declaration), there would be an attribute on the `macro` declaration that indicates what type of macro it is, and there would be a corresponding protocol that inherits from `Macro` in the `SwiftSyntaxMacros` module.
 
 ## Revision History
 
