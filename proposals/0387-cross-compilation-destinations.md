@@ -294,18 +294,22 @@ informally defined schema for these files:
   "runTimeTriples": [
     "<triple1>": {
       "sdkRootPath":  "<a required path relative to `destination.json` containing SDK root>",
-      "swiftResourcesPath": "<an optional path relative to `destination.json` containing Swift resources>",
-      "includeSearchPaths": ["<optional array of paths relative to `destination.json` containing headers>"],
-      "librarySearchPaths": ["<optional array of paths relative to `destination.json` containing libraries>"],
-      "toolsetPaths": ["<optional array of paths relative to `destination.json` containing toolset files>"]
+      // all of the properties listed below are optional:
+      "swiftResourcesPath": "<a path relative to `destination.json` containing Swift resources for dynamic linking>",
+      "swiftStaticResourcesPath": "<a path relative to `destination.json` containing Swift resources for static linking>",
+      "includeSearchPaths": ["<array of paths relative to `destination.json` containing headers>"],
+      "librarySearchPaths": ["<array of paths relative to `destination.json` containing libraries>"],
+      "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset files>"]
     },
     // a destination can support more than one run-time triple:
     "<triple2>": {
       "sdkRootPath":  "<a required path relative to `destination.json` containing SDK root>",
-      "swiftResourcesPath": "<an optional path relative to `destination.json` containing Swift resources>",
-      "includeSearchPaths": ["<optional array with relative paths containing headers in the destination tree>"],
-      "librarySearchPaths": ["<optional array with relative paths containing libraries in the destination tree>"],
-      "toolsetPaths": ["<optional array of paths relative to `destination.json` containing toolset files>"]
+      // all of the properties listed below are optional:
+      "swiftResourcesPath": "<a path relative to `destination.json` containing Swift resources for dynamic linking>",
+      "swiftStaticResourcesPath": "<a path relative to `destination.json` containing Swift resources for static linking>",
+      "includeSearchPaths": ["<array of paths relative to `destination.json` containing headers>"],
+      "librarySearchPaths": ["<array of paths relative to `destination.json` containing libraries>"],
+      "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset files>"]
     }
     // more triples can be supported by a single destination if needed, primarily for sharing files between them.
   ]
@@ -318,9 +322,10 @@ bundles. That is, `../` components, if present in paths, will not be allowed to 
 directories outside of a corresponding destination bundle. Symlinks will also be validated to prevent them from escaping
 out of the bundle.
  
-If `sdkRootPath` is specified and `swiftResourcesPath` is not, the latter is inferred to be 
-`"\(sdkRootPath)/usr/lib/swift"`. Similarly `includeSearchPaths` is inferred as `["\(sdkRootPath)/usr/include"]`,
-`librarySearchPaths` as  `["\(sdkRootPath)/usr/lib"]`.
+If `sdkRootPath` is specified and `swiftResourcesPath` is not, the latter is inferred to be
+`"\(sdkRootPath)/usr/lib/swift"` when linking the Swift standard library dynamically, `"swiftStaticResourcesPath"` is
+inferred to be `"\(sdkRootPath)/usr/lib/swift_static"` when linking it dynamically. Similarly, `includeSearchPaths` is
+inferred as `["\(sdkRootPath)/usr/include"]`, `librarySearchPaths` as  `["\(sdkRootPath)/usr/lib"]`.
 
 Here's `destination.json` file for the `ubuntu_jammy` artifact previously introduced as an example:
 
