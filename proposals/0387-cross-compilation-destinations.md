@@ -373,7 +373,7 @@ which then will be stored as configuration for this destination.
 After a destination is installed, users can refer to it via its identifier passed to the `--destination` option, e.g.
 
 ```
-swift build --destination ubuntu_jammy
+swift build --destination ubuntu_focal
 ```
 
 We'd also like to make `--destination` flexible enough to recognize run-time triples when there's only a single CC
