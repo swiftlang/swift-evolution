@@ -134,15 +134,67 @@ let byteFile: TypedFile<UInt8> // OK
 However, at this time, noncopyable types themselves are not allowed to be used
 as a generic type. This means a noncopyable type _cannot_:
 
-- conform to protocols, like `Error` or `Sendable`.
+- conform to any protocols, except for `Sendable`.
 - serve as a type witness for an `associatedtype` requirement.
 - be used as a type argument when instantiating generic types or calling generic functions.
-- be cast to `Any` or any other existential.
+- be cast to (or from) `Any` or any other existential.
 - be accessed through reflection.
 - appear in a tuple.
 
 The reasons for these restrictions and ways of lifting them are discussed under
-Future Directions.
+Future Directions. The key implication of these restrictions is that a
+noncopyable struct or enum is only a subtype of itself, because all other types
+it might be compatible with for conversion would also permit copying.
+
+#### The `Sendable` exception
+
+The need for preventing noncopyable types from conforming to
+protocols is rooted in the fact that all existing constrained generic types 
+(like `some P` types) and existentials (`any P` types) are assumed to be 
+copyable. Recording any conformances to these protocols would be invalid for
+noncopyable types.
+
+But, an exception is made where noncopyable types can conform to `Sendable`.
+Unlike other protocols, the `Sendable` marker protocol leaves no conformance
+record in the output program. Thus, there will be no ABI impact if a future 
+noncopyable version of the `Sendable` protocol is created.
+
+The big benefit of allowing `Sendable` conformances is that noncopyable types 
+are compatible with concurrency. Keep in mind that despite their ability to 
+conform to `Sendable`, noncopyable structs and enums are still only a subtype 
+of themselves. That means when the noncopyable type conforms to `Sendable`, you
+still cannot convert it to `any Sendable`, because copying that existential 
+would copy its underlying value:
+
+```swift
+extension FileDescriptor: Sendable {} // OK
+
+@noncopyable struct RefHolder: Sendable {
+  var ref: Ref  // ERROR: stored property 'ref' of 'Sendable'-conforming struct 'RefHolder' has non-sendable type 'Ref'
+}
+
+func openAsync(_ path: String) async throws -> FileDescriptor {/* ... */}
+func sendToSpace(_ s: some Sendable) {/* ... */}
+
+@MainActor func example() async throws {
+  // OK. FileDescriptor can cross actors because it is Sendable
+  var fd: FileDescriptor = try await openAsync("/dev/null")
+
+  // ERROR: noncopyable types cannot be conditionally cast
+  // WARNING: cast from 'FileDescriptor' to unrelated type 'any Sendable' always fails
+  if let sendy: Sendable = fd as? Sendable {
+
+    // ERROR: noncopyable types cannot be conditionally cast
+    // WARNING: cast from 'any Sendable' to unrelated type 'FileDescriptor' always fails
+    fd = sendy as! FileDescriptor
+  }
+
+  // ERROR: noncopyable type 'FileDescriptor' cannot be used with generics
+  sendToSpace(fd)
+}
+```
+
+#### Working around the generics restrictions
 
 Since a good portion of Swift's standard library rely on generics, there are a
 a number of common types and functions that will not work with today's 
