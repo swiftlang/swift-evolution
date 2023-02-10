@@ -324,7 +324,7 @@ out of the bundle.
  
 If `sdkRootPath` is specified and `swiftResourcesPath` is not, the latter is inferred to be
 `"\(sdkRootPath)/usr/lib/swift"` when linking the Swift standard library dynamically, `"swiftStaticResourcesPath"` is
-inferred to be `"\(sdkRootPath)/usr/lib/swift_static"` when linking it dynamically. Similarly, `includeSearchPaths` is
+inferred to be `"\(sdkRootPath)/usr/lib/swift_static"` when linking it statically. Similarly, `includeSearchPaths` is
 inferred as `["\(sdkRootPath)/usr/include"]`, `librarySearchPaths` as  `["\(sdkRootPath)/usr/lib"]`.
 
 Here's `destination.json` file for the `ubuntu_jammy` artifact previously introduced as an example:
