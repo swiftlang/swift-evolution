@@ -221,6 +221,8 @@ From an implementation perspective, the compiler reserves the right to avoid per
 
 Macro expansion cannot be recursive: if the expansion of a given macro produces source code that expands that same macro, the program is ill-formed. This prevents unbounded macro expansion.
 
+With the exception of the built-in macro declarations for source locations (e.g., `#fileID`, `#line`), a macro cannot be used as the default argument of a parameter. The existing features for source locations have special behavior when they appear as a default argument, wherein they are expanded by the caller using the source-location information at the call site rather than in the function declaration where they appear. This is useful, existing behavior that we cannot change, but it might not make sense for all macros, and could be surprising. Therefore, we prohibit such default argument that are (non-built-in) macros to avoid confusion, and are open to revisiting this restriction in the future.
+
 ### Macro implementation library
 
 Macro definitions will make use of the [swift-syntax](https://github.com/apple/swift-syntax) package, which provides the Swift syntax tree manipulation and parsing capabilities for Swift tools. The `SwiftSyntaxMacros` module will provide the functionality required to define macros.
@@ -389,7 +391,7 @@ We propose to introduce a number of macro declarations into the Swift standard l
 @freestanding(expression) macro dsohandle() -> UnsafeRawPointer
 ```
 
-The operations that provide information about the current location in source code are mostly implementable as `ExpressionMacro`-conforming types, using the `location` operation on the `MacroExpansionContext`. The exceptions are `#file`, which would need an extension to `MacroExpansionContext` to determine whether we are in a compilation mode where [`#file` behaves like `#fileID` vs. behaving like `#filePath`](https://github.com/apple/swift-evolution/blob/main/proposals/0285-ease-pound-file-transition.md); `dsohandle`, which requires specific compiler support; and `#function`, which would require contextual information that is not available in the `MacroExpansionContext`.
+The operations that provide information about the current location in source code are mostly implementable as `ExpressionMacro`-conforming types, using the `location` operation on the `MacroExpansionContext`. The exceptions are `#file`, which would need an extension to `MacroExpansionContext` to determine whether we are in a compilation mode where `#file` behaves like `#fileID` vs. behaving like [`#filePath`](https://github.com/apple/swift-evolution/blob/main/proposals/0285-ease-pound-file-transition.md); `dsohandle`, which requires specific compiler support; and `#function`, which would require contextual information that is not available in the `MacroExpansionContext`.
 
 The type signatures of these macros capture most of the type system behavior of the existing `#file`, `#line`, etc., because they are treated like literals and therefore can pick up any contextual type that implements the proper `ExpressibleBy*` protocol. However, the implementations above would fail to type-check code like this:
 
@@ -575,6 +577,7 @@ Expressions are just one place in the language where macros could be valuable. O
   * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
   * Clarify that macro expansion cannot be recursive.
   * Rename `createUniqueLocalName` to `createUniqueName`; the names might not always be local in scope. Also add a parameter to it so developers can provide a partial name that will show up in the unique name.
+  * Prohibit the use of non-builtin macros as default arguments of parameters.
 * Revisions from the second pitch:
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
   * Simplified the type signature of the `#externalMacro` built-in macro.
