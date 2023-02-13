@@ -621,6 +621,58 @@ extension FileDescriptor {
 }
 ```
 
+### Declaring properties of noncopyable type
+
+A class or noncopyable struct may declare stored `let` or `var` properties of
+noncopyable type. A noncopyable `let` stored property may only be borrowed,
+whereas a `var` stored property may be both borrowed and mutated. Stored
+properties cannot generally be consumed because doing so would leave the
+containing aggregate in an invalid state.
+
+Any type may also declare computed properties of noncopyable type. The `get`
+accessor returns an owned value that the caller may consume, like a function
+would. The `set` accessor receives its `newValue` as a `consuming` parameter,
+so the setter may consume the parameter value to update the containing
+aggregate.
+
+Accessors may use the `consuming` and `borrowing` declaration modifiers to
+affect the ownership of `self` while the accessor executes. `consuming get`
+is particularly useful as a way of forwarding ownership of part of an aggregate,
+such as to take ownership away from a wrapper type:
+
+```
+@noncopyable
+struct FileDescriptorWrapper {
+  private var _value: FileDescriptor
+
+  var value: FileDescriptor {
+    consuming get { return _value }
+  }
+}
+```
+
+However, a `consuming get` cannot be paired with a setter when the containing
+type is `@noncopyable`, because invoking the getter consumes the aggregate,
+leaving nothing to write the modified value back to.
+
+Because getters return owned values, non-`consuming` getters generally cannot
+be used to wrap noncopyable stored properties, since doing so would require
+copying the value out of the aggregate:
+
+```
+class File {
+  private var _descriptor: FileDescriptor
+
+  var descriptor: FileDescriptor {
+    return _descriptor // ERROR: attempt to copy `_descriptor`
+  }
+}
+```
+
+These limitations could be addressed in the future by exposing the ability for
+computed properties to also provide "read" and "modify" coroutines, which would
+have the ability to yield borrows of properties without copying them.
+
 ### Using stored properties and enum cases of `@noncopyable` type
 
 When classes or `@noncopyable` types contain members that are of `@noncopyable`
