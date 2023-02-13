@@ -653,7 +653,7 @@ struct FileDescriptorWrapper {
 
 However, a `consuming get` cannot be paired with a setter when the containing
 type is `@noncopyable`, because invoking the getter consumes the aggregate,
-leaving nothing to write the modified value back to.
+leaving nothing to write a modified value back to.
 
 Because getters return owned values, non-`consuming` getters generally cannot
 be used to wrap noncopyable stored properties, since doing so would require
@@ -671,7 +671,8 @@ class File {
 
 These limitations could be addressed in the future by exposing the ability for
 computed properties to also provide "read" and "modify" coroutines, which would
-have the ability to yield borrows of properties without copying them.
+have the ability to yield borrowing or mutating access to properties without
+copying them.
 
 ### Using stored properties and enum cases of `@noncopyable` type
 
@@ -1449,3 +1450,26 @@ Analogously to how `init` implementations use a "definite initialization"
 pass to allow the value to initialized field-by-field, we can implement the
 inverse dataflow pass to allow `deinit` implementations, as well as `consuming`
 methods that `forget self`, to partially invalidate `self`.
+
+### `read` and `modify` accessor coroutines for computed properties.
+
+The current computed property model allows for properties to provide a getter,
+which returns the value of the property on read to the caller as an owned value,
+and optionally a setter, which receives the `newValue` of the property as
+a parameter with which to update the containing type's state. This is
+sometimes inefficient for value types, since the get/set pattern requires
+returning a copy, modifying the copy, then passing the copy back to the setter
+in order to model an in-place update, but it also limits what computed
+properties can express for noncopyable types. Because a getter has to return
+by value, it cannot pass along the value of a stored noncopyable property
+without also destroying the enclosing aggregate, so `get`/`set` cannot be used
+to wrap logic around access to a stored noncopyable property.
+
+The Swift stable ABI for properties internally uses **accessor coroutines**
+to allow for efficient access to stored properties, while still providing
+abstraction that allows library evolution to change stored properties into
+computed and back. These coroutines **yield** access to a value in-place for
+borrowing or mutating, instead of passing copies of values back and forth.
+We can expose the ability for code to implement these coroutines directly,
+which is a good optimization for copyable value types, but also allows for
+more expressivity with noncopyable properties.
