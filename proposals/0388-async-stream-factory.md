@@ -1,11 +1,11 @@
 # Convenience Async[Throwing]Stream.makeStream methods
 
-* Proposal: [SE-NNNN](NNNN-async-stream-factory.md)
+* Proposal: [SE-0388](0388-async-stream-factory.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
 * Status: **Awaiting review**
-* Pitch: [Convenience Async[Throwing]Stream.makeStream methods](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030)
 * Implementation: [apple/swift#62968](https://github.com/apple/swift/pull/62968)
+* Review: ([pitch](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030))
 
 ## Introduction
 
