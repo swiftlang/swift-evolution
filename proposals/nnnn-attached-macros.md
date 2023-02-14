@@ -6,6 +6,7 @@
 * Status: **Pending review**
 * Implementation: Partially implemented on GitHub `main` behind the experimental flag `Macros`.
 * Review:
+* Pitch threads: [Pitch #1 under the name "declaration macros"](https://forums.swift.org/t/pitch-declaration-macros/62373), [Pitch #2](https://forums.swift.org/t/pitch-attached-macros/62812)
 
 ## Introduction
 
@@ -14,7 +15,7 @@ Attached macros provide a way to extend Swift by creating and extending declarat
 Attached macros are one part of the [vision for macros in Swift](https://github.com/apple/swift-evolution/pull/1927), which lays out general motivation for introducing macros into the language. They build on the ideas and motivation of [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) and [freestanding macros](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md) to cover a large new set of use cases; we will refer to those proposals often for the basic model of how macros integrate into the language. While freestanding macros are designed as standalone entities introduced by `#`, attached macros are associated with a specific declaration in the program that they can augment and extend. This supports many new use cases, greatly expanding the expressiveness of the macro system:
 
 * Creating trampoline or wrapper functions, such as automatically creating a completion-handler version of an `async` function.
-* Creating members of a type based on its definition, such as forming an [`OptionSet`](https://developer.apple.com/documentation/swift/optionset) from an enum containing flags.
+* Creating members of a type based on its definition, such as forming an [`OptionSet`](https://developer.apple.com/documentation/swift/optionset) from an enum containing flags and conforming it to the `OptionSet` type.
 * Creating accessors for a stored property or subscript, subsuming some of the behavior of [SE-0258 "Property Wrappers"](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md).
 * Augmenting members of a type with a new attribute, such as applying a property wrapper to all stored properties of a type.
 
@@ -144,7 +145,7 @@ The macro itself will be declared as a member macro that defines an arbitrary se
 
 ```swift
 /// Create the necessary members to turn a struct into an option set.
-@attached(member, names: names(rawValue), arbitrary]) macro optionSetMembers
+@attached(member, names: names(rawValue), arbitrary]) macro optionSetMembers()
 ```
 
 The `member` role specifies that this macro will be defining new members of the declaration to which it is attached. In this case, while the macro knows it will define a member named `rawValue`, there is no way for the macro to predict the names of the static properties it is defining, so it also specifies `arbitrary` to indicate that it will introduce members with arbitrarily-determined names.
@@ -294,6 +295,56 @@ protocol MemberAttributeMacro: AttachedMacro {
 ```
 
 The `expansion` operation accepts the attribute syntax `node` for the spelling of the member attribute macro and the declaration to which that attribute is attached (i.e., the type or extension). The implementation of the macro can walk the members of the `declaration` to determine which members require additional attributes. The returned dictionary will map from those members to the additional attributes that should be added to each of the members.
+
+#### Conformance macros
+
+Conformance macros allow one to introduce new protocol conformances to a type. This would often be paired with other macros whose purpose is to help satisfy the protocol conformance. For example, one could imagine an extended version of the `optionSetMembers` attributed shown earlier that also adds the `OptionSet` conformance. With it, the mimimal implementation of an option set could be:
+
+```swift
+@OptionSet
+struct MyOptions
+  enum Option: Int {
+    case a
+    case b
+    case c
+  }
+}
+```
+
+where `OptionSet` is both a member and a conformance macro, providing members (as in `optionSetMembers`) and the conformance to `OptionSet`. The macro would be declared as, e.g.,
+
+```swift
+/// Create the necessary members to turn a struct into an option set.
+@attached(member, names: names(rawValue), arbitrary])
+@attached(conformance)
+macro OptionSet()
+```
+
+Conformance macro implementations should conform to the `ConformanceMacro` protocol:
+
+```swift
+/// Describes a macro that can add conformances to the declaration it's
+/// attached to.
+public protocol ConformanceMacro: AttachedMacro {
+  /// Expand an attached conformance macro to produce a set of conformances.
+  ///
+  /// - Parameters:
+  ///   - node: The custom attribute describing the attached macro.
+  ///   - declaration: The declaration the macro attribute is attached to.
+  ///   - context: The context in which to perform the macro expansion.
+  ///
+  /// - Returns: the set of `(type, where-clause?)` pairs that each provide the
+  ///   protocol type to which the declared type conforms, along with
+  ///   an optional where clause.
+  static func expansion(
+    of node: AttributeSyntax,
+    providingConformancesOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [(TypeSyntax, WhereClauseSyntax?)]
+}
+```
+
+The returned array contains the conformances. The `TypeSyntax` describes the protocol to which the enclosing type conforms, and the optional `where` clause provides any additional constraints that would make the conformance conditional.
 
 ## Detailed design
 
@@ -475,6 +526,12 @@ Attached declaration macro implementations are provided with information about t
 An alternative approach would be to allow the macro implementation to directly alter the declaration to which the macro is attached. This would provide a macro implementation with greater flexibility to affect the declarations it is attached to. However, it means that the resulting declaration could vary drastically from what the user wrote, and would preventing the compiler from making any determinations about what the declaration means before expanding the macro. This could have detrimental effects on compile-time performance (one cannot determine anything about a declaration until the macros have been run on it) and might also prevent macros from accessing information about the actual declaration in the future, such as the types of parameters.
 
 It might be possible to provide a macro implementation API that is expressed in terms of mutation on the original declaration, but restrict the permissible changes to those that can be handled by the implementation. For example, one could "diff" the syntax tree provided to the macro implementation and the syntax tree produced by the macro implementation to identify changes, and return those changes that are acceptable to the compiler.
+
+## Revision History
+
+* After the first pitch:
+  * Added conformance macros, to produce conformances
+* Originally pitched as "declaration macros"; attached macros were separated into their own proposal
 
 ## Future directions
 
