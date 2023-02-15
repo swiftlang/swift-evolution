@@ -210,6 +210,7 @@ extension GenericType where T == Int {
 
 Generic declarations cannot be discovered through the Reflection query that gathers all instances of reflection metadata, because generic values cannot be represented in a higher-kinded way in Swift; generic values must always have substitutions at runtime. Generic declarations could be supported in the future by adding reflection queries for the other direction, e.g. a query to return the custom reflection metadata for a given key-path `\Generic<Int>.value`.
 
+
 ### Inference of reflection metadata attributes
 
 A reflection metadata attribute can be applied to a protocol:
@@ -275,6 +276,61 @@ extension AttributeInstances: Sequence {}
 ```
 
 This API will retrieve all of the instances of your reflection attribute across all modules. Instances of metadata types are initialized in the Reflection query to gather the metadata. Attributes who are not available in the current running OS, i.e. because the `attachedTo` declaration is not available as described in the following section, will be excluded from the results.
+
+### Magic literals in custom reflection metadata attributes
+
+When custom reflection metadata type is accessed through the Reflection APIs, magic literals - `#function`, `#file`, `#line`, and `#column` associated with `init(attachedTo:)` would behave in a special way. Even though in such cases `init(attachedTo:)` is called from a special generator function `#function` literal is still going to point to the declaration attribute is attached to, and `#file`, `#line`, and `#column` are going to point to the attribute itself at the point of use or to the declaration if the attribute has been inferred.
+
+**test.swift**
+
+```swift
+ 1: @reflectionMetadata
+ 2: struct Flag {
+ 3:   init<T>(attachedTo: T.Type,
+ 4:           func: String = #function,
+ 5:           file: String = #file,
+ 6:           line: Int = #line,
+ 7:           column: Int = #column) {}
+ 8:
+ 9:   init<B, V>(attachedTo: KeyPath<B, V>,
+10:              func: String = #function,
+11:              file: String = #file,
+12:              line: Int = #line,
+13:              column: Int = #column) {}
+14: }
+15:
+16: struct Test {
+17:   @Flag var value: Int = 42
+18: }
+19:
+20: @Flag
+21: protocol Flagged {}
+22:
+23: struct InferredTest : Flagged {}
+```
+
+**other.swift**
+
+```swift
+1: let flags = Attribute.allInstances(of: Flag.self)
+```
+
+`Flag.init(attachedTo:)` associated with `Test.value` in this case is going to receive the following information:
+
+* `#function` = `"value"`
+* `#file` = `"test.swift"`
+* `#line` = `17`
+* `#column` = `4`
+
+`Flag.init(attachedTo:)` for implicitly inferred attribute on `InferredTest` in this case is going to receive the following information:
+
+* `#function` = `"InferredTest"`
+* `#file` = `"test.swift"`
+* `#line` = `23`
+* `#column` = `1`
+
+We think that this behavior provides the most benefit to the users because it preserves all of the information about attribute locations.
+
 
 ### API Availability
 
