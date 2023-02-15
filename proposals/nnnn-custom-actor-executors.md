@@ -7,6 +7,29 @@
 - Previous threads:
   - Original pitch thread from around Swift 5.5: [Support custom executors in Swift Concurrency](https://forums.swift.org/t/support-custom-executors-in-swift-concurrency/44425)
 
+## Table of Contents
+
+- [Custom Actor Executors](#custom-actor-executors)
+  * [Introduction](#introduction)
+  * [Motivation](#motivation)
+  * [Proposed solution](#proposed-solution)
+  * [Detailed design](#detailed-design)
+    + [A low-level design](#a-low-level-design)
+    + [Executors](#executors)
+    + [Serial Executors](#serial-executors)
+    + [Jobs](#jobs)
+    + [Actors with custom SerialExecutors](#actors-with-custom-serialexecutors)
+    + [Executor assertions](#executor-assertions)
+    + [Default Swift Runtime Executors](#default-swift-runtime-executors)
+  * [Source compatibility](#source-compatibility)
+  * [Effect on ABI stability](#effect-on-abi-stability)
+  * [Effect on API resilience](#effect-on-api-resilience)
+  * [Alternatives considered](#alternatives-considered)
+  * [Future Directions](#future-directions)
+    + [Overriding the MainActor executor](#overriding-the-mainactor-executor)
+    + [Executor Switching](#executor-switching)
+    + [Specifying Task executors](#specifying-task-executors)
+    + [DelegateActor property](#delegateactor-property)
 
 ## Introduction
 
