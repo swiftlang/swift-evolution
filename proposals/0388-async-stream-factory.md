@@ -30,7 +30,7 @@ an example usage of the current `AsyncStream` API looks like.
 ```swift
 var cont: AsyncStream<Int>.Continuation!
 let stream = AsyncStream<Int> { cont = $0 }
-// We have to assing the continuation to a let to avoid sendability warnings
+// We have to assign the continuation to a let to avoid sendability warnings
 let continuation = cont
 
 await withTaskGroup(of: Void.self) { group in
@@ -200,7 +200,7 @@ extension AsyncStream {
 }
 ```
 
-### Expose an initilizer on the `NewStream` type
+### Expose an initilizer on the `NewStream` type
 During the pitch it was brought up that we could expose an `init` on the `NewStream` types
 that this proposal wants to add. I decided against that since one would have to spell out
 `AsyncStream<Element>.NewStream()` to access the `init`. This is quite hard to discover in
@@ -216,7 +216,7 @@ In the end, the `AsyncStream.Continuation` is deeply coupled to one instance of 
 `AsyncStream` hence we should create an API that conveys this coupling and prevents
 users from misuse. 
 
-### Do nothing alternative
+### Do nothing alternative
 We could just leave the current creation of `Async[Throwing]Stream` as is;
 however, since it is part of the standard library we should provide
 a better method to create a stream and its continuation.
