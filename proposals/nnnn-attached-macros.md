@@ -4,7 +4,7 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Holly Borla](https://github.com/hborla), [Richard Wei](https://github.com/rxwei)
 * Review Manager: Unassigned
 * Status: **Pending review**
-* Implementation: Partially implemented on GitHub `main` behind the experimental flag `Macros`.
+* Implementation: Implemented on GitHub `main` behind the experimental flag `Macros`. See the [example repository](https://github.com/DougGregor/swift-macro-examples) for more macros.
 * Review:
 * Pitch threads: [Pitch #1 under the name "declaration macros"](https://forums.swift.org/t/pitch-declaration-macros/62373), [Pitch #2](https://forums.swift.org/t/pitch-attached-macros/62812)
 
@@ -12,51 +12,53 @@
 
 Attached macros provide a way to extend Swift by creating and extending declarations based on arbitrary syntactic transformations on their arguments. They make it possible to extend Swift in ways that were only previously possible by introducing new language features, helping developers build more expressive libraries and eliminate extraneous boilerplate.
 
-Attached macros are one part of the [vision for macros in Swift](https://github.com/apple/swift-evolution/pull/1927), which lays out general motivation for introducing macros into the language. They build on the ideas and motivation of [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) and [freestanding macros](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md) to cover a large new set of use cases; we will refer to those proposals often for the basic model of how macros integrate into the language. While freestanding macros are designed as standalone entities introduced by `#`, attached macros are associated with a specific declaration in the program that they can augment and extend. This supports many new use cases, greatly expanding the expressiveness of the macro system:
+Attached macros are one part of the [vision for macros in Swift](https://github.com/apple/swift-evolution/pull/1927), which lays out general motivation for introducing macros into the language. They build on the ideas and motivation of [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) to cover a large new set of use cases; we will refer to that proposal for the basic model of how macros integrate into the language. While expression macros are designed as standalone entities introduced by `#`, attached macros are associated with a specific declaration in the program that they can augment and extend. This supports many new use cases, greatly expanding the expressiveness of the macro system:
 
-* Creating trampoline or wrapper functions, such as automatically creating a completion-handler version of an `async` function.
-* Creating members of a type based on its definition, such as forming an [`OptionSet`](https://developer.apple.com/documentation/swift/optionset) from an enum containing flags and conforming it to the `OptionSet` type.
+* Creating trampoline or wrapper functions, such as automatically creating a completion-handler version of an `async` function or vice-versa.
+* Creating members of a type based on its definition, such as forming an [`OptionSet`](https://developer.apple.com/documentation/swift/optionset) from an enum containing flags and conforming it to the `OptionSet` protocol or adding a memberwise initializer.
 * Creating accessors for a stored property or subscript, subsuming some of the behavior of [SE-0258 "Property Wrappers"](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md).
 * Augmenting members of a type with a new attribute, such as applying a property wrapper to all stored properties of a type.
 
+There is an [example repository](https://github.com/DougGregor/swift-macro-examples) containing a number of macros that have been implemented using the prototype of this feature.
+
 ## Proposed solution
 
-The proposal adds *attached macros*, so-called because they are attached to a particular declaration. They are written using the custom attribute syntax (e.g., `@addCompletionHandler`) that was introduced for property wrappers, and is also used for result builders and global actors. Attached macros can reason about the declaration to which they are attached, and provide additions and changes based on one or more different macro *roles*. Each role has a specific purpose, such as adding members, creating accessors, or adding peers alongside the declaration. A given attached macro can inhabit several different roles, and as such will be expanded multiple times corresponding to the different roles, which allows the various roles to be composed. For example, an attached macro emulating property wrappers might inhabit both the "peer" and "accessor" roles, allowing it to introduce a backing storage  property and also synthesize a getter/setter that go through that backing storage property. Composition of macro roles will be discussed in more depth once the basic macro roles have been established.
+The proposal adds *attached macros*, so-called because they are attached to a particular declaration. They are written using the custom attribute syntax (e.g., `@AddCompletionHandler`) that already provides extensibility for declarations through property wrappers, result builders, and global actors. Attached macros can reason about the declaration to which they are attached, and provide additions and changes based on one or more different macro *roles*. Each role has a specific purpose, such as adding members, creating accessors, or adding peers alongside the declaration. A given attached macro can inhabit several different roles, and as such will be expanded multiple times corresponding to the different roles, which allows the various roles to be composed. For example, an attached macro emulating property wrappers might inhabit both the "peer" and "accessor" roles, allowing it to introduce a backing storage  property and also synthesize a getter/setter that go through that backing storage property. Composition of macro roles will be discussed in more depth once the basic macro roles have been established.
 
-As with freestanding macros, attached declaration macros are declared with `macro`, and have [type-checked macro arguments](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#type-checked-macro-arguments-and-results) that allow their behavior to be customized. Attached macros are identified with the `@attached` attribute, which also provides the specific role as well as [any names they introduce](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md#up-front-declarations-of-newly-introduced-names). For example, the aforemented macro emulating property wrappers could be declared as follows:
+As with expression macros, attached declaration macros are declared with `macro`, and have [type-checked macro arguments](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#type-checked-macro-arguments-and-results) that allow their behavior to be customized. Attached macros are identified with the `@attached` attribute, which also provides the specific role as well as any names they introduce. For example, the aforemented macro to add a completion handler would be declared as follows:
 
 ```swift
-@attached(peer, names: prefixed(_))
-@attached(accesor)
-macro wrapProperty<WrapperType>()
+@attached(peer, names: overloaded)
+macro AddCompletionHandler(parameterName: String = "completionHandler")
 ```
 
-All attached macros are implemented as types that conform one of the protocols that inherits from the `AttachedMacro` protocol.  Like the [`Macro` protocol](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-protocols), the `AttachedMacro` protocol has no requirements, but is used to organize macro implementations.
+The macro can be used as follows:
+
+```swift
+@AddCompletionHandler(parameterName: "onCompletion")
+func fetchAvatar(_ username: String) async -> Image? { ... }
+```
+
+The use of the macro is attached to `fetchAvatar`, and generates a *peer* declaration alongside `fetchAvatar` whose name is "overloaded" with `fetchAvatar`. The generated declaration is:
+
+```swift
+/// Expansion of the macro produces the following.
+func fetchAvatar(_ username: String, onCompletion: @escaping (Image?) -> Void) {
+  Task.detached {
+    completionHandler(await fetchAvatar(username))
+  }
+}
+```
+
+### Implementing attached macros
+
+All attached macros are implemented as types that conform to one of the protocols that inherits from the `AttachedMacro` protocol.  Like the [`Macro` protocol](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-protocols), the `AttachedMacro` protocol has no requirements, but is used to organize macro implementations. Each attached macro role will have its own protocol that inherits `AttachedMacro`. 
 
 ```swift
 public protocol AttachedMacro: Macro { }
 ```
 
-Each attached macro role will have its own protocol that inherits `AttachedMacro`.
-
-#### Peer macros
-
-Peer macros produce new declarations alongside the declaration to which they are attached.  For example, here is a declaration of a macro that introduces a completion-handler version of a given asynchronous function:
-
-```swift
-@attached(peer, names: overloaded) macro addCompletionHandler()
-```
-
-This macro uses the `@attached` attribute to indicate that it is an attached peer attribute. The `names` argument specifies that how the names of the peer declarations are created, using an extended form of the scheme introduced with [freestanding macros](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md#up-front-declarations-of-newly-introduced-names). In this case, `overloaded` means that this macro will produce a peer that is overloaded with the declaration to which it is attached, i.e., it has the same base name.
-
-The macro can be used like this:
-
-```swift
-@addCompletionHandler
-func fetchAvatar(_ username: String) async -> Image? { ... }
-```
-
-Peer macros are implemented via types that conform to the `PeerMacro` protocol:
+The biggest difference from expression macros is that there is more than one relevant piece of syntax for the macro to consider: each attached macro implementation receives the syntax node for both the attribute (e.g., `@AddCompletionHandler(parameterName: "onCompletion")`) and the declaration to which the macro is attached (`func fetchAvatar`...), and can return new code that's appropriate to the macro role: peer macros return new declarations, accessor macros return getters/getters, and so on. For example, `PeerMacro` is defined as follows:
 
 ```swift
 public PeerMacro: AttachedMacro {
@@ -68,30 +70,29 @@ public PeerMacro: AttachedMacro {
   /// go alongside the given declaration.
   static func expansion(
     of node: AttributeSyntax,
-    providingPeersOf declaration: DeclSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) async throws -> [DeclSyntax]
 }
 ```
 
-The effect of `addCompletionHandler` is to produce a new "peer" declaration with the same signature as the declaration it is attached to, but with `async` and the result type removed in favor of a completion handler argument, e.g.,
+### Naming macro-produced declarations
+
+Unlike expression macros, attached macros can introduce new declarations. These declarations can have an impact on code elsewhere in the program, for example if a macro provides a declaration of a function named `hello` and that function is called from another source file. Our design requires macros to document which names they can introduce: this provides more information up-front to developers and tools alike to understand the impact that a macro can have on the surrounding program. For developers, this can mean fewer surprises; for tools, this can be used to improve compilation times by avoiding unnecessary macro expansions.
+
+The `@AddCompletionHandler` macro notes that it introduces an *overloaded* name, meaning that it produces a declaration with the same base name as the declaration to which it is attached. A macro that emulated a property wrapper would specify the storage name via `prefixed(_)`, meaning that `_` will be added as a prefix to the name of the declaration to which that macro is attached. Other ways in which macro-generated names are communicated are discussed in the Detailed Design.
+
+### Kinds of attached macros
+
+#### Peer macros
+
+Peer macros produce new declarations alongside the declaration to which they are attached.  The `AddCompletionHandler` macro from earlier was a peer macro. Peer macros are implemented via types that conform to the `PeerMacro` protocol shown earlier. The implementation of `AddCompletionHandlerMacro` looks like the following:
 
 ```swift
-/// Expansion of the macro produces the following.
-func fetchAvatar(_ username: String, completionHandler: @escaping (Image?) -> Void) {
-  Task.detached {
-    completionHandler(await fetchAvatar(username))
-  }
-}
-```
-
-The actual implementation of this macro involves a bit of syntax manipulation, so we settle for a pseudo-code definition here and leave the complete implementation to the appendix:
-
-```swift
-public struct AddCompletionHandler: PeerDeclarationMacro {
+public struct AddCompletionHandlerMacro: PeerDeclarationMacro {
   public static func expansion(
     of node: CustomAttributeSyntax,
-    providingPeersOf declaration: DeclSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
     // make sure we have an async function to start with
@@ -106,12 +107,14 @@ public struct AddCompletionHandler: PeerDeclarationMacro {
 }
 ```
 
+The details of the implementation are left to an Appendix, with a complete version in the [example repository](https://github.com/DougGregor/swift-macro-examples).
+
 #### Member macros
 
 Member macros allow one to introduce new members into the type or extension to which the macro is attached. For example, we can write a macro that defines static members to ease the definition of an [`OptionSet`](https://developer.apple.com/documentation/swift/optionset). Given:
 
 ```swift
-@optionSetMembers
+@OptionSetMembers
 struct MyOptions: OptionSet {
   enum Option: Int {
     case a
@@ -145,7 +148,7 @@ The macro itself will be declared as a member macro that defines an arbitrary se
 
 ```swift
 /// Create the necessary members to turn a struct into an option set.
-@attached(member, names: names(rawValue), arbitrary]) macro optionSetMembers()
+@attached(member, names: names(rawValue), arbitrary) macro OptionSetMembers()
 ```
 
 The `member` role specifies that this macro will be defining new members of the declaration to which it is attached. In this case, while the macro knows it will define a member named `rawValue`, there is no way for the macro to predict the names of the static properties it is defining, so it also specifies `arbitrary` to indicate that it will introduce members with arbitrarily-determined names.
@@ -173,15 +176,15 @@ Accessor macros allow a macro to add accessors to a property or subscript, for e
 struct MyStruct {
   var storage: [AnyHashable: Any] = [:]
   
-  @dictionaryStorage
+  @DictionaryStorage
   var name: String
   
-  @dictionaryStorage(key: "birth_date")
+  @DictionaryStorage(key: "birth_date")
   var birthDate: Date?
 }
 ```
 
-The `dictionaryStorage` attached macro would alter the properties of `MyStruct` as follows, adding accessors to each:
+The `DictionaryStorage` attached macro would alter the properties of `MyStruct` as follows, adding accessors to each:
 
 ```swift
 struct MyStruct {
@@ -216,7 +219,7 @@ struct MyStruct {
 The macro can be declared as follows:
 
 ```swift
-@attached(accessor) macro dictionaryStorage(key: String? = nil)
+@attached(accessor) macro DictionaryStorage(key: String? = nil)
 ```
 
 Implementations of accessor macros conform to the `AccessorMacro` protocol, which is defined as follows:
@@ -234,7 +237,7 @@ protocol AccessorMacro: AttachedMacro {
 }
 ```
 
-The implementation of the `dictionaryStorage` macro would create the accessor declarations shown above, using either the `key` argument (if present) or deriving the key name from the property name. The effect of this macro isn't something that can be done with a property wrapper, because the property wrapper wouldn't have access to `self.storage`.
+The implementation of the `DictionaryStorage` macro would create the accessor declarations shown above, using either the `key` argument (if present) or deriving the key name from the property name. The effect of this macro isn't something that can be done with a property wrapper, because the property wrapper wouldn't have access to `self.storage`.
 
 The presence of an accessor macro on a stored property removes the initializer. It's up to the implementation of the accessor macro to either diagnose the presence of the initializer (if it cannot be used) or incorporate it in the result.
 
@@ -248,13 +251,13 @@ As an example, we'll define a macro that partially mimics the behavior of the `@
 
 ```swift
 @attached(memberAttribute)
-macro myObjCMembers
+macro MyObjCMembers()
 ```
 
 The implementation of this macro will add the `@objc` attribute to every member of the type or extension, unless that member either already has an `@objc` macro or has `@nonobjc` on it. For example, this:
 
 ```swift
-@myObjCMembers extension MyClass {
+@MyObjCMembers extension MyClass {
   func f() { }
 
   var answer: Int { 42 }
@@ -288,7 +291,7 @@ protocol MemberAttributeMacro: AttachedMacro {
   static func expansion(
     of node: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,
-    providingAttributesFor member: DeclSyntax,
+    providingAttributesOf member: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) async throws -> [AttributeSyntax]
 }
@@ -298,7 +301,7 @@ The `expansion` operation accepts the attribute syntax `node` for the spelling o
 
 #### Conformance macros
 
-Conformance macros allow one to introduce new protocol conformances to a type. This would often be paired with other macros whose purpose is to help satisfy the protocol conformance. For example, one could imagine an extended version of the `optionSetMembers` attributed shown earlier that also adds the `OptionSet` conformance. With it, the mimimal implementation of an option set could be:
+Conformance macros allow one to introduce new protocol conformances to a type. This would often be paired with other macros whose purpose is to help satisfy the protocol conformance. For example, one could imagine an extended version of the `OptionSetMembers` attributed shown earlier that also adds the `OptionSet` conformance. With it, the mimimal implementation of an option set could be:
 
 ```swift
 @OptionSet
@@ -311,11 +314,11 @@ struct MyOptions
 }
 ```
 
-where `OptionSet` is both a member and a conformance macro, providing members (as in `optionSetMembers`) and the conformance to `OptionSet`. The macro would be declared as, e.g.,
+where `OptionSet` is both a member and a conformance macro, providing members (as in `OptionSetMembers`) and the conformance to `OptionSet`. The macro would be declared as, e.g.,
 
 ```swift
 /// Create the necessary members to turn a struct into an option set.
-@attached(member, names: names(rawValue), arbitrary])
+@attached(member, names: names(rawValue), arbitrary)
 @attached(conformance)
 macro OptionSet()
 ```
@@ -455,7 +458,7 @@ by conforming to `AccessorMacro`:
 extension ClampingMacro: AccessorMacro {
   static func expansion(
     of node: CustomAttributeSyntax,
-    providingAccessorsOf declaration: DeclSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) throws -> [AccessorDeclSyntax] {
     let originalName = /* get from declaration */, 
@@ -491,13 +494,16 @@ This formulation of `@Clamping` offers some benefits over the property-wrapper v
 
 ### Specifying newly-introduced names
 
-The proposal for freestanding macros introduced the need to [specify macro-introduced names](https://github.com/DougGregor/swift-evolution/blob/freestanding-macros/proposals/nnnn-freestanding-macros.md#up-front-declarations-of-newly-introduced-names) as a way of isolating the effect that macros can have on the compilation process. Attached macros introduce a few more ways in which one can describe the names of declarations that are produced by a macro:
+Whenever a macro produces declarations that are visible to other Swift code, it is required to declare the names in advance. All of the names need to be specified within the attribute declaring the macro role, using the following forms:
+
+- Declarations with a specific fixed name: `named(<declaration-name>)`.
+- Declarations whose names cannot be described statically, for example because they are derived from other inputs: `arbitrary`.
 
 * Declarations that have the same base name as the declaration to which the macro is attached, and are therefore overloaded with it: `overloaded`.
-* Declarations whose name is formed by adding a prefix to the name of the declaration to which the macro is attached: `prefixed("_")`
+* Declarations whose name is formed by adding a prefix to the name of the declaration to which the macro is attached: `prefixed("_")`. As a special consideration, `$` is permissible as a prefix, allowing macros to produce names with a leading `$` that are derived from the name of the declaration to which the macro is attached. This carve-out enables macros that behavior similarly to property wrappers that introduce a projected value.
 * Declarations whose name is formed by adding a suffix to the name of the declaration to which the macro is attached: `suffixed("_docinfo")`. 
 
-A  macro can only introduce new declarations whose names are covered by the kinds provided, or have their names generated via `MacroExpansionContext.createUniqueame`. This ensures that, in most cases (where `arbitrary` is not specified), the Swift compiler and related tools can reason about the set of names that will introduced by a given use of a macro without having to expand the macro, which can reduce the compile-time cost of macros and improve incremental builds.
+A  macro can only introduce new declarations whose names are covered by the kinds provided, or have their names generated via `MacroExpansionContext.createUniqueName`. This ensures that, in most cases (where `arbitrary` is not specified), the Swift compiler and related tools can reason about the set of names that will be introduced by a given use of a macro without having to expand the macro, which can reduce the compile-time cost of macros and improve incremental builds. The macro is not required to provide a declaration for every name it describes: for example, `OptionSetMembers` will state that it produces a declaration named `rawValue`, but the implementation may opt not to do so if it sees that such a property already exists.
 
 ### Ordering of macro expansions
 
@@ -531,7 +537,9 @@ It might be possible to provide a macro implementation API that is expressed in 
 
 * After the first pitch:
   * Added conformance macros, to produce conformances
-* Originally pitched as "declaration macros"; attached macros were separated into their own proposal
+  * Moved the discussion of macro-introduced names from the freestanding macros proposal here.
+  * Added a carve-out to allow a `$` prefix on names generated from macros, allowing them to match the behavior of property wrappers.
+* Originally pitched as "declaration macros"; attached macros were separated into their own proposal after the initial discussion.
 
 ## Future directions
 
@@ -547,13 +555,13 @@ There are numerous ways in which this proposal could be extended to provide new 
 public struct AddCompletionHandler: PeerDeclarationMacro {
   public static func expansion(
     of node: CustomAttributeSyntax,
-    providingPeersOf declaration: DeclSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
     // Only on functions at the moment. We could handle initializers as well
     // with a little bit of work.
     guard let funcDecl = declaration.as(FunctionDeclSyntax.self) else {
-      throw CustomError.message("@addCompletionHandler only works on functions")
+      throw CustomError.message("@AddCompletionHandler only works on functions")
     }
 
     // This only makes sense for async functions.
