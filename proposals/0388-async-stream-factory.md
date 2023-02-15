@@ -3,9 +3,9 @@
 * Proposal: [SE-0388](0388-async-stream-factory.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Awaiting review**
+* Status: **Active review (February 15...26, 2023)**
 * Implementation: [apple/swift#62968](https://github.com/apple/swift/pull/62968)
-* Review: ([pitch](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030))
+* Review: ([pitch](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030)) ([review](https://forums.swift.org/t/se-0388-convenience-async-throwing-stream-makestream-methods/63139))
 
 ## Introduction
 
@@ -199,7 +199,7 @@ extension AsyncStream {
 }
 ```
 
-### Expose an initilizer on the `NewStream` type
+### Expose an initializer on the `NewStream` type
 During the pitch it was brought up that we could expose an `init` on the `NewStream` types
 that this proposal wants to add. I decided against that since one would have to spell out
 `AsyncStream<Element>.NewStream()` to access the `init`. This is quite hard to discover in
