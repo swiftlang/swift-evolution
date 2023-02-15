@@ -148,7 +148,7 @@ The macro itself will be declared as a member macro that defines an arbitrary se
 
 ```swift
 /// Create the necessary members to turn a struct into an option set.
-@attached(member, names: names(rawValue), arbitrary) macro OptionSetMembers()
+@attached(member, names: named(rawValue), arbitrary) macro OptionSetMembers()
 ```
 
 The `member` role specifies that this macro will be defining new members of the declaration to which it is attached. In this case, while the macro knows it will define a member named `rawValue`, there is no way for the macro to predict the names of the static properties it is defining, so it also specifies `arbitrary` to indicate that it will introduce members with arbitrarily-determined names.
@@ -318,7 +318,7 @@ where `OptionSet` is both a member and a conformance macro, providing members (a
 
 ```swift
 /// Create the necessary members to turn a struct into an option set.
-@attached(member, names: names(rawValue), arbitrary)
+@attached(member, names: named(rawValue), arbitrary)
 @attached(conformance)
 macro OptionSet()
 ```
@@ -500,10 +500,12 @@ Whenever a macro produces declarations that are visible to other Swift code, it 
 - Declarations whose names cannot be described statically, for example because they are derived from other inputs: `arbitrary`.
 
 * Declarations that have the same base name as the declaration to which the macro is attached, and are therefore overloaded with it: `overloaded`.
-* Declarations whose name is formed by adding a prefix to the name of the declaration to which the macro is attached: `prefixed("_")`. As a special consideration, `$` is permissible as a prefix, allowing macros to produce names with a leading `$` that are derived from the name of the declaration to which the macro is attached. This carve-out enables macros that behavior similarly to property wrappers that introduce a projected value.
-* Declarations whose name is formed by adding a suffix to the name of the declaration to which the macro is attached: `suffixed("_docinfo")`. 
+* Declarations whose name is formed by adding a prefix to the name of the declaration to which the macro is attached: `prefixed(_)`. As a special consideration, `$` is permissible as a prefix, allowing macros to produce names with a leading `$` that are derived from the name of the declaration to which the macro is attached. This carve-out enables macros that behavior similarly to property wrappers that introduce a projected value.
+* Declarations whose name is formed by adding a suffix to the name of the declaration to which the macro is attached: `suffixed(_docinfo)`. 
 
-A  macro can only introduce new declarations whose names are covered by the kinds provided, or have their names generated via `MacroExpansionContext.createUniqueName`. This ensures that, in most cases (where `arbitrary` is not specified), the Swift compiler and related tools can reason about the set of names that will be introduced by a given use of a macro without having to expand the macro, which can reduce the compile-time cost of macros and improve incremental builds. The macro is not required to provide a declaration for every name it describes: for example, `OptionSetMembers` will state that it produces a declaration named `rawValue`, but the implementation may opt not to do so if it sees that such a property already exists.
+A  macro can only introduce new declarations whose names are covered by the kinds provided, or have their names generated via `MacroExpansionContext.createUniqueName`. This ensures that, in most cases (where `arbitrary` is not specified), the Swift compiler and related tools can reason about the set of names that will be introduced by a given use of a macro without having to expand the macro, which can reduce the compile-time cost of macros and improve incremental builds. For example, when the compiler performs name lookup for a name `_x`, it can avoid expanding any macros that are unable to produce a declaration named `_x`. Macros that can produce arbitrary names must always be expanded, as would a macro with `prefixed(_)` that is attached to a declaration named `x`.
+
+The macro is not required to provide a declaration for every name it describes: for example, `OptionSetMembers` will state that it produces a declaration named `rawValue`, but the implementation may opt not to do so if it sees that such a property already exists.
 
 ### Visibility of names used and introduced by macros
 
@@ -517,7 +519,7 @@ Third, macro expansion is a relatively expensive compile-time operation, involvi
 
 ```swift
 @attached(peer) macro myMacro(_: Int)
-@attached(peer, names: named("y")) macro myMacro(_: Double)
+@attached(peer, names: named(y)) macro myMacro(_: Double)
 
 func f(_: Int, body: (Int) -> Void)
 func f(_: Double, body: (Double) -> Void)
@@ -654,7 +656,7 @@ public struct AddCompletionHandler: PeerDeclarationMacro {
     // This only makes sense for async functions.
     if funcDecl.signature.asyncOrReasyncKeyword == nil {
       throw CustomError.message(
-        "@addCompletionHandler requires an async function"
+        "@AddCompletionHandler requires an async function"
       )
     }
 
@@ -687,7 +689,7 @@ public struct AddCompletionHandler: PeerDeclarationMacro {
     let callArguments: [String] = try parameterList.map { param in
       guard let argName = param.secondName ?? param.firstName else {
         throw CustomError.message(
-          "@addCompletionHandler argument must have a name"
+          "@AddCompletionHandler argument must have a name"
         )
       }
 
