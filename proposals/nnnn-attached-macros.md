@@ -239,7 +239,9 @@ protocol AccessorMacro: AttachedMacro {
 
 The implementation of the `DictionaryStorage` macro would create the accessor declarations shown above, using either the `key` argument (if present) or deriving the key name from the property name. The effect of this macro isn't something that can be done with a property wrapper, because the property wrapper wouldn't have access to `self.storage`.
 
-The expansion of an accessor macro must result in a computed property. A side effect of the expansion is to remove any initializer from the stored property itself; it is up to the implementation of the accessor macro to either diagnose the presence of the initializer (if it cannot be used) or incorporate it in the result.
+An accessor macro can specify that it produces observers by listing at least one of `willSet` or `didSet ` in the names, e.g., `@attached(accessors, names: named(willSet))`. Such a macro can only produce observers; it cannot change a stored property into a computed property.
+
+The expansion of an accessor macro that does not specify one of `willSet` or `didSet` in its list of names must result in a computed property. A side effect of the expansion is to remove any initializer from the stored property itself; it is up to the implementation of the accessor macro to either diagnose the presence of the initializer (if it cannot be used) or incorporate it in the result.
 
 #### Member attribute macros
 
@@ -627,7 +629,7 @@ It might be possible to provide a macro implementation API that is expressed in 
   * Moved the discussion of macro-introduced names from the freestanding macros proposal here.
   * Added a carve-out to allow a `$` prefix on names generated from macros, allowing them to match the behavior of property wrappers.
   * Revisited the design around the ordering of macro expansions, forcing them to be independent.
-  * Require accessor macros to return accessors that make stored properties into computed properties.
+  * Clarify when accessor macros need to produce observers for a stored property vs. turning it into a computed property.
 * Originally pitched as "declaration macros"; attached macros were separated into their own proposal after the initial discussion.
 
 ## Future directions
