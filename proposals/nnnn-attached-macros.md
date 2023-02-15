@@ -170,7 +170,7 @@ protocol MemberMacro: AttachedMacro {
 
 #### Accessor macros
 
-Accessor macros allow a macro to add accessors to a property or subscript, for example by turning a stored property into a computed property. For example, consider a macro that can be applied to a stored property to instead access a dictionary keyed by the property name. Such a macro could be used like this:
+Accessor macros allow a macro to add accessors to a property, turning a stored property into a computed property. For example, consider a macro that can be applied to a stored property to instead access a dictionary keyed by the property name. Such a macro could be used like this:
 
 ```swift
 struct MyStruct {
@@ -239,7 +239,7 @@ protocol AccessorMacro: AttachedMacro {
 
 The implementation of the `DictionaryStorage` macro would create the accessor declarations shown above, using either the `key` argument (if present) or deriving the key name from the property name. The effect of this macro isn't something that can be done with a property wrapper, because the property wrapper wouldn't have access to `self.storage`.
 
-The presence of an accessor macro on a stored property removes the initializer. It's up to the implementation of the accessor macro to either diagnose the presence of the initializer (if it cannot be used) or incorporate it in the result.
+The expansion of an accessor macro must result in a computed property. A side effect of the expansion is to remove any initializer from the stored property itself; it is up to the implementation of the accessor macro to either diagnose the presence of the initializer (if it cannot be used) or incorporate it in the result.
 
 #### Member attribute macros
 
@@ -515,7 +515,7 @@ Second, if the output of one macro expansion (say, `@myMacro1(x)`) introduces a 
 
 Third, macro expansion is a relatively expensive compile-time operation, involving serialization overhead to transfer parts of the program from the compiler/IDE to another program that expands the macro. Therefore, macros are [only expanded once per use site](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-expansion), so their expansions cannot participate in the type checking of their arguments or of other surrounding statements or expressions. For example, consider a this (intentionally obtuse) Swift code:
 
-```
+```swift
 @attached(peer) macro myMacro(_: Int)
 @attached(peer, names: named("y")) macro myMacro(_: Double)
 
@@ -625,6 +625,7 @@ It might be possible to provide a macro implementation API that is expressed in 
   * Moved the discussion of macro-introduced names from the freestanding macros proposal here.
   * Added a carve-out to allow a `$` prefix on names generated from macros, allowing them to match the behavior of property wrappers.
   * Revisited the design around the ordering of macro expansions, forcing them to be independent.
+  * Require accessor macros to return accessors that make stored properties into computed properties.
 * Originally pitched as "declaration macros"; attached macros were separated into their own proposal after the initial discussion.
 
 ## Future directions
@@ -749,4 +750,3 @@ public struct AddCompletionHandler: PeerDeclarationMacro {
   }
 }
 ```
-
