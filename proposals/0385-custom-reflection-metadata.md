@@ -185,11 +185,23 @@ A given declaration can have multiple reflection metadata attributes as long as 
 }
 ```
 
-Reflection metadata attributes must be applied at either the primary declaration of a type or in an extension of the type within the same module as the type’s primary declaration. Applying the attribute to a type in an extension outside its module is prohibited to prevent the same type from having multiple reflection metadata annotations of the same type.
+Reflection metadata attributes must be applied at either the primary declaration of a type or in an unavailable unconstrained extension of the type within the same module as the type’s primary declaration. Unavailable extensions are supported to allow API implementers a way to opt-out from an attribute. Applying the attribute to a type in an available/constrained extension or in extension outside its module is prohibited to prevent the same type from having multiple reflection metadata annotations of the same type.
 
 ```swift
-@Flag extension MyType [where ...] { 🔴
+@available(*, unavailable)
+@Flag extension MyType { 🟢 if extension is in the same module
+}
+```
+
+```swift
+@Flag extension MyType { 🔴
  ^ error: cannot associate reflection metadata @Flag with MyType in extension
+}
+```
+
+```swift
+@Flag extension MyType where ... { 🔴
+ ^ error: cannot associate reflection metadata @Flag with MyType in constrained extension
 }
 ```
 
@@ -428,3 +440,4 @@ Thank you to [Thomas Goyne](https://forums.swift.org/u/tgoyne) for surfacing use
 * Added discussion of some alternatives that were considered involving extending Reflection capabilities and other existing language features.
 * Added discussion of an alternative that was considered about using Reflection types as the parameters to `init(attachedTo:)`.
 * Added discussion of an alternative that was considered about using static methods instead of `init(attachedTo:)` overloads.
+* Clarified interaction between extensions and custom reflection metadata attributes.
