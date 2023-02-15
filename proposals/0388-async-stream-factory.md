@@ -81,7 +81,7 @@ respectively.
 
 ```swift
 extension AsyncStream {
-  /// Struct for the return type of ``AsyncStream/makeStream(elementType:limit:)``.
+  /// Struct for the return type of ``AsyncStream/makeStream(of:bufferingPolicy:)``.
   ///
   /// This struct contains two properties:
   /// 1. The ``continuation`` which should be retained by the producer and is used
@@ -119,7 +119,7 @@ extension AsyncStream {
 }
 
 extension AsyncThrowingStream {
-  /// Struct for the return type of ``AsyncThrowingStream/makeStream(elementType:limit:)``.
+  /// Struct for the return type of ``AsyncThrowingStream/makeStream(of:throwing:bufferingPolicy:)``.
   ///
   /// This struct contains two properties:
   /// 1. The ``continuation`` which should be retained by the producer and is used
@@ -187,7 +187,6 @@ extension AsyncStream {
   ///   - elementType: The element type of the stream.
   ///   - limit: The buffering policy that the stream should use.
   /// - Returns: A tuple which contains the stream and its continuation.
-  @available(SwiftStdlib 5.8, *)
   public static func makeStream(
       of elementType: Element.Type = Element.self,
       bufferingPolicy limit: Continuation.BufferingPolicy = .unbounded
