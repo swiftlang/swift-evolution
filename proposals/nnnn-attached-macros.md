@@ -602,6 +602,20 @@ The `OptionSet` macro is both a member macro (which generates the instance prope
 
 In both cases, the expansion operation is provided with the original definition of `MyOptions`, without the new conformance or added members. That way, each expansion operation operates independently of the other---whether it's different roles for the same macro, or different macros entirely---and the order of expansion does not matter.
 
+### Permitted declaration kinds
+
+A macro can expand to any declaration that is syntactically and semantically well-formed within the context where the macro is expanded, with a few notable exceptions:
+
+* `import` declarations can never be produced by a macro. Swift tooling depends on the ability to resolve import declarations based on a simple scan of the original source files. Allowing a macro expansion to introduce an import declaration would complicate import resolution considerably.
+* A type with the `@main` attribute cannot be produced by a macro. Swift tooling should be able to determine the presence of a main entry point in a source file based on a syntactic scan of the source file without expanding macros.
+* `extension` declarations can never be produced by a macro. The effect of an extension declaration is wide-ranging, with the ability to add conformances, members, and so on. These capabilities are meant to be introduced in a more fine-grained manner.
+* `operator` and `precedencegroup` declarations can never be produced by a macro, because they could allow one to reshape the precedence graph for existing code causing subtle differences in the semantics of code that sees the macro expansion vs. code that does not.
+* `macro` declarations can never be produced by a macro, because allowing this would allow a macro to trivially produce infinitely recursive macro expansion.
+* Top-level default literal type overrides, including `IntegerLiteralType`,
+  `FloatLiteralType`, `BooleanLiteralType`,
+  `ExtendedGraphemeClusterLiteralType`, `UnicodeScalarLiteralType`, and
+  `StringLiteralType`, can never be produced by a macro.
+
 ## Source compatibility
 
 Attached declaration macros use the same syntax introduced for custom attributes (such as property wrappers), and therefore do not have an impact on source compatibility.
@@ -632,6 +646,7 @@ It might be possible to provide a macro implementation API that is expressed in 
   * Added a carve-out to allow a `$` prefix on names generated from macros, allowing them to match the behavior of property wrappers.
   * Revisited the design around the ordering of macro expansions, forcing them to be independent.
   * Clarify when accessor macros need to produce observers for a stored property vs. turning it into a computed property.
+  * Moved the discussion of "permitted declaration kinds" from the freestanding macros proposal here.
 * Originally pitched as "declaration macros"; attached macros were separated into their own proposal after the initial discussion.
 
 ## Future directions
