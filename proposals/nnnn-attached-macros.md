@@ -494,6 +494,8 @@ extension ClampingMacro: AccessorMacro {
 
 This formulation of `@Clamping` offers some benefits over the property-wrapper version: we don't need to store the min and max values as part of the backing storage (so the presence of `@Clamping` doesn't add any storage), nor do we need to define a new type. More importantly, it demonstrates how the composition of different macro roles together can produce interesting effects.
 
+Not every macro role applies to every kind of declaration: an `accessor` macro doesn't make sense of a function, nor does a `member` member make sense on a property. If a macro is attached to a declaration, the macro will only be expanded for those roles that are applicable to a declaration. For example, if the `Clamping` macro is applied to a function, it will only be expanded as a peer macro; it's role as an accessor macro is ignored. If a macro is attached to a declaration and none of its roles apply to that kind of declaration, the program is ill-formed.
+
 ### Specifying newly-introduced names
 
 Whenever a macro produces declarations that are visible to other Swift code, it is required to declare the names in advance. All of the names need to be specified within the attribute declaring the macro role, using the following forms:
