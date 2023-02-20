@@ -4,11 +4,15 @@
 * Authors: [Holly Borla](https://github.com/swiftdev), [John McCall](https://github.com/swiftdev), [Slava Pestov]()
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: On `main` gated behind the frontend flag `-enable-experimental-variadic-generics`
+* Implementation: On `main` gated behind the frontend flag `-enable-experimental-feature VariadicGenerics`
 * Review: ([pitch 1]()) ([pitch 2]())
 
 ## Contents
 
+- [Value and Type Parameter Packs](#value-and-type-parameter-packs)
+  - [Contents](#contents)
+  - [Introduction](#introduction)
+  - [Motivation](#motivation)
   - [Proposed solution](#proposed-solution)
   - [Detailed design](#detailed-design)
     - [Type parameter packs](#type-parameter-packs)
@@ -17,23 +21,19 @@
     - [Type matching](#type-matching)
       - [Label matching](#label-matching)
       - [Type sequence matching](#type-sequence-matching)
-      - [One-element tuples](#one-element-tuples)
+      - [Open questions](#open-questions)
     - [Member type parameter packs](#member-type-parameter-packs)
     - [Generic requirements](#generic-requirements)
       - [Same-shape requirements](#same-shape-requirements)
-      - [Open questions](#open-questions)
+      - [Open questions](#open-questions-1)
     - [Value parameter packs](#value-parameter-packs)
     - [Local value packs](#local-value-packs)
-    - [Ambiguities](#ambiguities)
-      - [Pack expansion vs non-pack variadic parameter](#pack-expansion-vs-non-pack-variadic-parameter)
-      - [Pack expansion vs postfix closed-range operator](#pack-expansion-vs-postfix-closed-range-operator)
-      - [Pack expansion vs operator `...>`](#pack-expansion-vs-operator-)
   - [Effect on ABI stability](#effect-on-abi-stability)
   - [Alternatives considered](#alternatives-considered)
     - [Modeling packs as tuples with abstract elements](#modeling-packs-as-tuples-with-abstract-elements)
-    - [Syntax alternatives to `...`](#syntax-alternatives-to-)
+    - [Syntax alternatives to `repeat each`](#syntax-alternatives-to-repeat-each)
+      - [The `...` operator](#the--operator)
       - [Another operator](#another-operator)
-      - [Pack declaration and expansion keywords](#pack-declaration-and-expansion-keywords)
       - [Magic builtin `map` method](#magic-builtin-map-method)
   - [Future directions](#future-directions)
     - [Variadic generic types](#variadic-generic-types)
@@ -71,7 +71,7 @@ func < <A, B, C>(lhs: (A, B, C), rhs: (A, B, C)) -> Bool where A: Comparable, B:
 With language support for a variable number of type parameters, this API could be expressed more naturally and concisely as a single function declaration:
 
 ```swift
-func < <T...>(lhs: (T...), rhs: (T...)) -> Bool where T: Comparable
+func < <each Element: Comparable>(lhs: (repeat each Element), rhs: (repeat each Element)) -> Bool
 ```
 
 ## Proposed solution
@@ -82,27 +82,30 @@ Here are the key concepts introduced by this proposal:
 
 - Under the new model, all existing types and values in the language become _scalar types_ and _scalar values_.
 - A _type pack_ is a new kind of type which represents a list of scalar types. Type packs do not have syntax in the surface language, but we will write them as `{T1, ..., Tn}` where each `Ti` is a scalar type. Type packs cannot be nested; type substitution is defined to always flatten type packs.
-- A _type parameter pack_ is a type parameter which can abstract over a type pack. These are declared in a generic parameter list using the syntax `T...`, and referenced with `T`.
-- A _pack expansion type_ is a new kind of scalar type which flattens a set of type packs in a context where a comma-separated list of types may appear. The syntax for a pack expansion type is `P...`, where `P` is a type containing one or more type parameter packs.
+- A _type parameter pack_ is a type parameter which can abstract over a type pack. These are declared in a generic parameter list using the syntax `each T`, and referenced with `each T`.
+- A _pack expansion type_ is a new kind of scalar type which flattens a set of type packs in a context where a comma-separated list of types may appear. The syntax for a pack expansion type is `repeat each P`, where `P` is a type containing one or more type parameter packs.
 - A _value pack_ is a list of scalar values. The type of a value pack is a type pack, where each element of the type pack is the scalar type of the corresponding scalar value. Value packs do not have syntax in the surface language, but we will write them as `{x1, ..., xn}` where each `xi` is a scalar value. Value packs cannot be nested; evaluation is always defined to flatten value packs.
 - A _value parameter pack_ is a function parameter or local variable declared with a pack expansion type.
-- A _pack expansion expression_ is a new kind of expression whose type is a pack expansion type. Written as `expr...`, where `expr` is an expression referencing one or more value parameter packs.
+- A _pack expansion expression_ is a new kind of expression whose type is a pack expansion type. Written as `repeat each expr`, where `expr` is an expression referencing one or more value parameter packs.
 
 The following example demonstrates these concepts:
 
 ```swift
 // Construct a new tuple by prepending an element to beginning of the given tuple
-func prepend<First, Rest...>(value: First, to rest: Rest...) -> (First, Rest...) {
-  return (value, rest...)
+func prepend<First, each Rest>(
+  value: First, 
+  to rest: repeat each Rest
+) -> (First, repeat each Rest) {
+  return (value, repeat each rest)
 }
 
 let value = prepend(value: 1, rest: 2.0, "hello")
 // value is (1, 2.0, "hello")
 ```
 
-The function declares two type parameters, `First` and `Rest`. `Rest` is a type parameter pack declaration. The value parameter pack `rest` has the pack expansion type `Rest...`. The return type `(First, Rest...)` is a tuple type with two elements, where the second element is again the pack expansion type `Rest...`.
+The function declares two type parameters, `First` and `Rest`. `Rest` is a type parameter pack declaration. The value parameter pack `rest` has the pack expansion type `repeat each Rest`. The return type `(First, repeat each Rest)` is a tuple type with two elements, where the second element is again the pack expansion type `repeat each Rest`.
 
-Inside the body of `prepend()`, `rest...` is a pack expansion expression referencing the value parameter pack `rest`.
+Inside the body of `prepend()`, `repeat each rest` is a pack expansion expression referencing the value parameter pack `rest`.
 
 The call to `prepend()` substitutes `Int` for `First`, and the type pack `{Double, String}` for `Rest`. These substitutions are deduced by the _type matching rules_, described below. The function is called with two arguments, `value` is the value `1`, and `rest` is the value pack `{2.0, "hello"}`.
 
@@ -114,10 +117,10 @@ The substituted return type is the tuple type with three elements `(Int, Double,
 
 ### Type parameter packs
 
-The generic parameter list of a generic function can contain one or more _type parameter pack declarations_, written as an identifier followed by `...`:
+The generic parameter list of a generic function can contain one or more _type parameter pack declarations_, written as an identifier preceeded by `each`:
 
 ```swift
-func variadic<T..., U...>() {}
+func variadic<each T, each U>() {}
 ```
 
 When referenced from type context, this identifier resolves to a _type parameter pack_. References to type parameter packs can only appear in the following positions:
@@ -130,25 +133,25 @@ When referenced from type context, this identifier resolves to a _type parameter
 
 ### Pack expansion type
 
-A pack expansion type, written as `P...`, has a *pattern type* `P` and a non-empty set of _captured_ type parameter packs.
+A pack expansion type, written as `repeat P`, has a *pattern type* `P` and a non-empty set of _captured_ type parameter packs.
 
 **Syntactic validity:** Pack expansion types can appear in the following positions:
 
-* The type of a parameter in a function declaration, e.g. `func foo<T...>(values: T...) -> Bool`
-* The type of a parameter in a function type, e.g. `(T...) -> Bool`
-* The type of an unlabeled element in a tuple type, e.g. `(T...)`
+* The type of a parameter in a function declaration, e.g. `func foo<each T>(values: repeat each T) -> Bool`
+* The type of a parameter in a function type, e.g. `(repeat each T) -> Bool`
+* The type of an unlabeled element in a tuple type, e.g. `(repeat each T)`
 
-The restriction where only unlabeled elements of a tuple type may have a pack expansion type is motivated by ergonomics. If you could write `(t: T...)`, then after a substitution `T := {Int, String}`, the substituted type would be `(t: Int, String)`. This would be strange, because projecting the member `t` would only produce the first element. When an unlabeled element has a pack expansion type, like `(T...)`, then after the above substitution you would get `(Int, String)`. You can still write `0` to project the first element, but this is less surprising to the Swift programmer.
+The restriction where only unlabeled elements of a tuple type may have a pack expansion type is motivated by ergonomics. If you could write `(t: repeat each T)`, then after a substitution `T := {Int, String}`, the substituted type would be `(t: Int, String)`. This would be strange, because projecting the member `t` would only produce the first element. When an unlabeled element has a pack expansion type, like `(repeat each T)`, then after the above substitution you would get `(Int, String)`. You can still write `0` to project the first element, but this is less surprising to the Swift programmer.
 
-**Capture:** A type _captures_ a type parameter pack if the type parameter pack appears inside the pattern type, without any intervening pack expansion type. For example, if `T` and `U` are type parameter packs, then `Array<(T) -> U>...` captures both `T` and `U`. However, `Array<(T) -> (U...)>` captures `T`, but *not* `U`. Only the inner pack expansion type `U...` captures `U`. (Indeed, in a valid program, every reference to a type parameter pack is captured by exactly one pack expansion type.)
+**Capture:** A type _captures_ a type parameter pack if the type parameter pack appears inside the pattern type, without any intervening pack expansion type. For example, if `T` and `U` are type parameter packs, then `repeat Array<(each T) -> each U>` captures both `T` and `U`. However, `repeat Array<(each T) -> (repeat each U)>` captures `T`, but *not* `U`. Only the inner pack expansion type `repeat each U` captures `U`. (Indeed, in a valid program, every reference to a type parameter pack is captured by exactly one pack expansion type.)
 
 The captures of the pattern type are a subset of the captures of the pack expansion type itself. In some situations (described in the next section), the pack expansion type might capture a type parameter pack that does not appear in the pattern type.
 
 **Typing rules:** A pack expansion type is _well-typed_ if the pattern type would be well-typed if the captured type parameter packs were replaced by references to scalar type parameters with the same constraints.
 
-For example, if `T` is a type parameter pack subject to the conformance requirement `T: Hashable`, then `Set<T>...` is well-typed.
+For example, if `T` is a type parameter pack subject to the conformance requirement `each T: Hashable`, then `repeat Set<each T>` is well-typed.
 
-However, if `T` were not subject to this conformance requirement, then `Set<T>...` would not be well-typed; the user might substitute `T` with a type pack containing types that do not conform to `Hashable`, like `T := {AnyObject, Int}`, and the substituted type sequence `Set<AnyObject>, Set<Int>` is not well-typed because `Set<AnyObject>` is not well-typed.
+However, if `T` were not subject to this conformance requirement, then `repeat Set<each T>` would not be well-typed; the user might substitute `T` with a type pack containing types that do not conform to `Hashable`, like `T := {AnyObject, Int}`, and the substituted type sequence `Set<AnyObject>, Set<Int>` is not well-typed because `Set<AnyObject>` is not well-typed.
 
 ### Type substitution
 
@@ -163,28 +166,31 @@ Recall that pack expansion types appear in function parameter types and tuple ty
 For example, consider the declaration:
 
 ```swift
-func variadic<T..., U...>(t: T..., u: U...) -> (Int, ((T) -> U)...)
+func variadic<each T, each U>(
+  t: repeat each T, 
+  u: repeat each U
+) -> (Int, repeat ((each T) -> each U))
 ```
 
 Suppose we reference it with the following substitutions:
 
 ```swift
-T := {String, V..., Float}
-U := {NSObject, Array<W>..., NSString}
+T := {String, repeat each V, Float}
+U := {NSObject, repeat Array<each W>, NSString}
 ```
 
 The substituted return type of `variadic` becomes a tuple type with 4 elements:
 
 ```swift
-(Int, (String) -> NSObject, ((V) -> Array<W>)..., (Float) -> NSString)
+(Int, (String) -> NSObject, repeat ((each V) -> Array<each W>), (Float) -> NSString)
 ```
 
-**Formal algorithm:** Suppose `P...` is a pack expansion type with pattern type `P`, that captures a list of type parameter packs `Ti`, and let `S[Ti]` be the replacement type pack for `Ti`. We require that each `S[Ti]` has the same length; call this length `N`. If the lengths do not match, the substitution is malformed. Let `S[Ti][j]` be the `j`th element of `S[Ti]`, where `0 ≤ j < N`.
+**Formal algorithm:** Suppose `repeat P` is a pack expansion type with pattern type `P`, that captures a list of type parameter packs `Ti`, and let `S[Ti]` be the replacement type pack for `Ti`. We require that each `S[Ti]` has the same length; call this length `N`. If the lengths do not match, the substitution is malformed. Let `S[Ti][j]` be the `j`th element of `S[Ti]`, where `0 ≤ j < N`.
 
 The `j`th element of the replacement type sequence is derived as follows:
 
 1. If each `S[Ti][j]` is a scalar type, the element type is obtained by substituting each `Ti` with `S[Ti][j]` in the pattern type `P`.
-2. If each `S[Ti][j]` is a pack expansion type, then `S[Ti][j]` = `Pij...` for some pattern type `Pij`. The element type is the pack expansion type `Qij...`, where `Qij` is obtained by substituting each `Ti` with `Pij` in the pattern type `P`.
+2. If each `S[Ti][j]` is a pack expansion type, then `S[Ti][j]` = `repeat Pij` for some pattern type `Pij`. The element type is the pack expansion type `repeat Qij`, where `Qij` is obtained by substituting each `Ti` with `Pij` in the pattern type `P`.
 3. Any other combination means the substitution is malformed.
 
 When the lengths or structure of the replacement type packs do not match, the substitution is malformed. This situation is diagnosed with an error by checking generic requirements, as discussed below.
@@ -199,17 +205,17 @@ U := {NSObject}
 The following substitutions are malformed because the replacement type packs have incompatible structure, hitting Case 3 above:
 
 ```swift
-T := {V..., Float}
-U := {NSObject, W...}
+T := {repeat each V, Float}
+U := {NSObject, repeat each W}
 ```
 
 To clarify what it means for a type to capture a type parameter pack, consider the following:
 
 ```swift
-func variadic<T..., U...>(t: T..., u: U...) -> ((T) -> (U...)...)
+func variadic<each T, each U>(t: repeat each T, u: repeat each U) -> (repeat (each T) -> (repeat each U))
 ```
 
-The pack expansion type `(T) -> (U...)...` captures `T`, but not `U`. If we apply the following substitutions:
+The pack expansion type `repeat (each T) -> (repeat each U)` captures `T`, but not `U`. If we apply the following substitutions:
 
 ```swift
 T := {Int, String}
@@ -227,12 +233,12 @@ Note that the entire replacement type pack for `U` was flattened in each repetit
 **Concrete pattern type:**  It is possible to construct an expression with a pack expansion type whose pattern type does not capture any type parameter packs. This is called a pack expansion type with a _concrete_ pattern type. For example, consider this declaration:
 
 ```swift
-func counts<T: Collection>(_ t: T...) {
-  let x = (t.count...)
+func counts<each T: Collection>(_ t: repeat each T) {
+  let x = (repeat (each t).count)
 }
 ```
 
-The `count` property on the `Collection` protocol returns `Int`, so the type of the expression `(t.count...)` is written as the one-element tuple type `(Int...)` whose element is the pack expansion type `Int...`. While the pattern type `Int` does not capture any type parameter packs, the pack expansion type must still capture `T` to represent the fact that after expansion, the resulting tuple type has the same length as `T`. This kind of pack expansion type can arise during type inference, but it cannot be written in source.
+The `count` property on the `Collection` protocol returns `Int`, so the type of the expression `(repeat (each t).count)` is written as the one-element tuple type `(repeat Int)` whose element is the pack expansion type `repeat Int`. While the pattern type `Int` does not capture any type parameter packs, the pack expansion type must still capture `T` to represent the fact that after expansion, the resulting tuple type has the same length as `T`. This kind of pack expansion type can arise during type inference, but it cannot be written in source.
 
 ### Type matching
 
@@ -250,7 +256,7 @@ Here, we use the same rule as the "legacy" variadic parameters that exist today.
 Given a function declaration that is well-formed under this rule, type matching then uses the labels to delimit type packs. For example, the following is valid:
 
   ```swift
-  func concat<T..., U...>(t: T..., u: U...) -> (T..., U...)
+  func concat<each T, each U>(t: repeat each T, u: repeat each U) -> (repeat each T, repeat each U)
 
   // T := {Int, Double}
   // U := {String, Array<Int>}
@@ -262,15 +268,15 @@ Given a function declaration that is well-formed under this rule, type matching 
   while the following is not:
 
   ```swift
-  func bad<T..., U...>(t: T..., U...) -> (T..., U...)
-  // error: 'T...' followed by an unlabeled parameter
+  func bad<each T, each U>(t: repeat each T, repeat each U) -> (repeat each T, repeat each U)
+  // error: 'repeat each T' followed by an unlabeled parameter
 
-  bad(1, 2.0, "hi", [3])  // ambiguous; where does T... end and U... start?
+  bad(1, 2.0, "hi", [3])  // ambiguous; where does 'each T' end and 'each U' start?
   ```
 
 #### Type sequence matching
 
-In all other cases, we're matching two type sequences. If either type sequence contains two or more pack expansion types, the match remains _unsolved_, and the type checker attempts to derive substitutions by matching other types before giving up. (This allows a call to `concat()` as defined above to succeed, for example; the match between the contextual return type and `(T..., U...)` remains unsolved, but we are able to derive the substitutions for `T` and `U` from the call argument expressions.)
+In all other cases, we're matching two type sequences. If either type sequence contains two or more pack expansion types, the match remains _unsolved_, and the type checker attempts to derive substitutions by matching other types before giving up. (This allows a call to `concat()` as defined above to succeed, for example; the match between the contextual return type and `(repeac each T, repeat each U)` remains unsolved, but we are able to derive the substitutions for `T` and `U` from the call argument expressions.)
 
 Otherwise, we match the common prefix and suffix as long as no pack expansion types appear on either side. After this has been done, there are three possibilities:
 
@@ -281,30 +287,30 @@ Otherwise, we match the common prefix and suffix as long as no pack expansion ty
 For example:
 
 ```swift
-func variadic<T...>(_: T...) -> (Int, T..., String) {}
+func variadic<each T>(_: repeat each T) -> (Int, repeat each T, String) {}
 
 let fn = { x in variadic(x) as (Int, Double, Float, String) }
 ```
 
-Case 3 covers the case where one of the type sequences has a pack expansion, but the other one is too short; for example, matching `(Int, T..., String, Float)` against `(Int, Float)` leaves you with `(T..., String)` vs `()`, which is invalid.
+Case 3 covers the case where one of the type sequences has a pack expansion, but the other one is too short; for example, matching `(Int, repeat each T, String, Float)` against `(Int, Float)` leaves you with `(repeat each T, String)` vs `()`, which is invalid.
 
 If neither side contains a pack expansion type, Case 3 also subsumes the current behavior as implemented without this proposal, where type sequence matching always requires the two type sequences to have the same length. For example, when matching `(Int, String)` against `(Int, Float, String)`, we end up with `()` vs `(Float)`, which is invalid.
 
-The type checker derives the replacement type for `T` in the call to `variadic()` by matching the contextual return type `(Int, Double, Float, String)` against the declared return type `(Int, T..., String)`. The common prefix `Int` and common suffix `String` successfully match. What remains is the pack expansion type `T...` and the type sequence `Double, Float`. This successfully matches, deriving the substitution `T := {Double, Float}`.
+The type checker derives the replacement type for `T` in the call to `variadic()` by matching the contextual return type `(Int, Double, Float, String)` against the declared return type `(Int, repeat each T, String)`. The common prefix `Int` and common suffix `String` successfully match. What remains is the pack expansion type `repeat each T` and the type sequence `Double, Float`. This successfully matches, deriving the substitution `T := {Double, Float}`.
 
 While type sequence matching is positional, the type sequences may still contain labels if we're matching two tuple types. We require the labels to match exactly when dropping the common prefix and suffix, and then we only allow Case 1 and 2 to succeed if the remaining type sequences do not contain any labels.
 
-For example, matching `(x: Int, T..., z: String)` against `(x: Int, Double, y: Float, z: String)` drops the common prefix and suffix, and leaves you with the pack expansion type `T...` vs the type sequence `Double, y: Float`, which fails because `Double: y: Float` contains a label.
+For example, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Double, y: Float, z: String)` drops the common prefix and suffix, and leaves you with the pack expansion type `repeat each T` vs the type sequence `Double, y: Float`, which fails because `Double: y: Float` contains a label.
 
-However, matching `(x: Int, T..., z: String)` against `(x: Int, Double, Float, z: String)` leaves you with `T...` vs `Double, Float`, which succeeds with `T := {Double, Float}`, because the labels match exactly in the common prefix and suffix, and no labels remain once we get to Case 1 above.
+However, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Double, Float, z: String)` leaves you with `repeat each T` vs `Double, Float`, which succeeds with `T := {Double, Float}`, because the labels match exactly in the common prefix and suffix, and no labels remain once we get to Case 1 above.
 
 #### Open questions
 
 It is still undecided if a substitution that would produce a one-element tuple type should instead produces the element type as a scalar, treating the tuple as if it were merely parentheses.
 
 For example, the following could produce either the one-element tuple `(_: Int)` or the element type `Int`:
-- Substituting `T := {Int}` into `(T...)`.
-- Substituting `T := {}` into `(Int, T...)`.
+- Substituting `T := {Int}` into `(repeat each T)`.
+- Substituting `T := {}` into `(Int, repeat each T)`.
 
 Both approaches have pros and cons.
 
@@ -312,7 +318,7 @@ One downside to exposing one-element tuples is that it increases the surface are
 
 On the other hand, automatically unwrapping one-element tuples in type substitution complicates type matching. If a substitution that would otherwise produce a one-element tuple instead produces the element type, matching a one-element tuple containing a pack expansion against a non-tuple type would introduce an ambiguity.
 
-For example, while matching `(T...)` against `Int` would unambiguously bind `T := {Int}`, consider what happens if we match  `(T...)` against the empty tuple type `()`. There are two possible solutions, `T := {}` where the `T` is bound to the empty type pack, or `T := {()}` where `T` is bound to a one-element type pack containing the empty tuple.
+For example, while matching `(repeat each T)` against `Int` would unambiguously bind `T := {Int}`, consider what happens if we match  `(repeat each T)` against the empty tuple type `()`. There are two possible solutions, `T := {}` where the `T` is bound to the empty type pack, or `T := {()}` where `T` is bound to a one-element type pack containing the empty tuple.
 
 ### Member type parameter packs
 
@@ -323,7 +329,7 @@ Under substitution, a member type parameter pack projects the associated type fr
 For example:
 
 ```swift
-func variadic<T: Sequence>(_: T...) -> (T.Element...)
+func variadic<each T: Sequence>(_: repeat each T) -> (repeat (each T).Element)
 ```
 
 After the substitution `T := {Array<Int>, Set<String>}`, the substituted return type of this function becomes the tuple type `(Int, String)`.
@@ -337,7 +343,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 1. Conformance, superclass, and layout requirements where the subject type is a type parameter pack are interpreted as constraining each element of the replacement type pack:
 
   ```swift
-  func variadic<S...>(_: S...) where S: Sequence { ... }
+  func variadic<each S>(_: repeat each S) where each S: Sequence { ... }
   ```
 
   A valid substitution for the above might replace `S` with `{Array<Int>, Set<String>}`.
@@ -345,7 +351,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 2. A same-type requirement where one side is a type parameter pack and the other type is a concrete type that does not capture any type parameter packs is interpreted as constraining each element of the replacement type pack to _the same_ concrete type:
 
   ```swift
-  func variadic<S...: Sequence, T>(_: S...) where S.Element == Array<T> {}
+  func variadic<each S: Sequence, T>(_: repeat each S) where (each S).Element == Array<T> {}
   ```
 
   This is called a _concrete same-element requirement_.
@@ -355,7 +361,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 3. A same-type requirement where one side is a type parameter pack and the other type is a scalar type parameter is interpreted as constraining each element of the replacement type pack to the type parameter:
 
   ```swift
-  func variadic<S...: Sequence, T...>(_: S...) where S.Element == T {}
+  func variadic<each S: Sequence, each T>(_: repeat each S) where (each S).Element == each T {}
   ```
 
   This is called an _abstract same-element requirement_.
@@ -365,7 +371,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 3. A same-type requirement where one side is a type parameter pack and the other side is a concrete type capturing at least one type parameter pack is interpreted as expanding the concrete type and constraining each element of the replacement type pack to the concrete element type:
 
   ```swift
-  func variadic<S...: Sequence, T...>(_: S...) where S.Element == Array<T> {}
+  func variadic<each S: Sequence, each T>(_: repeat each S) where (each S).Element == Array<each T> {}
   ```
   
   This is called a _concrete same-type pack requirement_.
@@ -375,7 +381,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 3. A same-type requirement where both sides are type parameter packs constrains the elements of the replacement type pack element-wise:
 
   ```swift
-  func append<S...: Sequence, T...: Sequence>(_: S..., _: T...) where T.Element == S.Element {}
+  func append<each S: Sequence, each T: Sequence>(_: repeat each S, _: repeat each T) where (each T).Element == (each S).Element {}
   ```
   
   This is called an _abstract same-type pack requirement_.
@@ -413,12 +419,12 @@ Recall that if the pattern of a pack expansion type contains more than one type 
 
 If a pack expansion type appears in any other position, all type parameter packs captured by the pattern type must already be known to have the same shape, otherwise an error is diagnosed.
 
-For example, `zip` is a generic function, and the return type `((T, U)...)` is a pack expansion type, therefore the same-shape requirement `shape(T) == shape(U)` is automatically inferred:
+For example, `zip` is a generic function, and the return type `(repeat (each T, each U))` is a pack expansion type, therefore the same-shape requirement `shape(T) == shape(U)` is automatically inferred:
 
 ```swift
-// Return type infers 'where length(T...) == length(U...)'
-func zip<T..., U...>(firsts: T..., seconds: U...) -> ((T, U)...) {
-  return ((firsts, seconds)...)
+// Return type infers 'where length(T) == length(U)'
+func zip<each T, each U>(firsts: repeat each T, seconds: repeat each U) -> (repeat (each T, each U)) {
+  return (repeat (each firsts, each seconds))
 }
 
 zip(firsts: 1, 2, seconds: "hi", "bye") // okay
@@ -428,19 +434,19 @@ zip(firsts: 1, 2, seconds: "hi") // error; length requirement is unsatisfied
 Here is an example where the same-shape requirement is not inferred:
 
 ```swift
-func foo<T..., U...>(t: T..., u: U...) {
-  let tup: ((T, U)...) = /* whatever */
+func foo<each T, each U>(t: repeat each T, u: repeat each U) {
+  let tup: (repeat (each T, each U)) = /* whatever */
 }
 ```
 
-The type annotation of `tup` contains a pack expansion type `(T, U)...`, which is malformed because the requirement `count(T) == count(U)` is unsatisfied. This pack expansion type is not subject to requirement inference because it does not occur in one of the above positions.
+The type annotation of `tup` contains a pack expansion type `repeat (each T, each U)`, which is malformed because the requirement `count(T) == count(U)` is unsatisfied. This pack expansion type is not subject to requirement inference because it does not occur in one of the above positions.
 
 #### Open questions
 
 While type packs cannot be written directly, a requirement where both sides are concrete types is desugared using the type matching algorithm, therefore it will be possible to write down a requirement that constraints a type parameter pack to a concrete type pack, unless some kind of restriction is imposed:
 
 ```swift
-func append<S...: Sequence>(_: S..., _: T...) where (S.Element...) == (Int, String) {}
+func append<each S: Sequence>(_: repeat each S, _: repeat each T) where (each S).Element == (Int, String) {}
 ```
 
 Furthermore, since the same-type requirement implies a same-shape requirement, we've actually implicitly constrained `T` to having a length of 2 elements, without knowing what those elements are.
@@ -448,11 +454,11 @@ Furthermore, since the same-type requirement implies a same-shape requirement, w
 This introduces theoretical complications. In the general case, same-type requirements on type parameter packs allows encoding arbitrary systems of integer linear equations:
 
 ```swift
-// shape(Q...) = 2 * shape(R...) + 1
-// shape(Q...) = shape(S...) + 2
-func solve<Q..., R..., S...>(q: Q..., r: R..., s: S...) 
-    where (Q...) == (Int, R..., R...), 
-          (Q...) == (S..., String, Bool) { }
+// shape(Q) = 2 * shape(R) + 1
+// shape(Q) = shape(S) + 2
+func solve<each Q, each R, each S>(q: repeat each Q, r: repeat each R, s: repeat eachS) 
+    where (repeat each Q) == (Int, repeat each R, repeat each R), 
+          (repeat each Q) == (repeat each S, String, Bool) { }
 ```
 
 While type-level linear algebra is interesting, we may not ever want to allow this in the language to avoid significant implementation complexity, and we definitely want to disallow this expressivity in this proposal.
@@ -463,28 +469,28 @@ However, how to impose restrictions on same-shape and same-type requirements is 
 * An abstract shape that is specific to a pack parameter
 * A concrete shape that is composed of the scalar shape and abstract shapes
 
-For example, the pack `{Int, T..., U}` has a concrete shape that consists of two single elements and one abstract shape. We could impose restrictions where packs that are unified together must have the same shape, which may reduce the problem to “shape equivalence classes” rather than an arbitrary system of linear equations. Giving packs a statically known structure may also be useful for destructuring packs in generic contexts, which is a possible future direction.
+For example, the pack `{Int, repeat each T, U}` has a concrete shape that consists of two single elements and one abstract shape. We could impose restrictions where packs that are unified together must have the same shape, which may reduce the problem to “shape equivalence classes” rather than an arbitrary system of linear equations. Giving packs a statically known structure may also be useful for destructuring packs in generic contexts, which is a possible future direction.
 
 This aspect of the language can evolve in a forward-compatible manner. To begin with, we can start with the simplest form of same-shape requirements, where each type parameter pack has an abstract shape, and same-shape requirements merge equivalence classes of abstract shapes. Any attempt to define a same-shape requirement involving a concrete type can be diagnosed as a *conflict*, much like we reject conflicting requirements such as `where T == Int, T == String` today. Over time, some restrictions can be lifted, while others remain, as different use-cases for type parameter packs are revealed.
 
 ### Value parameter packs
 
-A _value parameter pack_ represents zero or more function arguments, and it is declared with a function parameter that has a pack expansion type. In the following declaration, the function parameter `values` is a value parameter pack that receives a _value pack_ consisting of zero or more argument values from the call site:
+A _value parameter pack_ represents zero or more function arguments, and it is declared with a function parameter that has a pack expansion type. In the following declaration, the function parameter `value` is a value parameter pack that receives a _value pack_ consisting of zero or more argument values from the call site:
 
 ```swift
-func tuplify<T...>(_ values: T...) -> (T...)
+func tuplify<each T>(_ value: repeat each T) -> (repeat each T)
 
-_ = tuplify() // T := {}, values := {}
-_ = tuplify(1) // T := {Int}, values := {1}
-_ = tuplify(1, "hello", [Foo()]) // T := {Int, String, [Foo]}, values := {1, "hello", [Foo()]}
+_ = tuplify() // T := {}, value := {}
+_ = tuplify(1) // T := {Int}, value := {1}
+_ = tuplify(1, "hello", [Foo()]) // T := {Int, String, [Foo]}, value := {1, "hello", [Foo()]}
 ```
 
-**Syntactic validity:** A value parameter pack can only be referenced from a pack expansion expression. A pack expansion expression is written as `expr...`, where `expr` is an expression containing one or more value parameter packs or type parameter packs. Pack expansion expressions can appear in any position that naturally accepts a comma-separated list of expressions. This includes the following:
+**Syntactic validity:** A value parameter pack can only be referenced from a pack expansion expression. A pack expansion expression is written as `repeat expr`, where `expr` is an expression containing one or more value parameter packs or type parameter packs. Pack expansion expressions can appear in any position that naturally accepts a comma-separated list of expressions. This includes the following:
 
-* Call arguments, e.g. `generic(values...)`
-* Subscript arguments, e.g. `subscriptable[indices...]`
-* The elements of a tuple value, e.g. `(values...)`
-* The elements of an array literal, e.g. `[values...]`
+* Call arguments, e.g. `generic(repeat each value)`
+* Subscript arguments, e.g. `subscriptable[repeat each index]`
+* The elements of a tuple value, e.g. `(repeat each value)`
+* The elements of an array literal, e.g. `[repeat each value]`
 
 Pack expansion expressions can also appear in an expression statement at the top level of a brace statement. In this case, the semantics are the same as scalar expression statements; the expression is evaluated for its side effect and the results discarded.
 
@@ -494,7 +500,7 @@ Note that pack expansion expressions can also reference _type_ pack parameters, 
 
 Furthermore, a pack expansion expression also captures all type parameter packs captured by the types of its captured value parameter packs.
 
-For example, say that `x` and `y` are both value parameter packs and `T` is a type parameter pack, and consider the pack expansion expression `foo(x, T.self, (y...))...`. This expression captures both the value parameter pack `x` and type parameter pack `T`, but it does not capture `y`, because `y` is captured by the inner pack expansion expression `y...`. Additionally, if `x` has the type `Foo<U, (V...)>`, then our expression captures `U`, but not `V`, because again, `V` is captured by the inner pack expansion type `V...`.
+For example, say that `x` and `y` are both value parameter packs and `T` is a type parameter pack, and consider the pack expansion expression `repeat foo(each x, (each T).self, (repeat each y))`. This expression captures both the value parameter pack `x` and type parameter pack `T`, but it does not capture `y`, because `y` is captured by the inner pack expansion expression `repeat each y`. Additionally, if `x` has the type `Foo<U, (repeat each V)>`, then our expression captures `U`, but not `V`, because again, `V` is captured by the inner pack expansion type `repeat each V`.
 
 **Typing rules:** For a pack expansion expression to be well-typed, two conditions must hold:
 
@@ -509,15 +515,15 @@ Assuming the above hold, the type of a pack expansion expression is defined to b
 For example, pack expansion expressions can be used to forward value parameter packs to other functions:
 
 ```swift
-func tuplify<T...>(_ t: T...) -> (T...) {
-  return (t...)
+func tuplify<each T>(_ t: repeat each T) -> (repeat each T) {
+  return (repeat each t)
 }
 
-func forward<U...>(u: U...) {
-  let _ = tuplify(u...) //  T := {U...}
-  let _ = tuplify(u..., 10) // T := {U..., Int}
-  let _ = tuplify(u..., u...) // T := {U..., U...}
-  let _ = tuplify([u]...) // T := {Array<U>...}
+func forward<each U>(u: repeat each U) {
+  let _ = tuplify(repeat each u) //  T := {repeat each U}
+  let _ = tuplify(repeat each u, 10) // T := {repeat each U, Int}
+  let _ = tuplify(repeat each u, repeat each u) // T := {repeat each U, repeat each U}
+  let _ = tuplify(repeat [each u]) // T := {repeat Array<each U>}
 }
 ```
 
@@ -526,90 +532,12 @@ func forward<U...>(u: U...) {
 The notion of a value parameter pack readily generalizes to a local variable of pack expansion type, for example:
 
 ```swift
-func variadic<T...>(t: T...) {
-  let tt: T... = t...
+func variadic<each T>(t: repeat each T) {
+  let tt: repeat each T = repeat each t
 }
 ```
 
 References to `tt` have the same semantics as references to `t`, and must only appear inside other pack expansion expressions.
-
-### Ambiguities
-
-#### Pack expansion vs non-pack variadic parameter
-
-Using `...` for pack expansions in parameter lists introduces an ambiguity with the use of `...` to indicate a non-pack variadic parameter. This ambiguity can arise when expanding a type parameter pack into the parameter list of a function type. For example:
-
-```
-struct X<U...> { }
-
-struct Ambiguity<T...> {
-  struct Inner<U...> {
-    typealias A = X<((T...) -> U)...>
-  }
-}
-```
-
-Here, the `...` within the function type `(T...) -> U` could mean one of two things:
-
-1. The `...` defines a (non-pack) variadic parameter, so for each element `Ti` in the parameter pack, the function type has a single (non-pack) variadic parameter of type `Ti`, i.e., `(Ti...) -> Ui`. So, `Ambiguity<String, Character>.Inner<Float, Double>.A` would be equivalent to `X<(String...) -> Float, (Character...) -> Double>`.
-2. The `...` expands the parameter pack `T` into individual parameters for the function type, and no pack parameters remain after expansion. Only `U` is expanded by the outer `...`. So, `Ambiguity<String, Character>.Inner<Float, Double>.A` would be equivalent to `X<(String, Character) -> Float, (String, Character) -> Double>`.
-
-To resolve this ambiguity, the pack expansion interpretation of `...` is preferred in a function type. This corresponds with the second meaning above. It is still possible to write code that produces the first meaning, by abstracting the creation of the function type into a `typealias` that does not involve any parameter packs:
-
-```swift
-struct X<U...> { }
-
-struct AmbiguityWithFirstMeaning<T...> {
-  struct Inner<U...> {
-    typealias VariadicFn<V, R> = (V...) -> R
-    typealias A = X<VariadicFn<T, U>...>
-  }
-}
-```
-
-Note that this ambiguity resolution rule relies on the ability to determine which names within a type refer to parameter packs. Within this proposal, only generic parameters can be parameter packs and occur within a function type, so normal (unqualified) name lookup can be used to perform disambiguation fairly early. However, there are a number of potential extensions that would make this ambiguity resolution harder. For example, if associated types could be parameter packs, then one would have to reason about member type references (e.g., `A.P`) as potentially being parameter packs.
-
-#### Pack expansion vs postfix closed-range operator
-
-Using `...` as the value expansion operator introduces an ambiguity with the postfix closed-range operator. This ambiguity can arise when `...` is applied to a value pack in the pattern of a value pack expansion, and the values in the pack are known to have a postfix closed-range operator, such as in the following code which passes a list of tuple arguments to `acceptAnything`:
-
-```swift
-func acceptAnything<T...>(_: T...) {}
-
-func ranges<T..., U...>(values: T..., otherValues: U...) where T: Comparable, shape(T...) == shape(U...) {
-  acceptAnything((values..., otherValues)...) 
-}
-```
-
-In the above code, `values...` in the expansion pattern could mean either:
-
-1. The postfix `...` operator is called on each element in `values`, and the result is expanded pairwise with `otherValues` such that each argument has type `(PartialRangeFrom<T>, U)`
-2. `values` is expanded into each tuple passed to `acceptAnything`, with each element of `otherValues` appended onto the end of the tuple, and each argument has type `(T... U)`
-
-Like the ambiguity with non-pack variadic parameters, the pack expansion interpretation of `...` is preferred in expressions. This corresponds to the second meaning above. It is still possible to write code with the first meaning, by factoring out the call to the postfix closed-range operator into a function:
-
-```swift
-func acceptAnything<T...>(_: T...) {}
-
-func ranges<T..., U...>(values: T..., otherValues: U...) where T: Comparable, shape(Ts...) == shape(Us...) {
-  func range<C: Comparable>(from comparable: C) -> PartialRangeFrom<C> {
-    return comparable...
-  }
-  
-  acceptAnything((range(from: values), otherValues)...)
-}
-```
-
-#### Pack expansion vs operator `...>`
-
-Another ambiguity arises when a pack expansion type `T...` appears as the final generic argument in the generic argument list of a generic type in expression context:
-
-```swift
-let foo = Foo<T...>()
-```
-
-Here, the ambiguous parse is with the token `...>`. We propose changing the grammar so that `...>` is no longer considered as a single token, and instead parses as the token `...` followed by the token `>`.
-
 
 ## Effect on ABI stability
 
@@ -621,24 +549,60 @@ This is still an area of open discussion, but we anticipate that generic functio
 
 Under this alternative design, packs are just tuples with abstract elements. This model is attractive because it adds expressivity to all tuple types, but there are some significant disadvantages that make packs hard to work with:
 
-* There is a fundamental ambiguity between forwarding a value pack and passing it as a single tuple value. This could be resolved by requiring an expansion operator `...` to forward a value pack, but it would still be valid in many cases to pass the tuple without flattening the elements. This may become a footgun, because you can easily forget to expand a pack, which will become more problematic when tuples can conform to protocols.
-* Because of the above issue, there is no clear way to zip packs. Using a tuple in the pattern of a pack expansion means the entire tuple would appear in each element in the expansion. This could be solved by having an explicit builtin to treat a tuple as a pack, which leads us back to needing a distinction between packs and tuples.
+* There is a fundamental ambiguity between forwarding a tuple with its elements flattened and passing a tuple as a single tuple value. This could be resolved by requiring a splat operator to forward the flattened elements, but it would still be valid in many cases to pass the tuple without flattening the elements. This may become a footgun, because you can easily forget to splat a tuple, which will become more problematic when tuples can conform to protocols.
+* Because of the above issue, there is no clear way to zip tuples. This could be solved by having an explicit builtin to treat a tuple as a pack, which leads us back to needing a distinction between packs and tuples.
 
 The pack parameter design where packs are distinct from tuples also does not preclude adding flexibility to all tuple types. Converting tuples to packs and expanding tuple values are both useful features and are detailed in the future directions.
 
-### Syntax alternatives to `...`
+### Syntax alternatives to `repeat each`
 
-Choosing an alternative syntax may alleviate ambiguities with existing meanings of `...` in Swift. However, other syntax suggestions do not evoke “list of types or values” in the same way that `...` does. In linguistics, an ellipsis means that words were omitted because they are already understood from context. The use of ellipsis for parameter pack declarations and expansions fits into the linguistic meaning of `...`:
+The `repeat each` syntax produces fairly verbose variadic generic code.
+
+#### The `...` operator
+
+A previous version of this proposal used `...` as the pack expansion operator with no explicit syntax for pack elements in pattern types. This syntax choice follows precedence from C++ variadic templates and non-pack variadic parameters in Swift. However, there are some serious downsides of this choice, because ... is already a postfix unary operator in the Swift standard library that is commonly used across existing Swift code bases, which lead to the following ambiguities:
+
+1. **Pack expansion vs non-pack variadic parameter.** Using `...` for pack expansions in parameter lists introduces an ambiguity with the use of `...` to indicate a non-pack variadic parameter. This ambiguity can arise when expanding a type parameter pack into the parameter list of a function type. For example:
 
 ```swift
-func prepend<First, Rest...>(first: First, to rest: Rest...) -> (First, Rest...) {
-  return (first, rest...)
-} 
+struct X<U...> { }
+
+struct Ambiguity<T...> {
+  struct Inner<U...> {
+    typealias A = X<((T...) -> U)...>
+  }
+}
 ```
 
-In the above code, each appearance of `...` signals that values or types are omitted because the operand is understood to be a pack which has multiple elements. Finally, `...` will be familiar to programmers who have used variadic templates in C++, and Swift programmers already understand `...` to mean multiple arguments due to its existing use for non-pack variadic parameters.
+Here, the `...` within the function type `(T...) -> U` could mean one of two things:
 
-The following sections outline the alternative spellings for parameter packs and pack expansions that were considered.
+* The `...` defines a (non-pack) variadic parameter, so for each element `Ti` in the parameter pack, the function type has a single (non-pack) variadic parameter of type `Ti`, i.e., `(Ti...) -> Ui`. So, `Ambiguity<String, Character>.Inner<Float, Double>.A` would be equivalent to `X<(String...) -> Float, (Character...) -> Double>`.
+* The `...` expands the parameter pack `T` into individual parameters for the function type, and no pack parameters remain after expansion. Only `U` is expanded by the outer `...`. So, `Ambiguity<String, Character>.Inner<Float, Double>.A` would be equivalent to `X<(String, Character) -> Float, (String, Character) -> Double>`.
+
+2. **Pack expansion vs postfix closed-range operator.** Using `...` as the value expansion operator introduces an ambiguity with the postfix closed-range operator. This ambiguity can arise when `...` is applied to a value pack in the pattern of a value pack expansion, and the values in the pack are known to have a postfix closed-range operator, such as in the following code which passes a list of tuple arguments to `acceptAnything`:
+
+```swift
+func acceptAnything<T...>(_: T...) {}
+
+func ranges<T..., U...>(values: T..., otherValues: U...) where T: Comparable, shape(T...) == shape(U...) {
+  acceptAnything((values..., otherValues)...) 
+}
+```
+
+In the above code, `values...` in the expansion pattern could mean either:
+
+* The postfix `...` operator is called on each element in `values`, and the result is expanded pairwise with `otherValues` such that each argument has type `(PartialRangeFrom<T>, U)`
+* `values` is expanded into each tuple passed to `acceptAnything`, with each element of `otherValues` appended onto the end of the tuple, and each argument has type `(T... U)`
+
+
+3. **Pack expansion vs operator `...>`.** Another ambiguity arises when a pack expansion type `T...` appears as the final generic argument in the generic argument list of a generic type in expression context:
+
+```swift
+let foo = Foo<T...>()
+```
+
+Here, the ambiguous parse is with the token `...>`. We propose changing the grammar so that `...>` is no longer considered as a single token, and instead parses as the token `...` followed by the token `>`.
+
 
 #### Another operator
 
@@ -656,16 +620,6 @@ The downsides to postfix `*` include:
 * `*` evokes pointer types / a dereferencing operator to programmers familiar with other languages including C/C++, Go, Rust, etc.
 * Choosing another operator does not alleviate the ambiguities in expressions, because values could also have a postfix `*` operator or any other operator symbol, leading to the same ambiguity.
 
-#### Pack declaration and expansion keywords
-
-Another alternative is to use keywords for pack declarations and pack expansions, e.g.
-
-```swift
-func zip<pack T, pack U>(firsts: expand T, seconds: expand U) -> (expand (T, U)) {
-  return (expand (firsts, seconds))
-}
-```
-
 The downsides to introducing keywords are:
 
 * Though the keywords are more verbose than an operator, using the `expand` keyword in expression context is still fairly subtle because it looks just like a function call rather than a built in expansion operation.
@@ -673,19 +627,21 @@ The downsides to introducing keywords are:
 
 #### Magic builtin `map` method
 
-A previous design for variadic generics modeled packs as abstract tuples and used a magic `map` method for value pack expansions:
+The prevlence of `map` and `zip` in Swift makes this syntax an attractive option for variadic generics:
 
 ```swift
-func wrap<T...>(_ values: T...) -> (Wrapped<T>...) {
+func wrap<each T>(_ values: repeat each T) -> (repeat Wrapped<each T>) {
   return values.map { Wrapped($0) }
 }
 ```
 
 The downsides of a magic `map` method are:
 
-* There are two very different models for working with packs; the same conceptual expansion has very different spellings at the type and value level, `Wrapped<T>...` vs `values.map { Wrapped($0) }`.
-* Magic map can only be applied to one pack at a time, leaving no clear way to zip packs without adding other builtins.
+* `.map` isn't only used for mapping elements to a new element, it's also used for direct forwarding, which is very different to the way `.map` is used today. An old design exploration for variadic generics used a map-style builtin, but allowed exact forwarding to omit the `.map { $0 }`. Privileging exact forwarding would be pretty frustrating, because you would need to add `.map { $0 }` as soon as you want to append other elements to either side of the pack expansion, and it wouldn't work for other values that you might want to turn into packs such as tuples or arrays.
+* There are two very different models for working with packs; the same conceptual expansion has very different spellings at the type and value level, `repeat Wrapped<each T>` vs `values.map { Wrapped($0) }`.
+* Magic map can only be applied to one pack at a time, leaving no clear way to zip packs without adding other builtins. A `zip` builtin would also be misleading, because expanding two packs in parallel does not need to iterate over the packs twice, but using `zip(t, u).map { ... }` looks that way.
 * The closure-like syntax is misleading because it’s not a normal closure that you can write in the language. This operation is also very complex over packs with any structure, including concrete types, because the compiler either needs to infer a common generic signature for the closure that works for all elements, or it needs to separately type check the closure once for each element type.
+* `map` would still need to be resolved via overload resolution amongst the existing overloads, so this approach doesn't help much with the type checking issues that `...` has.
 
 ## Future directions
 
@@ -697,76 +653,76 @@ This proposal only supports type parameter packs on functions. A complementary p
 
 This proposal only supports the expansion operator on type parameter packs and value parameter packs, but there are other values that represent a list of zero or more values that the expansion operator would be useful for, including tuples and arrays. It would be desirable to introduce a new kind of expression that receives a scalar value and produces a value of pack expansion type.
 
-There are two possible interpretations, which will probably require two syntaxes; here, we're going to use the straw-man `.expand` and `.expand...`:
+Here, we use the straw-man syntax `.element` for accessing tuple elements as a pack:
 
 ```swift
-func foo<T, U...>(T, U...) {}
+func foo<each T, each U>(
+  _ t: repeat each T,
+  _ u: repeat each U
+) {}
 
-func bar1<T..., U...>(t: (T...), u: (U...)) {
-  foo(t.expand, u.expand)...
+func bar1<each T, each U>(
+  t: (repeat each T),
+  u: (repeat each U)
+) {
+  repeat foo(each t.element, each u.element)
 }
 
-func bar2<T..., U...>(t: (T...), u: (U...)) {
-  foo(t.expand, u.expand...)...
+func bar2<each T, each U>(
+  t: (repeat each T),
+  u: (repeat each U)
+) {
+  repeat foo(each t.element, repeat each u.element)
 }
 ```
 
-Here, `bar1(t: 1, 2, u: "a", "b")` will evaluate:
+Here, `bar1(t: (1, 2), u: ("a", "b"))` will evaluate:
 
 ```swift
 foo(1, "a")
 foo(2, "b")
 ```
 
-While `bar2(t: 1, 2, u: "a", "b")` will evaluate:
+While `bar2(t: (1, 2), u: ("a", "b"))` will evaluate:
 
 ```swift
-foo(1, "a", "b")...
-foo(2, "a", "b")...
+foo(1, "a", "b")
+foo(2, "a", "b")
 ```
 
 The distinction can be understood in terms of our notion of _captures_ in pack expansion expressions.
 
 ### Pack destructuring operations
 
-In Swift’s variadic generics model, packs will necessarily have an abstract structure. However, if the structure of a pack is statically known, the compiler can allow that pack to be destructured. For example:
+The statically-known shape of a pack can enable destructing packs with concrete shape into the component elements:
 
 ```swift
-func prepend<First, Rest...>(first: First, to rest: Rest...) -> (First, Rest...) {
-  return (first, rest...)
+struct List<each Element> {
+  let element: repeat each Element
 }
+
+extension List {
+  func firstRemoved<First, each Rest>() -> List<repeat each Rest> where (repeat each Element) == (First, repeat each Rest) {
+    let (first, rest) = (repeat each element)
+    return List(repeat each rest)
+  }
+}
+
+let list = List(1, "Hello", true)
+let firstRemoved = list.firstRemoved() // 'List("Hello", true)'
 ```
 
-The above `prepend` function is known to return a tuple consisting of one element followed by a pack expansion. This information could be used to allow destructuring the result to pattern match the first element and the rest of the elements, e.g.:
-
-```swift
-func prependAndDestructure<First, Rest...>(first: First, to rest: Rest...) {
-  let (first, rest...) = prepend(first: first, to: rest)...
-}
-```
+The body of `firstRemoved` decomposes `Element` into the components of its shape -- one value of type `First` and a value pack of type `repeat each Rest` -- effectively removing the first element from the list.
 
 ### Tuple conformances
 
 Parameter packs, the above future directions, and a syntax for declaring tuple conformances based on [parameterized extensions](https://github.com/apple/swift/blob/main/docs/GenericsManifesto.md#parameterized-extensions) over non-nominal types enable implementing custom tuple conformances:
 
 ```swift
-extension<T...> (T...): Equatable where T: Equatable {
+extension<each T: Equatable> (repeat each T): Equatable {
   public static func ==(lhs: Self, rhs: Self) -> Bool {
-    let lhsPack: T... = lhs...
-    let rhsPack: T... = rhs...
-    for (l, r) in (lhsPack, rhsPack)... {
+    for (l, r) in repeat (each lhs.element, each rhs.element) {
       guard l == r else { return false }
-    }
-    return true
-  }
-}
-
-extension<T...> (T...): Comparable where T: Comparable {
-  public static func <(lhs: Self, rhs: Self) -> Bool { 
-    let lhsPack: T... = lhs...
-    let rhsPack: T... = rhs...
-    for (l, r) in (lhsPack, rhsPack)... {
-      guard l < r else { return false }
     }
     return true
   }
