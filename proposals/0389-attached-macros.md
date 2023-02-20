@@ -44,7 +44,7 @@ The use of the macro is attached to `fetchAvatar`, and generates a *peer* declar
 /// Expansion of the macro produces the following.
 func fetchAvatar(_ username: String, onCompletion: @escaping (Image?) -> Void) {
   Task.detached {
-    completionHandler(await fetchAvatar(username))
+    onCompletion(await fetchAvatar(username))
   }
 }
 ```
