@@ -416,7 +416,7 @@ When SwiftPM downloads a package release from registry via the
   1. Retrieve security settings from the user-level `registries.json`.
   1. Check if the package is allowed based on security settings.
   1. Validate the signature according to the signature format if package is signed.
-  1. Some certificates allow SwiftPM to extract additional information that can drive additional security features. For packages signed with these certificates, SwiftPM will apply additional, package-level TOFU by extracting signing identity from the certificate and enforcing the same signing identity across all signed versions of a package. 
+  1. Some certificates allow SwiftPM to extract additional information that can drive additional security features. For packages signed with these certificates, SwiftPM will apply additional, publisher-level TOFU by extracting signing identity from the certificate and enforcing the same signing identity across all signed versions of a package. 
 
 ### New `package-registry publish` subcommand
 
@@ -613,10 +613,10 @@ that would require single-file download (i.e., SwiftPM can download the
 source archive and signature separately), we have decided to take the approach
 covered in previous sections of this proposal. 
 
-### Use key in certificate as signing identity for local package-level TOFU
+### Use key in certificate as signing identity for local publisher-level TOFU
 
 We considered using the key in a certificate as signing identity for 
-[local package-level TOFU](#local-tofu) (i.e., different versions of a package must 
+[local publisher-level TOFU](#local-tofu) (i.e., different versions of a package must 
 have the same signing identity). However, since key can change easily 
 (e.g., lost key, key rotation, etc.), all users of the package must reset data 
 used for local TOFU each time or else TOFU check would fail, which can introduce 
@@ -655,7 +655,7 @@ determining how those identities are provisioned and authorized.
 
 A future Swift evolution proposal can provide specification of a certificate 
 from which signing identity can be extracted, such that more certificates can 
-be used for [local package-level TOFU](#local-tofu), which provides an extra layer of
+be used for [local publisher-level TOFU](#local-tofu), which provides an extra layer of
 trust on top of checksum TOFU done at the package release level.
 
 ### Timestamping and Countersignatures
