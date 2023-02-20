@@ -78,6 +78,23 @@ func < <each Element: Comparable>(lhs: (repeat each Element), rhs: (repeat each 
 
 This proposal adds support for generic functions which abstract over a variable number of type parameters. While this proposal is useful on its own, there are many future directions that build upon this concept. This is the first step toward equipping Swift programmers with a set of tools that enable variadic generic programming.
 
+Parameter packs are the core concept that facilitates abstracting over a variable number of parameters. A pack is a new kind of type-level and value-level entity that represents a list of types or values, and it has an abstract length. A type parameter pack stores a list of zero or more type parameters, and a value parameter pack stores a list of zero or more value parameters. A type parameter pack is declared in angle brackets using the `each` contextual keyword:
+
+```swift
+// 'S' is a type parameter pack where each pack element conforms to 'Sequence'.
+func zip<each S: Sequence>(...)
+```
+
+A parameter pack itself is not a first-class value or type, but the elements of a parameter pack can be used anywhere that naturally accepts a comma-separated list of values or types using _pack expansions_. A pack expansion unpacks the elements of a pack into a comma-separated list, and elements can be appended to either side of a pack expansion by writing more values in the comma-separated list.
+
+A pack expansion consists of the `repeat` keyword followed by a type or an expression. The type or expression that `repeat` is applied to is called the _repetition pattern_. The repetition pattern must contain pack references. Similarly, pack references can only appear inside reptition patterns and generic requirements:
+
+```swift
+func zip<each S>(_ sequence: repeat each S) where each S: Sequence
+```
+
+Given a concrete pack substitution, the pattern is repeated for each element in the substituted pack. If `S` is substituted with `Array<Int>, Set<String>`, then `repeat Optional<each S>` will repeat the pattern `Optional<each S>` for each element in the substitution to produce `Optional<Array<Int>>, Optional<Set<String>>`.
+
 Here are the key concepts introduced by this proposal:
 
 - Under the new model, all existing types and values in the language become _scalar types_ and _scalar values_.
@@ -88,28 +105,31 @@ Here are the key concepts introduced by this proposal:
 - A _value parameter pack_ is a function parameter or local variable declared with a pack expansion type.
 - A _pack expansion expression_ is a new kind of expression whose type is a pack expansion type. Written as `repeat each expr`, where `expr` is an expression referencing one or more value parameter packs.
 
-The following example demonstrates these concepts:
+The following example demonstrates these concepts together:
 
 ```swift
-// Construct a new tuple by prepending an element to beginning of the given tuple
-func prepend<First, each Rest>(
-  value: First, 
-  to rest: repeat each Rest
-) -> (First, repeat each Rest) {
-  return (value, repeat each rest)
+struct Pair<First, Second> {
+  init(_ first: First, _ second: Second)
 }
 
-let value = prepend(value: 1, rest: 2.0, "hello")
-// value is (1, 2.0, "hello")
+func makePairs<each First, each Second>(
+  firsts first: repeat each First,
+  seconds second: repeat each Second
+) -> (repeat Pair<each First, each Second>) {
+  return (repeat Pair(each first, each second))
+}
+
+let pairs = makePairs(firsts: 1, "hello" seconds: true, 1.0)
+// 'pairs' is '(Pair(1, true), Pair("hello", 2.0))'
 ```
 
-The function declares two type parameters, `First` and `Rest`. `Rest` is a type parameter pack declaration. The value parameter pack `rest` has the pack expansion type `repeat each Rest`. The return type `(First, repeat each Rest)` is a tuple type with two elements, where the second element is again the pack expansion type `repeat each Rest`.
+The `makrPairs` function declares two type parameter packs, `First` and `Second`. The value parameter packs `first` and `second` have the pack expansion types `repeat each First` and `repeat each Second`, respectively. The return type `(repeat Pair<each First, each Second>)` is a tuple type where each element is a `Pair` of elements from the `First` and `Second` parameter packs at the given tuple position.
 
-Inside the body of `prepend()`, `repeat each rest` is a pack expansion expression referencing the value parameter pack `rest`.
+Inside the body of `makePairs()`, `repeat Pair(each first, each second)` is a pack expansion expression referencing the value parameter packs `first` and `second`.
 
-The call to `prepend()` substitutes `Int` for `First`, and the type pack `{Double, String}` for `Rest`. These substitutions are deduced by the _type matching rules_, described below. The function is called with two arguments, `value` is the value `1`, and `rest` is the value pack `{2.0, "hello"}`.
+The call to `makrPairs()` substitutes the type pack `{Int, Bool}` for `First`, and the type pack `{String, Double}` for `Second`. These substitutions are deduced by the _type matching rules_, described below. The function is called with four arguments; `first` is the value pack `{1, "hello"}`, and `second` is the value pack `{true, 2.0}`.
 
-The substituted return type is the tuple type with three elements `(Int, Double, String)`, and the returned value is the tuple value with three elements `(1, 2.0, "hello")`.
+The substituted return type is the tuple type with two elements `(Pair<Int, Bool>, Pair<String, Double>)`, and the returned value is the tuple value with two elements `(Pair(1, true), Pair("hello", 2.0))`.
 
 ## Detailed design
 
