@@ -487,6 +487,18 @@ Different formats of destination bundles can be considered, but we don't think t
 from the proposed one. If they were different, this would complicate bundle distribution scenarios for users who want to
 publish their own artifact bundles with executables, as defined in SE-0305.
 
+## Making Destination Bundles Fully Self-Contained
+
+Some users expressed interest in self-contained destination bundles that ignore the value of `PATH` environment variable
+and prevent launching any executables from outside of a bundle. So far in our practice we haven't seen any problems
+caused by the use of executables from `PATH`. Quite the opposite, we think most destinations would want to reuse as many
+tools from `PATH` as possible, which would allow making destination bundles much smaller. For example as of Swift 5.7,
+on macOS `clang-13` binary takes ~360 MB, `clangd` ~150 MB, and `swift-frontend` ~420 MB. Keeping copies of these
+binaries in every destination bundle seems quite redundant when existing binaries from `PATH` can be easily reused.
+Additionally, we find that preventing tools from being launched from arbitrary paths can't be technically enforced
+without sandboxing, and there's no cross-platform sandboxing solution available for SwiftPM. Until such sandboxing
+solution is available, we'd like to keep the existing approach, where setting `PATH` behaves in a predictable way.
+
 ## Future Directions
 
 ### Identifying Platforms with Dictionaries of Properties
