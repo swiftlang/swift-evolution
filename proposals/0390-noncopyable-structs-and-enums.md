@@ -1,9 +1,10 @@
 # `@noncopyable` structs and enums
 
-* Proposal: [SE-NNNN](NNNN-noncopyable-structs-and-enums.md)
+* Proposal: [SE-0390](0390-noncopyable-structs-and-enums.md)
 * Authors: [Joe Groff](https://github.com/jckarter), [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick), [Kavon Farvardin](https://github.com/kavon)
-* Review Manager: TBD
-* Status: **Partially implemented** as `@_moveOnly` with `-enable-experimental-move-only`
+* Review Manager: [Stephen Canon](https://github.com/stephentyrone)
+* Status: **Active review (February 21 ... March 7, 2023)**
+* Implementation: on main as `@_moveOnly` behind the `-enable-experimental-move-only` option
 
 ## Introduction
 
