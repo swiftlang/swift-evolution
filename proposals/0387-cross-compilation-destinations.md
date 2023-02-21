@@ -497,7 +497,8 @@ on macOS `clang-13` binary takes ~360 MB, `clangd` ~150 MB, and `swift-frontend`
 binaries in every destination bundle seems quite redundant when existing binaries from `PATH` can be easily reused.
 Additionally, we find that preventing tools from being launched from arbitrary paths can't be technically enforced
 without sandboxing, and there's no cross-platform sandboxing solution available for SwiftPM. Until such sandboxing
-solution is available, we'd like to keep the existing approach, where setting `PATH` behaves in a predictable way.
+solution is available, we'd like to keep the existing approach where setting `PATH` environment variable behaves in a
+predictable way and is consistent with established CLI conventions.
 
 ## Future Directions
 
