@@ -241,7 +241,7 @@ OPTIONS:
   --signing-identity      The label of the signing identity to be retrieved from the system's secrets store if supported.
 
   --private-key-path      The path to the certificate's PKCS#8 private key (DER-encoded).
-  --cert-chain-paths      Path(s) to the signing certificate (DER-encoded) and optionally the rest of the certificate chain.
+  --cert-path             Path to the signing certificate (DER-encoded).
 ```
 
 A signing identity encompasses a private key and a certificate. On 
@@ -251,7 +251,7 @@ feature will be available on macOS through Keychain in the initial
 release, so a certificate and its private key can be located by the
 certificate label alone.
 
-Otherwise, both `--private-key-path` and `--cert-chain-paths` must be
+Otherwise, both `--private-key-path` and `--cert-path` must be
 provided to locate the signing key and certificate.
 
 All signatures in the initial release will be in the [`cms-1.0.0`](#package-signature-format-cms-100) format.
@@ -442,7 +442,7 @@ OPTIONS:
   --signing-identity      The label of the signing identity to be retrieved from the system's secrets store if supported.
 
   --private-key-path      The path to the certificate's PKCS#8 private key (DER-encoded).
-  --cert-chain-paths      Path(s) to the signing certificate (DER-encoded) and optionally the rest of the certificate chain.
+  --cert-path             Path to the signing certificate (DER-encoded).
 ```
 
 - `id`: The package identifier in the `<scope>.<name>` notation as defined in [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md#package-identity). It is the package author's responsibility to register the package identifier with the registry beforehand.
@@ -454,10 +454,10 @@ The following may be required depending on registry support and/or requirements:
   - `metadata-path`: The path to the JSON file containing [package release metadata](#package-release-metadata). This parameter should be set if the registry expects metadata to be sent as part of the request. SwiftPM will always include the content of this file in the request body if given. Otherwise, if the registry expects `package-metadata.json` in the source archive, it is the package author's responsibility to make sure the file is present in the package directory so that it gets included in the source archive. If metadata is included in both the request body and the source archive, then it is at the registry's discretion to choose which to use, although having `package-metadata.json` in the archive is [recommended](#package-release-metadata-signing).
   - `signing-identity`: The label that identifies the signing identity to use for package signing in the system's secrets store if supported. See also the [`package sign` subcommand](#new-package-sign-subcommand) for details.
   - `private-key-path`: Required for package signing unless `signing-identity` is specified, this is the path to the private key used for signing.
-  - `cert-chain-paths`: Required for package signing unless `signing-identity` is specified, this is the signing certificate chain.
+  - `cert-path`: Required for package signing unless `signing-identity` is specified, this is the signing certificate.
   
 SwiftPM will sign the package source archive if `signing-identity` 
-or both `private-key-path` and `cert-chain-paths` are set.
+or both `private-key-path` and `cert-path` are set.
   
 All signatures in the initial release will be in the [`cms-1.0.0`](#package-signature-format-cms-100) format.
 
