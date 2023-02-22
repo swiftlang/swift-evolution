@@ -3,7 +3,7 @@
 * Proposal: [SE-0375](0375-opening-existential-optional.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.8)**
 * Implementation: [apple/swift#61321](https://github.com/apple/swift/pull/61321)
 * Review: ([pitch](https://forums.swift.org/t/mini-pitch-for-se-0352-amendment-allow-opening-an-existential-argument-to-an-optional-parameter/60501)) ([review](https://forums.swift.org/t/se-0375-opening-existential-arguments-to-optional-parameters/60802)) ([acceptance](https://forums.swift.org/t/accepted-se-0375-opening-existential-arguments-to-optional-parameters/61045))
 
