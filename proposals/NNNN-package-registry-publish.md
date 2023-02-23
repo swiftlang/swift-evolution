@@ -280,7 +280,7 @@ registry. In the user-level `registries.json` file, which by default is located 
     "default": {
       "signing": {
         "onUnsigned": "prompt", // One of: "error", "prompt", "warn", "silentAllow"
-        "onUntrustedCertificate": "prompt", // One of: "error", "prompt", "warn", "silentTrust"
+        "onUntrustedCertificate": "prompt", // One of: "error", "prompt", "warn", "silentAllow"
         "trustedRootCertificatesPath": "~/.swiftpm/security/trusted-root-certs/",
         "includeDefaultTrustedRootCertificates": true,
         "validationChecks": {
@@ -342,7 +342,7 @@ and their default value when there is no override.
   | Option        | Description                                               |
   | ------------- | --------------------------------------------------------- |
   | `error`       | SwiftPM will reject the package and fail the build. |
-  | `prompt`      | SwiftPM will prompt user to see if the unsigned package should be allowed. <ul><li>If no, SwiftPM will reject the package and fail the build.</li><li>If yes and the package has never been downloaded, its checksum will be stored for [local TOFU](#local-tofu). Otherwise, if the package has been downloaded before, its checksum must match the previous value or else SwiftPM will reject the package and fail the build.</li></ul> |
+  | `prompt`      | SwiftPM will prompt user to see if the unsigned package should be allowed. <ul><li>If no, SwiftPM will reject the package and fail the build.</li><li>If yes and the package has never been downloaded, its checksum will be stored for [local TOFU](#local-tofu). Otherwise, if the package has been downloaded before, its checksum must match the previous value or else SwiftPM will reject the package and fail the build.</li></ul> SwiftPM will record user's response to prevent repetitive prompting. |
   | `warn`        | SwiftPM will not prompt user but will emit a warning before proceeding. |
   | `silentAllow` | SwiftPM will allow the unsigned package without prompting user or emitting warning. |
 
@@ -351,9 +351,9 @@ and their default value when there is no override.
   | Option        | Description                                               |
   | ------------- | --------------------------------------------------------- |
   | `error`       | SwiftPM will reject the package and fail the build. |
-  | `prompt`      | SwiftPM will prompt user to see if it should trust the certificate.  <ul><li>If no, SwiftPM will reject the package and fail the build.</li><li>If yes, SwiftPM will add the certificate's root(s) to the **package**'s [custom trusted roots directory](#adding-an-untrusted-certificate), then proceed with the package as if it were signed with a trusted certificate.</li></ul> |
+  | `prompt`      | SwiftPM will prompt user to see if the package signed with an untrusted certificate should be allowed. <ul><li>If no, SwiftPM will reject the package and fail the build.</li><li>If yes, SwiftPM will proceed with the package as if it were an unsigned package.</li></ul> SwiftPM will record user's response to prevent repetitive prompting. |
   | `warn`        | SwiftPM will not prompt user but will emit a warning before proceeding. |
-  | `silentTrust` | SwiftPM will trust the certificate without prompting user or emitting warning. |
+  | `silentTrust` | SwiftPM will allow the package signed with an untrusted certificate without prompting user or emitting warning. |
 
 - `signing.trustedRootCertificatesPath`: Absolute path to the directory containing custom trusted roots. SwiftPM will include these roots in its [trust store](#trusted-vs-untrusted-certificate), and certificates used for package signing must chain to roots found in this store. This configuration allows override at the package, scope, and registry levels.
 - `signing.includeDefaultTrustedRootCertificates`: Indicates if SwiftPM should include default trusted roots in its [trust store](#trusted-vs-untrusted-certificate). This configuration allows override at the package, scope, and registry levels.
@@ -384,24 +384,6 @@ or `signing.trustedRootCertificatesPath` for package `mona.LinkedList`:
   1. Otherwise, SwiftPM will use the scope override from `scopeOverrides` (i.e., `scopeOverrides["mona"]`), if any.
   1. Next, depending on the registry the package is downloaded from, SwiftPM will look for and use the registry override in `registryOverrides`, if any.
   1. Finally, if no override is found, SwiftPM will use the value from `default`.
-
-###### Adding an untrusted certificate
-
-When handling a package signed with an untrusted certificate, user has the
-option to trust the certificate. SwiftPM will store the user response by
-adding the certificate to the package's custom trusted roots directory at
-`signing.trustedRootCertificatesPath`. The value of `signing.trustedRootCertificatesPath`
-is determined in the same way described above. 
-
-This means that if there is no package override for `signing.trustedRootCertificatesPath`
-in the configuration, the certificate would be added to a trusted 
-roots directory that gets applied to the current package as well as others. 
-For example, suppose package `mona.LinkedList` is signed with an untrusted 
-certificate and there is only configuration override for scope `mona`. Then 
-the certificate would be added to the trusted roots directory for `mona`,
-and other packages in the `mona` scope signed with the same certificate
-would be trusted as well. Package override should be set if an untrusted 
-certificate is to be trusted for a specific package only.
 
 ##### Local TOFU
 
