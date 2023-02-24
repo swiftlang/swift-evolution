@@ -3,13 +3,12 @@
 * Proposal: [SE-NNNN](nnnn-remove-property-wrapper-isolation.md)
 * Authors: [BJ Homer](https://github.com/bjhomer)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-
+* Status: **Awaiting Review**
+* Implementation: [apple/swift#63884](https://github.com/apple/swift/pull/63884)
 
 <!---
 *During the review process, add the following fields as needed:*
 
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
 * Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
 * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
@@ -138,11 +137,11 @@ It's not clear why this upward inference based on property wrappers was initiall
 
 The proposal is simple: In the Swift 6 language mode, property wrappers used within a type will not affect the type's actor isolation. We simply disable this inference step entirely.
 
-In the Swift 5 language mode, isolation will continue to be inferred as it currently is.
+In the Swift 5 language mode, isolation will continue to be inferred as it currently is. The new behavior can be requested using the **`-enable-upcoming-feature DisableActorIsolationFromPropertyWrapperUsage`** compiler flag.
 
 ## Detailed design
 
-[`ActorIsolationRequest.getIsolationFromWrappers()`](https://github.com/apple/swift/blob/main/lib/Sema/TypeCheckConcurrency.cpp#L3445) implements the actor isolation inference described in this proposal. That function will be adjusted to avoid producing any inference when running in the Swift 6 language mode.
+[`ActorIsolationRequest.getIsolationFromWrappers()`](https://github.com/apple/swift/blob/main/lib/Sema/TypeCheckConcurrency.cpp#L3445) implements the actor isolation inference described in this proposal. That function will be adjusted to avoid producing any inference when running in the Swift 6 language mode or when the compiler flag described above is passed.
 
 ## Source compatibility
 
