@@ -515,14 +515,14 @@ object in the response:
     {
       "name": "source-archive",
       "type": "application/zip",
-      "checksum": "a2ac54cf25fbc1ad0028f03f0aa4b96833b83bb05a14e510892bb27dea4dc812"
+      "checksum": "a2ac54cf25fbc1ad0028f03f0aa4b96833b83bb05a14e510892bb27dea4dc812",
+      "signing": {
+        "signatureBase64Encoded": "l1TdTeIuGdNsO1FQ0ptD64F5nSSOsQ5WzhM6/7KsHRuLHfTsggnyIWr0DxMcBj5F40zfplwntXAgS0ynlqvlFw==",
+        "signatureFormat": "cms-1.0.0"
+      }      
     }
   ],
-  "metadata": { ... },
-  "signing": {
-    "signatureBase64Encoded": "l1TdTeIuGdNsO1FQ0ptD64F5nSSOsQ5WzhM6/7KsHRuLHfTsggnyIWr0DxMcBj5F40zfplwntXAgS0ynlqvlFw==",
-    "signatureFormat": "cms-1.0.0"
-  }
+  "metadata": { ... }
 }
 ```
 
