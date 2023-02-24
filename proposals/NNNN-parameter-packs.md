@@ -123,11 +123,11 @@ let pairs = makePairs(firsts: 1, "hello" seconds: true, 1.0)
 // 'pairs' is '(Pair(1, true), Pair("hello", 2.0))'
 ```
 
-The `makrPairs` function declares two type parameter packs, `First` and `Second`. The value parameter packs `first` and `second` have the pack expansion types `repeat each First` and `repeat each Second`, respectively. The return type `(repeat Pair<each First, each Second>)` is a tuple type where each element is a `Pair` of elements from the `First` and `Second` parameter packs at the given tuple position.
+The `makePairs` function declares two type parameter packs, `First` and `Second`. The value parameter packs `first` and `second` have the pack expansion types `repeat each First` and `repeat each Second`, respectively. The return type `(repeat Pair<each First, each Second>)` is a tuple type where each element is a `Pair` of elements from the `First` and `Second` parameter packs at the given tuple position.
 
 Inside the body of `makePairs()`, `repeat Pair(each first, each second)` is a pack expansion expression referencing the value parameter packs `first` and `second`.
 
-The call to `makrPairs()` substitutes the type pack `{Int, Bool}` for `First`, and the type pack `{String, Double}` for `Second`. These substitutions are deduced by the _type matching rules_, described below. The function is called with four arguments; `first` is the value pack `{1, "hello"}`, and `second` is the value pack `{true, 2.0}`.
+The call to `makePairs()` substitutes the type pack `{Int, Bool}` for `First`, and the type pack `{String, Double}` for `Second`. These substitutions are deduced by the _type matching rules_, described below. The function is called with four arguments; `first` is the value pack `{1, "hello"}`, and `second` is the value pack `{true, 2.0}`.
 
 The substituted return type is the tuple type with two elements `(Pair<Int, Bool>, Pair<String, Double>)`, and the returned value is the tuple value with two elements `(Pair(1, true), Pair("hello", 2.0))`.
 
@@ -148,7 +148,7 @@ When referenced from type context, this identifier resolves to a _type parameter
 * The base type of a member type parameter pack, which is again subject to these rules
 * The pattern type of a pack expansion type, where it stands for the corresponding scalar element type
 * The pattern expression of a pack expansion expression, where it stands for the metatype of the corresponding scalar element type and can be used like any other scalar metatype, e.g. to call a static method, call an initializer, or reify the metatype value
-* The subject type of a conformance, superclass, layout or same-type requirement
+* The subject type of a conformance, superclass, layout, or same-type requirement
 * The constraint type of a same-type requirement
 
 ### Pack expansion type
@@ -388,7 +388,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 
   A valid substitution for the above might replace `S` with `{Array<Int>, Set<String>}`, and `T` with `{Int, String}`.
 
-3. A same-type requirement where one side is a type parameter pack and the other side is a concrete type capturing at least one type parameter pack is interpreted as expanding the concrete type and constraining each element of the replacement type pack to the concrete element type:
+4. A same-type requirement where one side is a type parameter pack and the other side is a concrete type capturing at least one type parameter pack is interpreted as expanding the concrete type and constraining each element of the replacement type pack to the concrete element type:
 
   ```swift
   func variadic<each S: Sequence, each T>(_: repeat each S) where (each S).Element == Array<each T> {}
@@ -398,7 +398,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 
   A valid substitution for the above might replace `S` with `{Array<Array<Int>>, Set<Array<String>>}`, and `T` with `{Int, String}`.
 
-3. A same-type requirement where both sides are type parameter packs constrains the elements of the replacement type pack element-wise:
+5. A same-type requirement where both sides are type parameter packs constrains the elements of the replacement type pack element-wise:
 
   ```swift
   func append<each S: Sequence, each T: Sequence>(_: repeat each S, _: repeat each T) where (each T).Element == (each S).Element {}
@@ -463,7 +463,7 @@ The type annotation of `tup` contains a pack expansion type `repeat (each T, eac
 
 #### Open questions
 
-While type packs cannot be written directly, a requirement where both sides are concrete types is desugared using the type matching algorithm, therefore it will be possible to write down a requirement that constraints a type parameter pack to a concrete type pack, unless some kind of restriction is imposed:
+While type packs cannot be written directly, a requirement where both sides are concrete types is desugared using the type matching algorithm, therefore it will be possible to write down a requirement that constrains a type parameter pack to a concrete type pack, unless some kind of restriction is imposed:
 
 ```swift
 func append<each S: Sequence>(_: repeat each S, _: repeat each T) where (each S).Element == (Int, String) {}
