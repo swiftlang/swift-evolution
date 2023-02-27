@@ -12,6 +12,7 @@
   * https://github.com/apple/swift-package-manager/pull/6189
 * Review: 
   * pitch: https://forums.swift.org/t/pitch-package-registry-publish/62828
+  * review: https://forums.swift.org/t/se-0391-package-registry-publish/63405
 
 ## Introduction
 
