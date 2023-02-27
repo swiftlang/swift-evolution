@@ -203,7 +203,7 @@ Package signature format `cms-1.0.0` uses CMS.
 | Number of signatures           | 1                                                         |
 | Certificate                    | Certificate that contains the signing key. It is up to the registry to define the certificate policy (e.g., trusted root(s)). |
 
-The signature, represented in CMS, will be base64-encoded then included as part
+The signature, represented in CMS, will be included as part
 of the "create a package release" API request. 
 
 A registry receiving such signed package will:
