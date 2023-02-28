@@ -273,7 +273,7 @@ will be appended to the default tool invocation. For example `pedanticCCompiler.
 }
 ```
 
-in `swift build --toolset pedanticCCompiler` will pass `-pedantic` to the C compiler located at a default path.
+in `swift build --toolset pedanticCCompiler.json` will pass `-pedantic` to the C compiler located at a default path.
 
 When cross-compiling, paths in `toolset.json` files supplied in destination artifact bundles should be self-contained:
 no absolute paths and no escaping symlinks are allowed. Users are still able to provide their own `toolset.json` files
