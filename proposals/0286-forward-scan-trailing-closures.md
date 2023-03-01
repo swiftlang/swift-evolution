@@ -4,6 +4,7 @@
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 5.3)**
+* Upcoming feature flag: `ForwardTrailingClosures` (implemented in Swift 5.8)
 * Implementation: [apple/swift#33092](https://github.com/apple/swift/pull/33092)
 * Toolchains: [Linux](https://ci.swift.org/job/swift-PR-toolchain-Linux/404//artifact/branch-master/swift-PR-33092-404-ubuntu16.04.tar.gz), [macOS](https://ci.swift.org/job/swift-PR-toolchain-osx/579//artifact/branch-master/swift-PR-33092-579-osx.tar.gz)
 * Discussion: ([Pitch #1](https://forums.swift.org/t/pitch-1-forward-scan-matching-for-trailing-closures-source-breaking/38162)), ([Pitch #2](https://forums.swift.org/t/pitch-2-forward-scan-matching-for-trailing-closures/38491))
@@ -19,7 +20,7 @@ However, the backward-scan matching rule makes it hard to write good API that us
 ## Motivation
 
 Several folks noted the downsides of the "backward" matching rule. The rule itself is described in the [detailed design](https://github.com/apple/swift-evolution/blob/master/proposals/0279-multiple-trailing-closures.md#detailed-design) section of SE-0279 (search for "backward"). To understand the problem with the backward rule, let's try to declare the UIView [`animate(withDuration:animations:completion:)`](https://developer.apple.com/documentation/uikit/uiview/1622515-animate) method in the obvious way to make use of SE-0279:
- 
+
 ```swift
 class func animate(
     withDuration duration: TimeInterval, 
@@ -300,6 +301,8 @@ trailingClosureBothDirections(g: { $0 * $1 })
 ```
 
 This suppresses the warning and eliminates the ambiguity, so the code behaves the same across all overload sets.
+
+The Swift 6 and newer behavior can be enabled in existing language modes with the [upcoming feature flag](0362-piecemeal-future-features.md) `ForwardTrailingClosures`.
 
 ### Workaround via overload sets
 

@@ -3,8 +3,8 @@
 * Proposal: [SE-0274](0274-magic-file.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax), [Dave DeLong](https://github.com/davedelong)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
-* Status: **Accepted (2020-02-26)**
-* Implementation: Prototype in master behind `-Xfrontend -enable-experimental-concise-pound-file`; revisions in [apple/swift#29412](https://github.com/apple/swift/pull/29412)
+* Status: **Implemented (Swift 5.8)**
+* Upcoming feature flag: `ConciseMagicFile`
 * Decision Notes: [Review #1](https://forums.swift.org/t/se-0274-concise-magic-file-names/32373/50), [Review #2](https://forums.swift.org/t/re-review-se-0274-concise-magic-file-names/33171/11), [Additional Commentary](https://forums.swift.org/t/revisiting-the-source-compatibility-impact-of-se-0274-concise-magic-file-names/37720)
 * Next Proposal: [SE-0285](0285-ease-pound-file-transition.md)
 
@@ -153,6 +153,8 @@ These are implemented in the unmerged [apple/swift#29412](https://github.com/app
 ## Source compatibility
 
 All existing source code will continue to compile with this change, and `#file`'s documentation never specified precisely what its contents were; in one of the pitch threads, [Ben Cohen](https://forums.swift.org/t/concise-magic-file-names/31297/19) said that this is sufficient to satisfy Swift's source compatibility requirements. However, the proposal *will* cause behavior to change in existing code, and in some cases it will change in ways that cause existing code to behave incorrectly when run. Code that is adversely affected by this change can access the previous behavior by using `#filePath` instead of `#file`.
+
+The change to the behavior of `#file` was deferred to the next major language version (Swift 6). However, it can be enabled with the [upcoming feature flag](0362-piecemeal-future-features.md) `ConciseMagicFile`.
 
 ## Effect on ABI stability
 
