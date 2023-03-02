@@ -12,6 +12,38 @@
 - Review: ([pitch](https://forums.swift.org/t/pitch-cross-compilation-destination-bundles/61777))
   ([review](https://forums.swift.org/t/se-0387-cross-compilation-destination-bundles/62875))
 
+## Table of Contents
+
+- [Cross-Compilation Destination Bundles](#cross-compilation-destination-bundles)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Motivation](#motivation)
+  - [Proposed Solution](#proposed-solution)
+  - [Detailed Design](#detailed-design)
+    - [CC Destination Artifact Bundles](#cc-destination-artifact-bundles)
+    - [`toolset.json` Files](#toolsetjson-files)
+    - [`destination.json` Files](#destinationjson-files)
+    - [Destination Bundle Installation and Configuration](#destination-bundle-installation-and-configuration)
+    - [Using a CC Destination](#using-a-cc-destination)
+    - [CC Destination Bundle Generation](#cc-destination-bundle-generation)
+  - [Security](#security)
+  - [Impact on Existing Packages](#impact-on-existing-packages)
+  - [Prior Art](#prior-art)
+    - [Rust](#rust)
+    - [Go](#go)
+  - [Alternatives Considered](#alternatives-considered)
+    - [Extensions Other Than `.artifactbundle`](#extensions-other-than-artifactbundle)
+    - [Building Applications in Docker Containers](#building-applications-in-docker-containers)
+    - [Alternative Bundle Formats](#alternative-bundle-formats)
+  - [Making Destination Bundles Fully Self-Contained](#making-destination-bundles-fully-self-contained)
+  - [Future Directions](#future-directions)
+    - [Identifying Platforms with Dictionaries of Properties](#identifying-platforms-with-dictionaries-of-properties)
+    - [SwiftPM Plugins for Remote Running, Testing, Deployment, and Debugging](#swiftpm-plugins-for-remote-running-testing-deployment-and-debugging)
+    - [`swift destination select` Subcommand](#swift-destination-select-subcommand)
+    - [SwiftPM and SourceKit-LSP Improvements](#swiftpm-and-sourcekit-lsp-improvements)
+    - [Source-Based CC Destinations](#source-based-cc-destinations)
+    - [Destination Bundles and Package Registries](#destination-bundles-and-package-registries)
+
 ## Introduction
 
 Cross-compilation is a common development use case. When cross-compiling, we need to refer to these concepts:
