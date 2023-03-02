@@ -1,11 +1,12 @@
 # Custom Actor Executors
 
 - Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/custom-actor-executors/proposals/NNNN-custom-actor-executors.md)
-- Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall)
-- Review Manager: TBD
+- Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall), [Kavon Farvardin](https://github.com/kavon)
+- Review Manager: [Holly Borla](https://github.com/hborla)
 - Status: **Partially implemented on `main`**
 - Previous threads:
   - Original pitch thread from around Swift 5.5: [Support custom executors in Swift Concurrency](https://forums.swift.org/t/support-custom-executors-in-swift-concurrency/44425)
+  - Original "assume..." proposal which was subsumed into this proposal, as it relates closely to asserting on executors: [Pitch: Unsafe Assume on MainActor](https://forums.swift.org/t/pitch-unsafe-assume-on-mainactor/63074/)
 
 ## Table of Contents
 
@@ -19,15 +20,16 @@
     + [Serial Executors](#serial-executors)
     + [Jobs](#jobs)
     + [Actors with custom SerialExecutors](#actors-with-custom-serialexecutors)
-    + [Executor assertions](#executor-assertions)
+    + [Asserting on executors](#asserting-on-executors)
+    + [Assuming actor executors](#asserting-actor-executors)
     + [Default Swift Runtime Executors](#default-swift-runtime-executors)
   * [Source compatibility](#source-compatibility)
   * [Effect on ABI stability](#effect-on-abi-stability)
   * [Effect on API resilience](#effect-on-api-resilience)
   * [Alternatives considered](#alternatives-considered)
   * [Future Directions](#future-directions)
-    + [Overriding the MainActor executor](#overriding-the-mainactor-executor)
-    + [Executor Switching](#executor-switching)
+    + [Overriding the MainActor Executor](#overriding-the-mainactor-executor)
+    + [Executor Switching Optimizations](#executor-switching)
     + [Specifying Task executors](#specifying-task-executors)
     + [DelegateActor property](#delegateactor-property)
 
@@ -65,9 +67,74 @@ Nonetheless, it is sometimes useful to more finely control how code is executed:
 
 This is the first proposal discussing custom executors and customization points in the Swift Concurrency runtime, and while it introduces only the most basic customization points, we are certain that it already provides significant value to users seeking tighter control over their actor's execution semantics.
 
+Along with introducing ways to customize where code executes, this proposal also introduces ways to assert and assume the apropriate executor is used. This allows for more confidence when migrating away from other concurrency models to Swift Concurrency.
+
 ## Proposed solution
 
-We propose to allow actors to declare the executor they are required to execute on by declaring a nonisolated `unownedExecutor` property with the executor of their choice.
+We propose to give developers the ability to implement simple serial executors, which then can be used with actors in order to ensure that any code executoring on such "actor with custom serial executor" runs on the apropriate thread or context. Implementing a naive executor takes the shape of:
+
+```swift
+final class SpecificThreadExecutor: SerialExecutor {
+  let someThread: SomeThread // simplified handle to some specific thread
+  
+  func enqueue(_ job: consuming Job) {
+    someThread.run {
+      job.runSynchronously(on: self)
+    }
+  }
+
+  func asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(ordinary: self)
+  }
+}
+
+extension SpecificThreadExecutor {
+  static var sharedUnownedExecutor: UnownedSerialExecutor {
+    // ... use some shared configured instance and return it ...
+  }
+}
+```
+
+Such executor can then be used with an actor declaration by implementing its `unownedExecutor` property: 
+
+```swift
+actor Worker {
+  nonisolated var unownedExecutor: UnownedSerialExecutor { 
+    // use the shared specific thread executor mentioned above.
+    // alternatively, we can pass specific executors to this actors init() and store and use them this way.
+    SpecificThreadExecutor.shared
+  }
+}
+```
+
+And lastly, in order to increase the confidence during moves from other concurrency models to Swift Concurrency with custom executors, we also provide ways to assert that a piece of code is executing on the apropriate executor. These methods should be used only if there is not better way to express the requirement statically. For example by expressing the code as a method on a specific actor, or annotating it with a `@GlobalActor`, should be preferred to asserting when possible, however sometimes this is not possible due to the old code fulfilling synchronous protocol requirements that still have these threading requirements. 
+
+Asserting the apropriate executor is used in a synchronous piece of code looks like this:
+
+````swift
+func synchronousButNeedsMainActorContext() {
+  // check if we're executing on the maina actor context (or crash if we're not)
+  preconditionOnActorExecutor(MainActor.shared)
+  
+  // same as precondition, however only in DEBUG builds
+  assertOnActorExecutor(MainActor.shared)
+}
+````
+
+Furthermore, we also offer a new API to safely "assume" an actor's execution context. For example, a synchronous function may know that it always will be invoked by the `MainActor` however for some reason it cannot be marked using `@MainActor`, this new API allows to assume (or crash if called from another execution context) the apropriate execution context, including the safety of synchronously accessing any state protected by the main actor executor:
+
+```swift
+@MainActor func example() {}
+
+func alwaysOnMainActor() /* must be synchronous! */ {
+  assumeOnMainActorExecutor { // will crash if NOT invoked from the MainActor's executor
+    example() // ok to safely, synchronously, call
+  }
+}
+
+// Always prefer annotating the method using a global actor, rather than assuming it though.
+@MainActor func alwaysOnMainActor() /* must be synchronous! */ { } // better, but not always possible
+```
 
 ## Detailed design
 
@@ -85,15 +152,13 @@ The concurrency runtime uses the `enqueue(_:)` method of an executor to schedule
 
 ```swift
 /// A service that can execute jobs.
-@available(SwiftStdlib 5.1, *)
 public protocol Executor: AnyObject, Sendable {
 
   // This requirement is repeated here as a non-override so that we
   // get a redundant witness-table entry for it.  This allows us to
   // avoid drilling down to the base conformance just for the basic
   // work-scheduling operation.
-  @available(SwiftStdlib 5.9, *)
-  func enqueue(_ job: __owned Job)
+  func enqueue(_ job: consuming Job)
 
   @available(SwiftStdlib 5.1, *)
   @available(*, deprecated, message: "Implement the enqueue(Job) method instead")
@@ -115,7 +180,7 @@ final class MyOldExecutor: SerialExecutor {
 
 Executors are required to follow certain ordering rules when executing their jobs:
 
-- The call to `SerialExecutor.runJobSynchronously(_:)` must happen-after the call to `enqueue(_:)`.
+- The call to `Job.runSynchronously(on:)` must happen-after the call to `enqueue(_:)`.
 - If the executor is a serial executor, then the execution of all jobs must be *totally ordered*: for any two different jobs *A* and *B* submitted to the same executor with `enqueue(_:)`, it must be true that either all events in *A* happen-before all events in *B* or all events in *B* happen-before all events in *A*.
   - Do note that this allows the executor to reorder `A` and `B`–for example, if one job had a higher priority than the other–however they each independently must run to completion before the other one is allowed to run. 
 
@@ -133,12 +198,13 @@ We also define a `SerialExecutor` protocol, which is what actors use to guarante
 ///
 /// Serial executors do not, in general, guarantee specific run-order of jobs,
 /// and are free to re-order them e.g. using task priority, or any other mechanism.
-@available(SwiftStdlib 5.1, *)
 public protocol SerialExecutor: Executor {
   /// Convert this executor value to the optimized form of borrowed
   /// executor references.
-  @available(SwiftStdlib 5.1, *)
   func asUnownedSerialExecutor() -> UnownedSerialExecutor
+  
+  // Discussed in depth in "Details of 'same executor' checking" of this proposal
+  func isSameExclusiveExecutionContext(other executor: Self) -> Bool
 }
 
 @available(SwiftStdlib 5.9, *)
@@ -146,6 +212,10 @@ extension SerialExecutor {
   // default implementation is sufficient for most implementations
   func asUnownedSerialExecutor() -> UnownedSerialExecutor {
     UnownedSerialExecutor(ordinary: self)
+  }
+  
+  func isSameExclusiveExecutionContext(other: Self) -> Bool {
+    self === other
   }
 }
 ```
@@ -164,10 +234,12 @@ A `SerialExecutor` does not introduce new API, other than the wrapping itself in
 /// also keep the actor's associated executor alive; if they are
 /// different objects, the executor must be referenced strongly by the
 /// actor.
-@available(SwiftStdlib 5.1, *)
-@frozen
 public struct UnownedSerialExecutor: Sendable {
+  /// The default and ordinary way to expose an unowned serial executor.
   public init<E: SerialExecutor>(ordinary executor: __shared E)
+  
+  /// Discussed in depth in "Details of same-executor checking" of this proposal.
+  public init<E: SerialExecutor>(complexEquality executor: __shared E)
 }
 ```
 
@@ -180,39 +252,45 @@ A `Job` is a representation of a chunk of of work that an executor should execut
 Whenever the Swift concurrency needs to execute some piece of work, it enqueues an `UnownedJob`s on a specific executor the job should be executed on. The `UnownedJob` type is an opaque wrapper around Swift's low-level representation of such job. It cannot be meaningfully inspected, copied and must never be executed more than once. 
 
 ```swift
-@available(SwiftStdlib 5.9, *)
-@_moveOnly
+@noncopyable
 public struct Job: Sendable { 
-  /// Returns the priority sef on this Job.
-  ///
-  /// A Job priority is equal to TaskPriority if the job is a Task.
-  public var priority: Priority { get }
+  /// The priority of this job.
+  public var priority: JobPriority { get }
+}
+```
+
+```swift
+/// The priority of this job.
+///
+/// The executor determines how priority information affects the way tasks are scheduled.
+/// The behavior varies depending on the executor currently being used.
+/// Typically, executors attempt to run tasks with a higher priority
+/// before tasks with a lower priority.
+/// However, the semantics of how priority is treated are left up to each
+/// platform and `Executor` implementation.
+///
+/// A Job's priority is roughly equivalent to a `TaskPriority`,
+/// however, since not all jobs are tasks, represented as separate type.
+///
+/// Conversions between the two priorities are available as initializers on the respective types.
+public struct JobPriority {
+  public typealias RawValue = UInt8
+
+  /// The raw priority value.
+  public var rawValue: RawValue
 }
 
-@available(SwiftStdlib 5.9, *)
-extension Job {
-  // TODO: A JobPriority technically is the same in value as a TaskPriority,
-  //       but it feels wrong to expose "Task..." named APIs on Job which 
-  //       may be not only tasks. 
-  //
-  // TODO: Alternatively, we could typealias `Priority = TaskPriority` here
-  public struct Priority {
-    public typealias RawValue = UInt8
-    public var rawValue: RawValue
-
-    /// Convert this ``UnownedJob/Priority`` to a ``TaskPriority``.
-    public var asTaskPriority: TaskPriority? { ... }
-    
-    public var description: String { ... }
-  }
+extension TaskPriority {
+  /// Convert a job priority to a task priority.
+  ///
+  /// Most values are directly interchangeable, but this initializer reserves the right to fail for certain values.
+  public init?(_ p: JobPriority) { ... }
 }
 ```
 
 Because move-only types in the first early iteration of this language feature still have a number of limitations, we also offer an `UnownedJob` type, that is an unsafe "unowned" version of a `Job`. One reason one might need to reach for an `UnownedJob` is whenever a `Job` were to be used in a generic context, because in the initial version of move-only types that is available today, such types cannot appear in a generic context. For example, a naive queue implementation using an `[Job]` would be rejected by the compiler, but it is possible to express using an UnownedJob (i.e.`[UnownedJob]`).
 
 ```swift
-@available(SwiftStdlib 5.1, *)
-@frozen
 public struct UnownedJob: Sendable, CustomStringConvertible {
 
   /// Create an unsafe, unowned, job by consuming a move-only Job.
@@ -220,12 +298,10 @@ public struct UnownedJob: Sendable, CustomStringConvertible {
   /// This may be necessary currently when intending to store a job in collections,
   /// or otherwise intreracting with generics due to initial implementation 
   /// limitations of move-only types.
-  @available(SwiftStdlib 5.9, *)
   @usableFromInline
-  internal init(_ job: __owned Job) { ... }
+  internal init(_ job: consuming Job) { ... }
 
-  @available(SwiftStdlib 5.9, *)
-  public var priority: Priority { ... }
+  public var priority: JobPriority { ... }
   
   public var description: String { ... }
 }
@@ -233,42 +309,27 @@ public struct UnownedJob: Sendable, CustomStringConvertible {
 
 A job's description includes its job or task ID, that can be used to correlate it with task dumps as well as task lists in Instruments and other debugging tools (e.g. `swift-inspect`'s ). A task ID is an unique number assigned to a task, and can be useful when debugging scheduling issues, this is the same ID that is currently exposed in tools like Instruments when inspecting tasks, allowing to correlate debug logs with observations from profiling tools.
 
-Eventually, an executor will want to actually run a job. It may do so right away when it is enqueued, or on some different thread, this is entirely left up to the executor to decide. Running a job is done by calling the `runJobSynchronously` method which is provided on the SerialExecutor protocol.
+Eventually, an executor will want to actually run a job. It may do so right away when it is enqueued, or on some different thread, this is entirely left up to the executor to decide. Running a job is done by calling the `runJobSynchronously` on a `Job` which consumes it. The same method is provided on the `UnownedJob` type, however that API is not as safe, since it cannot consume the job, and is open to running the same job multiple times accidentally which is undefined behavior. Generally, we urge developers to stick to using `Job` APIs whenever possible, and only move to the unowned API if the noncopyable `Job`s restrictions prove too strong to do the necessary operations on it.
 
 Running a `Job` _consumes_ it, and therefore it is not possible to accidentally run the same job twice, which would lead to undefined behavior if it were allowed.
 
 ```swift
-@available(SwiftStdlib 5.9, *)
-extension SerialExecutor {
+extension Job {
   /// Run the job synchronously.
   ///
   /// This operation consumes the job.
-  @_alwaysEmitIntoClient
-  @inlinable
-  public func runJobSynchronously(_ job: __owned Job) {
+  public consuming func runSynchronously(_ job: __owned Job) {
     _swiftJobRun(UnownedJob(job), self)
-  }
-
-  /// Run the job synchronously.
-  ///
-  /// A job can only be run *once*. Accessing the job after it has been run is undefined behavior.
-  /// - Parameter job:
-  @_alwaysEmitIntoClient
-  @inlinable
-  public func runUnownedJobSynchronously(_ job: UnownedJob) {
-    _swiftJobRun(job, self)
   }
 }
 
-@available(SwiftStdlib 5.9, *)
-extension UnownedSerialExecutor {
-  @_alwaysEmitIntoClient
-  @inlinable
-  public func runJobSynchronously(_ job: __owned Job)
-
-  @_alwaysEmitIntoClient
-  @inlinable
-  public func runUnownedJobSynchronously(_ job: UnownedJob)
+extension UnownedJob {
+  /// Run the job synchronously.
+  ///
+  /// A job can only be run *once*. Accessing the job after it has been run is undefined behavior.
+  public func runUnownedJobSynchronously(_ job: UnownedJob) {
+    _swiftJobRun(job, self)
+  }
 }
 ```
 
@@ -383,15 +444,14 @@ actor MyActor: WithSpecifiedExecutor {
 
 A library could also provide a default implementation of such executor as well.
 
-### Executor assertions
-
-Similar to the `unsafeAssumeOnMainActor` API pitched in [Pitch: Unsafe Assume on MainActor](https://forums.swift.org/t/pitch-unsafe-assume-on-mainactor/63074/), with the introduction of custom executors the same rationale of allowing people to migrate from other concurrency runtimes to swift concurrency _with confidence_ is something that applies to actors with custom executors as well.
+### Asserting on executors
 
 A common pattern in event-loop heavy code–not yet using Swift Concurrency–is to ensure/verify that a synchronous piece of code is executed on the exected event-loop. Since one of the goals of making executors customizable is to allow such libraries to adopt Swift Concurrency by making such event-loops conform to `SerialExecutor`, it is useful to allow the checking if code is indeed executing on the apropriate executor, for the library to gain confidence while it is moving towards fully embracing actors and Swift concurrency.
 
 For example, Swift NIO intentionally avoids synchronization checks in some synchronous methods, in order to avoid the overhead of doing so, however in DEBUG mode it performs assertions that given code is running on the expected event-loop:
 
 ```swift
+// Swift NIO 
 private var _channel: Channel
 internal var channel: Channel {
   self.eventLoop.assertInEventLoop()
@@ -403,6 +463,7 @@ internal var channel: Channel {
 Dispatch based systems also have similar functionality, with the `dispatchPrecondition` API:
 
 ```swift
+// Dispatch
 func checkIfMainQueue() {
   dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
 }
@@ -434,15 +495,30 @@ Sometimes, especially when porting existing codebases _to_ Swift Concurrency we 
 /// additional runtime check for this, especially when moving towards Swift
 /// concurrency from other runtimes which frequently use such assertions.
 @available(SwiftStdlib 5.9, *)
-public func preconditionTaskIsOnExecutor(
+public func preconditionTaskOnExecutor(
   _ executor: some Executor,
   _ message: @autoclosure () -> String = "",
 	file: String = #fileID, line: UInt = #line)
 
-// Same as ``preconditionTaskIsOnExecutor(_:_:file:line)`` however only in DEBUG mode.
 @available(SwiftStdlib 5.9, *)
-public func assertTaskIsOnExecutor(
+public func preconditionTaskOnActorExecutor(
+  _ executor: some Actor,
+  _ message: @autoclosure () -> String = "",
+	file: String = #fileID, line: UInt = #line)
+```
+
+as well as an `assert...` version of this API, which triggers only in `debug` builds:
+
+```swift
+// Same as ``preconditionTaskOnExecutor(_:_:file:line)`` however only in DEBUG mode.
+@available(SwiftStdlib 5.9, *)
+public func assertTaskOnExecutor(
   _ executor: some Executor,
+  _ message: @autoclosure () -> String = "",
+	file: String = #fileID, line: UInt = #line)
+
+public func assertTaskOnActorExecutor(
+  _ executor: some Actor,
   _ message: @autoclosure () -> String = "",
 	file: String = #fileID, line: UInt = #line)
 ```
@@ -469,14 +545,213 @@ Potential future work could enable static checking where a relationship between 
 
 At this point, similar to Dispatch, these APIs only offer an "assert" / "precondition" version. And currently the way to dynamically get a boolean answer about being on a specific executor is not exposed. 
 
+### Assuming actor executors
+
+>  Note: This API was initially pitched separately from custom executors, but as we worked on the feature we realized how closely it is related to custom executors and asserting on executors. The initial pitch thread is located here: [Pitch: Unsafe Assume on MainActor](https://forums.swift.org/t/pitch-unsafe-assume-on-mainactor/63074/).
+
+This revision of the proposal introduces the `assumeOnMainActorExecutor(_:)` method, which allows synchronous code to safely assume that they are called within the context of the main actor's executor. This is only available in synchronous functions, because the right way to spell this requirement in asynchronous code is to annotate the function using `@MainActor` which statically ensures this requirement.
+
+Synchronous code can assume that it is running on the main actor executor by using this assume method:
+
+```swift
+/// Performs test at runtime check whether this function was called
+/// while on the MainActor's executor. Then the operation is invoked 
+/// and its result is returned. 
+/// 
+/// - Attention: If this is called from a different execution context,
+///   the method will crash, in order to prevent creating race conditions
+///   with the MainActor.
+@available(*, noasync)
+func assumeOnMainActorExecutor<T>(
+    _ operation: @MainActor () throws -> T,
+    file: StaticString = #fileID, line: UInt = #line
+) rethrows -> T
+```
+
+Similarily to the assert and precondition APIs, this check is performed against the actor's executor, so if multiple actors are run on the same executor, this check will succeed in synchronous code invoked by such actors as well. In other words, the following code is also correct:
+
+```swift
+func check(values: MainActorValues) /* synchronous! */ {
+  // values.get("any") // error: main actor isolated, cannot perform async call here
+  assumeOnMainActorExecutor {
+    values.get("any") // correct & safe
+  }
+}
+
+actor Friend {
+  var unownedExecutor: UnownedSerialExecutor { 
+    MainActor.sharedUnownedExecutor
+  }
+  
+  func callCheck(values: MainActorValues) {
+    check(values) // correct
+  }
+}
+
+actor Unknown {
+  func callCheck(values: MainActorValues) {
+    check(values) // will crash, we're not on the MainActor executor
+  }
+}
+
+@MainActor
+final class MainActorValues {
+  func get(_: String) -> String { ... } 
+}
+```
+
+> Note: Because it is not possible to abstract over the `@SomeActor () -> T` function type's global actor isolation, we currently do not offer a version of this API for _any_ global actor, however it would be possible to implement such API today using macros, which could be expored in a follow-up proposal if seen as important enough. Such API would have to be spelled `#assumeOnGlobalActorExecutor(GlobalActor.self)`.
+
+In addition to the `MainActor` specialized API, the same shape of API is offered for instance actors and allows obtaining an `isolated` actor reference if we are guaranteed to be executing on the same serial executor as the given actor, and thus no concurrent access violations are possible.
+
+```swift
+@available(*, noasync)
+func assumeOnActorExecutor<Act: Actor T>(
+    _ operation: (isolated Act) throws -> T,
+    file: StaticString = #fileID, line: UInt = #line
+) rethrows -> T
+
+@available(*, noasync)
+func assumeOnLocalDistributedActorExecutor<Act: DistributedActor T>(
+    _ operation: (isolated Act) throws -> T,
+    file: StaticString = #fileID, line: UInt = #line
+) rethrows -> T
+```
+
+These assume methods have the same semantics as the just explained `assumeOnMainActorExecutor` in the sense that the check is performed about the actor's _executor_ and not specific instance. In other words, if many instance actors share the same serial executor, this check would pass for each of them, as long as the same executor is found to be the current one.
+
+### Details of "same executor" checking
+
+The previous two sections described the various `assert`, `precondition` and `assume` APIs all of which depend on the notion of "the same serial execution context". By default, every actor gets its own serial executor instance, and each such instance is unique. Therefore without sharing executors, each actor's serial executor is unique to itself, and thus the `precondition` APIs would efffectively check "are we on this _specific_ actor" even though the check is performed against the executor identity.
+
+#### Unique executors delegating to the same SerialExecutor
+
+There are two cases of checking "the same executor" that we'd like to discuss in this proposal. Firstly, even though some actors may want to share the a serial executor, sometimes developers may not want to receive this "different actors on same serial executor are in the same execution context" semantic for the various precondition checks. 
+
+The solution here is in the way an executor may be implemented, and specifically, it is always possible to provide a _wrapper_ executor around another existing executor. This way we are able to assign unique executor identities, even if they would end up scheduling onto the same serial executor. As an example, this might look like this:
+
+```swift
+final class SpecificThreadExecutor: SerialExecutor { ... }
+
+final class UniqueSpecificThreadExecutor: SerialExecutor {
+  let delegate SpecificThreadExecutor
+  init(delegate SpecificThreadExecutor) {
+    self.delegate = delegate
+  }
+  
+  func enqueue(_ job: consuming Job) {
+    delegate.enqueue(job)
+  }
+  
+  func asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(ordinary: self)
+  }
+}
+
+actor Worker {
+  let unownedExecutor: UnownedSerialExecutor
+  
+  init(executor: SpecificThreadExecutor) {
+    let uniqueExecutor = UniqueSpecificThreadExecutor(delegate: executor)
+    self.unownedExecutor = uniqueExecutor.asUnownedSerialExecutor()
+  }
+  
+  func test(other: Worker) {
+    assert(self !== other)
+    assertOnActorExecutor(other) // expected crash.
+    // `other` has different unique executor,
+    // even through they both eventually delegate to the same
+  }
+}
+```
+
+#### Different executors offering the same execution context
+
+We also introduce an optional extension to serial executor identity compatibility checking, which allows an executor to _participate_ in the check. This is in order to handle the inverse situation to what we just discussed: when different executors _are_ in fact the same exclusive serial execution context and _want to_ inform Swift runtime about this for the purpose of these assertion APIs.
+
+One example of an executor which may have different unique instances of executors, however they should behave as the same exclusive serial execution context are dispatch queues which have the ability to "target" a different queue. In other words, it is possible to have a dispatch queue `Q1` and `Q2` target the same queue `Qx` (or even the "main" dispatch queue).
+
+In order to facilitate this capability, when exposing the `UnownedSerialExecutor` for itself, the executor must use the `init(complexEquality:)` initializer:
+
+```swift
+extension MyQueueExecutor { 
+  public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(complexEquality: self)
+  } 
+}
+```
+
+The unique initializer keeps the current semantics of "*if the executor pointers are the same, it is the same executor and exclusive execution context*" fast path of executor equality checking, however it adds a "deep check" code-path if the equality has failed.
+
+When performing the "is this the same (or a compatible) serial execution context" checks, the Swift runtime first compares the raw pointers to the executor objects. If those are not equal and the executors in question have `complexEquality`, following some additional type-checks, the following `isSameExclusiveExecutionContext(other:)` method will be invoked:
+
+```swift
+protocol SerialExecutor {
+
+  // ... previously discussed protocol requirements ...
+
+  /// If this executor has complex equality semantics, and the runtime needs to compare
+  /// two executors, it will first attempt the usual pointer-based equality check,
+  /// and if it fails it will compare the types of both executors, if they are the same,
+  /// it will finally invoke this method, in an attempt to let the executor itself decide
+  /// if this and the `other` executor represent the same serial, exclusive, isolation context.
+  ///
+  /// This method must be implemented with great care, as wrongly returning `true` would allow
+  /// code from a different execution context (e.g. thread) to execute code which was intended
+  /// to be isolated by another actor.
+  ///
+  /// This check is not used when performing executor switching.
+  ///
+  /// This check is used when performing `preconditionTaskOnActorExecutor`, `preconditionTaskOnActorExecutor`,
+  /// `assumeOnActorExecutor` and similar APIs which assert about the same "exclusive serial execution context".
+  ///
+  /// - Parameter other:
+  /// - Returns: true, if `self` and the `other` executor actually are mutually exclusive and it is safe–from a concurrency perspective–to execute code assuming one on the other.
+  func isSameExclusiveExecutionContext(other: Self) -> Bool
+}
+
+extension SerialExecutor {
+  func isSameExclusiveExecutionContext(other: Self) -> Bool {
+    self === other
+  }
+}
+```
+
+This API allows for executor, like for example dispatch queues in the future, to perform the "deep" check and e.g. return true if both executors are actually targeting the same thread or queue, and therefore guaranteeing a properly isolated mutually exclusive serial execution context.
+
+The API explicitly enforces that both executors must be of the same type, in order to avoid comparing completely unrelated executors using this rather expensive call into user code. The concrete logic for comparing executors for the purpose of the above described APIs is as follows:
+
+We inspect at the type of the executor (the bit we store in the ExecutorRef, specifically in the Implementation / witness table field), and if both are:
+
+-  "**ordinary**" (or otherwise known as "unique"), which can be be thought of as definitely a "root" executor
+  - creation:
+    - using today's `UnownedSerialExecutor.init(ordinary:)` 
+  - comparison:
+    - compare the two executors pointers directly
+      - return the result
+- **complexEquality**, may be throught of as "**inner**" executor, i.e. one that's exact identity may need deeper introspection
+  - creation:
+    - `UnownedSerialExecutor(complexEquality:)` which sets specific bits that the runtime can recognize and enter the complex comparison code-path when necessary
+  - comparison:
+    - If both executors are `complexEquality`, we compare the two executor identity directly
+      - if true, return (fast-path, same as the ordinary executors ones)
+    - compare the witness tables of the executors, to see if they can potentially be compatible
+      - if false, return
+    - invoke the executor implemented comparison the `executor1.isSameExclusiveExecutionContext(executor2)`
+      - return the result
+
+These checks are likely *not* enough to to completely optimize task switching, and other mechanisms will be provided for optimized task switching in the future (see Future Directions).
+
 ### Default Swift Runtime Executors
 
-Swift concurrency provides a number of default executors already, such as the main actor executor and the default global concurrent executor, which all (default) actors target by their own per-actor instantiated serial executor instances.
+Swift concurrency provides a number of default executors already, such as:
+
+- the main actor executor, which services any code annotated using @MainActor, and
+- the default global concurrent executor, which all (default) actors target by their own per-actor instantiated serial executor instances.
 
 The `MainActor`'s executor is available via the `sharedUnownedExecutor` static property on the `MainActor`:
 
 ```swift
-@available(SwiftStdlib 5.1, *)
 @globalActor public final actor MainActor: GlobalActor {
   public nonisolated var unownedExecutor: UnownedSerialExecutor
   public static var sharedUnownedExecutor: UnownedSerialExecutor
@@ -493,7 +768,15 @@ actor Friend {
 }
 ```
 
-The default global concurrent executor is currently not replacable.
+Note that the raw type of the MainActor executor is never exposed, but we merely get unowned wrappers for it. This allows the Swift runtime to pick various specific implementations depending on the runtime environment. 
+
+Even though we do not have a concrete class type that we can use to pass to the `some Executor` based assertion APIs, we can use the `MainActor.shared` instance together with the `some Actor` based precondition, like this:
+
+```swift
+preconditionTaskOnExecutor(MainActor.shared)
+```
+
+The default global concurrent executor is not accessible direcly from code, however it is the executor that handles all the tasks which do not have a specific executor requirement, or are explicitly required to run on that executor, e.g. like top-level async functions.
 
 ## Source compatibility
 
@@ -507,7 +790,7 @@ Swift's concurrency runtime has already been using executors, jobs and tasks sin
 
 The design of `SerialExecutor` currently does not support non-reentrant actors, and it does not support executors for which dispatch is always synchronous (e.g. that just acquire a traditional mutex).
 
-To further explain the relationship of new and existing APIs in this proposal, we opted to keep the `@available` annotations on the discussed types, so that it is clearer which APIs exist today and cannot be entirely changed, and which APIs are new additions. Notably, there are no official APIs for operations like running a job before they were introduced in this prposal.
+Some of the APIs discussed in this proposal existed from the first introduction of Swift Concurrency, so making any breaking changes to them is not possible. Some APIs were carefully renamed and polished up though. We encourage discussion of all the types and methods present in this proposal, however changing some of them may prove to be challanging or impossible due to ABI impact.
 
 ## Effect on API resilience
 
