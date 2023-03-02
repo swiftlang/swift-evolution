@@ -402,7 +402,7 @@ used subsequently when building with a given destination. Specifically, multiple
 which then will be stored as configuration for this destination. 
 `swift destination configure <identifier> --show-configuration` will print currently set paths, while
 `swift destination configure <identifier> --reset` will reset all of those at once.
-- `swift destination delete <identifier>` will delete a given destination from the filesystem.
+- `swift destination remove <identifier>` will remove a given destination from the filesystem.
 
 ### Using a CC Destination
 
