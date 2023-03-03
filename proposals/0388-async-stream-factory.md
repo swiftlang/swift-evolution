@@ -59,7 +59,7 @@ In order to fill this gap, I propose to add a new static method `makeStream` on
 and the continuation. An example of using the new proposed convenience methods looks like this:
 
 ```swift
-let (continuation, stream) = AsyncStream.makeStream(of: Int.self)
+let (stream, continuation) = AsyncStream.makeStream(of: Int.self)
 
 await withTaskGroup(of: Void.self) { group in
   group.addTask {
@@ -130,7 +130,7 @@ extension AsyncThrowingStream {
 This change is additive and does not affect source compatibility.
 
 ## Effect on ABI stability
-This change introduces new concurrency library ABI in the form of the one `makeStream` methods, but it does not affect the ABI of existing declarations.
+This change introduces new concurrency library ABI in the form of the `makeStream` methods, but it does not affect the ABI of existing declarations.
 
 ## Effect on API resilience
 None; adding static methods is permitted by the existing resilience model.
