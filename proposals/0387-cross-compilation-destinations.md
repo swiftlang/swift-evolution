@@ -396,7 +396,7 @@ To manage CC destinations, we'd like to introduce a new `swift destination` comm
   `install` subcommand with `--update` flag to allow updating an already installed destination artifact to a new
   version.
 - `swift destination list`, which prints a list of already installed CC destinations with their identifiers.
-- `swift destination configure <identifier>`, which allows users to provide additional search paths and toolsets to be
+- `swift destination configure <identifier> <triple>`, which allows users to provide additional search paths and toolsets to be
 used subsequently when building with a given destination. Specifically, multiple `--swift-resources-path`,
 `--include-search-path`, `--library-search-path`, and `--toolset` options with corresponding paths can be provided,
 which then will be stored as configuration for this destination. 
