@@ -271,7 +271,7 @@ The macro expansion context provides additional information about the environmen
 /// which a given macro is being expanded.
 public protocol MacroExpansionContext: AnyObject {
    /// Generate a unique name for use in the macro.
-  public func createUniqueName(_ name: String) -> TokenSyntax
+  public func makeUniqueName(_ name: String) -> TokenSyntax
 
   /// Emit a diagnostic (i.e., warning or error) that indicates a problem with the macro
   /// expansion.
@@ -297,7 +297,7 @@ public protocol MacroExpansionContext: AnyObject {
 }
 ```
 
-The `createUniqueName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name, which will also incorporate the `name` identifier for better debuggability. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
+The `makeUniqueName()` function allows one to create new, unique names so that the macro expansion can produce new declarations that won't conflict with any other declarations in the same scope. It produces an identifier token containing the unique name, which will also incorporate the `name` identifier for better debuggability. This allows macros to be more hygienic, by not introducing new names that could affect the way that the code provided via macro expansion arguments is type-checked.
 
 It is intended that `MacroExpansionContext` will grow over time to include more information about the build environment in which the macro is being expanded. For example, information about the target platform (such as OS, architecture, and deployment version) and any compile-time definitions passed via `-D`, should be included as part of the context.
 
@@ -338,7 +338,7 @@ public enum SourceLocationFilePathMode {
 }
 ```
 
-Source locations are described in an abstract form that can be interpolated into source code (they are expressions) in places that expect a string literal (for the file name) or integer literal (for line and column). As with `createUniqueName` returning a `TokenSyntax` rather than a `String`, this abstraction allows the compiler to introduce a different kind of syntax node (that might not even be expressible in normal Swift) to represent these values.
+Source locations are described in an abstract form that can be interpolated into source code (they are expressions) in places that expect a string literal (for the file name) or integer literal (for line and column). As with `makeUniqueName` returning a `TokenSyntax` rather than a `String`, this abstraction allows the compiler to introduce a different kind of syntax node (that might not even be expressible in normal Swift) to represent these values.
 
 ```swift
 /// Abstractly represents a source location in the macro.
@@ -576,7 +576,7 @@ Expressions are just one place in the language where macros could be valuable. O
   * Introduce a general `location` operation on `MacroExpansionContext` to get the source location of any syntax node from a macro input. Remove the `moduleName` and `fileName`, which were always too limited to be useful.
   * Allow macro parameters to have default arguments, with restrictions on what can occur within a default argument.
   * Clarify that macro expansion cannot be recursive.
-  * Rename `createUniqueLocalName` to `createUniqueName`; the names might not always be local in scope. Also add a parameter to it so developers can provide a partial name that will show up in the unique name.
+  * Rename `createUniqueLocalName` to `makeUniqueName`; the names might not always be local in scope. Also add a parameter to it so developers can provide a partial name that will show up in the unique name.
   * Prohibit the use of non-builtin macros as default arguments of parameters.
 * Revisions from the second pitch:
   * Moved SwiftPM manifest changes to a separate proposal that can explore the building of macros in depth. This proposal will focus only on the language aspects.
