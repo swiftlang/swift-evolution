@@ -3,9 +3,9 @@
 * Proposal: [SE-0382](0382-expression-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active review (February 10...20, 2023)**
+* Status: **Accepted**
 * Implementation: Partial implementation is available in `main` under the experimental feature flag `Macros`. An [example macro repository](https://github.com/DougGregor/swift-macro-examples) provides a way to experiment with this feature.
-* Review: ([pitch](https://forums.swift.org/t/pitch-expression-macros/61499)) ([pitch #2](https://forums.swift.org/t/pitch-2-expression-macros/61861)) ([review #1](https://forums.swift.org/t/se-0382-expression-macros/62090)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0382-expression-macros/62898)) ([pitch #3](https://forums.swift.org/t/se-0382-expression-macros-mini-pitch-for-updates/62810)) ([review #2](https://forums.swift.org/t/se-0382-second-review-expression-macros/63064))
+* Review: ([pitch](https://forums.swift.org/t/pitch-expression-macros/61499)) ([pitch #2](https://forums.swift.org/t/pitch-2-expression-macros/61861)) ([review #1](https://forums.swift.org/t/se-0382-expression-macros/62090)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0382-expression-macros/62898)) ([pitch #3](https://forums.swift.org/t/se-0382-expression-macros-mini-pitch-for-updates/62810)) ([review #2](https://forums.swift.org/t/se-0382-second-review-expression-macros/63064)) ([acceptance](https://forums.swift.org/t/accepted-se-0382-expression-macros/63495))
 
 ## Introduction
 
