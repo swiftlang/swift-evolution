@@ -60,12 +60,11 @@ extension Date: Identifiable {
 ^
 ```
 
-If absolutely necessary, clients can silence this warning by explicitly
-module-qualifying both of the types in question, to explicitly state that they
-are intentionally declaring this conformance:
+If absolutely necessary, clients can silence this warning by adding a new attribute,
+`@retroactive`, to the type.
 
 ```
-extension Foundation.Date: Swift.Identifiable {
+extension Date: @retroactive Identifiable {
     // ...
 }
 ```
@@ -92,10 +91,27 @@ For clarification, the following are still valid, safe, and allowed:
 - Extensions of external types that do not introduce a conformance. These do not introduce runtime conflicts, since the
   module name is mangled into the symbol.
 
+The `@retroactive` attribute may only be used in extensions, and only when used
+to introduce a conformance that requires its existence. It will be an error to
+use `@retroactive` outside of the declaration of a retroactive conformance.
+
 ## Source compatibility
 
-This proposal is just a warning addition, and doesn't affect source
-compatibility.
+`@retroactive` is a new attribute, but it is purely additive; it can be accepted
+by all language versions. It does mean projects building with an older Swift
+will not have access to this syntax, so as a source compatible fallback,
+a client can silence this warning by fully-qualifying all types in the extension.
+As an example, the above conformance can also be written as
+
+```swift
+extension Foundation.Date: Swift.Identifiable {
+    // ...
+}
+```
+
+This will allow projects that need to build with multiple versions of Swift, and
+which have valid reason to declare such conformances, to declare them without
+tying their project to a newer compiler build.
 
 ## Effect on ABI stability
 
@@ -103,7 +119,7 @@ This proposal has no effect on ABI stability.
 
 ## Effect on API resilience
 
-This proposal has direct effect on API resilience, but has the indirect effect of reducing
+This proposal has no direct effect on API resilience, but has the indirect effect of reducing
 the possible surface of client changes introduced by the standard library adding new conformances.
 
 ## Alternatives considered
