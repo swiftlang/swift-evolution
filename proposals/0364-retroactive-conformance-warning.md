@@ -55,15 +55,21 @@ This proposal adds a warning that explicitly calls out this pattern as
 problematic and unsupported.
 
 ```swift
-/tmp/retro.swift:3:1: warning: extension declares a conformance of imported type 'Date' to imported protocol 'Identifiable'; this will not behave correctly if the owners of 'Foundation' introduce this conformance in the future
+/tmp/retro.swift:3:1: warning: extension declares a conformance of imported type
+'Date' to imported protocol 'Identifiable'; this will not behave correctly if
+the owners of 'Foundation' introduce this conformance in the future
 extension Date: Identifiable {
 ^
 ```
 
 If absolutely necessary, clients can silence this warning by adding a new attribute,
-`@retroactive`, to the type.
+`@retroactive`, to the protocol in question.
 
-```
+The compiler will enforce that there is an explicit `@retroactive` conformance
+for each protocol included up the hierarchy. If needed, it will emit a fix-it to
+generate extensions for each retroactive conformance in the hierarchy.
+
+```swift
 extension Date: @retroactive Identifiable {
     // ...
 }
@@ -77,14 +83,16 @@ This warning will appear only if all of the following conditions are met, with a
 - The protocol for which the extension introduces the conformance is declared in a different
   module from the extension.
 
-The following exceptions apply:
+The following exceptions apply to either the conforming type or the protocol:
 
-- If the type is declared in a Clang module, and the extension in question is declared in a Swift
-  overlay, this is not considered a retroactive conformance.
-- If the type is declared or transitively imported in a bridging header or through the
+- If it is declared in a Clang module, and the extension in question is declared
+  in a Swift overlay of that module, this is not considered a retroactive conformance.
+- If it is declared or transitively imported in a bridging header or through the
   `-import-objc-header` flag, and the type does not belong to any other module, the warning is not
   emitted. This could be a retroactive conformance, but since these are added to an implicit module
   called `__ObjC`, we have to assume the client takes responsibility for these declaration.
+- If it is declared in one module, but uses the `@_originallyDefined(in:)` attribute to
+  signify that it has moved from a different module, then this will not warn.
 
 For clarification, the following are still valid, safe, and allowed:
 - Conformances of external types to protocols defined within the current module.
