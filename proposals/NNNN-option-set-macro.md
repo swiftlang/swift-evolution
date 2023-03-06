@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal introduces a declaration macro `@OptionSet` which takes over the boilerplate required when declaring a bitfield-based option set.
+This proposal introduces an attached macro `@OptionSet` which takes over the boilerplate required when declaring a bitfield-based option set.
 
 ## Motivation
 
@@ -27,7 +27,7 @@ struct ShippingOptions: OptionSet {
 
 Aside from the repetition, there is also a risk that a bit location be accidentally repeated:
 
-```
+```swift
   // oops, this should have been 1 << 4
   static let expedited   = ShippingOptions(rawValue: 1 << 3)
 ```
@@ -36,7 +36,7 @@ While this looks unlikely from the above code, in real code options often have l
 
 Here is a technique for preventing such errors:
 
-```
+```swift
 struct ShippingOptions: OptionSet {
   let rawValue: Int
   
@@ -53,7 +53,7 @@ struct ShippingOptions: OptionSet {
 
 By using the compiler to generate the source of the raw values, the possibility of accidentally repeating a field number is eliminated. But it comes at the cost of even more repetitive boilerplate – which is also still a potential source of errors i.e.
 
-```
+```swift
 // copy paste error – forgot to update the second occurrence
 static let expedited = ShippingOptions(rawValue: 1 << Options.standard.rawValue))
 ```
@@ -65,9 +65,9 @@ We propose the addition of an `@OptionSet` attached macro to the standard librar
 ```swift
 @OptionSet
 struct ShippingOptions {
-	private enum Options: Int {
-		case nextDay, secondDay, priority, standard
-	}
+    private enum Options: Int {
+        case nextDay, secondDay, priority, standard
+    }
 }
 ```
 
@@ -78,34 +78,41 @@ The macro would then generate the remaining option set implementation, similar t
 The above declaration would expand out to the following code:
 
 ```swift
+struct ShippingOptions {
+  typealias RawValue = Int
 
- struct ShippingOptions {
-   typealias RawValue = Int
+  var rawValue: RawValue
 
-   var rawValue: RawValue
+  init() { self.rawValue = 0 }
 
-   init() { self.rawValue = 0 }
+  init(rawValue: RawValue) { self.rawValue = rawValue }
 
-   init(rawValue: RawValue) { self.rawValue = rawValue }
+  static let nextDay: Self =
+    Self(rawValue: 1 << Options.nextDay.rawValue)
 
-   static let nextDay: Self =
-	   Self(rawValue: 1 << Options.nextDay.rawValue)
+  static let secondDay: Self =
+    Self(rawValue: 1 << Options.secondDay.rawValue)
 
-   static let secondDay: Self =
-	   Self(rawValue: 1 << Options.secondDay.rawValue)
+  static let priority: Self =
+    Self(rawValue: 1 << Options.priority.rawValue)
 
-   static let priority: Self =
-	   Self(rawValue: 1 << Options.priority.rawValue)
+  static let standard: Self =
+    Self(rawValue: 1 << Options.standard.rawValue)
 
-   static let standard: Self =
-	   Self(rawValue: 1 << Options.standard.rawValue)
-
-	private enum Options: Int {
-		case nextDay, secondDay, priority, standard
-	}
+  private enum Options: Int {
+    case nextDay, secondDay, priority, standard
+  }
 }
 
 extension ShippingOptions: OptionSet { }
+```
+
+This will require the addition of the `@OptionSet` macro declaration to the standard library:
+
+```swift
+@attached(member)
+@attached(conformance)
+public macro OptionSet<RawType>() = #externalMacro(module: "MacroExamplesPlugin", type: "OptionSetMacro")
 ```
 
 If control over the raw value type is desired, the user can explicitly declare it:
@@ -116,14 +123,14 @@ If control over the raw value type is desired, the user can explicitly declare i
 
 If the user wishes to explicitly choose the fields used, the enum's raw value can be specified explicitly:
 
-```
-	private enum Options: Int {
-		case nextDay = 0
-		case secondDay = 1
-		// this bit is cursed, don't use it
-		case priority = 3
-		case standard = 4
-	}
+```swift
+  private enum Options: Int {
+    case nextDay = 0
+    case secondDay = 1
+    // this bit is cursed, don't use it
+    case priority = 3
+    case standard = 4
+  }
 ```
 
 Existing language functionality prevents field numbers from being re-used in this case.
