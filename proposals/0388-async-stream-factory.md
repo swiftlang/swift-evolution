@@ -3,12 +3,9 @@
 * Proposal: [SE-0388](0388-async-stream-factory.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Active review (February 15...26, 2023)**
+* Status: **Accepted**
 * Implementation: [apple/swift#62968](https://github.com/apple/swift/pull/62968)
-* Review: ([pitch](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030)) ([review](https://forums.swift.org/t/se-0388-convenience-async-throwing-stream-makestream-methods/63139))
-
-## Changelog
-- 03/03/2023: Changed the return type from a concrete type to a tuple
+* Review: ([pitch](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030)) ([review](https://forums.swift.org/t/se-0388-convenience-async-throwing-stream-makestream-methods/63139)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0388-convenience-async-throwing-stream-makestream-methods/63568)) 
 
 ## Introduction
 
@@ -161,3 +158,8 @@ users from misuse.
 We could just leave the current creation of `Async[Throwing]Stream` as is;
 however, since it is part of the standard library we should provide
 a better method to create a stream and its continuation.
+
+## Revision history
+
+- After review: Changed the return type from a concrete type to a tuple
+
