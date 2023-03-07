@@ -309,16 +309,14 @@ public struct UnownedJob: Sendable, CustomStringConvertible {
 
 A job's description includes its job or task ID, that can be used to correlate it with task dumps as well as task lists in Instruments and other debugging tools (e.g. `swift-inspect`'s ). A task ID is an unique number assigned to a task, and can be useful when debugging scheduling issues, this is the same ID that is currently exposed in tools like Instruments when inspecting tasks, allowing to correlate debug logs with observations from profiling tools.
 
-Eventually, an executor will want to actually run a job. It may do so right away when it is enqueued, or on some different thread, this is entirely left up to the executor to decide. Running a job is done by calling the `runJobSynchronously` on a `Job` which consumes it. The same method is provided on the `UnownedJob` type, however that API is not as safe, since it cannot consume the job, and is open to running the same job multiple times accidentally which is undefined behavior. Generally, we urge developers to stick to using `Job` APIs whenever possible, and only move to the unowned API if the noncopyable `Job`s restrictions prove too strong to do the necessary operations on it.
-
-Running a `Job` _consumes_ it, and therefore it is not possible to accidentally run the same job twice, which would lead to undefined behavior if it were allowed.
+Eventually, an executor will want to actually run a job. It may do so right away when it is enqueued, or on some different thread, this is entirely left up to the executor to decide. Running a job is done by calling the `runSynchronously` on a `Job` which consumes it. The same method is provided on the `UnownedJob` type, however that API is not as safe, since it cannot consume the job, and is open to running the same job multiple times accidentally which is undefined behavior. Generally, we urge developers to stick to using `Job` APIs whenever possible, and only move to the unowned API if the noncopyable `Job`s restrictions prove too strong to do the necessary operations on it.
 
 ```swift
 extension Job {
   /// Run the job synchronously.
   ///
   /// This operation consumes the job.
-  public consuming func runSynchronously(_ job: __owned Job) {
+  public consuming func runSynchronously(on executor: UnownedSerialExecutor) {
     _swiftJobRun(UnownedJob(job), self)
   }
 }
@@ -327,7 +325,7 @@ extension UnownedJob {
   /// Run the job synchronously.
   ///
   /// A job can only be run *once*. Accessing the job after it has been run is undefined behavior.
-  public func runUnownedJobSynchronously(_ job: UnownedJob) {
+  public func runSynchronously(on executor: UnownedSerialExecutor) {
     _swiftJobRun(job, self)
   }
 }
