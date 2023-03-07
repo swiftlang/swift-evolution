@@ -95,8 +95,6 @@ A short description of what the feature is. Try to keep it to a
 single-paragraph "elevator pitch" so the reader understands what
 problem this proposal is addressing.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
-
 ## Motivation
 
 Describe the problems that this proposal seeks to address. If the
@@ -217,7 +215,7 @@ version.
 Consider also the impact on library adopters of those features.  Can
 adopting this feature in a library break source or ABI compatibility
 for users of the library?  If a library adopts the feature, can it
-be *un*-adopted later withour breaking source or ABI compatibility?
+be *un*-adopted later without breaking source or ABI compatibility?
 Will package authors be able to selectively adopt this feature depending
 on the tools version available, or will it require bumping the minimum
 tools version required by the package?
