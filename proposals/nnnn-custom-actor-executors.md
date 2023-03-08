@@ -519,6 +519,13 @@ public func assertTaskOnActorExecutor(
 	file: String = #fileID, line: UInt = #line)
 ```
 
+These APIs offer better diagnostics than would be possible to implement using a plain `precondition()` implemented by developers using some `precondition(isOnExpectedExecutor(someExecutor))` because they offer a description of the actually active executor when mismatched:
+
+````swift
+preconditionTaskOnActorExecutor(MainActor.shared)
+// Precondition failed: Incorrect actor executor assumption; Expected 'MainActorExecutor' executor, but was executing on 'Sample.InlineExecutor'.
+````
+
 It should be noted that this API will return true whenever two actors share an executor. Semantically sharing a serial executor means running in the same isolation domain, however this is only known dynamically and `await`s are stil necessary for calls between such actors:
 
 ```swift
