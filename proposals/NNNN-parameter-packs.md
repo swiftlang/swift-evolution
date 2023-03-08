@@ -25,7 +25,7 @@
     - [Member type parameter packs](#member-type-parameter-packs)
     - [Generic requirements](#generic-requirements)
       - [Same-shape requirements](#same-shape-requirements)
-      - [Open questions](#open-questions-1)
+      - [Restrictions on same-shape requirements](#restrictions-on-same-shape-requirements)
     - [Value parameter packs](#value-parameter-packs)
     - [Local value packs](#local-value-packs)
   - [Effect on ABI stability](#effect-on-abi-stability)
@@ -87,7 +87,7 @@ func zip<each S: Sequence>(...)
 
 A parameter pack itself is not a first-class value or type, but the elements of a parameter pack can be used anywhere that naturally accepts a comma-separated list of values or types using _pack expansions_. A pack expansion unpacks the elements of a pack into a comma-separated list, and elements can be appended to either side of a pack expansion by writing more values in the comma-separated list.
 
-A pack expansion consists of the `repeat` keyword followed by a type or an expression. The type or expression that `repeat` is applied to is called the _repetition pattern_. The repetition pattern must contain pack references. Similarly, pack references can only appear inside reptition patterns and generic requirements:
+A pack expansion consists of the `repeat` keyword followed by a type or an expression. The type or expression that `repeat` is applied to is called the _repetition pattern_. The repetition pattern must contain pack references. Similarly, pack references can only appear inside repetition patterns and generic requirements:
 
 ```swift
 func zip<each S>(_ sequence: repeat each S) where each S: Sequence
@@ -167,11 +167,11 @@ The restriction where only unlabeled elements of a tuple type may have a pack ex
 
 The captures of the pattern type are a subset of the captures of the pack expansion type itself. In some situations (described in the next section), the pack expansion type might capture a type parameter pack that does not appear in the pattern type.
 
-**Typing rules:** A pack expansion type is _well-typed_ if the pattern type would be well-typed if the captured type parameter packs were replaced by references to scalar type parameters with the same constraints.
+**Typing rules:** A pack expansion type is _well-typed_ if replacing the captured type parameter packs in the pattern type with scalar type parameters of the same constraints produces a well-typed scalar type.
 
-For example, if `T` is a type parameter pack subject to the conformance requirement `each T: Hashable`, then `repeat Set<each T>` is well-typed.
+For example, if `each T` is a type parameter pack subject to the conformance requirement `each T: Hashable`, then `repeat Set<each T>` is well-typed, because `Set<T>` is well-typed given `T: Hashable`.
 
-However, if `T` were not subject to this conformance requirement, then `repeat Set<each T>` would not be well-typed; the user might substitute `T` with a type pack containing types that do not conform to `Hashable`, like `T := {AnyObject, Int}`, and the substituted type sequence `Set<AnyObject>, Set<Int>` is not well-typed because `Set<AnyObject>` is not well-typed.
+However, if `each T` were not subject to this conformance requirement, then `repeat Set<each T>` would not be well-typed; the user might substitute `T` with a type pack containing types that do not conform to `Hashable`, like `T := {AnyObject, Int}`, and the substituted type sequence `Set<AnyObject>, Set<Int>` is not well-typed because `Set<AnyObject>` is not well-typed.
 
 ### Type substitution
 
@@ -296,7 +296,7 @@ Given a function declaration that is well-formed under this rule, type matching 
 
 #### Type sequence matching
 
-In all other cases, we're matching two type sequences. If either type sequence contains two or more pack expansion types, the match remains _unsolved_, and the type checker attempts to derive substitutions by matching other types before giving up. (This allows a call to `concat()` as defined above to succeed, for example; the match between the contextual return type and `(repeac each T, repeat each U)` remains unsolved, but we are able to derive the substitutions for `T` and `U` from the call argument expressions.)
+In all other cases, we're matching two type sequences. If either type sequence contains two or more pack expansion types, the match remains _unsolved_, and the type checker attempts to derive substitutions by matching other types before giving up. (This allows a call to `concat()` as defined above to succeed, for example; the match between the contextual return type and `(repeat each T, repeat each U)` remains unsolved, but we are able to derive the substitutions for `T` and `U` from the call argument expressions.)
 
 Otherwise, we match the common prefix and suffix as long as no pack expansion types appear on either side. After this has been done, there are three possibilities:
 
@@ -371,7 +371,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 2. A same-type requirement where one side is a type parameter pack and the other type is a concrete type that does not capture any type parameter packs is interpreted as constraining each element of the replacement type pack to _the same_ concrete type:
 
   ```swift
-  func variadic<each S: Sequence, T>(_: repeat each S) where (each S).Element == Array<T> {}
+  func variadic<each S: Sequence, T>(_: repeat each S) where (each S).Element == T {}
   ```
 
   This is called a _concrete same-element requirement_.
@@ -459,9 +459,9 @@ func foo<each T, each U>(t: repeat each T, u: repeat each U) {
 }
 ```
 
-The type annotation of `tup` contains a pack expansion type `repeat (each T, each U)`, which is malformed because the requirement `count(T) == count(U)` is unsatisfied. This pack expansion type is not subject to requirement inference because it does not occur in one of the above positions.
+The type annotation of `tup` contains a pack expansion type `repeat (each T, each U)`, which is malformed because the requirement `shape(T) == shape(U)` is unsatisfied. This pack expansion type is not subject to requirement inference because it does not occur in one of the above positions.
 
-#### Open questions
+#### Restrictions on same-shape requirements
 
 While type packs cannot be written directly, a requirement where both sides are concrete types is desugared using the type matching algorithm, therefore it will be possible to write down a requirement that constrains a type parameter pack to a concrete type pack, unless some kind of restriction is imposed:
 
@@ -469,7 +469,7 @@ While type packs cannot be written directly, a requirement where both sides are 
 func append<each S: Sequence>(_: repeat each S, _: repeat each T) where (each S).Element == (Int, String) {}
 ```
 
-Furthermore, since the same-type requirement implies a same-shape requirement, we've actually implicitly constrained `T` to having a length of 2 elements, without knowing what those elements are.
+Furthermore, since the same-type requirement implies a same-shape requirement, we've implicitly constrained `T` to having a length of 2 elements, without knowing what those elements are.
 
 This introduces theoretical complications. In the general case, same-type requirements on type parameter packs allows encoding arbitrary systems of integer linear equations:
 
@@ -483,15 +483,17 @@ func solve<each Q, each R, each S>(q: repeat each Q, r: repeat each R, s: repeat
 
 While type-level linear algebra is interesting, we may not ever want to allow this in the language to avoid significant implementation complexity, and we definitely want to disallow this expressivity in this proposal.
 
-However, how to impose restrictions on same-shape and same-type requirements is an open question. One possibility is to disallow these requirements entirely, but doing so would likely be too limiting. Another possibility is to formalize the concept of the structure or “shape” of a pack, where a shape is one of:
+To impose restrictions on same-shape and same-type requirements, we will formalize the concept of the “shape” of a pack, where a shape is one of:
 
 * A single scalar type element; all scalar types have a singleton ``scalar shape''
 * An abstract shape that is specific to a pack parameter
 * A concrete shape that is composed of the scalar shape and abstract shapes
 
-For example, the pack `{Int, repeat each T, U}` has a concrete shape that consists of two single elements and one abstract shape. We could impose restrictions where packs that are unified together must have the same shape, which may reduce the problem to “shape equivalence classes” rather than an arbitrary system of linear equations. Giving packs a statically known structure may also be useful for destructuring packs in generic contexts, which is a possible future direction.
+For example, the pack `{Int, repeat each T, U}` has a concrete shape that consists of two single elements and one abstract shape.
 
-This aspect of the language can evolve in a forward-compatible manner. To begin with, we can start with the simplest form of same-shape requirements, where each type parameter pack has an abstract shape, and same-shape requirements merge equivalence classes of abstract shapes. Any attempt to define a same-shape requirement involving a concrete type can be diagnosed as a *conflict*, much like we reject conflicting requirements such as `where T == Int, T == String` today. Over time, some restrictions can be lifted, while others remain, as different use-cases for type parameter packs are revealed.
+This proposal only enables abstract shapes. Each type parameter pack has an abstract shape, and same-shape requirements merge equivalence classes of abstract shapes. Any same-type requirement that imposes a concrete shape on a type parameter pack will be diagnosed as a *conflict*, much like other conflicting requirements such as `where T == Int, T == String` today.
+
+This aspect of the language can evolve in a forward-compatible manner. Over time, some restrictions can be lifted, while others remain, as different use-cases for type parameter packs are revealed.
 
 ### Value parameter packs
 
@@ -580,7 +582,7 @@ The `repeat each` syntax produces fairly verbose variadic generic code.
 
 #### The `...` operator
 
-A previous version of this proposal used `...` as the pack expansion operator with no explicit syntax for pack elements in pattern types. This syntax choice follows precedence from C++ variadic templates and non-pack variadic parameters in Swift. However, there are some serious downsides of this choice, because ... is already a postfix unary operator in the Swift standard library that is commonly used across existing Swift code bases, which lead to the following ambiguities:
+A previous version of this proposal used `...` as the pack expansion operator with no explicit syntax for pack elements in pattern types. This syntax choice follows precedent from C++ variadic templates and non-pack variadic parameters in Swift. However, there are some serious downsides of this choice, because ... is already a postfix unary operator in the Swift standard library that is commonly used across existing Swift code bases, which lead to the following ambiguities:
 
 1. **Pack expansion vs non-pack variadic parameter.** Using `...` for pack expansions in parameter lists introduces an ambiguity with the use of `...` to indicate a non-pack variadic parameter. This ambiguity can arise when expanding a type parameter pack into the parameter list of a function type. For example:
 
@@ -621,7 +623,7 @@ In the above code, `values...` in the expansion pattern could mean either:
 let foo = Foo<T...>()
 ```
 
-Here, the ambiguous parse is with the token `...>`. We propose changing the grammar so that `...>` is no longer considered as a single token, and instead parses as the token `...` followed by the token `>`.
+Here, the ambiguous parse is with the token `...>`, which would necessitate changing the grammar so that `...>` is no longer considered as a single token, and instead parses as the token `...` followed by the token `>`.
 
 
 #### Another operator
@@ -639,11 +641,6 @@ The downsides to postfix `*` include:
 * `*` is extremely subtle
 * `*` evokes pointer types / a dereferencing operator to programmers familiar with other languages including C/C++, Go, Rust, etc.
 * Choosing another operator does not alleviate the ambiguities in expressions, because values could also have a postfix `*` operator or any other operator symbol, leading to the same ambiguity.
-
-The downsides to introducing keywords are:
-
-* Though the keywords are more verbose than an operator, using the `expand` keyword in expression context is still fairly subtle because it looks just like a function call rather than a built in expansion operation.
-* Introducing a new keyword in expression context would break existing code that uses that keyword name, e.g. as the name of a function
 
 #### Magic builtin `map` method
 
