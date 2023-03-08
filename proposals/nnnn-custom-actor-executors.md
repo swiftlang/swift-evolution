@@ -544,7 +544,7 @@ actor B {
 }
 ```
 
-Potential future work could enable static checking where a relationship between actors is expressed statically (actor B declaring that it is on the same serial executor as a specific instance of `A`), and therefore awaits would not be necessary between such two specific actor instances. Such work is not within the scope of this initial proposal though, and only the dynamic aspect is proposed right now. Do note however that
+Potential future work could enable static checking where a relationship between actors is expressed statically (a specific instance of `B` declaring that it is on the same serial executor as a specific instance of `A`), and therefore awaits would not be necessary between such two specific actor instances. Such work is not within the scope of this initial proposal though, and only the dynamic aspect is proposed right now. 
 
 At this point, similar to Dispatch, these APIs only offer an "assert" / "precondition" version. And currently the way to dynamically get a boolean answer about being on a specific executor is not exposed. 
 
