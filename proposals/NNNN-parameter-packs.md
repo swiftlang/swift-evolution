@@ -27,7 +27,6 @@
       - [Same-shape requirements](#same-shape-requirements)
       - [Restrictions on same-shape requirements](#restrictions-on-same-shape-requirements)
     - [Value parameter packs](#value-parameter-packs)
-    - [Local value packs](#local-value-packs)
   - [Effect on ABI stability](#effect-on-abi-stability)
   - [Alternatives considered](#alternatives-considered)
     - [Modeling packs as tuples with abstract elements](#modeling-packs-as-tuples-with-abstract-elements)
@@ -37,6 +36,8 @@
       - [Magic builtin `map` method](#magic-builtin-map-method)
   - [Future directions](#future-directions)
     - [Variadic generic types](#variadic-generic-types)
+    - [Local value packs](#local-value-packs)
+    - [Explicit type pack syntax](#explicit-type-pack-syntax)
     - [Pack iteration](#pack-iteration)
     - [Pack element projection](#pack-element-projection)
       - [Dynamic pack indexing with `Int`](#dynamic-pack-indexing-with-int)
@@ -553,18 +554,6 @@ func forward<each U>(u: repeat each U) {
 }
 ```
 
-### Local value packs
-
-The notion of a value parameter pack readily generalizes to a local variable of pack expansion type, for example:
-
-```swift
-func variadic<each T>(t: repeat each T) {
-  let tt: repeat each T = repeat each t
-}
-```
-
-References to `tt` have the same semantics as references to `t`, and must only appear inside other pack expansion expressions.
-
 ## Effect on ABI stability
 
 This is still an area of open discussion, but we anticipate that generic functions with type parameter packs will not require runtime support, and thus will backward deploy. As work proceeds on the implementation, the above is subject to change.
@@ -669,6 +658,28 @@ The downsides of a magic `map` method are:
 ### Variadic generic types
 
 This proposal only supports type parameter packs on functions. A complementary proposal will describe type parameter packs on generic structs, enums and classes.
+
+### Local value packs
+
+This proposal only supports value packs for function parameters. The notion of a value parameter pack readily generalizes to a local variable of pack expansion type, for example:
+
+```swift
+func variadic<each T>(t: repeat each T) {
+  let tt: repeat each T = repeat each t
+}
+```
+
+References to `tt` have the same semantics as references to `t`, and must only appear inside other pack expansion expressions.
+
+### Explicit type pack syntax
+
+In this proposal, type packs do not have an explicit syntax, and a type pack is always inferred through the type matching rules. However, we could explore adding an explicit pack syntax in the future:
+
+```swift
+struct Variadic<each T> {}
+
+extension Variadic where each T == {Int, String} {} // {Int, String} is a concrete pack
+```
 
 ### Pack iteration
 
