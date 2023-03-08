@@ -37,6 +37,10 @@
       - [Magic builtin `map` method](#magic-builtin-map-method)
   - [Future directions](#future-directions)
     - [Variadic generic types](#variadic-generic-types)
+    - [Pack iteration](#pack-iteration)
+    - [Pack element projection](#pack-element-projection)
+      - [Dynamic pack indexing with `Int`](#dynamic-pack-indexing-with-int)
+      - [Typed pack element projection using key-paths](#typed-pack-element-projection-using-key-paths)
     - [Value expansion operator](#value-expansion-operator)
     - [Pack destructuring operations](#pack-destructuring-operations)
     - [Tuple conformances](#tuple-conformances)
@@ -665,6 +669,57 @@ The downsides of a magic `map` method are:
 ### Variadic generic types
 
 This proposal only supports type parameter packs on functions. A complementary proposal will describe type parameter packs on generic structs, enums and classes.
+
+### Pack iteration
+
+All list operations can be expressed using pack expansion expressions by factoring code involving statements into a function or closure. However, this approach does not allow for short-circuiting, because the pattern expression will always be evaluated once for every element in the pack. Further, requiring a function or closure for code involving statements is unnatural. Allowing `for-in` loops to iterate over packs solves both of these problems.
+
+Value packs could be expanded into the source of a `for-in` loop, allowing you to iterate over each element in the pack and bind each value to a local variable:
+
+```swift
+func allEmpty<each T>(_ array: repeat [each T]) -> Bool {
+  for a in repeat each array {
+    guard a.isEmpty else { return false }
+  }
+
+  return true
+}
+```
+
+The type of the local variable `a` in the above example is an `Array` of an opaque element type with the requirements that are written on `each T`. For the *i*th iteration, the element type is the *i*th type parameter in the type parameter pack `T`.
+
+### Pack element projection
+
+Use cases for variadic generics that break up pack iteration across function calls, require random access, or operate over concrete packs can be supported in the future by projecting individual elements out from a parameter pack. Because elements of the pack have different types, there are two approaches to pack element projection; using an `Int` index which will return the dynamic type of the element, and using a statically typed index which is parameterized over the requested pack element type.
+
+#### Dynamic pack indexing with `Int`
+
+Dynamic pack indexing is useful when the specific type of the element is not known, or when all indices must have the same type, such as for index manipulation or storing an index value. Packs could support subscript calls with an `Int` index, which would return the dynamic type of the pack element directly as the opened underlying type that can be assigned to a local variable with opaque type. Values of this type need to be erased or cast to another type to return an element value from the function:
+
+```swift
+func element<each T>(at index: Int, in t: repeat each T) where each T: P -> any P {
+  // The subscript returns 'some P', which is erased to 'any P'
+  // based on the function return type.
+  let value: some P = t[index]
+  return value
+}
+```
+
+#### Typed pack element projection using key-paths
+
+Some use cases for pack element projection know upfront which type within the pack will be projected, and can use a statically typed pack index. A statically typed pack index could be represented with `KeyPath` or a new `PackIndex` type, which is parameterized over the base type for access (i.e. the pack), and the resulting value type (i.e. the element within the pack to project). Pack element projection via key-paths falls out of 1) positional tuple key-paths, and 2) expanding packs into tuple values:
+
+```swift
+struct Tuple<each Elements> {
+  var elements: (repeat each Elements)
+
+  subscript<Value>(keyPath: KeyPath<(repeat each Elements), Value>) -> Value {
+    return elements[keyPath: keyPath]
+  }
+}
+```
+
+The same positional key-path application could be supported directly on value packs.
 
 ### Value expansion operator
 
