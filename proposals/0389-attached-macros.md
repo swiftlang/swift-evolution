@@ -3,9 +3,9 @@
 * Proposal: [SE-0389](0389-attached-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Holly Borla](https://github.com/hborla), [Richard Wei](https://github.com/rxwei)
 * Review Manager: Tony Allevato (https://github.com/allevato)
-* Status: **Active review (February 16...March 2, 2023)**
+* Status: **Accepted**
 * Implementation: Implemented on GitHub `main` behind the experimental flag `Macros`. See the [example repository](https://github.com/DougGregor/swift-macro-examples) for more macros.
-* Review: ([pitch #1, under the name "declaration macros"](https://forums.swift.org/t/pitch-declaration-macros/62373)) ([pitch #2](https://forums.swift.org/t/pitch-attached-macros/62812)) ([review](https://forums.swift.org/t/se-0389-attached-macros/63165))
+* Review: ([pitch #1, under the name "declaration macros"](https://forums.swift.org/t/pitch-declaration-macros/62373)) ([pitch #2](https://forums.swift.org/t/pitch-attached-macros/62812)) ([review](https://forums.swift.org/t/se-0389-attached-macros/63165)) ([acceptance](https://forums.swift.org/t/accepted-se-0389-attached-macros/63593))
 
 ## Introduction
 
