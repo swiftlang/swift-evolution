@@ -78,6 +78,7 @@ final class SpecificThreadExecutor: SerialExecutor {
   let someThread: SomeThread // simplified handle to some specific thread
   
   func enqueue(_ job: consuming Job) {
+    let unownedJob = UnownedJob(job) // in order to escape it to the run{} closure 
     someThread.run {
       job.runSynchronously(on: self)
     }
@@ -492,13 +493,11 @@ Sometimes, especially when porting existing codebases _to_ Swift Concurrency we 
 /// custom executors. However, in some APIs it may be useful to provide an
 /// additional runtime check for this, especially when moving towards Swift
 /// concurrency from other runtimes which frequently use such assertions.
-@available(SwiftStdlib 5.9, *)
 public func preconditionTaskOnExecutor(
   _ executor: some Executor,
   _ message: @autoclosure () -> String = "",
 	file: String = #fileID, line: UInt = #line)
 
-@available(SwiftStdlib 5.9, *)
 public func preconditionTaskOnActorExecutor(
   _ executor: some Actor,
   _ message: @autoclosure () -> String = "",
@@ -509,7 +508,6 @@ as well as an `assert...` version of this API, which triggers only in `debug` bu
 
 ```swift
 // Same as ``preconditionTaskOnExecutor(_:_:file:line)`` however only in DEBUG mode.
-@available(SwiftStdlib 5.9, *)
 public func assertTaskOnExecutor(
   _ executor: some Executor,
   _ message: @autoclosure () -> String = "",
@@ -632,8 +630,8 @@ The solution here is in the way an executor may be implemented, and specifically
 final class SpecificThreadExecutor: SerialExecutor { ... }
 
 final class UniqueSpecificThreadExecutor: SerialExecutor {
-  let delegate SpecificThreadExecutor
-  init(delegate SpecificThreadExecutor) {
+  let delegate: SpecificThreadExecutor
+  init(delegate: SpecificThreadExecutor) {
     self.delegate = delegate
   }
   
