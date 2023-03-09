@@ -494,7 +494,7 @@ Sometimes, especially when porting existing codebases _to_ Swift Concurrency we 
 /// additional runtime check for this, especially when moving towards Swift
 /// concurrency from other runtimes which frequently use such assertions.
 public func preconditionTaskOnExecutor(
-  _ executor: some Executor,
+  _ executor: some SerialExecutor,
   _ message: @autoclosure () -> String = "",
 	file: String = #fileID, line: UInt = #line)
 
@@ -509,7 +509,7 @@ as well as an `assert...` version of this API, which triggers only in `debug` bu
 ```swift
 // Same as ``preconditionTaskOnExecutor(_:_:file:line)`` however only in DEBUG mode.
 public func assertTaskOnExecutor(
-  _ executor: some Executor,
+  _ executor: some SerialExecutor,
   _ message: @autoclosure () -> String = "",
 	file: String = #fileID, line: UInt = #line)
 
@@ -756,8 +756,8 @@ The `MainActor`'s executor is available via the `sharedUnownedExecutor` static p
 
 ```swift
 @globalActor public final actor MainActor: GlobalActor {
-  public nonisolated var unownedExecutor: UnownedSerialExecutor
-  public static var sharedUnownedExecutor: UnownedSerialExecutor
+  public nonisolated var unownedExecutor: UnownedSerialExecutor { get { ... } }
+  public static var sharedUnownedExecutor: UnownedSerialExecutor { get { ... } }
 }
 ```
 
@@ -776,7 +776,7 @@ Note that the raw type of the MainActor executor is never exposed, but we merely
 Even though we do not have a concrete class type that we can use to pass to the `some Executor` based assertion APIs, we can use the `MainActor.shared` instance together with the `some Actor` based precondition, like this:
 
 ```swift
-preconditionTaskOnExecutor(MainActor.shared)
+preconditionTaskOnActorExecutor(MainActor.shared)
 ```
 
 The default global concurrent executor is not accessible direcly from code, however it is the executor that handles all the tasks which do not have a specific executor requirement, or are explicitly required to run on that executor, e.g. like top-level async functions.
