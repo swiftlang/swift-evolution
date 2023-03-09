@@ -161,7 +161,6 @@ public protocol Executor: AnyObject, Sendable {
   // work-scheduling operation.
   func enqueue(_ job: consuming Job)
 
-  @available(SwiftStdlib 5.1, *)
   @available(*, deprecated, message: "Implement the enqueue(Job) method instead")
   func enqueue(_ job: UnownedJob)
 }
