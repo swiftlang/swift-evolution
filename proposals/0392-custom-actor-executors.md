@@ -38,7 +38,7 @@
 
 As Swift Concurrency continues to mature it is becoming increasingly important to offer adopters tighter control over where exactly asynchronous work is actually executed.
 
-This proposal introduces a basic mechanism for customizing actor  executors. By providing an instance of an executor, actors can influence "where" they will be executing any task they are running, while upholding the mutial excusion and actor isolation guaranteed by the actor model.
+This proposal introduces a basic mechanism for customizing actor  executors. By providing an instance of an executor, actors can influence "where" they will be executing any task they are running, while upholding the mutual excusion and actor isolation guaranteed by the actor model.
 
 >  **Note:** This proposal defines only a set of APIs to customize actor executors, and other kinds of executor control is out of scope for this specific proposal.
 
