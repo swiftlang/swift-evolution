@@ -1,6 +1,6 @@
 # Custom Actor Executors
 
-- Proposal: [SE-0392](https://github.com/apple/swift-evolution/blob/custom-actor-executors/proposals/0392-custom-actor-executors.md)
+- Proposal: [SE-0392](0392-custom-actor-executors.md)
 - Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall), [Kavon Farvardin](https://github.com/kavon)
 - Review Manager: [Joe Groff](https://github.com/jckarter)
 - Status: **Active review (March 8 ... March 21, 2023)**
