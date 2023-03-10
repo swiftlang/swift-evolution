@@ -104,7 +104,7 @@ actor Worker {
   nonisolated var unownedExecutor: UnownedSerialExecutor { 
     // use the shared specific thread executor mentioned above.
     // alternatively, we can pass specific executors to this actors init() and store and use them this way.
-    SpecificThreadExecutor.shared
+    SpecificThreadExecutor.sharedUnownedExecutor
   }
 }
 ```
