@@ -21,7 +21,7 @@
     - [Type matching](#type-matching)
       - [Label matching](#label-matching)
       - [Type sequence matching](#type-sequence-matching)
-      - [Open questions](#open-questions)
+      - [Single-element pack substitution](#single-element-pack-substitution)
     - [Member type parameter packs](#member-type-parameter-packs)
     - [Generic requirements](#generic-requirements)
       - [Same-shape requirements](#same-shape-requirements)
@@ -329,21 +329,15 @@ For example, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Dou
 
 However, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Double, Float, z: String)` leaves you with `repeat each T` vs `Double, Float`, which succeeds with `T := {Double, Float}`, because the labels match exactly in the common prefix and suffix, and no labels remain once we get to Case 1 above.
 
-#### Open questions
+#### Single-element pack substitution
 
-It is still undecided if a substitution that would produce a one-element tuple type should instead produces the element type as a scalar, treating the tuple as if it were merely parentheses.
+If a parameter pack `each T` is substituted with a single element, the parenthesis around `(repeat each T)` are unwrapped to produce the element type as a scalar instead of a one-element tuple type.
 
-For example, the following could produce either the one-element tuple `(_: Int)` or the element type `Int`:
-- Substituting `T := {Int}` into `(repeat each T)`.
-- Substituting `T := {}` into `(Int, repeat each T)`.
+For example, the following substitutions both produce the element type `Int`:
+- Substituting `each T := {Int}` into `(repeat each T)`.
+- Substituting `each T := {}` into `(Int, repeat each T)`.
 
-Both approaches have pros and cons.
-
-One downside to exposing one-element tuples is that it increases the surface area of the language to handle this strange edge case. One-element tuples would need to be manually unwrapped, with `.0` or pattern matching, in order to make use of their contents. This unwrapping would clutter up code.
-
-On the other hand, automatically unwrapping one-element tuples in type substitution complicates type matching. If a substitution that would otherwise produce a one-element tuple instead produces the element type, matching a one-element tuple containing a pack expansion against a non-tuple type would introduce an ambiguity.
-
-For example, while matching `(repeat each T)` against `Int` would unambiguously bind `T := {Int}`, consider what happens if we match  `(repeat each T)` against the empty tuple type `()`. There are two possible solutions, `T := {}` where the `T` is bound to the empty type pack, or `T := {()}` where `T` is bound to a one-element type pack containing the empty tuple.
+Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would icnrease the surface area of the language. One-element tuples would need to be manually unrwapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
 
 ### Member type parameter packs
 
