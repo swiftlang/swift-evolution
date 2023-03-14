@@ -124,7 +124,7 @@ func makePairs<each First, each Second>(
   return (repeat Pair(each first, each second))
 }
 
-let pairs = makePairs(firsts: 1, "hello" seconds: true, 1.0)
+let pairs = makePairs(firsts: 1, "hello", seconds: true, 1.0)
 // 'pairs' is '(Pair(1, true), Pair("hello", 2.0))'
 ```
 
@@ -250,7 +250,7 @@ U := {Float, Double, Character}
 Then the substituted return type becomes a pair of function types:
 
 ```swift
-((Int) -> (Float, Double, Character), (String) -> (Float, Double, Character)>
+((Int) -> (Float, Double, Character), (String) -> (Float, Double, Character))
 ```
 
 Note that the entire replacement type pack for `U` was flattened in each repetition of the pattern type; we did not expand "across" `U`.
