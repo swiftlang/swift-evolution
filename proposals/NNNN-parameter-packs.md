@@ -365,47 +365,28 @@ All existing kinds of generic requirements generalize to type parameter packs. S
   func variadic<each S>(_: repeat each S) where each S: Sequence { ... }
   ```
 
-  A valid substitution for the above might replace `S` with `{Array<Int>, Set<String>}`.
+  A valid substitution for the above might replace `S` with `{Array<Int>, Set<String>}`. Expanding the substitution into the requirement `each S: Sequence` conceptually produces the following conformance requirements: `Array<Int>: Sequence, Set<String>: Sequence`.
 
-2. A same-type requirement where one side is a type parameter pack and the other type is a concrete type that does not capture any type parameter packs is interpreted as constraining each element of the replacement type pack to _the same_ concrete type:
+2. A same-type requirement where one side is a type parameter pack and the other type is a scalar type that does not capture any type parameter packs is interpreted as constraining each element of the replacement type pack to _the same_ scalar type:
 
   ```swift
   func variadic<each S: Sequence, T>(_: repeat each S) where (each S).Element == T {}
   ```
 
-  This is called a _concrete same-element requirement_.
+  This is called a _same-element requirement_.
 
   A valid substitution for the above might replace `S` with `{Array<Int>, Set<Int>}`, and `T` with `Int`.
 
-3. A same-type requirement where one side is a type parameter pack and the other type is a scalar type parameter is interpreted as constraining each element of the replacement type pack to the type parameter:
 
-  ```swift
-  func variadic<each S: Sequence, each T>(_: repeat each S) where (each S).Element == each T {}
-  ```
-
-  This is called an _abstract same-element requirement_.
-
-  A valid substitution for the above might replace `S` with `{Array<Int>, Set<String>}`, and `T` with `{Int, String}`.
-
-4. A same-type requirement where one side is a type parameter pack and the other side is a concrete type capturing at least one type parameter pack is interpreted as expanding the concrete type and constraining each element of the replacement type pack to the concrete element type:
+3. A same-type requirement where each side is a pattern type that captures at least one type parameter pack is interpreted as expanding the type packs on each side of the requirement, equating each element pair-wise.
 
   ```swift
   func variadic<each S: Sequence, each T>(_: repeat each S) where (each S).Element == Array<each T> {}
   ```
   
-  This is called a _concrete same-type pack requirement_.
+  This is called a _same-type-pack requirement_.
 
-  A valid substitution for the above might replace `S` with `{Array<Array<Int>>, Set<Array<String>>}`, and `T` with `{Int, String}`.
-
-5. A same-type requirement where both sides are type parameter packs constrains the elements of the replacement type pack element-wise:
-
-  ```swift
-  func append<each S: Sequence, each T: Sequence>(_: repeat each S, _: repeat each T) where (each T).Element == (each S).Element {}
-  ```
-  
-  This is called an _abstract same-type pack requirement_.
-
-  A valid substitution for the above would replace `S` with `{Array<Int>, Set<String>}`, and `T` with `{Set<Int>, Array<String>}`.
+  A valid substitution for the above might replace `S` with `{Array<Array<Int>>, Set<Array<String>>}`, and `T` with `{Int, String}`. Expanding `(each S).Element == Array<each T>` will produce the following list of same-type requirements: `Array<Array<Int>.Element == Array<Int>, Set<Array<String>>.Element == String`.
 
 There is an additional kind of requirement called a _same-shape requirement_. There is no surface syntax for spelling a same-shape requirement; they are always inferred, as described in the next section.
 
@@ -417,22 +398,19 @@ There is an additional kind of requirement called a _same-shape requirement_. Th
 
 A same-shape requirement states that two type parameter packs have the same number of elements, with pack expansion types occurring at identical positions.
 
-At this time, we are not proposing a spelling for same-shape requirements in the surface language, since we do not believe it is necessary given the inference behavior outlined below. However, we will use the notation `shape(T) == shape(U)` to denote same-shape requirements in this proposal.
+This proposal does not include a spelling for same-shape requirements in the surface language; same-shape requirements are always inferred, and an explicit same-shape requirement syntax is a future direction. However, we will use the notation `shape(T) == shape(U)` to denote same-shape requirements in this proposal.
 
 A same-shape requirement always relates two root type parameter packs. Member types always have the same shape as the root type parameter pack, so `shape(T.A) == shape(U.B)` reduces to `shape(T) == shape(U)`.
 
-**Inference:** Same-shape requirements are inferred in one of three ways:
+**Inference:** Same-shape requirements are inferred in the following ways:
 
-1. An abstract same-type requirement implies a same-shape requirement between two type parameter packs.
+1. A same-type-pack requirement implies a same-shape requirement between all type parameter packs captured by the pattern types on each side of the requirement.
 
-2. A concrete same-type requirement implies a same-shape requirement between the type parameter packs on the left hand side and all type parameter packs captured by the concrete type on the right hand side.
+   For example, given the parameter packs `<each First, each Second, each S: Sequence>`, the same-type-pack requirement `Pair<each First, each Second> == (each S).Element` implies `shape(First) == shape(Second), shape(First) == shape(S), shape(Second) == shape(S)`.
 
-3. Finally, a same-shape requirement is inferred between each pair of type parameter packs captured by a pack expansion type appearing in certain positions.
-
-The following positions are subject to the same-shape requirement inference in Case 3:
-
-* all types appearing in the requirements of a trailing `where` clause of a generic function
-* the parameter types and return type of a generic function
+2. A same-shape requirement is inferred between each pair of type parameter packs captured by a pack expansion type appearing in the following positions
+  * all types appearing in the requirements of a trailing `where` clause of a generic function
+  * the parameter types and the return type of a generic function
 
 Recall that if the pattern of a pack expansion type contains more than one type parameter pack, all type parameter packs must be known to have the same shape, as outlined in the [Type substitution](#type-substitution) section. Same-shape requirement inference ensures that these invariants are satisfied when the pack expansion type occurs in one of the two above positions.
 
