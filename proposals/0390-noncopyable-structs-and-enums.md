@@ -1,4 +1,4 @@
-# `@noncopyable` structs and enums
+# Noncopyable structs and enums
 
 * Proposal: [SE-0390](0390-noncopyable-structs-and-enums.md)
 * Authors: [Joe Groff](https://github.com/jckarter), [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick), [Kavon Farvardin](https://github.com/kavon)
@@ -6,6 +6,7 @@
 * Status: **Active review (February 21 ... March 7, 2023)**
 * Implementation: on main as `@_moveOnly` behind the `-enable-experimental-move-only` option
 * Review: [(pitch)](https://forums.swift.org/t/pitch-noncopyable-or-move-only-structs-and-enums/61903)[(review)](https://forums.swift.org/t/se-0390-noncopyable-structs-and-enums/63258)
+* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md)
 
 ## Introduction
 
@@ -31,9 +32,9 @@ represent unique resources with *unique ownership*.
 
 ## Proposed solution
 
-We propose to allow for `struct` and `enum` types to be declared with the
-`@noncopyable` attribute, which specifies that the declared type is
-*noncopyable*.  Values of noncopyable type always have unique ownership, and
+We propose to allow for `struct` and `enum` types to declare themselves as
+*noncopyable*, using a new syntax for suppressing implied generic constraints,
+`~Copyable`. Values of noncopyable type always have unique ownership, and
 can never be copied (at least, not using Swift's implicit copy mechanism).
 Since values of noncopyable structs and enums have unique identities, they can
 also have `deinit` declarations, like classes, which run automatically at the
@@ -42,8 +43,7 @@ end of the unique instance's lifetime.
 For example, a basic file descriptor type could be defined as:
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   private var fd: Int32
 
   init(fd: Int32) { self.fd = fd }
@@ -68,30 +68,103 @@ that uniquely owns the instance.
 
 ## Detailed design
 
+### The `Copyable` generic constraint
+
+Before this proposal, almost every type in Swift was automatically copyable.
+The standard library provides a new generic constraint `Copyable` to make
+this capability explicit. All existing first-class types (excluding nonescaping
+closures) implicitly satisfy this constraint, and all generic type parameters,
+existential types, protocols, and associated type requirements implicitly
+require it. Types may explicitly declare that they are `Copyable`, and generic
+types may explicitly require `Copyable`, but this currently has no effect.
+
+```
+struct Foo<T: Copyable>: Copyable {}
+```
+
+### Suppressing assumed generic requirements with `~Constraint`
+
+There are situations where a type is implicitly assumed to satisfy a generic
+requirement because of aspects of its declaration. For instance, enums that
+don't have any associated values are implicitly made `Hashable` (and,
+by refinement, `Equatable`):
+
+```
+enum Foo {
+  case a, b, c
+}
+
+// OK to compare with `==` because `Foo` is automatically Equatable
+print(Foo.a == Foo.b)
+```
+
+and internal structs and enums are implicitly `Sendable` if all of their
+components are `Sendable`:
+
+```
+struct Bar {
+    var x: Int, y: Int
+}
+
+func foo() async {
+    let x = Bar(x: 17, y: 38)
+
+    // OK to use x in an async task because it's implicitly Sendable
+    async let y = x
+}
+```
+
+However, this isn't always desirable; an enum may want to reserve the right to
+add associated values in the future that aren't `Equatable`, or a type may be
+made up of `Sendable` components that represent resources that are not safe
+to share across threads. There is currently no direct way to suppress these
+assumed generic requirements. We propose to introduce the `~Constraint` syntax
+as a way to explicitly suppress a generic requirement that would be assumed on
+a declaration:
+
+```
+enum Foo: ~Equatable {
+    case a, b, c
+}
+
+// ERROR: `Foo` does not conform to `Equatable`
+print(Foo.a == Foo.b)
+
+struct ThreadUnsafeHandle: ~Sendable {
+    // although this is an integer, it represents a system resource that
+    // can only be accessed from a specific thread, and should not be shared
+    // across threads
+    var handle: Int32 
+}
+
+func foo(handle: ThreadUnsafeHandle) async {
+    // ERROR: `ThreadUnsafeHandle` is not `Sendable`
+    async let y = handle
+}
+```
+
 ### Declaring noncopyable types
 
-A `struct` or `enum` type can be declared as noncopyable using the `@noncopyable`
-attribute:
+A `struct` or `enum` type can be declared as noncopyable by suppressing the
+`Copyable` requirement on their declaration, by combining the new `Copyable`
+constraint with the new requirement suppression syntax `~Copyable`:
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   private var fd: Int32
 }
 ```
 
 If a `struct` has a stored property of noncopyable type, or an `enum` has
 a case with an associated value of noncopyable type, then the containing type
-must also be declared `@noncopyable`:
+must also suppress its `Copyable` capability:
 
 ```swift
-@noncopyable
-struct SocketPair {
+struct SocketPair: ~Copyable {
   var in, out: FileDescriptor
 }
 
-@noncopyable
-enum FileOrMemory {
+enum FileOrMemory: ~Copyable {
   // write to an OS file
   case file(FileDescriptor)
   // write to an array in memory
@@ -114,6 +187,38 @@ class SharedFile {
 }
 ```
 
+A class type declaration may not use `~Copyable`; all class types remain copyable
+by retaining and releasing references to the object.
+
+```
+// ERROR: classes must be `Copyable`
+class SharedFile: ~Copyable {
+  var file: FileDescriptor
+}
+```
+
+It is also not yet allowed to suppress the `Copyable` requirement on generic
+parameters, associated type requirements in protocols, or the `Self` type
+in a protocol declaration:
+
+```
+// ERROR: generic parameter types must be `Copyable`
+func foo<T: ~Copyable>(x: T) {}
+
+// ERROR: types that conform to protocols must be `Copyable`
+protocol Foo where Self: ~Copyable {
+  // ERROR: associated type requirements must be `Copyable`
+  associatedtype Bar: ~Copyable
+}
+```
+
+`Copyable` also cannot be suppressed in existential type declarations:
+
+```
+// ERROR: `any` types must be `Copyable`
+let foo: any ~Copyable = FileDescriptor()
+```
+
 ### Restrictions on use in generics
 
 Noncopyable types may have generic type parameters:
@@ -121,8 +226,7 @@ Noncopyable types may have generic type parameters:
 ```swift
 // A type that reads from a file descriptor consisting of binary values of type T
 // in sequence.
-@noncopyable
-struct TypedFile<T> {
+struct TypedFile<T>: ~Copyable {
   var rawFile: FileDescriptor
 
   func read() -> T { ... }
@@ -131,8 +235,9 @@ struct TypedFile<T> {
 let byteFile: TypedFile<UInt8> // OK
 ```
 
-However, at this time, noncopyable types themselves are not allowed to be used
-as a generic type. This means a noncopyable type _cannot_:
+At this time, as noted above, generic types are still always required to be
+`Copyable`, so noncopyable types themselves are not allowed to be used as a
+generic type argument. This means a noncopyable type _cannot_:
 
 - conform to any protocols, except for `Sendable`.
 - serve as a type witness for an `associatedtype` requirement.
@@ -169,7 +274,7 @@ would copy its underlying value:
 ```swift
 extension FileDescriptor: Sendable {} // OK
 
-@noncopyable struct RefHolder: Sendable {
+struct RefHolder: ~Copyable, Sendable {
   var ref: Ref  // ERROR: stored property 'ref' of 'Sendable'-conforming struct 'RefHolder' has non-sendable type 'Ref'
 }
 
@@ -211,7 +316,7 @@ let fds: [FileDescriptor] = []
 print(FileDescriptor(-1))
 
 // ERROR: Noncopyable struct SocketEvent cannot conform to Error
-@noncopyable enum SocketEvent: Error {
+enum SocketEvent: ~Copyable, Error {
   case requestedDisconnect(SocketPair)
 }
 ```
@@ -241,8 +346,7 @@ ideal. But until that is supported, a concrete noncopyable enum can represent
 the case where the value of interest was taken out of the instance:
 
 ```swift
-@noncopyable
-enum MaybeFileDescriptor {
+enum MaybeFileDescriptor: ~Copyable {
   case some(FileDescriptor)
   case none
 }
@@ -278,14 +382,14 @@ types like `MaybeFileDescriptor` through a noncopyable `Optional`
 (see Future Directions).
 
 
-### Using values of `@noncopyable` type
+### Using noncopyable values
 
 As the name suggests, values of noncopyable type cannot be copied, a major break
 from most other types in Swift. Many operations are currently defined as
 working as pass-by-value, and use copying as an implementation technique
-to give that semantics, but they need to be defined more precisely in terms of
-how they *borrow* or *consume* their operands in order to define their
-effects on values that cannot be copied. 
+to give that semantics, but these operations now need to be defined more
+precisely in terms of how they *borrow* or *consume* their operands in order to
+define their effects on values that cannot be copied. 
 
 We use the term **consume** to refer to an operation
 that invalidates the value that it operates on. It may do this by directly
@@ -434,8 +538,7 @@ The following operations are consuming:
   `borrowing`:
 
     ```swift
-    @noncopyable
-    struct S {
+    struct S: ~Copyable {
       var x: FileDescriptor, y: Int
     }
     let x = FileDescriptor()
@@ -472,8 +575,7 @@ The following operations are consuming:
     if let y = consume x { ... }
     use(x) // ERROR: x consumed by `if let`
 
-    @noncopyable
-    enum FileDescriptorOrBuffer {
+    enum FileDescriptorOrBuffer: ~Copyable {
       case file(FileDescriptor)
       case buffer(String)
     }
@@ -641,8 +743,7 @@ is particularly useful as a way of forwarding ownership of part of an aggregate,
 such as to take ownership away from a wrapper type:
 
 ```
-@noncopyable
-struct FileDescriptorWrapper {
+struct FileDescriptorWrapper: ~Copyable {
   private var _value: FileDescriptor
 
   var value: FileDescriptor {
@@ -652,7 +753,7 @@ struct FileDescriptorWrapper {
 ```
 
 However, a `consuming get` cannot be paired with a setter when the containing
-type is `@noncopyable`, because invoking the getter consumes the aggregate,
+type is `~Copyable`, because invoking the getter consumes the aggregate,
 leaving nothing to write a modified value back to.
 
 Because getters return owned values, non-`consuming` getters generally cannot
@@ -674,20 +775,18 @@ computed properties to also provide "read" and "modify" coroutines, which would
 have the ability to yield borrowing or mutating access to properties without
 copying them.
 
-### Using stored properties and enum cases of `@noncopyable` type
+### Using stored properties and enum cases of noncopyable type
 
-When classes or `@noncopyable` types contain members that are of `@noncopyable`
+When classes or noncopyable types contain members that are of noncopyable
 type, then the container is the unique owner of the member value. Outside of
 the type's definition, client code cannot perform consuming operations on
 the value, since it would need to take away the container's ownership to do
 so:
 
 ```
-@noncopyable
-struct Inner {}
+struct Inner: ~Copyable {}
 
-@noncopyable
-struct Outer {
+struct Outer: ~Copyable {
   var inner = Inner()
 }
 
@@ -711,8 +810,7 @@ consuming operation, so it can only be performed inside `consuming` methods
 on the type's original definition:
 
 ```
-@noncopyable
-enum OuterEnum {
+enum OuterEnum: ~Copyable {
   case inner(Inner)
   case file(FileDescriptor)
 }
@@ -874,13 +972,12 @@ func foo() {
 
 ### Deinitializers
 
-A `@noncopyable` struct or enum may declare a `deinit`, which will run
+A noncopyable struct or enum may declare a `deinit`, which will run
 implicitly when the lifetime of the value ends (unless explicitly suppressed
 as noted below):
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   private var fd: Int32
 
   deinit {
@@ -927,13 +1024,11 @@ circumstances:
   `deinit` if any runs.
 
     ```swift
-    @noncopyable
-    struct Inner {
+    struct Inner: ~Copyable {
       deinit { print("destroying inner") }
     }
 
-    @noncopyable
-    struct Outer {
+    struct Outer: ~Copyable {
       var inner = Inner()
       deinit { print("destroying outer") }
     }
@@ -959,8 +1054,7 @@ under normal circumstances, a `consuming` method will still invoke the type's
 own logic already invalidates the value:
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   private var fd: Int32
 
   deinit {
@@ -982,13 +1076,13 @@ from the deinit, such as raising an error (which a normal `deinit` is unable to
 do) if the `close` system call triggers an OS error :
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   private var fd: Int32
 
   consuming func close() throws {
-    // POSIX close may raise an error (which still invalidates the
-    // file descriptor, but may indicate a condition worth handling)
+    // POSIX close may raise an error (which leaves the file descriptor in an
+    // unspecified state, so we can't really try to close it again, but the
+    // error may nonetheless indicate a condition worth handling)
     if close(fd) != 0 {
       throw CloseError(errno)
     }
@@ -1002,8 +1096,7 @@ or it could be useful to take manual control of the file descriptor back from
 the type, such as to pass to a C API that will take care of closing it:
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   // Take ownership of the C file descriptor away from this type,
   // returning the file descriptor without closing it
   consuming func take() -> Int32 {
@@ -1014,44 +1107,42 @@ struct FileDescriptor {
 }
 ```
 
-We propose to introduce a special operator, `forget self`, which ends the
+We propose to introduce a special operator, `suppressdeinit self`, which ends the
 lifetime of `self` without running its `deinit`:
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   // Take ownership of the C file descriptor away from this type,
   // returning the file descriptor without closing it
   consuming func take() -> Int32 {
     let fd = self.fd
-    forget self
+    suppressdeinit self
     return fd
   }
 }
 ```
 
-`forget self` can only be applied to `self`, in a consuming method defined in
-the type's defining module. (This is in contrast to Rust's similar special
-function, [`mem::forget`](https://doc.rust-lang.org/std/mem/fn.forget.html),
-which is a standalone function which can be applied to any value, anywhere.
-Although the Rust documentation notes that this operation is "safe" on the
-principle that destructors may not run at all, due to reference cycles,
-process termination, etc., in practice the ability to forget arbitrary values
-creates semantic issues for many Rust APIs, particularly when there are
-destructors on types with lifetime dependence on each other like `Mutex`
-and `LockGuard`. As such, we
-think it is safer to restrict the ability to forget a value to the
-core API of its type. We can relax this restriction if experience shows a
-need to.)
+`suppressdeinit self` can only be applied to `self`, in a consuming method
+defined in the same file as the type's original definition. (This is in
+contrast to Rust's similar special function,
+[`mem::forget`](https://doc.rust-lang.org/std/mem/fn.forget.html), which is a
+standalone function that can be applied to any value, anywhere.  Although the
+Rust documentation notes that this operation is "safe" on the principle that
+destructors may not run at all, due to reference cycles, process termination,
+etc., in practice the ability to forget arbitrary values creates semantic
+issues for many Rust APIs, particularly when there are destructors on types
+with lifetime dependence on each other like `Mutex` and `LockGuard`. As such,
+we think it is safer to restrict the ability to suppress the standard `deinit`
+for a value to the core API of its type. We can relax this restriction if
+experience shows a need to.)
 
-Even with the ability to `forget self`, care would still need be taken when
+Even with the ability to `suppressdeinit self`, care would still need be taken when
 writing destructive operations to avoid triggering the deinit on alternative
 exit paths, such as early `return`s, `throw`s, or implicit propagation of
 errors from `try` operations. For instance, if we write:
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   private var fd: Int32
 
   consuming func close() throws {
@@ -1059,32 +1150,31 @@ struct FileDescriptor {
     // file descriptor, but may indicate a condition worth handling)
     if close(fd) != 0 {
       throw CloseError(errno)
-      // !!! Oops, we didn't forget self on this path, so we'll deinit!
+      // !!! Oops, we didn't suppress deinit on this path, so we'll double close!
     }
 
     // We don't need to deinit self anymore
-    forget self
+    suppressdeinit self
   }
 }
 ```
 
-then the `throw` path exits the method without `forget`-ing `self`, so
+then the `throw` path exits the method without `suppressdeinit`, and
 `deinit` will still execute if an error occurs. To avoid this mistake, we
-propose that if any path through a method uses `forget self`, then **every**
-path must choose either to `forget` or to explicitly `consume self` using
-the standard `deinit`. This will make
-the above code an error, alerting that the code should be rewritten to ensure
-`forget self` always executes:
+propose that if any path through a method uses `suppressdeinit self`, then
+**every** path must choose either to `suppressdeinit` or to explicitly `consume self`,
+which triggers the standard `deinit`. This will make the above code an error,
+alerting that the code should be rewritten to ensure `suppressdeinit self`
+always executes:
 
 ```swift
-@noncopyable
-struct FileDescriptor {
+struct FileDescriptor: ~Copyable {
   private var fd: Int32
 
   consuming func close() throws {
     // Save the file descriptor and give up ownership of it
     let fd = self.fd
-    forget self
+    suppressdeinit self
 
     // We can now use `fd` below without worrying about `deinit`:
 
@@ -1099,12 +1189,11 @@ struct FileDescriptor {
 
 The [consume operator](https://github.com/apple/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md)
 must be used to explicitly end the value's lifetime using its `deinit` if
-`forget` is used to conditionally destroy the value on other paths through
-the method.
+`suppressdeinit` is used to conditionally destroy the value on other paths
+through the method.
 
 ```
-@noncopyable
-struct MemoryBuffer {
+struct MemoryBuffer: ~Copyable {
   private var address: UnsafeRawPointer
 
   init(size: Int) throws {
@@ -1123,7 +1212,7 @@ struct MemoryBuffer {
       // Save the memory buffer and give it to the caller, who
       // is promising to free it when they're done.
       let address = self.address
-      forget self
+      suppressdeinit self
       return address
     } else {
       // We still want to free the memory if we aren't giving it away.
@@ -1140,12 +1229,13 @@ For existing Swift code, this proposal is additive.
 
 ## Effect on ABI stability
 
-### Adding or removing `@noncopyable` breaks ABI
+### Adding or removing `Copyable` breaks ABI
 
-An existing copyable struct or enum cannot be made `@noncopyable` without
-breaking ABI, since existing clients may copy values of the type.
+An existing copyable struct or enum cannot have its `Copyable` capability
+taken away without breaking ABI, since existing clients may copy values of the
+type.
 
-Ideally, we would allow noncopyable types to become copyable without breaking
+Ideally, we would allow noncopyable types to become `Copyable` without breaking
 ABI; however, we cannot promise this, due to existing implementation choices we
 have made in the ABI that cause the copyability of a type to have unavoidable
 knock-on effects. In particular, when properties are declared in classes,
@@ -1242,7 +1332,8 @@ types lack the ability to satisfy this constraint, more explicit.
 ### Spelling as a generic constraint
 
 It's a reasonable question why declaring a type as noncopyable isn't spelled
-like a protocol constraint:
+like a regular protocol constraint, instead of as the removal of an existing
+constraint:
 
 ```
 struct Foo: NonCopyable {}
@@ -1262,8 +1353,8 @@ extension Dictionary: NonCopyable where Key: NonCopyable, Value: NonCopyable {}
 ```
 
 this says that the dictionary is noncopyable only when both the key and value
-are noncopyable, which is wrong because we also can't copy the dictionary if only
-the keys or only the values are noncopyable. If we flip the constraint to
+are noncopyable, which is wrong because we can't copy the dictionary even if
+only the keys or only the values are noncopyable. If we flip the constraint to
 `Copyable`, the correct thing would fall out naturally:
 
 ```
@@ -1271,26 +1362,10 @@ extension Dictionary: Copyable where Key: Copyable, Value: Copyable {}
 ```
 
 However, for progressive disclosure and source compatibility reasons, we still
-want the majority of types to be `Copyable` by default, without making them
+want the majority of types to be `Copyable` by default without making them
 explicitly declare it; noncopyable types are likely to remain the exception
 rather than the rule, with automatic lifetime management via ARC by the
 compiler being sufficient for most code like it is today.
-
-We could conversely borrow another idea from Rust, which uses the syntax
-`?Trait` to declare that a normally implicit trait is not required by
-a generic declaration, or not satisfied by a concrete type. So in Swift we
-might write:
-
-```
-struct Foo: ?Copyable {
-}
-```
-
-`Copyable` is currently the only such implicit constraint we are considering,
-so the `@noncopyable` attribute is appealing as a specific solution to address
-this case. If we were to consider making other requirements implicit (perhaps
-`Sendable` in some situations?) then a more general opt-out syntax would be
-called for.
 
 ### English language bikeshedding
 
@@ -1298,11 +1373,6 @@ Some dictionaries specify that "copiable" is the standard spelling for "able to
 copy", although the Oxford English Dictionary and Merriam-Webster both also
 list "copyable" as an accepted alternative. We prefer the more regular "copyable"
 spelling.
-
-The negation could just as well be spelled `@uncopyable` instead of `@noncopyable`.
-Swift has precedent for favoring `non-` in modifiers, including `@nonescaping`
-parameters and and `nonisolated` actor members, so we choose to follow that
-precedent.
 
 ## Future directions
 
@@ -1332,8 +1402,7 @@ writing `nil` back. Eventually this could be written as an extension method
 on `Optional`:
 
 ```
-@noncopyable
-extension Optional {
+extension Optional where Self: ~Copyable {
   mutating func take() -> Wrapped {
     switch self {
     case .some(let wrapped):
@@ -1400,9 +1469,7 @@ to be copyable for some generic arguments but not all. A simple case might be
 a tuple-like `Pair` struct:
 
 ```
-@noncopyable
-// : ?Copyable is strawman syntax for declaring T and U don't require copying
-struct Pair<T: ?Copyable, U: ?Copyable> {
+struct Pair<T: ~Copyable, U: ~Copyable>: ~Copyable {
   var first: T
   var second: U
 }
@@ -1421,7 +1488,7 @@ As currently specified, noncopyable types are (outside of `init` implementations
 always either fully initialized or fully destroyed, without any support
 for incremental destruction inside of `consuming` methods or deinits. A
 `deinit` may modify, but not invalidate, `self`, and a `consuming` method may
-`forget self`, forward ownership of all of `self`, or destroy `self`, but cannot
+`suppressdeinit self`, forward ownership of all of `self`, or destroy `self`, but cannot
 yet partially consume parts of `self`. This would be particularly useful for
 types that contain other noncopyable types, which may want to relinquish
 ownership of some or all of the resources owned by those members. In the current
@@ -1429,8 +1496,7 @@ proposal, this isn't possible without allowing for an intermediate invalid
 state:
 
 ```swift
-@noncopyable
-struct SocketPair {
+struct SocketPair: ~Copyable {
   let input, output: FileDescriptor
 
   // Gives up ownership of the output end, closing the input end
@@ -1440,7 +1506,7 @@ struct SocketPair {
     // However, we can't do this without being able to either copy
     // `self.output` or partially invalidate `self`
     let output = self.output
-    forget self
+    suppressdeinit self
     return output
   }
 }
@@ -1449,9 +1515,9 @@ struct SocketPair {
 Analogously to how `init` implementations use a "definite initialization"
 pass to allow the value to initialized field-by-field, we can implement the
 inverse dataflow pass to allow `deinit` implementations, as well as `consuming`
-methods that `forget self`, to partially invalidate `self`.
+methods that `suppressdeinit self`, to partially invalidate `self`.
 
-### `read` and `modify` accessor coroutines for computed properties.
+### `read` and `modify` accessor coroutines for computed properties
 
 The current computed property model allows for properties to provide a getter,
 which returns the value of the property on read to the caller as an owned value,
@@ -1473,3 +1539,32 @@ borrowing or mutating, instead of passing copies of values back and forth.
 We can expose the ability for code to implement these coroutines directly,
 which is a good optimization for copyable value types, but also allows for
 more expressivity with noncopyable properties.
+
+## Revision history
+
+This version of the proposal makes the following changes from the
+[first reviewed revision](https://github.com/apple/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md)
+of this proposal:
+
+- The original revision did not provide a `Copyable` generic constraint, and
+  declared types as noncopyable using a `@noncopyable` attribute. The
+  language workgroup believes that it is a good idea to build toward a future
+  where noncopyable types are integrated with the language's generics system,
+  and that the syntax for suppressing generic constraints is a good general
+  notation to have for suppressing implicit conformances or assumptions about
+  generic capabilities we may take away in the future, so it makes sense to
+  provide a syntax that allows for growth in those directions.
+
+- The original revision suppressed implicit `deinit` within methods using the
+  spelling `forget self`. Although the term `forget` has a precedent in Rust,
+  the behavior of `mem::forget` in Rust doesn't correspond to the semantics of
+  the operation proposed here, and the language workgroup doesn't find the
+  term clear enough on its own. This revision of the proposal chooses the
+  more explicit `suppressdeinit`, which is long and awkward but at least
+  explicit, as a starting point for further review discussion.
+
+- The original revision allowed for a `consuming` method declared anywhere in
+  the type's original module to suppress `deinit`. This revision narrows the
+  capability to only methods declared in the same file as the type, for
+  consistency with other language features that depend on having visibility into
+  a type's entire layout, such as implicit `Sendable` inference.
