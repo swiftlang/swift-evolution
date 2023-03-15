@@ -143,6 +143,41 @@ func foo(handle: ThreadUnsafeHandle) async {
 }
 ```
 
+It is important to note that `~Constraint` only removes the assumption of an
+implicit requirement, but it does **not** mean that the type strictly does not
+conform to the protocol. Extensions may add the conformance back separately,
+possibly conditionally:
+
+```
+struct ResourceHandle<T: Resource>: ~Sendable {
+    // although this is an integer, it represents a system resource that
+    // gives access to values of type `T`, which may not be thread safe
+    // across threads
+    var handle: Int32 
+}
+
+// It is safe to share the handle when the resource type is thread safe
+extension ResourceHandle: Sendable where T: Sendable {}
+
+// Suppress the default Equatable (and Hashable) implementation...
+enum Foo: ~Equatable {
+    case a, b, c, a2
+}
+
+// ...but provide our own Equatable
+extension Foo: Equatable {
+    static func ==(a: Foo, b: Foo) {
+        switch (a, b) {
+        // a2 is equal to a
+        case (.a, .a), (.b, .b), (.c, .c), (.a, .a2), (.a2, .a):
+            return true
+        default:
+            return false
+        }
+    }
+}
+```
+
 ### Declaring noncopyable types
 
 A `struct` or `enum` type can be declared as noncopyable by suppressing the
