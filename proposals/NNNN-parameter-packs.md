@@ -7,11 +7,17 @@
 * Implementation: On `main` gated behind the frontend flag `-enable-experimental-feature VariadicGenerics`
 * Review: ([pitch 1]()) ([pitch 2]())
 
+## Introduction
+
+Many modern Swift libraries include ad-hoc variadic APIs with an arbitrary upper bound, typically achieved with overloads that each have a different fixed number of type parameters and corresponding arguments. Without variadic generic programming support in the language, these ad-hoc variadic APIs have a significant cost on library maintenance and the developer experience of using these APIs.
+
+This proposal adds _type parameter packs_ and _value parameter packs_ to enable abstracting over the number of types and values with distinct type. This is the first step toward variadic generics in Swift.
+
 ## Contents
 
 - [Value and Type Parameter Packs](#value-and-type-parameter-packs)
-  - [Contents](#contents)
   - [Introduction](#introduction)
+  - [Contents](#contents)
   - [Motivation](#motivation)
   - [Proposed solution](#proposed-solution)
   - [Detailed design](#detailed-design)
@@ -46,12 +52,6 @@
     - [Pack destructuring operations](#pack-destructuring-operations)
     - [Tuple conformances](#tuple-conformances)
   - [Acknowledgments](#acknowledgments)
-
-## Introduction
-
-Many modern Swift libraries include ad-hoc variadic APIs with an arbitrary upper bound, typically achieved with overloads that each have a different fixed number of type parameters and corresponding arguments. Without variadic generic programming support in the language, these ad-hoc variadic APIs have a significant cost on library maintenance and the developer experience of using these APIs.
-
-This proposal adds _type parameter packs_ and _value parameter packs_ to enable abstracting over the number of types and values with distinct type. This is the first step toward variadic generics in Swift.
 
 ## Motivation
 
