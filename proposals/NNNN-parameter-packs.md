@@ -24,11 +24,11 @@ This proposal adds _type parameter packs_ and _value parameter packs_ to enable 
     - [Type parameter packs](#type-parameter-packs)
     - [Pack expansion type](#pack-expansion-type)
     - [Type substitution](#type-substitution)
+      - [Single-element pack substitution](#single-element-pack-substitution)
     - [Type matching](#type-matching)
       - [Label matching](#label-matching)
       - [Trailing closure matching](#trailing-closure-matching)
       - [Type list matching](#type-list-matching)
-      - [Single-element pack substitution](#single-element-pack-substitution)
     - [Member type parameter packs](#member-type-parameter-packs)
     - [Generic requirements](#generic-requirements)
       - [Same-shape requirements](#same-shape-requirements)
@@ -167,7 +167,6 @@ A pack expansion type, written as `repeat P`, has a *pattern type* `P` and a non
 * The type of a parameter in a function type, e.g. `(repeat each T) -> Bool`
 * The type of an unlabeled element in a tuple type, e.g. `(repeat each T)`
 
-
 Because pack expansions can only appear in positions that accept a comma-separated list, pack expansion patterns are naturally delimited by either a comma or the end-of-list delimiter, e.g. `)` for call argument lists or `>` for generic argument lists.
 
 The restriction where only unlabeled elements of a tuple type may have a pack expansion type is motivated by ergonomics. If you could write `(t: repeat each T)`, then after a substitution `T := {Int, String}`, the substituted type would be `(t: Int, String)`. This would be strange, because projecting the member `t` would only produce the first element. When an unlabeled element has a pack expansion type, like `(repeat each T)`, then after the above substitution you would get `(Int, String)`. You can still write `0` to project the first element, but this is less surprising to the Swift programmer.
@@ -269,6 +268,17 @@ func counts<each T: Collection>(_ t: repeat each T) {
 
 The `count` property on the `Collection` protocol returns `Int`, so the type of the expression `(repeat (each t).count)` is written as the one-element tuple type `(repeat Int)` whose element is the pack expansion type `repeat Int`. While the pattern type `Int` does not capture any type parameter packs, the pack expansion type must still capture `T` to represent the fact that after expansion, the resulting tuple type has the same length as `T`. This kind of pack expansion type can arise during type inference, but it cannot be written in source.
 
+#### Single-element pack substitution
+
+If a parameter pack `each T` is substituted with a single element, the parenthesis around `(repeat each T)` are unwrapped to produce the element type as a scalar instead of a one-element tuple type.
+
+For example, the following substitutions both produce the element type `Int`:
+- Substituting `each T := {Int}` into `(repeat each T)`.
+- Substituting `each T := {}` into `(Int, repeat each T)`.
+
+Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would icnrease the surface area of the language. One-element tuples would need to be manually unrwapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
+
+
 ### Type matching
 
 Recall that the substitutions for a reference to a generic function are derived from the types of call argument expressions together with the contextual return type of the call, and are not explicitly written in source. This necessitates introducing new rules for _matching_ types containing pack expansions.
@@ -354,19 +364,9 @@ For example, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Dou
 
 However, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Double, Float, z: String)` leaves you with `repeat each T` vs `Double, Float`, which succeeds with `T := {Double, Float}`, because the labels match exactly in the common prefix and suffix, and no labels remain once we get to Case 1 above.
 
-#### Single-element pack substitution
-
-If a parameter pack `each T` is substituted with a single element, the parenthesis around `(repeat each T)` are unwrapped to produce the element type as a scalar instead of a one-element tuple type.
-
-For example, the following substitutions both produce the element type `Int`:
-- Substituting `each T := {Int}` into `(repeat each T)`.
-- Substituting `each T := {}` into `(Int, repeat each T)`.
-
-Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would icnrease the surface area of the language. One-element tuples would need to be manually unrwapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
-
 ### Member type parameter packs
 
-If a type parameter pack `T` is subject to a protocol conformance requirement `P`, and `P` declares an associated type `A`, then `T.A` is a valid pattern type for a pack expansion type, called a _member type parameter pack_.
+If a type parameter pack `each T` is subject to a protocol conformance requirement `P`, and `P` declares an associated type `A`, then `(each T).A` is a valid pattern type for a pack expansion type, called a _member type parameter pack_.
 
 Under substitution, a member type parameter pack projects the associated type from each element of the replacement type pack.
 
@@ -378,7 +378,7 @@ func variadic<each T: Sequence>(_: repeat each T) -> (repeat (each T).Element)
 
 After the substitution `T := {Array<Int>, Set<String>}`, the substituted return type of this function becomes the tuple type `(Int, String)`.
 
-We will refer to `T` as the _root type parameter pack_ of the member type parameter packs `T.A` and `T.A.B`.
+We will refer to `each T` as the _root type parameter pack_ of the member type parameter packs `(each T).A` and `(each T).A.B`.
 
 ### Generic requirements
 
