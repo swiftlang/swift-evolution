@@ -34,6 +34,7 @@ This proposal adds _type parameter packs_ and _value parameter packs_ to enable 
       - [Same-shape requirements](#same-shape-requirements)
       - [Restrictions on same-shape requirements](#restrictions-on-same-shape-requirements)
     - [Value parameter packs](#value-parameter-packs)
+    - [Overload resolution](#overload-resolution)
   - [Effect on ABI stability](#effect-on-abi-stability)
   - [Alternatives considered](#alternatives-considered)
     - [Modeling packs as tuples with abstract elements](#modeling-packs-as-tuples-with-abstract-elements)
@@ -550,6 +551,26 @@ func forward<each U>(u: repeat each U) {
   let _ = tuplify(repeat [each u]) // T := {repeat Array<each U>}
 }
 ```
+
+### Overload resolution
+
+Generic functions can be overloaded by the "pack-ness" of their type parameters. For example, a function can have two overloads where one accepts a scalar type parameter and the other accepts a type parameter pack:
+
+```swift
+func overload<T>(_: T) {}
+func overload<each T>(_: repeat each T) {}
+```
+
+If both overloads match a given call, e.g. `overload(1)`, the call is ambiguous. Similarly, two generic functions where one accepts a non-pack variadic parameter and the other accepts a type parameter pack:
+
+```swift
+func overload<T>(_: T...) {}
+func overload<each T>(_: repeat each T) {}
+
+overload() // ambiguity error
+```
+
+In other words, variadic generic functions have the same ranking as other generic functions.
 
 ## Effect on ABI stability
 
