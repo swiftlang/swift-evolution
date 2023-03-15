@@ -27,7 +27,7 @@ This proposal adds _type parameter packs_ and _value parameter packs_ to enable 
     - [Type matching](#type-matching)
       - [Label matching](#label-matching)
       - [Trailing closure matching](#trailing-closure-matching)
-      - [Type sequence matching](#type-sequence-matching)
+      - [Type list matching](#type-list-matching)
       - [Single-element pack substitution](#single-element-pack-substitution)
     - [Member type parameter packs](#member-type-parameter-packs)
     - [Generic requirements](#generic-requirements)
@@ -177,7 +177,7 @@ The captures of the pattern type are a subset of the captures of the pack expans
 
 For example, if `each T` is a type parameter pack subject to the conformance requirement `each T: Hashable`, then `repeat Set<each T>` is well-typed, because `Set<T>` is well-typed given `T: Hashable`.
 
-However, if `each T` were not subject to this conformance requirement, then `repeat Set<each T>` would not be well-typed; the user might substitute `T` with a type pack containing types that do not conform to `Hashable`, like `T := {AnyObject, Int}`, and the substituted type sequence `Set<AnyObject>, Set<Int>` is not well-typed because `Set<AnyObject>` is not well-typed.
+However, if `each T` were not subject to this conformance requirement, then `repeat Set<each T>` would not be well-typed; the user might substitute `T` with a type pack containing types that do not conform to `Hashable`, like `T := {AnyObject, Int}`, and the expanded substitution `Set<AnyObject>, Set<Int>` is not well-typed because `Set<AnyObject>` is not well-typed.
 
 ### Type substitution
 
@@ -185,9 +185,9 @@ Recall that a reference to a generic function from expression context always pro
 
 The replacement type of a type parameter pack is always a type pack. Since type parameter packs always occur inside the pattern type of a pack expansion type, we need to define what it means to perform a substitution on a type that contains pack expansion types.
 
-Recall that pack expansion types appear in function parameter types and tuple types. The comma-separated list of types that can contain a pack expansion type is called a _type sequence_. Substitution replaces each pack expansion type with a replacement type sequence, which is flattened into the outer type sequence.
+Recall that pack expansion types appear in function parameter types and tuple types. Substitution replaces each pack expansion type with an expanded type list, which is flattened into the outer type list.
 
-**Intuition:** The substituted type sequence is formed by replacing the captured type parameter pack references with the corresponding elements of each replacement type pack.
+**Intuition:** The substituted type list is formed by replacing the captured type parameter pack references with the corresponding elements of each replacement type pack.
 
 For example, consider the declaration:
 
@@ -213,7 +213,7 @@ The substituted return type of `variadic` becomes a tuple type with 4 elements:
 
 **Formal algorithm:** Suppose `repeat P` is a pack expansion type with pattern type `P`, that captures a list of type parameter packs `Ti`, and let `S[Ti]` be the replacement type pack for `Ti`. We require that each `S[Ti]` has the same length; call this length `N`. If the lengths do not match, the substitution is malformed. Let `S[Ti][j]` be the `j`th element of `S[Ti]`, where `0 ≤ j < N`.
 
-The `j`th element of the replacement type sequence is derived as follows:
+The `j`th element of the replacement type list is derived as follows:
 
 1. If each `S[Ti][j]` is a scalar type, the element type is obtained by substituting each `Ti` with `S[Ti][j]` in the pattern type `P`.
 2. If each `S[Ti][j]` is a pack expansion type, then `S[Ti][j]` = `repeat Pij` for some pattern type `Pij`. The element type is the pack expansion type `repeat Qij`, where `Qij` is obtained by substituting each `Ti` with `Pij` in the pattern type `P`.
@@ -273,7 +273,7 @@ Recall that the substitutions for a reference to a generic function are derived 
 There are two separate rules:
 
 - For call expressions where the callee is a named function declaration, _label matching_ is performed.
-- For everything else, _type sequence matching_ is performed.
+- For everything else, _type list matching_ is performed.
 
 #### Label matching
 
@@ -321,9 +321,9 @@ func trailing<each T: Sequence, each U>(t: repeat each T, u: repeat each U) {}
 trailing { 0 }
 ```
 
-#### Type sequence matching
+#### Type list matching
 
-In all other cases, we're matching two type sequences. If either type sequence contains two or more pack expansion types, the match remains _unsolved_, and the type checker attempts to derive substitutions by matching other types before giving up. (This allows a call to `concat()` as defined above to succeed, for example; the match between the contextual return type and `(repeat each T, repeat each U)` remains unsolved, but we are able to derive the substitutions for `T` and `U` from the call argument expressions.)
+In all other cases, we're matching two comma-separated lists of types. If either list contains two or more pack expansion types, the match remains _unsolved_, and the type checker attempts to derive substitutions by matching other types before giving up. (This allows a call to `concat()` as defined above to succeed, for example; the match between the contextual return type and `(repeat each T, repeat each U)` remains unsolved, but we are able to derive the substitutions for `T` and `U` from the call argument expressions.)
 
 Otherwise, we match the common prefix and suffix as long as no pack expansion types appear on either side. After this has been done, there are three possibilities:
 
@@ -336,18 +336,18 @@ For example:
 ```swift
 func variadic<each T>(_: repeat each T) -> (Int, repeat each T, String) {}
 
-let fn = { x in variadic(x) as (Int, Double, Float, String) }
+let fn = { x, y in variadic(x, y) as (Int, Double, Float, String) }
 ```
 
-Case 3 covers the case where one of the type sequences has a pack expansion, but the other one is too short; for example, matching `(Int, repeat each T, String, Float)` against `(Int, Float)` leaves you with `(repeat each T, String)` vs `()`, which is invalid.
+Case 3 covers the case where one of the lists has a pack expansion, but the other one is too short; for example, matching `(Int, repeat each T, String, Float)` against `(Int, Float)` leaves you with `(repeat each T, String)` vs `()`, which is invalid.
 
-If neither side contains a pack expansion type, Case 3 also subsumes the current behavior as implemented without this proposal, where type sequence matching always requires the two type sequences to have the same length. For example, when matching `(Int, String)` against `(Int, Float, String)`, we end up with `()` vs `(Float)`, which is invalid.
+If neither side contains a pack expansion type, Case 3 also subsumes the current behavior as implemented without this proposal, where type list matching always requires the two type lists to have the same length. For example, when matching `(Int, String)` against `(Int, Float, String)`, we end up with `()` vs `(Float)`, which is invalid.
 
-The type checker derives the replacement type for `T` in the call to `variadic()` by matching the contextual return type `(Int, Double, Float, String)` against the declared return type `(Int, repeat each T, String)`. The common prefix `Int` and common suffix `String` successfully match. What remains is the pack expansion type `repeat each T` and the type sequence `Double, Float`. This successfully matches, deriving the substitution `T := {Double, Float}`.
+The type checker derives the replacement type for `T` in the call to `variadic()` by matching the contextual return type `(Int, Double, Float, String)` against the declared return type `(Int, repeat each T, String)`. The common prefix `Int` and common suffix `String` successfully match. What remains is the pack expansion type `repeat each T` and the type list `Double, Float`. This successfully matches, deriving the substitution `T := {Double, Float}`.
 
-While type sequence matching is positional, the type sequences may still contain labels if we're matching two tuple types. We require the labels to match exactly when dropping the common prefix and suffix, and then we only allow Case 1 and 2 to succeed if the remaining type sequences do not contain any labels.
+While type list matching is positional, the type lists may still contain labels if we're matching two tuple types. We require the labels to match exactly when dropping the common prefix and suffix, and then we only allow Case 1 and 2 to succeed if the remaining type lists do not contain any labels.
 
-For example, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Double, y: Float, z: String)` drops the common prefix and suffix, and leaves you with the pack expansion type `repeat each T` vs the type sequence `Double, y: Float`, which fails because `Double: y: Float` contains a label.
+For example, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Double, y: Float, z: String)` drops the common prefix and suffix, and leaves you with the pack expansion type `repeat each T` vs the type list `Double, y: Float`, which fails because `Double: y: Float` contains a label.
 
 However, matching `(x: Int, repeat each T, z: String)` against `(x: Int, Double, Float, z: String)` leaves you with `repeat each T` vs `Double, Float`, which succeeds with `T := {Double, Float}`, because the labels match exactly in the common prefix and suffix, and no labels remain once we get to Case 1 above.
 
@@ -531,7 +531,7 @@ For example, say that `x` and `y` are both value parameter packs and `T` is a ty
 
 Assuming the above hold, the type of a pack expansion expression is defined to be the pack expansion type whose pattern type is the type of the pattern expression.
 
-**Evaluation semantics:** At runtime, each value (or type) pack parameter receives a value (or type) pack, which is a concrete list of values (or types). The same-shape requirements guarantee that all value (and type) packs have the same length, call it `N`. The evaluation semantics are that for each successive `i` such that `0 ≤ i < N`, the pattern expression is evaluated after substituting each occurrence of a value (or type) pack parameter with the `i`th element of the value (or type) pack. The evaluation proceeds from left to right according to the usual evaluation order, and the sequence of results from each evaluation forms the argument list for the parent expression.
+**Evaluation semantics:** At runtime, each value (or type) parameter pack receives a value (or type) pack, which is a concrete list of values (or types). The same-shape requirements guarantee that all value (and type) packs have the same length, call it `N`. The evaluation semantics are that for each successive `i` such that `0 ≤ i < N`, the pattern expression is evaluated after substituting each occurrence of a value (or type) parameter pack with the `i`th element of the value (or type) pack. The evaluation proceeds from left to right according to the usual evaluation order, and the list of results from each evaluation forms the argument list for the parent expression.
 
 For example, pack expansion expressions can be used to forward value parameter packs to other functions:
 
