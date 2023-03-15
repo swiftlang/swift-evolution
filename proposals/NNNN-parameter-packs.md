@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: On `main` gated behind the frontend flag `-enable-experimental-feature VariadicGenerics`
-* Review: ([pitch 1]()) ([pitch 2]())
+* Review: ([pitch 1](https://forums.swift.org/t/pitch-parameter-packs/60543)) ([pitch 2](https://forums.swift.org/t/pitch-2-value-and-type-parameter-packs/60830))
 
 ## Introduction
 
