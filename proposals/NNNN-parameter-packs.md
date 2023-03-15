@@ -159,13 +159,16 @@ When referenced from type context, this identifier resolves to a _type parameter
 
 ### Pack expansion type
 
-A pack expansion type, written as `repeat P`, has a *pattern type* `P` and a non-empty set of _captured_ type parameter packs.
+A pack expansion type, written as `repeat P`, has a *pattern type* `P` and a non-empty set of _captured_ type parameter packs spelled with the `each` keyword. For example, the pack expansion type `repeat Array<each T>` has a pattern type `Array<each T>` that captures the type parameter pack `T`.
 
 **Syntactic validity:** Pack expansion types can appear in the following positions:
 
 * The type of a parameter in a function declaration, e.g. `func foo<each T>(values: repeat each T) -> Bool`
 * The type of a parameter in a function type, e.g. `(repeat each T) -> Bool`
 * The type of an unlabeled element in a tuple type, e.g. `(repeat each T)`
+
+
+Because pack expansions can only appear in positions that accept a comma-separated list, pack expansion patterns are naturally delimited by either a comma or the end-of-list delimiter, e.g. `)` for call argument lists or `>` for generic argument lists.
 
 The restriction where only unlabeled elements of a tuple type may have a pack expansion type is motivated by ergonomics. If you could write `(t: repeat each T)`, then after a substitution `T := {Int, String}`, the substituted type would be `(t: Int, String)`. This would be strange, because projecting the member `t` would only produce the first element. When an unlabeled element has a pack expansion type, like `(repeat each T)`, then after the above substitution you would get `(Int, String)`. You can still write `0` to project the first element, but this is less surprising to the Swift programmer.
 
@@ -506,7 +509,7 @@ _ = tuplify(1) // T := {Int}, value := {1}
 _ = tuplify(1, "hello", [Foo()]) // T := {Int, String, [Foo]}, value := {1, "hello", [Foo()]}
 ```
 
-**Syntactic validity:** A value parameter pack can only be referenced from a pack expansion expression. A pack expansion expression is written as `repeat expr`, where `expr` is an expression containing one or more value parameter packs or type parameter packs. Pack expansion expressions can appear in any position that naturally accepts a comma-separated list of expressions. This includes the following:
+**Syntactic validity:** A value parameter pack can only be referenced from a pack expansion expression. A pack expansion expression is written as `repeat expr`, where `expr` is an expression containing one or more value parameter packs or type parameter packs spelled with the `each` keyword. Pack expansion expressions can appear in any position that naturally accepts a comma-separated list of expressions. This includes the following:
 
 * Call arguments, e.g. `generic(repeat each value)`
 * Subscript arguments, e.g. `subscriptable[repeat each index]`
@@ -565,7 +568,9 @@ The pack parameter design where packs are distinct from tuples also does not pre
 
 ### Syntax alternatives to `repeat each`
 
-The `repeat each` syntax produces fairly verbose variadic generic code.
+The `repeat each` syntax produces fairly verbose variadic generic code. However, the `repeat` keyword is explicit signal that the pattern is repeated under substitution, and requiring the `each` keyword for pack references indicates which types or values will be subsituted in the expansion. This syntax design helps enforce the mental model that pack expansions result in iteration over each element in the parameter pack at runtime.
+
+The following syntax alternatives were also considered.
 
 #### The `...` operator
 
