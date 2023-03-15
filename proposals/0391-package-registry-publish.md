@@ -8,8 +8,14 @@
   * https://github.com/apple/swift-package-manager/pull/6101
   * https://github.com/apple/swift-package-manager/pull/6146
   * https://github.com/apple/swift-package-manager/pull/6159
-  * https://github.com/apple/swift-package-manager/pull/6184
+  * https://github.com/apple/swift-package-manager/pull/6169
+  * https://github.com/apple/swift-package-manager/pull/6188
   * https://github.com/apple/swift-package-manager/pull/6189
+  * https://github.com/apple/swift-package-manager/pull/6215
+  * https://github.com/apple/swift-package-manager/pull/6217
+  * https://github.com/apple/swift-package-manager/pull/6220
+  * https://github.com/apple/swift-package-manager/pull/6229
+  * https://github.com/apple/swift-package-manager/pull/6237
 * Review: 
   * pitch: https://forums.swift.org/t/pitch-package-registry-publish/62828
   * review: https://forums.swift.org/t/se-0391-package-registry-publish/63405
@@ -30,9 +36,9 @@ well-rounded experience for using package registries.
 Publishing package release to a Swift package registry generally involves these steps:
   1. Gather package release metadata.
   1. Prepare package source archive by using the [`swift package archive-source` subcommand](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md#archive-source-subcommand).
-  1. Sign the archive (if needed).
+  1. Sign the metadata and archive (if needed).
   1. [Authenticate](https://github.com/apple/swift-evolution/blob/main/proposals/0378-package-registry-auth.md) (if required by the registry).
-  1. Send the archive (and signature if any) and metadata by calling the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6).
+  1. Send the archive and metadata (and their signatures if any) by calling the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6).
   1. Check registry server response to determine if publication has succeeded or failed (if the registry processes request synchronously), or is pending (if the registry processes request asynchronously).
 
 SwiftPM can streamline the workflow by combining all of these steps into a single 
@@ -59,11 +65,11 @@ The current [registry service specification](https://github.com/apple/swift-pack
 It does not, however, define any requirements or server-client API contract on the 
 metadata contents. We would like to change that by proposing the following:
   - Package release metadata will continue to be sent as a JSON object.
-  - Package release metadata must be sent as part of the "create a package release" request and adhere to the [schema](#package-release-metadata-standards).
-  - Package release metadata may be included in the "create a package release" request in one of these ways, depending on registry server support:
-    + A multipart section named `metadata` in the request body.
-    + A file named `package-metadata.json` **inside** the source archive being published.
-  - Registry server may allow and/or populate additional metadata by expanding the schema, but it must not alter any of the predefined properties.
+  - Package release metadata must adhere to the [schema](#package-release-metadata-standards).
+  - Package release metadata will continue to be included in the "create a package release" request as a multipart section named `metadata` in the request body.
+  - Registry server may allow and/or populate additional metadata by expanding the schema, but it must not alter any of the predefined properties. 
+  - Registry server may make any properties in the schema and additional metadata it defines required. Registry server may fail the "create a package release" request if any required metadata is missing.
+  - Client cannot change how registry server handles package release metadata. In other words, client will no longer be able to instruct registry server not to populate metadata by sending an empty JSON object `{}`.
   - Registry server will continue to include metadata in the "fetch information about a package release" response.
   
 #### Package release metadata standards
@@ -161,7 +167,7 @@ Package release metadata submitted to a registry must be a JSON object of type
 | `description`     | String | A description of the package release. | |
 | `licenseURL`      | String | URL of the package release's license document. | |
 | `readmeURL`       | String | URL of the README specifically for the package release or broadly for the package. | |
-| `repositoryURLs`  | Array | Code repository URL(s) of the package. It is recommended to include all URL variations (e.g., SSH, HTTPS) for the same repository. This can be an empty array if the package does not have source control representation. The registry must ensure that these URLs are searchable using the ["lookup package identifiers registered for a URL" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#45-lookup-package-identifiers-registered-for-a-url). | ✓ |
+| `repositoryURLs`  | Array | Code repository URL(s) of the package. It is recommended to include all URL variations (e.g., SSH, HTTPS) for the same repository. This can be an empty array if the package does not have source control representation.<br/>Setting this property is one way through which a registry can obtain repository URL to package identifier mappings for the ["lookup package identifiers registered for a URL" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#45-lookup-package-identifiers-registered-for-a-url). A registry may choose other mechanism(s) for package authors to specify such mappings. | |
 
 ##### `Author` type
 
@@ -232,39 +238,6 @@ After downloading a signed package SwiftPM will:
   - Validate that the signed package complies with the locally-configured signing policy.
   - Extract public key from the certificate and use it to verify the signature.
 
-#### New `package sign` subcommand
-
-There will be a new subcommand `package sign` dedicated to package signing.
-
-```manpage
-> swift package sign --help
-OVERVIEW: Sign a package archive
-
-USAGE: package sign <input-path> <output-path>
-
-ARGUMENTS:
-  <input-path>            The path to the package source archive to be signed.
-  <output-path>           The path the output signature file will be written to.
-
-OPTIONS:
-  --signing-identity      The label of the signing identity to be retrieved from the system's secrets store if supported.
-
-  --private-key-path      The path to the certificate's PKCS#8 private key (DER-encoded).
-  --cert-path             Path to the signing certificate (DER-encoded).
-```
-
-A signing identity encompasses a private key and a certificate. On 
-systems where it is supported, SwiftPM can look for a signing identity 
-using the query string given via the `--signing-identity` option. This
-feature will be available on macOS through Keychain in the initial 
-release, so a certificate and its private key can be located by the
-certificate label alone.
-
-Otherwise, both `--private-key-path` and `--cert-path` must be
-provided to locate the signing key and certificate.
-
-All signatures in the initial release will be in the [`cms-1.0.0`](#package-signature-format-cms-100) format.
-
 #### Server-side requirements for package signing
 
 A registry that requires package signing should provide documentations
@@ -272,8 +245,8 @@ on the signing requirements (e.g., any requirements for certificates
 used in signing).
 
 A registry must also modify the ["create package release" API](#create-package-release-api) to allow
-signature in the request, as well as the response for the ["fetch package release metadata" API](#fetch-package-release-metadata-api)
-to include signature information.
+signature in the request, as well as the response for the ["fetch package release metadata"](#fetch-package-release-metadata-api)
+and ["download package source archive"](#download-package-source-archive-api) API to include signature information.
     
 #### SwiftPM's handling of registry packages
 
@@ -421,19 +394,21 @@ OVERVIEW: Publish a package release to registry
 USAGE: package-registry publish <id> <version>
 
 ARGUMENTS:
-  <id>                    The package identifier.
-  <version>               The package release version being created.
+  <package-id>            The package identifier.
+  <package-version>       The package release version being created.
 
 OPTIONS:
   --url                   The registry URL.
   --scratch-directory     The path of the directory where working file(s) will be written.
 
-  --metadata-path         The path to the package metadata JSON file if it will not be part of the source archive.
+  --metadata-path         The path to the package metadata JSON file if it's not 'package-metadata.json' in the package directory.
 
   --signing-identity      The label of the signing identity to be retrieved from the system's secrets store if supported.
 
   --private-key-path      The path to the certificate's PKCS#8 private key (DER-encoded).
-  --cert-path             Path to the signing certificate (DER-encoded).
+  --cert-chain-paths      Path(s) to the signing certificate (DER-encoded) and optionally the rest of the certificate chain. The signing certificate must be listed first.
+
+  --dry-run               Dry run only; prepare the archive and sign it but do not publish to the registry.
 ```
 
 - `id`: The package identifier in the `<scope>.<name>` notation as defined in [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md#package-identity). It is the package author's responsibility to register the package identifier with the registry beforehand.
@@ -442,19 +417,29 @@ OPTIONS:
 - `scratch-directory`: The path of the working directory. SwiftPM will write to the package directory by default.
 
 The following may be required depending on registry support and/or requirements:
-  - `metadata-path`: The path to the JSON file containing [package release metadata](#package-release-metadata). This parameter should be set if the registry expects metadata to be sent as part of the request. SwiftPM will always include the content of this file in the request body if given. Otherwise, if the registry expects `package-metadata.json` in the source archive, it is the package author's responsibility to make sure the file is present in the package directory so that it gets included in the source archive. If metadata is included in both the request body and the source archive, then it is at the registry's discretion to choose which to use, although having `package-metadata.json` in the archive is [recommended](#package-release-metadata-signing).
-  - `signing-identity`: The label that identifies the signing identity to use for package signing in the system's secrets store if supported. See also the [`package sign` subcommand](#new-package-sign-subcommand) for details.
+  - `metadata-path`: The path to the JSON file containing [package release metadata](#package-release-metadata). By default, SwiftPM will look for a file named `package-metadata.json` in the package directory if this is not specified. SwiftPM will include the content of the metadata file in the request body if present. If the package source archive is being signed, the metadata will be signed as well.
+  - `signing-identity`: The label that identifies the signing identity to use for package signing in the system's secrets store if supported. 
   - `private-key-path`: Required for package signing unless `signing-identity` is specified, this is the path to the private key used for signing.
-  - `cert-path`: Required for package signing unless `signing-identity` is specified, this is the signing certificate.
+  - `cert-chain-paths`: Required for package signing unless `signing-identity` is specified, this is the signing certificate chain.
   
-SwiftPM will sign the package source archive if `signing-identity` 
-or both `private-key-path` and `cert-path` are set.
+A signing identity encompasses a private key and a certificate. On 
+systems where it is supported, SwiftPM can look for a signing identity 
+using the query string given via the `--signing-identity` option. This
+feature will be available on macOS through Keychain in the initial 
+release, so a certificate and its private key can be located by the
+certificate label alone.
+
+Otherwise, both `--private-key-path` and `--cert-chain-paths` must be
+provided to locate the signing key and certificate chain.
+
+SwiftPM will sign the package source archive and package release metadata if `signing-identity` 
+or both `private-key-path` and `cert-chain-paths` are set.
   
 All signatures in the initial release will be in the [`cms-1.0.0`](#package-signature-format-cms-100) format.
 
 Using these inputs, SwiftPM will:
   - Generate source archive for the package release.
-  - Sign the source archive if the required parameters are provided.
+  - Sign the source archive and metadata if the required parameters are provided.
   - Make HTTP request to the "create a package release" API.
   - Check server response for any errors.
 
@@ -467,20 +452,14 @@ Prerequisites:
 #### Create package release API
 
 A registry must update [this existing endpoint](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6) to handle package release 
-metadata as described in a [previous section](#package-release-metadata) of this document. In particular,
-  - Metadata is now required.
-    - Client must include metadata in the request.
-    - Empty metadata is not allowed.
-  - Metadata may be submitted in two ways:
-    - In the request body--this method should already be supported by the registry per the [current API specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#46-create-a-package-release).
-    - In the source archive--this is new and maybe optionally implemented by the registry.
-  - Values provided with the `repositoryURLs` JSON key must be searchable.
+metadata as described in a [previous section](#package-release-metadata) of this document.
   
 If the package being published is signed, the client must identify the signature format
 in the `X-Swift-Package-Signature-Format` HTTP request header so that the
 server can process the signature accordingly.
 
-The signature is sent as part of the request body:
+Signatures of the source-archive and metadata are sent as part of the request body 
+(`source-archive-signature` and `metadata-signature`, respectively):
 
 ```
 PUT /mona/LinkedList?version=1.1.1 HTTP/1.1
@@ -506,6 +485,22 @@ Content-Length: 88
 Content-Transfer-Encoding: base64
 
 l1TdTeIuGdNsO1FQ0ptD64F5nSSOsQ5WzhM6/7KsHRuLHfTsggnyIWr0DxMcBj5F40zfplwntXAgS0ynlqvlFw==
+
+--boundary
+Content-Disposition: form-data; name="metadata"
+Content-Type: application/json
+Content-Transfer-Encoding: quoted-printable
+Content-Length: 25
+
+{ "repositoryURLs": [] }
+
+--boundary
+Content-Disposition: form-data; name="metadata-signature"
+Content-Type: application/octet-stream
+Content-Length: 88
+Content-Transfer-Encoding: base64
+
+M6TdTeIuGdNsO1FQ0ptD64F5nSSOsQ5WzhM6/7KsHRuLHfTsggnyIWr0DxMcBj5F40zfplwntXAgS0ynlqvlFw==
 ```
 
 #### Fetch package release metadata API
@@ -535,8 +530,25 @@ object in the response:
 }
 ```
 
-A client can use the API response to determine if a package is signed and 
-handle it accordingly.
+#### Download package source archive API
+
+If a registry supports signing, it must update [this existing endpoint](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-4) 
+to include the `X-Swift-Package-Signature-Format` and `X-Swift-Package-Signature` headers in
+the HTTP response for a signed package source archive.
+
+```
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Cache-Control: public, immutable
+Content-Type: application/zip
+Content-Disposition: attachment; filename="LinkedList-1.1.1.zip"
+Content-Length: 2048
+Content-Version: 1
+Digest: sha-256=oqxUzyX7wa0AKPA/CqS5aDO4O7BaFOUQiSuyfepNyBI=
+Link: <https://mirror-japanwest.example.com/mona-LinkedList-1.1.1.zip>; rel=duplicate; geo=jp; pri=10; type="application/zip"
+X-Swift-Package-Signature-Format: cms-1.0.0
+X-Swift-Package-Signature: l1TdTeIuGdNsO1FQ0ptD64F5nSSOsQ5WzhM6/7KsHRuLHfTsggnyIWr0DxMcBj5F40zfplwntXAgS0ynlqvlFw==
+```
 
 ## Security
 
@@ -567,14 +579,6 @@ protection against a compromised registry, but it is not for all packages and
 [more work needs to be done](#local-signing-identity-checks) before it can be so. As such, SwiftPM continues to trust 
 the registry to provide authentic packages and accurate information about the 
 signature status of the package.
-
-### Package release metadata signing
-
-Package release metadata submitted as `package-metadata.json` in a [signed package](#package-signing) 
-is considered signed and not modifiable. Otherwise, the registry server may override the
-metadata and/or allow it to be edited afterwards. It is recommended that package authors 
-use `package-metadata.json` to submit metadata if this method and package signing are 
-supported by the registry. 
 
 ### Privacy implications of certificate revocation check
 
