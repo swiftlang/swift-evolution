@@ -1,6 +1,6 @@
 # A Vision for Macros in Swift
 
-As Swift evolves, it gains new language features and capabilities. There are different categories of features: some fill in gaps, taking existing syntax that is not permitted and giving it a semantics that fit well with the existing language, with features like conditional conformance or allowing existential values for protocols with `Self` or associated type requirements. Others introduce new capabilities or paradigms to the language, such as the addition of concurrency or comprehensive reflection. 
+As Swift evolves, it gains new language features and capabilities. There are different categories of features: some fill in gaps, taking existing syntax that is not permitted and giving it a semantics that fit well with the existing language, for example conditional conformance or allowing existential values for protocols with `Self` or associated type requirements. Others introduce new capabilities or paradigms to the language, such as the addition of concurrency, ownership types, or comprehensive reflection. 
 
 There is another large category of language features that provide syntactic sugar to eliminate common boilerplate, taking something that can be written out in long-form and making it more concise. Such features don't technically add any expressive power to the language, because you can always write the long-form version, but their effect can be transformational if it enables use cases that would otherwise have been unwieldy. The synthesis of `Codable` conformances, for example, is sheer boilerplate reduction, but it makes `Codable` support ubiquitous throughout the Swift ecosystem. Property wrappers allow one to factor out logic for property access, and have enabled a breadth of powerful libraries. New language features in this category are hard to evaluate, because there is a fundamental question of whether the feature is "worth it": does the set of use cases made better by this feature outweigh the cost of making the language larger and more complicated?
 
@@ -8,7 +8,7 @@ There is another large category of language features that provide syntactic suga
 
 ## Democratizing syntactic sugar with macros
 
-Macros are a feature present in a number of languages that allow one to perform some kind of transformation on the program's input source code to produce a different program. The mechanism of transformation varies greatly, from lexical expansion in C macros, to custom rules that rewrite one syntax into other syntax, to programs that arbitrarily manipulate the abstract syntax tree (AST) of the program. Macro systems exist in C, LISP, Scheme, Scala, Rust, and a number of other languages, and each design has its own tradeoffs.
+Macros are a feature present in a number of languages that allow one to perform some kind of transformation on the program's input source code to produce a different program. The mechanism of transformation varies greatly, from lexical expansion in C macros, to custom rules that rewrite one syntax into other syntax, to programs that arbitrarily manipulate the abstract syntax tree (AST) of the program. Macro systems exist in C, LISP, Scheme, Scala, Racket, Rust, and a number of other languages, and each design has its own tradeoffs.
 
 In all of these languages, macros have the effect of democratizing syntactic sugar. Many tasks that would have required a new language feature or an external source-generating tool could, instead, be implemented as a macro. Doing so has trade-offs: many more people can implement a macro than can take a feature through the language's evolution process, but the macro implementation will likely have some compromises---non-ideal syntax, worse diagnostics, worse compile-time performance. Overall, the hope is that a macro system can keep the language smaller and more focused, yet remain expressive because it is extensible enough to support libraries for many different domains. As a project, a macro system should reduce the desire for new syntactic-sugar features, leaving more time for more transformative feature work. Even in the cases where a new language feature is warranted, a macro system can allow more experimentation with the feature to best understand how it should work, and then be "promoted" to a full language feature once we've gained experience from the macro version.
 
@@ -16,7 +16,7 @@ In all of these languages, macros have the effect of democratizing syntactic sug
 
 There are many use cases for macros, but before we look forward to the new use cases that become possible with macros, let's take a look backward at existing Swift language features that might have been macros had this feature existed before:
 
-* **`Codable`**: What we think of as `Codable` is mostly a library feature, including the `Encodable` and `Decodable` protocols and the various encoding and decoding implementations. The language part of `Codable` is in the synthesis of `init(from:)` and `encode(to:)` definitions for structs, enums, and classes. A macro that is given information about the stored properties of a type, and the superclass of a class type, could generate the same implementations---and would be easier to implement, improve, and reason about than a bespoke implementation in the compiler. Synthesis for `Equatable`, `Comparable`, and `Hashable` conformances are similar.
+* **`Codable`**: What we think of as `Codable` is mostly a library feature, including the `Encodable` and `Decodable` protocols and the various encoding and decoding implementations. The language part of `Codable` is in the synthesis of `init(from:)`, `encode(to:)`, and `CodingKeys` definitions for structs, enums, and classes. A macro that is given information about the stored properties of a type, and the superclass of a class type, could generate the same implementations---and would be easier to implement, improve, and reason about than a bespoke implementation in the compiler. Synthesis for `Equatable`, `Comparable`, and `Hashable` conformances are similar.
 * **String interpolation**: String interpolation is implemented as a series of calls into the string interpolation "builder." While the actual parsing of a string interpolation and matching of it to a type that is `ExpressibleByStringInterpolation` is outside the scope of most macro systems, the syntactic transformation into a set of `appendXXX` calls on the builder is something that could be implemented via a macro.
 * **Property wrappers**: Property wrappers are integrated into the language syntax via a custom attribute approach (e.g., `@Clamped(0, 100) var percent: Double`), but the actual implementation of the feature is entirely a syntactic transformation that introduces new properties (e.g., the backing storage property `_percent`) and adds accessors to existing properties (e.g., `percent`'s getter becomes `_percent.wrappedValue`). Other built-in language features like `lazy`, `willSet`, and `didSet` use similar syntactic transformations.
 * **Result builders**: Result builders are also integrated into the language syntax via a custom attribute, but the actual transformation applied to a closure is entirely syntactic: the compiler introduces calls into the builder's `buildExpression`, `buildBlock`, `buildOptional`, and so on. That syntactic transformation could be expressed via some form of macro.
@@ -25,10 +25,10 @@ There are many use cases for macros, but before we look forward to the new use c
 
 As noted above, a macro system has the potential to replace large parts of existing Swift language features, and enable many new ones. But a macro system is not necessarily a good replacement for a special-built feature:
 
-* A special-built feature might benefit from special ABI rules.
+* A special-built feature might benefit from custom ABI rules.
 * A special-built feature might benefit from analyses that would be infeasible to apply in a macro, such as those dependent on data or control flow.
 * A special-built feature might be able to offer substantially better diagnostics.
-* A special-built feature might be substantially more efficient to apply — if nothing else, simply because the logic is written in native code.
+* A special-built feature might be substantially more efficient to apply because it can rely on information and data structures already in the compiler.
 * A special-built feature might have capabilities that we need to deny to macros, lest the mere possibility of a macro applying incur massive compile-time costs.
 
 The goal of a macro system should be to be general enough to cover a breadth of potential language features, while still providing decent tooling support and discouraging abuse that makes Swift code hard to reason about.
@@ -66,25 +66,25 @@ let (value, code) = #stringify(x + y)  // produces a tuple containing the result
 Similarly, Swift's attribute syntax provides an extension point that is already used for features such as property wrappers and result builders. This attribute syntax could be used to expand a macro whose expansion depends on the entity to which the attribute is attached. Therefore, we call these *attached macros*, and they can do things such as create a memberwise initializer for a struct:
 
 ```swift
-@memberwiseInit
+@MemberwiseInit
 struct Point {
   var x: Double
   var y: Double
 }
 ```
 
-A `memberwiseInit` attached macro would need access to the stored properties of the type it is applied to, as well as the ability to create a new declaration `init(x:y:)`. Such a macro would have to tie in to the compiler at an appropriate point where stored properties are known but the set of initializers has not been finalized.
+A `MemberwiseInit` attached macro would need access to the stored properties of the type it is applied to, as well as the ability to create a new declaration `init(x:y:)`. Such a macro would have to tie in to the compiler at an appropriate point where stored properties are known but the set of initializers has not been finalized.
 
 A similar approach could be used to synthesize parts of conformances to a protocol. For example, one could imagine that one could write a declaration whose body is implemented by a macro, e.g.,
 
 ```swift
 protocol Equatable {
-   @synthesizeEquatable
+   @SynthesizeEquatable
    func ==(lhs: Self, rhs: Self) -> Bool
 }
 ```
 
-The `@synthesizeEquatable` attribute could trigger a macro expansion when a particular type that conforms to `Equatable` is missing a suitable implementation of `==`.  It could access the stored properties in the type used for `Self` so it can synthesize an `==` whose body is, e.g., `lhs.x == rhs.x && lhs.y == rhs.y`. 
+The `@SynthesizeEquatable` attribute could trigger a macro expansion when a particular type that conforms to `Equatable` is missing a suitable implementation of `==`.  It could access the stored properties in the type used for `Self` so it can synthesize an `==` whose body is, e.g., `lhs.x == rhs.x && lhs.y == rhs.y`. 
 
 There are likely many other places where a macro could be expanded, and the key points for any of them are:
 
@@ -186,11 +186,10 @@ The `Clamping` macro would be expanded in two different but complementary ways:
   }
   ```
 
-  
 
-### Macro definitions via a separate package
+### Macro definitions via a separate program
 
-Macro definitions would be provided in a separate package that performs a syntactic transformation. A macro definition would be implemented using [swift-syntax](https://github.com/apple/swift-syntax), by providing a type that conforms to one of the "macro" protocols in a new library, `SwiftSyntaxMacros`. For example, the `MyMacros` package we're using as an example might look like this:
+Macro definitions would be provided in a separate program that performs a syntactic transformation. A macro definition would be implemented using [swift-syntax](https://github.com/apple/swift-syntax), by providing a type that conforms to one of the "macro" protocols in a new library, `SwiftSyntaxMacros`. For example, the `MyMacros` package we're using as an example might look like this:
 
 ```swift
 import SwiftDiagnostics
@@ -201,8 +200,8 @@ import SwiftSyntaxMacros
 
 public struct StringifyMacro: ExpressionMacro {
   static func expansion(
-    of node: MacroExpansionExprSyntax,
-    in context: MacroExpansionContext
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
   ) -> ExprSyntax {
     guard let argument = node.argumentList.first?.expression else {
       fatalError("compiler bug: the macro does not have any arguments")
@@ -216,6 +215,41 @@ public struct StringifyMacro: ExpressionMacro {
 Conformance to `ExpressionMacro` indicates a macro definition for an expression macro, and corresponds to `@freestanding(expression)`. There will be several protocols, corresponding to the various roles that macros inhabit. Each protocol has an `expansion` method that will be called with the syntax nodes that are involved in the macro expansion, along with a `context` instance that provides more information about how the macro is being invoked. 
 
 The implementation of these functions makes extensive use of Swift syntax manipulation via the `swift-syntax` package. The inputs and outputs are in terms of syntax nodes: `ExprSyntax` describes the syntax for any kind of expression in Swift, whereas `MacroExpansionExprSyntax` is the syntax for an explicitly-written macro expansion. The `expansion` operation will return a new syntax node that will replace the ones it was given in the program. We use string interpolation as a form of quasi-quoting: the return of `StringifyMacro.expansion` forms a tuple `(\(argument), "\(literal: argument.description)")` where the first argument is the expression itself and the second is the source code translated into a string literal. The resulting string will be parsed into an expression that is returned to the compiler.
+
+Macro implementations are "host" programs that are completely separate from the program in which macros are used. This distinction is most apparent in cross-compilation scenarios, where the host platform (where the compiler is run) differs from the target platform (where the compiled program will run), and these could use different operating systems and processor architectures. Macro implementations are compiled for and executed on the host platform, whereas the results of expanding a macro will be compiled for and executed on the target platform. Therefore, macro implementations are defined as their own kind of target in the Swift package manifest. For example, a package that ties together the macro declaration for `#stringify` and its implementation as `StringifyMacro` follows:
+
+```swift
+import PackageDescription
+import CompilerPluginSupport
+
+let package = Package(
+    name: "MyMacros",
+    dependencies: [
+      .package(
+        url: "https://github.com/apple/swift-syntax.git",
+        branch: "main"
+      ),
+    ],  
+    targets: [
+        // Macro implementation target contains the StringifyMacro type.
+        // Always built for the host platform.
+        .macro(name: "StringifyImpl", 
+               dependencies: [.product(name: "SwiftSyntaxMacros", package: "swift-syntax")]),
+
+        // Library target provides the macro declaration (public macro stringify) that is
+        // used by client code.
+        // Built for the target platform.
+        .target(name: "StringifyLib", dependencies: ["StringifyImpl"]),
+
+        // Clients of the macro will depend on the library target.
+        .executableTarget(name: "StringifyClient", dependencies: ["StringifyLib"]),
+    ]
+)
+```
+
+Conceptually, the separation of `macro` targets into separate programs (for the host platform) from other targets (for the target platform)  means that the individual macros could be built completely separately from each other and from other targets, even if they happen to be for the same platform. In the extreme, this could mean that each `macro` would be allowed to build against a different version of `swift-syntax`, and other targets could choose to also use `swift-syntax` with a different version. Given that `swift-syntax` is modeling the Swift language (which evolves over time), it does not promise a stable API, so having the ability to have different macro implementations depend on different versions of `swift-syntax` is a feature: it would prevent conflicting version requirements in macros from causing problems. 
+
+Note that this separation of dependencies for distinct targets is currently not possible in the Swift Package Manager. In the interim, macro implementations will need to adapt to be built with different versions of the `swift-syntax` package.
 
 #### Diagnostics
 
@@ -308,10 +342,10 @@ The `@freestanding` and `@attached` attributes for macro declarations specify th
   ```swift
   // In the standard library
   @attached(witness)
-  macro synthesizeEquatable() = #externalMacro(module: "MyMacros", type: "EquatableSynthesis")
+  macro SynthesizeEquatable() = #externalMacro(module: "MyMacros", type: "EquatableSynthesis")
   
   protocol Equatable {
-    @synthesizeEquatable
+    @SynthesizeEquatable
     static func ==(lhs: Self, rhs: Self) -> Bool
   }
   
@@ -386,7 +420,7 @@ The `@freestanding` and `@attached` attributes for macro declarations specify th
   Using this macro on a type, e.g.,
 
   ```swift
-  @memberwiseInit
+  @MemberwiseInit
   class Point {
     var x, y: Int
     var z: Int = 0 
@@ -406,14 +440,14 @@ The `@freestanding` and `@attached` attributes for macro declarations specify th
 * **Body**: A body macro would allow one to create or replace the body of a function, initializer, or closure through syntactic manipulation. Body macros are attached to one of these entities, e.g.,
 
   ```swift
-  @traced(logLevel: 2)
+  @Traced(logLevel: 2)
   func myFunction(a: Int, b: Int) { ... }
   ```
 
   where the `traced` macro is declared as something like:
 
   ```swift
-  @attached(body) macro traced(logLevel: Int = 0)
+  @attached(body) macro Traced(logLevel: Int = 0)
   ```
 
   and can introduce new code into the body to, e.g., perform logging.
