@@ -26,6 +26,7 @@ This proposal adds _type parameter packs_ and _value parameter packs_ to enable 
     - [Type substitution](#type-substitution)
     - [Type matching](#type-matching)
       - [Label matching](#label-matching)
+      - [Trailing closure matching](#trailing-closure-matching)
       - [Type sequence matching](#type-sequence-matching)
       - [Single-element pack substitution](#single-element-pack-substitution)
     - [Member type parameter packs](#member-type-parameter-packs)
@@ -298,6 +299,27 @@ Given a function declaration that is well-formed under this rule, type matching 
 
   bad(1, 2.0, "hi", [3])  // ambiguous; where does 'each T' end and 'each U' start?
   ```
+
+#### Trailing closure matching
+
+Argument-to-parameter matching for parameter pack always uses a forward-scan for trailing closures. For example, the following code is valid:
+
+```swift
+func trailing<each T, each U>(t: repeat each T, u: repeat each U) {}
+
+// T := {() -> Int}
+// U := {}
+trailing { 0 }
+```
+
+while the following produces an error:
+
+```swift
+func trailing<each T: Sequence, each U>(t: repeat each T, u: repeat each U) {}
+
+// error: type '() -> Int' cannot conform to 'Sequence'
+trailing { 0 }
+```
 
 #### Type sequence matching
 
