@@ -3,7 +3,7 @@
 * Proposal: [SE-0384](0384-importing-forward-declared-objc-interfaces-and-protocols.md)
 * Author: [Nuri Amari](https://github.com/NuriAmari)
 * Review Manager: Tony Allevato (https://github.com/allevato)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: https://github.com/apple/swift/pull/61606
 * Review: ([pitch](https://forums.swift.org/t/pitch-importing-forward-declared-objective-c-classes-and-protocols/61926)) ([review](https://forums.swift.org/t/se-0384-importing-forward-declared-objective-c-interfaces-and-protocols/62392)) ([acceptance](https://forums.swift.org/t/accepted-se-0384-importing-forward-declared-objective-c-interfaces-and-protocols/62670))
 
