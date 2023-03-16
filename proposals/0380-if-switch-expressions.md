@@ -114,7 +114,7 @@ Each of these expressions becomes the value of the overall expression if the bra
 
 This does have the downside of requiring fallback to the existing techniques when, for example, a single expression has a log line above it. This is in keeping with the current behavior of `return` omission.
 
-An exception to this rule is if a branch either explicitly throws, or terminates the program (e.g. with `fatalError`), in which case no value for the overall expression need to be produced. In these cases, multiple expressions could be executed on that branch prior to that point.
+An exception to this rule is if a branch either explicitly throws, or terminates the program (e.g. with `fatalError`), in which case no value for the overall expression needs to be produced. In these cases, multiple expressions could be executed on that branch prior to that point.
 
 In the case where a branch throws, either because a call in the expression throws (which requires a `try`) or with an explicit `throw`, there is no requirement to mark the overall expression with an additional `try` (e.g. before the `if`).
 
