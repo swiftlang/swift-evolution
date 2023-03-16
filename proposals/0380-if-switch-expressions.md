@@ -110,11 +110,11 @@ For an `if` or `switch` to be used as an expression, it would need to meet these
 
 **Each branch of the `if`, or each `case` of the `switch`, must be a single expression.**
 
-Each of these expressions become the value of the overall expression if the branch is chosen.
+Each of these expressions becomes the value of the overall expression if the branch is chosen.
 
 This does have the downside of requiring fallback to the existing techniques when, for example, a single expression has a log line above it. This is in keeping with the current behavior of `return` omission.
 
-An exception to this rule is if a branch either explicitly throws, or terminates the program (e.g. with `fatalError`), in which case no value for the overall expression need be produced. In these cases, multiple expressions could be executed on that branch prior to that point.
+An exception to this rule is if a branch either explicitly throws, or terminates the program (e.g. with `fatalError`), in which case no value for the overall expression need to be produced. In these cases, multiple expressions could be executed on that branch prior to that point.
 
 In the case where a branch throws, either because a call in the expression throws (which requires a `try`) or with an explicit `throw`, there is no requirement to mark the overall expression with an additional `try` (e.g. before the `if`).
 
@@ -383,7 +383,7 @@ var response = switch (utterance) {
 
 A similar suggestion was made during [SE-0255: Implicit Returns from Single-Expression Functions](https://forums.swift.org/t/se-0255-implicit-returns-from-single-expression-functions/), where an alternate syntax for single-expression functions was discussed e.g. `func sum() -> Element = reduce(0, +)`. In that case, the core team did not consider introduction of a separate syntax for functions to be sufficiently motivated.
 
-The main benefit to the alternate `->` syntax is to make it more explicit, but comes at the cost of needing to know about two different kinds of switch syntax. Note that this is orthoganal to, and does not solve, the separate goal of providing a way of explicitly "yielding" an expression value in the case of multi-statement branches (also shown here in this java example) versus taking the "last expression" approach.
+The main benefit to the alternate `->` syntax is to make it more explicit, but comes at the cost of needing to know about two different kinds of switch syntax. Note that this is orthogonal to, and does not solve, the separate goal of providing a way of explicitly "yielding" an expression value in the case of multi-statement branches (also shown here in this java example) versus taking the "last expression" approach.
 
 Java did not introduce this syntax for `if` expressions. Since this is a goal for Swift, this implies:
 
@@ -393,7 +393,7 @@ let x =
   else -> fatalError()
 ```
 
-However, this then poses an issue when evolving to multi-statement branches. Unlike with `switch`, these would require introducing braces, leaving a combination of both braces _and_ a "this is an expresion" sigil:
+However, this then poses an issue when evolving to multi-statement branches. Unlike with `switch`, these would require introducing braces, leaving a combination of both braces _and_ a "this is an expression" sigil:
 
 ```swift
 let x = 
