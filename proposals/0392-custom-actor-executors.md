@@ -318,7 +318,7 @@ extension Job {
   ///
   /// This operation consumes the job.
   public consuming func runSynchronously(on executor: UnownedSerialExecutor) {
-    _swiftJobRun(UnownedJob(job), self)
+    _swiftJobRun(UnownedJob(job), executor)
   }
 }
 
@@ -327,7 +327,7 @@ extension UnownedJob {
   ///
   /// A job can only be run *once*. Accessing the job after it has been run is undefined behavior.
   public func runSynchronously(on executor: UnownedSerialExecutor) {
-    _swiftJobRun(job, self)
+    _swiftJobRun(job, executor)
   }
 }
 ```
