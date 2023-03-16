@@ -3,7 +3,7 @@
 * Proposal: [SE-0385](0385-custom-reflection-metadata.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Holly Borla](https://github.com/hborla), [Alejandro Alonso](https://github.com/Azoy), [Stuart Montgomery](https://github.com/stmontgomery)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (January 24, 2023...February 7, 2023)**
+* Status: **Returned for revision** ([Rationale](https://forums.swift.org/t/returned-for-revision-se-0385-custom-reflection-metadata/63758))
 * Implementation: [PR#1](https://github.com/apple/swift/pull/62426), [PR#2](https://github.com/apple/swift/pull/62738), [PR#3](https://github.com/apple/swift/pull/62818), [PR#4](https://github.com/apple/swift/pull/62850), [PR#5](https://github.com/apple/swift/pull/62920), [PR#6](https://github.com/apple/swift/pull/63057)
 
 ## Introduction
