@@ -138,7 +138,7 @@ class SharedFile: ~Copyable {
 
 It is also not yet allowed to suppress the `Copyable` requirement on generic
 parameters, associated type requirements in protocols, or the `Self` type
-in a protocol declaration:
+in a protocol declaration, or in extensions:
 
 ```
 // ERROR: generic parameter types must be `Copyable`
@@ -149,6 +149,9 @@ protocol Foo where Self: ~Copyable {
   // ERROR: associated type requirements must be `Copyable`
   associatedtype Bar: ~Copyable
 }
+
+// ERROR: cannot suppress `Copyable` in extension of `FileWithPath`
+extension FileWithPath: ~Copyable {}
 ```
 
 `Copyable` also cannot be suppressed in existential type declarations:
@@ -288,6 +291,14 @@ the case where the value of interest was taken out of the instance:
 enum MaybeFileDescriptor: ~Copyable {
   case some(FileDescriptor)
   case none
+
+  // Returns this MaybeFileDescriptor by consuming it
+  // and leaving .none in its place.
+  mutating func take() -> MaybeFileDescriptor {
+    let old = self // consume self
+    self = .none   // reinitialize self
+    return old
+  }
 }
 
 class WrappedFile {
@@ -300,8 +311,7 @@ class WrappedFile {
   }
 
   func consume() throws -> FileDescriptor {
-    if case let .some(fd) = file { // consume `self.file`
-      file = .none // must reinitialize `self.file` before returning
+    if case let .some(fd) = file.take() {
       return fd
     }
     throw Err.noFile
@@ -661,6 +671,12 @@ extension FileDescriptor {
   }
 }
 ```
+
+Static casts or coercions of function types that change the ownership modifier
+of a noncopyable parameter are currently invalid. One reason is that it is 
+impossible to convert a function with a noncopyable `consuming` parameter, into
+one where that parameter is `borrowed`, without inducing a copy of the borrowed
+parameter. See Future Directions for details.
 
 ### Declaring properties of noncopyable type
 
@@ -1598,6 +1614,36 @@ borrowing or mutating, instead of passing copies of values back and forth.
 We can expose the ability for code to implement these coroutines directly,
 which is a good optimization for copyable value types, but also allows for
 more expressivity with noncopyable properties.
+
+### Static casts of functions with ownership modifiers
+The rule for casting function values via `as` or some other static, implicit 
+coercion is that a noncopyable parameter's ownership modifier must remain the 
+same. But there are some cases where static conversions of functions 
+with noncopyable parameters are safe. It's not safe in general to do any dynamic
+casts of function values, so `as?` and `as!` are excluded.
+
+One reason behind the currently restrictive rule for static casts is a matter of
+scope for this proposal. There may be a broader demand to support such casts
+even for copyable types. For example, it should be safe to allow a cast to
+change a `borrowing` parameter into one that is `inout`, as it only adds a
+capability (mutation) that is not actually used by the underlying function:
+```swift
+// This could be possible, but currently is not.
+{ (x: borrowing SomeType) in () } as (inout SomeType) -> ()
+```
+The second reason is that some casts are _only_ valid for copyable types.
+In particular, a cast that changes a `consuming` parameter into one that is
+`borrowing` is only valid for copyable types, because a copy of the borrowed
+value is required to provide a non-borrowed value to the underlying function.
+```swift
+// String is copyable, so both are OK and currently permitted.
+{ (x: borrowing String) in () } as (consuming String) -> ()
+{ (x: consuming String) in () } as (borrowing String) -> ()
+// FileDescriptor is noncopyable, so it cannot go from consuming to borrowing:
+{ (x: consuming FileDescriptor) in () } as (borrowing String) -> ()
+// but the reverse could be permitted in the future:
+{ (x: borrowing FileDescriptor) in () } as (consuming String) -> ()
+```
 
 ## Revision history
 
