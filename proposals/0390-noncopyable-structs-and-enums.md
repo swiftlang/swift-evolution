@@ -672,10 +672,11 @@ extension FileDescriptor {
 }
 ```
 
-Casts of function types that change the ownership modifier of a noncopyable 
-parameter are currently invalid. One reason is that it is impossible to cast a 
-function with a noncopyable `consuming` parameter, into one where that 
-parameter is `borrowed`. See Future Directions for details.
+Static casts or coercions of function types that change the ownership modifier
+of a noncopyable parameter are currently invalid. One reason is that it is 
+impossible to convert a function with a noncopyable `consuming` parameter, into
+one where that parameter is `borrowed`, without inducing a copy of the borrowed
+parameter. See Future Directions for details.
 
 ### Declaring properties of noncopyable type
 
@@ -1614,25 +1615,26 @@ We can expose the ability for code to implement these coroutines directly,
 which is a good optimization for copyable value types, but also allows for
 more expressivity with noncopyable properties.
 
-### Casting function types based on ownership modifiers
-The current rules for casting functions with a noncopyable parameter is that
-the ownership modifier must remain the same. 
+### Static casts of functions with ownership modifiers
+The rule for casting function values via `as` or some other static, implicit 
+coercion is that a noncopyable parameter's ownership modifier must remain the 
+same. But there are some cases where static conversions of functions 
+with noncopyable parameters are safe. It's not safe in general to do any dynamic
+casts of function values, so `as?` and `as!` are excluded.
 
-One reason behind this limitation is a matter of scope. There is a broader need
-to support such casts even for copyable types. For example, a function
-containing an `inout` parameter cannot currently be cast to or from any other
-function type, unless if the parameter remains `inout`. But it should be safe to
-allow a cast to change a `borrowing` parameter into one that is `inout`, as it
-only adds a capability (mutation) that is not actually used by the underlying 
-function:
+One reason behind the currently restrictive rule for static casts is a matter of
+scope for this proposal. There may be a broader demand to support such casts
+even for copyable types. For example, it should be safe to allow a cast to
+change a `borrowing` parameter into one that is `inout`, as it only adds a
+capability (mutation) that is not actually used by the underlying function:
 ```swift
 // This could be possible, but currently is not.
 { (x: borrowing SomeType) in () } as (inout SomeType) -> ()
 ```
-The second reason is that some casts are only valid for copyable types.
+The second reason is that some casts are _only_ valid for copyable types.
 In particular, a cast that changes a `consuming` parameter into one that is
 `borrowing` is only valid for copyable types, because a copy of the borrowed
-value is required to provide a non-borrowed value to the underlying callee.
+value is required to provide a non-borrowed value to the underlying function.
 ```swift
 // String is copyable, so both are OK and currently permitted.
 { (x: borrowing String) in () } as (consuming String) -> ()
