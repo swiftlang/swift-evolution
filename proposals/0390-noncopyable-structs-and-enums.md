@@ -82,126 +82,6 @@ types may explicitly require `Copyable`, but this currently has no effect.
 struct Foo<T: Copyable>: Copyable {}
 ```
 
-### Suppressing implicitly derived conformances with `~Constraint`
-
-There are situations where a type's conformance to a protocol is implicitly 
-derived because of aspects of its declaration or usage. For instance, enums that
-don't have any associated values are implicitly made `Hashable` (and,
-by refinement, `Equatable`):
-
-```
-enum Foo {
-  case a, b, c
-}
-
-// OK to compare with `==` because `Foo` is automatically Equatable,
-// through an implementation of `==` synthesized by the compiler for you.
-print(Foo.a == Foo.b)
-```
-
-and internal structs and enums are implicitly `Sendable` if all of their
-components are `Sendable`:
-
-```
-struct Bar {
-    var x: Int, y: Int
-}
-
-func foo() async {
-    let x = Bar(x: 17, y: 38)
-
-    // OK to use x in an async task because it's implicitly Sendable
-    async let y = x
-}
-```
-
-However, this isn't always desirable; an enum may want to reserve the right to
-add associated values in the future that aren't `Equatable`, or a type may be
-made up of `Sendable` components that represent resources that are not safe
-to share across threads. There is currently no direct way to suppress these
-automatically derived conformances. We propose to introduce the `~Constraint`
-syntax as a way to explicitly suppress automatic derivation of a conformance 
-that would otherwise be performed for a declaration:
-
-```
-enum Candy: ~Equatable {
-    case redVimes, twisslers, smickers
-}
-
-// ERROR: `Candy` does not conform to `Equatable`
-print(Candy.redVimes == Candy.twisslers)
-
-struct ThreadUnsafeHandle: ~Sendable {
-    // although this is an integer, it represents a system resource that
-    // can only be accessed from a specific thread, and should not be shared
-    // across threads
-    var handle: Int32 
-}
-
-func foo(handle: ThreadUnsafeHandle) async {
-    // ERROR: `ThreadUnsafeHandle` is not `Sendable`
-    async let y = handle
-}
-```
-
-It is important to note that `~Constraint` only avoids the implicit, automatic
-derivation of conformance. It does **not** mean that the type strictly does
-not conform to the protocol. Extensions may add the conformance back separately,
-possibly conditionally:
-
-```
-struct ResourceHandle<T: Resource>: ~Sendable {
-    // although this is an integer, it represents a system resource that
-    // gives access to values of type `T`, which may not be thread safe
-    // across threads
-    var handle: Int32 
-}
-
-// It is safe to share the handle when the resource type is thread safe
-extension ResourceHandle: Sendable where T: Sendable {}
-
-// Suppress the implicit Equatable (and Hashable) derivation...
-enum Candy: ~Equatable {
-    case redVimes, twisslers, smickers
-}
-
-// ... and still add an Equatable conformance.
-extension Candy: Equatable {
-    static func ==(a: Candy, b: Candy) -> Bool {
-        switch (a, b) {
-        // RedVimes are considered equal to Twisslers
-        case (.redVimes, .redVimes), (.twisslers, .twisslers), 
-             (.smickers, .smickers), (.twisslers, .redVimes)
-             (.redVimes, .twisslers):
-            return true
-        default:
-            return false
-        }
-    }
-}
-```
-
-Keep in mind that `~Constraint` is not required to suppress Swift's synthesized implementations of protocol requirements. For example, if you only want to
-provide your own implementation of `==` for an enum, but are fine with Equatable
-(and Hashable, etc) being derived for you, then the derivation of `Equatable` 
-already will use your version of `==`.
-
-```
-enum Soda {
-    case mxPepper, drPibb, doogh
-
-    // This is used instead of a synthesized `==` when
-    // implicitly deriving the Equatable conformance
-    static func ==(a: Soda, b: Soda) -> Bool {
-      switch (a, b) {
-        case (.doogh, .doogh): return true
-        case (_, .doogh), (.doogh, _): return false
-        default: return true
-      }
-    } 
-}
-```
-
 ### Declaring noncopyable types
 
 A `struct` or `enum` type can be declared as noncopyable by suppressing the
@@ -1539,6 +1419,126 @@ conditional conformance style declarations:
 
 ```
 extension Pair: Copyable where T: Copyable, U: Copyable {}
+```
+
+### Suppressing implicitly derived conformances with `~Constraint`
+
+There are situations where a type's conformance to a protocol is implicitly 
+derived because of aspects of its declaration or usage. For instance, enums that
+don't have any associated values are implicitly made `Hashable` (and,
+by refinement, `Equatable`):
+
+```
+enum Foo {
+  case a, b, c
+}
+
+// OK to compare with `==` because `Foo` is automatically Equatable,
+// through an implementation of `==` synthesized by the compiler for you.
+print(Foo.a == Foo.b)
+```
+
+and internal structs and enums are implicitly `Sendable` if all of their
+components are `Sendable`:
+
+```
+struct Bar {
+    var x: Int, y: Int
+}
+
+func foo() async {
+    let x = Bar(x: 17, y: 38)
+
+    // OK to use x in an async task because it's implicitly Sendable
+    async let y = x
+}
+```
+
+However, this isn't always desirable; an enum may want to reserve the right to
+add associated values in the future that aren't `Equatable`, or a type may be
+made up of `Sendable` components that represent resources that are not safe
+to share across threads. There is currently no direct way to suppress these
+automatically derived conformances. We propose to introduce the `~Constraint`
+syntax as a way to explicitly suppress automatic derivation of a conformance 
+that would otherwise be performed for a declaration:
+
+```
+enum Candy: ~Equatable {
+    case redVimes, twisslers, smickers
+}
+
+// ERROR: `Candy` does not conform to `Equatable`
+print(Candy.redVimes == Candy.twisslers)
+
+struct ThreadUnsafeHandle: ~Sendable {
+    // although this is an integer, it represents a system resource that
+    // can only be accessed from a specific thread, and should not be shared
+    // across threads
+    var handle: Int32 
+}
+
+func foo(handle: ThreadUnsafeHandle) async {
+    // ERROR: `ThreadUnsafeHandle` is not `Sendable`
+    async let y = handle
+}
+```
+
+It is important to note that `~Constraint` only avoids the implicit, automatic
+derivation of conformance. It does **not** mean that the type strictly does
+not conform to the protocol. Extensions may add the conformance back separately,
+possibly conditionally:
+
+```
+struct ResourceHandle<T: Resource>: ~Sendable {
+    // although this is an integer, it represents a system resource that
+    // gives access to values of type `T`, which may not be thread safe
+    // across threads
+    var handle: Int32 
+}
+
+// It is safe to share the handle when the resource type is thread safe
+extension ResourceHandle: Sendable where T: Sendable {}
+
+// Suppress the implicit Equatable (and Hashable) derivation...
+enum Candy: ~Equatable {
+    case redVimes, twisslers, smickers
+}
+
+// ... and still add an Equatable conformance.
+extension Candy: Equatable {
+    static func ==(a: Candy, b: Candy) -> Bool {
+        switch (a, b) {
+        // RedVimes are considered equal to Twisslers
+        case (.redVimes, .redVimes), (.twisslers, .twisslers), 
+             (.smickers, .smickers), (.twisslers, .redVimes)
+             (.redVimes, .twisslers):
+            return true
+        default:
+            return false
+        }
+    }
+}
+```
+
+Keep in mind that `~Constraint` is not required to suppress Swift's synthesized implementations of protocol requirements. For example, if you only want to
+provide your own implementation of `==` for an enum, but are fine with Equatable
+(and Hashable, etc) being derived for you, then the derivation of `Equatable` 
+already will use your version of `==`.
+
+```
+enum Soda {
+    case mxPepper, drPibb, doogh
+
+    // This is used instead of a synthesized `==` when
+    // implicitly deriving the Equatable conformance
+    static func ==(a: Soda, b: Soda) -> Bool {
+      switch (a, b) {
+        case (.doogh, .doogh): return true
+        case (_, .doogh), (.doogh, _): return false
+        default: return true
+      }
+    } 
+}
 ```
 
 ### Finer-grained destructuring in `consuming` methods and `deinit`
