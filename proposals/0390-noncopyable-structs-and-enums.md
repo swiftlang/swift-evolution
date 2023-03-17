@@ -138,7 +138,7 @@ class SharedFile: ~Copyable {
 
 It is also not yet allowed to suppress the `Copyable` requirement on generic
 parameters, associated type requirements in protocols, or the `Self` type
-in a protocol declaration:
+in a protocol declaration, or in extensions:
 
 ```
 // ERROR: generic parameter types must be `Copyable`
@@ -149,6 +149,9 @@ protocol Foo where Self: ~Copyable {
   // ERROR: associated type requirements must be `Copyable`
   associatedtype Bar: ~Copyable
 }
+
+// ERROR: cannot suppress `Copyable` in extension of `FileWithPath`
+extension FileWithPath: ~Copyable {}
 ```
 
 `Copyable` also cannot be suppressed in existential type declarations:
