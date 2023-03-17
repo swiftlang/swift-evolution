@@ -82,10 +82,10 @@ types may explicitly require `Copyable`, but this currently has no effect.
 struct Foo<T: Copyable>: Copyable {}
 ```
 
-### Suppressing assumed generic requirements with `~Constraint`
+### Suppressing implicitly derived conformances with `~Constraint`
 
-There are situations where a type is implicitly assumed to satisfy a generic
-requirement because of aspects of its declaration. For instance, enums that
+There are situations where a type's conformance to a protocol is implicitly 
+derived because of aspects of its declaration or usage. For instance, enums that
 don't have any associated values are implicitly made `Hashable` (and,
 by refinement, `Equatable`):
 
@@ -94,7 +94,8 @@ enum Foo {
   case a, b, c
 }
 
-// OK to compare with `==` because `Foo` is automatically Equatable
+// OK to compare with `==` because `Foo` is automatically Equatable,
+// through an implementation of `==` synthesized by the compiler for you.
 print(Foo.a == Foo.b)
 ```
 
@@ -118,17 +119,17 @@ However, this isn't always desirable; an enum may want to reserve the right to
 add associated values in the future that aren't `Equatable`, or a type may be
 made up of `Sendable` components that represent resources that are not safe
 to share across threads. There is currently no direct way to suppress these
-assumed generic requirements. We propose to introduce the `~Constraint` syntax
-as a way to explicitly suppress a generic requirement that would be assumed on
-a declaration:
+automatically derived conformances. We propose to introduce the `~Constraint`
+syntax as a way to explicitly suppress automatic derivation of a conformance 
+that would otherwise be performed for a declaration:
 
 ```
-enum Foo: ~Equatable {
-    case a, b, c
+enum Candy: ~Equatable {
+    case redVimes, twisslers, smickers
 }
 
-// ERROR: `Foo` does not conform to `Equatable`
-print(Foo.a == Foo.b)
+// ERROR: `Candy` does not conform to `Equatable`
+print(Candy.redVimes == Candy.twisslers)
 
 struct ThreadUnsafeHandle: ~Sendable {
     // although this is an integer, it represents a system resource that
@@ -143,9 +144,9 @@ func foo(handle: ThreadUnsafeHandle) async {
 }
 ```
 
-It is important to note that `~Constraint` only removes the assumption of an
-implicit requirement, but it does **not** mean that the type strictly does not
-conform to the protocol. Extensions may add the conformance back separately,
+It is important to note that `~Constraint` only avoids the implicit, automatic
+derivation of conformance. It does **not** mean that the type strictly does
+not conform to the protocol. Extensions may add the conformance back separately,
 possibly conditionally:
 
 ```
@@ -159,22 +160,45 @@ struct ResourceHandle<T: Resource>: ~Sendable {
 // It is safe to share the handle when the resource type is thread safe
 extension ResourceHandle: Sendable where T: Sendable {}
 
-// Suppress the default Equatable (and Hashable) implementation...
-enum Foo: ~Equatable {
-    case a, b, c, a2
+// Suppress the implicit Equatable (and Hashable) derivation...
+enum Candy: ~Equatable {
+    case redVimes, twisslers, smickers
 }
 
-// ...but provide our own Equatable
-extension Foo: Equatable {
-    static func ==(a: Foo, b: Foo) {
+// ... and still add an Equatable conformance.
+extension Candy: Equatable {
+    static func ==(a: Candy, b: Candy) -> Bool {
         switch (a, b) {
-        // a2 is equal to a
-        case (.a, .a), (.b, .b), (.c, .c), (.a, .a2), (.a2, .a):
+        // RedVimes are considered equal to Twisslers
+        case (.redVimes, .redVimes), (.twisslers, .twisslers), 
+             (.smickers, .smickers), (.twisslers, .redVimes)
+             (.redVimes, .twisslers):
             return true
         default:
             return false
         }
     }
+}
+```
+
+Keep in mind that `~Constraint` is not required to suppress Swift's synthesized implementations of protocol requirements. For example, if you only want to
+provide your own implementation of `==` for an enum, but are fine with Equatable
+(and Hashable, etc) being derived for you, then the derivation of `Equatable` 
+already will use your version of `==`.
+
+```
+enum Soda {
+    case mxPepper, drPibb, doogh
+
+    // This is used instead of a synthesized `==` when
+    // implicitly deriving the Equatable conformance
+    static func ==(a: Soda, b: Soda) -> Bool {
+      switch (a, b) {
+        case (.doogh, .doogh): return true
+        case (_, .doogh), (.doogh, _): return false
+        default: return true
+      }
+    } 
 }
 ```
 
