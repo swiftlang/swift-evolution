@@ -288,6 +288,14 @@ the case where the value of interest was taken out of the instance:
 enum MaybeFileDescriptor: ~Copyable {
   case some(FileDescriptor)
   case none
+
+  // Returns this MaybeFileDescriptor by consuming it
+  // and leaving .none in its place.
+  mutating func take() -> MaybeFileDescriptor {
+    let old = self // consume self
+    self = .none   // reinitialize self
+    return old
+  }
 }
 
 class WrappedFile {
@@ -300,8 +308,7 @@ class WrappedFile {
   }
 
   func consume() throws -> FileDescriptor {
-    if case let .some(fd) = file { // consume `self.file`
-      file = .none // must reinitialize `self.file` before returning
+    if case let .some(fd) = file.take() {
       return fd
     }
     throw Err.noFile
