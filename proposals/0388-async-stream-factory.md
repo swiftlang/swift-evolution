@@ -3,7 +3,7 @@
 * Proposal: [SE-0388](0388-async-stream-factory.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: [apple/swift#62968](https://github.com/apple/swift/pull/62968)
 * Review: ([pitch](https://forums.swift.org/t/pitch-convenience-async-throwing-stream-makestream-methods/61030)) ([review](https://forums.swift.org/t/se-0388-convenience-async-throwing-stream-makestream-methods/63139)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0388-convenience-async-throwing-stream-makestream-methods/63568)) 
 
