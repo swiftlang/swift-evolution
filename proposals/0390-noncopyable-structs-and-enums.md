@@ -1003,7 +1003,7 @@ circumstances:
 ### Suppressing `deinit` in a `consuming` method
 
 It is often useful for noncopyable types to provide alternative ways to consume
-the resource represented by the value besides the `deinit`. However,
+the resource represented by the value besides `deinit`. However,
 under normal circumstances, a `consuming` method will still invoke the type's
 `deinit` after the last use of `self`, which is undesirable when the method's
 own logic already invalidates the value:
@@ -1027,8 +1027,8 @@ struct FileDescriptor: ~Copyable {
 In the above example, the double-close could be avoided by having the
 `close()` method do nothing on its own and just allow the `deinit` to
 implicitly run. However, we may want the method to have different behavior
-from the deinit, such as raising an error (which a normal `deinit` is unable to
-do) if the `close` system call triggers an OS error :
+from the deinit; for example, it could raise an error (which a normal `deinit`
+is unable to do) if the `close` system call triggers an OS error :
 
 ```swift
 struct FileDescriptor: ~Copyable {
@@ -1062,7 +1062,7 @@ struct FileDescriptor: ~Copyable {
 }
 ```
 
-We propose to introduce a special operator, `suppressdeinit self`, which ends the
+We propose to introduce a special operator, `discard self`, which ends the
 lifetime of `self` without running its `deinit`:
 
 ```swift
@@ -1071,13 +1071,13 @@ struct FileDescriptor: ~Copyable {
   // returning the file descriptor without closing it
   consuming func take() -> Int32 {
     let fd = self.fd
-    suppressdeinit self
+    discard self
     return fd
   }
 }
 ```
 
-`suppressdeinit self` can only be applied to `self`, in a consuming method
+`discard self` can only be applied to `self`, in a consuming method
 defined in the same file as the type's original definition. (This is in
 contrast to Rust's similar special function,
 [`mem::forget`](https://doc.rust-lang.org/std/mem/fn.forget.html), which is a
@@ -1091,7 +1091,15 @@ we think it is safer to restrict the ability to suppress the standard `deinit`
 for a value to the core API of its type. We can relax this restriction if
 experience shows a need to.)
 
-Even with the ability to `suppressdeinit self`, care would still need be taken when
+For the extent of this proposal, we also propose that `discard self` can only
+be applied in types whose components include no reference-counted, generic,
+or existential fields, nor do they include any types that transitively include
+any fields of those types or that have `deinit`s defined of their own. (Such
+a type might be called "POD" or "trivial" following C++ terminology). We explore
+lifting this restriction as a future direction.
+
+
+Even with the ability to `discard self`, care would still need be taken when
 writing destructive operations to avoid triggering the deinit on alternative
 exit paths, such as early `return`s, `throw`s, or implicit propagation of
 errors from `try` operations. For instance, if we write:
@@ -1109,17 +1117,17 @@ struct FileDescriptor: ~Copyable {
     }
 
     // We don't need to deinit self anymore
-    suppressdeinit self
+    discard self
   }
 }
 ```
 
-then the `throw` path exits the method without `suppressdeinit`, and
+then the `throw` path exits the method without `discard`, and
 `deinit` will still execute if an error occurs. To avoid this mistake, we
-propose that if any path through a method uses `suppressdeinit self`, then
-**every** path must choose either to `suppressdeinit` or to explicitly `consume self`,
+propose that if any path through a method uses `discard self`, then
+**every** path must choose either to `discard` or to explicitly `consume self`,
 which triggers the standard `deinit`. This will make the above code an error,
-alerting that the code should be rewritten to ensure `suppressdeinit self`
+alerting that the code should be rewritten to ensure `discard self`
 always executes:
 
 ```swift
@@ -1129,7 +1137,7 @@ struct FileDescriptor: ~Copyable {
   consuming func close() throws {
     // Save the file descriptor and give up ownership of it
     let fd = self.fd
-    suppressdeinit self
+    discard self
 
     // We can now use `fd` below without worrying about `deinit`:
 
@@ -1144,7 +1152,7 @@ struct FileDescriptor: ~Copyable {
 
 The [consume operator](https://github.com/apple/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md)
 must be used to explicitly end the value's lifetime using its `deinit` if
-`suppressdeinit` is used to conditionally destroy the value on other paths
+`discard` is used to conditionally destroy the value on other paths
 through the method.
 
 ```
@@ -1167,7 +1175,7 @@ struct MemoryBuffer: ~Copyable {
       // Save the memory buffer and give it to the caller, who
       // is promising to free it when they're done.
       let address = self.address
-      suppressdeinit self
+      discard self
       return address
     } else {
       // We still want to free the memory if we aren't giving it away.
@@ -1561,14 +1569,14 @@ enum Soda {
 
 As currently specified, noncopyable types are (outside of `init` implementations)
 always either fully initialized or fully destroyed, without any support
-for incremental destruction inside of `consuming` methods or deinits. A
+for incremental destruction even inside of `consuming` methods or deinits. A
 `deinit` may modify, but not invalidate, `self`, and a `consuming` method may
-`suppressdeinit self`, forward ownership of all of `self`, or destroy `self`, but cannot
-yet partially consume parts of `self`. This would be particularly useful for
-types that contain other noncopyable types, which may want to relinquish
-ownership of some or all of the resources owned by those members. In the current
-proposal, this isn't possible without allowing for an intermediate invalid
-state:
+`discard self`, forward ownership of all of `self`, or destroy `self`, but
+cannot yet partially consume parts of `self`. This would be particularly useful
+for types that contain other noncopyable types, which may want to relinquish
+ownership of some or all of the resources owned by those members. In the
+current proposal, this isn't possible without allowing for an intermediate
+invalid state:
 
 ```swift
 struct SocketPair: ~Copyable {
@@ -1579,18 +1587,88 @@ struct SocketPair: ~Copyable {
     // We would like to do something like this, taking ownership of
     // `self.output` while leaving `self.input` to be destroyed.
     // However, we can't do this without being able to either copy
-    // `self.output` or partially invalidate `self`
-    let output = self.output
-    suppressdeinit self
-    return output
+    // `self.output` or partially invalidate `self`.
+    return self.output
   }
 }
 ```
 
 Analogously to how `init` implementations use a "definite initialization"
 pass to allow the value to initialized field-by-field, we can implement the
-inverse dataflow pass to allow `deinit` implementations, as well as `consuming`
-methods that `suppressdeinit self`, to partially invalidate `self`.
+inverse dataflow pass to allow `deinit` implementations to partially
+invalidate `self`. This analysis would also enable `consuming` methods to
+partially invalidate `self` in cases where either the type has no `deinit` or,
+as discussed in the following section, `discard self` is used to disable the
+`deinit` in cases when the value is partially invalidated.
+
+### Generalizing `discard self` for types with component cleanups
+
+The current proposal limits the use of `discard self` to types that don't have
+any fields that require additional cleanup, meaning that it cannot be used in
+a type that has class, generic, existential, or other noncopyable type fields.
+Allowing this would be an obvious generalization; however, allowing it requires
+answering some design questions:
+
+- When `self` is discarded, are its fields still destroyed?
+- Is access to `self`'s fields still allowed after `discard self`? In other
+  words, does `discard self` immediately consume all of `self`, running
+  the cleanups for its elements at the point where the `discard` is executed,
+  or does it only disable the `deinit` on `self`, allowing the fields to
+  still be individually borrowed, mutated, and/or consumed, and leaving them
+  to be cleaned up when their individual lifetimes end?
+
+Although Rust's `mem::forget` completely leaks its operand, including its fields,
+the authors of this proposal generally believe that is undesirable, so we expect
+that `discard self` should only disable the type's own `deinit` while still
+leaving the components of `self` to be cleaned up.
+
+The choice of what effect `discard` has on the lifetime of the fields affects
+the observed order in which field deinits occurs, but also affects how code
+would be expressed that performs destructuring or partial invalidation:
+
+```
+struct SocketPair: ~Copyable {
+  let input, output: FileDescriptor
+
+  deinit { ... }
+
+  enum End { case input, output }
+
+  // Give up ownership of one end and closes the other end
+  consuming func takeOneEnd(which: End) -> FileDescriptor {
+    // If a consuming method could partially invalidate self, would it do it
+    // like this...
+#if discard_immediately_consumes_whats_left_of_self
+    switch which {
+    case .input:
+        // Move out the field we want 
+        let result = self.input
+        // Destroy the rest of self
+        discard self
+        return result
+
+    case .output:
+        let result = self.output
+        discard self
+        return result
+    }
+
+    // ...or like this
+#elseif discard_only_disables_deinit
+    // Disable deinit on self, which subsequently allows individual consumption
+    // of its fields
+    discard self
+
+    switch which {
+    case .input:
+        return self.input
+    case .output:
+        return self.output
+    }
+#endif
+  }
+}
+```
 
 ### `read` and `modify` accessor coroutines for computed properties
 
