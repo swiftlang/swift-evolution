@@ -48,8 +48,15 @@ import CompilerPluginSupport
 
 let package = Package(
     name: "MacroPackage",
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
+    ],
     targets: [
-        .macro(name: "MacroImpl"),
+        .macro(name: "MacroImpl",
+               dependencies: [
+                   .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                   .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+               ]),
         .target(name: "MacroDef", dependencies: ["MacroImpl"]),
         .executableTarget(name: "MacroClient", dependencies: ["MacroDef"]),
     ]
@@ -60,7 +67,7 @@ Macro implementations will be executed in a sandbox [similar to package plugins]
 
 ## Detailed Design
 
-SwiftPM builds each macro as an executable for the host platform, applying certain additional compiler flags such as search paths to the SwiftSyntax library supplied by the toolchain. Each target that transitively depends on a macro will have access to it, concretely this happens by SwiftPM passing `-load-plugin-executable` to the compiler to specify which executable contains the implementation of a certain macro module. The macro defintion refers to the module and concrete type via an `#externalMacro` declaration which allows any dependency of the defining target to have access to the concrete macro. If any target of a library product depends on a macro, clients of said library will also get access to any public macros. Macros can have dependencies like any other target, but product dependencies of macros need to be statically linked, so explicitly dynamic library products cannot be used by a macro target.
+SwiftPM builds each macro as an executable for the host platform, applying certain additional compiler flags. Macros are expected to depend on SwiftSyntax using a versioned dependency that corresponds to a particular major Swift release. Each target that transitively depends on a macro will have access to it, concretely this happens by SwiftPM passing `-load-plugin-executable` to the compiler to specify which executable contains the implementation of a certain macro module. The macro defintion refers to the module and concrete type via an `#externalMacro` declaration which allows any dependency of the defining target to have access to the concrete macro. If any target of a library product depends on a macro, clients of said library will also get access to any public macros. Macros can have dependencies like any other target, but product dependencies of macros need to be statically linked, so explicitly dynamic library products cannot be used by a macro target.
 
 Concretely, the code for the macro package shown earlier would contain a macro implementation looking like this:
 
@@ -155,10 +162,6 @@ Since macro plugins are entirely additive, there's no impact on existing package
 The original pitch of expression macros considered declaring macros by introducing a new capability to [package plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md), but since the execution model is significantly different and the APIs used for macros are external to SwiftPM, this idea was discarded.
 
 ## Future Directions
-
-### Evolution of `SwiftSyntaxMacros`
-
-Macro targets will get access to a version of `SwiftSyntaxMacros` and associated libraries which ships with the Swift toolchain. This means package authors aiming to support multiple Swift compiler versions may have to resort to conditional compilation based on the Swift compiler version to handle the evolving API of SwiftSyntax. It also means clients of packages which are utilizing macros may need to wait for their dependencies to adopt to new APIs in order to upgrade to a new version of the Swift tools. We expect these limitations to eventually be solved by stabilizing the relevant SwiftSyntax APIs at which point macros could depend on SwiftSyntax via a package dependency on the source repository.
 
 ### Generalized support for additional manifest API
 
