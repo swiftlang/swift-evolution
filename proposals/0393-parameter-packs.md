@@ -1,9 +1,9 @@
-# Value and Type Parameter Packs
+# SE-0393: Value and Type Parameter Packs
 
-* Proposal: [SE-NNNN](NNNN-parameter-packs.md)
-* Authors: [Holly Borla](https://github.com/swiftdev), [John McCall](https://github.com/swiftdev), [Slava Pestov]()
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Proposal: [SE-0393](0393-parameter-packs.md)
+* Authors: [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall), [Slava Pestov](https://github.com/slavapestov)
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (March 21...April 3, 2023)**
 * Implementation: On `main` gated behind the frontend flag `-enable-experimental-feature VariadicGenerics`
 * Review: ([pitch 1](https://forums.swift.org/t/pitch-parameter-packs/60543)) ([pitch 2](https://forums.swift.org/t/pitch-2-value-and-type-parameter-packs/60830))
 
