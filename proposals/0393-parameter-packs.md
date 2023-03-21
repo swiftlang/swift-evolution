@@ -5,7 +5,7 @@
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (March 21...April 3, 2023)**
 * Implementation: On `main` gated behind the frontend flag `-enable-experimental-feature VariadicGenerics`
-* Review: ([pitch 1](https://forums.swift.org/t/pitch-parameter-packs/60543)) ([pitch 2](https://forums.swift.org/t/pitch-2-value-and-type-parameter-packs/60830))
+* Review: ([pitch 1](https://forums.swift.org/t/pitch-parameter-packs/60543)) ([pitch 2](https://forums.swift.org/t/pitch-2-value-and-type-parameter-packs/60830)) ([review](https://forums.swift.org/t/se-0393-value-and-type-parameter-packs/63859))
 
 ## Introduction
 
@@ -277,7 +277,7 @@ For example, the following substitutions both produce the element type `Int`:
 - Substituting `each T := {Int}` into `(repeat each T)`.
 - Substituting `each T := {}` into `(Int, repeat each T)`.
 
-Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would icnrease the surface area of the language. One-element tuples would need to be manually unrwapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
+Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would increase the surface area of the language. One-element tuples would need to be manually unrwapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
 
 
 ### Type matching
