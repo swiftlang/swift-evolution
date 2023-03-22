@@ -117,8 +117,7 @@ engine.run() // Error: cannot find `run` in scope
 
 ### Package Names
 
-Two modules belong to the same package if they were built with the same package name.  A package name must be a unique string of US-ASCII alphanumeric characters, `_`, `.`, or `-`; that is, it must match the regular expression `\A[A-Za-z0-9_.-]+\z`. It is passed to the Swift frontend via a new flag `-package-name`.  
-
+Two modules belong to the same package if they were built with the same package name.  A package name must be a unique string which starts with a letter or `_`, followed by characters allowed in [this c99 extended identifier  definition](https://github.com/apple/swift-tools-support-core/blob/435a2708a6e486d69ea7d7aaa3f4ad243bc3b408/Sources/TSCUtility/StringMangling.swift#L43), including alphanumeric characters, a hypen, and a dot; any character not allowed in the definition is transcoded to a `_`.  The string is case-insensitive, and it is passed to the Swift frontend via a new flag `-package-name`.  
 Here's an example of how a package name is passed to a commandline invocation.
 
 ```
@@ -129,47 +128,45 @@ swiftc -module-name App -package-name appPkg ...
 
 When building the `Engine` module, the package name `gamePkg` is recorded in the built interface to the module.  When building `Game`, its package name `gamePkg` is compared with the package name recorded in `Engine`'s built interface; since they match, `Game` is allowed to access `Engine`'s `package` declarations.  When building `App`, its package name `appPkg` is different from `gamePkg`, so it is not allowed to access `package` symbols in either `Engine` or `Game`, which is what we want.
 
+If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.
+
 The Swift Package Manager already has a concept of a package identity string for every package, as specified by [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md).  This string is verified to be unique via a registry, and it always works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
 
-If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.
+Scenarios where a target needs to be excluded from the package or project boundary or needes to be part of a subgroup within the boundary are discussed in the Future Directions.
+
+### Package Symbols Distribution
 
 When the Swift frontend builds a `.swiftmodule` file directly from source, the file will include the package name and all of the `package` declarations in the module.  When the Swift frontend builds a `.swiftinterface` file from source, the file will include the package name, but it will put `package` declarations in a secondary `.package.swiftinterface` file.  When the Swift frontend builds a `.swiftmodule` file from a `.swiftinterface` file that includes a package name, but it does not have the corresponding `.package.swiftinterface` file, it will record this in the `.swiftmodule`, and it will prevent this file from being used to build other modules in the same package.
 
-### Package Symbols and `@inlinable` Functions
+### Package Symbols and `@inlinable`
 
-`package` functions can be made `@inlinable`.  Just like with `@inlinable public`, not all symbols are usable within the `@inlinable package` function: they must be `open`, `public`, `package`, `@usableFromInline`, or `usableFromPackageInline`.
+`package` types can be made `@inlinable`.  Just as with `@inlinable public`, not all symbols are usable within the body of `@inlinable package`: they must be `open`, `public`, or `@usableFromInline`. The `@usableFromInline` attribute can be applied to `package` besides `internal` declarations. These attributed symbols are allowed in the bodies of `@inlinable public` or `@inlinable package` declarations (that are defined anywhere in the same package).  Just as with `internal` symbols, the `package` declarations with `@usableFromInline` or `@inlinable` are stored in the public `.swiftinterface` for a module. 
 
-`@usableFromPackageInline` is a new attribute which allows a symbol to be used from `@inlinable package` functions (that are defined in the same module) without having to make the symbol `package` or `public`.  It can be used anywhere that `@usableFromInline` can be used, but the attributes cannot be combined.  A `@usableFromPackageInline` symbol must be `internal`. For example: 
-
-```
-@usableFromPackageInline func internalFuncA() {}
-
-@inlinable package func pkgUse() {
-    internalFuncA() // OK
-}
-
-@inlinable public func publicUse() {
-    internalFuncA() // OK
-}
-```
-
-The existing `@usableFromInline` attribute can be applied to `package` symbols as well as `internal` symbols.  This allows those symbols to be used from `@inlinable public` functions (that are defined anywhere in the same package) without having to make them `public`.  The Swift frontend will include `@usableFromInline package` symbols in the ordinary `.swiftinterface` for a module, not its `.package.swiftinterface`.
+Here's an example.
 
 ```
-@usableFromPackageInline func internalFuncA() {}
+func internalFuncA() {}
 @usableFromInline func internalFuncB() {}
-@usableFromInline package func packageFunc() {}
+
+package func packageFuncA() {}
+@usableFromInline package func packageFuncB() {}
+
+public func publicFunc() {}
 
 @inlinable package func pkgUse() {
-    internalFuncA() // OK
+    internalFuncA() // Error
     internalFuncB() // OK
-    packageFunc() // OK
+    packageFuncA() // Error
+    packageFuncB() // OK
+    publicFunc() // OK
 }
 
 @inlinable public func publicUse() {
-    internalFuncA() // ERROR
+    internalFuncA() // Error
     internalFuncB() // OK
-    packageFunc() // OK
+    packageFuncA() // Error
+    packageFuncB() // OK
+    publicFunc() // OK
 }
 ```
  
@@ -265,6 +262,73 @@ Potential solutions include introducing new keywords for specific access combina
 ### Package-Private Modules
 
 Sometimes entire modules are meant to be private to the package that provides them.  Allowing this to be expressed directly would allow these utility modules to be completely hidden outside of the package, avoiding unwanted dependencies on the existence of the module.  It would also allow the build system to automatically namespace the module within the package, reducing the need for [explicit module aliases](https://github.com/apple/swift-evolution/blob/main/proposals/0339-module-aliasing-for-disambiguation.md) when utility modules of different packages share a name (such as `Utility`) or when multiple versions of a package need to be built into the same program.
+
+### Package Boundary Customization
+
+1. Opt-out
+
+It is not uncommon for a package to contain a target that does not need to be in the same package boundary setting. For example, an example app might be added to the package to demonstrate use case of the library it intends to distribute; the example app acts as a client outside of the package and should not have access to the package symbols within the library. However, it is still part of the same package, so it is not guaranteed that it will be prevented from having such access. A potential solution is to introduce a new per-target parameter that would disallow access to package symbols. 
+
+Here's an example using a new parameter `accessPublicOnly`.
+
+```
+.executableTarget(name: "ExampleApp",
+                  dependencies: ["MainTarget"]),
+.target(name: "Game",
+        dependencies: ["Engine"],
+        accessPublicOnly: true)
+```
+
+By default, `accessPublicOnly` per target is set to `false`, so all targets within the package can access package symbols.  When set to `true`, only public APIs of the target are visible to its client, i.e. `ExampleApp` in this case.
+
+The above applies to a test target as well.  If a target contains package APIs that need to be tested, it would be recommended to split it into a "shell" that contains public APIs and a target that contains package APIs to be tested with the parameter `accessPublicOnly` set to the default value `false`.  This naturally eliminates the need to import the module with `@testable`.
+
+2. Sub-packages
+
+As a package becomes larger, it is inevitable for some targets to belong to a certain group within the package.  Even though it logically makes sense to move them out into a separate package, they often remain in the same package due to the maintenance and versioning overhead.  A potential solution is to allow defining a sub-package within a package. 
+
+For example, sub-packages could be defined directly in the dependencies of the top level package in its manifest, like so.
+
+```
+let package = Package(
+    name: "gamePkg",
+    products: [
+        .library(name: "Game", targets: ["Game"]),
+    ],
+    dependencies: [
+      Package(
+        name: "A",
+        products: [
+            .library(name: "CoreA", targets: ["CoreA"]),
+        ],
+        targets: [
+            .target(name: "CoreA", dependencies: ["EngineA"]),
+            .target(name: "EngineA"),
+        ]
+      ),
+      Package(
+        name: "B",
+        products: [
+            .library(name: "CoreB", targets: ["CoreB"]),
+        ],
+        targets: [
+            .target(name: "CoreB", dependencies: ["EngineB"]),
+            .target(name: "EngineB"),
+        ]
+      ),
+    ],
+    targets: [
+        .target(name: "Game",
+                dependencies: [
+                    .product(name: "CoreA", package: "A"),
+                    .product(name: "CoreB", package: "B")
+                ]),
+    ],
+)
+```
+When building target `CoreA`, SwiftPM will pass `gamePkg.A` to `-package-name`; similarly, target `CoreB` will be built with `-package-name gamePkg.B`. The top level package ID is required to be unique (in case of SwiftPM, uniqueness is guaranteed via a registry), and appending a sub-package ID to it will ensure the uniqueness of each sub-package; if another top level package has the same ID as one of the sub-packages in this example, such as `A`, the `-package-name` input for the top level package `A` will be differentiated from the input `gamePkg.A` for the sub-package.
+
+With the methods described above, users should be able to customize the package boundary settings for a specific group of targets if they choose to do so.
 
 ### Optimizations
 
