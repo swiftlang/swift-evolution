@@ -444,7 +444,7 @@ The `@freestanding` and `@attached` attributes for macro declarations specify th
   func myFunction(a: Int, b: Int) { ... }
   ```
 
-  where the `traced` macro is declared as something like:
+  where the `Traced` macro is declared as something like:
 
   ```swift
   @attached(body) macro Traced(logLevel: Int = 0)
