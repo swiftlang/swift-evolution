@@ -6,6 +6,7 @@
 * Status: **Active Review (January 26th...Feburary 8th, 2023**
 * Implementation: [apple/swift#61546](https://github.com/apple/swift/pull/62700), [apple/swift#62704](https://github.com/apple/swift/pull/62704), [apple/swift#62652](https://github.com/apple/swift/pull/62652), [apple/swift#62652](https://github.com/apple/swift/pull/62652)
 * Review: ([pitch](https://forums.swift.org/t/new-access-modifier-package/61459)) ([review](https://forums.swift.org/t/se-0386-package-access-modifier/62808))
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/28fd2fb9b7258117f912cec5e5f7eb178520fbf2/proposals/NNNN-package-access-modifier.md)
 
 ## Introduction
 
@@ -117,8 +118,9 @@ engine.run() // Error: cannot find `run` in scope
 
 ### Package Names
 
-Two modules belong to the same package if they were built with the same package name.  A package name must be a unique string which starts with a letter or `_`, followed by characters allowed in [this c99 extended identifier  definition](https://github.com/apple/swift-tools-support-core/blob/435a2708a6e486d69ea7d7aaa3f4ad243bc3b408/Sources/TSCUtility/StringMangling.swift#L43), including alphanumeric characters, a hypen, and a dot; any character not allowed in the definition is transcoded to a `_`.  The string is case-insensitive, and it is passed to the Swift frontend via a new flag `-package-name`.  
-Here's an example of how a package name is passed to a commandline invocation.
+Two modules belong to the same package if they were built with the same package name.  A package name must be (1) a unique identity string and (2) a valid UTF-8 string starting with a letter or `_`; for example, a string such as "Προϊόν" (translation "product") must be converted to "Προι_ο_ν" to be processed. A common package name includes alphanumeric characters (starting with a letter), `-`, `_`, and `.`.
+
+A new flag `-package-name` is passed down to a commandline invocation, as follows.
 
 ```
 swiftc -module-name Engine -package-name gamePkg ...
@@ -130,9 +132,25 @@ When building the `Engine` module, the package name `gamePkg` is recorded in the
 
 If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.
 
-The Swift Package Manager already has a concept of a package identity string for every package, as specified by [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md).  This string is verified to be unique via a registry, and it always works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
+The Swift Package Manager already has a concept of a package identity string for every package.  This string is verified to be unique, and it already works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
 
-Scenarios where a target needs to be excluded from the package or project boundary or needes to be part of a subgroup within the boundary are discussed in the Future Directions.
+If a target needs to be excluded from the package boundary or needes to be part of a subgroup within the package boundary, it can be set in a target setting, with a new parameter `group` in the manifest, like so: 
+
+```
+  .target(name: "Game", dependencies: ["Engine"], group: .excluded)
+```
+
+The `group` setting is mapped to the following type:
+
+```
+enum Group {
+  case package
+  case excluded
+  case named(String)
+}
+```
+
+The default value is `.package`, and the target is built with `-package-name [package_id]`.  If set to `.excluded`, no `-package-name` is passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box testing target in the same package.  If set to `.named([group_id])`, `-package-name [package_id].[group_id]` is passed, and the target can only access package symbols from other targets within the same group in the package.  This essentially allows "sub-packages" within the package.
 
 ### Package Symbols Distribution
 
@@ -262,88 +280,6 @@ Potential solutions include introducing new keywords for specific access combina
 ### Package-Private Modules
 
 Sometimes entire modules are meant to be private to the package that provides them.  Allowing this to be expressed directly would allow these utility modules to be completely hidden outside of the package, avoiding unwanted dependencies on the existence of the module.  It would also allow the build system to automatically namespace the module within the package, reducing the need for [explicit module aliases](https://github.com/apple/swift-evolution/blob/main/proposals/0339-module-aliasing-for-disambiguation.md) when utility modules of different packages share a name (such as `Utility`) or when multiple versions of a package need to be built into the same program.
-
-### Package Boundary Customization
-
-1. Opt-out
-
-It is not uncommon for a package to contain a target that does not need to be in the same package boundary setting. For example, an example app might be added to the package to demonstrate use case of the library it intends to distribute; the example app acts as a client outside of the package and should not have access to the package symbols within the library. However, it is still part of the same package, so it is not guaranteed that it will be prevented from having such access. A potential solution is to introduce a new per-target parameter that would disallow access to package symbols. 
-
-Here's an example using a new parameter `accessPublicOnly`.
-
-```
-.executableTarget(name: "ExampleApp",
-                  dependencies: ["MainTarget"]),
-.target(name: "Game",
-        dependencies: ["Engine"],
-        accessPublicOnly: true)
-```
-
-By default, `accessPublicOnly` per target is set to `false`, so all targets within the package can access package symbols.  When set to `true`, only public APIs of the target are visible to its client, i.e. `ExampleApp` in this case.
-
-The above applies to a test target as well.  If a target contains package APIs that need to be tested, it would be recommended to split it into a "shell" that contains public APIs and a target that contains package APIs to be tested with the parameter `accessPublicOnly` set to the default value `false`.  This naturally eliminates the need to import the module with `@testable`.
-
-2. Sub-packages
-
-As a package becomes larger, it is inevitable for some targets to belong to a certain group within the package.  Even though it logically makes sense to move them out into a separate package, they often remain in the same package due to the maintenance and versioning overhead.  Currently each local package needs to be at the root directory regardless of the package dependencies, but we could allow a dependency package to reside in a sub-directory, which would make it easier for an existing package to convert into a structured top-level package with sub-packages.
-
-The top-level package and its 2 sub-packages would then be updated as follows.
-
-Top-level package in directory `gamePkg`:
-
-```
-let package = Package(
-    name: "gamePkg",
-    products: [
-        .library(name: "Game", targets: ["Game"]),
-    ],
-    dependencies: [
-        .package("A"),
-        .package("B")
-    ],
-    targets: [
-        .target(name: "Game",
-                dependencies: [
-                    .product(name: "CoreA", package: "A"),
-                    .product(name: "CoreB", package: "B")
-                ]),
-    ],
-)
-```
-
-Sub-package `A` in directory 'gamePkg/A':
-```
-let package = Package(
-        name: "A",
-        products: [
-            .library(name: "CoreA", targets: ["CoreA"]),
-        ],
-        targets: [
-            .target(name: "CoreA", dependencies: ["EngineA"]),
-            .target(name: "EngineA"),
-        ]
-      )
-```
-
-Sub-package `B` in directory `gamePkg/B`:
-
-```
-let package = Package(
-        name: "B",
-        products: [
-            .library(name: "CoreB", targets: ["CoreB"]),
-        ],
-        targets: [
-            .target(name: "CoreB", dependencies: ["EngineB"]),
-            .target(name: "EngineB"),
-        ]
-      ),
-
-```
-
-When building target `CoreA` in sub-package `A`, SwiftPM will pass `gamePkg.A` to `-package-name`; similarly, target `CoreB` will be built with `-package-name gamePkg.B`. The top level package ID is required to be unique (in case of SwiftPM, uniqueness is guaranteed via a registry), and appending a sub-package ID to it will ensure the uniqueness of each sub-package; if another top level package has the same ID as one of the sub-packages in this example, such as `A`, the `-package-name` input for the top level package `A` will be differentiated from the input `gamePkg.A` for the sub-package.
-
-With the methods described above, users should be able to customize the package boundary settings for a specific group of targets if they choose to do so.
 
 ### Optimizations
 
