@@ -285,9 +285,11 @@ The above applies to a test target as well.  If a target contains package APIs t
 
 2. Sub-packages
 
-As a package becomes larger, it is inevitable for some targets to belong to a certain group within the package.  Even though it logically makes sense to move them out into a separate package, they often remain in the same package due to the maintenance and versioning overhead.  A potential solution is to allow defining a sub-package within a package. 
+As a package becomes larger, it is inevitable for some targets to belong to a certain group within the package.  Even though it logically makes sense to move them out into a separate package, they often remain in the same package due to the maintenance and versioning overhead.  Currently each local package needs to be at the root directory regardless of the package dependencies, but we could allow a dependency package to reside in a sub-directory, which would make it easier for an existing package to convert into a structured top-level package with sub-packages.
 
-For example, sub-packages could be defined directly in the dependencies of the top level package in its manifest, like so.
+The top-level package and its 2 sub-packages would then be updated as follows.
+
+Top-level package in directory `gamePkg`:
 
 ```
 let package = Package(
@@ -296,26 +298,8 @@ let package = Package(
         .library(name: "Game", targets: ["Game"]),
     ],
     dependencies: [
-      Package(
-        name: "A",
-        products: [
-            .library(name: "CoreA", targets: ["CoreA"]),
-        ],
-        targets: [
-            .target(name: "CoreA", dependencies: ["EngineA"]),
-            .target(name: "EngineA"),
-        ]
-      ),
-      Package(
-        name: "B",
-        products: [
-            .library(name: "CoreB", targets: ["CoreB"]),
-        ],
-        targets: [
-            .target(name: "CoreB", dependencies: ["EngineB"]),
-            .target(name: "EngineB"),
-        ]
-      ),
+        .package("A"),
+        .package("B")
     ],
     targets: [
         .target(name: "Game",
@@ -326,7 +310,38 @@ let package = Package(
     ],
 )
 ```
-When building target `CoreA`, SwiftPM will pass `gamePkg.A` to `-package-name`; similarly, target `CoreB` will be built with `-package-name gamePkg.B`. The top level package ID is required to be unique (in case of SwiftPM, uniqueness is guaranteed via a registry), and appending a sub-package ID to it will ensure the uniqueness of each sub-package; if another top level package has the same ID as one of the sub-packages in this example, such as `A`, the `-package-name` input for the top level package `A` will be differentiated from the input `gamePkg.A` for the sub-package.
+
+Sub-package `A` in directory 'gamePkg/A':
+```
+let package = Package(
+        name: "A",
+        products: [
+            .library(name: "CoreA", targets: ["CoreA"]),
+        ],
+        targets: [
+            .target(name: "CoreA", dependencies: ["EngineA"]),
+            .target(name: "EngineA"),
+        ]
+      )
+```
+
+Sub-package `B` in directory `gamePkg/B`:
+
+```
+let package = Package(
+        name: "B",
+        products: [
+            .library(name: "CoreB", targets: ["CoreB"]),
+        ],
+        targets: [
+            .target(name: "CoreB", dependencies: ["EngineB"]),
+            .target(name: "EngineB"),
+        ]
+      ),
+
+```
+
+When building target `CoreA` in sub-package `A`, SwiftPM will pass `gamePkg.A` to `-package-name`; similarly, target `CoreB` will be built with `-package-name gamePkg.B`. The top level package ID is required to be unique (in case of SwiftPM, uniqueness is guaranteed via a registry), and appending a sub-package ID to it will ensure the uniqueness of each sub-package; if another top level package has the same ID as one of the sub-packages in this example, such as `A`, the `-package-name` input for the top level package `A` will be differentiated from the input `gamePkg.A` for the sub-package.
 
 With the methods described above, users should be able to customize the package boundary settings for a specific group of targets if they choose to do so.
 
