@@ -152,6 +152,20 @@ struct Font: ExpressibleByFontLiteral {
 let _: Font = #fontLiteral(name: "Comic Sans", size: 14, weight: .thin)
 ```
 
+SwiftSyntax's versioning scheme is based on Swift major versions (e.g. 509.0.0 for Swift 5.9).
+
+If a package depends on two macros using the `from` version dependency and minor versions of a macro use different versions of SwiftSyntax, users should automatically get a version that's compatible with all macros. For example consider the following where a package depends on both Macro 1 and Macro 2 using `from: "1.0.0"`
+
+```
+Macro 1           SwiftSyntax             Macro 2
+
+1.0 --------------> 509.0.0 <-------------- 1.0
+                    509.0.1 <-------------- 1.1
+                    510.0.0 <-------------- 1.2
+```
+
+In this case, SwiftPM would choose version 1.0 for Macro 1, version 1.1 for Macro 2 and end up with version 509.0.1 for SwiftSyntax. We're going to monitor how the versioning story plays out in practice and may take further action in SwiftSyntax or SwiftPM's dependency resolution if the concrete need arises.
+
 
 ## Impact on existing packages
 
