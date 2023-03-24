@@ -151,7 +151,7 @@ There may be cases where the source incompatibility could be mitigated by librar
 
 ### Source compatibility evaluation
 
-In an effort to determine the practical impact of this change, I used a macOS toolchain containing these changes evaluated various open-source Swift projects (from the Swift Source Compatibility Library and elsewhere). I found no instances of actual source incompatibility as a result of the proposed changes. The results are as follows:
+In an effort to determine the practical impact of this change, I used a macOS toolchain containing these changes evaluated various open-source Swift projects (from the Swift Source Compatibility Library and elsewhere). I found no instances of actual source incompatibility as a result of the proposed changes. Most open-source projects are libraries that use no property wrappers at all, but I tried to specifically seek out a few projects that *do* use property wrappers and may be affected by this change. The results are as follows:
 
 Project | Outcome | Notes
 ---|---|---
