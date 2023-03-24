@@ -145,10 +145,20 @@ In the Swift 5 language mode, isolation will continue to be inferred as it curre
 
 ## Source compatibility
 
-This change _does_ introduce source incompatibility, because there may be code which was relying on the infered actor isolation. That code can be explicitly annotated with the desired global actor in a source-compatible way right now. For example, if a type is currently inferred to have `@MainActor` isolation, you could explicitly declare that isolation right now to avoid source compatibility. (See note about warnings in Alternatives Considered.)
+This change _does_ introduce potential for source incompatibility, because there may be code which was relying on the infered actor isolation. That code can be explicitly annotated with the desired global actor in a source-compatible way right now. For example, if a type is currently inferred to have `@MainActor` isolation, you could explicitly declare that isolation on the type right now to avoid source compatibility. (See note about warnings in Alternatives Considered.)
 
-There may be cases where the source incompatibility could be mitigated by library authors in a source-compatible way. For example, if Apple choose to make SwiftUI's `View` protocol `@MainActor`-isolated, then all conforming types would consistently be isolated to the Main Actor, rather than being inconsistently isolated based on the usage of certain property wrappers. This proposal only notes that this mitigation may be _possible_, but does not make any recommendation as to whether that is the right approach.
+There may be cases where the source incompatibility could be mitigated by library authors in a source-compatible way. For example, if Apple chose to make SwiftUI's `View` protocol `@MainActor`-isolated, then all conforming types would consistently be isolated to the Main Actor, rather than being inconsistently isolated based on the usage of certain property wrappers. This proposal only notes that this mitigation may be _possible_, but does not make any recommendation as to whether that is necessary.
 
+### Source compatibility evaluation
+
+In an effort to determine the practical impact of this change, I used a macOS toolchain containing these changes evaluated various open-source Swift projects (from the Swift Source Compatibility Library and elsewhere). I found no instances of actual source incompatibility as a result of the proposed changes. The results are as follows:
+
+Project | Outcome | Notes
+---|---|---
+[ACNHBrowserUI](https://github.com/Dimillian/ACHNBrowserUI) | Fully Compatible | Uses SwiftUI property wrappers
+[AlamoFire](https://github.com/Alamofire/Alamofire) | Fully Compatible | Uses custom property wrappers, none are actor isolated
+[NetNewsWire](https://github.com/Alamofire/Alamofire) | Fully Compatible | Uses SwiftUI property wrappers
+[XcodesApp](https://github.com/RobotsAndPencils/XcodesApp) | Fully Compatible | Uses SwiftUI wrappers
 
 ## Effect on ABI stability
 
