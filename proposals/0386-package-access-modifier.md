@@ -118,7 +118,7 @@ engine.run() // Error: cannot find `run` in scope
 
 ### Package Names
 
-Two modules belong to the same package if they were built with the same package name.  A package name must be (1) a unique identity string and (2) a valid UTF-8 string starting with a letter or `_`; for example, a string such as "Προϊόν" (translation "product") must be converted to "Προι_ο_ν" to be processed. A common package name includes alphanumeric characters (starting with a letter), `-`, `_`, and `.`.
+Two modules belong to the same package if they were built with the same package name.  A package name must be (1) a unique identity string and (2) a valid UTF-8 string starting with a letter or `_`. A commonly accepted name includes alphanumeric characters (starting with a letter), `-`, `_`, and `.`. A build system may define its own rule to validate the input string; for example, SwiftPM checks the input against a rule defined [here](https://github.com/apple/swift-tools-support-core/blob/435a2708a6e486d69ea7d7aaa3f4ad243bc3b408/Sources/TSCUtility/StringMangling.swift#L43) and transcodes any undefined character to a `_`.  
 
 A new flag `-package-name` is passed down to a commandline invocation, as follows.
 
@@ -150,7 +150,7 @@ enum Group {
 }
 ```
 
-The default value is `.package`, and the target is built with `-package-name [package_id]`.  If set to `.excluded`, no `-package-name` is passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box testing target in the same package.  If set to `.named([group_id])`, `-package-name [package_id].[group_id]` is passed, and the target can only access package symbols from other targets within the same group in the package.  This essentially allows "sub-packages" within the package.
+The default value is `.package`, and the target is built with `-package-name PACKAGE_ID`.  If set to `.excluded`, no `-package-name` is passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box testing target in the same package.  If set to `.named(GROUP_ID)`, `-package-name PACKAGE_ID.GROUP_ID` is passed, and the target can only access package symbols from other targets within the same group in the package.  This essentially allows "sub-packages" within the package.
 
 ### Package Symbols Distribution
 
