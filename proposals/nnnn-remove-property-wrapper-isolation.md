@@ -156,9 +156,12 @@ In an effort to determine the practical impact of this change, I used a macOS to
 Project | Outcome | Notes
 ---|---|---
 [ACNHBrowserUI](https://github.com/Dimillian/ACHNBrowserUI) | Fully Compatible | Uses SwiftUI property wrappers
-[AlamoFire](https://github.com/Alamofire/Alamofire) | Fully Compatible | Uses custom property wrappers, none are actor isolated
+[AlamoFire](https://github.com/Alamofire/Alamofire) | Fully Compatible | Uses custom property wrappers, but none are actor isolated
+[Eureka](https://github.com/xmartlabs/Eureka) | Fully Compatible | Does not use property wrappers at all
 [NetNewsWire](https://github.com/Alamofire/Alamofire) | Fully Compatible | Uses SwiftUI property wrappers
-[XcodesApp](https://github.com/RobotsAndPencils/XcodesApp) | Fully Compatible | Uses SwiftUI wrappers
+[swift-nio](https://github.com/apple/swift-nio) | Fully Compatible | Does not use property wrappers at all
+[SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON) | Fully Compatible | Does not use property wrappers at all
+[XcodesApp](https://github.com/RobotsAndPencils/XcodesApp) | Fully Compatible | Uses SwiftUI property wrappers
 
 ## Effect on ABI stability
 
