@@ -164,6 +164,10 @@ Project | Outcome | Notes
 [SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON) | Fully Compatible | Does not use property wrappers at all
 [XcodesApp](https://github.com/RobotsAndPencils/XcodesApp) | Fully Compatible | Uses SwiftUI property wrappers
 
+All of the above had a `Swift Concurrency Checking` setting of **Minimal** by default. When I changed the concurrency checking level to **Targeted**, all of the above continued to compile with no errors, both with and without the proposed changes.
+
+When I changed the concurrency checking level to **Complete**, most of the above projects had compilation errors, _even without the changes proposed here_. The changes proposed here likely contributed a few _additional_ errors under "Complete" checking, but they did not break source compatibility in projects that would have otherwise been source compatible.
+
 ## Effect on ABI stability
 
 I believe this proposal has no effect on ABI stability, as I don't think the actor isolation of a type is reflected in its runtime calling convention in any way. But I'd be happy to but have this confirmed by someone with more expertise.
