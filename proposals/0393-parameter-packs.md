@@ -1,4 +1,4 @@
-# SE-0393: Value and Type Parameter Packs
+# Value and Type Parameter Packs
 
 * Proposal: [SE-0393](0393-parameter-packs.md)
 * Authors: [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall), [Slava Pestov](https://github.com/slavapestov)
@@ -92,9 +92,11 @@ Parameter packs are the core concept that facilitates abstracting over a variabl
 func zip<each S: Sequence>(...)
 ```
 
-A parameter pack itself is not a first-class value or type, but the elements of a parameter pack can be used anywhere that naturally accepts a comma-separated list of values or types using _pack expansions_. A pack expansion unpacks the elements of a pack into a comma-separated list, and elements can be appended to either side of a pack expansion by writing more values in the comma-separated list.
+A parameter pack itself is not a first-class value or type, but the elements of a parameter pack can be used anywhere that naturally accepts a list of values or types using _pack expansions_, including top-level expressions.
 
-A pack expansion consists of the `repeat` keyword followed by a type or an expression. The type or expression that `repeat` is applied to is called the _repetition pattern_. The repetition pattern must contain pack references. Similarly, pack references can only appear inside repetition patterns and generic requirements:
+A pack expansion consists of the `repeat` keyword followed by a type or an expression. The type or expression that `repeat` is applied to is called the _repetition pattern_. The repetition pattern must contain at least one pack reference, spelled with the `each` keyword. At runtime, the pattern is repeated for each element in the substituted pack, and the resulting types or values are _expanded_ into the list provided by the surrounding context.
+
+Similarly, pack references can only appear inside repetition patterns and generic requirements:
 
 ```swift
 func zip<each S>(_ sequence: repeat each S) where each S: Sequence
@@ -105,12 +107,11 @@ Given a concrete pack substitution, the pattern is repeated for each element in 
 Here are the key concepts introduced by this proposal:
 
 - Under the new model, all existing types and values in the language become _scalar types_ and _scalar values_.
-- A _type pack_ is a new kind of type which represents a list of scalar types. Type packs do not have syntax in the surface language, but we will write them as `{T1, ..., Tn}` where each `Ti` is a scalar type. Type packs cannot be nested; type substitution is defined to always flatten type packs.
-- A _type parameter pack_ is a type parameter which can abstract over a type pack. These are declared in a generic parameter list using the syntax `each T`, and referenced with `each T`.
-- A _pack expansion type_ is a new kind of scalar type which flattens a set of type packs in a context where a comma-separated list of types may appear. The syntax for a pack expansion type is `repeat each P`, where `P` is a type containing one or more type parameter packs.
+- A _type pack_ is a new kind of type-level entity which represents a list of scalar types. Type packs do not have syntax in the surface language, but we will write them as `{T1, ..., Tn}` where each `Ti` is a scalar type. Type packs cannot be nested; type substitution is defined to always flatten type packs.
+- A _type parameter pack_ is a list of zero or more scalar type parameters. These are declared in a generic parameter list using the syntax `each T`, and referenced with `each T`.
 - A _value pack_ is a list of scalar values. The type of a value pack is a type pack, where each element of the type pack is the scalar type of the corresponding scalar value. Value packs do not have syntax in the surface language, but we will write them as `{x1, ..., xn}` where each `xi` is a scalar value. Value packs cannot be nested; evaluation is always defined to flatten value packs.
-- A _value parameter pack_ is a function parameter or local variable declared with a pack expansion type.
-- A _pack expansion expression_ is a new kind of expression whose type is a pack expansion type. Written as `repeat each expr`, where `expr` is an expression referencing one or more value parameter packs.
+- A _value parameter pack_ is a list of zero or more scalar function or macro parameters.
+- A _pack expansion_ is a new kind of type-level and value-level construct that expands a type or value pack into a list of types or values, respectively. Written as `repeat P`, where `P` is the _repetition pattern_ that captures at least one type parameter pack (spelled with the `each` keyword). At runtime, the pattern is repeated for each element in the substituted pack.
 
 The following example demonstrates these concepts together:
 
@@ -168,7 +169,7 @@ A pack expansion type, written as `repeat P`, has a *pattern type* `P` and a non
 * The type of a parameter in a function type, e.g. `(repeat each T) -> Bool`
 * The type of an unlabeled element in a tuple type, e.g. `(repeat each T)`
 
-Because pack expansions can only appear in positions that accept a comma-separated list, pack expansion patterns are naturally delimited by either a comma or the end-of-list delimiter, e.g. `)` for call argument lists or `>` for generic argument lists.
+Because pack expansions can only appear in positions that accept a list of types or values, pack expansion patterns are naturally delimited by a comma, the next statement in top-level code, or an end-of-list delimiter, e.g. `)` for call argument lists or `>` for generic argument lists.
 
 The restriction where only unlabeled elements of a tuple type may have a pack expansion type is motivated by ergonomics. If you could write `(t: repeat each T)`, then after a substitution `T := {Int, String}`, the substituted type would be `(t: Int, String)`. This would be strange, because projecting the member `t` would only produce the first element. When an unlabeled element has a pack expansion type, like `(repeat each T)`, then after the above substitution you would get `(Int, String)`. You can still write `0` to project the first element, but this is less surprising to the Swift programmer.
 
@@ -466,20 +467,20 @@ The type annotation of `tup` contains a pack expansion type `repeat (each T, eac
 
 #### Restrictions on same-shape requirements
 
-While type packs cannot be written directly, a requirement where both sides are concrete types is desugared using the type matching algorithm, therefore it will be possible to write down a requirement that constrains a type parameter pack to a concrete type pack, unless some kind of restriction is imposed:
+Type packs cannot be written directly, but requirements involving pack expansions where both sides are concrete types are desugared using the type matching algorithm. This means it is possible to write down a requirement that constrains a type parameter pack to a concrete type pack, unless some kind of restriction is imposed:
 
 ```swift
-func append<each S: Sequence>(_: repeat each S, _: repeat each T) where (each S).Element == (Int, String) {}
+func constrain<each S: Sequence>(_: repeat each S) where (repeat (each S).Element) == (Int, String) {}
 ```
 
-Furthermore, since the same-type requirement implies a same-shape requirement, we've implicitly constrained `T` to having a length of 2 elements, without knowing what those elements are.
+Furthermore, since the same-type requirement implies a same-shape requirement, we've implicitly constrained `S` to having a length of 2 elements, without knowing what those elements are.
 
 This introduces theoretical complications. In the general case, same-type requirements on type parameter packs allows encoding arbitrary systems of integer linear equations:
 
 ```swift
 // shape(Q) = 2 * shape(R) + 1
 // shape(Q) = shape(S) + 2
-func solve<each Q, each R, each S>(q: repeat each Q, r: repeat each R, s: repeat eachS) 
+func solve<each Q, each R, each S>(q: repeat each Q, r: repeat each R, s: repeat each S)
     where (repeat each Q) == (Int, repeat each R, repeat each R), 
           (repeat each Q) == (repeat each S, String, Bool) { }
 ```
@@ -500,7 +501,7 @@ This aspect of the language can evolve in a forward-compatible manner. Over time
 
 ### Value parameter packs
 
-A _value parameter pack_ represents zero or more function arguments, and it is declared with a function parameter that has a pack expansion type. In the following declaration, the function parameter `value` is a value parameter pack that receives a _value pack_ consisting of zero or more argument values from the call site:
+A _value parameter pack_ represents zero or more function or macro parameters, and it is declared with a function parameter that has a pack expansion type. In the following declaration, the function parameter `value` is a value parameter pack that receives a _value pack_ consisting of zero or more argument values from the call site:
 
 ```swift
 func tuplify<each T>(_ value: repeat each T) -> (repeat each T)
@@ -510,7 +511,7 @@ _ = tuplify(1) // T := {Int}, value := {1}
 _ = tuplify(1, "hello", [Foo()]) // T := {Int, String, [Foo]}, value := {1, "hello", [Foo()]}
 ```
 
-**Syntactic validity:** A value parameter pack can only be referenced from a pack expansion expression. A pack expansion expression is written as `repeat expr`, where `expr` is an expression containing one or more value parameter packs or type parameter packs spelled with the `each` keyword. Pack expansion expressions can appear in any position that naturally accepts a comma-separated list of expressions. This includes the following:
+**Syntactic validity:** A value parameter pack can only be referenced from a pack expansion expression. A pack expansion expression is written as `repeat expr`, where `expr` is an expression containing one or more value parameter packs or type parameter packs spelled with the `each` keyword. Pack expansion expressions can appear in any position that naturally accepts a list of expressions, including comma-separated lists and top-level expressions. This includes the following:
 
 * Call arguments, e.g. `generic(repeat each value)`
 * Subscript arguments, e.g. `subscriptable[repeat each index]`
@@ -518,8 +519,6 @@ _ = tuplify(1, "hello", [Foo()]) // T := {Int, String, [Foo]}, value := {1, "hel
 * The elements of an array literal, e.g. `[repeat each value]`
 
 Pack expansion expressions can also appear in an expression statement at the top level of a brace statement. In this case, the semantics are the same as scalar expression statements; the expression is evaluated for its side effect and the results discarded.
-
-Note that pack expansion expressions can also reference _type_ pack parameters, as metatypes.
 
 **Capture:** A pack expansion expression _captures_ a value (or type) pack parameter the value (or type) pack parameter appears as a sub-expression without any intervening pack expansion expression.
 
@@ -834,4 +833,4 @@ extension<each T: Equatable> (repeat each T): Equatable {
 
 ## Acknowledgments
 
-Thank you to Robert Widmann for exploring the design space of modeling packs as tuples, and to everyone who participated in earlier design discussions about variadic generics in Swift.
+Thank you to Robert Widmann for exploring the design space of modeling packs as tuples, and to everyone who participated in earlier design discussions about variadic generics in Swift. Thank you to the many engineers who contributed to the implementation, including Sophia Poirier, Pavel Yaskevich, Nate Chandler, Hamish Knight, and Adrian Prantl.
