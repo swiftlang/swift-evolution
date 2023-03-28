@@ -146,11 +146,10 @@ The `group` setting is mapped to the following type:
 enum Group {
   case package
   case excluded
-  case named(String)
 }
 ```
 
-The default value is `.package`, and the target is built with `-package-name PACKAGE_ID`.  If set to `.excluded`, no `-package-name` is passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box testing target in the same package.  If set to `.named(GROUP_ID)`, `-package-name PACKAGE_ID.GROUP_ID` is passed, and the target can only access package symbols from other targets within the same group in the package.  This essentially allows "sub-packages" within the package.
+The default value is `.package`, and the target is built with `-package-name PACKAGE_ID`.  If set to `.excluded`, no `-package-name` is passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box testing target in the same package.
 
 ### Package Symbols Distribution
 
@@ -281,6 +280,23 @@ Potential solutions include introducing new keywords for specific access combina
 
 Sometimes entire modules are meant to be private to the package that provides them.  Allowing this to be expressed directly would allow these utility modules to be completely hidden outside of the package, avoiding unwanted dependencies on the existence of the module.  It would also allow the build system to automatically namespace the module within the package, reducing the need for [explicit module aliases](https://github.com/apple/swift-evolution/blob/main/proposals/0339-module-aliasing-for-disambiguation.md) when utility modules of different packages share a name (such as `Utility`) or when multiple versions of a package need to be built into the same program.
 
+### Package Boundary Customization
+
+The `group` setting per target in Swift Package Manager allows a target to opt out of a package boundary, but if there is a need for  creating multi-groups within a package, the setting could be expanded to allow that by introducing a `.named(GROUP_ID)` option, where `GROUP_ID` is a unique identifier for a specific group the target belongs to.
+
+```
+enum Group {
+  case package
+  case excluded
+  case named(String)
+}
+```
+For example, the new option could be specified in a target setting in a manifest like so:
+
+```
+  .target(name: "Game", dependencies: ["Engine"], group: .named("Core"))
+```
+
 ### Optimizations
 
 * A package can be treated as a resilience domain, even with library evolution enabled which makes modules resilient.  The Swift frontend will assume that modules defined in the same package will always be rebuilt together and do not require a resilient ABI boundary between them. This removes the need for performance and code size overhead introduced by ABI-resilient code generation, and it also eliminates language requirements such as `@unknown default` for a non-`frozen enum`.
@@ -328,6 +344,10 @@ Instead of adding a new package access level above modules, we could allow modul
 * The "umbrella" submodule structure doesn't work for all packages.  Some packages include multiple "top-level" modules which share common dependencies.  Forcing these to share a common umbrella in order to use package-private dependencies is not desirable.
 
 * In a few cases, the ABI and source impact above would be desirable.  For example, many packages contain internal Utility modules; if these were declared as submodules, they would naturally be namespaced to the containing package, eliminating spurious collisions.  However, such modules are generally not meant to be usable outside of the package at all.  It is a reasonable future direction to allow whole modules to be made package-private, which would also make it reasonable to automatically namespace them.
+
+### `@usableFromPackageInline`
+
+A new attribute `@usableFromPackageInline` was considered, which would allow an internal declaration to be used in the body of an `@inlinable package` declaration, but not in `@inlinable public`. It was however concluded unnecessary as inlining for package declarations could be enabled by default via optimization in the future (since they are in the same package boundary).
 
 ## Acknowledgments
 
