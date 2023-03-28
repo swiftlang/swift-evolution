@@ -130,7 +130,7 @@ swiftc -module-name App -package-name appPkg ...
 
 When building the `Engine` module, the package name `gamePkg` is recorded in the built interface to the module.  When building `Game`, its package name `gamePkg` is compared with the package name recorded in `Engine`'s built interface; since they match, `Game` is allowed to access `Engine`'s `package` declarations.  When building `App`, its package name `appPkg` is different from `gamePkg`, so it is not allowed to access `package` symbols in either `Engine` or `Game`, which is what we want.
 
-If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.
+If `-package-name` is not given, the `package` access modifier is disallowed.  Swift code that does not use `package` access will continue to build without needing to pass in `-package-name`.  Modules built without a package name are never considered to be in the same package as any other module.
 
 The Swift Package Manager already has a concept of a package identity string for every package.  This string is verified to be unique, and it already works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
 
