@@ -118,7 +118,7 @@ engine.run() // Error: cannot find `run` in scope
 
 ### Package Names
 
-Two modules belong to the same package if they were built with the same package name.  A package name must be (1) a unique identity string and (2) a valid UTF-8 string starting with a letter or `_`. A commonly accepted name includes alphanumeric characters (starting with a letter), `-`, `_`, and `.`. A build system may define its own rule to validate the input string; for example, SwiftPM checks the input against a rule defined [here](https://github.com/apple/swift-tools-support-core/blob/435a2708a6e486d69ea7d7aaa3f4ad243bc3b408/Sources/TSCUtility/StringMangling.swift#L43) and transcodes any undefined character to a `_`.  
+Swift as a language leaves it up to the build system to define the boundaries of a package.  The compiler considers two modules to belong to the same package if they were built with the same package name, which is just a Unicode string.  The package name is not exposed in the source language, so its exact contents are not significant as long as it is unique to a "package".
 
 A new flag `-package-name` is passed down to a commandline invocation, as follows.
 
