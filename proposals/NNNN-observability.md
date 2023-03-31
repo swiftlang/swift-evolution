@@ -205,7 +205,7 @@ extension Observable {
 
 The default implementation for `dependencies(of:)` returns a `TrackedProperties` type constructed with the given key path. This function is expected to be implemented in types when read only computed key paths are used, as seen in the `someComputedProperty` example above. 
 
-It is possible that the dependencies could be calculated via the macro synthesis. This is an option that can be incorperated into the proposal, however automatically tracking them is not possible without macro support to modify function bodies. The half-step for automatic generation of `dependencies(of:)` would make (unless otherwise implemented) a default conformance where all computed properties would have the dependencies of all member (non-computed) properties. This would allow for developers to still override but in the default (non-overrided) case it would cause more updates than actually occurs.  
+It is possible that the dependencies could be calculated via the macro synthesis. This is an option that can be incorporated into the proposal, however automatically tracking them is not possible without macro support to modify function bodies. The half-step for automatic generation of `dependencies(of:)` would make (unless otherwise implemented) a default conformance where all computed properties would have the dependencies of all member (non-computed) properties. This would allow for developers to still override but in the default (non-overrided) case it would cause more updates than actually occurs.  
 
 The automatic synthesis of `dependencies(of:)` is a point of consideration for review.
 
