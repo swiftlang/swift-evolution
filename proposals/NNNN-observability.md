@@ -319,7 +319,7 @@ final class Model: Observable {
 }
 ```
 
-When a property does not have a default value that corisponding argument in the initializer does not have a default value. This means that the following example has a macro synthesized initializer of `init(a: Int, b: Int = 3)`.
+When a property does not have a default value that corresponding argument in the initializer does not have a default value. This means that the following example has a macro synthesized initializer of `init(a: Int, b: Int = 3)`.
 
 ```swift
 @Observable final class InitializationSample {
