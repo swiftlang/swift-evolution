@@ -482,7 +482,7 @@ In the example above, the `render` function accesses each car's `name` property.
 
 ### `ObservedChanges` and `ObservedValues`
 
-The two included asynchronous sequences provide access to transactions based on a `TrackedProperties` instance or to changes based on a key path, respectively. The two sequences have slightly different semantics.
+The two included asynchronous sequences provide access to transactions based on a `TrackedProperties` instance or to changes based on a key path, respectively. The two sequences have slightly different semantics. Both of these asynchronous sequences are intended for primary use by non-UI systems.
 
 The `ObservedChanges` sequence is the result of calling `changes(for:isolatedTo:)` on an observable type and passing one or more key paths as a `TrackedProperties` instance. The isolating actor that you pass (or the main actor, by default) determines how changes are coalesced. Any changes between suspension points on the isolating actor, whether to one property or multiple properties, only provide a single transaction event. Sequence elements are `ObservedChange` instances, which you can query to see if a _specific_ property has changed. When the observed type is `Sendable`, an `ObservedChange` also includes the observed subject, in order to simplify accessing the updated properties.
 
@@ -525,6 +525,59 @@ extension ObservedValues: @unchecked Sendable where Subject: Sendable { }
 @available(*, unavailable)
 extension ObservedChanges.Iterator: Sendable { }
 ```
+
+
+`ObservedChanges` emits values when a change is made and an available suspension point has been met by the isolation. This means that changes can be grouped up transactionally to the boundary of when a given actor is available to run. Common use cases for this will iterate this `AsyncSequence` on the same actor as it is claiming for isolation. 
+
+```swift
+@Observable final class ChangesExample {
+    @MainActor var someField: Int
+    @MainActor var someOtherField: String
+}
+
+@MainActor
+func handleChanges(_ example: ChangesExample) {
+    Task { @MainActor in
+        for await change in example.changes(for: [\.someField, \.someOtherField]) {
+            switch (change.contains(\.someField), change.contains(\.someOtherField))
+            case (true, true):
+                print("Changed both properties")    
+            case (true, false):
+                print("changed integer field")
+            case (false, true):
+                print("changed string field")
+            default:
+                fatalError("this case will never happen")
+            }
+        }
+    }
+}
+```
+
+The propagation of the `@MainActor` serves two purposes; to allow for access to the subject of observation safely and to coalesce changes around that same actor. If the subject of observation is not `Sendable` then the task creation will emit a concurrency warning that the item is being sent across an actor boundary. This also applies to the `ObservedChanges` `AsyncSequence` since the `Sendable` conformance is conditional upon the subject of observation's conformance to `Sendable`. This means that the potential of misuse of iterating changes on a different actor emits a warning (and in future Swift releases this will be an error).
+
+The mechanism to coalesce is based upon the suspension provided by the isolation. When changes are being iterated the tracked properties of the given `Observable` are gathered until a continuation is resumed from the suspension of the isolation. This means that the boundary of the collection starts at the leading edge of any given set of changes (willSet) with an ending of the transaction gated by the suspension of the isolating actor. If the scope of the iteration of `changes` is bound to a given actor like the example above it means that those changes are coalescing for that previous region. Provided the subject of observation is not violating actor isolation then the values should reflect the next available slot within the scheduling of that actor. In short; given the main actor, the changes that occur will be gathered up until the next tick of the run loop and usable for that object in that asynchronous context.
+
+The `ObservedValues` asynchronous sequence on the other hand will await a change to values end emit the latest value that is available between the last iteration (or starting point of iteration) and the suspension. Similar to the requirement of `Sendable` to `ObservedChanges` the `ObservedValues` async sequence is conditional; meaning that only cases where the observable subject is `Sendable` can the `AsyncSequence` of values be `Sendable`. However there is one extra requirement; that the type of the value being observed must also be `Sendable`.
+
+```swift
+@Observable final class ValuesExample {
+  @MainActor var someField: Int
+}
+
+@MainActor
+func processValues(_ example: ValuesExample) {
+  Task { @MainActor in
+    for await value in example.values(for: \.someField) {
+      print(value)
+    }
+  }
+}
+```
+
+In the example above if the `someField` property is changed in succession on the main actor without a suspend in between the awaiting continuation cannot resume in-between the values being set. This means that only the latest value is emitted. If the iteration is being done in a different actor the changes that might occur in-between calls to the iterator's next function will also be coalesced.
+
+It is worth noting that making a type observable does not provide any automatic atomicity of individual values or groups of values. Changes as such need to be managed by the implementor of the observed type. That management is one of the responsibilities that types need to account for when declaring conformance to `Sendable`.
 
 ## SDK Impact (a preview of SwiftUI interaction)
 
