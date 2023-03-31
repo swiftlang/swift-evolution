@@ -205,7 +205,7 @@ extension Observable {
 
 The default implementation for `dependencies(of:)` returns a `TrackedProperties` type constructed with the given key path. This function is expected to be implemented in types when read only computed key paths are used, as seen in the `someComputedProperty` example above. 
 
-It is possible that the dependencies could be calculated via the macro synthesis. This is an option that can be incorporated into the proposal, however automatically tracking them is not possible without macro support to modify function bodies. The half-step for automatic generation of `dependencies(of:)` would make (unless otherwise implemented) a default conformance where all computed properties would have the dependencies of all member (non-computed) properties. This would allow for developers to still override but in the default (non-overrided) case it would cause more updates than actually occurs.  
+It is possible that the dependencies could be calculated via the macro synthesis. This is an option that can be incorporated into the proposal, however automatically tracking them is not possible without macro support to modify function bodies. The half-step for automatic generation of `dependencies(of:)` would make (unless otherwise implemented) a default conformance where all computed properties would have the dependencies of all member (non-computed) properties. This would allow for developers to still override but in the default (non-override) case it would cause more updates than actually occurs.
 
 The automatic synthesis of `dependencies(of:)` is a point of consideration for review.
 
@@ -569,7 +569,7 @@ struct SmoothieList: View {
 } 
 ```
 
-The `@Published` identifies each field that participates to changes in the object, however it does not provide any differentiation for those changes. This means that from SwiftUI's perspective, a change to `order` effects things using `hasAccount`. This unfortunately means that there are additional layouts, rendering and updates created. The proposed API can not only reduce some of the `@Published` repetition but also simplify the SwiftUI view code too!
+The `@Published` identifies each field that participates to changes in the object, however it does not provide any differentiation for those changes. This means that from SwiftUI's perspective, a change to `order` effects things using `hasAccount`. This unfortunately means that there are additional layouts, rendering and updates created. The proposed API cannot only reduce some of the `@Published` repetition but also simplify the SwiftUI view code too!
 
 The previous example can then be written as:
 
@@ -620,7 +620,7 @@ This proposal is additive and provides no impact to existing source code.
 
 ## Effect on ABI stability
 
-This proposal is additive and no impact is made upon existing ABI stability. This does have implication to the inlinability and back-porting of this feature. In the cases where it is determined to be performance critical to the distribution of change events the methods will be marked as inlinable. 
+This proposal is additive and no impact is made upon existing ABI stability. This does have implication to the marking of inline to functions and back-porting of this feature. In the cases where it is determined to be performance critical to the distribution of change events the methods will be marked as inlineable. 
 
 Changing a type from not observable to `@Observable` has the same ABI impact as changing a property from stored to computed (which is not ABI breaking). Removing `@Observable` not only transitions from computed to stored properties but also removes a conformance (which is ABI breaking).
 
@@ -648,7 +648,7 @@ An earlier consideration instead of defining transactions used direct will/did e
 
 Another design included an `Observer` protocol that could be used to build callback-style observer types. This has been eliminated in favor of the `AsyncSequence` approach.
 
-The `ObservedChange` type could have the `Sendable` requirement relaxed by making the type only conditionally `Sendable` and then allowing access to the subject in all cases; however this poses some restriction to the internal implementations and may have a sendability hole. Since it is viewed that accessing values is most commonly by one property the values `AsyncSequence` fills most of that role and for cases where more than one field is needed to be accessed on a given actor the iteration can be done with a weak reference to the observable subject.
+The `ObservedChange` type could have the `Sendable` requirement relaxed by making the type only conditionally `Sendable` and then allowing access to the subject in all cases; however this poses some restriction to the internal implementations and may have a hole in the sendable nature of the type. Since it is viewed that accessing values is most commonly by one property the values `AsyncSequence` fills most of that role and for cases where more than one field is needed to be accessed on a given actor the iteration can be done with a weak reference to the observable subject.
 
 ## Acknowledgments
 
