@@ -73,6 +73,10 @@ Primarily, a type can declare itself as observable simply by using the `@Observa
 }
 ```
 
+The macro provides three major ways of interacting with changed properties; a way of tracking changes that are coalesced starting from the willSet of properties and ending based upon a specified isolation, a way of tracking specific value changes that transactionally coalesce around the phase of iteration, and a way of interoperating with UI. The first two systems are intended to specifically allow developers to interact with values in non-ui based systems. The changes provide a mechanism to track when an instance has values that need to be read after an update occurs. It is worth noting that this system has the prerequisite that exclusivity, thread safety, and/or isolation is handled by the object in question. If for example two properties have some sort of linked atomicity then it is the responsibility of the author of that type to provide that atomicity since that is the domain of that object and not general observation. Likewise, observing a specific property for it's values does not make that specific sequence of values able to be sent from one task to another by the feature of the property's type but instead by the nature of the object being observed. I.e. the asynchronous sequence of values is only sendable if and only if the subject of observation is sendable.
+
+For most tasks that involve the UI; the SwiftUI interoperation is the suggested manner in which to allow data to flow through the views. In this document there will be discussion about dependencies and the concept of computed properties. It is worth noting that since the SwiftUI interaction is graph based to any field accessed within the scope specified it means that system does not have the limitation of dependency tracking.
+
 The `@Observable` macro declares and implements conformance to the `Observable` protocol, which includes a set of extension methods to handle observation. In the simplest case, a client can use the `values(for:)` method to observe changes to a specific property for a given instance.
 
 ```swift
@@ -199,7 +203,11 @@ extension Observable {
 }
 ```
 
-The default implementation for `dependencies(of:)` returns a `TrackedProperties` type constructed with the given key path. This function is expected to be implemented in types when read only computed key paths are used, as seen in the `someComputedProperty` example above.
+The default implementation for `dependencies(of:)` returns a `TrackedProperties` type constructed with the given key path. This function is expected to be implemented in types when read only computed key paths are used, as seen in the `someComputedProperty` example above. 
+
+It is possible that the dependencies could be calculated via the macro synthesis. This is an option that can be incorperated into the proposal, however automatically tracking them is not possible without macro support to modify function bodies. The half-step for automatic generation of `dependencies(of:)` would make (unless otherwise implemented) a default conformance where all computed properties would have the dependencies of all member (non-computed) properties. This would allow for developers to still override but in the default (non-overrided) case it would cause more updates than actually occurs.  
+
+The automatic synthesis of `dependencies(of:)` is a point of consideration for review.
 
 ### Macro Synthesis
 
@@ -372,7 +380,6 @@ When observing changes to a type, there may be associated side effects to member
 
 ```swift
 public struct TrackedProperties<Root>: ExpressibleByArrayLiteral, @unchecked Sendable {
-    public typealias Element = PartialKeyPath<Root>
     public typealias ArrayLiteralElement = PartialKeyPath<Root>
         
     public init()
@@ -437,7 +444,7 @@ The `access` and `withMutation` methods identify transactional accesses. These m
 
 ### `ObservationTracking`
 
-In order to provide scoped observation, the `ObservationTracking` type provides a method to capture accesses to properties within a given scope and then call out upon the first change to any of those properties.
+In order to provide scoped observation, the `ObservationTracking` type provides a method to capture accesses to properties within a given scope and then call out upon the first change to any of those properties. This API is the primary mechanism in which UI interactions can be built. Specifically this will be used by SwiftUI to provide updates for views given specific property access in the rendering of `var body: some View` scopes. More detail will be expanded later in the SDK impact section.
 
 ```swift
 public struct ObservationTracking {
@@ -499,7 +506,7 @@ public struct ObservedChanges<Subject: Observable, Delivery: Actor>: AsyncSequen
     public func makeAsyncIterator() -> Iterator
 }
 
-extension ObservedChanges: @unchecked Sendable { }
+extension ObservedChanges: @unchecked Sendable where Subject: Sendable { }
 @available(*, unavailable)
 extension ObservedChanges.Iterator: Sendable { }
 
@@ -611,15 +618,17 @@ This proposal is additive and provides no impact to existing source code.
 
 ## Effect on ABI stability
 
-This proposal is additive and no impact is made upon existing ABI stability. This does have implication to the inlinability and back-porting of this feature. In the cases where it is determined to be performance critical to the distribution of change events the methods will be marked as inlinable.
+This proposal is additive and no impact is made upon existing ABI stability. This does have implication to the inlinability and back-porting of this feature. In the cases where it is determined to be performance critical to the distribution of change events the methods will be marked as inlinable. 
+
+Changing a type from not observable to `@Observable` has the same ABI impact as changing a property from stored to computed (which is not ABI breaking). Removing `@Observable` not only transitions from computed to stored properties but also removes a conformance (which is ABI breaking).
 
 ## Effect on API resilience
 
-This proposal is additive and no impact is made upon existing API resilience.
+This proposal is additive and no impact is made upon existing API resilience. The types that adopt `@Observable` cannot remove it without breaking API contract.
 
 ## Location of API
 
-This API will be housed in a package; outside of the standard library. 
+This API will be housed in a module that is part of the swift language but outside of the standard library. To use this module `import Observation` must be used (and provisionally using the preview `import _Observation`).
 
 ## Future Directions
 
