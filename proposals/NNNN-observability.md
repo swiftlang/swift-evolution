@@ -73,11 +73,9 @@ Primarily, a type can declare itself as observable simply by using the `@Observa
 }
 ```
 
-The macro provides three major ways of interacting with changed properties; a way of tracking changes that are coalesced starting from the willSet of properties and ending based upon a specified isolation, a way of tracking specific value changes that transactionally coalesce around the phase of iteration, and a way of interoperating with UI. The first two systems are intended to specifically allow developers to interact with values in non-ui based systems. The changes provide a mechanism to track when an instance has values that need to be read after an update occurs. It is worth noting that this system has the prerequisite that exclusivity, thread safety, and/or isolation is handled by the object in question. If for example two properties have some sort of linked atomicity then it is the responsibility of the author of that type to provide that atomicity since that is the domain of that object and not general observation. Likewise, observing a specific property for it's values does not make that specific sequence of values able to be sent from one task to another by the feature of the property's type but instead by the nature of the object being observed. I.e. the asynchronous sequence of values is only sendable if and only if the subject of observation is sendable.
+The `@Observable` macro declares and implements conformance to the `Observable` protocol, which includes a set of extension methods to handle observation. The `Observable` protocol supports three ways to interact with changed properties: tracking specific values changes coalesced around iteration, tracking changes coalesced around a specific actor isolation, and interoperating with UI. The first two systems are intended for non-UI uses, while user interface libraries such as SwiftUI can use the last system to allow data changes to flow through to views.
 
-For most tasks that involve the UI; the SwiftUI interoperation is the suggested manner in which to allow data to flow through the views. In this document there will be discussion about dependencies and the concept of computed properties. It is worth noting that since the SwiftUI interaction is graph based to any field accessed within the scope specified it means that system does not have the limitation of dependency tracking.
-
-The `@Observable` macro declares and implements conformance to the `Observable` protocol, which includes a set of extension methods to handle observation. In the simplest case, a client can use the `values(for:)` method to observe changes to a specific property for a given instance.
+In the simplest case, a client can use the `values(for:)` method to observe changes to a specific property for a given instance.
 
 ```swift
 func processChanges(_ object: MyObject) async {
@@ -169,9 +167,9 @@ protocol Observable {
 }
 ```
 
-The first two protocol requirements need to be implemented by conforming types, either manually or by using the `@Observable` macro, described below. These two methods make use of `ObservationRegistrar` (*also* described below) to track changes and provide async sequences of changes and transactions.
+These protocol requirements need to be implemented by conforming types, either manually or by using the `@Observable` macro, described below. The first two methods make use of `ObservationRegistrar` (*also* described below) to track changes and provide async sequences of changes and transactions.
 
-In addition to these protocol requirements, `Observable` types must implement the semantic requirement of tracking each access and mutation to  observable properties. This tracking is also provided by using the `@Observable` macro, or can be implemented manually using the `access` and `withMutation` methods of a registrar.
+In addition to these protocol requirements, `Observable` types must implement the _semantic_ requirement of tracking each access and mutation to  observable properties. This tracking is also provided by using the `@Observable` macro, or can be implemented manually using the `access` and `withMutation` methods of a registrar.
 
 The `Observable` protocol also implements extension methods that provide convenient access to transactions isolated to the main actor or tracking just a single key path.
 
@@ -203,11 +201,26 @@ extension Observable {
 }
 ```
 
-The default implementation for `dependencies(of:)` returns a `TrackedProperties` type constructed with the given key path. This function is expected to be implemented in types when read only computed key paths are used, as seen in the `someComputedProperty` example above. 
+All `Observable` types must correctly handle their own exclusivity, thread safety, and/or isolation. For example, if two properties have some sort of linked invariant, then it is the author's responsibility to provide that atomicity. For example, for an observable type named `ImageDescription`, with `width` and `height` properties that must be updated in lockstep, the author must assign both properties without an interrupting suspension point:
 
-It is possible that the dependencies could be calculated via the macro synthesis. This is an option that can be incorporated into the proposal, however automatically tracking them is not possible without macro support to modify function bodies. The half-step for automatic generation of `dependencies(of:)` would make (unless otherwise implemented) a default conformance where all computed properties would have the dependencies of all member (non-computed) properties. This would allow for developers to still override but in the default (non-override) case it would cause more updates than actually occurs.
+```
+@Observable class ImageDescription {
+    // ...
+    
+    func BAD_updateDimensions() async {
+        self.width = await getUpdatedWidth()
+        self.height = away getUpdatedHeight    
+    }
 
-The automatic synthesis of `dependencies(of:)` is a point of consideration for review.
+    func GOOD_updateDimensions() async {
+        let (width, height) = await (getUpdatedWidth(), getUpdatedHeight())
+        self.width = width
+        self.height = height
+    }
+}
+```
+
+Likewise, a sequence observing a specific property for its values is only `Sendable` if `Observable` type is itself `Sendable`.
 
 ### Macro Synthesis
 
@@ -318,8 +331,12 @@ final class Model: Observable {
         }
     }
   
-    init() { }
-  
+    nonisolated static func dependencies(
+        of keyPath: PartialKeyPath<Self>
+    ) -> TrackedProperties<Self> {
+        [keyPath]
+    }
+    
     func purchase(alternateIcons: Bool, allRecipes: Bool) {
         alternateIconsUnlocked = alternateIcons
         allRecipesUnlocked = allRecipes
@@ -347,7 +364,7 @@ Due to limitations with macros all fields must have type information; this restr
 }
 ```
 
-Properties that have `willSet` and `didSet` property observations will be supported.
+Properties that have `willSet` and `didSet` property observations will be supported. The `@Observable` macro on the `PropertyExample` type here:
 
 ```swift
 @Observable final class PropertyExample {
@@ -355,10 +372,12 @@ Properties that have `willSet` and `didSet` property observations will be suppor
         willSet { print("will set triggered") }
         didSet { print("did set triggered") }
     }
+    var b: Int = 0
+    var c: String = ""
 }
 ```
 
-Transforms into the macro expansion for the property `a` as follows:
+...transforms the property `a` as follows:
 
 ```swift
 var a: Int {
@@ -375,6 +394,24 @@ var a: Int {
     }
 }
 ```
+
+The generated implementation for the `dependencies(of:)` requirement creates a list of all of the type's stored properties, and returns that as the set of dependencies for any computed property. For the `PropertyExample` type above, that implementation looks like this:
+
+```swift
+nonisolated static func dependencies(
+    of keyPath: PartialKeyPath<Self>
+) -> TrackedProperties<Self> {
+    let storedProperties: [PartialKeyPath<Self>] = [\.b, \.c]
+    switch keyPath {
+    case \.a:
+        return TrackedProperties(storedProperties + [keyPath])
+    default:
+        return [keyPath]
+    }
+}
+```
+
+The `@Observable` macro omits the implementation if one already exists, so an author can provide a more selective implementation if necessary.
 
 ### `TrackedProperties`
 
@@ -692,6 +729,8 @@ The initial implementation will not track changes for key paths that have more t
 Another area of focus for future enhancements is support for observable `actor` types. This would require specific handling for key paths that currently does not exist for actors.
 
 The current requirement that all stored properties declarations include a type could be lifted in the future, if macros are able to provide semantic type information for properties. This would allow property declarations like `var a = 3`.
+
+Future macro features could potentially permit refinements to the `dependencies(of:)` implementation generated by the `@Observable` macro, to more accurately select the stored properties that each computed property depends on.
 
 Finally, once variadic generics are available, an observation mechanism could be added to observe multiple key paths as an `AsyncSequence`. 
 
