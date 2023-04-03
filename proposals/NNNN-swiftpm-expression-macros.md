@@ -4,6 +4,7 @@
 * Authors: [Boris Buegling](https://github.com/neonichu), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status: **Implementation available behind pre-release tools-version https://github.com/apple/swift-package-manager/pull/6185 and https://github.com/apple/swift-package-manager/pull/6200**
+* Review: ([pitch 1](https://forums.swift.org/t/pitch-package-manager-support-for-custom-macros/63482)) ([pitch 2](https://forums.swift.org/t/pitch-2-package-manager-support-for-custom-macros/63868))
 
 ## Introduction
 
