@@ -151,10 +151,10 @@ enum Screen {
 fn main() {
     let screen = Screen::MessageThread { userId: 123 };
 
-    // Analagous to proposed `screen is case .messageThread` syntax
+    // Analogous to proposed `screen is case .messageThread` syntax
     println!("{}", matches!(screen, MessageThread)); // prints "true"
 
-    // Analagous to if / switch expression syntax, but can be used in-line
+    // Analogous to if / switch expression syntax, but can be used in-line
     println!("{}", if let MessageThread = screen { true } else { false }); // prints "true"
 }
 ```
