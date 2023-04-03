@@ -59,11 +59,14 @@ let package = Package(
                ]),
         .target(name: "MacroDef", dependencies: ["MacroImpl"]),
         .executableTarget(name: "MacroClient", dependencies: ["MacroDef"]),
+        .testTarget(name: "MacroTests", dependencies: ["MacroImpl"]),
     ]
 )
 ```
 
 Macro implementations will be executed in a sandbox [similar to package plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md#security), preventing file system and network access. This is a practical way of encouraging macros to not depend on any state other than the specific macro expansion node they are given to expand and its child nodes (but not its parent nodes), and the information specifically provided by the macro expansion context. If in the future macros need access to other information, this will be accomplished by extending the macro expansion context, which also provides a mechanism for the compiler to track what information the macro actually queried.
+
+Any code from macro implementations can be tested by declaring a dependency on the macro target from a test, this works similarly to the [testing of executable targets](https://github.com/apple/swift-package-manager/pull/3316).
 
 ## Detailed Design
 
