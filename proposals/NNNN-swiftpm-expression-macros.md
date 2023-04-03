@@ -34,7 +34,7 @@ public extension Target {
         path: String? = nil,
         exclude: [String] = [],
         sources: [String]? = nil
-    ) -> Target {
+    ) -> Target { ... }
 }
 ```
 
