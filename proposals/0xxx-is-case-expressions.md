@@ -9,120 +9,203 @@
 
 ## Introduction
 
-Users regularly ask for an easy way to test if an enum matches a particular case, even if the enum is not Equatable, or if the case in question has payloads. A quick search of the forums turned up [threads as old as 2015](https://forums.swift.org/t/allowing-non-binding-pattern-matching-as-a-bool-expression/294/2) asking about this---that is, about as old as the open source project itself.
+It's often useful to check whether or not an enum matches a specific case. This is trivial for simple enums without associated values, but is not well-supported today for enum cases with associated values.
+
+We should introduce a new `is case` expression that lets you check the result of any pattern match condition:
+
+```swift
+enum Screen {
+  case messages
+  case messageThread(userId: Int)
+}
+
+MessagesView(inThread: screen is case .messageThread)
+```
 
 ## Motivation
 
-Currently to test if an enum matches a specific case, the two main alternatives are to write a test via a `switch` statement or an `if case let`:
+It's often useful to check whether or not an enum matches a specific case. This is trivial for simple enums without associated values, which automatically conform to `Equatable`:
 
 ```swift
-let result = switch <expr> {
-  case <pattern>: true
+enum Screen {
+  case messages
+  case messageThread
+}
+
+MessagesView(inThread: screen == .messageThread)
+```
+
+After adding an associated value, you can no longer use value equality for this:
+
+```swift
+enum Screen: Equatable {
+  case messages
+  case messageThread(userId: Int)
+}
+
+// error: member 'messageThread(userId:)' expects argument of type 'Int'
+MessagesView(inThread: screen == .messageThread)
+```
+
+For enums with associated values, the only way to implement this check is by using an if / switch statement. One may assume that Swift 5.9's support for if / switch expressions would be a suitable way to implement this check, but those expressions cannot be written in-line:
+
+```swift
+// error: 'if' may only be used as expression in return, throw, or as the source of an assignment
+// Even if this was allowed, it would be pretty verbose.
+MessagesView(inThread: if case .messageThread = screen { true } else { false })
+```
+
+Instead, the result of this check must be either assigned to a variable or defined in a helper:
+
+```swift
+let isMessageThread = if case .messageThread = screen { true } else { false }
+// or:
+let isMessageThread = switch screen {
+  case .messageThread: true
   default: false
 }
+
+MessagesView(inThread: isMessageThread)
 ```
+
+Checking whether or not a value matches a pattern is already "truthy", so the extra ceremony mapping the result of this condition to a boolean is semantically redundant. This syntax is also quite verbose, and can't be written inline at the point of use.
+
+Instead, we propose adding new type of expression, `<expr> is case <pattern>`, that evaluates to true or false based on whether `<expr>` matches `<pattern>`. That would allow us to write this sort of check inline and succinctly:
 
 ```swift
-let result = if case <pattern> = <expr> { true } else { false }
+MessagesView(inThread: screen is case .messageThread)
 ```
-
-In both cases, until recently the result needs to be first stored in a local variable before it can be used in subsequent more complex expressions. With the introduction of `if` and `switch` expressions ([SE-390](https://github.com/apple/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md)), this is somewhat mitigated but it still results in code that is potentially difficult to parse at a glance.
-
-Several options are discussed in the Alternatives considered section below. They fall into 2 buckets and describe:
-
-1. **Work-arounds for manual or generated code**
-This is code that is manually-written, code-generated, or necessitates the use of a [macro](https://forums.swift.org/t/proposal-draft-for-is-case-pattern-match-boolean-expressions/58260/65) to make subsequent uses of this test more egronomic to use.
-
-2. **Additions or changes to the grammar of Swift** Additional syntax that allows testing if an enum matches a particular case to be written concisely and clearly.
-
-We propose the following addition the grammar that includes a new expression, `<expr> is case <pattern>`, that evaluates to true or false based on whether `<expr>` matches `<pattern>`. This allows for an easy and concise way to describe a pattern test inline.
 
 ## Detailed Design
 
-The Swift grammar gains a new expression production:
+The following expression type would be added to the language grammar:
 
 ```swift
 infix-expression -> is case <pattern>
 ```
-The pattern must not have a trailing type-annotation, and recursively must not contain a value-binding-pattern (see Future Directions below).
 
 `<expr> is case <pattern>` should be considered equivalent to the following code:
 
 ```swift
 ({ () -> Bool in
   switch <expr> {
-  case <pattern>: return true
-  default: return false
+  case <pattern>: true
+  default: false
   }
 })()
+
+and unlike if / switch expressions added in Swift 5.9, `if case` expressions would be usable anywhere you can write an expression.
 ```
 
-The use of `<pattern>` allows a broader set of tests in addition to testing if an enum matches a particular case. This allows for the following uses:
-- `foo is case .bar` (enum case)
-- `foo is case .bar(42)` (enum case with associated values)
-- `foo is case .bar(42, _)` (enum case with partially matched associated values)
-- `for is case 42` (integer literal)
-- `foo is case true` (boolean literal)
-- `foo is case "A string"` (string literal)
-- `foo is case bar` (other expression)
+The expression would support matching any type of pattern that can be used in a `switch` statement:
 
-This syntax can also be extended by overloading the `~=` operator just as in within `switch` statements.
+```swift
+foo is case .bar // enum case
+foo is case .bar(42) // enum case with associated values
+foo is case .bar(42, _) // enum case with partially matched associated values
+foo is case 42 // integer literal
+foo is case true // boolean literal
+foo is case "A string" // string literal
+foo is case bar // other expression
+```
+
+But since these expression are not part of a control flow structure, they won't support binding associated values to properties. For example, the following usage would not be allowed:
+
+```swift
+// Not allowed, since there isn't a new scope where the bound property would be available
+foo is case .bar(let value)
+MessagesView(inThread: screen is case .messageThread(let userId))
+```
+
+This syntax can also be extended by overloading the `~=` operator just as in within `switch` and `if case` statements.
+
+At face value this seems like it would create the opportunity for some "silly" conditions like `foo is case 42`. Despite being a bit silly, these conditions are harmless and are important to support for two reasons:
+ 1. maintaining feature parity with `case <pattern>` in switch statements is important to ensure a consistent mental model of how pattern matching works in Swift
+ 2. very similar spellings are already possible today in conditions like `if case 42 = foo { true } else { false }`
 
 ## Precedence
+
 By analogy with `<expr> is <type>`, this expression should be usable within `&&`/`||` chains. That is, `x && y is case .z && w` should be equivalent to `x && (y is case .z) && w`. At the same time, other binary operators need to bind more tightly: `x is case y ..< z` should be interpreted as `x is case (y ..< z)`. This behavior is already implemented for chains of infix-expressions using precedence, but adding expression-patterns to the mix may be tricky to implement.
 
 Open question: should `x ?? y is case .z` be treated as `x ?? (y is case .z)` or `(x ?? y) is case .z`? The former matches `is`'s CastingPrecedence, designed around `as?`, but the latter is still an option, and both have plausible uses: `alwaysDark ?? (systemMode is case .dark)` vs `(overriddenMode ?? systemMode) is case .dark`. The precedence of `is case` should be higher than `ComparisonPrecedence` no matter what, though.
 
-If the pattern is known to always or never match the expression at compile time, the compiler should emit a warning. This includes "irrefutable" patterns that merely destructure their expression; these are not significantly different from type-casting patterns that are statically known to be upcasts, or values known to be out of range through constant propagation.
-
 ## Source compatibility and ABI
+
 This is an additive change to expression syntax that requires no additional runtime support; it has no source- or binary-compatibility implications beyond not being available in earlier versions of the compiler.
 
 ## Alternatives considered
 
 ### Do nothing
-[SE-390](https://github.com/apple/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md) allowed control-flow statements to be treated as expressions, and you could implement this with `if case <pattern> = <expr> { true } else { false }`, without having to wrap in a closure-like expansion above. However, this is still pretty verbose, and even Rust, which has generalized control-flow expressions, still provides a `matches!` macro in its standard library. 
+
+As of Swift 5.9 ([SE-390](https://github.com/apple/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md)), you can implement this with `if case <pattern> = <expr> { true } else { false }`. These conditions are verbose and cannot be written in-line in other expressions, so are not a sufficient replacement for `is case` expressions. 
+
+These type types of syntaxes can also coexist. For example, Rust provides a `matches!` macro in its standard library even though it also supports control flow expressions:
+
+```rs
+#[derive(Copy, Clone)]
+enum Screen {
+    Messages,
+    MessageThread { userId: i64 },
+}
+
+fn main() {
+    let screen = Screen::MessageThread { userId: 123 };
+
+    // Analagous to proposed `screen is case .messageThread` syntax
+    println!("{}", matches!(screen, MessageThread)); // prints "true"
+
+    // Analagous to if / switch expression syntax, but can be used in-line
+    println!("{}", if let MessageThread = screen { true } else { false }); // prints "true"
+}
+```
 
 ### Per-case optional properties
-For years now there's been an idea that for case foo(bar: Int, baz: Int), the compiler could synthesize some or all of the following computed instance properties:
 
+Another approach could be to synthesize computed properties for each enum case, either using compiler code synthesis or a macro.
+
+For example, for  `case foo(bar: Int, baz: Int)` we could synthesize some or all of the following computed instance properties:
 - `isFoo: Bool`
 - `asFoo: (bar: Int, baz: Int)?`
 - `bar: Int?`
 - `bar: Int (if every case has a field bar: Int)`
 
-This would handle the most common use for `is case`, checking if a value with known enum type has a particular case. However, it does not cover all the use cases, such as matching nested values. Even if such a feature is proposed and accepted through the evolution process, `is case` would still be useful.
+This would handle the most common use for `is case`, checking if a value with known enum type has a particular case. However, it does not cover all the use cases, such as matching nested / partial values.
 
-### `case <pattern> = <expr>`
-There have been a handful of other proposed spellings over the years, most notably `case <pattern> = <expr>`, by analogy with the existing `if case`. However, while this syntax is not likely to be ambiguous in practice, it does suffer from the main flaw of if case: the pattern comes first and therefore cannot be code-completed from the expression when typed left-to-right. The single `=` also suggests assignment even though the result is a boolean.
+There are also some key drawbacks to an approach like this:
+ 1. Automatically synthesizing these properties for every enum case would result in a large code size increase, so we likely wouldn't want to enable this by default.
+ 2. If this is not enabled by default, then this would only be useful in cases where the owner of the enum declaration opted-in to this functionality. Since this doesn't impose any additional semantic requirements on the author of the enum declaration (e.g. like with `CaseIterable`), there aren't any semantic benefits to making this opt-in.
 
-### `<expr> case <pattern>`
-This is more concise, but would make it harder to parse switch statements:
+### Alternative spellings
+
+Some potential alternative spellings for this feature include:
 
 ```swift
-  doSomething()
-case is UIButton // missing colon
-  doSomethingElse()
+// case <pattern> = <expr>
+// Consistent with the existing `if case`, but not evocative of a boolean condition.
+MessagesView(inThread: case .messageThread = screen)
+
+// <expr> case <pattern>
+// Not evocative of a boolean condition
+MessagesView(inThread: case .messageThread = screen)
+
+// <expr> is <pattern>
+// Less clearly related to pattern matching (always indicated by `case` elsewhere in the language)
+MessagesView(inThread: screen is .messageThread)
+
+// <expr> == <pattern>
+// Special case support for a specific operator. 
+// Could be confusing to overload == with multiple different types of conditions.
+// Ambiguous for enum cases without assoicated values (which equality codepath would it use?).
+MessagesView(inThread: screen == .messageThread(_))
 ```
 
-While this example is contrived, it shows how the compiler would have to jump through extra hoops to understand incomplete or erroneous code. So it's a good thing no one has seriously suggested this.
-
-### Special-case `==` or `~=`
-People like using `==` to compare non-payload cases, and `~=` is already used to match expression patterns. We could change the compiler to treat these differently from normal operators, allowing `<expr> == <pattern>` or `<pattern> ~= <expr>`. While personally not a fan of this, but we can't think of an inherent reason why it wouldn't work for enum cases. We're hesitant to use `==` when other forms of matching are involved, but `~=` doesn't have that problem. It does, however, put the pattern on the left (established by existing implementations of the operator function), which again is sub-optimal for code completion. From a learning perspective, operators are also generally a bit harder to read and search for.
-
-### Change `is`
-In theory, the existing cast-testing syntax `<expr>` is `<type>` could be expanded to `<expr>` is `<pattern>`, with `<expr>` is `<type>` effectively becoming sugar for `expr is` (`is <type>`). This makes a very satisfying, compact syntax for pattern-matching as a boolean expression... but may add confusion around pattern matching in switch statements, where `case <type>` is disallowed, and `case <type>.self` is an expression pattern. We don't think there's an actual conflict here, but only because of the requirement that types-as-values be adorned with `.self`. Without that, `case is <type>` would check runtime casting, but `case <type>` would invoke custom expression matching, if an appropriate match operator is defined. ([SE-0090](https://github.com/apple/swift-evolution/blob/main/proposals/0090-remove-dot-self.md) proposed to lift this restriction, but was deferred.)
-
-Additionally, because there's an implementation of expression pattern matching that uses Equatable, we run into the risk of adding x is y to the existing `x == y` and `x === y`. Having too many notions of equality makes the language harder to learn, as well as making it easier to accidentally pick the wrong one.
-
-`is case` sidesteps all these issues, and doesn't preclude shortening to plain `is` later if we decide the upsides outweigh the downsides.
-
-### Wait for a Grand Unifying Pattern-Matching Proposal
-There are a good handful of places where Swift's existing pattern-matching falls short, including `if case` as discussed above, the verbosity of `let` in patterns where `case` is already present, the lack of destructuring support for structs and classes due to library evolution principles, and the inability for expression-matching to generate bindings. Proposals to address some or all of these issues, especially the last, might come with a new syntax for pattern matching that makes sense in and outside of flow control. Adding `is case` does not help with these larger issues; it's only a convenience for a particular use case.
-
-This is all true, and yet at the same time this feature has been proposed every year since Swift went open source (see the Acknowledgments below). If something else supersedes it in the future, that's all right; its existence will still have saved time and energy for many a developer.
+Of these spellings, `<expr> is case <pattern>` is the best because:
+ 1. it's clearly a condition that evaluates to a boolean
+ 2. it includes the keyword `case` to indicate its relationship with existing pattern matching syntax (switch cases, `if case`)
+ 3. it doesn't introduce conflicts or ambiguity with existing language features
 
 ## Acknowledgments
+
 [Jordan Rose](https://belkadan.com/blog) wrote a draft proposal for which this proposal builds upon.
 
 Andrew Bennett was the first person who suggested the spelling is case for this operation, way back in [2015](https://forums.swift.org/t/allowing-non-binding-pattern-matching-as-a-bool-expression/294/2).
