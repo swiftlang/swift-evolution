@@ -168,28 +168,6 @@ Open question: should `x ?? y is case .z` be treated as `x ?? (y is case .z)` or
 
 This is an additive change to expression syntax that requires no additional runtime support; it has no source- or binary-compatibility implications beyond not being available in earlier versions of the compiler.
 
-## Future directions
-
-### Allow variable bindings
-
-If we lifted the restriction on variable bindings, it might be possible to check against an enum case and bind its associated value to a local scope in single expression, such as:
-
-```swift
-if destination is case .messageThread(let id) {
-  // Do something with `id` here
-}
-```
-
-While this syntax blurs the distinction between pattern matching within if and switch statements and may lend to better autocomplete support (as the expression being matched against is spelt first), it is duplicative with the current `if case` syntax:
-
-```swift
-if case .messageThread(let id) = destination {
-  // Do something with `id` here
-}
-```
-
-For this reason, we propose leaving this out of this initial proposal as it doesn't preclude us from pursuing this in the future.
-
 ## Alternatives considered
 
 ### Do nothing
@@ -215,6 +193,49 @@ fn main() {
     println!("{}", if let MessageThread = destination { true } else { false }); // prints "true"
 }
 ```
+
+### Allow variable bindings
+
+If we lifted the restriction on variable bindings, it would be possible to check against an enum case and bind its associated value to a local scope in single expression, such as:
+
+```swift
+if destination is case .messageThread(let id) {
+  // Do something with `id` here
+}
+```
+
+This would effectively be an alternative spelling of the existing `if case` syntax:
+
+```swift
+if case .messageThread(let id) = destination {
+  // Do something with `id` here
+}
+```
+
+Using `is case` syntax in this way is potentially an improvement over `if case` syntax, since `if case` syntax is well-known for having poor autocomplete support. Despite this, there are several downsides to an approach like this.
+
+Most importantly, `is case` expressions could only support bindings in a very narrow context:
+
+```swift
+// We can't support bindings in general, since there isn't a scope to bind the new variables in:
+HeaderView(inThread: destination is case .messageThread(let userId))
+
+// In theory we could support bindings in if conditions:
+if destination is case .messageThread(let id) {
+  // Do something with `id` here
+}
+
+// But this doesn't work when combining `is case` expressions with other boolean operators:
+if !(destination is case .messageThread(let id)) {
+  // `destination` is definitely not `.messageThread`, so we can't bind `id`
+}
+
+if destination is case .messageThread(let id) || destination is case .inbox {
+  // `destination` may not be `.messageThread`, so we can't bind `id`
+}
+```
+
+It would be confusing and inconsistent for `is case` expressions to support different functionality depending on the context. It would also be less-than-ideal to have two separate spellings of the exact same feature. Since this functionality is already supported by `if case` syntax, we don't need to support it here.
 
 ### Case-specific computed properties
 
