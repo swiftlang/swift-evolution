@@ -128,9 +128,9 @@ infix-expression -> is case <pattern>
   default: false
   }
 })()
-
-and unlike if / switch expressions added in Swift 5.9, `if case` expressions would be usable anywhere you can write an expression.
 ```
+
+Unlike if / switch expressions added in Swift 5.9, `if case` expressions would be usable anywhere you can write an expression.
 
 The expression would support matching any type of pattern that can be used in a `switch` statement:
 
