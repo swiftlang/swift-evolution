@@ -2,11 +2,10 @@
 
 * Proposal: [SE-0XXX](0XXX-is-case-expressions.md)
 * Authors: [Cal Stephens](https://github.com/calda), [Matthew Cheok](https://github.com/matthewcheok), [Jordan Rose](https://belkadan.com/blog)
-
 * Review Manager: TBD
 * Status: **Implementation available**
-* Implementation: [apple/swift#XXX](https://github.com/apple/swift/pull/XXX), including a downloadable toolchain.
-* Review: ([draft proposal](https://forums.swift.org/t/proposal-draft-for-is-case-pattern-match-boolean-expressions/58260))
+* Implementation: [apple/swift#64901](https://github.com/apple/swift/pull/64901)
+* Review: ([draft proposal](https://github.com/matthewcheok/swift-evolution/blob/is-case-expr/proposals/0xxx-is-case-expressions.md))
 
 ## Introduction
 
