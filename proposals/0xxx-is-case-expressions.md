@@ -168,6 +168,28 @@ Open question: should `x ?? y is case .z` be treated as `x ?? (y is case .z)` or
 
 This is an additive change to expression syntax that requires no additional runtime support; it has no source- or binary-compatibility implications beyond not being available in earlier versions of the compiler.
 
+## Future directions
+
+### Allow variable bindings
+
+If we lifted the restriction on variable bindings, it might be possible to check against an enum case and bind its associated value to a local scope in single expression, such as:
+
+```swift
+if destination is case .messageThread(let id) {
+  // Do something with `id` here
+}
+```
+
+While this syntax blurs the distinction between pattern matching within if and switch statements and may lend to better autocomplete support (as the expression being matched against is spelt first), it is duplicative with the current `if case` syntax:
+
+```swift
+if case .messageThread(let id) = destination {
+  // Do something with `id` here
+}
+```
+
+For this reason, we propose leaving this out of this initial proposal as it doesn't preclude us from pursuing this in the future.
+
 ## Alternatives considered
 
 ### Do nothing
