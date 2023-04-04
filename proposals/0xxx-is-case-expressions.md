@@ -82,6 +82,29 @@ HeaderView(inThread: isMessageThread)
 
 Checking whether or not a value matches a pattern is already "truthy", so the extra ceremony mapping the result of this condition to a boolean is semantically redundant. This syntax is also quite verbose, and can't be written inline at the point of use.
 
+This problem is such a pain-point that some have even recommended mirroring with a [parallel](https://forums.swift.org/t/request-ability-to-refer-to-an-enum-case-in-abstract-without-its-associated-value/410) [enum](https://forums.swift.org/t/comparing-enums-without-their-associated-values/18944/3) that has [no associated values](https://forums.swift.org/t/swift-enum-property-without-initializing-the-enum-case-with-an-associated-value/17539) in order to benefit from direct equality-checking:
+
+```swift
+enum Destination: Equatable {
+  case inbox
+  case messageThread(id: Int)
+
+  enum Case {
+    case inbox
+    case messageThread
+  }
+
+  var `case`: Case {
+    switch self {
+      case .inbox: .inbox
+      case .messageThread: .messageThread
+    }
+  }
+}
+```
+
+These ad-hoc solutions are non-trivial to maintain and place the burden of keeping them up-to-date on the author.
+
 Instead, we propose adding new type of expression, `<expr> is case <pattern>`, that evaluates to true or false based on whether `<expr>` matches `<pattern>`. That would allow us to write this sort of check inline and succinctly:
 
 ```swift
