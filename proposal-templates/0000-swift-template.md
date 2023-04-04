@@ -8,7 +8,7 @@
 * Roadmap: *if applicable* [Roadmap Name](https://forums.swift.org/...))
 * Bug: *if applicable* [apple/swift#NNNNN](https://github.com/apple/swift/issues/NNNNN)
 * Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
-* Upcoming feature flag: *if applicable* `MyFeatureName`
+* Upcoming Feature Flag: *if applicable* `MyFeatureName`
 * Previous Proposal: *if applicable* [SE-XXXX](XXXX-filename.md)
 * Previous Revision: *if applicable* [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Review: ([pitch](https://forums.swift.org/...))
@@ -62,7 +62,7 @@ been committed to the main branch (as an experimental feature), say
 that and specify the experimental feature flag.  If the implementation
 is spread across multiple PRs, just link to the most important ones.
 
-`Upcoming feature flag` should be the feature name used to identify this
+`Upcoming Feature Flag` should be the feature name used to identify this
 feature under [SE-0362](https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md#proposals-define-their-own-feature-identifier).
 Not all proposals need an upcoming feature flag.  You should think about
 whether one would be useful for your proposal as part of filling this
