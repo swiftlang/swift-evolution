@@ -85,7 +85,7 @@ Checking whether or not a value matches a pattern is already "truthy", so the ex
 This problem is such a pain-point that some have even recommended mirroring with a [parallel](https://forums.swift.org/t/request-ability-to-refer-to-an-enum-case-in-abstract-without-its-associated-value/410) [enum](https://forums.swift.org/t/comparing-enums-without-their-associated-values/18944/3) that has [no associated values](https://forums.swift.org/t/swift-enum-property-without-initializing-the-enum-case-with-an-associated-value/17539) in order to benefit from direct equality-checking:
 
 ```swift
-enum Destination: Equatable {
+enum Destination {
   case inbox
   case messageThread(id: Int)
 
@@ -101,6 +101,37 @@ enum Destination: Equatable {
     }
   }
 }
+
+HeaderView(inThread: destination.case == .messageThread)
+```
+
+Another common pattern is to manually implement boolean properties for each enum case:
+
+```swift
+enum Destination {
+  case inbox
+  case messageThread(id: Int)
+
+  var isInbox: Bool {
+    switch self {
+    case .inbox:
+      true
+    case .messageThread:
+      false
+    }
+  }
+
+  var isMessageThread: Bool {
+    switch self {
+    case .inbox:
+      false
+    case .messageThread:
+      true
+    }
+  }
+}
+
+HeaderView(inThread: destination.isMessageThread)
 ```
 
 These ad-hoc solutions are non-trivial to maintain and place the burden of keeping them up-to-date on the author.
