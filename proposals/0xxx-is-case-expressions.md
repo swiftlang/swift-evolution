@@ -1,7 +1,8 @@
 # `is case` expressions
 
 * Proposal: [SE-0XXX](0XXX-is-case-expressions.md)
-* Authors: [Cal Stephens](https://github.com/calda), [Matthew Cheok](https://github.com/matthewcheok)
+* Authors: [Cal Stephens](https://github.com/calda), [Matthew Cheok](https://github.com/matthewcheok), [Jordan Rose](https://belkadan.com/blog)
+
 * Review Manager: TBD
 * Status: **Implementation available**
 * Implementation: [apple/swift#XXX](https://github.com/apple/swift/pull/XXX), including a downloadable toolchain.
@@ -283,8 +284,6 @@ Of these spellings, `<expr> is case <pattern>` is the best because:
  3. it doesn't introduce conflicts or ambiguity with existing language features
 
 ## Acknowledgments
-
-[Jordan Rose](https://belkadan.com/blog) wrote a [draft proposal](https://forums.swift.org/t/proposal-draft-for-is-case-pattern-match-boolean-expressions/58260) for which this proposal builds upon.
 
 Andrew Bennett was the first person who suggested the spelling is case for this operation, way back in [2015](https://forums.swift.org/t/allowing-non-binding-pattern-matching-as-a-bool-expression/294/2).
 
