@@ -198,7 +198,7 @@ HeaderView(inThread: case .messageThread = destination)
 
 // <expr> case <pattern>
 // Not evocative of a boolean condition
-HeaderView(inThread: case .messageThread = destination)
+HeaderView(inThread: destination case .messageThread)
 
 // <expr> is <pattern>
 // Less clearly related to pattern matching (always indicated by `case` elsewhere in the language)
