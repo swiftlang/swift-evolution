@@ -151,7 +151,7 @@ This is an additive change to expression syntax that requires no additional runt
 
 As of Swift 5.9 ([SE-390](https://github.com/apple/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md)), you can implement this with `if case <pattern> = <expr> { true } else { false }`. These conditions are verbose and cannot be written in-line in other expressions, so are not a sufficient replacement for `is case` expressions. 
 
-These type types of syntaxes can also coexist. For example, Rust provides a `matches!` macro in its standard library even though it also supports control flow expressions:
+Similar variants of these types of syntax can also coexist. For example, Rust provides a `matches!` macro in its standard library even though it also supports control flow expressions:
 
 ```rs
 #[derive(Copy, Clone)]
@@ -218,7 +218,7 @@ Of these spellings, `<expr> is case <pattern>` is the best because:
 
 ## Acknowledgments
 
-[Jordan Rose](https://belkadan.com/blog) wrote a draft proposal for which this proposal builds upon.
+[Jordan Rose](https://belkadan.com/blog) wrote a [draft proposal](https://forums.swift.org/t/proposal-draft-for-is-case-pattern-match-boolean-expressions/58260) for which this proposal builds upon.
 
 Andrew Bennett was the first person who suggested the spelling is case for this operation, way back in [2015](https://forums.swift.org/t/allowing-non-binding-pattern-matching-as-a-bool-expression/294/2).
 
