@@ -108,7 +108,7 @@ These ad-hoc solutions are non-trivial to maintain and place the burden of keepi
 Instead, we propose adding new type of expression, `<expr> is case <pattern>`, that evaluates to true or false based on whether `<expr>` matches `<pattern>`. That would allow us to write this sort of check inline and succinctly:
 
 ```swift
-Header(inThread: destination is case .messageThread)
+HeaderView(inThread: destination is case .messageThread)
 ```
 
 ## Detailed Design
