@@ -11,15 +11,25 @@
 
 It's often useful to check whether or not an enum matches a specific case. This is trivial for simple enums without associated values, but is not well-supported today for enum cases with associated values.
 
-We should introduce a new `is case` expression that lets you check the result of any pattern match condition:
+We should introduce a new `is case` expression that lets you evaluate the result of any pattern matching an expression in a way similar to a `switch` or `if case` statement:
 
 ```swift
-enum Screen {
-  case messages
-  case messageThread(userId: Int)
+enum Destination {
+  case inbox
+  case messageThread(id: Int)
 }
 
-MessagesView(inThread: screen is case .messageThread)
+let destination = Destination.thread(id: 42)
+print(destination is case .inbox) // false
+print(destination is case .thread) // true
+print(destination is case .thread(id: 0)) // false
+print(destination is case .thread(id: 42)) // true
+
+// SwiftUI view
+VStack {
+  HeaderView(inThread: destination is case .thread)
+  ...
+}
 ```
 
 ## Motivation
@@ -27,24 +37,26 @@ MessagesView(inThread: screen is case .messageThread)
 It's often useful to check whether or not an enum matches a specific case. This is trivial for simple enums without associated values, which automatically conform to `Equatable`:
 
 ```swift
-enum Screen {
-  case messages
+enum Destination {
+  case inbox
   case messageThread
 }
 
-MessagesView(inThread: screen == .messageThread)
+let destination = Destination.messageThread
+print(destination == .messageThread)
 ```
 
 After adding an associated value, you can no longer use value equality for this:
 
 ```swift
-enum Screen: Equatable {
-  case messages
-  case messageThread(userId: Int)
+enum Destination: Equatable {
+  case inbox
+  case messageThread(id: Int)
 }
 
-// error: member 'messageThread(userId:)' expects argument of type 'Int'
-MessagesView(inThread: screen == .messageThread)
+let destination = Destination.messageThread(id: 42)
+// error: member 'messageThread(id:)' expects argument of type 'Int'
+print(destination == .messageThread)
 ```
 
 For enums with associated values, the only way to implement this check is by using an if / switch statement. One may assume that Swift 5.9's support for if / switch expressions would be a suitable way to implement this check, but those expressions cannot be written in-line:
@@ -52,20 +64,20 @@ For enums with associated values, the only way to implement this check is by usi
 ```swift
 // error: 'if' may only be used as expression in return, throw, or as the source of an assignment
 // Even if this was allowed, it would be pretty verbose.
-MessagesView(inThread: if case .messageThread = screen { true } else { false })
+HeaderView(inThread: if case .messageThread = destination { true } else { false })
 ```
 
 Instead, the result of this check must be either assigned to a variable or defined in a helper:
 
 ```swift
-let isMessageThread = if case .messageThread = screen { true } else { false }
+let isMessageThread = if case .messageThread = destination { true } else { false }
 // or:
-let isMessageThread = switch screen {
+let isMessageThread = switch destination {
   case .messageThread: true
   default: false
 }
 
-MessagesView(inThread: isMessageThread)
+HeaderView(inThread: isMessageThread)
 ```
 
 Checking whether or not a value matches a pattern is already "truthy", so the extra ceremony mapping the result of this condition to a boolean is semantically redundant. This syntax is also quite verbose, and can't be written inline at the point of use.
@@ -73,7 +85,7 @@ Checking whether or not a value matches a pattern is already "truthy", so the ex
 Instead, we propose adding new type of expression, `<expr> is case <pattern>`, that evaluates to true or false based on whether `<expr>` matches `<pattern>`. That would allow us to write this sort of check inline and succinctly:
 
 ```swift
-MessagesView(inThread: screen is case .messageThread)
+Header(inThread: destination is case .messageThread)
 ```
 
 ## Detailed Design
@@ -109,7 +121,7 @@ foo is case "A string" // string literal
 foo is case bar // other expression
 ```
 
-But since these expression are not part of a control flow structure, they won't support binding associated values to properties. For example, the following usage would not be allowed:
+But since these expression are not part of a control flow structure, they won't support binding associated values to variables. For example, the following usage would not be allowed:
 
 ```swift
 // Not allowed, since there isn't a new scope where the bound property would be available
@@ -143,23 +155,23 @@ These type types of syntaxes can also coexist. For example, Rust provides a `mat
 
 ```rs
 #[derive(Copy, Clone)]
-enum Screen {
-    Messages,
-    MessageThread { userId: i64 },
+enum Destination {
+    Inbox,
+    MessageThread { id: i64 },
 }
 
 fn main() {
-    let screen = Screen::MessageThread { userId: 123 };
+    let destination = Destination::MessageThread { id: 42 };
 
     // Analogous to proposed `screen is case .messageThread` syntax
-    println!("{}", matches!(screen, MessageThread)); // prints "true"
+    println!("{}", matches!(destination, MessageThread)); // prints "true"
 
     // Analogous to if / switch expression syntax, but can be used in-line
-    println!("{}", if let MessageThread = screen { true } else { false }); // prints "true"
+    println!("{}", if let MessageThread = destination { true } else { false }); // prints "true"
 }
 ```
 
-### Per-case optional properties
+### Case-specific computed properties
 
 Another approach could be to synthesize computed properties for each enum case, either using compiler code synthesis or a macro.
 
@@ -182,21 +194,21 @@ Some potential alternative spellings for this feature include:
 ```swift
 // case <pattern> = <expr>
 // Consistent with the existing `if case`, but not evocative of a boolean condition.
-MessagesView(inThread: case .messageThread = screen)
+HeaderView(inThread: case .messageThread = destination)
 
 // <expr> case <pattern>
 // Not evocative of a boolean condition
-MessagesView(inThread: case .messageThread = screen)
+HeaderView(inThread: case .messageThread = destination)
 
 // <expr> is <pattern>
 // Less clearly related to pattern matching (always indicated by `case` elsewhere in the language)
-MessagesView(inThread: screen is .messageThread)
+HeaderView(inThread: destination is .messageThread)
 
 // <expr> == <pattern>
 // Special case support for a specific operator. 
 // Could be confusing to overload == with multiple different types of conditions.
 // Ambiguous for enum cases without assoicated values (which equality codepath would it use?).
-MessagesView(inThread: screen == .messageThread(_))
+HeaderView(inThread: destination == .messageThread(_))
 ```
 
 Of these spellings, `<expr> is case <pattern>` is the best because:
