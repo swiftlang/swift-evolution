@@ -19,15 +19,15 @@ enum Destination {
   case messageThread(id: Int)
 }
 
-let destination = Destination.thread(id: 42)
+let destination = Destination.messageThread(id: 42)
 print(destination is case .inbox) // false
-print(destination is case .thread) // true
-print(destination is case .thread(id: 0)) // false
-print(destination is case .thread(id: 42)) // true
+print(destination is case .messageThread) // true
+print(destination is case .messageThread(id: 0)) // false
+print(destination is case .messageThread(id: 42)) // true
 
 // SwiftUI view
 VStack {
-  HeaderView(inThread: destination is case .thread)
+  HeaderView(inThread: destination is case .messageThread)
   ...
 }
 ```
