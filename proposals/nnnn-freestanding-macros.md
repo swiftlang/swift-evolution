@@ -216,7 +216,7 @@ Freestanding declaration macros can be used to generate boilerplace code. For ex
 
 ```swift
 @freestanding(declaration)
-fileprivate macro IntegerTypes(_ bitWidth: Int...)
+fileprivate macro IntegerTypes(bitWidths: Int...)
 
 #IntegerTypes(bitWidths: 8, 16, 32, 64)
 ```
@@ -344,3 +344,5 @@ defer {
 ```
 
 Code item macros can only introduce new declarations that have unique names, created with `makeUniqueName(_:)`. They cannot introduce named declarations, because doing so affects the ability to type-check without repeatedly expanding the macro with potentially complete information. See the section on the visibility of names used and introduced by macros.
+
+Code item macros are currently under both `FreestandingMacros` and `CodeItemMacros` experimental feature flags.
