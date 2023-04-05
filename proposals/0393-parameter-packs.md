@@ -53,6 +53,7 @@ This proposal adds _type parameter packs_ and _value parameter packs_ to enable 
     - [Value expansion operator](#value-expansion-operator)
     - [Pack destructuring operations](#pack-destructuring-operations)
     - [Tuple conformances](#tuple-conformances)
+  - [Revision history](#revision-history)
   - [Acknowledgments](#acknowledgments)
 
 ## Motivation
@@ -99,7 +100,7 @@ A pack expansion consists of the `repeat` keyword followed by a type or an expre
 Similarly, pack references can only appear inside repetition patterns and generic requirements:
 
 ```swift
-func zip<each S>(_ sequence: repeat each S) where each S: Sequence
+func zip<each S>(_ sequence: repeat each S) where repeat each S: Sequence
 ```
 
 Given a concrete pack substitution, the pattern is repeated for each element in the substituted pack. If `S` is substituted with `Array<Int>, Set<String>`, then `repeat Optional<each S>` will repeat the pattern `Optional<each S>` for each element in the substitution to produce `Optional<Array<Int>>, Optional<Set<String>>`.
@@ -384,20 +385,20 @@ We will refer to `each T` as the _root type parameter pack_ of the member type p
 
 ### Generic requirements
 
-All existing kinds of generic requirements generalize to type parameter packs. Same-type requirements generalize in multiple different ways, depending on whether one or both sides involve a type parameter pack.
+All existing kinds of generic requirements can be used inside _requirement expansions_, which represent a list of zero or more requirements. Requirement expansions are spelled with the `repeat` keyword followed by a generic requirement pattern that captures at least one type parameter pack reference spelled with the `each` keyword. Same-type requirements generalize in multiple different ways, depending on whether one or both sides involve a type parameter pack.
 
 1. Conformance, superclass, and layout requirements where the subject type is a type parameter pack are interpreted as constraining each element of the replacement type pack:
 
   ```swift
-  func variadic<each S>(_: repeat each S) where each S: Sequence { ... }
+  func variadic<each S>(_: repeat each S) where repeat each S: Sequence { ... }
   ```
 
   A valid substitution for the above might replace `S` with `{Array<Int>, Set<String>}`. Expanding the substitution into the requirement `each S: Sequence` conceptually produces the following conformance requirements: `Array<Int>: Sequence, Set<String>: Sequence`.
 
-2. A same-type requirement where one side is a type parameter pack and the other type is a scalar type that does not capture any type parameter packs is interpreted as constraining each element of the replacement type pack to _the same_ scalar type:
+1. A same-type requirement where one side is a type parameter pack and the other type is a scalar type that does not capture any type parameter packs is interpreted as constraining each element of the replacement type pack to _the same_ scalar type:
 
   ```swift
-  func variadic<each S: Sequence, T>(_: repeat each S) where (each S).Element == T {}
+  func variadic<each S: Sequence, T>(_: repeat each S) where repeat (each S).Element == T {}
   ```
 
   This is called a _same-element requirement_.
@@ -408,7 +409,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 3. A same-type requirement where each side is a pattern type that captures at least one type parameter pack is interpreted as expanding the type packs on each side of the requirement, equating each element pair-wise.
 
   ```swift
-  func variadic<each S: Sequence, each T>(_: repeat each S) where (each S).Element == Array<each T> {}
+  func variadic<each S: Sequence, each T>(_: repeat each S) where repeat (each S).Element == Array<each T> {}
   ```
   
   This is called a _same-type-pack requirement_.
@@ -560,16 +561,30 @@ func overload<T>(_: T) {}
 func overload<each T>(_: repeat each T) {}
 ```
 
-If both overloads match a given call, e.g. `overload(1)`, the call is ambiguous. Similarly, two generic functions where one accepts a non-pack variadic parameter and the other accepts a type parameter pack:
+If the parameters of the scalar overload have the same or refined requirements as the parameter pack overload, the scalar overload is considered a subtype of the parameter pack overload, because the parameters of the scalar overload can be forwarded to the parameter pack overload. Generally, if a function call successfully type checks with two different overloads, the subtype is preferred. This effectively means that scalar overloads are preferred over parameter pack overloads when the scalar requirements meet the requirements of the parameter pack:
 
 ```swift
-func overload<T>(_: T...) {}
+func overload() {}
+func overload<T>(_: T) {}
 func overload<each T>(_: repeat each T) {}
 
-overload() // ambiguity error
+overload() // calls the no-parameter overload
+
+overload(1) // calls the scalar overload
+
+overload(1, "") // calls the parameter pack overload
 ```
 
-In other words, variadic generic functions have the same ranking as other generic functions.
+The general overload subtype ranking rule applies after localized ranking, such as implicit conversions and optional promotions. That remains unchanged with this proposal. For example:
+
+```swift
+func overload<T>(_: T, _: Any) {}
+func overload<each T>(_: repeat each T) {}
+
+overload(1, "") // prefers the parameter pack overload because the scalar overload would require an existential conversion
+```
+
+This overload resolution behavior enables library authors to introduce new function overloads using parameter packs that generalize existing fixed-arity overloads while preserving the overload resolution behavior of existing code.
 
 ## Effect on ABI stability
 
@@ -697,7 +712,7 @@ In this proposal, type packs do not have an explicit syntax, and a type pack is 
 ```swift
 struct Variadic<each T> {}
 
-extension Variadic where each T == {Int, String} {} // {Int, String} is a concrete pack
+extension Variadic where T == {Int, String} {} // {Int, String} is a concrete pack
 ```
 
 ### Pack iteration
@@ -727,7 +742,7 @@ Use cases for variadic generics that break up pack iteration across function cal
 Dynamic pack indexing is useful when the specific type of the element is not known, or when all indices must have the same type, such as for index manipulation or storing an index value. Packs could support subscript calls with an `Int` index, which would return the dynamic type of the pack element directly as the opened underlying type that can be assigned to a local variable with opaque type. Values of this type need to be erased or cast to another type to return an element value from the function:
 
 ```swift
-func element<each T>(at index: Int, in t: repeat each T) where each T: P -> any P {
+func element<each T: P>(at index: Int, in t: repeat each T) -> any P {
   // The subscript returns 'some P', which is erased to 'any P'
   // based on the function return type.
   let value: some P = t[index]
@@ -830,6 +845,14 @@ extension<each T: Equatable> (repeat each T): Equatable {
   }
 }
 ```
+
+## Revision history
+
+Changes to the [first reviewed revision](https://github.com/apple/swift-evolution/blob/b6ca38b9eee79650dce925e7aa8443a6a9e5e6ea/proposals/0393-parameter-packs.md):
+
+* The `repeat` keyword is required for generic requirement expansions to distinguish requirement expansions from single requirements on an individual pack element nested inside of a pack expansion expression.
+* Overload resolution prefers scalar overloads when the scalar overload is considered a subtype of a parmeter pack overload.
+
 
 ## Acknowledgments
 
