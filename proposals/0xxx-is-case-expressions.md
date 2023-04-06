@@ -195,6 +195,24 @@ By analogy with `<expr> is <type>`, this expression should be usable within `&&`
 
 Open question: should `x ?? y is case .z` be treated as `x ?? (y is case .z)` or `(x ?? y) is case .z`? The former matches `is`'s CastingPrecedence, designed around `as?`, but the latter is still an option, and both have plausible uses: `alwaysDark ?? (systemMode is case .dark)` vs `(overriddenMode ?? systemMode) is case .dark`. The precedence of `is case` should be higher than `ComparisonPrecedence` no matter what, though.
 
+## Future directions
+
+### Accessing enum associated values with `as case`
+
+Commonly proposed alongside `is case` is a potential way to access an enum's associated values with the `as` keyword due to the symmetry that `is` and `as` have when used to refer to types:
+
+```swift
+let destination = Destination.messageThread(id: 42)
+let id = destination as case .messageThread // Optional<Int(42)>
+```
+
+While we think the improved access to associated values within an enum is useful, there might be some reasons why this syntax is less than ideal:
+- The `case` keyword when used alongside `if` and `switch` is used broadly to indicate that a pattern that follows. This specific use case is specific to enums.
+- Enum associated values are typically accessed using variable binding with `let` or `var`. The fact that neither of the keywords are used here does not encourage progressive disclosure when learning Swift and feels like a totally separate disconnected way to access associated values.
+- It is difficult to chain in the way that optional chaining allows access to its `.some` value. 
+
+Even if this capability is useful, we believe that its value can be evaluated debated in a separate pitch/proposal and that `is case` is sufficiently useful by itself.
+
 ## Source compatibility and ABI
 
 This is an additive change to expression syntax that requires no additional runtime support; it has no source- or binary-compatibility implications beyond not being available in earlier versions of the compiler.
@@ -289,17 +307,21 @@ There are also some key drawbacks to an approach like this:
 Some potential alternative spellings for this feature include:
 
 ```swift
-// case <pattern> = <expr>
-// Consistent with the existing `if case`, but not evocative of a boolean condition.
-HeaderView(inThread: case .messageThread = destination)
+// <expr> matches <pattern>
+// New keyword addition to the language
+HeaderView(inThread: destination matches .messageThread)
 
-// <expr> case <pattern>
+// <expr> case <pattern> 
 // Not evocative of a boolean condition
 HeaderView(inThread: destination case .messageThread)
 
 // <expr> is <pattern>
 // Less clearly related to pattern matching (always indicated by `case` elsewhere in the language)
 HeaderView(inThread: destination is .messageThread)
+
+// case <pattern> = <expr>
+// Consistent with the existing `if case`, but not evocative of a boolean condition.
+HeaderView(inThread: case .messageThread = destination)
 
 // <expr> == <pattern>
 // Special case support for a specific operator. 
@@ -309,9 +331,26 @@ HeaderView(inThread: destination == .messageThread(_))
 ```
 
 Of these spellings, `<expr> is case <pattern>` is the best because:
- 1. it's clearly a condition that evaluates to a boolean
- 2. it includes the keyword `case` to indicate its relationship with existing pattern matching syntax (switch cases, `if case`)
- 3. it doesn't introduce conflicts or ambiguity with existing language features
+1. it's clearly a condition that evaluates to a boolean
+2. it includes the keyword `case` to indicate its relationship with existing pattern matching syntax (switch cases, `if case`)
+3. it doesn't introduce conflicts or ambiguity with existing language features
+
+The alternative keyword `matches` also came up in some early feedback in the context of an eventual more holistic to make Swift's pattern matching syntax more approachable:
+
+```swift
+if destination matches .messageThread(let id) {
+  // Do something with `id` here
+}
+
+switch destination {
+  matches .messageThread(let id):
+  // Do something with `id` here
+
+  ...
+}
+```
+
+The authors believe that such a change to Swift's pattern matching syntax warrants its own pitch/proposal and is out of scope for this current proposal. Even if such an eventual change is made, the addition of `is case` to the language would give us short-term consistency, instead of diverging Swift's syntax without guarantee of any future subsequent change.
 
 ## Acknowledgments
 
