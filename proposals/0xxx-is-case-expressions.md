@@ -211,7 +211,7 @@ While we think the improved access to associated values within an enum is useful
 - Enum associated values are typically accessed using variable binding with `let` or `var`. The fact that neither of the keywords are used here does not encourage progressive disclosure when learning Swift and feels like a totally separate disconnected way to access associated values.
 - It is difficult to chain in the way that optional chaining allows access to its `.some` value. 
 
-Even if this capability is useful, we believe that its value can be evaluated debated in a separate pitch/proposal and that `is case` is sufficiently useful by itself.
+Even if this capability is useful, we believe that its value can be evaluated and debated in a separate pitch/proposal and that `is case` is sufficiently useful by itself.
 
 ## Source compatibility and ABI
 
@@ -335,7 +335,7 @@ Of these spellings, `<expr> is case <pattern>` is the best because:
 2. it includes the keyword `case` to indicate its relationship with existing pattern matching syntax (switch cases, `if case`)
 3. it doesn't introduce conflicts or ambiguity with existing language features
 
-The alternative keyword `matches` also came up in some early feedback in the context of an eventual more holistic to make Swift's pattern matching syntax more approachable:
+The alternative keyword `matches` also came up in some early feedback in the context of an eventual more holistic change to make Swift's pattern matching syntax more approachable:
 
 ```swift
 if destination matches .messageThread(let id) {
@@ -345,7 +345,6 @@ if destination matches .messageThread(let id) {
 switch destination {
   matches .messageThread(let id):
   // Do something with `id` here
-
   ...
 }
 ```
