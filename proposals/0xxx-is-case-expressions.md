@@ -17,13 +17,18 @@ We should introduce a new `is case` expression that lets you evaluate the result
 enum Destination {
   case inbox
   case messageThread(id: Int)
+  case profile(id: Int, edit: Bool)
 }
 
 let destination = Destination.messageThread(id: 42)
 print(destination is case .inbox) // false
-print(destination is case .messageThread) // true
-print(destination is case .messageThread(id: 0)) // false
-print(destination is case .messageThread(id: 42)) // true
+print(destination is case .messageThread) // false
+print(destination is case .profile) // false
+
+let destination = Destination.profile(id: 42, edit: true)
+print(destination is case .profile) // true
+print(destination is case .profile(id: _, edit: true)) // true
+print(destination is case .profile(id: 35, edit: true)) // false
 
 // SwiftUI view
 VStack {
@@ -199,19 +204,17 @@ Open question: should `x ?? y is case .z` be treated as `x ?? (y is case .z)` or
 
 ### Accessing enum associated values with `as case`
 
-Commonly proposed alongside `is case` is a potential way to access an enum's associated values with the `as` keyword due to the symmetry that `is` and `as` have when used to refer to types:
+Another missing feature for working with enums is the ability to succinctly extract the payload of associated values from an enum value. A nautral extension to the proposed `is case` syntax could be a new `as case` syntax:
 
 ```swift
 let destination = Destination.messageThread(id: 42)
 let id = destination as case .messageThread // Optional<Int(42)>
+
+let destination = Destination.profile(id: 42, edit: true)
+let isEditing = (destination as case .profile)?.edit // Optional<Bool(true)>
 ```
 
-While we think the improved access to associated values within an enum is useful, there might be some reasons why this syntax is less than ideal:
-- The `case` keyword when used alongside `if` and `switch` is used broadly to indicate that a pattern that follows. This specific use case is specific to enums.
-- Enum associated values are typically accessed using variable binding with `let` or `var`. The fact that neither of the keywords are used here does not encourage progressive disclosure when learning Swift and feels like a totally separate disconnected way to access associated values.
-- It is difficult to chain in the way that optional chaining allows access to its `.some` value. 
-
-Even if this capability is useful, we believe that its value can be evaluated and debated in a separate pitch/proposal and that `is case` is sufficiently useful by itself.
+This pair of `is case` and `as case` operators would ve pleasingly symetrical with similar uses of `is` and `as` for type casting. 
 
 ## Source compatibility and ABI
 
@@ -284,7 +287,9 @@ if destination is case .messageThread(let id) || destination is case .inbox {
 }
 ```
 
-It would be confusing and inconsistent for `is case` expressions to support different functionality depending on the context. It would also be less-than-ideal to have two separate spellings of the exact same feature. Since this functionality is already supported by `if case` syntax, we don't need to support it here.
+It would be confusing and inconsistent for `is case` expressions to support different functionality depending on the context. 
+
+It would also be less-than-ideal to have two separate spellings of the exact same feature. Since this functionality is already supported by `if case` syntax, we don't need to support it here as well. While it would be fun to replace `if case` syntax with an improved alternative, this would not be worth the high level of source churcn.
 
 ### Case-specific computed properties
 
@@ -298,9 +303,61 @@ For example, for  `case foo(bar: Int, baz: Int)` we could synthesize some or all
 
 This would handle the most common use for `is case`, checking if a value with known enum type has a particular case. However, it does not cover all the use cases, such as matching nested / partial values.
 
-There are also some key drawbacks to an approach like this:
- 1. Automatically synthesizing these properties for every enum case would result in a large code size increase, so we likely wouldn't want to enable this by default.
- 2. If this is not enabled by default, then this would only be useful in cases where the owner of the enum declaration opted-in to this functionality. Since this doesn't impose any additional semantic requirements on the author of the enum declaration (e.g. like with `CaseIterable`), there aren't any semantic benefits to making this opt-in.
+This also is a less appealing option for a potential related `as case` operator, where enums cases without associated values would require generating unidomatic `asCase: Void?` properties:
+
+```swift
+enum Destination {
+  case inbox
+  case settings
+  case profile
+}
+
+// synthesized properties:
+extension Destination {
+  // Idiomatic. Not especially useful though:
+  var isInbox: Bool { ... }
+  var isSettings: Bool { ... }
+  var isProfile: Bool { ... }
+
+  // Not idomatic, and also not really useful:
+  var asInbox: Void? { ... }
+  var asSettings: Void? { ... }
+  var asProfile: Void? { ... }
+}
+
+Littering all of these mostly-useless, unidiomatic properties on a large number of enums seems less than ideal. Since any option we choose for the `is case` operation would ideally extend nicely to a future `as case` operation, this seems like a compelling reason to prefer a different solution like the `is case `operator`.
+
+When it comes to actually synthesizing these properties, there are a few different options, each with a their own set of downsides:
+
+#### 1. Macro
+
+We could add a macro to the standard library that, when applied to an enum declaration, generates code for these computed properties. One potential implementation of this macro is available [here](https://github.com/DougGregor/swift-macro-examples/blob/main/MacroExamplesPlugin/CaseDetectionMacro.swift), and generates the following code:
+
+```swift
+@CaseDetection // opt-in macro
+enum Destination {
+  case inbox
+  case messageThread(id: Int)
+}
+
+// Generated code:
+extension Destination {
+  var isInbox: Bool { ... }
+  var isMessageThread: Bool { ... }
+}
+```
+
+This is convenient since it doesn't require adding any new concepts to the language. But even if the macro was defined in the standard library, actually adopting the macro on your enum is op-in. If we used a macro to provide this functionality, it would only be usable in cases where the author of the enum declaration opted-in. `is case` is a fundamental operation for working with enums, and would ideally be available for all enums by default.
+
+#### 2. Automatic code generation
+
+Another option could be for the compiler itself to generate these properties for all enums. This would enable the functionality for all enums by default, but at the cost of a substantial code size increase.
+
+#### 3. Dynamically synthesized properties
+
+If we wanted to have this enabled by default for all enums, but without actually generating properties for each case, we could dynamically synthesize these properties and inline their implementation. At the call site this would work similarly to `@dynamicMemberLookup`. This would be the most promising approach, but is probably a bit too "magic" for such a core language feature like this.
+
+The developer experience of working with these synthesized properties would also likely be a bit poor. One practical limitation is that it wouldn’t possible to add documentation for these properties. When using the strongly-typed KeyPath API, `@dynamicMemberLookup`'s synthesized properties inherit the documentation of the property they reference via the keypath. This doesn't work well for enum cases, since any documentation associated with the case wouldn't do a good job describing a declaration with a different type. This sort of limitation is somewhat acceptable in an advanced language feature like `@dyanmicMemberLookup` but it less paletable for a core lanagueg feature that is enabled by default for all enum cases.
 
 ### Alternative spellings
 
@@ -328,6 +385,15 @@ HeaderView(inThread: case .messageThread = destination)
 // Could be confusing to overload == with multiple different types of conditions.
 // Ambiguous for enum cases without assoicated values (which equality codepath would it use?).
 HeaderView(inThread: destination == .messageThread(_))
+
+// <expr>.isCase(<pattern>)
+// Magic operator that looks like a function but isn't, since patterns can't be used as function arguments
+HeaderView(inThread: destination.isCase(.messageThread(_)))
+
+// @matches(<expr>, <pattern>)
+// Potentially a macro defined in the standard library. 
+// Not really idimatic, since it's like a global function rather than an infix operator.
+HeaderView(inThread: @matches(destination, .messageThread(_)))
 ```
 
 Of these spellings, `<expr> is case <pattern>` is the best because:
