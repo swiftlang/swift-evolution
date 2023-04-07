@@ -208,13 +208,13 @@ Another missing feature for working with enums is the ability to succinctly extr
 
 ```swift
 let destination = Destination.messageThread(id: 42)
-let id = destination as case .messageThread // Optional<Int(42)>
+let id = destination as case .messageThread // Optional<Int>(42)
 
 let destination = Destination.profile(id: 42, edit: true)
-let isEditing = (destination as case .profile)?.edit // Optional<Bool(true)>
+let isEditing = (destination as case .profile)?.edit // Optional<Bool>(true)
 ```
 
-This pair of `is case` and `as case` operators would ve pleasingly symetrical with similar uses of `is` and `as` for type casting. 
+This pair of `is case` and `as case` operators would be symmetrical to similar uses of `is` and `as` for type casting. 
 
 ## Source compatibility and ABI
 
@@ -289,7 +289,7 @@ if destination is case .messageThread(let id) || destination is case .inbox {
 
 It would be confusing and inconsistent for `is case` expressions to support different functionality depending on the context. 
 
-It would also be less-than-ideal to have two separate spellings of the exact same feature. Since this functionality is already supported by `if case` syntax, we don't need to support it here as well. While it would be fun to replace `if case` syntax with an improved alternative, this would not be worth the high level of source churcn.
+It would also be less-than-ideal to have two separate spellings of the exact same feature. Since this functionality is already supported by `if case` syntax, we don't need to support it here as well. While it might be forward-looking to replace `if case` syntax with an improved alternative, this may or may not be worth the high level of source churn.
 
 ### Case-specific computed properties
 
@@ -301,7 +301,7 @@ For example, for  `case foo(bar: Int, baz: Int)` we could synthesize some or all
 - `bar: Int?`
 - `bar: Int (if every case has a field bar: Int)`
 
-This would handle the most common use for `is case`, checking if a value with known enum type has a particular case. However, it does not cover all the use cases, such as matching nested / partial values.
+This would handle the most common use for `is case`, checking if a value with known enum type has a particular case. However, it does not cover all of the use cases, such as matching patterns, and nested / partial values.
 
 This also is a less appealing option for a potential related `as case` operator, where enums cases without associated values would require generating unidomatic `asCase: Void?` properties:
 
@@ -327,7 +327,7 @@ extension Destination {
 
 Littering all of these mostly-useless, unidiomatic properties on a large number of enums seems less than ideal. Since any option we choose for the `is case` operation would ideally extend nicely to a future `as case` operation, this seems like a compelling reason to prefer a different solution like the `is case `operator`.
 
-When it comes to actually synthesizing these properties, there are a few different options, each with a their own set of downsides:
+When it comes to actually synthesizing these properties, there are a few different options, each with a their own set of trade-offs:
 
 #### 1. Macro
 
@@ -336,7 +336,7 @@ We could add a macro to the standard library that, when applied to an enum decla
 ```swift
 @CaseDetection // opt-in macro
 enum Destination {
-  case inbox
+  case inboxwhat
   case messageThread(id: Int)
 }
 
