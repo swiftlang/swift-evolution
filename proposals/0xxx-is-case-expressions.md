@@ -166,7 +166,7 @@ infix-expression -> is case <pattern>
 })()
 ```
 
-Unlike if / switch expressions added in Swift 5.9, `if case` expressions would be usable anywhere you can write an expression.
+Unlike if / switch expressions added in Swift 5.9, `is case` expressions would be usable anywhere you can write an expression.
 
 The expression would support matching any type of pattern that can be used in a `switch` statement:
 
@@ -272,7 +272,7 @@ We propose including the `is case` operator in `CastingPrecedence`, for several 
 
 ### Accessing enum associated values with `as case`
 
-Another missing feature for working with enums is the ability to succinctly extract the payload of associated values from an enum value. A nautral extension to the proposed `is case` syntax could be a new `as case` syntax:
+Another missing feature for working with enums is the ability to succinctly extract the payload of associated values from an enum value. A natural extension to the proposed `is case` syntax could be a new `as case` (or alternative spelling `as? case`) syntax where an `Optional` of the single associated value or a tuple of the associated values are returned:
 
 ```swift
 let destination = Destination.messageThread(id: 42)
@@ -282,7 +282,9 @@ let destination = Destination.profile(id: 42, edit: true)
 let isEditing = (destination as case .profile)?.edit // Optional<Bool>(true)
 ```
 
-This pair of `is case` and `as case` operators would be symmetrical to similar uses of `is` and `as` for type casting. If this proposal is accepted, we should explore adding the `as case` in a future proposal.
+The `as? case` alternative may allude to the result of the expression being an `Optional` similar to the `as?` conditional casting operator, returning `nil` if the enum is not in the said case. Similarly, one can imagine the corresponding `as! case` as the forced form that will trigger a runtime error if the enum is in the incorrect case.
+
+The pair of `is case` and `as case` operators would be symmetrical to similar uses of `is` and `as` for type casting. If this proposal is accepted, we could explore adding the `as case` in a future proposal.
 
 ### Allow variable bindings
 
@@ -302,9 +304,9 @@ if case .messageThread(let id) = destination {
 }
 ```
 
-Using `is case` syntax in this way is potentially an improvement over `if case` syntax, since `if case` syntax is well-known for having poor autocomplete support. This is an interesting directly to explore in future proposals. We propose excluding this functionality from this propoal, however, since it is purely additive and can be added later.
+Using `is case` syntax in this way is potentially an improvement over `if case` syntax, since `if case` syntax is well-known for having poor autocomplete support. We propose excluding this functionality from this proposal, however, as it is purely additive and can be added later in a future proposal.
 
-It's not totally clear if this would be a good idea or not, since it would be inconsistent and potentially surprising for `is case` expressions to support different functionality depending on the context:
+It might be inconsistent and potentially surprising for `is case` expressions to support different functionality depending on the context, similarly with the current behavior of `if case <pattern> = <expr>`:
 
 ```swift
 // We can't support bindings in general, since there isn't a scope to bind the new variables in:
@@ -325,7 +327,9 @@ if destination is case .messageThread(let id) || destination is case .inbox {
 }
 ```
 
-Since this functionality is already supported by `if case` syntax, it may not be ideal to have two different spellings of the same exact feature. While it might be forward-looking to replace `if case` syntax with an improved alternative, this likely wouldn't be worth the high amount of source churn.
+This behavior with `if case` is less surprising because it is not an inline expression but looks more like a variant of the `if` statement.
+
+Since this functionality is already supported by `if case` syntax, it may not be ideal to have two different spellings of the same exact feature. While it could be forward-looking to replace `if case` syntax with an improved alternative, this likely wouldn't be worth the high amount of source churn.
 
 ## Source compatibility and ABI
 
@@ -367,9 +371,9 @@ For example, for  `case foo(bar: Int, baz: Int)` we could synthesize some or all
 - `bar: Int?`
 - `bar: Int (if every case has a field bar: Int)`
 
-This would handle the most common use for `is case`, checking if a value with known enum type has a particular case. However, it does not cover all of the use cases, such as matching patterns, and nested / partial values.
+This would include `is-` prefix properties that return `Bool`, handling the most common use for `is case` and checking if a value with known enum type has a particular case. However, it would not cover all of the use cases, such as matching patterns, and nested / partial values.
 
-This also is a less appealing option for a potential related `as case` operator, where enums cases without associated values would require generating unidomatic `asCase: Void?` properties:
+Similarly, the enum projection syntax could be vended via `as-` prefix properties. Any enums cases without associated values would result in generating unidiomatic `asCase: Void?` properties:
 
 ```swift
 enum Destination {
@@ -385,16 +389,22 @@ extension Destination {
   var isSettings: Bool { ... }
   var isProfile: Bool { ... }
 
-  // Not idomatic, and not really useful:
+  // Not idiomatic, and not really useful:
   var asInbox: Void? { ... }
   var asSettings: Void? { ... }
   var asProfile: Void? { ... }
 }
 ```
 
-Littering all of these mostly-useless, unidiomatic properties on a large number of enums seems less than ideal. Alternatively we could simply not generate these properties for enum cases without associated values, but this would likely result in confusing / surprising situations (e.g. that `value.asCase == nil` would work for some enum cases but not others). Since any option we choose for the `is case` operation would ideally extend nicely to a future `as case` operation, this seems like a compelling reason to prefer a different solution like the `is case `operator`.
+There are two options for dealing with `as-` prefix properties for enum cases without associated values:
+1. Synthesize `Void?` properties for consistency
+2. Omit `Void?` properties and emit only `is-` properties
 
-When it comes to actually synthesizing these properties, there are a few different options, each with a their own set of trade-offs:
+The former may result in a large number of less-than-useful properties while the latter option may result in confusing / surprising situations (e.g. that `value.asCase == nil` would work for some enum cases but not others). Since we would want to consider both the pattern matching syntax and the potential future enum projection syntax at the same time, we think there are better candidates with the `is case` and corresponding `as case` syntax.
+
+Finally, we could also potentially synthesize optional (non-optional, if all cases have a given field) properties for each associated value. This would result a large set of dot-syntax accessors on each enum, which may have an overwhelming impact on autocomplete for enums with many cases or fields.
+
+With regards to synthesizing these properties, there are several different options, each with a their own set of trade-offs:
 
 #### 1. Macro
 
