@@ -307,7 +307,7 @@ if case .messageThread(let id) = destination {
 Using `is case` syntax in this way is potentially an improvement over `if case` syntax, since `if case` syntax is well-known for having poor autocomplete support. We propose excluding this functionality from this proposal, however, as it is purely additive and can be added later in a future proposal.
 
 There are two preconditions necessary before we can use `let` and `var` variable bindings with `is case`:
-1. There must be a new local variable scope introduced with `if`, `for` or `while`
+1. There must be a new local variable scope introduced with `if`, `while` or `repeat ... while`
 2. The `is case` expression must not be a sub-expression of a larger boolean expression (similar with the current behavior of `if case <pattern> = <expr>`)
 
 The latter is less surprising with `if case` because it is not an inline expression but looks more like a variant of the `if` statement. It might be inconsistent and potentially surprising for `is case` expressions to support different functionality depending on the context:
