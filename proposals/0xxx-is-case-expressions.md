@@ -235,8 +235,11 @@ a ?? b is case c
 a is case b ?? c
 
 a is case b is Bool
+```
 
-// If `is case` were in `ComparisonPrecedence`, the above examples would be grouped as:
+If `is case` were in `ComparisonPrecedence`, the above examples would be grouped as:
+
+```swift
 a is case b == c // 🛑 Error: adjacent operators are in non-associative precedence group 'ComparisonPrecedence'
 a is case b == c is case d // 🛑 Error: adjacent operators are in non-associative precedence group 'ComparisonPrecedence'
 
@@ -244,8 +247,11 @@ a is case b == c is case d // 🛑 Error: adjacent operators are in non-associat
 a is case (b ?? c)
 
 a is case (b is Bool)
+```
 
-// If `is case` were in `CastingPrecedence`, the above examples would be grouped as:
+But if `is case` were in `CastingPrecedence`, the above examples would be grouped as:
+
+```swift
 (a is case b) == c
 (a is case b) == (c is case d)
 (a is case b) != (c is case d)
