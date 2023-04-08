@@ -196,9 +196,71 @@ At face value this seems like it would create the opportunity for some "silly" c
 
 ## Precedence
 
-By analogy with `<expr> is <type>`, this expression should be usable within `&&`/`||` chains. That is, `x && y is case .z && w` should be equivalent to `x && (y is case .z) && w`. At the same time, other binary operators need to bind more tightly: `x is case y ..< z` should be interpreted as `x is case (y ..< z)`. This behavior is already implemented for chains of infix-expressions using precedence, but adding expression-patterns to the mix may be tricky to implement.
+For this new operator, we much choose which precedence group it belongs to. The two most obvious options are for it to belong to `CastingPrecedence` (like the `is` operator), or the `ComparisonPrecedence` (like the `==` operator):
 
-Open question: should `x ?? y is case .z` be treated as `x ?? (y is case .z)` or `(x ?? y) is case .z`? The former matches `is`'s CastingPrecedence, designed around `as?`, but the latter is still an option, and both have plausible uses: `alwaysDark ?? (systemMode is case .dark)` vs `(overriddenMode ?? systemMode) is case .dark`. The precedence of `is case` should be higher than `ComparisonPrecedence` no matter what, though.
+```swift
+precedencegroup ComparisonPrecedence {
+  higherThan: LogicalConjunctionPrecedence
+}
+precedencegroup NilCoalescingPrecedence {
+  associativity: right
+  higherThan: ComparisonPrecedence
+}
+precedencegroup CastingPrecedence {
+  higherThan: NilCoalescingPrecedence
+}
+```
+
+These result in the same groupings for most common operators:
+
+```swift
+!a is case b // (!a) is case b
+
+a is case b || c is case d // (a is case b) || (c is case d)
+a is case b && c is case d // (a is case b) || (c is case d)
+
+a is case b ? c is case d : e is case f // (a is case b) ? (c is case d) : (e is case f)
+
+a is case b ..< c // a is case (b ..< c)
+```
+
+Only these operators would be affected:
+
+```swift
+a is case b == c 
+a is case b == c is case d
+a is case b != c is case d
+
+a ?? b is case c
+a is case b ?? c
+
+a is case b is Bool
+
+// If `is case` were in `ComparisonPrecedence`, the above examples would be grouped as:
+a is case b == c // 🛑 Error: adjacent operators are in non-associative precedence group 'ComparisonPrecedence'
+a is case b == c is case d // 🛑 Error: adjacent operators are in non-associative precedence group 'ComparisonPrecedence'
+
+(a ?? b) is case c
+a is case (b ?? c)
+
+a is case (b is Bool)
+
+// If `is case` were in `CastingPrecedence`, the above examples would be grouped as:
+(a is case b) == c
+(a is case b) == (c is case d)
+(a is case b) != (c is case d)
+
+a ?? (b is case c)
+(a is case b) ?? c
+
+a is case b is Bool // 🛑 Error: adjacent operators are in non-associative precedence group 'CastingPrecedence'
+```
+
+We propose including the `is case` operator in `CastingPrecedence`, for several reasons:
+ 1. By analogy to the `is` operator, it seems reasonable to include `is case` in the same precedence group. 
+ 2. Enabling inline usage of the `==` operator seems most useful, of the above differences between the two groups. This also matches the grouping of other boolean operators like `||` and `&&`, so feels natural.
+ 3. Using `is` and `is case` together in a single expression is likely to be very uncommon, so doesn't need to be prioritized.
+ 4. Neither grouping of `??` is obviously more correct than the other
 
 ## Future directions
 
