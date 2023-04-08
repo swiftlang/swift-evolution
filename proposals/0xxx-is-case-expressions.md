@@ -276,7 +276,50 @@ let destination = Destination.profile(id: 42, edit: true)
 let isEditing = (destination as case .profile)?.edit // Optional<Bool>(true)
 ```
 
-This pair of `is case` and `as case` operators would be symmetrical to similar uses of `is` and `as` for type casting. 
+This pair of `is case` and `as case` operators would be symmetrical to similar uses of `is` and `as` for type casting. If this proposal is accepted, we should explore adding the `as case` in a future proposal.
+
+### Allow variable bindings
+
+If we lifted the restriction on variable bindings, it would be possible to check against an enum case and bind its associated value to a local scope in single expression, such as:
+
+```swift
+if destination is case .messageThread(let id) {
+  // Do something with `id` here
+}
+```
+
+This would effectively be an alternative spelling of the existing `if case` syntax:
+
+```swift
+if case .messageThread(let id) = destination {
+  // Do something with `id` here
+}
+```
+
+Using `is case` syntax in this way is potentially an improvement over `if case` syntax, since `if case` syntax is well-known for having poor autocomplete support. This is an interesting directly to explore in future proposals. We propose excluding this functionality from this propoal, however, since it is purely additive and can be added later.
+
+It's not totally clear if this would be a good idea or not, since it would be inconsistent and potentially surprising for `is case` expressions to support different functionality depending on the context:
+
+```swift
+// We can't support bindings in general, since there isn't a scope to bind the new variables in:
+HeaderView(inThread: destination is case .messageThread(let userId))
+
+// In theory we could support bindings in if conditions:
+if destination is case .messageThread(let id) {
+  // Do something with `id` here
+}
+
+// But this doesn't work when combining `is case` expressions with other boolean operators:
+if !(destination is case .messageThread(let id)) {
+  // `destination` is definitely not `.messageThread`, so we can't bind `id`
+}
+
+if destination is case .messageThread(let id) || destination is case .inbox {
+  // `destination` may not be `.messageThread`, so we can't bind `id`
+}
+```
+
+Since this functionality is already supported by `if case` syntax, it may not be ideal to have two different spellings of the same exact feature. While it might be forward-looking to replace `if case` syntax with an improved alternative, this likely wouldn't be worth the high amount of source churn.
 
 ## Source compatibility and ABI
 
@@ -308,51 +351,6 @@ fn main() {
 }
 ```
 
-### Allow variable bindings
-
-If we lifted the restriction on variable bindings, it would be possible to check against an enum case and bind its associated value to a local scope in single expression, such as:
-
-```swift
-if destination is case .messageThread(let id) {
-  // Do something with `id` here
-}
-```
-
-This would effectively be an alternative spelling of the existing `if case` syntax:
-
-```swift
-if case .messageThread(let id) = destination {
-  // Do something with `id` here
-}
-```
-
-Using `is case` syntax in this way is potentially an improvement over `if case` syntax, since `if case` syntax is well-known for having poor autocomplete support. Despite this, there are several downsides to an approach like this.
-
-Most importantly, `is case` expressions could only support bindings in a very narrow context:
-
-```swift
-// We can't support bindings in general, since there isn't a scope to bind the new variables in:
-HeaderView(inThread: destination is case .messageThread(let userId))
-
-// In theory we could support bindings in if conditions:
-if destination is case .messageThread(let id) {
-  // Do something with `id` here
-}
-
-// But this doesn't work when combining `is case` expressions with other boolean operators:
-if !(destination is case .messageThread(let id)) {
-  // `destination` is definitely not `.messageThread`, so we can't bind `id`
-}
-
-if destination is case .messageThread(let id) || destination is case .inbox {
-  // `destination` may not be `.messageThread`, so we can't bind `id`
-}
-```
-
-It would be confusing and inconsistent for `is case` expressions to support different functionality depending on the context. 
-
-It would also be less-than-ideal to have two separate spellings of the exact same feature. Since this functionality is already supported by `if case` syntax, we don't need to support it here as well. While it might be forward-looking to replace `if case` syntax with an improved alternative, this may or may not be worth the high level of source churn.
-
 ### Case-specific computed properties
 
 Another approach could be to synthesize computed properties for each enum case, either using compiler code synthesis or a macro.
@@ -374,20 +372,21 @@ enum Destination {
   case profile
 }
 
-// synthesized properties:
+// Synthesized properties:
 extension Destination {
-  // Idiomatic. Not especially useful though:
+  // Idiomatic and reasonable:
   var isInbox: Bool { ... }
   var isSettings: Bool { ... }
   var isProfile: Bool { ... }
 
-  // Not idomatic, and also not really useful:
+  // Not idomatic, and not really useful:
   var asInbox: Void? { ... }
   var asSettings: Void? { ... }
   var asProfile: Void? { ... }
 }
+```
 
-Littering all of these mostly-useless, unidiomatic properties on a large number of enums seems less than ideal. Since any option we choose for the `is case` operation would ideally extend nicely to a future `as case` operation, this seems like a compelling reason to prefer a different solution like the `is case `operator`.
+Littering all of these mostly-useless, unidiomatic properties on a large number of enums seems less than ideal. Alternatively we could simply not generate these properties for enum cases without associated values, but this would likely result in confusing / surprising situations (e.g. that `value.asCase == nil` would work for some enum cases but not others). Since any option we choose for the `is case` operation would ideally extend nicely to a future `as case` operation, this seems like a compelling reason to prefer a different solution like the `is case `operator`.
 
 When it comes to actually synthesizing these properties, there are a few different options, each with a their own set of trade-offs:
 
@@ -398,7 +397,7 @@ We could add a macro to the standard library that, when applied to an enum decla
 ```swift
 @CaseDetection // opt-in macro
 enum Destination {
-  case inboxwhat
+  case inbox
   case messageThread(id: Int)
 }
 
@@ -418,8 +417,6 @@ Another option could be for the compiler itself to generate these properties for
 #### 3. Dynamically synthesized properties
 
 If we wanted to have this enabled by default for all enums, but without actually generating properties for each case, we could dynamically synthesize these properties and inline their implementation. At the call site this would work similarly to `@dynamicMemberLookup`. This would be the most promising approach, but is probably a bit too "magic" for such a core language feature like this.
-
-The developer experience of working with these synthesized properties would also likely be a bit poor. One practical limitation is that it wouldn’t possible to add documentation for these properties. When using the strongly-typed KeyPath API, `@dynamicMemberLookup`'s synthesized properties inherit the documentation of the property they reference via the keypath. This doesn't work well for enum cases, since any documentation associated with the case wouldn't do a good job describing a declaration with a different type. This sort of limitation is somewhat acceptable in an advanced language feature like `@dyanmicMemberLookup` but it less paletable for a core lanagueg feature that is enabled by default for all enum cases.
 
 ### Alternative spellings
 
@@ -445,17 +442,17 @@ HeaderView(inThread: case .messageThread = destination)
 // <expr> == <pattern>
 // Special case support for a specific operator. 
 // Could be confusing to overload == with multiple different types of conditions.
-// Ambiguous for enum cases without assoicated values (which equality codepath would it use?).
-HeaderView(inThread: destination == .messageThread(_))
+// Ambiguous for enum cases without assoicated values (does it call the user-defined Equatable implementation, or the built-in pattern matching implementation?)
+HeaderView(inThread: destination == .messageThreadd)
 
 // <expr>.isCase(<pattern>)
 // Magic operator that looks like a function but isn't, since patterns can't be used as function arguments
 HeaderView(inThread: destination.isCase(.messageThread(_)))
 
-// @matches(<expr>, <pattern>)
+// @isCase(<expr>, <pattern>)
 // Potentially a macro defined in the standard library. 
 // Not really idimatic, since it's like a global function rather than an infix operator.
-HeaderView(inThread: @matches(destination, .messageThread(_)))
+HeaderView(inThread: @isCase(destination, .messageThread(_)))
 ```
 
 Of these spellings, `<expr> is case <pattern>` is the best because:
