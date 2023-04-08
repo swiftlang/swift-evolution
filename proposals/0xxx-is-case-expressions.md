@@ -306,7 +306,11 @@ if case .messageThread(let id) = destination {
 
 Using `is case` syntax in this way is potentially an improvement over `if case` syntax, since `if case` syntax is well-known for having poor autocomplete support. We propose excluding this functionality from this proposal, however, as it is purely additive and can be added later in a future proposal.
 
-It might be inconsistent and potentially surprising for `is case` expressions to support different functionality depending on the context, similarly with the current behavior of `if case <pattern> = <expr>`:
+There are two preconditions necessary before we can use `let` and `var` variable bindings with `is case`:
+1. There must be a new local variable scope introduced with `if`, `for` or `while`
+2. The `is case` expression must not be a sub-expression of a larger boolean expression (similar with the current behavior of `if case <pattern> = <expr>`)
+
+The latter is less surprising with `if case` because it is not an inline expression but looks more like a variant of the `if` statement. It might be inconsistent and potentially surprising for `is case` expressions to support different functionality depending on the context:
 
 ```swift
 // We can't support bindings in general, since there isn't a scope to bind the new variables in:
@@ -317,17 +321,21 @@ if destination is case .messageThread(let id) {
   // Do something with `id` here
 }
 
-// But this doesn't work when combining `is case` expressions with other boolean operators:
+// Not allowed: This doesn't work when combining the `!` operator
 if !(destination is case .messageThread(let id)) {
   // `destination` is definitely not `.messageThread`, so we can't bind `id`
 }
 
+// Not allowed: This doesn't work when combining with the `||` operator
 if destination is case .messageThread(let id) || destination is case .inbox {
   // `destination` may not be `.messageThread`, so we can't bind `id`
 }
-```
 
-This behavior with `if case` is less surprising because it is not an inline expression but looks more like a variant of the `if` statement.
+// Allowed: Multiple expressions may be chained with commas `,` 
+if destination is case .messageThread(let id), id == 42 { 
+  // `id` is 42 here
+}
+```
 
 Since this functionality is already supported by `if case` syntax, it may not be ideal to have two different spellings of the same exact feature. While it could be forward-looking to replace `if case` syntax with an improved alternative, this likely wouldn't be worth the high amount of source churn.
 
