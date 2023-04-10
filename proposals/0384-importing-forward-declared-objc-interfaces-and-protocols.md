@@ -5,6 +5,7 @@
 * Review Manager: Tony Allevato (https://github.com/allevato)
 * Status: **Implemented (Swift 5.9)**
 * Implementation: https://github.com/apple/swift/pull/61606
+* Upcoming Feature Flag: `ImportObjcForwardDeclarations`
 * Review: ([pitch](https://forums.swift.org/t/pitch-importing-forward-declared-objective-c-classes-and-protocols/61926)) ([review](https://forums.swift.org/t/se-0384-importing-forward-declared-objective-c-interfaces-and-protocols/62392)) ([acceptance](https://forums.swift.org/t/accepted-se-0384-importing-forward-declared-objective-c-interfaces-and-protocols/62670))
 
 ## Introduction
@@ -149,7 +150,7 @@ foo-bar-consumer.h:3:1: note: interface 'Foo' forward declared here
 ^
 ```
 
-The feature is gated behind a new frontend flag `-enable-import-objc-forward-declarations`. This flag is on by default for Swift version 6 and onwards.
+In Swift 5.x, the feature is gated behind the upcoming feature flag `ImportObjcForwardDeclarations`. This flag is on by default for Swift version 6 and onwards.
 
 The flag is always disabled in the REPL, as allowing it currently leads to confusing behavior. In the REPL, the environment in terms of whether a complete definition of some type Foo is available can change during execution. These examples show some of the confusing behavior: 
 
