@@ -36,11 +36,11 @@ Throughout this document, references to both KVO and Combine will illustrate wha
 
 #### KVO
 
-Key-value observing in Objective-C has served that model well, but is limited to class hierarchies that inherit from `NSObject`. The APIs only offer the intercepting of events, meaning that the notification of changes is between the `willSet` and `didSet` events. KVO has great flexibility with granularity of events, but lacks in composability. KVO observers must also inherit from `NSObject`, and rely on the Objective-C runtime to track the changes that occur. Even though the interface for KVO has been updated to utilize the more modern Swift strongly-typed key paths, under the hood its events are still stringly typed.
+Key-value observing has served the Cocoa/Objective-C programming model well, but is limited to class hierarchies that inherit from `NSObject`. The APIs only offer the intercepting of events, meaning that the notification of changes is between the `willSet` and `didSet` events. KVO has great flexibility with granularity of events, but lacks in composability. KVO observers must also inherit from `NSObject`, and rely on the Objective-C runtime to track the changes that occur. Even though the interface for KVO has been updated to utilize the more modern Swift strongly-typed key paths, under the hood its events are still stringly typed.
 
 #### Combine
 
-Combine's `ObservableObject` produces changes on the leading edge of the `willSet`/`didSet` events, and all values are delivered before the value is set. While this serves SwiftUI well, it is restrictive for non-SwiftUI usage and can be surprising to developers first encountering that restriction. `ObservableObject` also requires all observed properties to be marked as `@Published` to interact with change events. In most cases, this requirement is applied to every single property and becomes redundant to the developer; folks writing an `ObservableObject` conforming type must repeatedly (with little to no true gained clarity) annotate each property. In the end, this results in meaning fatigue of what is or isn't a participating item.
+Combine's `ObservableObject` produces changes at the beginning of a change event, so all values are delivered before the new value is set. While this serves SwiftUI well, it is restrictive for non-SwiftUI usage and can be surprising to developers first encountering that behavior. `ObservableObject` also requires all observed properties to be marked as `@Published` to interact with change events. In most cases, this requirement is applied to every single property and becomes redundant to the developer; folks writing an `ObservableObject` conforming type must repeatedly (with little to no true gained clarity) annotate each property. In the end, this results in meaning fatigue of what is or isn't a participating item.
 
 ## Proposed solution
 
@@ -85,7 +85,7 @@ func processChanges(_ object: MyObject) async {
 }
 ```
 
-This allows users of `Observable` types to observe changes to specific values or an instance as a whole as asynchronous sequences of change events. The `values(for:)` method provides type safety, since it only provides the changes to one specific property.
+This allows users of `Observable` types to observe changes to specific values or an instance as a whole as asynchronous sequences of change events. Because the `values(for:)` method only observes a single property, it provides a sequence of elements of that property's type.
 
 ```swift
 object.someProperty = "hello" 
@@ -94,7 +94,7 @@ object.someOtherProperty += 1
 // nothing is printed
 ```
 
-Observable objects can also provide changes grouped into transactions, which coalesce any changes that are made between suspension points. Transactions are delivered isolated to an actor that you provide, or the main actor by default.
+Observable objects can also provide changes grouped into transactions, which coalesce any changes that are made between suspension points. Transactions are accessed using the `changes(for:)` method, and are delivered isolated to an actor that you provide, or the main actor by default. Because transactions can cover changes to more than one property, the `changes(for:)` method provides a sequence of `TrackedProperties` instances, which can be queried to find the changed properties.
 
 ```swift
 func processTransactions(_ object: MyObject) async {
@@ -106,7 +106,7 @@ func processTransactions(_ object: MyObject) async {
 
 Unlike `ObservableObject` and `@Published`, the properties of an `@Observable` type do not need to be individually marked as observable. Instead, all stored properties are implicitly observable.
 
-For read-only computed properties, an author can add the static `dependencies(of:)` method to claim additional key paths as part of their observation. This is similar to the mechanism that KVO uses to provide additional key paths that have effects to key paths.
+For read-only computed properties, the static `dependencies(of:)` method is used to indicate additional key paths from which the property is computed. This is similar to the mechanism that KVO uses to provide additional key paths that have effects to key paths.
 
 ```swift
 extension MyObject {
@@ -180,7 +180,7 @@ extension Observable {
     nonisolated func changes<Member, Isolation: Actor>(
         for keyPath: KeyPath<Self, Member>,
         isolatedTo: Isolation
-    ) -> ObservedChanges<Self, Delivery>
+    ) -> ObservedChanges<Self, Isolation>
         
     /// Returns an asynchronous sequence of change transactions for the specified
     /// properties, isolated to the main actor.
@@ -201,7 +201,7 @@ extension Observable {
 }
 ```
 
-All `Observable` types must correctly handle their own exclusivity, thread safety, and/or isolation. For example, if two properties have some sort of linked invariant, then it is the author's responsibility to provide that atomicity. For example, for an observable type named `ImageDescription`, with `width` and `height` properties that must be updated in lockstep, the author must assign both properties without an interrupting suspension point:
+All `Observable` types must correctly handle their own exclusivity, thread safety, and/or isolation. For example, if two properties must change together, with no observation of a halfway state where one has changed and the other hasn't, then it is the type's responsibility to provide that atomicity. For example, for an observable type named `ImageDescription`, with `width` and `height` properties that must be updated in lockstep, the type must assign both properties without an interrupting suspension point:
 
 ```
 @Observable class ImageDescription {
@@ -209,7 +209,7 @@ All `Observable` types must correctly handle their own exclusivity, thread safet
     
     func BAD_updateDimensions() async {
         self.width = await getUpdatedWidth()
-        self.height = away getUpdatedHeight    
+        self.height = away getUpdatedHeight()
     }
 
     func GOOD_updateDimensions() async {
@@ -233,7 +233,7 @@ In order to make implementation as simple as possible, the `@Observable` macro a
 - changes all stored properties into computed properties
 - adds an initializer for the properties (with default values if they apply)
 
-Since all of the code generated by the macro could be manually written, developers can write their own implementation when they need more fine-grained control.
+Since all of the code generated by the macro could be manually written, developers can write their own implementation when they need more fine-grained control. For example, the following `Model` type is annotated with the `@Observable` macro:
 
 ```swift
 @Observable final class Model {
@@ -250,20 +250,20 @@ Since all of the code generated by the macro could be manually written, develope
 }
 ```
 
-Expanding the macro for the previous example results in the following:
+Expanding the macro results in the following declaration:
 
 ```swift
 final class Model: Observable {
     internal let _$observationRegistrar = ObservationRegistrar<Model>()
     
-    public nonisolated func changes<Isolation: Actor>(
+    nonisolated func changes<Isolation: Actor>(
         for properties: TrackedProperties<Model>, 
         isolatedTo: Delivery
     ) -> ObservedChanges<Model, Isolation> {
         _$observationRegistrar.changes(for: properties, isolation: isolation)
     }
 
-    public nonisolated func values<Member: Sendable>(
+    nonisolated func values<Member: Sendable>(
         for keyPath: KeyPath<Model, Member>
     ) -> ObservedValues<Model, Member> {
         _$observationRegistrar.changes(for: keyPath)
@@ -344,7 +344,7 @@ final class Model: Observable {
 }
 ```
 
-When a property does not have a default value that corresponding argument in the initializer does not have a default value. This means that the following example has a macro synthesized initializer of `init(a: Int, b: Int = 3)`.
+When a property does not have a default value, that corresponding argument in the initializer does not have a default value. This means that the following example has a macro synthesized initializer of `init(a: Int, b: Int = 3)`.
 
 ```swift
 @Observable final class InitializationSample {
@@ -355,7 +355,7 @@ When a property does not have a default value that corresponding argument in the
 
 Because the memberwise initializer and backing storage are generated together, the initializer is able to initialize that storage. User-defined initializers should call the generated memberwise initializer instead of attempting to initialize the properties directly.
 
-Due to limitations with macros all fields must have type information; this restriction may be able to be lifted later when the type system grows a mechanism to detect inferred types.
+Due to limitations with macros, all fields must have type information; this restriction may be able to be lifted later when the type system grows a mechanism to detect inferred types.
 
 ```swift
 @Observable final class InitializationSample {
@@ -364,7 +364,7 @@ Due to limitations with macros all fields must have type information; this restr
 }
 ```
 
-Properties that have `willSet` and `didSet` property observations will be supported. The `@Observable` macro on the `PropertyExample` type here:
+Properties that have `willSet` and `didSet` property observations are supported. For example, the `@Observable` macro on the `PropertyExample` type here:
 
 ```swift
 @Observable final class PropertyExample {
@@ -395,7 +395,7 @@ var a: Int {
 }
 ```
 
-The generated implementation for the `dependencies(of:)` requirement creates a list of all of the type's stored properties, and returns that as the set of dependencies for any computed property. For the `PropertyExample` type above, that implementation looks like this:
+The generated implementation for the `dependencies(of:)` requirement creates a list of all of the type's stored properties, and then returns that as the set of dependencies for any computed property. For the `PropertyExample` type above, that implementation looks like this:
 
 ```swift
 nonisolated static func dependencies(
@@ -411,7 +411,7 @@ nonisolated static func dependencies(
 }
 ```
 
-The `@Observable` macro omits the implementation if one already exists, so an author can provide a more selective implementation if necessary.
+The `@Observable` macro omits the implementation if one already exists, so a type can provide a more selective implementation if necessary.
 
 ### `TrackedProperties`
 
@@ -483,7 +483,7 @@ The `access` and `withMutation` methods identify transactional accesses. These m
 
 ### `ObservationTracking`
 
-In order to provide scoped observation, the `ObservationTracking` type provides a method to capture accesses to properties within a given scope and then call out upon the first change to any of those properties. This API is the primary mechanism in which UI interactions can be built. Specifically this will be used by SwiftUI to provide updates for views given specific property access in the rendering of `var body: some View` scopes. More detail will be expanded later in the SDK impact section.
+In order to provide scoped observation, the `ObservationTracking` type provides a method to capture accesses to properties within a given scope and then call out upon the first change to any of those properties. This API is the primary mechanism in which UI interactions can be built. Specifically, this can be used by user interface libraries like SwiftUI to provide updates to properties that are accessed in a specific scope. For more detail, see the SDK Impact section below.
 
 ```swift
 public struct ObservationTracking {
@@ -618,7 +618,7 @@ It is worth noting that making a type observable does not provide any automatic 
 
 ## SDK Impact (a preview of SwiftUI interaction)
 
-Using existing systems like `ObservableObject` there are a number of edge cases that can be surprising unless developers really have an in-depth view to SwiftUI. Formalizing observation can make these edge cases considerably more approachable by reducing the complexity of the different systems needed to be understood. 
+When using the existing `ObservableObject`-based observation, there are a number of edge cases that can be surprising unless developers have an in-depth understanding of SwiftUI. Formalizing observation can make these edge cases considerably more approachable by reducing the complexity of the different systems needed to be understood.
 
 The following is adapted from the [Fruta sample app](https://developer.apple.com/documentation/swiftui/fruta_building_a_feature-rich_app_with_swiftui), modified for clarity:
 
@@ -659,9 +659,9 @@ struct SmoothieList: View {
 } 
 ```
 
-The `@Published` identifies each field that participates to changes in the object, however it does not provide any differentiation for those changes. This means that from SwiftUI's perspective, a change to `order` effects things using `hasAccount`. This unfortunately means that there are additional layouts, rendering and updates created. The proposed API cannot only reduce some of the `@Published` repetition but also simplify the SwiftUI view code too!
+The `@Published` attribute identifies each field that participates in changes in the object, but it does not provide any differentiation or distinction as to the source of changes. This unfortunately results in additional layouts, rendering, and updates.
 
-The previous example can then be written as:
+The proposed API not only reduces the `@Published` repetition, but also simplifies the SwiftUI view code too! With the proposed `@Observable` macro, the previous example can instead be written as the following:
 
 ```swift
 @Observable final class Model {
@@ -700,9 +700,9 @@ struct SmoothieList: View {
 } 
 ```
 
-There are some other interesting differences that come up; for example - tracking observation of access within a view can be applied to an Array, an Optional, or even a custom type. This opens up new and interesting ways developers can utilize SwiftUI more easily.
+There are some other interesting differences that follow from using the proposed observation system. For example, tracking observation of access within a view can be applied to an array, an optional, or even a custom type. This opens up new and interesting ways that developers can utilize SwiftUI more easily.
 
-This is a potential future direction for SwiftUI but is not part of this proposal.
+This is a potential future direction for SwiftUI, but is not part of this proposal.
 
 ## Source compatibility
 
