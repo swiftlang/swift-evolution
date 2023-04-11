@@ -203,13 +203,13 @@ extension Observable {
 
 All `Observable` types must correctly handle their own exclusivity, thread safety, and/or isolation. For example, if two properties must change together, with no observation of a halfway state where one has changed and the other hasn't, then it is the type's responsibility to provide that atomicity. For example, for an observable type named `ImageDescription`, with `width` and `height` properties that must be updated in lockstep, the type must assign both properties without an interrupting suspension point:
 
-```
+```swift
 @Observable class ImageDescription {
     // ...
     
     func BAD_updateDimensions() async {
         self.width = await getUpdatedWidth()
-        self.height = away getUpdatedHeight()
+        self.height = await getUpdatedHeight()
     }
 
     func GOOD_updateDimensions() async {
