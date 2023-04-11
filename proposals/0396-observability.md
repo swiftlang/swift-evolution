@@ -1,9 +1,9 @@
 # Observation
 
-* Proposal: [SE-NNNN](NNNN-observation.md)
+* Proposal: [SE-0396](0396-observation.md)
 * Authors: [Philippe Hausler](https://github.com/phausler), [Nate Cook](https://github.com/natecook1000)
-* Review Manager: TBD
-* Status: **Draft implementation**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (April 11 – April 24, 2023)**
 
 #### Changes
 
