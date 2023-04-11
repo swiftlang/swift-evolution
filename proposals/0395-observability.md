@@ -720,7 +720,7 @@ This proposal is additive and no impact is made upon existing API resilience. Th
 
 ## Location of API
 
-This API will be housed in a module that is part of the swift language but outside of the standard library. To use this module `import Observation` must be used (and provisionally using the preview `import _Observation`).
+This API will be housed in a module that is part of the Swift language but outside of the standard library. To use this module `import Observation` must be used (and provisionally using the preview `import _Observation`).
 
 ## Future Directions
 
