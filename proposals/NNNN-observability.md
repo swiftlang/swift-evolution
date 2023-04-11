@@ -355,7 +355,7 @@ When a property does not have a default value, that corresponding argument in th
 
 Because the memberwise initializer and backing storage are generated together, the initializer is able to initialize that storage. User-defined initializers should call the generated memberwise initializer instead of attempting to initialize the properties directly.
 
-Due to limitations with macros, all fields must have type information; this restriction may be able to be lifted later when the type system grows a mechanism to detect inferred types.
+Since macros are only syntactic transformations, all fields must have explicit type information. This restriction may be able to be lifted later when the type system grows a mechanism to detect inferred types.
 
 ```swift
 @Observable final class InitializationSample {
