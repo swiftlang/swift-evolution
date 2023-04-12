@@ -1,6 +1,6 @@
 # Observation
 
-* Proposal: [SE-0395](0395-observation.md)
+* Proposal: [SE-0395](0395-observability.md)
 * Authors: [Philippe Hausler](https://github.com/phausler), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active Review (April 11 – April 24, 2023)**
