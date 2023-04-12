@@ -99,7 +99,7 @@ Observable objects can also provide changes grouped into transactions, which coa
 ```swift
 func processTransactions(_ object: MyObject) async {
     for await change in objects.changes(for: [\.someProperty, \.someOtherProperty]) {
-        print(myObject.someProperty, myObject.someOtherProperty)
+        print(change.someProperty, change.someOtherProperty)
     }
 }
 ```
