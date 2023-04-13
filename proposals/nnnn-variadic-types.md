@@ -1,0 +1,209 @@
+# Allow Generic Types to Abstract Over Packs
+
+* Proposal: [SE-NNNN](nnnn-variadic-types.md)
+* Authors: [Slava Pestov](https://github.com/slavapestov)
+* Review Manager: TBD
+* Upcoming Feature Flag: `VariadicGenerics`
+* Previous Proposal: [SE-0393](0393-parameter-packs.md)
+
+## Introduction
+
+Previously [SE-0393](0393-parameter-packs.md) introduced type parameter packs and several related concepts, allowing generic function declarations to abstract over a variable number of types. This proposal generalizes these ideas to generic type declarations.
+
+## Motivation
+
+Generic type declarations that abstract over a variable number of types arise naturally when attempting to generalize common algorithms on collections. For example, a lazy `ZipSequence` might be generic over two sequences. It would be possible to declare a `ZipSequence` type which presents the elements of a fixed list of sequences as a sequence of tuples:
+
+```swift
+struct ZipSequence<each S: Sequence>: Sequence {
+  typealias Element = (repeat each S.Element)
+
+  let seq: (repeat each S)
+
+  func makeIterator() -> Iterator {
+    return Iterator(iter: (repeat (each seq).makeIterator()))
+  }
+
+  struct Iterator: IteratorProtocol {
+    typealias Element = (repeat each S.Element)
+
+    var iter: (repeat each S.Iterator)
+
+    mutating func next() -> Element? {
+      return ...
+    }
+  }
+}
+```
+
+## Proposed solution
+
+In the generic parameter list of a generic type, the `each` keyword declares a generic parameter pack, just like it does in the generic parameter list of a generic function. The types of stored properties can contain pack expansion types, as in `let seq` and `var iter` above.
+
+## Detailed design
+
+Swift has the following kinds of generic type declarations:
+
+- Structs
+- Enums
+- Classes (and actors)
+- Type aliases
+
+A generic type is _variadic_ if it directly declares a type parameter pack with `each`, or if it is nested inside of another variadic type. In this proposal, structs, classes, actors and type aliases can be variadic. Enums will be addressed in a follow-up proposal.
+
+### Single parameter
+
+A generic type is limited to declaring at most one type parameter pack. The following are allowed:
+
+```swift
+struct S1<each T> {}
+struct S2<T, each U> {}
+struct S3<each T, U> {}
+```
+
+But this is not:
+
+```swift
+struct S4<each T, each U> {}
+```
+
+However, by virtue of nesting, a variadic type might can still abstract over multiple type parameter packs:
+
+```swift
+struct Outer<each T> {
+  struct Inner<each U> {
+    var fn: (repeat each T) -> (repeat each U)
+  }
+}
+```
+
+### Referencing a variadic type
+
+When used with a variadic type, the generic argument syntax `S<...>` allows a variable number of arguments to be specified. Since there can only be one generic parameter pack, the non-pack parameters are always specified with a fixed prefix and suffix of the generic argument list.
+
+```swift
+struct S<T, each U, V> {}
+
+S<Int, Float>.self  // T := Int, U := Pack{}, V := Float
+S<Int, Bool, Float>.self  // T := Int, U := Pack{Bool}, V := Float
+S<Int, Bool, String, Float>.self  // T := Int, U := Pack{Bool, String}, V := Float
+```
+
+Note that `S<Int, Float>` substitutes U with the empty pack type, which is allowed. The minimum number of generic arguments is equal to the number of non-pack generic parameters. In our above example, the minimum argument count is 2, because `T` and `V` must always be specified:
+
+```swift
+S<Int>.self // error: expected at least 2 generic arguments
+```
+
+If the generic parameter list of a variadic type consists of a single generic parameter pack and nothing else, it is possible to reference it with an empty generic argument list:
+
+```swift
+struct V<each T> {}
+
+V<>.self
+```
+Note that `V<>` is not the same as `V`. The former substitutes the generic parameter pack `T` with the empty pack. The latter does not constrain the pack at all and is only permitted in contexts where the generic argument can be inferred.
+
+A placeholder type in the generic argument list of a variadic generic type is always understood as a single pack element. For example:
+
+```swift
+struct V<each T> {}
+
+let x: V<_> = V<Int>()  // okay
+let x: V<_, _> = V<Int, String>()  // okay
+let x: V<_> = V<Int, String>()  // error
+```
+
+### Stored properties
+
+In a variadic type, the type of a stored property can contain pack expansion types. The type of a stored property cannot _itself_ be a pack expansion type. Stored properties are limited to having pack expansions nested inside tuple types, function types and other named variadic types:
+
+```swift
+struct S<each T> {
+  var a: (repeat each Array<T>)
+  var b: (repeat each T) -> (Int)
+  var c: Other<repeat each T>
+}
+```
+This is in contrast with the parameters of generic function declarations, which can have a pack expansion type. A future proposal might lift this restriction and introduce true "stored property packs":
+
+```swift
+struct S<each T> {
+  var a: repeat each Array<T>
+}
+```
+
+### Requirements
+
+The behavior of generic requirements on type parameter packs is unchanged between generic functions and generic types.
+
+### Conformances
+
+Variadic structs, classes and actors can conform to protocols. The associated type requirements of the protocol may be fulfilled by a type alias whose underlying type contains pack expansions.
+
+### Type aliases
+
+As with the other variadic types, a variadic type alias either has a generic parameter pack of its own, or can be nested inside of another variadic generic type.
+
+The underlying type of a variadic type alias can reference pack expansion types in the same manner as the type of a stored property. That is, the pack expansions must appear in nested positions, but not at the top level.
+
+```swift
+typealias Element = (repeat each S.Element)
+typealias Callback = (repeat each S) -> ()
+typealias Factory = Other<repeat each S>
+```
+
+Unlike structs and classes, but like other type aliases, variadic type aliases can also be nested inside of generic functions.
+
+### Classes
+
+While there are no restrictions on non-final classes adopting type parameter packs, for the time being the proposal restricts such classes from being the superclass of another class.
+
+An attempt to inherit from a variadic generic class outputs an error. The correct behavior of override checking and initializer inheritance in variadic generic classes will be dealt with in a follow-up proposal:
+
+```swift
+class Base<each T> {
+  func foo(t: repeat each T) {}
+}
+
+// error: cannot inherit from a class with a type parameter pack
+class Derived<U, V>: Base<U, V> {
+  override func foo(t: U, _: V) {}
+}
+```
+
+## Source compatibility
+
+Variadic generic types are a new language feature which does not impact source compatibility with existing code.
+
+## ABI compatibility
+
+Variadic type aliases are not part of the binary interface of a module and do not require runtime support.
+
+All other variadic types make use of new entry points and other behaviors being added to the Swift runtime. Since the runtime support requires extensive changes to the type metadata logic, backward deployment to older runtimes is not supported.
+
+Replacing a non-variadic generic type with a variadic generic type is **not** binary-compatible in either direction. When adopting variadic generic types, binary-stable frameworks must introduce them as wholly-new symbols.
+
+## Future directions
+
+A future proposal will address variadic generic enums, and complete support for variadic generic classes.
+
+Another possible future direction is stored property packs, which would eliminate the need to wrap a pack expansion in a tuple type in order to store a variable number of values inside of a variadic type. However, there is no expressivity lost in requiring the tuple today, since the contents of a tuple can be converted into a value pack.
+
+## Alternatives considered
+
+The one-parameter limitation could be lifted if we introduced labeled generic parameters at the same time. The choice to allow only a single (unlabeled) generic parameter pack does not preclude this possibility from being explored in the future.
+
+Another alternative is to not enforce the one-parameter limitation at all. There would then exist variadic generic types which cannot be spelled explicitly, but can still be constructed by type inference:
+
+```swift
+struct S<each T, each U> {
+  init(t: repeat each T, u: repeat each U) {}
+}
+
+S(t: 1, "hi", u: false)
+```
+
+It was felt that in the end, the single-parameter model is the simplest.
+
+We could require that variadic classes are declared `final`, instead of rejecting subclassing at the point of use. However, since adding or removing `final` on a class is an ABI break, this would preclude the possibility of publishing APIs which work with the existing compiler but can allow subclassing in the future.
