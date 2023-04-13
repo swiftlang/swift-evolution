@@ -561,7 +561,7 @@ func overload<T>(_: T) {}
 func overload<each T>(_: repeat each T) {}
 ```
 
-If the parameters of the scalar overload have the same or refined requirements as the parameter pack overload, the scalar overload is considered a subtype of the parameter pack overload, because the parameters of the scalar overload can be forwarded to the parameter pack overload. Generally, if a function call successfully type checks with two different overloads, the subtype is preferred. This effectively means that scalar overloads are preferred over parameter pack overloads when the scalar requirements meet the requirements of the parameter pack:
+If the parameters of the scalar overload have the same or refined requirements as the parameter pack overload, the scalar overload is considered a subtype of the parameter pack overload, because the parameters of the scalar overload can be forwarded to the parameter pack overload. Currently, if a function call successfully type checks with two different overloads, the subtype is preferred. This overload ranking rule generalizes to overloads with parameter packs, which effectively means that scalar overloads are preferred over parameter pack overloads when the scalar requirements meet the requirements of the parameter pack:
 
 ```swift
 func overload() {}
@@ -584,7 +584,27 @@ func overload<each T>(_: repeat each T) {}
 overload(1, "") // prefers the parameter pack overload because the scalar overload would require an existential conversion
 ```
 
-This overload resolution behavior enables library authors to introduce new function overloads using parameter packs that generalize existing fixed-arity overloads while preserving the overload resolution behavior of existing code.
+More complex scenarios can still result in ambiguities. For example, if multiple overloads match a function call, but each parameter list can be forwarded to the other, the call is ambiguous:
+
+```swift
+func overload<each T>(_: repeat each T) {}
+func overload<each T>(vals: repeat each T) {}
+
+overload() // error: ambiguous
+```
+
+Similarly, if neither overload can forward their parameter lists to the other, the call is ambiguous:
+
+```swift
+func overload<each T: BinaryInteger>(str: String, _: repeat each T) {}
+func overload<each U: StringProtocol>(str: repeat each U) {}
+
+func test<Z: BinaryInteger & StringProtocol>(_ z: Z) {
+  overload(str: "Hello, world!", z, z) // error: ambiguous
+}
+```
+
+Generalizing the existing overload resolution ranking rules to parameter packs enables library authors to introduce new function overloads using parameter packs that generalize existing fixed-arity overloads while preserving the overload resolution behavior of existing code.
 
 ## Effect on ABI stability
 
