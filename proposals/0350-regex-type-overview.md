@@ -43,7 +43,10 @@ Imagine processing a bank statement in order to extract transaction details for 
 
 ```swift
 struct Transaction {
-  enum Kind { case credit; case debit }
+  enum Kind: String { 
+   case credit = "CREDIT"
+   case debit = "DEBIT"
+  }
 
   let kind: Kind
   let date: Date
@@ -104,7 +107,7 @@ func processEntry(_ line: String) -> Transaction? {
   let range = NSRange(line.startIndex..<line.endIndex, in: line)
   guard let result = nsRegEx.firstMatch(in: line, range: range),
         let kindRange = Range(result.range(at: 1), in: line),
-        let kind = Transaction.Kind(line[kindRange]),
+        let kind = Transaction.Kind(rawValue: String(line[kindRange])),
         let dateRange = Range(result.range(at: 2), in: line),
         let date = try? Date(String(line[dateRange]), strategy: dateParser),
         let accountRange = Range(result.range(at: 3), in: line),
