@@ -1,16 +1,15 @@
 # Conform `Never` to `Codable`
  
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0396](0396-never-codable.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active Review (April 18...May 3, 2023)**
 * Implementation: [apple/swift#64899](https://github.com/apple/swift/pull/64899)
+* Review: ([pitch](https://forums.swift.org/t/pitch-conform-never-to-codable/64056))
 
 ## Introduction
 
 Extend `Never` so that it conforms to the `Encodable` and `Decodable` protocols, together known as `Codable`.
-
-Forum discussion: [https://forums.swift.org/t/pitch-conform-never-to-codable/64056](https://forums.swift.org/t/pitch-conform-never-to-codable/64056)
 
 ## Motivation
 
