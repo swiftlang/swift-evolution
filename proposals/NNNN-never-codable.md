@@ -35,7 +35,7 @@ The standard library should add `Encodable` and `Decodable` conformance to the `
 
 The `Encodable` conformance is simple — since it's impossible to have a `Never` instance, the `encode(to:)` method can simply be empty.
 
-The `Decodable` protocol requires the `init(from:)` initializer, which clearly can't create a `Never` instance. The implementation throws a `DecodingError` if decoding is attempted.
+The `Decodable` protocol requires the `init(from:)` initializer, which clearly can't create a `Never` instance. Because trying to decode invalid input isn't a programmer error, a fatal error would be inappropriate. Instead, the implementation throws a `DecodingError.dataCorrupted` error if decoding is attempted.
 
 ## Source compatibility
 
