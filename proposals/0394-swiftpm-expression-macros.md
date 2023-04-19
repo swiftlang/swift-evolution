@@ -30,12 +30,18 @@ public extension Target {
     ///     - path: The path of the macro, relative to the package root.
     ///     - exclude: The paths to source and resource files you want to exclude from the macro.
     ///     - sources: The source files in the macro.
+    ///     - swiftSettings: The Swift settings for this macro.
+    ///     - linkerSettings: The linker settings for this macro.
+    ///     - plugins: The plugins used by this macro.
     static func macro(
         name: String,
         dependencies: [Dependency] = [],
         path: String? = nil,
         exclude: [String] = [],
-        sources: [String]? = nil
+        sources: [String]? = nil,
+        swiftSettings: [SwiftSetting]? = nil,
+        linkerSettings: [LinkerSetting]? = nil,
+        plugins: [PluginUsage]? = nil
     ) -> Target { ... }
 }
 ```
@@ -178,7 +184,17 @@ Since macro plugins are entirely additive, there's no impact on existing package
 
 ## Alternatives considered
 
+### Package plugins
+
 The original pitch of expression macros considered declaring macros by introducing a new capability to [package plugins](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md), but since the execution model is significantly different and the APIs used for macros are external to SwiftPM, this idea was discarded.
+
+### `.macroTarget()`
+
+We're (slowly) trying to move away from having the target suffix since it is implied by the context. This is already the case for plugin targets and eventually we'd like to have e.g. `.test()` as well. This would also make the target APIs be more in line with the product ones, where e.g. we don't use `.libraryProduct()`.
+
+### Dependencies on macro targets
+
+In [SE-0303](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md), we introduced the `plugins` parameter for build order dependencies on plugins, so it could have make sense to use a `macros` parameter for dependencies on macros. However, introducing bespoke API for each type of host-side content used during the build does not seem scalable. We also already have precedence of executables being part of `dependencies` even though that dependency is strictly for build ordering (with the exception of tests, which also applies to macros). Because of this, dependencies on macros are declared via the `dependencies` parameter, however it could be interesting to revisit a separation of build order and linked dependencies in the future.
 
 ## Future Directions
 
