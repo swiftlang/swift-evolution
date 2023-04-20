@@ -1,13 +1,45 @@
 # Cross-Compilation Destination Bundles
 
 - Proposal: [SE-0387](0387-cross-compilation-destinations.md)
-- Authors: [Max Desiatov](https://github.com/MaxDesiatov), [Saleem Abdulrasool](https://github.com/compnerd/), [Evan
-  Wilde](https://github.com/etcwilde)
+- Authors: [Max Desiatov](https://github.com/MaxDesiatov), [Saleem Abdulrasool](https://github.com/compnerd/), [Evan Wilde](https://github.com/etcwilde)
 - Review Manager: [Mishal Shah](https://github.com/shahmishal)
 - Status: **Active Review (January 31st...February 14th, 2023**)
 - Implementation: [apple/swift-package-manager#5911](https://github.com/apple/swift-package-manager/pull/5911),
-  [apple/swift-package-manager#5922](https://github.com/apple/swift-package-manager/pull/5922), [apple/swift-package-manager#6023](https://github.com/apple/swift-package-manager/pull/6023)
-- Review: ([pitch](https://forums.swift.org/t/pitch-cross-compilation-destination-bundles/61777)) ([review](https://forums.swift.org/t/se-0387-cross-compilation-destination-bundles/62875))
+  [apple/swift-package-manager#5922](https://github.com/apple/swift-package-manager/pull/5922),
+  [apple/swift-package-manager#6023](https://github.com/apple/swift-package-manager/pull/6023), 
+  [apple/swift-package-manager#6186](https://github.com/apple/swift-package-manager/pull/6186)
+- Review: ([pitch](https://forums.swift.org/t/pitch-cross-compilation-destination-bundles/61777))
+  ([review](https://forums.swift.org/t/se-0387-cross-compilation-destination-bundles/62875))
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Motivation](#motivation)
+- [Proposed Solution](#proposed-solution)
+- [Detailed Design](#detailed-design)
+  - [CC Destination Artifact Bundles](#cc-destination-artifact-bundles)
+  - [`toolset.json` Files](#toolsetjson-files)
+  - [`destination.json` Files](#destinationjson-files)
+  - [Destination Bundle Installation and Configuration](#destination-bundle-installation-and-configuration)
+  - [Using a CC Destination](#using-a-cc-destination)
+  - [CC Destination Bundle Generation](#cc-destination-bundle-generation)
+- [Security](#security)
+- [Impact on Existing Packages](#impact-on-existing-packages)
+- [Prior Art](#prior-art)
+  - [Rust](#rust)
+  - [Go](#go)
+- [Alternatives Considered](#alternatives-considered)
+  - [Extensions Other Than `.artifactbundle`](#extensions-other-than-artifactbundle)
+  - [Building Applications in Docker Containers](#building-applications-in-docker-containers)
+  - [Alternative Bundle Formats](#alternative-bundle-formats)
+- [Making Destination Bundles Fully Self-Contained](#making-destination-bundles-fully-self-contained)
+- [Future Directions](#future-directions)
+  - [Identifying Platforms with Dictionaries of Properties](#identifying-platforms-with-dictionaries-of-properties)
+  - [SwiftPM Plugins for Remote Running, Testing, Deployment, and Debugging](#swiftpm-plugins-for-remote-running-testing-deployment-and-debugging)
+  - [`swift destination select` Subcommand](#swift-destination-select-subcommand)
+  - [SwiftPM and SourceKit-LSP Improvements](#swiftpm-and-sourcekit-lsp-improvements)
+  - [Source-Based CC Destinations](#source-based-cc-destinations)
+  - [Destination Bundles and Package Registries](#destination-bundles-and-package-registries)
 
 ## Introduction
 
@@ -30,8 +62,9 @@ triple" terms in this proposal.
 
 ## Motivation
 
-Swift cross-compilation (CC) destinations are currently produced on an ad-hoc basis for different combinations of build-time
-and run-time triples. For example, scripts that produce macOS → Linux CC destinations were created by both [the Swift
+Swift cross-compilation (CC) destinations are currently produced on an ad-hoc basis for different combinations of
+build-time and run-time triples. For example, scripts that produce macOS → Linux CC destinations were created by both
+[the Swift
 team](https://github.com/apple/swift-package-manager/blob/swift-5.7-RELEASE/Utilities/build_ubuntu_cross_compilation_toolchain)
 and [the Swift community](https://github.com/SPMDestinations/homebrew-tap). At the same time, the distribution process
 of CC destinations is cumbersome. After building a destination tree on the file system, required metadata files rely on
@@ -48,7 +81,7 @@ project is a daunting step that shouldn’t be required.
 
 The solution described below is general enough to scale for any build-time/run-time triple combination.
 
-## Proposed solution
+## Proposed Solution
 
 Since CC destination is a collection of binaries arranged in a certain directory hierarchy, it makes sense to distribute
 it as an archive. We'd like to build on top of
@@ -65,7 +98,10 @@ with tools supplied in `.artifactbundle` s installed by `swift destination` invo
 When the user runs `swift build` with the selected CC destination, the overriding tools from the corresponding bundle
 are invoked by `swift build` instead of tools from the top-level toolchain.
 
-## Detailed design
+The proposal is intentionally limited in scope to build-time experience and specifies only configuration metadata, basic
+directory layout for proposed artifact bundles, and some CLI helpers to operate on those.
+
+## Detailed Design
 
 ### CC Destination Artifact Bundles
 
@@ -80,85 +116,92 @@ The proposed structure of artifact bundles containing CC destinations looks like
 <name>.artifactbundle
 ├ info.json
 ├ <destination artifact>
-│ ├ <host variant>
-│ │ ├ destination.json
-│ │ └ <destination file tree>
-│ └ <host variant>
-│   ├ destination.json
-│   └ <destination file tree>
+│ ├ destination.json
+│ ├ toolset.json
+│ └ <destination files and directories>
 ├ <destination artifact>
-│ └ <host variant>
-│   ├ destination.json
-│   └ <destination file tree>
+│ ├ destination.json
+│ ├ toolset.json
+│ └ <destination files and directories>
 ├ <destination artifact>
 ┆ └┄
 ```
 
-For example, a destination bundle allowing to cross-compile Swift 5.7 source code to recent versions of Ubuntu from
+For example, a destination bundle allowing to cross-compile Swift 5.8 source code to recent versions of Ubuntu from
 macOS would look like this:
 
 ```
-swift-5.7_ubuntu.artifactbundle
+swift-5.8_ubuntu.artifactbundle
 ├ info.json
+├ toolset.json
 ├ ubuntu_jammy
-│ ├ arm64-apple-darwin
-│ │ ├ destination.json
+│ ├ destination.json
+│ ├ toolset.json
+│ ├ <destination files and directories shared between triples>
+│ ├ aarch64-unknown-linux-gnu
 │ │ ├ toolset.json
-│ │ └ <destination file tree>
-│ └ x86_64-apple-darwin
-│   ├ destination.json
+│ │ └ <triple-specific destination files and directories>
+│ └ x86_64-unknown-linux-gnu
 │   ├ toolset.json
-│   └ <destination file tree>
+│   └ <triple-specific destination files and directories>
 ├ ubuntu_focal
-│ └ x86_64-apple-darwin
-│   ├ destination.json
+│ ├ destination.json
+│ └ x86_64-unknown-linux-gnu
 │   ├ toolset.json
-│   └ <destination file tree>
+│   └ <triple-specific destination files and directories>
 ├ ubuntu_bionic
 ┆ └┄
 ```
 
-Here each artifact directory is dedicated to a specific CC destination, while binaries for a specific host platform are
-placed in `arm64-apple-darwin` and `x86_64-apple-darwin` subdirectories.
+Here each artifact directory is dedicated to a specific CC destination, while files specific to each triple are placed
+in `aarch64-unknown-linux-gnu` and `x86_64-unknown-linux-gnu` subdirectories.
 
-`info.json` bundle manifests at the root of artifact bundles should specify `"type": "crossCompilationDestination"`
-for corresponding artifacts. Artifact identifiers in this manifest uniquely identify a CC destination. The rest of the
-properties of bundle manifests introduced in SE-0305 are preserved.
+`info.json` bundle manifests at the root of artifact bundles should specify `"type": "crossCompilationDestination"` for
+corresponding artifacts. Artifact identifiers in this manifest file uniquely identify a CC destination, and
+`supportedTriples` property in `info.json` should contain build-time triples that a given destination supports. The rest
+of the properties of bundle manifests introduced in SE-0305 are preserved.
 
-### `destination.json` files
+Here's how `info.json` file could look like for `swift-5.8_ubuntu.artifactbundle` introduced in the example
+above:
 
-Note the presence of `destination.json` files in each `<host variant>` subdirectory. These files should contain a JSON
-dictionary with an evolved version of the schema of [existing `destination.json` files that SwiftPM already
-supports](https://github.com/apple/swift-package-manager/pull/1098) and `destination.json` files presented in the pitch
-version of this proposal, hence `"schemaVersion": "3.0"`:
-
-```json
+```json5
 {
-  "schemaVersion": "3.0",
-  "buildTimeTriples": ["<an array of supported build-time platform triples>"],
-  "runTimeTriples": ["<an array of supported run-time platform triples>"],
-  "swiftResourcesPaths": ["<array with relative paths containing Swift resources in the destination tree>"],
-  "includeSearchPaths": ["<array with relative paths containing headers in the destination tree>"],
-  "librarySearchPaths": ["<array with relative paths containing libraries in the destination tree>"],
+  "artifacts" : {
+    "swift-5.8_ubuntu22.04" : {
+      "type" : "crossCompilationDestination",
+      "version" : "0.0.1",
+      "variants" : [
+        {
+          "path" : "ubuntu_jammy",
+          "supportedTriples" : [
+            "arm64-apple-darwin",
+            "x86_64-apple-darwin"
+          ]
+        }
+      ]
+    },
+    "swift-5.8_ubuntu20.04" : {
+      "type" : "crossCompilationDestination",
+      "version" : "0.0.1",
+      "variants" : [
+        {
+          "path" : "ubuntu_focal",
+          "supportedTriples" : [
+            "arm64-apple-darwin",
+            "x86_64-apple-darwin"
+          ]
+        }
+      ]
+    }
+  },
+  "schemaVersion" : "1.0"
 }
 ```
 
-Thanks to the availability of Universal Binaries on macOS and multiarch layouts on Linux, `buildTimeTriples` and
-`runTimeTriples` properties use plural in their naming and their values are arrays.
-
-We propose that all relative paths in `destination.json` files should be validated not to "escape" the destination
-bundle for security reasons. That is, `../` components, if present in paths, will not be allowed to reference files and
-directories outside of a corresponding destination bundle. Symlinks will also be validated to prevent them from escaping
-out of the bundle.
-
-Since not all platforms can support self-contained destination bundles, users will be able to provide their own
-additional paths on the filesystem outside of bundles after a destination is installed. The exact options for specifying
-paths are proposed in a subsequent section for a newly introduced `swift destination configure` command.
-
-### `toolset.json` files
+### `toolset.json` Files
 
 We find that properties dedicated to tools configuration are useful outside of the cross-compilation context. Due to
-that, a separate `toolset.json` file is introduced:
+that, separate toolset configuration files are introduced:
 
 ```json5
 {
@@ -167,60 +210,74 @@ that, a separate `toolset.json` file is introduced:
   // If `toolsetRootPath` is specified, all relative paths below will be resolved relative to `toolsetRootPath`.
   "swiftCompiler": {
     "path": "<optional path to the Swift compiler>",
-    "extraFlags": ["<optional array of additional flags passed to the Swift compiler>"]
+    "extraCLIOptions": ["<optional array of additional flags passed to the Swift compiler>"]
   },
   "cCompiler": {
     "path": "<optional path to the C compiler>",
-    "extraFlags": ["<optional array of additional flags passed to the C compiler>"]
+    "extraCLIOptions": ["<optional array of additional flags passed to the C compiler>"]
   },
   "cxxCompiler": {
     "path": "<optional path to the C++ compiler>",
-    "extraFlags": ["<optional array of additional flags passed to the C++ compiler>"]
+    "extraCLIOptions": ["<optional array of additional flags passed to the C++ compiler>"]
   },
   "linker": {
     "path": "<optional path to the linker>",
-    "extraFlags": ["<optional array of additional flags passed to the linker>"]
-  }
+    "extraCLIOptions": ["<optional array of additional flags passed to the linker>"]
+  },
+  "librarian": {
+    "path": "<optional path to the librarian, such as `libtool`, `ar`, or `link`>",
+    "extraCLIOptions": ["<optional array of additional flags passed to the librarian>"]
+  },
+  "debugger": {
+    "path": "<optional path to the debugger>",
+    "extraCLIOptions": ["<optional array of additional flags passed to the debugger>"]
+  },
+  "testRunner": {
+    "path": "<optional path to the test runner, such as `xctest` on macOS>",
+    "extraCLIOptions": ["<optional array of additional flags passed to the test runner>"]
+  },
 }
 ```
 
+More types of tools may be enabled in toolset files in the future in addition to those listed above.
+
 Users familiar with CMake can draw an analogy between toolset files and CMake toolchain files. Toolset files are
-designed to supplant previous ad-hoc ways to specify paths and flags in SwiftPM, such as `SWIFT_EXEC` and `CC`
+designed to supplant previous ad-hoc ways of specifying paths and flags in SwiftPM, such as `SWIFT_EXEC` and `CC`
 environment variables, which were applied in use cases unrelated to cross-compilation. We propose that
-users should be able to pass `--toolset <path_to_toolset.json>` option to both `swift build` and `swift test`.
+users also should be able to pass `--toolset <path_to_toolset.json>` option to `swift build`, `swift test`, and
+`swift run`.
 
 We'd like to allow using multiple toolset files at once. With this users can "assemble" toolchains on the fly out of
-tools that in certain scenarios may even come from different vendors.
+tools that in certain scenarios may even come from different vendors. A toolset file can have an arbitrary name, and
+each file should be passed with a separate `--toolset` option, i.e. `swift build --toolset t1.json --toolset t2.json`.
 
-All of the properties related to names of the tools are optional, which also allows stacking multiple toolset files.
-For example, consider `toolset1.json`:
+All of the properties related to names of the tools are optional, which allows merging configuration from multiple
+toolset files. For example, consider `toolset1.json`:
 
-```json
+```json5
 {
   "schemaVersion": "1.0",
   "swiftCompiler": {
     "path": "/usr/bin/swiftc",
-    "extraFlags": ["-Xfrontend", "-enable-cxx-interop"]
+    "extraCLIOptions": ["-Xfrontend", "-enable-cxx-interop"]
   },
   "cCompiler": {
     "path": "/usr/bin/clang",
-    "extraFlags": ["-pedantic"]
+    "extraCLIOptions": ["-pedantic"]
   }
 }
 ```
 
 and `toolset2.json`:
 
-```json
+```json5
 {
   "schemaVersion": "1.0",
   "swiftCompiler": {
-    "path": "/custom/swiftc",
-    "extraFlags": []
+    "path": "/custom/swiftc"
   }
 }
 ```
-
 
 With multiple `--toolset` options, passing both of those files will merge them into a single configuration. Tools passed
 in subsequent `--toolset` options will shadow tools from previous options with the same names. That is, 
@@ -228,14 +285,99 @@ in subsequent `--toolset` options will shadow tools from previous options with t
 specified in `toolset2.json`, but `/usr/bin/clang -pedantic` from `toolset1.json` will still be used.
 
 Tools not specified in any of the supplied toolset files will be looked up in existing implied search paths that are
-used without any presence of toolset files, even when `toolsetRootPath` is present in any toolset file. We'd like
-toolsets to be explicit enough in this regard: if any tool would like to participate in toolsets path lookups, it must
-have its path provided, either relative or absolute, in any of the provided toolset files.
+used without toolsets, even when `toolsetRootPath` is present. We'd like toolsets to be explicit in this regard: if a
+tool would like to participate in toolset path lookups, it must provide either a relative or an absolute path in a
+toolset.
 
-When cross-compiling, paths in `toolset.json` files supplied in destination artifact bundles should be self-contained
-with same rules applied as in `destination.json`: no absolute paths and no escaping symlinks are allowed. Users are
-still able to provide their own `toolset.json` files outside of artifact bundles to specify additional developer tools
-for which no relative path can be provided within the bundle. 
+Tools that don't have `path` property but have `extraCLIOptions` present will append options from that property to a
+tool with the same name specified in a preceding toolset file. If no other toolset files were provided, these options
+will be appended to the default tool invocation. For example `pedanticCCompiler.json` that looks like this
+
+```json5
+{
+  "schemaVersion": "1.0",
+  "cCompiler": {
+    "extraCLIOptions": ["-pedantic"]
+  }
+}
+```
+
+in `swift build --toolset pedanticCCompiler.json` will pass `-pedantic` to the C compiler located at a default path.
+
+When cross-compiling, paths in `toolset.json` files supplied in destination artifact bundles should be self-contained:
+no absolute paths and no escaping symlinks are allowed. Users are still able to provide their own `toolset.json` files
+outside of artifact bundles to specify additional developer tools for which no relative "non-escaping" path can be
+provided within the bundle.
+
+### `destination.json` Files
+
+Note the presence of `destination.json` files in each `<destination artifact>` subdirectory. These files should contain
+a JSON dictionary with an evolved version of the schema of [existing `destination.json` files that SwiftPM already
+supports](https://github.com/apple/swift-package-manager/pull/1098) and `destination.json` files presented in the pitch
+version of this proposal, hence `"schemaVersion": "3.0"`. We'll keep parsing `"version": 1` and `"version": 2` for
+backward compatibility, but for consistency with `info.json` this field is renamed to `"schemaVersion"`. Here's an
+informally defined schema for these files:
+
+```json5
+{
+  "schemaVersion": "3.0",
+  "runTimeTriples": [
+    "<triple1>": {
+      "sdkRootPath": "<a required path relative to `destination.json` containing SDK root>",
+      // all of the properties listed below are optional:
+      "swiftResourcesPath": "<a path relative to `destination.json` containing Swift resources for dynamic linking>",
+      "swiftStaticResourcesPath": "<a path relative to `destination.json` containing Swift resources for static linking>",
+      "includeSearchPaths": ["<array of paths relative to `destination.json` containing headers>"],
+      "librarySearchPaths": ["<array of paths relative to `destination.json` containing libraries>"],
+      "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset files>"]
+    },
+    // a destination can support more than one run-time triple:
+    "<triple2>": {
+      "sdkRootPath": "<a required path relative to `destination.json` containing SDK root>",
+      // all of the properties listed below are optional:
+      "swiftResourcesPath": "<a path relative to `destination.json` containing Swift resources for dynamic linking>",
+      "swiftStaticResourcesPath": "<a path relative to `destination.json` containing Swift resources for static linking>",
+      "includeSearchPaths": ["<array of paths relative to `destination.json` containing headers>"],
+      "librarySearchPaths": ["<array of paths relative to `destination.json` containing libraries>"],
+      "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset files>"]
+    }
+    // more triples can be supported by a single destination if needed, primarily for sharing files between them.
+  ]
+}
+```
+
+We propose that all relative paths in `destination.json` files should be validated not to "escape" the destination
+bundle for security reasons, in the same way that `toolset.json` files are validated when contained in destination
+bundles. That is, `../` components, if present in paths, will not be allowed to reference files and
+directories outside of a corresponding destination bundle. Symlinks will also be validated to prevent them from escaping
+out of the bundle.
+ 
+If `sdkRootPath` is specified and `swiftResourcesPath` is not, the latter is inferred to be
+`"\(sdkRootPath)/usr/lib/swift"` when linking the Swift standard library dynamically, `"swiftStaticResourcesPath"` is
+inferred to be `"\(sdkRootPath)/usr/lib/swift_static"` when linking it statically. Similarly, `includeSearchPaths` is
+inferred as `["\(sdkRootPath)/usr/include"]`, `librarySearchPaths` as  `["\(sdkRootPath)/usr/lib"]`.
+
+Here's `destination.json` file for the `ubuntu_jammy` artifact previously introduced as an example:
+
+```json5
+{
+  "schemaVersion": "3.0",
+  "runTimeTriples": [
+    "aarch64-unknown-linux-gnu": {
+      "sdkRootPath": "aarch64-unknown-linux-gnu/ubuntu-jammy.sdk",
+      "toolsetPaths": ["aarch64-unknown-linux-gnu/toolset.json"]
+    },
+    "x86_64-unknown-linux-gnu": {
+      "sdkRootPath": "x86_64-unknown-linux-gnu/ubuntu-jammy.sdk",
+      "toolsetPaths": ["x86_64-unknown-linux-gnu/toolset.json"]
+    }
+  ],
+}
+```
+
+Since not all platforms can support self-contained destination bundles, users will be able to provide their own
+additional paths on the filesystem outside of bundles after a destination is installed. The exact options for specifying
+paths are proposed in a subsequent section for a newly introduced `swift destination configure` command.
 
 ### Destination Bundle Installation and Configuration
 
@@ -245,22 +387,28 @@ To manage CC destinations, we'd like to introduce a new `swift destination` comm
   installs it in a location discoverable by SwiftPM. For destinations installed from remote URLs an additional
   `--checksum` option is required, through which users of destinations can specify a checksum provided by publishers of
   destinations. The latter can produce a checksum by running `swift package compute-checksum` command (introduced in
-  SE-0272) with the destination artifact bundle archive as an argument.
+  [SE-0272](https://github.com/apple/swift-evolution/blob/main/proposals/0272-swiftpm-binary-dependencies.md)) with the
+  destination artifact bundle archive as an argument.
+  
+  If a destination with a given artifact ID has already been installed and its version is equal or higher to a version
+  of a new destination, an error message will be printed. If the new version is higher, users should invoke the
+  `install` subcommand with `--update` flag to allow updating an already installed destination artifact to a new
+  version.
 - `swift destination list`, which prints a list of already installed CC destinations with their identifiers.
-- `swift destination configure <identifier>`, which allows users to provide additional search paths and toolsets to be
+- `swift destination configure <identifier> <run-time-triple>`, which allows users to provide additional search paths and toolsets to be
 used subsequently when building with a given destination. Specifically, multiple `--swift-resources-path`,
 `--include-search-path`, `--library-search-path`, and `--toolset` options with corresponding paths can be provided,
 which then will be stored as configuration for this destination. 
 `swift destination configure <identifier> --show-configuration` will print currently set paths, while
 `swift destination configure <identifier> --reset` will reset all of those at once.
-- `swift destination delete <identifier>` will delete a given destination from the filesystem.
+- `swift destination remove <identifier>` will remove a given destination from the filesystem.
 
 ### Using a CC Destination
 
 After a destination is installed, users can refer to it via its identifier passed to the `--destination` option, e.g.
 
 ```
-swift build --destination ubuntu-jammy
+swift build --destination ubuntu_focal
 ```
 
 We'd also like to make `--destination` flexible enough to recognize run-time triples when there's only a single CC
@@ -288,7 +436,7 @@ As an example, destination publishers looking to add a library to an Ubuntu 22.0
 `Dockerfile` similar to this one in CC destination generator source code:
 
 ```dockerfile
-FROM swift:5.7-jammy
+FROM swift:5.8-jammy
 
 apt-get install -y \
   # PostgreSQL library provided as an example.
@@ -305,7 +453,7 @@ ready, the generator copies files from the image to a corresponding `.artifactbu
 The proposed `--checksum` flag provides basic means of verifying destination bundle's validity. As a future direction,
 we'd like to consider sandboxing and codesigning toolchains running on macOS.
 
-## Impact on existing packages
+## Impact on Existing Packages
 
 This is an additive change with no impact on existing packages.
 
@@ -369,13 +517,26 @@ Different formats of destination bundles can be considered, but we don't think t
 from the proposed one. If they were different, this would complicate bundle distribution scenarios for users who want to
 publish their own artifact bundles with executables, as defined in SE-0305.
 
+## Making Destination Bundles Fully Self-Contained
+
+Some users expressed interest in self-contained destination bundles that ignore the value of `PATH` environment variable
+and prevent launching any executables from outside of a bundle. So far in our practice we haven't seen any problems
+caused by the use of executables from `PATH`. Quite the opposite, we think most destinations would want to reuse as many
+tools from `PATH` as possible, which would allow making destination bundles much smaller. For example as of Swift 5.7,
+on macOS `clang-13` binary takes ~360 MB, `clangd` ~150 MB, and `swift-frontend` ~420 MB. Keeping copies of these
+binaries in every destination bundle seems quite redundant when existing binaries from `PATH` can be easily reused.
+Additionally, we find that preventing tools from being launched from arbitrary paths can't be technically enforced
+without sandboxing, and there's no cross-platform sandboxing solution available for SwiftPM. Until such sandboxing
+solution is available, we'd like to keep the existing approach where setting `PATH` environment variable behaves in a
+predictable way and is consistent with established CLI conventions.
+
 ## Future Directions
 
 ### Identifying Platforms with Dictionaries of Properties
 
 Platform triples are not specific enough in certain cases. For example, `aarch64-unknown-linux` host triple can’t
 prevent a user from installing a CC destination bundle on an unsupported Linux distribution. In the future we could
-deprecate `hostTriple` and `destinationTriple` JSON properties in favor of dictionaries with keys and values that
+deprecate `supportedTriples` and `runTimeTriples` JSON properties in favor of dictionaries with keys and values that
 describe aspects of platforms that are important for destinations. Such dictionaries could look like this:
 
 ```json5
@@ -397,7 +558,7 @@ After an application is built with a CC destination, there are other development
 introduce new types of plugins invoked by `swift run` and `swift test` for purposes of remote running, debugging, and
 testing. For Linux run-time triples, these plugins could delegate to Docker for running produced executables.
 
-### `swift destination select` subcommand
+### `swift destination select` Subcommand
 
 While `swift destination select` subcommand or a similar one make sense for selecting a CC destination instead of
 passing `--destination` to `swift build` every time, users will expect `swift run` and `swift test` to also work for any
@@ -405,7 +566,7 @@ destination previously passed to `swift destination select`. That’s out of sco
 depends on making plugins (from the previous subsection) or some other remote running and testing implementation to
 fully work.
 
-### SwiftPM and SourceKit-LSP improvements
+### SwiftPM and SourceKit-LSP Improvements
 
 It is a known issue that SwiftPM can’t run multiple concurrent builds for different run-time triples. This may cause
 issues when SourceKit-LSP is building a project for indexing purposes (for a host platform by default), while a user may
@@ -425,3 +586,9 @@ language](https://andrewkelley.me/post/zig-cc-powerful-drop-in-replacement-gcc-c
 cross-compilation destination binaries are produced on the fly when needed. We don't consider this option to be mutually
 exclusive with solutions proposed in this document, and so it could be explored in the future for Swift as well.
 However, this requires reducing the number of dependencies that Swift runtime and core libraries have.
+
+### Destination Bundles and Package Registries
+
+Since `info.json` manifest files contained within bundles contain versions, it would make sense to host destination
+bundles at package registries. Although, it remains to be seen whether it makes sense for an arbitrary SwiftPM package
+to specify a destination bundle within its list of dependencies.
