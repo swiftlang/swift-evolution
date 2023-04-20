@@ -34,7 +34,7 @@ The standard library should add `Encodable` and `Decodable` conformance to the `
 
 The `Encodable` conformance is simple — since it's impossible to have a `Never` instance, the `encode(to:)` method can simply be empty.
 
-The `Decodable` protocol requires the `init(from:)` initializer, which clearly can't create a `Never` instance. Because trying to decode invalid input isn't a programmer error, a fatal error would be inappropriate. Instead, the implementation throws a `DecodingError.dataCorrupted` error if decoding is attempted.
+The `Decodable` protocol requires the `init(from:)` initializer, which clearly can't create a `Never` instance. Because trying to decode invalid input isn't a programmer error, a fatal error would be inappropriate. Instead, the implementation throws a `DecodingError.typeMismatch` error if decoding is attempted.
 
 ## Source compatibility
 
@@ -56,4 +56,4 @@ None.
 
 ## Alternatives considered
 
-None.
+A previous iteration of this proposal used `DecodingError.dataCorrupted` as the error thrown from the `Decodable` initializer. Since that error is typically used for syntactical errors, such as malformed JSON, the `typeMismatch` error is now used instead. A custom error type could be created for this purpose, but as `typeMismatch` already exists as documented API, and provides the necessary information for a developer to understand the error, its use is appropriate here.
