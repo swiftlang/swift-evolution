@@ -1,4 +1,4 @@
-# Freestanding Macros
+# Freestanding Declaration Macros
 
 * Proposal: [SE-nnnn](nnnn-freestanding-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Richard Wei](https://github.com/rxwei), [Holly Borla](https://github.com/hborla)
@@ -215,7 +215,7 @@ The `#warning` and `#error` directives introduced in [SE-0196](https://github.co
 Freestanding declaration macros can be used to generate boilerplace code. For example, the Standard Library could use such a macro to generate integer types.
 
 ```swift
-@freestanding(declaration)
+@freestanding(declaration, names: arbitrary)
 fileprivate macro IntegerTypes(bitWidths: Int...)
 
 #IntegerTypes(bitWidths: 8, 16, 32, 64)
@@ -237,26 +237,77 @@ public struct Int64 { ... }
 public struct UInt64 { ... }
 ```
 
-### Short hand for `@main`
+### Template code generator
 
-A freestanding declaration macro `#main` could be defined as a short hand for a `@main` struct with a `main()` method.
+The Swift Standard Library makes extensive use of the [gyb](https://github.com/apple/swift/blob/main/utils/gyb.py) tool to generate boilerplate-y Swift code such as [tgmath.swift.gyb](https://github.com/apple/swift/blob/main/stdlib/public/Platform/tgmath.swift.gyb). The template code is written in `.gyb` files, which are processed by the gyb tool separately before Swift compilation. With freestanding declaration macros, one could write a macro to accept a string as a template and a list of replacement values, allowing templates to be defined inline and eliminating the need to set up a separate build phase.
 
 ```swift
-@freestanding(declaration)
-macro main(_ body: () -> Void)
+@freestanding(declaration, names: arbitrary)
+macro gyb(String, [Any])
 
-#main {
-  print("Hello")
+#gyb({
+  public struct Int${0} { ... }
+  public struct UInt${0} { ... }
+}, [8, 16, 32, 64])
+```
+
+This expands to:
+
+```swift
+  public struct Int8 { ... }
+  public struct UInt8 { ... }
+
+  public struct Int16 { ... }
+  public struct UInt16 { ... }
+
+  public struct Int32 { ... }
+  public struct UInt32 { ... }
+
+  public struct Int64 { ... }
+  public struct UInt64 { ... }
+```
+
+### Data model generator
+
+Declaring a data model for an existing textual serialization may need some amount of eyeballing and is prone to errors.  A freestanding declaration macro can be used to analyze a template textual serialization, e.g. JSON, and declare a model data structure against the template.
+
+```swift
+@freestanding(declaration, names: arbitrary)
+macro jsonModel(String)
+
+struct JSONValue: Codable {
+  #jsonModel("""
+  "name": "Produce",
+  "shelves": [
+    {
+      "name": "Discount Produce",
+      "product": {
+        "name": "Banana",
+        "points": 200,
+        "description": "A banana that's perfectly ripe."
+      }
+    }
+  ]
+  """)
 }
 ```
 
 This expands to:
 
 ```swift
-@main
-struct $_unique_name {
-  static func main() {
-    print("Hello")
+struct JSONValue: Codable {
+  var name: String
+  var shelves: [Shelves]
+
+  struct Shelves: Codable {
+    var name: String
+    var product: Product
+
+    struct Product: Codable {
+      var description: String
+      var name: String
+      var points: Double
+    }
   }
 }
 ```
