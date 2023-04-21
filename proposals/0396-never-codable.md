@@ -24,7 +24,7 @@ enum Either<A, B> {
 extension Either: Codable where A: Codable, B: Codable {}
 ```
 
-In this way, `Either` instances where both generic parameters are `Codable` are `Codable` themselves, such as an `Either<Int, Double>`. However, since `Never` isn't `Codable`, using `Never` as one of the parameters blocks the conditional conformance, even though it would be perfectly fine to encode or decode a type like `Either<Int, Never>`.
+In this way, `Either` instances are `Codable` where both generic parameters are `Codable` themselves, such as an `Either<Int, Double>`. However, since `Never` isn't `Codable`, using `Never` as one of the parameters blocks the conditional conformance, even though it would be perfectly fine to encode or decode a type like `Either<Int, Never>`.
 
 ## Proposed solution
 
