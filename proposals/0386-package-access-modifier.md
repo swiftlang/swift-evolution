@@ -6,7 +6,8 @@
 * Status: **Active Review (January 26th...Feburary 8th, 2023**
 * Implementation: [apple/swift#61546](https://github.com/apple/swift/pull/62700), [apple/swift#62704](https://github.com/apple/swift/pull/62704), [apple/swift#62652](https://github.com/apple/swift/pull/62652), [apple/swift#62652](https://github.com/apple/swift/pull/62652)
 * Review: ([pitch](https://forums.swift.org/t/new-access-modifier-package/61459)) ([review](https://forums.swift.org/t/se-0386-package-access-modifier/62808))
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/28fd2fb9b7258117f912cec5e5f7eb178520fbf2/proposals/NNNN-package-access-modifier.md)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/28fd2fb9b7258117f912cec5e5f7eb178520fbf2/proposals/NNNN-package-access-modifier.md),
+[2](https://github.com/apple/swift-evolution/blob/main/proposals/0386-package-access-modifier.md)
 
 ## Introduction
 
@@ -18,7 +19,7 @@ At the most basic level, every Swift program is just a collection of declaration
 
 As a language, Swift recognizes some of these levels.  Modules are the smallest unit of library structure, with an independent interface and non-cyclic dependencies, and it makes sense for Swift to recognize that in both namespacing and access control.  Files are the smallest grouping beneath that and are often used to collect tightly-related declarations, so they also make sense to respect in access control.
 
-Packages, as expressed by the Swift Package Manager, are a unit of code distribution.  Some packages contain just a single module, but it's frequently useful to split a package's code into multiple modules.  For example, when a module contains some internal helper APIs, those APIs can be split out into a utility module and maybe reused by other modules or packages.
+Packages, as expressed by the Swift Package Manager, are a unit of code distribution.  Some packages contain just a single module, but it's frequently useful to split a package's code into multiple modules.  For example, when a module contains some `internal` helper APIs, those APIs can be split out into a utility module and maybe reused by other modules or packages.
 
 However, because Swift does not recognize organizations of code above the module level, it is not possible to create APIs like this that are purely internal to the package.  To be usable from other modules within the package, the API must be public, but this means it can also be used outside of the package.  This allows clients to form unwanted source dependencies on the API.  It also means the built module has to export the API, which has negative implications for code size and performance.
 
@@ -134,22 +135,13 @@ If `-package-name` is not given, the `package` access modifier is disallowed.  S
 
 The build system should make a best effort to ensure that package names are unique.  The Swift Package Manager already has a concept of a package identity string for every package.  This string is verified to be unique, and it already works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
 
-If a target needs to be excluded from the package boundary or needes to be part of a subgroup within the package boundary, it can be set in a target setting, with a new parameter `group` in the manifest, like so: 
+If a target needs to be excluded from the package boundary, it can be set in a new setting per target `packageAccess` in the manifest, like so: 
 
 ```
-  .target(name: "Game", dependencies: ["Engine"], group: .excluded)
+  .target(name: "Game", dependencies: ["Engine"], packageAccess: false)
 ```
 
-The `group` setting is mapped to the following type:
-
-```
-enum Group {
-  case package
-  case excluded
-}
-```
-
-The default value is `.package`, and the target is built with `-package-name PACKAGE_ID`.  If set to `.excluded`, no `-package-name` is passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box testing target in the same package.
+The `packageAccess` setting per target is set to `true` by default.  The target is built with `-package-name PACKAGE_ID` where `PACKAGE_ID` is the manifest's package identifier.  If set to `false`, `-package-name` is not passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box test target in the package.
 
 ### Package Symbols Distribution
 
@@ -280,22 +272,9 @@ Potential solutions include introducing new keywords for specific access combina
 
 Sometimes entire modules are meant to be private to the package that provides them.  Allowing this to be expressed directly would allow these utility modules to be completely hidden outside of the package, avoiding unwanted dependencies on the existence of the module.  It would also allow the build system to automatically namespace the module within the package, reducing the need for [explicit module aliases](https://github.com/apple/swift-evolution/blob/main/proposals/0339-module-aliasing-for-disambiguation.md) when utility modules of different packages share a name (such as `Utility`) or when multiple versions of a package need to be built into the same program.
 
-### Package Boundary Customization
+### Sub-grouping in Package
 
-The `group` setting per target in Swift Package Manager allows a target to opt out of a package boundary, but if there is a need for  creating multi-groups within a package, the setting could be expanded to allow that by introducing a `.named(GROUP_ID)` option, where `GROUP_ID` is a unique identifier for a specific group the target belongs to.
-
-```
-enum Group {
-  case package
-  case excluded
-  case named(String)
-}
-```
-For example, the new option could be specified in a target setting in a manifest like so:
-
-```
-  .target(name: "Game", dependencies: ["Engine"], group: .named("Core"))
-```
+If there is a need to split a package into sub-packages, it is currently recommended to create new repositories and manifests and create a dependency among them.  However, if there is a demand for creating a more lightweight sub-pacaking mechanism, it might be useful to allow sub-grouping within a package.  A `group` setting could be created per target, which allows multiple targets to belong to a specific group within the package. 
 
 ### Optimizations
 
@@ -347,7 +326,7 @@ Instead of adding a new package access level above modules, we could allow modul
 
 ### `@usableFromPackageInline`
 
-A new attribute `@usableFromPackageInline` was considered, which would allow an internal declaration to be used in the body of an `@inlinable package` declaration, but not in `@inlinable public`. It was however concluded unnecessary as inlining for package declarations could be enabled by default via optimization in the future (since they are in the same package boundary).
+A new attribute `@usableFromPackageInline` was considered, which would allow an `internal` declaration to be used in the body of an `@inlinable package` declaration, but not in `@inlinable public`. It was however concluded unnecessary as inlining for `package` declarations could be enabled by default via optimization in the future (since they are in the same package boundary).
 
 ## Acknowledgments
 
