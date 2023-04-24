@@ -9,64 +9,46 @@
 
 ## Introduction
 
- [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) introduces macros into Swift. The approach involves an explicit syntax for uses of macros (prefixed by `#`), type checking for macro arguments prior to macro expansion, and macro expansion implemented via separate programs that operate on the syntax tree of the arguments.
+ [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) introduced macros into Swift. The approach involves an explicit syntax for uses of macros (prefixed by `#`), type checking for macro arguments prior to macro expansion, and macro expansion implemented via separate programs that operate on the syntax tree of the arguments.
 
-This proposal generalizes the `#`-prefixed macro expansion syntax introduced for expression macros to also allow macros to generate declarations and statements, enabling a number of other use cases, including:
+This proposal generalizes the `#`-prefixed macro expansion syntax introduced for expression macros to also allow macros to generate declarations, enabling a number of other use cases, including:
 
-* Subsuming the `#warning` and `#error` directives introduced in [SE-0196](https://github.com/apple/swift-evolution/blob/main/proposals/0196-diagnostic-directives.md) into macros.
-* Logging entry/exit of a function.
+* Generating data structures from a template or other data format (e.g., JSON).
+* Subsuming the `#warning` and `#error` directives introduced in [SE-0196](https://github.com/apple/swift-evolution/blob/main/proposals/0196-diagnostic-directives.md) as macros.
 
 ## Proposed solution
 
-The proposal introduces "freestanding" macros, a category of macros that can be evaluated on their own and are not attached to any other entity. All freestanding macros use the `#`-prefixed syntax introduced in [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md), building on and generalizing its design. Indeed, this proposal reclassifies expression macros as one form of freestanding macros, introducing one additional kind of freestanding macro:
+The proposal extends the notion of "freestanding" macros introduced in [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) to also allow macros to introduce new declarations. Like expression macros, freestanding declaration macros are expanded using the `#` syntax, and have type-checked macro arguments. However, freestanding declaration macros can be used any place that a declaration is provided, and never produce a value. 
 
-This proposal also introduces a new kind of freestanding macros, declaration macros, which are expanded to create zero or more new declarations. 
-
-* *Declaration macros* introduce zero or more declarations. These macros can be used anywhere where a declaration is permitted, including at the top level, in a function or closure body, or in a type definition or extension thereof. The generated declarations can be referenced from other Swift code, making freestanding macros useful for many different kinds of code generation and manipulation.
-
-Freestanding macros are declared with the `macro` introducer, and have one or more `@freestanding` attributes applied to them. The `@freestanding` attribute always contains a macro *role* (expression or declaration) and, optionally, a set of *introduced names* like attached macros. For example, a freestanding declaration macro would have an attribute like this:
+As with other macros, freestanding declaration macros are declared with the `macro` introducer. They will use the `@freestanding` attribute with the new `declaration` role and, optionally, a set of *introduced names* as described in [SE-0389 "Attached macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#specifying-newly-introduced-names). For example, a freestanding declaration macro would have an attribute like this:
 
 ```swift
 @freestanding(declaration)
 ```
 
-whereas a declaration macro that introduced an enum named `CodingKeys` would have an attribute like this:
+whereas a freestanding declaration macro that introduced an enum named `CodingKeys` would have an attribute like this:
 
 ```swift
 @freestanding(declaration, names: named(CodingKeys))
 ```
 
-Implementations of freestanding macros are types that conform to the `FreestandingMacro` protocol, which is defined as follows:
+Implementations of freestanding declaration macros are types that conform to the `DeclarationMacro` protocol, which is defined as follows:
 
 ```swift
-protocol FreestandingMacro: Macro { }
-```
-
-### Expression macros
-
-As previously noted, expression macros are one form of freestanding macro. [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md)  already introduced the `FreestandingMacro` protocol and the `ExpressionMacro` protocol that inherits from it:
-
-```swift
-protocol ExpressionMacro: FreestandingMacro {
-  // ...
+public protocol DeclarationMacro: FreestandingMacro {
+  static func expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) async throws -> [DeclSyntax]
 }
 ```
 
-As well as the `@freestanding(expression)` syntax:
-
-```swift
-@freestanding(expression) macro stringify<T>(_: T) -> (T, String)
-```
-
-Expression macros can be used anywhere that an expression is permitted, e.g., within the body of a function or closure, or as a subexpression anywhere. Their implementations always produce another expression.
-
-### Declaration macros
-
-Declaration macros can be used anywhere that a declaration is permitted, e.g., in a function or closure body, at the top level, or within a type definition or extension thereof. Declaration macros produce zero or more declarations. The `warning` directive introduced by [SE-0196](https://github.com/apple/swift-evolution/blob/main/proposals/0196-diagnostic-directives.md) can be described as a freestanding code item macro as follows:
+Declaration macros can be used anywhere that a declaration is permitted, e.g., in a function or closure body, at the top level, or within a type definition or extension thereof. Declaration macros produce zero or more declarations. The `warning` directive introduced by [SE-0196](https://github.com/apple/swift-evolution/blob/main/proposals/0196-diagnostic-directives.md) can be described as a freestanding declaration macro as follows:
 
 ```swift
 /// Emits the given message as a warning, as in SE-0196.
-@freestanding(declaration) macro warning(_ message: String)
+@freestanding(declaration) 
+macro warning(_ message: String) = #externalMacro(module: "MyMacros", type: "WarningMacro")
 ```
 
 Given this macro declaration, the syntax
@@ -77,32 +59,13 @@ Given this macro declaration, the syntax
 
 can be used anywhere a declaration can occur. 
 
-Freestanding macros are implemented as types that conform to the `DeclarationMacro` protocol :
-
-```swift
-public protocol DeclarationMacro: FreestandingMacro {
-  /// Expand a macro described by the given freestanding macro expansion declaration
-  /// within the given context to produce a set of declarations.
-  static func expansion(
-    of node: some FreestandingMacroExpansionSyntax,
-    in context: some MacroExpansionContext
-  ) async throws -> [DeclSyntax]
-}
-```
-
-The `MacroExpansionDeclSyntax` node provides the syntax tree for the use site (e.g., `#warning("unsupported configuration")`), and has the same grammar and members as the `MacroExpansionExprSyntax` node introduced in [SE-0382](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-expansion). The grammar parallels `macro-expansion-expression`:
-
-```
-declaration -> macro-expansion-declaration
-macro-expansion-declaration -> '#' identifier generic-argument-clause[opt] function-call-argument-clause[opt] trailing-closures[opt]
-```
-
 The implementation of a `warning` declaration macro extracts the string literal argument (producing an error if there wasn't one) and emits a warning. It returns an empty list of declarations:
 
 ```swift
 public struct WarningMacro: DeclarationMacro {
   public static func expansion(
-    of node: some FreestandingMacroExpansionSyntax, in context: inout MacroExpansionContext
+    of node: some FreestandingMacroExpansionSyntax, 
+    in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
     guard let messageExpr = node.argumentList.first?.expression.as(StringLiteralExprSyntax.self),
           messageExpr.segments.count == 1,
@@ -120,52 +83,11 @@ public struct WarningMacro: DeclarationMacro {
 }
 ```
 
-A macro that does introduce declarations needs to document the names it introduces. Just like `@attached`, the `@freestanding` attribute has a `names` argument that provides the names introduced by a macro. For example, consider a macro that declares a `main` function suitable for use with the [`@main` attribute](https://github.com/apple/swift-evolution/blob/main/proposals/0281-main-attribute.md) but that handles an exit code, e.g.,
-
-```swift
-@main
-struct App {
-  #main {
-    if hasBadArgument() { return -1 }
-    if noNetwork() { return -2 }  
-    return 0
-  }
-}
-```
-
-will be expanded to:
-
-```swift
-@main
-struct App {
-  static func $_unique_name() -> Int {
-    if hasBadArgument() { return -1 }
-    if noNetwork() { return -2 }  
-    return 0
-  }
-
-  static func main() {
-    guard let exitCode = $_unique_name(), exitCode == 0 else {
-      exit(exitCode)
-    }
-  }
-}
-```
-
-The `main` macro would be declared as follows:
-
-```swift
-@freestanding(declaration, names: named(main))
-macro main(_ body: () -> Int)
-```
-
-This specifies that the macro will produce a declaration named `main`. It is also allowed to produce declarations with names produced by `MacroExpansionContext.makeUniqueName(_:)` (implied by `$_unique_name` in the example above) without documenting them, because they are not visible to other parts of the program not generated by the macro. The reasons for documenting macro names are provided within the detailed design.
-
 ## Detailed design
 
 ### Syntax
 
-The syntactic representation of a freestanding macro expansion site is a macro expansion declaration. A macro expansion declaration is described by the following grammar. It has the same production rule as a macro expansion expression.
+The syntactic representation of a freestanding macro expansion site is a macro expansion declaration. A macro expansion declaration is described by the following grammar. It has the same production rule as a [macro expansion expression](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-expansion):
 
 ```
 declaration -> macro-expansion-declaration
@@ -181,10 +103,10 @@ At top level and function scope where both expressions and declarations are allo
 
 ### Restrictions
 
-Like attached peer macros, a freestanding macro can expand to any declaration that is syntatically and semantically well-formed within the context where the macro is expanded. It shares the same requirements and restrictions.
+Like attached peer macros, a freestanding declaration macro can expand to any declaration that is syntatically and semantically well-formed within the context where the macro is expanded. It shares the same requirements and restrictions:
 
 - [**Specifying newly-introduced names**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#specifying-newly-introduced-names)
-  - Note that only `named(...)` and `arbitrary` are allowed as macro-introduced names for a declaration macro.
+  - Note that only `named(...)` and `arbitrary` are allowed as macro-introduced names for a declaration macro. `overloaded`, `prefixed`, and `suffixed` do not make sense when there is no declaration from which to derive names.
 - [**Visibility of names used and introduced by macros**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#visibility-of-names-used-and-introduced-by-macros)
 - [**Permitted declaration kinds**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#permitted-declaration-kinds)
 
@@ -194,7 +116,7 @@ One additional restriction is that a macro declaration can have at most one free
 @freestanding(expression)
 @freestanding(declaration) // error: a macro cannot have multiple freestanding macro roles 
 macro foo()
-``` 
+```
 
 ### Examples
 
@@ -243,12 +165,15 @@ The Swift Standard Library makes extensive use of the [gyb](https://github.com/a
 
 ```swift
 @freestanding(declaration, names: arbitrary)
-macro gyb(String, [Any])
+macro gyb(String, [Any]) = #externalMacro(module: "MyMacros", type: "GYBMacro")
 
-#gyb({
+#gyb(
+  """
   public struct Int${0} { ... }
   public struct UInt${0} { ... }
-}, [8, 16, 32, 64])
+  """,
+  [8, 16, 32, 64]
+)
 ```
 
 This expands to:
@@ -273,7 +198,7 @@ Declaring a data model for an existing textual serialization may need some amoun
 
 ```swift
 @freestanding(declaration, names: arbitrary)
-macro jsonModel(String)
+macro jsonModel(String) = #externalMacro(module: "MyMacros", type: "JSONModelMacro")
 
 struct JSONValue: Codable {
   #jsonModel("""
@@ -314,9 +239,7 @@ struct JSONValue: Codable {
 
 ## Source compatibility
 
-Freestanding macros use the same syntax introduced for expression macros, which were themselves a pure extension without an impact on source compatibility. There is a syntactic ambiguity between expression and freestanding declaration macros, i.e., `#warn("watch out")` within a function body could refer to multiple freestanding macros of different roles. The distinction will need to be determined semantically with the same overload resolution rules as function calls.
-
-Attached declaration macros use the same syntax introduced for custom attributes (such as property wrappers), and therefore do not have an impact on source compatibility.
+Freestanding macros use the same syntax introduced for expression macros, which were themselves a pure extension without an impact on source compatibility. Because a given macro can only have a single freestanding role, and we retain the parsing rules for macro expansion expressions, this proposal introduces no new ambiguities with SE-0392 "Expression Macros".
 
 ## Effect on ABI stability
 
