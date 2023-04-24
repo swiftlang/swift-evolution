@@ -159,7 +159,7 @@ public struct Int64 { ... }
 public struct UInt64 { ... }
 ```
 
-### Template code generator
+### Template code generation
 
 The Swift Standard Library makes extensive use of the [gyb](https://github.com/apple/swift/blob/main/utils/gyb.py) tool to generate boilerplate-y Swift code such as [tgmath.swift.gyb](https://github.com/apple/swift/blob/main/stdlib/public/Platform/tgmath.swift.gyb). The template code is written in `.gyb` files, which are processed by the gyb tool separately before Swift compilation. With freestanding declaration macros, one could write a macro to accept a string as a template and a list of replacement values, allowing templates to be defined inline and eliminating the need to set up a separate build phase.
 
@@ -192,7 +192,7 @@ This expands to:
   public struct UInt64 { ... }
 ```
 
-### Data model generator
+### Data model generation
 
 Declaring a data model for an existing textual serialization may need some amount of eyeballing and is prone to errors.  A freestanding declaration macro can be used to analyze a template textual serialization, e.g. JSON, and declare a model data structure against the template.
 
