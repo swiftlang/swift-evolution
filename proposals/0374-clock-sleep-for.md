@@ -3,7 +3,7 @@
 * Proposal: [SE-0374](0374-clock-sleep-for.md)
 * Authors: [Brandon Williams](https://github.com/mbrandonw), [Stephen Celis](https://github.com/stephencelis)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Implemented (Swift 5.8)**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: [apple/swift#61222](https://github.com/apple/swift/pull/61222)
 * Review: ([pitch](https://forums.swift.org/t/pitch-clock-sleep-for/60376)) ([review](https://forums.swift.org/t/se-0374-add-sleep-for-to-clock/60787)) ([acceptance](https://forums.swift.org/t/accepted-se-0374-add-sleep-for-to-clock/62148))
 

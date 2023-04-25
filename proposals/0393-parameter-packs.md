@@ -1,11 +1,11 @@
-# SE-0393: Value and Type Parameter Packs
+# Value and Type Parameter Packs
 
 * Proposal: [SE-0393](0393-parameter-packs.md)
 * Authors: [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active review (March 21...April 3, 2023)**
+* Status: **Accepted**
 * Implementation: On `main` gated behind the frontend flag `-enable-experimental-feature VariadicGenerics`
-* Review: ([pitch 1](https://forums.swift.org/t/pitch-parameter-packs/60543)) ([pitch 2](https://forums.swift.org/t/pitch-2-value-and-type-parameter-packs/60830)) ([review](https://forums.swift.org/t/se-0393-value-and-type-parameter-packs/63859))
+* Review: ([pitch 1](https://forums.swift.org/t/pitch-parameter-packs/60543)) ([pitch 2](https://forums.swift.org/t/pitch-2-value-and-type-parameter-packs/60830)) ([review](https://forums.swift.org/t/se-0393-value-and-type-parameter-packs/63859)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0393-value-and-type-parameter-packs/64382))
 
 ## Introduction
 
@@ -53,6 +53,7 @@ This proposal adds _type parameter packs_ and _value parameter packs_ to enable 
     - [Value expansion operator](#value-expansion-operator)
     - [Pack destructuring operations](#pack-destructuring-operations)
     - [Tuple conformances](#tuple-conformances)
+  - [Revision history](#revision-history)
   - [Acknowledgments](#acknowledgments)
 
 ## Motivation
@@ -92,12 +93,14 @@ Parameter packs are the core concept that facilitates abstracting over a variabl
 func zip<each S: Sequence>(...)
 ```
 
-A parameter pack itself is not a first-class value or type, but the elements of a parameter pack can be used anywhere that naturally accepts a comma-separated list of values or types using _pack expansions_. A pack expansion unpacks the elements of a pack into a comma-separated list, and elements can be appended to either side of a pack expansion by writing more values in the comma-separated list.
+A parameter pack itself is not a first-class value or type, but the elements of a parameter pack can be used anywhere that naturally accepts a list of values or types using _pack expansions_, including top-level expressions.
 
-A pack expansion consists of the `repeat` keyword followed by a type or an expression. The type or expression that `repeat` is applied to is called the _repetition pattern_. The repetition pattern must contain pack references. Similarly, pack references can only appear inside repetition patterns and generic requirements:
+A pack expansion consists of the `repeat` keyword followed by a type or an expression. The type or expression that `repeat` is applied to is called the _repetition pattern_. The repetition pattern must contain at least one pack reference, spelled with the `each` keyword. At runtime, the pattern is repeated for each element in the substituted pack, and the resulting types or values are _expanded_ into the list provided by the surrounding context.
+
+Similarly, pack references can only appear inside repetition patterns and generic requirements:
 
 ```swift
-func zip<each S>(_ sequence: repeat each S) where each S: Sequence
+func zip<each S>(_ sequence: repeat each S) where repeat each S: Sequence
 ```
 
 Given a concrete pack substitution, the pattern is repeated for each element in the substituted pack. If `S` is substituted with `Array<Int>, Set<String>`, then `repeat Optional<each S>` will repeat the pattern `Optional<each S>` for each element in the substitution to produce `Optional<Array<Int>>, Optional<Set<String>>`.
@@ -105,12 +108,11 @@ Given a concrete pack substitution, the pattern is repeated for each element in 
 Here are the key concepts introduced by this proposal:
 
 - Under the new model, all existing types and values in the language become _scalar types_ and _scalar values_.
-- A _type pack_ is a new kind of type which represents a list of scalar types. Type packs do not have syntax in the surface language, but we will write them as `{T1, ..., Tn}` where each `Ti` is a scalar type. Type packs cannot be nested; type substitution is defined to always flatten type packs.
-- A _type parameter pack_ is a type parameter which can abstract over a type pack. These are declared in a generic parameter list using the syntax `each T`, and referenced with `each T`.
-- A _pack expansion type_ is a new kind of scalar type which flattens a set of type packs in a context where a comma-separated list of types may appear. The syntax for a pack expansion type is `repeat each P`, where `P` is a type containing one or more type parameter packs.
+- A _type pack_ is a new kind of type-level entity which represents a list of scalar types. Type packs do not have syntax in the surface language, but we will write them as `{T1, ..., Tn}` where each `Ti` is a scalar type. Type packs cannot be nested; type substitution is defined to always flatten type packs.
+- A _type parameter pack_ is a list of zero or more scalar type parameters. These are declared in a generic parameter list using the syntax `each T`, and referenced with `each T`.
 - A _value pack_ is a list of scalar values. The type of a value pack is a type pack, where each element of the type pack is the scalar type of the corresponding scalar value. Value packs do not have syntax in the surface language, but we will write them as `{x1, ..., xn}` where each `xi` is a scalar value. Value packs cannot be nested; evaluation is always defined to flatten value packs.
-- A _value parameter pack_ is a function parameter or local variable declared with a pack expansion type.
-- A _pack expansion expression_ is a new kind of expression whose type is a pack expansion type. Written as `repeat each expr`, where `expr` is an expression referencing one or more value parameter packs.
+- A _value parameter pack_ is a list of zero or more scalar function or macro parameters.
+- A _pack expansion_ is a new kind of type-level and value-level construct that expands a type or value pack into a list of types or values, respectively. Written as `repeat P`, where `P` is the _repetition pattern_ that captures at least one type parameter pack (spelled with the `each` keyword). At runtime, the pattern is repeated for each element in the substituted pack.
 
 The following example demonstrates these concepts together:
 
@@ -168,7 +170,7 @@ A pack expansion type, written as `repeat P`, has a *pattern type* `P` and a non
 * The type of a parameter in a function type, e.g. `(repeat each T) -> Bool`
 * The type of an unlabeled element in a tuple type, e.g. `(repeat each T)`
 
-Because pack expansions can only appear in positions that accept a comma-separated list, pack expansion patterns are naturally delimited by either a comma or the end-of-list delimiter, e.g. `)` for call argument lists or `>` for generic argument lists.
+Because pack expansions can only appear in positions that accept a list of types or values, pack expansion patterns are naturally delimited by a comma, the next statement in top-level code, or an end-of-list delimiter, e.g. `)` for call argument lists or `>` for generic argument lists.
 
 The restriction where only unlabeled elements of a tuple type may have a pack expansion type is motivated by ergonomics. If you could write `(t: repeat each T)`, then after a substitution `T := {Int, String}`, the substituted type would be `(t: Int, String)`. This would be strange, because projecting the member `t` would only produce the first element. When an unlabeled element has a pack expansion type, like `(repeat each T)`, then after the above substitution you would get `(Int, String)`. You can still write `0` to project the first element, but this is less surprising to the Swift programmer.
 
@@ -383,20 +385,20 @@ We will refer to `each T` as the _root type parameter pack_ of the member type p
 
 ### Generic requirements
 
-All existing kinds of generic requirements generalize to type parameter packs. Same-type requirements generalize in multiple different ways, depending on whether one or both sides involve a type parameter pack.
+All existing kinds of generic requirements can be used inside _requirement expansions_, which represent a list of zero or more requirements. Requirement expansions are spelled with the `repeat` keyword followed by a generic requirement pattern that captures at least one type parameter pack reference spelled with the `each` keyword. Same-type requirements generalize in multiple different ways, depending on whether one or both sides involve a type parameter pack.
 
 1. Conformance, superclass, and layout requirements where the subject type is a type parameter pack are interpreted as constraining each element of the replacement type pack:
 
   ```swift
-  func variadic<each S>(_: repeat each S) where each S: Sequence { ... }
+  func variadic<each S>(_: repeat each S) where repeat each S: Sequence { ... }
   ```
 
   A valid substitution for the above might replace `S` with `{Array<Int>, Set<String>}`. Expanding the substitution into the requirement `each S: Sequence` conceptually produces the following conformance requirements: `Array<Int>: Sequence, Set<String>: Sequence`.
 
-2. A same-type requirement where one side is a type parameter pack and the other type is a scalar type that does not capture any type parameter packs is interpreted as constraining each element of the replacement type pack to _the same_ scalar type:
+1. A same-type requirement where one side is a type parameter pack and the other type is a scalar type that does not capture any type parameter packs is interpreted as constraining each element of the replacement type pack to _the same_ scalar type:
 
   ```swift
-  func variadic<each S: Sequence, T>(_: repeat each S) where (each S).Element == T {}
+  func variadic<each S: Sequence, T>(_: repeat each S) where repeat (each S).Element == T {}
   ```
 
   This is called a _same-element requirement_.
@@ -407,7 +409,7 @@ All existing kinds of generic requirements generalize to type parameter packs. S
 3. A same-type requirement where each side is a pattern type that captures at least one type parameter pack is interpreted as expanding the type packs on each side of the requirement, equating each element pair-wise.
 
   ```swift
-  func variadic<each S: Sequence, each T>(_: repeat each S) where (each S).Element == Array<each T> {}
+  func variadic<each S: Sequence, each T>(_: repeat each S) where repeat (each S).Element == Array<each T> {}
   ```
   
   This is called a _same-type-pack requirement_.
@@ -466,20 +468,20 @@ The type annotation of `tup` contains a pack expansion type `repeat (each T, eac
 
 #### Restrictions on same-shape requirements
 
-While type packs cannot be written directly, a requirement where both sides are concrete types is desugared using the type matching algorithm, therefore it will be possible to write down a requirement that constrains a type parameter pack to a concrete type pack, unless some kind of restriction is imposed:
+Type packs cannot be written directly, but requirements involving pack expansions where both sides are concrete types are desugared using the type matching algorithm. This means it is possible to write down a requirement that constrains a type parameter pack to a concrete type pack, unless some kind of restriction is imposed:
 
 ```swift
-func append<each S: Sequence>(_: repeat each S, _: repeat each T) where (each S).Element == (Int, String) {}
+func constrain<each S: Sequence>(_: repeat each S) where (repeat (each S).Element) == (Int, String) {}
 ```
 
-Furthermore, since the same-type requirement implies a same-shape requirement, we've implicitly constrained `T` to having a length of 2 elements, without knowing what those elements are.
+Furthermore, since the same-type requirement implies a same-shape requirement, we've implicitly constrained `S` to having a length of 2 elements, without knowing what those elements are.
 
 This introduces theoretical complications. In the general case, same-type requirements on type parameter packs allows encoding arbitrary systems of integer linear equations:
 
 ```swift
 // shape(Q) = 2 * shape(R) + 1
 // shape(Q) = shape(S) + 2
-func solve<each Q, each R, each S>(q: repeat each Q, r: repeat each R, s: repeat eachS) 
+func solve<each Q, each R, each S>(q: repeat each Q, r: repeat each R, s: repeat each S)
     where (repeat each Q) == (Int, repeat each R, repeat each R), 
           (repeat each Q) == (repeat each S, String, Bool) { }
 ```
@@ -500,7 +502,7 @@ This aspect of the language can evolve in a forward-compatible manner. Over time
 
 ### Value parameter packs
 
-A _value parameter pack_ represents zero or more function arguments, and it is declared with a function parameter that has a pack expansion type. In the following declaration, the function parameter `value` is a value parameter pack that receives a _value pack_ consisting of zero or more argument values from the call site:
+A _value parameter pack_ represents zero or more function or macro parameters, and it is declared with a function parameter that has a pack expansion type. In the following declaration, the function parameter `value` is a value parameter pack that receives a _value pack_ consisting of zero or more argument values from the call site:
 
 ```swift
 func tuplify<each T>(_ value: repeat each T) -> (repeat each T)
@@ -510,7 +512,7 @@ _ = tuplify(1) // T := {Int}, value := {1}
 _ = tuplify(1, "hello", [Foo()]) // T := {Int, String, [Foo]}, value := {1, "hello", [Foo()]}
 ```
 
-**Syntactic validity:** A value parameter pack can only be referenced from a pack expansion expression. A pack expansion expression is written as `repeat expr`, where `expr` is an expression containing one or more value parameter packs or type parameter packs spelled with the `each` keyword. Pack expansion expressions can appear in any position that naturally accepts a comma-separated list of expressions. This includes the following:
+**Syntactic validity:** A value parameter pack can only be referenced from a pack expansion expression. A pack expansion expression is written as `repeat expr`, where `expr` is an expression containing one or more value parameter packs or type parameter packs spelled with the `each` keyword. Pack expansion expressions can appear in any position that naturally accepts a list of expressions, including comma-separated lists and top-level expressions. This includes the following:
 
 * Call arguments, e.g. `generic(repeat each value)`
 * Subscript arguments, e.g. `subscriptable[repeat each index]`
@@ -518,8 +520,6 @@ _ = tuplify(1, "hello", [Foo()]) // T := {Int, String, [Foo]}, value := {1, "hel
 * The elements of an array literal, e.g. `[repeat each value]`
 
 Pack expansion expressions can also appear in an expression statement at the top level of a brace statement. In this case, the semantics are the same as scalar expression statements; the expression is evaluated for its side effect and the results discarded.
-
-Note that pack expansion expressions can also reference _type_ pack parameters, as metatypes.
 
 **Capture:** A pack expansion expression _captures_ a value (or type) pack parameter the value (or type) pack parameter appears as a sub-expression without any intervening pack expansion expression.
 
@@ -561,16 +561,50 @@ func overload<T>(_: T) {}
 func overload<each T>(_: repeat each T) {}
 ```
 
-If both overloads match a given call, e.g. `overload(1)`, the call is ambiguous. Similarly, two generic functions where one accepts a non-pack variadic parameter and the other accepts a type parameter pack:
+If the parameters of the scalar overload have the same or refined requirements as the parameter pack overload, the scalar overload is considered a subtype of the parameter pack overload, because the parameters of the scalar overload can be forwarded to the parameter pack overload. Currently, if a function call successfully type checks with two different overloads, the subtype is preferred. This overload ranking rule generalizes to overloads with parameter packs, which effectively means that scalar overloads are preferred over parameter pack overloads when the scalar requirements meet the requirements of the parameter pack:
 
 ```swift
-func overload<T>(_: T...) {}
+func overload() {}
+func overload<T>(_: T) {}
 func overload<each T>(_: repeat each T) {}
 
-overload() // ambiguity error
+overload() // calls the no-parameter overload
+
+overload(1) // calls the scalar overload
+
+overload(1, "") // calls the parameter pack overload
 ```
 
-In other words, variadic generic functions have the same ranking as other generic functions.
+The general overload subtype ranking rule applies after localized ranking, such as implicit conversions and optional promotions. That remains unchanged with this proposal. For example:
+
+```swift
+func overload<T>(_: T, _: Any) {}
+func overload<each T>(_: repeat each T) {}
+
+overload(1, "") // prefers the parameter pack overload because the scalar overload would require an existential conversion
+```
+
+More complex scenarios can still result in ambiguities. For example, if multiple overloads match a function call, but each parameter list can be forwarded to the other, the call is ambiguous:
+
+```swift
+func overload<each T>(_: repeat each T) {}
+func overload<each T>(vals: repeat each T) {}
+
+overload() // error: ambiguous
+```
+
+Similarly, if neither overload can forward their parameter lists to the other, the call is ambiguous:
+
+```swift
+func overload<each T: BinaryInteger>(str: String, _: repeat each T) {}
+func overload<each U: StringProtocol>(str: repeat each U) {}
+
+func test<Z: BinaryInteger & StringProtocol>(_ z: Z) {
+  overload(str: "Hello, world!", z, z) // error: ambiguous
+}
+```
+
+Generalizing the existing overload resolution ranking rules to parameter packs enables library authors to introduce new function overloads using parameter packs that generalize existing fixed-arity overloads while preserving the overload resolution behavior of existing code.
 
 ## Effect on ABI stability
 
@@ -698,7 +732,7 @@ In this proposal, type packs do not have an explicit syntax, and a type pack is 
 ```swift
 struct Variadic<each T> {}
 
-extension Variadic where each T == {Int, String} {} // {Int, String} is a concrete pack
+extension Variadic where T == {Int, String} {} // {Int, String} is a concrete pack
 ```
 
 ### Pack iteration
@@ -728,7 +762,7 @@ Use cases for variadic generics that break up pack iteration across function cal
 Dynamic pack indexing is useful when the specific type of the element is not known, or when all indices must have the same type, such as for index manipulation or storing an index value. Packs could support subscript calls with an `Int` index, which would return the dynamic type of the pack element directly as the opened underlying type that can be assigned to a local variable with opaque type. Values of this type need to be erased or cast to another type to return an element value from the function:
 
 ```swift
-func element<each T>(at index: Int, in t: repeat each T) where each T: P -> any P {
+func element<each T: P>(at index: Int, in t: repeat each T) -> any P {
   // The subscript returns 'some P', which is erased to 'any P'
   // based on the function return type.
   let value: some P = t[index]
@@ -832,6 +866,14 @@ extension<each T: Equatable> (repeat each T): Equatable {
 }
 ```
 
+## Revision history
+
+Changes to the [first reviewed revision](https://github.com/apple/swift-evolution/blob/b6ca38b9eee79650dce925e7aa8443a6a9e5e6ea/proposals/0393-parameter-packs.md):
+
+* The `repeat` keyword is required for generic requirement expansions to distinguish requirement expansions from single requirements on an individual pack element nested inside of a pack expansion expression.
+* Overload resolution prefers scalar overloads when the scalar overload is considered a subtype of a parmeter pack overload.
+
+
 ## Acknowledgments
 
-Thank you to Robert Widmann for exploring the design space of modeling packs as tuples, and to everyone who participated in earlier design discussions about variadic generics in Swift.
+Thank you to Robert Widmann for exploring the design space of modeling packs as tuples, and to everyone who participated in earlier design discussions about variadic generics in Swift. Thank you to the many engineers who contributed to the implementation, including Sophia Poirier, Pavel Yaskevich, Nate Chandler, Hamish Knight, and Adrian Prantl.

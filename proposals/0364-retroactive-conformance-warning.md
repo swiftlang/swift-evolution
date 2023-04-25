@@ -8,7 +8,7 @@
 * Review: ([first pitch](https://forums.swift.org/t/warning-for-retroactive-conformances-if-library-evolution-is-enabled/45321))
          ([second pitch](https://forums.swift.org/t/pitch-warning-for-retroactive-conformances-of-external-types-in-resilient-libraries/56243))
          ([first review](https://forums.swift.org/t/se-0364-warning-for-retroactive-conformances-of-external-types/58922))
-             ([revision](https://forums.swift.org/t/returned-for-revision-se-0364-warning-for-retroactive-conformance-of-external-types/59729))
+        ([second review](https://forums.swift.org/t/second-review-se-0364-warning-for-retroactive-conformances-of-external-types/64615))
 
 ## Introduction
 
@@ -55,17 +55,22 @@ This proposal adds a warning that explicitly calls out this pattern as
 problematic and unsupported.
 
 ```swift
-/tmp/retro.swift:3:1: warning: extension declares a conformance of imported type 'Date' to imported protocol 'Identifiable'; this will not behave correctly if the owners of 'Foundation' introduce this conformance in the future
+/tmp/retro.swift:3:1: warning: extension declares a conformance of imported type
+'Date' to imported protocol 'Identifiable'; this will not behave correctly if
+the owners of 'Foundation' introduce this conformance in the future
 extension Date: Identifiable {
 ^
 ```
 
-If absolutely necessary, clients can silence this warning by explicitly
-module-qualifying both of the types in question, to explicitly state that they
-are intentionally declaring this conformance:
+If absolutely necessary, clients can silence this warning by adding a new attribute,
+`@retroactive`, to the protocol in question.
 
-```
-extension Foundation.Date: Swift.Identifiable {
+The compiler will enforce that there is an explicit `@retroactive` conformance
+for each protocol included up the hierarchy. If needed, it will emit a fix-it to
+generate extensions for each retroactive conformance in the hierarchy.
+
+```swift
+extension Date: @retroactive Identifiable {
     // ...
 }
 ```
@@ -78,24 +83,43 @@ This warning will appear only if all of the following conditions are met, with a
 - The protocol for which the extension introduces the conformance is declared in a different
   module from the extension.
 
-The following exceptions apply:
+The following exceptions apply to either the conforming type or the protocol:
 
-- If the type is declared in a Clang module, and the extension in question is declared in a Swift
-  overlay, this is not considered a retroactive conformance.
-- If the type is declared or transitively imported in a bridging header or through the
+- If it is declared in a Clang module, and the extension in question is declared
+  in a Swift overlay of that module, this is not considered a retroactive conformance.
+- If it is declared or transitively imported in a bridging header or through the
   `-import-objc-header` flag, and the type does not belong to any other module, the warning is not
   emitted. This could be a retroactive conformance, but since these are added to an implicit module
   called `__ObjC`, we have to assume the client takes responsibility for these declaration.
+- If it is declared in one module, but uses the `@_originallyDefined(in:)` attribute to
+  signify that it has moved from a different module, then this will not warn.
 
 For clarification, the following are still valid, safe, and allowed:
 - Conformances of external types to protocols defined within the current module.
 - Extensions of external types that do not introduce a conformance. These do not introduce runtime conflicts, since the
   module name is mangled into the symbol.
 
+The `@retroactive` attribute may only be used in extensions, and only when used
+to introduce a conformance that requires its existence. It will be an error to
+use `@retroactive` outside of the declaration of a retroactive conformance.
+
 ## Source compatibility
 
-This proposal is just a warning addition, and doesn't affect source
-compatibility.
+`@retroactive` is a new attribute, but it is purely additive; it can be accepted
+by all language versions. It does mean projects building with an older Swift
+will not have access to this syntax, so as a source compatible fallback,
+a client can silence this warning by fully-qualifying all types in the extension.
+As an example, the above conformance can also be written as
+
+```swift
+extension Foundation.Date: Swift.Identifiable {
+    // ...
+}
+```
+
+This will allow projects that need to build with multiple versions of Swift, and
+which have valid reason to declare such conformances, to declare them without
+tying their project to a newer compiler build.
 
 ## Effect on ABI stability
 
@@ -103,7 +127,7 @@ This proposal has no effect on ABI stability.
 
 ## Effect on API resilience
 
-This proposal has direct effect on API resilience, but has the indirect effect of reducing
+This proposal has no direct effect on API resilience, but has the indirect effect of reducing
 the possible surface of client changes introduced by the standard library adding new conformances.
 
 ## Alternatives considered
