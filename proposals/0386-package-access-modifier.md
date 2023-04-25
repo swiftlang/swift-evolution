@@ -272,7 +272,7 @@ Potential solutions include introducing new keywords for specific access combina
 
 Sometimes entire modules are meant to be private to the package that provides them.  Allowing this to be expressed directly would allow these utility modules to be completely hidden outside of the package, avoiding unwanted dependencies on the existence of the module.  It would also allow the build system to automatically namespace the module within the package, reducing the need for [explicit module aliases](https://github.com/apple/swift-evolution/blob/main/proposals/0339-module-aliasing-for-disambiguation.md) when utility modules of different packages share a name (such as `Utility`) or when multiple versions of a package need to be built into the same program.
 
-### Grouping within a package
+### Grouping Within A Package
 
 The basic language design of this proposal can work for any group of related modules, but the application of that design in SPM allows only a single such group per SPM package.  Developers with complex SPM packages sometimes find that they have multiple architectural "layers" within a single package and may wish to make `package` apply only within a layer.  Logically, it makes some sense to put each layer in its own package.  Pragmatically, because different SPM packages must currently live in separate repositories and be independently versioned, splitting a package that way introduces a huge amount of extra complexity to the development process, and it is not something that should be done casually.
 
@@ -284,7 +284,7 @@ There are several reasonable ways that SPM could evolve to support multiple laye
 
 * By default, `package` symbols are exported in the final libraries/executables.  It would be useful to introduce a build setting that allows users to hide package symbols for statically linked libraries; this would help with code size and build time optimizations.
 
-## Source compatibility
+## Source Compatibility
 
 The new `package` access modifier is a contextual keyword.  Existing symbols that are named `package` should not require renaming, and existing source code should continue to work.
 
