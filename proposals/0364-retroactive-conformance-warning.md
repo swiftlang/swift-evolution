@@ -8,7 +8,7 @@
 * Review: ([first pitch](https://forums.swift.org/t/warning-for-retroactive-conformances-if-library-evolution-is-enabled/45321))
          ([second pitch](https://forums.swift.org/t/pitch-warning-for-retroactive-conformances-of-external-types-in-resilient-libraries/56243))
          ([first review](https://forums.swift.org/t/se-0364-warning-for-retroactive-conformances-of-external-types/58922))
-             ([revision](https://forums.swift.org/t/returned-for-revision-se-0364-warning-for-retroactive-conformance-of-external-types/59729))
+        ([second review](https://forums.swift.org/t/second-review-se-0364-warning-for-retroactive-conformances-of-external-types/64615))
 
 ## Introduction
 
