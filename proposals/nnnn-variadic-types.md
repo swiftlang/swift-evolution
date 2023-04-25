@@ -140,8 +140,9 @@ The behavior of generic requirements on type parameter packs is mostly unchanged
 1. If a generic type that imposes an inferred scalar requirement is applied to a pack element inside a pack expansion, the inferred requirement is a requirement expansion.
 2. If a generic type imposes an inferred requirement expansion, the requirement is expanded for each of the concrete generic arguments.
 3. If a generic type that imposes an inferred requirement expansion is applied to a pack element inside a pack expansion:
-  a. The inferred requirement is invalid if it contains multiple pack elements captured by expansions at different depths.
-  b. Otherwise, the nested requirement expansion is semantically equivalent to the innermost requirement expansion.
+
+    1. The inferred requirement is invalid if it contains multiple pack elements captured by expansions at different depths.
+    2. Otherwise, the nested requirement expansion is semantically equivalent to the innermost requirement expansion.
   
   The below code demonstrates each of the above rules:
 
