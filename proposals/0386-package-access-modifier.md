@@ -135,13 +135,13 @@ If `-package-name` is not given, the `package` access modifier is disallowed.  S
 
 The build system should make a best effort to ensure that package names are unique.  The Swift Package Manager already has a concept of a package identity string for every package.  This string is verified to be unique, and it already works as a package name, so SwiftPM will pass it down automatically.  Other build systems such as Bazel may need to introduce a new build setting for a package name.  Since it needs to be unique, a reverse-DNS name may be used to avoid clashing.
 
-If a target needs to be excluded from the package boundary, it can be set in a new setting per target `packageAccess` in the manifest, like so: 
+If a target needs to be excluded from the package boundary, that can be done with a new `packageAccess` setting in the manifest, like so: 
 
 ```
   .target(name: "Game", dependencies: ["Engine"], packageAccess: false)
 ```
 
-The `packageAccess` setting per target is set to `true` by default.  The target is built with `-package-name PACKAGE_ID` where `PACKAGE_ID` is the manifest's package identifier.  If set to `false`, `-package-name` is not passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box test target in the package.
+The `packageAccess` setting is set to `true` by default, and the target is built with `-package-name PACKAGE_ID` where `PACKAGE_ID` is the manifest's package identifier.  If `packageAccess` is set to `false`, `-package-name` is not passed when building the target, thus the target has no access to any package symbols; it essentially acts as if it's a client outside of the package. This would be useful for an example app or a black-box test target in the package.
 
 ### Package Symbols Distribution
 
@@ -272,9 +272,11 @@ Potential solutions include introducing new keywords for specific access combina
 
 Sometimes entire modules are meant to be private to the package that provides them.  Allowing this to be expressed directly would allow these utility modules to be completely hidden outside of the package, avoiding unwanted dependencies on the existence of the module.  It would also allow the build system to automatically namespace the module within the package, reducing the need for [explicit module aliases](https://github.com/apple/swift-evolution/blob/main/proposals/0339-module-aliasing-for-disambiguation.md) when utility modules of different packages share a name (such as `Utility`) or when multiple versions of a package need to be built into the same program.
 
-### Sub-grouping in Package
+### Grouping within a package
 
-If there is a need to split a package into sub-packages, it is currently recommended to create new repositories and manifests and create a dependency among them.  However, if there is a demand for creating a more lightweight sub-pacaking mechanism, it might be useful to allow sub-grouping within a package.  A `group` setting could be created per target, which allows multiple targets to belong to a specific group within the package. 
+The basic language design of this proposal can work for any group of related modules, but the application of that design in SPM allows only a single such group per SPM package.  Developers with complex SPM packages sometimes find that they have multiple architectural "layers" within a single package and may wish to make `package` apply only within a layer.  Logically, it makes some sense to put each layer in its own package.  Pragmatically, because different SPM packages must currently live in separate repositories and be independently versioned, splitting a package that way introduces a huge amount of extra complexity to the development process, and it is not something that should be done casually.
+
+There are several reasonable ways that SPM could evolve to support multiple layers within a single package repository.  One would be to allow targets to be grouped within a manifest, such as by adding a `group` parameter to `.target`.  An earlier version of this proposal suggested this and even designed the `packageAccess:` exclusion feature around it.  However, this would tend to lead to large, complex manifests that mingled the details of all the layers together.  A very different approach would be to allow the creation of sub-packages within a repository, each with its own manifest.  SPM would treat these sub-packages as logically separate units that happen to share a single repository and version.  Because they would be described in independent manifests, they would feel like different packages, and it would make sense for `package` access to be scoped within them.
 
 ### Optimizations
 
@@ -284,7 +286,7 @@ If there is a need to split a package into sub-packages, it is currently recomme
 
 ## Source compatibility
 
-A new keyword `package` is added as a new access modifier.  It is a contextual keyword and is an additive change.  Symbols that are named `package` should not require renaming, and the source code as is should continue to work.  
+The new `package` access modifier is a contextual keyword.  Existing symbols that are named `package` should not require renaming, and existing source code should continue to work.
 
 ## Effect on ABI stability
 
@@ -326,7 +328,7 @@ Instead of adding a new package access level above modules, we could allow modul
 
 ### `@usableFromPackageInline`
 
-A new attribute `@usableFromPackageInline` was considered, which would allow an `internal` declaration to be used in the body of an `@inlinable package` declaration, but not in `@inlinable public`. It was however concluded unnecessary as inlining for `package` declarations could be enabled by default via optimization in the future (since they are in the same package boundary).
+An earlier version of this proposal included a new attribute `@usableFromPackageInline`, which would have allowed an `internal` declaration to be used in the body of an `@inlinable package` declaration, but not in an `@inlinable public` declaration. Under the logic of this proposal, there is no good reason to make a declaration `@usableFromPackageInline internal` instead of simply `package`: the uses of the latter will be restricted to the package and therefore by assumption can still be easily found and reviewed. Furthermore, it is a goal of the Swift project to not require extensive `@inlinable` annotations just to enable basic optimizations between modules: there should be little reason in the long run to have an `@inlinable package` declaration at all. Therefore this attribute has been removed from the proposal.
 
 ## Acknowledgments
 
