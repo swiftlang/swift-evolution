@@ -1,7 +1,7 @@
 # Allow Generic Types to Abstract Over Packs
 
 * Proposal: [SE-NNNN](nnnn-variadic-types.md)
-* Authors: [Slava Pestov](https://github.com/slavapestov)
+* Authors: [Slava Pestov](https://github.com/slavapestov), [Holly Borla](https://github.com/hborla)
 * Review Manager: TBD
 * Upcoming Feature Flag: `VariadicGenerics`
 * Previous Proposal: [SE-0393](0393-parameter-packs.md)
@@ -135,7 +135,36 @@ struct S<each T> {
 
 ### Requirements
 
-The behavior of generic requirements on type parameter packs is unchanged between generic functions and generic types.
+The behavior of generic requirements on type parameter packs is mostly unchanged between generic functions and generic types. However, allowing types to abstract over parameter packs introduces _requirement inference_ of [generic requirement expansions](https://github.com/apple/swift-evolution/blob/main/proposals/0393-parameter-packs.md#generic-requirements). Requirement expansion inference follows these rules:
+
+1. If a generic type that imposes an inferred scalar requirement is applied to a pack element inside a pack expansion, the inferred requirement is a requirement expansion.
+2. If a generic type imposes an inferred requirement expansion, the requirement is expanded for each of the concrete generic arguments.
+3. If a generic type that imposes an inferred requirement expansion is applied to a pack element inside a pack expansion:
+  a. The inferred requirement is invalid if it contains multiple pack elements captured by expansions at different depths.
+  b. Otherwise, the nested requirement expansion is semantically equivalent to the innermost requirement expansion.
+  
+  The below code demonstrates each of the above rules:
+
+  ```swift
+  protocol P {
+      associatedtype A
+  }
+  struct ImposeRequirement<T> where T: P {}
+  struct ImposeRepeatedRequirement<each T> where repeat each T: P {}
+  struct ImposeRepeatedSameType<T1: P, each T2> where repeat T1.A == each T2 {}
+  
+  // Infers 'repeat each U: P'
+  func demostrate1<each U>(_: repeat ImposeRequirement<each U>)
+  
+  // Infers 'Int: P, V: P, repeat each U: P'
+  func demostrate2<each U, V>(_: ImposeRepeatedRequirement<Int, V, repeat each U>)
+  
+  // Error. Would attempt to infer 'repeat <U' = each U> repeat <V' = each V> U'.A == V' which is not a supported requirement in the language
+  func demonstrate3a<each U, each V>(_: repeat ImposeRepeatedSameType<each U, repeat each V>))
+  
+  // Infers 'Int: P, repeat each V: P'
+  func demostrate3b<each U, each V>(_: repeat (each U, ImposeRequirementExpansion<Int, repeat each V>))
+```
 
 ### Conformances
 
