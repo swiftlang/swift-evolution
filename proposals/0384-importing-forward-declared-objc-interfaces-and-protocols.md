@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0384](0384-importing-forward-declared-objc-interfaces-and-protocols.md)
 * Author: [Nuri Amari](https://github.com/NuriAmari)
-* Review Manager: Tony Allevato (https://github.com/allevato)
+* Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Implemented (Swift 5.9)**
 * Implementation: https://github.com/apple/swift/pull/61606
 * Upcoming Feature Flag: `ImportObjcForwardDeclarations`
