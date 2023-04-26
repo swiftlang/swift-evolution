@@ -3,7 +3,7 @@
 * Proposal: [SE-0364](0364-retroactive-conformance-warning.md)
 * Author: [Harlan Haskins](https://github.com/harlanhaskins)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Returned for Revision**
+* Status: **Active review (April 25...May 9)**
 * Implementation: [apple/swift#36068](https://github.com/apple/swift/pull/36068)
 * Review: ([first pitch](https://forums.swift.org/t/warning-for-retroactive-conformances-if-library-evolution-is-enabled/45321))
          ([second pitch](https://forums.swift.org/t/pitch-warning-for-retroactive-conformances-of-external-types-in-resilient-libraries/56243))
