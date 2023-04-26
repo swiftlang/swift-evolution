@@ -3,7 +3,7 @@
 * Proposal: [SE-0391](0391-package-registry-publish.md)
 * Author: [Yim Lee](https://github.com/yim-lee)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (February 27 ... March 13, 2023)**
+* Status: **Accepted**
 * Implementation:
   * https://github.com/apple/swift-package-manager/pull/6101
   * https://github.com/apple/swift-package-manager/pull/6146
