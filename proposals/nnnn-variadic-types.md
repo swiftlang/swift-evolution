@@ -67,7 +67,7 @@ But this is not:
 struct S4<each T, each U> {}
 ```
 
-However, by virtue of nesting, a variadic type might can still abstract over multiple type parameter packs:
+However, by virtue of nesting, a variadic type can still abstract over multiple type parameter packs:
 
 ```swift
 struct Outer<each T> {
