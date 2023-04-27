@@ -132,33 +132,6 @@ The `#warning` and `#error` directives introduced in [SE-0196](https://github.co
 @freestanding(declaration) macro error(_ message: String)
 ```
 
-### Boilerplate generation
-
-Freestanding declaration macros can be used to generate boilerplace code. For example, the Standard Library could use such a macro to generate integer types.
-
-```swift
-@freestanding(declaration, names: arbitrary)
-fileprivate macro IntegerTypes(bitWidths: Int...)
-
-#IntegerTypes(bitWidths: 8, 16, 32, 64)
-```
-
-This expands to:
-
-```swift
-public struct Int8 { ... }
-public struct UInt8 { ... }
-
-public struct Int16 { ... }
-public struct UInt16 { ... }
-
-public struct Int32 { ... }
-public struct UInt32 { ... }
-
-public struct Int64 { ... }
-public struct UInt64 { ... }
-```
-
 ### Template code generation
 
 The Swift Standard Library makes extensive use of the [gyb](https://github.com/apple/swift/blob/main/utils/gyb.py) tool to generate boilerplate-y Swift code such as [tgmath.swift.gyb](https://github.com/apple/swift/blob/main/stdlib/public/Platform/tgmath.swift.gyb). The template code is written in `.gyb` files, which are processed by the gyb tool separately before Swift compilation. With freestanding declaration macros, one could write a macro to accept a string as a template and a list of replacement values, allowing templates to be defined inline and eliminating the need to set up a separate build phase.
