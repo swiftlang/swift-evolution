@@ -475,7 +475,7 @@ HeaderView(inThread: destination.isCase(.messageThread(_)))
 
 // @isCase(<expr>, <pattern>)
 // Potentially a macro defined in the standard library. 
-// Not really idimatic, since it's like a global function rather than an infix operator.
+// Not really idiomatic, since it's like a global function rather than an infix operator.
 HeaderView(inThread: @isCase(destination, .messageThread(_)))
 ```
 
