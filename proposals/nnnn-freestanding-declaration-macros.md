@@ -1,15 +1,15 @@
 # Freestanding Declaration Macros
 
-* Proposal: [SE-nnnn](nnnn-freestanding-macros.md)
+* Proposal: [SE-0397](0397-freestanding-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Richard Wei](https://github.com/rxwei), [Holly Borla](https://github.com/hborla)
-* Review Manager: Unassigned
-* Status: **Pending review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (April 27th...May 8th, 2023)**
 * Implementation: On `main` behind the experimental flag `FreestandingMacros`
 * Review:
 
 ## Introduction
 
- [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) introduced macros into Swift. The approach involves an explicit syntax for uses of macros (prefixed by `#`), type checking for macro arguments prior to macro expansion, and macro expansion implemented via separate programs that operate on the syntax tree of the arguments.
+[SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) introduced macros into Swift. The approach involves an explicit syntax for uses of macros (prefixed by `#`), type checking for macro arguments prior to macro expansion, and macro expansion implemented via separate programs that operate on the syntax tree of the arguments.
 
 This proposal generalizes the `#`-prefixed macro expansion syntax introduced for expression macros to also allow macros to generate declarations, enabling a number of other use cases, including:
 
@@ -94,7 +94,7 @@ declaration -> macro-expansion-declaration
 macro-expansion-declaration -> '#' identifier generic-argument-clause[opt] function-call-argument-clause[opt] trailing-closures[opt]
 ```
 
-At top level and function scope where both expressions and declarations are allowed, a freestanding macro expansion site is first parsed as a macro expansion expression. It will be replaced by a macro expansion declaration later during type checking, if the macro resolves to a declaration macro. This is to allow the following infix expressions to be parsed correctly as an expression.
+At top level and function scope where both expressions and declarations are allowed, a freestanding macro expansion site is first parsed as a macro expansion expression. It will be replaced by a macro expansion declaration later during type checking, if the macro resolves to a declaration macro. It is ill-formed if a macro expansion expression resolves to a declaration macro but isn't the outermost expression. This parsing rule is required in case an expression starts with a macro expansion expression, such as in the following infix expression:
 
 ```swift
 #line + 1
@@ -239,7 +239,7 @@ struct JSONValue: Codable {
 
 ## Source compatibility
 
-Freestanding macros use the same syntax introduced for expression macros, which were themselves a pure extension without an impact on source compatibility. Because a given macro can only have a single freestanding role, and we retain the parsing rules for macro expansion expressions, this proposal introduces no new ambiguities with SE-0392 "Expression Macros".
+Freestanding macros use the same syntax introduced for [expression macros](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md), which were themselves a pure extension without an impact on source compatibility. Because a given macro can only have a single freestanding role, and we retain the parsing rules for macro expansion expressions, this proposal introduces no new ambiguities with SE-0392.
 
 ## Effect on ABI stability
 
