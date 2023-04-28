@@ -166,7 +166,7 @@ The behavior of generic requirements on type parameter packs is mostly unchanged
   func demonstrate3a<each U, each V>(_: repeat ImposeRepeatedSameType<each U, repeat each V>))
   
   // Infers 'Int: P, repeat each V: P'
-  func demostrate3b<each U, each V>(_: repeat (each U, ImposeRequirementExpansion<Int, repeat each V>))
+  func demostrate3b<each U, each V>(_: repeat (each U, ImposeRepeatedRequirement<Int, repeat each V>))
 ```
 
 ### Conformances
