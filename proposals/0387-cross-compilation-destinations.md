@@ -1,4 +1,4 @@
-# Cross-Compilation Destination Bundles
+# Swift SDKs for Cross-Compilation
 
 - Proposal: [SE-0387](0387-cross-compilation-destinations.md)
 - Authors: [Max Desiatov](https://github.com/MaxDesiatov), [Saleem Abdulrasool](https://github.com/compnerd), [Evan Wilde](https://github.com/etcwilde)
@@ -14,33 +14,35 @@
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Motivation](#motivation)
-- [Proposed Solution](#proposed-solution)
-- [Detailed Design](#detailed-design)
-  - [CC Destination Artifact Bundles](#cc-destination-artifact-bundles)
-  - [`toolset.json` Files](#toolsetjson-files)
-  - [`destination.json` Files](#destinationjson-files)
-  - [Destination Bundle Installation and Configuration](#destination-bundle-installation-and-configuration)
-  - [Using a CC Destination](#using-a-cc-destination)
-  - [CC Destination Bundle Generation](#cc-destination-bundle-generation)
-- [Security](#security)
-- [Impact on Existing Packages](#impact-on-existing-packages)
-- [Prior Art](#prior-art)
-  - [Rust](#rust)
-  - [Go](#go)
-- [Alternatives Considered](#alternatives-considered)
-  - [Extensions Other Than `.artifactbundle`](#extensions-other-than-artifactbundle)
-  - [Building Applications in Docker Containers](#building-applications-in-docker-containers)
-  - [Alternative Bundle Formats](#alternative-bundle-formats)
-- [Making Destination Bundles Fully Self-Contained](#making-destination-bundles-fully-self-contained)
-- [Future Directions](#future-directions)
-  - [Identifying Platforms with Dictionaries of Properties](#identifying-platforms-with-dictionaries-of-properties)
-  - [SwiftPM Plugins for Remote Running, Testing, Deployment, and Debugging](#swiftpm-plugins-for-remote-running-testing-deployment-and-debugging)
-  - [`swift destination select` Subcommand](#swift-destination-select-subcommand)
-  - [SwiftPM and SourceKit-LSP Improvements](#swiftpm-and-sourcekit-lsp-improvements)
-  - [Source-Based CC Destinations](#source-based-cc-destinations)
-  - [Destination Bundles and Package Registries](#destination-bundles-and-package-registries)
+- [Swift SDKs for Cross-Compilation](#swift-sdks-for-cross-compilation)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Motivation](#motivation)
+  - [Proposed Solution](#proposed-solution)
+  - [Detailed Design](#detailed-design)
+    - [Swift SDK Bundles](#swift-sdk-bundles)
+    - [`toolset.json` Files](#toolsetjson-files)
+    - [`swift-sdk.json` Files](#swift-sdkjson-files)
+    - [Swift SDK Installation and Configuration](#swift-sdk-installation-and-configuration)
+    - [Using a CC Destination](#using-a-cc-destination)
+    - [CC Destination Bundle Generation](#cc-destination-bundle-generation)
+  - [Security](#security)
+  - [Impact on Existing Packages](#impact-on-existing-packages)
+  - [Prior Art](#prior-art)
+    - [Rust](#rust)
+    - [Go](#go)
+  - [Alternatives Considered](#alternatives-considered)
+    - [Extensions Other Than `.artifactbundle`](#extensions-other-than-artifactbundle)
+    - [Building Applications in Docker Containers](#building-applications-in-docker-containers)
+    - [Alternative Bundle Formats](#alternative-bundle-formats)
+  - [Making Destination Bundles Fully Self-Contained](#making-destination-bundles-fully-self-contained)
+  - [Future Directions](#future-directions)
+    - [Identifying Platforms with Dictionaries of Properties](#identifying-platforms-with-dictionaries-of-properties)
+    - [SwiftPM Plugins for Remote Running, Testing, Deployment, and Debugging](#swiftpm-plugins-for-remote-running-testing-deployment-and-debugging)
+    - [`swift destination select` Subcommand](#swift-destination-select-subcommand)
+    - [SwiftPM and SourceKit-LSP Improvements](#swiftpm-and-sourcekit-lsp-improvements)
+    - [Source-Based CC Destinations](#source-based-cc-destinations)
+    - [Destination Bundles and Package Registries](#destination-bundles-and-package-registries)
 
 ## Introduction
 
@@ -54,7 +56,7 @@ Cross-compilation is a common development use case. When cross-compiling, we nee
 - **SDK** is a set of dynamic and/or static libraries, headers, and other resources required to generate code for the
   run-time triple.
 
-Let’s call a toolchain and an SDK bundled together a **destination**.
+Let’s call a Swift toolchain and an SDK bundled together a **Swift SDK**.
 
 Authors of the proposal are aware of the established "build/host/target platform" naming convention, but feel that
 "target" already has a different meaning within the build systems nomenclature. In addition, "platform"
@@ -63,14 +65,16 @@ triple" terms in this proposal.
 
 ## Motivation
 
-Swift cross-compilation (CC) destinations are currently produced on an ad-hoc basis for different combinations of
-build-time and run-time triples. For example, scripts that produce macOS → Linux CC destinations were created by both
+In Swift 5.8 and earlier versions users can cross-compile their code with so called "destination files" passed to 
+SwiftPM invocations. These destination files are produced on an ad-hoc basis for different combinations of
+build-time and run-time triples. For example, scripts that produce macOS → Linux destinations were created by both
 [the Swift
 team](https://github.com/apple/swift-package-manager/blob/swift-5.7-RELEASE/Utilities/build_ubuntu_cross_compilation_toolchain)
 and [the Swift community](https://github.com/SPMDestinations/homebrew-tap). At the same time, the distribution process
-of CC destinations is cumbersome. After building a destination tree on the file system, required metadata files rely on
-hardcoded absolute paths. Adding support for relative paths in destination's metadata and providing a unified way to
-distribute and install destinations as archives would clearly be an improvement to the multi-platform Swift ecosystem.
+of assets required for cross-compiling is cumbersome. After building a destination tree on the file system, required 
+metadata files rely on hardcoded absolute paths. Adding support for relative paths in destination's metadata and 
+providing a unified way to distribute and install required assets as archives would clearly be an improvement for the 
+multi-platform Swift ecosystem.
 
 The primary audience of this pitch are people who cross-compile from macOS to Linux. When deploying to single-board
 computers supporting Linux (e.g. Raspberry Pi), building on such hardware may be too slow or run out of available
@@ -84,19 +88,19 @@ The solution described below is general enough to scale for any build-time/run-t
 
 ## Proposed Solution
 
-Since CC destination is a collection of binaries arranged in a certain directory hierarchy, it makes sense to distribute
+Since a Swift SDK is a collection of binaries arranged in a certain directory hierarchy, it makes sense to distribute
 it as an archive. We'd like to build on top of
 [SE-0305](https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md) and
 extend the `.artifactbundle` format to support this.
 
-Additionally, we propose introducing a new `swift destination` CLI command for installation and removal of CC
-destinations on the local filesystem.
+Additionally, we propose introducing a new `swift sdk` CLI command for installation and removal of Swift SDKs on the 
+local filesystem.
 
-We introduce a notion of a top-level toolchain, which is the toolchain that handles user’s `swift destination`
+We introduce a notion of a top-level toolchain, which is the toolchain that handles user’s `swift sdk`
 invocations. Parts of this top-level toolchain (linker, C/C++ compilers, and even the Swift compiler) can be overridden
-with tools supplied in `.artifactbundle` s installed by `swift destination` invocations.
+with tools supplied in `.artifactbundle` s installed by `swift sdk` invocations.
 
-When the user runs `swift build` with the selected CC destination, the overriding tools from the corresponding bundle
+When the user runs `swift build` with the selected Swift SDK, the overriding tools from the corresponding bundle
 are invoked by `swift build` instead of tools from the top-level toolchain.
 
 The proposal is intentionally limited in scope to build-time experience and specifies only configuration metadata, basic
@@ -104,31 +108,31 @@ directory layout for proposed artifact bundles, and some CLI helpers to operate 
 
 ## Detailed Design
 
-### CC Destination Artifact Bundles
+### Swift SDK Bundles
 
 As a quick reminder for a concept introduced in
 [SE-0305](https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md), an
 **artifact bundle** is a directory that has the filename suffix `.artifactbundle` and has a predefined structure with
 `.json` manifest files provided as metadata.
 
-The proposed structure of artifact bundles containing CC destinations looks like:
+The proposed structure of artifact bundles containing Swift SDKs looks like:
 
 ```
 <name>.artifactbundle
 ├ info.json
-├ <destination artifact>
-│ ├ destination.json
+├ <Swift SDK artifact>
+│ ├ swift-sdk.json
 │ ├ toolset.json
-│ └ <destination files and directories>
-├ <destination artifact>
-│ ├ destination.json
+│ └ <Swift SDK files and directories>
+├ <Swift SDK artifact>
+│ ├ swift-sdk.json
 │ ├ toolset.json
-│ └ <destination files and directories>
-├ <destination artifact>
+│ └ <Swift SDK files and directories>
+├ <Swift SDK artifact>
 ┆ └┄
 ```
 
-For example, a destination bundle allowing to cross-compile Swift 5.8 source code to recent versions of Ubuntu from
+For example, a Swift SDK bundle allowing to cross-compile Swift 5.8 source code to recent versions of Ubuntu from
 macOS would look like this:
 
 ```
@@ -136,29 +140,29 @@ swift-5.8_ubuntu.artifactbundle
 ├ info.json
 ├ toolset.json
 ├ ubuntu_jammy
-│ ├ destination.json
+│ ├ swift-sdk.json
 │ ├ toolset.json
-│ ├ <destination files and directories shared between triples>
+│ ├ <Swift SDK files and directories shared between triples>
 │ ├ aarch64-unknown-linux-gnu
 │ │ ├ toolset.json
-│ │ └ <triple-specific destination files and directories>
+│ │ └ <triple-specific Swift SDK files and directories>
 │ └ x86_64-unknown-linux-gnu
 │   ├ toolset.json
-│   └ <triple-specific destination files and directories>
+│   └ <triple-specific Swift SDK files and directories>
 ├ ubuntu_focal
-│ ├ destination.json
+│ ├ swift-sdk.json
 │ └ x86_64-unknown-linux-gnu
 │   ├ toolset.json
-│   └ <triple-specific destination files and directories>
+│   └ <triple-specific Swift SDK files and directories>
 ├ ubuntu_bionic
 ┆ └┄
 ```
 
-Here each artifact directory is dedicated to a specific CC destination, while files specific to each triple are placed
+Here each artifact directory is dedicated to a specific Swift SDK, while files specific to each triple are placed
 in `aarch64-unknown-linux-gnu` and `x86_64-unknown-linux-gnu` subdirectories.
 
-`info.json` bundle manifests at the root of artifact bundles should specify `"type": "crossCompilationDestination"` for
-corresponding artifacts. Artifact identifiers in this manifest file uniquely identify a CC destination, and
+`info.json` bundle manifests at the root of artifact bundles should specify `"type": "swiftSDK"` for
+corresponding artifacts. Artifact identifiers in this manifest file uniquely identify a Swift SDK, and
 `supportedTriples` property in `info.json` should contain build-time triples that a given destination supports. The rest
 of the properties of bundle manifests introduced in SE-0305 are preserved.
 
@@ -169,7 +173,7 @@ above:
 {
   "artifacts" : {
     "swift-5.8_ubuntu22.04" : {
-      "type" : "crossCompilationDestination",
+      "type" : "swiftSDK",
       "version" : "0.0.1",
       "variants" : [
         {
@@ -182,7 +186,7 @@ above:
       ]
     },
     "swift-5.8_ubuntu20.04" : {
-      "type" : "crossCompilationDestination",
+      "type" : "swiftSDK",
       "version" : "0.0.1",
       "variants" : [
         {
@@ -305,14 +309,14 @@ will be appended to the default tool invocation. For example `pedanticCCompiler.
 
 in `swift build --toolset pedanticCCompiler.json` will pass `-pedantic` to the C compiler located at a default path.
 
-When cross-compiling, paths in `toolset.json` files supplied in destination artifact bundles should be self-contained:
+When cross-compiling, paths in `toolset.json` files supplied in Swift SDK bundles should be self-contained:
 no absolute paths and no escaping symlinks are allowed. Users are still able to provide their own `toolset.json` files
 outside of artifact bundles to specify additional developer tools for which no relative "non-escaping" path can be
 provided within the bundle.
 
-### `destination.json` Files
+### `swift-sdk.json` Files
 
-Note the presence of `destination.json` files in each `<destination artifact>` subdirectory. These files should contain
+Note the presence of `swift-sdk.json` files in each `<Swift SDK artifact>` subdirectory. These files should contain
 a JSON dictionary with an evolved version of the schema of [existing `destination.json` files that SwiftPM already
 supports](https://github.com/apple/swift-package-manager/pull/1098) and `destination.json` files presented in the pitch
 version of this proposal, hence `"schemaVersion": "3.0"`. We'll keep parsing `"version": 1` and `"version": 2` for
@@ -324,33 +328,33 @@ informally defined schema for these files:
   "schemaVersion": "3.0",
   "runTimeTriples": [
     "<triple1>": {
-      "sdkRootPath": "<a required path relative to `destination.json` containing SDK root>",
+      "sdkRootPath": "<a required path relative to `swift-sdk.json` containing SDK root>",
       // all of the properties listed below are optional:
-      "swiftResourcesPath": "<a path relative to `destination.json` containing Swift resources for dynamic linking>",
-      "swiftStaticResourcesPath": "<a path relative to `destination.json` containing Swift resources for static linking>",
-      "includeSearchPaths": ["<array of paths relative to `destination.json` containing headers>"],
-      "librarySearchPaths": ["<array of paths relative to `destination.json` containing libraries>"],
-      "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset files>"]
+      "swiftResourcesPath": "<a path relative to `swift-sdk.json` containing Swift resources for dynamic linking>",
+      "swiftStaticResourcesPath": "<a path relative to `swift-sdk.json` containing Swift resources for static linking>",
+      "includeSearchPaths": ["<array of paths relative to `swift-sdk.json` containing headers>"],
+      "librarySearchPaths": ["<array of paths relative to `swift-sdk.json` containing libraries>"],
+      "toolsetPaths": ["<array of paths relative to `swift-sdk.json` containing toolset files>"]
     },
-    // a destination can support more than one run-time triple:
+    // a Swift SDK can support more than one run-time triple:
     "<triple2>": {
-      "sdkRootPath": "<a required path relative to `destination.json` containing SDK root>",
+      "sdkRootPath": "<a required path relative to `swift-sdk.json` containing SDK root>",
       // all of the properties listed below are optional:
-      "swiftResourcesPath": "<a path relative to `destination.json` containing Swift resources for dynamic linking>",
-      "swiftStaticResourcesPath": "<a path relative to `destination.json` containing Swift resources for static linking>",
-      "includeSearchPaths": ["<array of paths relative to `destination.json` containing headers>"],
-      "librarySearchPaths": ["<array of paths relative to `destination.json` containing libraries>"],
-      "toolsetPaths": ["<array of paths relative to `destination.json` containing toolset files>"]
+      "swiftResourcesPath": "<a path relative to `swift-sdk.json` containing Swift resources for dynamic linking>",
+      "swiftStaticResourcesPath": "<a path relative to `swift-sdk.json` containing Swift resources for static linking>",
+      "includeSearchPaths": ["<array of paths relative to `swift-sdk.json` containing headers>"],
+      "librarySearchPaths": ["<array of paths relative to `swift-sdk.json` containing libraries>"],
+      "toolsetPaths": ["<array of paths relative to `swift-sdk.json` containing toolset files>"]
     }
-    // more triples can be supported by a single destination if needed, primarily for sharing files between them.
+    // more triples can be supported by a single Swift SDK if needed, primarily for sharing files between them.
   ]
 }
 ```
 
-We propose that all relative paths in `destination.json` files should be validated not to "escape" the destination
-bundle for security reasons, in the same way that `toolset.json` files are validated when contained in destination
+We propose that all relative paths in `swift-sdk.json` files should be validated not to "escape" the Swift SDK
+bundle for security reasons, in the same way that `toolset.json` files are validated when contained in Swift SDK
 bundles. That is, `../` components, if present in paths, will not be allowed to reference files and
-directories outside of a corresponding destination bundle. Symlinks will also be validated to prevent them from escaping
+directories outside of a corresponding Swift SDK bundle. Symlinks will also be validated to prevent them from escaping
 out of the bundle.
  
 If `sdkRootPath` is specified and `swiftResourcesPath` is not, the latter is inferred to be
@@ -358,7 +362,7 @@ If `sdkRootPath` is specified and `swiftResourcesPath` is not, the latter is inf
 inferred to be `"\(sdkRootPath)/usr/lib/swift_static"` when linking it statically. Similarly, `includeSearchPaths` is
 inferred as `["\(sdkRootPath)/usr/include"]`, `librarySearchPaths` as  `["\(sdkRootPath)/usr/lib"]`.
 
-Here's `destination.json` file for the `ubuntu_jammy` artifact previously introduced as an example:
+Here's `swift-sdk.json` file for the `ubuntu_jammy` artifact previously introduced as an example:
 
 ```json5
 {
@@ -376,24 +380,24 @@ Here's `destination.json` file for the `ubuntu_jammy` artifact previously introd
 }
 ```
 
-Since not all platforms can support self-contained destination bundles, users will be able to provide their own
-additional paths on the filesystem outside of bundles after a destination is installed. The exact options for specifying
-paths are proposed in a subsequent section for a newly introduced `swift destination configure` command.
+Since not all platforms can support self-contained Swift SDK bundles, users will be able to provide their own
+additional paths on the filesystem outside of bundles after a Swift SDK is installed. The exact options for specifying
+paths are proposed in a subsequent section for a newly introduced `swift sdk configure` command.
 
-### Destination Bundle Installation and Configuration
+### Swift SDK Installation and Configuration
 
-To manage CC destinations, we'd like to introduce a new `swift destination` command with three subcommands:
+To manage Swift SDKs, we'd like to introduce a new `swift sdk` command with three subcommands:
 
-- `swift destination install <bundle URL or local filesystem path>`, which downloads a given bundle if needed and
-  installs it in a location discoverable by SwiftPM. For destinations installed from remote URLs an additional
-  `--checksum` option is required, through which users of destinations can specify a checksum provided by publishers of
-  destinations. The latter can produce a checksum by running `swift package compute-checksum` command (introduced in
+- `swift sdk install <bundle URL or local filesystem path>`, which downloads a given bundle if needed and
+  installs it in a location discoverable by SwiftPM. For Swift SDKs installed from remote URLs an additional
+  `--checksum` option is required, through which users of a Swift SDK can specify a checksum provided by a publisher of
+  the SDK. The latter can produce a checksum by running `swift package compute-checksum` command (introduced in
   [SE-0272](https://github.com/apple/swift-evolution/blob/main/proposals/0272-swiftpm-binary-dependencies.md)) with the
-  destination artifact bundle archive as an argument.
+  Swift SDK bundle archive as an argument.
   
-  If a destination with a given artifact ID has already been installed and its version is equal or higher to a version
-  of a new destination, an error message will be printed. If the new version is higher, users should invoke the
-  `install` subcommand with `--update` flag to allow updating an already installed destination artifact to a new
+  If a Swift SDK with a given artifact ID has already been installed and its version is equal or higher to a version
+  of a new Swift SDK, an error message will be printed. If the new version is higher, users should invoke the
+  `install` subcommand with `--update` flag to allow updating an already installed Swift SDK artifact to a new
   version.
 - `swift destination list`, which prints a list of already installed CC destinations with their identifiers.
 - `swift destination configure <identifier> <run-time-triple>`, which allows users to provide additional search paths and toolsets to be
