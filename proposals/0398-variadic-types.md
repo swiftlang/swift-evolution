@@ -14,7 +14,18 @@ Previously [SE-0393](0393-parameter-packs.md) introduced type parameter packs an
 
 ## Motivation
 
-Generic type declarations that abstract over a variable number of types arise naturally when attempting to generalize common algorithms on collections. For example, a lazy `ZipSequence` might be generic over two sequences. It would be possible to declare a `ZipSequence` type which presents the elements of a fixed list of sequences as a sequence of tuples:
+Generic type declarations that abstract over a variable number of types arise naturally when attempting to generalize common algorithms on collections. For example, the current `zip` function returns a `Zip2Sequence`, but it's not possible from SE-0393 alone to define an equivalent variadic `zip` function because the return type would need an arbitrary number of type parameters—one for each input sequence:
+
+```swift
+func zip<each S>(_ seq: repeat each S) -> ??? 
+  where repeat each S: Sequence
+```
+
+## Proposed solution
+
+In the generic parameter list of a generic type, the `each` keyword declares a generic parameter pack, just like it does in the generic parameter list of a generic function. The types of stored properties can contain pack expansion types, as in `let seq` and `var iter` above.
+
+This lets us define the return type of the variadic `zip` function as follows:
 
 ```swift
 struct ZipSequence<each S: Sequence>: Sequence {
@@ -36,11 +47,10 @@ struct ZipSequence<each S: Sequence>: Sequence {
     }
   }
 }
+
+func zip<each S>(_ seq: repeat each S) -> ZipSequence<repeat each S>
+  where repeat each S: Sequence
 ```
-
-## Proposed solution
-
-In the generic parameter list of a generic type, the `each` keyword declares a generic parameter pack, just like it does in the generic parameter list of a generic function. The types of stored properties can contain pack expansion types, as in `let seq` and `var iter` above.
 
 ## Detailed design
 
@@ -104,7 +114,7 @@ struct V<each T> {}
 
 V<>.self
 ```
-Note that `V<>` is not the same as `V`. The former substitutes the generic parameter pack `T` with the empty pack. The latter does not constrain the pack at all and is only permitted in contexts where the generic argument can be inferred.
+Note that `V<>` is not the same as `V`. The former substitutes the generic parameter pack `T` with the empty pack. The latter does not constrain the pack at all and is only permitted in contexts where the generic argument can be inferred (or within the body of `V` or an extension thereof, where it is considered identical to `Self`).
 
 A placeholder type in the generic argument list of a variadic generic type is always understood as a single pack element. For example:
 
@@ -127,13 +137,7 @@ struct S<each T> {
   var c: Other<repeat each T>
 }
 ```
-This is in contrast with the parameters of generic function declarations, which can have a pack expansion type. A future proposal might lift this restriction and introduce true "stored property packs":
-
-```swift
-struct S<each T> {
-  var a: repeat each Array<T>
-}
-```
+This is in contrast with the parameters of generic function declarations, which can have a pack expansion type. A [future proposal](#future-directions) might lift this restriction and introduce true "stored property packs."
 
 ### Requirements
 
@@ -185,7 +189,7 @@ typealias Callback = (repeat each S) -> ()
 typealias Factory = Other<repeat each S>
 ```
 
-Unlike structs and classes, but like other type aliases, variadic type aliases can also be nested inside of generic functions.
+Like other type aliases, variadic type aliases can be nested inside of generic functions (and like other structs and classes, variadic structs and classes cannot).
 
 ### Classes
 
@@ -220,7 +224,15 @@ Replacing a non-variadic generic type with a variadic generic type is **not** bi
 
 A future proposal will address variadic generic enums, and complete support for variadic generic classes.
 
-Another possible future direction is stored property packs, which would eliminate the need to wrap a pack expansion in a tuple type in order to store a variable number of values inside of a variadic type. However, there is no expressivity lost in requiring the tuple today, since the contents of a tuple can be converted into a value pack.
+Another possible future direction is stored property packs, which would eliminate the need to wrap a pack expansion in a tuple type in order to store a variable number of values inside of a variadic type:
+
+```swift
+struct S<each T> {
+  var a: repeat each Array<T>
+}
+```
+
+However, there is no expressivity lost in requiring the tuple today, since the contents of a tuple can be converted into a value pack.
 
 ## Alternatives considered
 
