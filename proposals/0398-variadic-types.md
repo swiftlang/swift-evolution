@@ -3,10 +3,10 @@
 * Proposal: [SE-0398](0398-variadic-types.md)
 * Authors: [Slava Pestov](https://github.com/slavapestov), [Holly Borla](https://github.com/hborla)
 * Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Review scheduled (April 27th...May 8th, 2023)**
+* Status: **Active review (April 27th...May 8th, 2023)**
 * Implementation: On main and release/5.9 gated behind the frontend flag -enable-experimental-feature VariadicGenerics
 * Previous Proposal: [SE-0393](0393-parameter-packs.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-variadic-generic-types-abstracting-over-packs/64377))
+* Review: ([pitch](https://forums.swift.org/t/pitch-variadic-generic-types-abstracting-over-packs/64377)) ([review](https://forums.swift.org/t/se-0398-allow-generic-types-to-abstract-over-packs/64661))
 
 ## Introduction
 
