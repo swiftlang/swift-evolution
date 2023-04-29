@@ -130,11 +130,11 @@ The proposed structure of artifact bundles containing Swift SDKs looks like:
 ┆ └┄
 ```
 
-For example, a Swift SDK bundle allowing to cross-compile Swift 5.8 source code to recent versions of Ubuntu from
+For example, a Swift SDK bundle allowing to cross-compile Swift 5.9 source code to recent versions of Ubuntu from
 macOS would look like this:
 
 ```
-swift-5.8_ubuntu.artifactbundle
+swift-5.9_ubuntu.artifactbundle
 ├ info.json
 ├ toolset.json
 ├ ubuntu_jammy
@@ -164,13 +164,13 @@ corresponding artifacts. Artifact identifiers in this manifest file uniquely ide
 `supportedTriples` property in `info.json` should contain build-time triples that a given Swift SDK supports. The rest
 of the properties of bundle manifests introduced in SE-0305 are preserved.
 
-Here's how `info.json` file could look like for `swift-5.8_ubuntu.artifactbundle` introduced in the example
+Here's how `info.json` file could look like for `swift-5.9_ubuntu.artifactbundle` introduced in the example
 above:
 
 ```json5
 {
   "artifacts" : {
-    "swift-5.8_ubuntu22.04" : {
+    "swift-5.9_ubuntu22.04" : {
       "type" : "swiftSDK",
       "version" : "0.0.1",
       "variants" : [
@@ -183,7 +183,7 @@ above:
         }
       ]
     },
-    "swift-5.8_ubuntu20.04" : {
+    "swift-5.9_ubuntu20.04" : {
       "type" : "swiftSDK",
       "version" : "0.0.1",
       "variants" : [
@@ -439,7 +439,7 @@ As an example, Swift SDK publishers looking to add a library to an Ubuntu 22.04 
 `Dockerfile` similar to this one in their Swift SDK generator source code:
 
 ```dockerfile
-FROM swift:5.8-jammy
+FROM swift:5.9-jammy
 
 apt-get install -y \
   # PostgreSQL library provided as an example.
