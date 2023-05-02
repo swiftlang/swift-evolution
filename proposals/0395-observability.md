@@ -258,7 +258,7 @@ final class Model: Observable {
     
     nonisolated func changes<Isolation: Actor>(
         for properties: TrackedProperties<Model>, 
-        isolatedTo: Delivery
+        isolatedTo: Isolation
     ) -> ObservedChanges<Model, Isolation> {
         _$observationRegistrar.changes(for: properties, isolation: isolation)
     }
