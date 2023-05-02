@@ -1,6 +1,6 @@
 # Freestanding Declaration Macros
 
-* Proposal: [SE-0397](0397-freestanding-macros.md)
+* Proposal: [SE-0397](0397-freestanding-declaration-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Richard Wei](https://github.com/rxwei), [Holly Borla](https://github.com/hborla)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (April 27th...May 8th, 2023)**
