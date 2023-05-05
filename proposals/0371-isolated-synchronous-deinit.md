@@ -600,119 +600,19 @@ There is no support for importing `dealloc` methods as asynchronous deinit.
 
 ### Interaction with ObjC runtime.
 
-All Objective-C-compatible Swift classes have `dealloc` method synthesized, which acts as a thunk to `__deallocating_deinit`. `__deallocating_deinit` executes code in the `deinit` body, and performs a call to `-[super dealloc]`. If base class is also a Swift class, then call resolves to another thunk which forwards to `__deallocating_deinit` of the base base class. This chain ends with call to a ObjC base class. Current implementation ensures compatibility with Objective-C not only on Swift<->Objective-C boundary, but also in between Swift classes.
+All Objective-C-compatible Swift classes have `dealloc` method synthesized, which acts as a thunk to `__deallocating_deinit`. Normally when calling `super.deinit` from `__deallocating_deinit`, it is done by sending Objective-C `dealloc` message using `objc_msgSuper`.
 
-```swift
-class A: NSObject {}
-class B: A {}
-```
+This ensures maximum possible compatibility with Objective-C, but comes with some runtime cost.
 
-```mermaid
-flowchart TD
-    Bd{{"-[B dealloc]"}}
-    BD{{"B.__deallocating_deinit"}}
-    Ad{{"-[A dealloc]"}}
-    AD{{"A.__deallocating_deinit"}}
-    Nd{{"-[NSObject dealloc]"}}
+For isolated synchronous `deinit`, this cost increases, but not much. For each class in the hierarchy `swift_task_deinitOnExecutor()` will be called, but slow math can be taken only for the most derived class.
 
-    Bd-->BD;
-    BD-->|objc_msgSuper| Ad;
-    Ad-->AD;
-    AD-->|objc_msgSuper| Nd;
-```
+But for asynchronous `deinit`, cost of calling `[super dealloc]` becomes unacceptable. Every call to `[super dealloc]` would be creating new task.
 
-For isolated synchronous `deinit`, it is possible to preserve this scheme. Since all `deinit`'s in the chain must be isolated to the same executor or be nonisolated, only first call to `swift_task_deinitOnExecutor()` (in the most derived class) may hop. All consecutive calls will take fast path.
+To avoid this, async deinit bypasses Objective-C runtime when calling isolated or async `deinit` of Swift base classes, and calls `__isolated_deallocating_deinit` directly. Compatibility with Objective-C is preserved only on Swift<->Objective-C boundary in either direction.
 
-```swift
-@MainActor
-class A: NSObject {
-  isolated deinit { ... }
-}
-class B: A {
-  isolated deinit { ... }
-}
-```
+This is still sufficient to create ObjC subclasses in runtime, as KVO does. Or swizzle `dealloc` of the most derived class of an instance. But swizzling `dealloc` of intermediate Swift classes might not work as expected.
 
-```mermaid
-flowchart TD
-    Bd{{"-[B dealloc]"}}
-    BD{{"B.__deallocating_deinit"}}
-    BZ{{"B.__isolated_deallocating_deinit"}}
-    Ad{{"-[A dealloc]"}}
-    AD{{"A.__deallocating_deinit"}}
-    AZ{{"A.__isolated_deallocating_deinit"}}
-    Nd{{"-[NSObject dealloc]"}}
-
-    Bd-.->BD;
-    BD-.->|swift_task_deinitOnExecutor| BZ;
-    BZ-.->|objc_msgSuper| Ad;
-    Ad-.->AD;
-    AD-.->|"swift_task_deinitOnExecutor (fast path)"| AZ;
-    AZ-.->|objc_msgSuper| Nd;
-```
-
-But for async `deinit`, there is no fast path. Every call to `dealloc`/`__deallocating_deinit` would be creating new task.
-
-To avoid this, async deinit bypasses Objective-C runtime when calling isolated or async `deinit` of Swift base classes. But compatibility with Objective-C is preserved on Swift<->Objective-C boundary.
-
-```swift
-class A: NSObject {
-  deinit async { ... }
-}
-class B: A {
-  deinit async { ... }
-}
-```
-
-```mermaid
-flowchart TD
-    Bd{{"-[B dealloc]"}}
-    BD{{"B.__deallocating_deinit"}}
-    BZ{{"B.__isolated_deallocating_deinit"}}
-    Ad{{"-[A dealloc]"}}
-    AD{{"A.__deallocating_deinit"}}
-    AZ{{"A.__isolated_deallocating_deinit"}}
-    Nd{{"-[NSObject dealloc]"}}
-
-    Bd-->BD;
-    BD-->|swift_task_deinitAsync| BZ;
-    BZ-->|async call| AZ;
-    Ad-->AD;
-    AD-->|swift_task_deinitAsync| AZ;
-    AZ-->|objc_msgSuper| Nd;
-```
-
-This is allows creating ObjC subclasses in runtime, as KVO does. Or swizzling `dealloc` of the most derived class of an instance. But swizzling `dealloc` of intermediate Swift classes might not work as expected.
-
-Since asynchronous `deinit` introduces a precedent for loosening Objective-C compatibility. Isolated synchronous `deinit` also make use of it, bypassing Objective-C runtime and executor checks for performance.
-
-```swift
-@MainActor
-class A: NSObject {
-  isolated deinit { ... }
-}
-class B: A {
-  isolated deinit { ... }
-}
-```
-
-```mermaid
-flowchart TD
-    Bd{{"-[B dealloc]"}}
-    BD{{"B.__deallocating_deinit"}}
-    BZ{{"B.__isolated_deallocating_deinit"}}
-    Ad{{"-[A dealloc]"}}
-    AD{{"A.__deallocating_deinit"}}
-    AZ{{"A.__isolated_deallocating_deinit"}}
-    Nd{{"-[NSObject dealloc]"}}
-
-    Bd-->BD;
-    BD-->|swift_task_deinitOnExecutor| BZ;
-    BZ-->AZ;
-    Ad-->AD;
-    AD-->|swift_task_deinitOnExecutor| AZ;
-    AZ-->|objc_msgSuper| Nd;
-```
+Since asynchronous `deinit` introduces a precedent for loosening Objective-C compatibility, isolated synchronous `deinit` also makes use of it, bypassing Objective-C runtime and executor checks for performance.
 
 ### Isolated synchronous deinit of default actors
 
