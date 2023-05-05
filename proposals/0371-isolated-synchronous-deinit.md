@@ -152,31 +152,11 @@ If Swift gets support for linear types in the future, it will be possible to rep
 
 This proposal introduces two new runtime functions:
 
-```cpp
-using DeinitWorkFunction = SWIFT_CC(swift) void (void *);
-
-class DeinitOnExecutorFlags : public FlagSet<size_t> {
-public:
-  enum {
-    CopyTaskLocalsOnHop = 0,
-    ResetTaskLocalsOnNoHop = 1,
-  };
-
-  explicit DeinitOnExecutorFlags(size_t bits) : FlagSet(bits) {}
-  constexpr DeinitOnExecutorFlags() {}
-
-  FLAGSET_DEFINE_FLAG_ACCESSORS(CopyTaskLocalsOnHop, copyTaskLocalsOnHop, setCopyTaskLocalsOnHop)
-  FLAGSET_DEFINE_FLAG_ACCESSORS(ResetTaskLocalsOnNoHop, resetTaskLocalsOnNoHop, setResetTaskLocalsOnNoHop)
-};
-
-SWIFT_EXPORT_FROM(swift_Concurrency) SWIFT_CC(swift)
-void swift_task_deinitOnExecutor(void *object, DeinitWorkFunction *work, ExecutorRef newExecutor, size_t flags);
-
-SWIFT_EXPORT_FROM(swift_Concurrency) SWIFT_CC(swift)
-void swift_task_deinitAsync(void *object, void *work, ExecutorRef newExecutor, size_t flags);
-```
-
 ```swift
+// Flags:
+// * copyTaskLocalsOnHop    = 0x1
+// * resetTaskLocalsOnNoHop = 0x2
+
 @_silgen_name("swift_task_deinitOnExecutor")
 @usableFromInline
 internal func _deinitOnExecutor(_ object: __owned AnyObject,
