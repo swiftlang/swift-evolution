@@ -3,9 +3,9 @@
 * Proposal: [SE-0396](0396-never-codable.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Active Review (April 18...May 3, 2023)**
+* Status: **Accepted**
 * Implementation: [apple/swift#64899](https://github.com/apple/swift/pull/64899)
-* Review: ([pitch](https://forums.swift.org/t/pitch-conform-never-to-codable/64056)) ([review](https://forums.swift.org/t/se-0396-conform-never-to-codable/64469))
+* Review: ([pitch](https://forums.swift.org/t/pitch-conform-never-to-codable/64056)) ([review](https://forums.swift.org/t/se-0396-conform-never-to-codable/64469)) ([acceptance](https://forums.swift.org/t/accepted-se-0396-conform-never-to-codable/64848))
 
 ## Introduction
 
