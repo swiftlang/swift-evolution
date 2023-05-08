@@ -168,7 +168,6 @@ accesses-list -> 'accesses' ':' identifier-list
 identifier-list -> identifier
 identifier-list -> identifier ',' identifier-list
 
-// Not actually sure if `get` and `set` appearing once is baked into the grammar or is a semantic restriction
 accessor-block -> init-accessor
 ```
 
@@ -324,7 +323,7 @@ init(x: Int, y: Int) {
 }
 ```
 
-TODO: define whether macro-generated members are ordered before or after their 'attached-to' declaration for peer macros, or before or after the full member list for member macros.
+Note that macro-expanded declarations are ordered after the attached-to declaration for peer macros, and at the end of the member list as written for member macros.
 
 ## Source compatibility
 
