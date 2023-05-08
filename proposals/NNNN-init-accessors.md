@@ -75,7 +75,42 @@ struct Angle {
 }
 ```
 
-The signature of an `init` accessor specifies the property's access dependencies and the set of stored properties that are initialized by the accessor. Access dependencies must be initialized before the computed property's `init` accessor is invoked, and the `init` accessor must initialize the specified stored properties on all control flow paths.
+The signature of an `init` accessor specifies up to two sets of stored properties: the access dependencies (via `accesses`) and the initialized properties (via `initializes`). Access dependencies specify the other stored properties that can be accessed from within the `init` accessor (no other uses of `self` are allowed), and therefore must be initialized before the computed property's `init` accessor is invoked. The `init` accessor must initialize each of the initialized stored properties on all control flow paths. The `radians` property in the example above specifies no access dependencies, but initializes the `degrees` property, so it specifies only `initializes: degrees`.
+
+Access dependencies allow a computed property to be initialized by placing its contents into another stored property:
+
+```swift
+struct ProposalViaDictionary {
+  private var dictionary: [String: String] = [:]
+
+  var title: String {
+    init(newValue, accesses: dictionary) {
+      dictionary["title"] = newValue
+    }
+
+    get { dictionary["title"]! }
+    set { dictionary["title"] = newValue }
+  }
+
+   var text: String {
+    init(newValue, accesses: dictionary) {
+      dictionary["text"] = newValue
+    }
+
+    get { dictionary["text"]! }
+    set { dictionary["text"] = newValue }
+  }
+
+  init(title: String, text: String) {
+    self.title = title // calls init accessor to insert title into the dictionary
+    self.text = text   // calls init accessor to insert text into the dictionary
+
+    // it is an error to omit either initialization above
+  }
+}
+```
+
+Both `init` accessors document that they access `dictionary`, which allows them to insert the new values into the dictionary with the appropriate key as part of initialization. This allows one to fully abstract away the storage mechanism used in the type.
 
 With this proposal, property wrappers have no bespoke definite initialization support. Instead, the desugaring includes an `init` accessor for wrapped properties. The property wrapper code in the Motivation section will desugar to the following code:
 
@@ -116,16 +151,17 @@ This proposal adds new syntax for `init` accessor blocks, which can be written i
 ```
 init-accessor -> 'init' init-accessor-signature[opt] function-body
 
-init-accessor-signature -> '(' init-dependency-clause ')'
+init-accessor-signature -> '(' init-dependency-clause [opt] ')'
 
-init-dependency-clause -> 'newValue'
-init-dependency-clause -> 'newValue' ',' init-dependencies
+init-dependency-clause -> identifier
+init-dependency-clause -> identifier ',' init-dependencies
+init-dependency-clause -> init-dependencies
 
-init-dependencies -> subsumes-list
-init-dependencies -> subsumes-list ',' accesses-list
+init-dependencies -> initializes-list
+init-dependencies -> initializes-list ',' accesses-list
 init-dependences -> access-list
 
-subsumes-list -> 'initializes' ':' identifier-list
+initializes-list -> 'initializes' ':' identifier-list
 
 accesses-list -> 'accesses' ':' identifier-list
 
@@ -136,9 +172,11 @@ identifier-list -> identifier ',' identifier-list
 accessor-block -> init-accessor
 ```
 
+The `identifier` in an `init-dependency-clause`, if provided, is the name of the parameter that contains the initial value. If not provided, a parameter with the name `newValue` is automatically created.
+
 ### `init` accessor signatures
 
-`init` accessor declarations can optionally specify a signature. An `init` accessor signature is composed of the `newValue` parameter, a list of stored properties that are initialized by this accessor specified with the `initializes:` label, and a list of stored properties that are accessed by this accessor specified with the `accesses:` label:
+`init` accessor declarations can optionally specify a signature. An `init` accessor signature is composed of a parameter for the initial value, a list of stored properties that are initialized by this accessor specified with the `initializes:` label, and a list of stored properties that are accessed by this accessor specified with the `accesses:` labe, all of which are optional:
 
 ```swift
 struct S {
@@ -158,21 +196,21 @@ struct S {
 }
 ```
 
-If the accessor only uses `newValue`, the signature is not required.
+If the accessor uses the default parameter name `newValue` and neither initializes nor accesses any stored property, the signature is not required.
 
-Init accessors can subsume the initialization of a set of stored properties. Subsumed stored properties are specified through the `initializes:` clause of the accessor signature. The body of an `init` accessor is required to initialize the subsumed stored properties on all paths.
+Init accessors can subsume the initialization of a set of stored properties. Subsumed stored properties are specified through the `initializes:` clause of the accessor signature. The body of an `init` accessor is required to initialize the subsumed stored properties on all control flow paths.
 
-Init accessors can also require a set of stored properties to already be initialized when the body is evaluated, which are specified through the `accesses:` cause of the signature. These stored properties can be accessed in the accessor body; no other properties or methods on `self` are available inside the accessor body.
+Init accessors can also require a set of stored properties to already be initialized when the body is evaluated, which are specified through the `accesses:` cause of the signature. These stored properties can be accessed in the accessor body; no other properties or methods on `self` are available inside the accessor body, nor is `self` available as a whole object (i.e., to call methods on it).
 
 ### Definite initialization of properties on `self`
 
-The semantics of an assignment inside of a type's initializer depend on whether or not all of `self` is initialized on all paths at the point of assignment. Before `self` is initialized, assignment to a wrapped property is re-written to initialization of the backing property wrapper storage. After `self` is initialized, assignment to a wrapped property is re-written to a call to the wrapped property's setter. For computed properties with `init` accessors, assignment is re-written to an `init` accessor call before `self` is initialized, and assignment is re-written to a setter call after `self` is initialized.
+The semantics of an assignment inside of a type's initializer depend on whether or not all of `self` is initialized on all paths at the point of assignment. Before all of `self` is initialized, assignment to a computed property with an `init` accessor is re-written to an `init` accessor call; after `self` has been initialized, assignment to a computed property is re-written to a setter call.
 
 With this proposal, all of `self` is initialized if:
-* All stored properties are initialized on all paths.
+* All stored properties are initialized on all paths, and
 * All computed properties with `init` accessors are virtually initialized on all paths.
 
-An assignment to a computed property with an `init` accessor before all of `self` is initialized covers the computed property and all stored properties specified in the `initializes` clause:
+An assignment to a computed property with an `init` accessor before all of `self` is initialized will virtually initialize the computed property and initialize all of the stored properties specified in its `initializes` clause:
 
 ```swift
 struct S {
@@ -183,28 +221,31 @@ struct S {
   }
 
   init() {
-    self.computed = 1 // initializes 'computed', 'x1', and 'x2'
+    self.computed = 1 // initializes 'computed', 'x1', and 'x2'; 'self' is now fully initialized
   }
 }
 ```
 
-An assignment to a stored property before all of `self` is initialized covers the initialization of computed properties with `init` accessors that specify that stored property if the other `initializes:` dependencies are already initialized:
+An assignment to a stored property before all of `self` is initialized will initialize that stored property. When all of the stored properties listed in the `initializes:` clause of a computed property with an `init` accessor have been initialized, that computed property is virtually initialized:
 
 ```swift
 struct S {
   var x1: Int
   var x2: Int
+  var x3: Int
   var computed: Int {
     init(newValue, initializes: x1, x2) { ... }
   }
 
   init() {
-    self.computed = 1 // initializes 'computed', 'x1', and 'x2'
+    self.x1 = 1 // initializes 'x1'; neither 'x2' or 'computed' is initialized
+    self.x2 = 1 // initializes 'x2' and 'computed'
+    self.x3 = 1 // initializes 'x3'; 'self' is now fully initialized
   }
 }
 ```
 
-A stored property is considered initialized if it is assigned a value directly, or if a computed property that subsumes its initialization is assigned a value directly:
+An assignment to a computed property where at least one of the stored properties listed in `initializes:` is initialized, but `self` is not initialized, is an error. This prevents double-initialization of the underlying stored properties:
 
 ```swift
 struct S {
@@ -220,7 +261,7 @@ struct S {
 
   init(x: Int, y: Int) {
     self.x = x // Only initializes 'x'
-    self.y = y // Initializes 'y' and 'point'
+    self.point = (x, y) // error: neither the `init` accessor nor the setter can be called here
   }
 }
 ```
