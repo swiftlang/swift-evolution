@@ -21,12 +21,34 @@ Additionally, type parameter packs are only permitted within a function paramete
 
 This proposal extends the functionality of pack repetition patterns to values of _abstract tuple type_, which enables an implicit conversion of an _abstract tuple value_ to its contained value pack. An _abstract tuple type_ is a tuple that has an unknown length and elements of unknown types. Its elements are that of a single type parameter pack and no additional elements, and no label. In other words, the elements of the type parameter pack are the elements of the tuple. An _abstract tuple value_ is a value of _abstract tuple type_. This proposal provides methods to individually access the dynamic pack elements of an abstract tuple value inside of a repetition pattern.
 
-### Distinction between tuple values and value packs
-
-The following example demonstrates a pack repetition pattern on a value pack and an abstract tuple value separately first, then together but with the repetition pattern operating only on the value pack, and finally with the repetition pattern operating on both the value pack and the tuple value's contained value pack together interleaved.
+The following example demonstrates how, with this proposal, we can individually reference and make use of the elements in an abstract tuple value that was returned from another function. The example also highlights some constructs that are not permitted under this proposal:
 
 ```swift
-func example<each U>(packElements value: repeat each U, tuple: (repeat each U)) {
+func tuplify<each T>(_ value: repeat each T) -> (repeat each T) {
+  return (repeat each value)
+}
+
+func example<each T>(_ value: repeat each T) {
+  let abstractTuple = tuplify(repeat each value)
+  repeat print(each abstractTuple) // okay as of this proposal
+
+  let concreteTuple = (true, "two", 3)
+  repeat print(each concreteTuple) // invalid
+
+  let mixedConcreteAndAbstractTuple = (1, repeat each value)
+  repeat print(each mixedConcreteAndAbstractTuple) // invalid
+
+  let labeledAbstractTuple = (label: repeat each value)
+  repeat print(each labeledAbstractTuple) // invalid
+}
+```
+
+### Distinction between tuple values and value packs
+
+The following example demonstrates a pack repetition pattern on a value pack and an abstract tuple value separately first, then together but with the repetition pattern operating only on the value pack, and finally with the repetition pattern operating on both the value pack and the tuple value's contained value pack together interleaved. Note that, because the standard library function `print` does not currently accept parameter packs but instead only a single value parameter, all of the calls to it wrap the value argument pack in a tuple (hence all of those parentheses).
+
+```swift
+func example<each T>(packElements value: repeat each T, tuple: (repeat each T)) {
   print((repeat each value))
   print((repeat each tuple))
   
@@ -63,7 +85,6 @@ repeat each <tuple expression>
 let tempTuple = <tuple expression>
 repeat each tempTuple
 ```
-TODO: is this example actually informative or illustrative?
 
 ## Source compatibility
 
@@ -79,10 +100,27 @@ Given that this change rests atop the ABI introduced in the **Value and Type Par
 
 ## Alternatives considered
 
-The **Value and Type Parameter Packs** proposal provides no means for declaring local variable value packs or stored property packs. This is mentioned as a potential future direction, but without that, containing the packs within tuples is the way to access such functionality. Therefore an alternative to this proposal would be to instead pursue those future directions instead. However that would only partially address the motivations for this proposal, still leaving a broader pack repetition pattern design needed for abstract tuples.
+An earlier design required the use of an abstract tuple value expansion operator, in the form of `.element` (effectively a synthesized label for the value pack contained within the abstract tuple value). This proposal already requires a tuple with a single element that is a value pack, so it is unnecessary to explicitly call out that the expansion is occurring on that element. Requiring `.element` could also introduce potential source breakage in the case of existing code that contains a tuple using the label "element". Dropping the `.element` requirement averts the language inconsistency of designating a reserved tuple label that functions differently than any other tuple label.
 
 ## Future directions
 
-* Repetition patterns for concrete tuples
-* Pack repetition patterns for arrays containing a value pack where all pack elements are of the same type
-* Lifting the restriction that a tuple containing a value pack must contain only the single value pack and use no label. This would be required to enable pack repetition patterns for a contained value pack amongst arbitrary other tuple elements, addressable via a label.
+### Repetition patterns for concrete tuples
+
+It could help unify language features to extend the repetition pattern syntax to tuples of concrete type.
+
+```swift
+func example<each T>(_ value: repeat each T) {
+  let abstractTuple = (repeat each value)
+  let concreteTuple = (true, "two", 3)
+  repeat print(each abstractTuple)
+  repeat print(each concreteTuple) // currently invalid
+}
+```
+
+### Pack repetition patterns for arrays
+
+If all elements in a type argument pack are the same or share a conformance, then it should be possible to declare an Array value using a value pack.
+
+### Lift the single value pack with no label restriction
+
+This would be required to enable pack repetition patterns for a contained value pack amongst arbitrary other tuple elements that could be addressable via their labels.
