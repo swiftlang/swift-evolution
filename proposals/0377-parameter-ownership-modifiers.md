@@ -3,19 +3,27 @@
 * Proposal: [SE-0377](0377-parameter-ownership-modifiers.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
-* Implementation: available using the internal names `__shared` and `__owned`
-* Review: ([first pitch](https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers/54313)) ([second pitch](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)) ([first review](https://forums.swift.org/t/se-0377-borrow-and-take-parameter-ownership-modifiers/61020)) ([second review](https://forums.swift.org/t/combined-se-0366-third-review-and-se-0377-second-review-rename-take-taking-to-consume-consuming/61904)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0377-borrowing-and-consuming-parameter-ownership-modifiers/62759))
-* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/3f984e6183ce832307bb73ec72c842f6cb0aab86/proposals/0377-parameter-ownership-modifiers.md)
+* Status: **Implemented**
+* Implementation: Swift 5.9, without no-implicit-copy constraint
+* Review:
+  * [first pitch](https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers/54313)) ([second pitch](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)) ([first review](https://forums.swift.org/t/se-0377-borrow-and-take-parameter-ownership-modifiers/61020)) ([second review](https://forums.swift.org/t/combined-se-0366-third-review-and-se-0377-second-review-rename-take-taking-to-consume-consuming/61904)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0377-borrowing-and-consuming-parameter-ownership-modifiers/62759)
+  * [first review](https://forums.swift.org/t/se-0377-borrow-and-take-parameter-ownership-modifiers/61020)
+  * [first acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0377-borrowing-and-consuming-parameter-ownership-modifiers/62759)
+* Previous Revisions:
+  * [1](https://github.com/apple/swift-evolution/blob/3f984e6183ce832307bb73ec72c842f6cb0aab86/proposals/0377-parameter-ownership-modifiers.md)
+  * [2](https://github.com/apple/swift-evolution/blob/7e1d16316e5f68eb94546df9241aa6b4cacb9411/proposals/0377-parameter-ownership-modifiers.md), originally accepted revision
 
 ## Introduction
 
 We propose new `borrowing` and `consuming` parameter modifiers to allow developers to
 explicitly choose the ownership convention that a function uses to receive
-immutable parameters. This allows for fine-tuning of performance by reducing
-the number of ARC calls or copies needed to call a function, and provides a
-necessary prerequisite feature for move-only types to specify whether a function
-consumes a move-only value or not.
+immutable parameters. Applying one of these modifiers to a parameter causes
+that parameter binding to no longer be implicitly copyable, and potential
+copies need to be marked with the new `copy x` operator. This allows for
+fine-tuning of performance by reducing the number of ARC calls or copies needed
+to call a function, and provides a necessary prerequisite feature for
+noncopyable types to specify whether a function consumes a noncopyable value or
+not.
 
 ## Motivation
 
@@ -54,22 +62,25 @@ also does not try to optimize polymorphic interfaces, such as non-final class
 methods or protocol requirements. If a programmer wants behavior different
 from the default in these circumstances, there is currently no way to do so.
 
-Looking to the future, as part of our [ongoing project to add ownership to Swift](https://forums.swift.org/t/manifesto-ownership/5212), we will eventually have
-move-only values and types. Since move-only types do not have the ability to
-be copied, the distinction between the two conventions becomes an important
-part of the API contract: functions that *borrow* move-only values make
-temporary use of the value and leave it valid for further use, like reading
-from a file handle, whereas functions that *consume* a move-only value consume
-it and prevent its further use, like closing a file handle. Relying on
-implicit selection of the parameter convention will not suffice for these
-types.
+[SE-0390](https://github.com/apple/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md)
+introduces noncopyable types into Swift. Since noncopyable types do not have
+the ability to be copied, the distinction between these two conventions becomes
+an important part of the API contract: functions that *borrow* noncopyable
+values make temporary use of the value and leave it valid for further use, like
+reading from a file handle, whereas functions that *consume* a noncopyable
+value consume it and prevent its further use, like closing a file handle.
+Relying on implicit selection of the parameter convention will not suffice for
+these types.
 
 ## Proposed solution
 
 We give developers direct control over the ownership convention of
-parameters by introducing two new parameter modifiers `borrowing` and `consuming`.
+parameters by introducing two new parameter modifiers, `borrowing` and
+`consuming`.
 
 ## Detailed design
+
+### Syntax of parameter ownership modifiers
 
 `borrowing` and `consuming` become contextual keywords inside parameter type
 declarations.  They can appear in the same places as the `inout` modifier, and
@@ -128,6 +139,8 @@ source-breaking effects. (See "related directions" below for interactions with
 other language features being considered currently or in the near future which
 might interact with these modifiers in ways that cause them to break source.)
 
+### Ownership convention conversions in protocols and function types
+
 Protocol requirements can also use `consuming` and `borrowing`, and the modifiers will
 affect the convention used by the generic interface to call the requirement.
 The requirement may still be satisfied by an implementation that uses different
@@ -166,6 +179,12 @@ let h: (consuming Foo) -> Void = f
 let f2: (Foo) -> Void = h
 ```
 
+These implicit conversions for protocol conformances and function values
+are not available for parameter types that are noncopyable, in which case
+the convention must match exactly.
+
+### Using parameter bindings with ownership modifiers
+
 Inside of a function or closure body, `consuming` parameters may be mutated, as can
 the `self` parameter of a `consuming func` method. These
 mutations are performed on the value that the function itself took ownership of,
@@ -189,26 +208,111 @@ extension String {
 let helloWorld = "hello ".plus("cruel ").plus("world")
 ```
 
+`borrowing` and `consuming` parameter values are also **not implicitly copyable**
+inside of the function or closure body:
+
+```
+func foo(x: borrowing String) -> (String, String) {
+    return (x, x) // ERROR: needs to copy `x`
+}
+func bar(x: consuming String) -> (String, String) {
+    return (x, x) // ERROR: needs to copy `x`
+}
+```
+
+And so is the `self` parameter within a method that has the method-level
+`borrowing` or `consuming` modifier:
+
+```
+extension String {
+    borrowing func foo() -> (String, String) {
+        return (self, self) // ERROR: needs to copy `self`
+    }
+    consuming func bar() -> (String, String) {
+        return (self, self) // ERROR: needs to copy `x`
+    }
+}
+```
+
+
+A value would need to be implicitly copied if:
+
+- a *consuming operation* is applied to a `borrowing` binding, or
+- a *consuming operation* is applied to a `consuming` binding after it has
+  already been consumed, or while a *borrowing* or *mutating operation* is simultaneously
+  being performed on the same binding
+
+where *consuming*, *borrowing*, and *mutating operations* are as described for
+values of noncopyable type in
+[SE-0390](https://github.com/apple/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md#using-noncopyable-values).
+In essence, disabling implicit copying for a value makes it behave as if it
+were a value of noncopyable type.
+
+To allow a copy to occur, the `copy x` operator may be used:
+
+```
+func dup(_ x: borrowing String) -> (String, String) {
+    return (copy x, copy x) // OK, copies explicitly allowed here
+}
+```
+
+`copy x` is a *borrowing operation* on `x` that returns an independently
+owned copy of the current value of `x`. The copy may then be independently 
+consumed or modified without affecting the original `x`. Note that, while
+`copy` allows for a copy to occur, it is not a strict
+obligation for the compiler to do so; the copy may still be optimized away
+if it is deemed semantically unnecessary.
+
+`copy` is a contextual keyword, parsed as an operator if it is immediately
+followed by an identifier on the same line, like the `consume x` operator before
+it. In all other cases, `copy` is still treated as a reference to a
+declaration named `copy`, as it would have been prior to this proposal.
+
+The constraint on implicit copies only affects the parameter binding itself.
+The value of the parameter may be passed to other functions, or assigned to
+other variables (if the convention allows), at which point the value may 
+be implicitly copied through those other parameter or variable bindings.
+
+```
+func foo(x: borrowing String) {
+    let y = x // ERROR: attempt to copy `x`
+    bar(z: x) // OK, invoking `bar(z:)` does not require copying `x`
+}
+
+func bar(z: String) {
+    let w = z // OK, z is implicitly copyable here
+}
+
+func baz(a: consuming String) {
+    // let aa = (a, a) // ERROR: attempt to copy `a`
+
+    let b = a
+    let bb = (b, b) // OK, b is implicitly copyable
+}
+```
+
 ## Source compatibility
 
 Adding `consuming` or `borrowing` to a parameter in the language today does not
-otherwise affect source compatibility. Callers can continue to call the
-function as normal, and the function body can use the parameter as it already
-does. A method with `consuming` or `borrowing` modifiers on its parameters can still
-be used to satisfy a protocol requirement with different modifiers. The
-compiler will introduce implicit copies as needed to maintain the expected
-conventions. This allows for API authors to use `consuming` and `borrowing` annotations
-to fine-tune the copying behavior of their implementations, without forcing
-clients to be aware of ownership to use the annotated APIs. Source-only
-packages can add, remove, or adjust these annotations on copyable types
-over time without breaking their clients.
+affect source compatibility with existing code outside of that function.
+Callers can continue to call the function as normal, and the function body can
+use the parameter as it already does. A method with `consuming` or `borrowing`
+modifiers on its parameters can still be used to satisfy a protocol requirement
+with different modifiers. Although `consuming` parameter bindings become
+mutable, and parameters with either of the `borrowing` or `consuming` modifiers
+are not implicitly copyable, the effects are localized to the function
+adopting the modifiers. This allows for API authors to use
+`consuming` and `borrowing` annotations to fine-tune the copying behavior of
+their implementations, without forcing clients to be aware of ownership to use
+the annotated APIs. Source-only packages can add, remove, or adjust these
+annotations on copyable types over time without breaking their clients.
 
-This will change if we introduce features that limit the compiler's ability
-to implicitly copy values, such as move-only types, "no implicit copy" values
-or scopes, and `consume` or `borrow` operators in expressions. Changing the
-parameter convention changes where copies may be necessary to perform the call.
-Passing an uncopyable value as an argument to a `consuming` parameter ends its
-lifetime, and that value cannot be used again after it's consumed.
+Changing parameter modifiers from `borrowing` to `consuming` may however break
+source of any client code that also adopts those parameter modifiers, since the
+change may affect where copies need to occur in the caller. Going from
+`consuming` to `borrowing` however should generally not be source-breaking
+for a copyable type. A change in either direction is source-breaking if the
+parameter type is noncopyable.
 
 ## Effect on ABI stability
 
@@ -238,7 +342,7 @@ because of this potential for confusion. However, whereas `var` and `inout`
 both suggest mutability, and `var` does not provide explicit directionality as
 to where mutations become visible, `consuming` on the other hand does not
 suggest any kind of mutability to the caller, and it explicitly states the
-directionality of ownership transfer. Furthermore, with move-only types, the
+directionality of ownership transfer. Furthermore, with noncopyable types, the
 chance for confusion is moot, because the transfer of ownership means the
 caller cannot even use the value after the callee takes ownership anyway.
 
@@ -290,43 +394,75 @@ function declaration. Similarly, to explicitly pass an argument by borrow
 without copying, use `foo(borrow x)` at the call site, and `func foo(_: borrowing T)`
 in the function declaration.
 
-### Effect on call sites and uses of the parameter
+### `@noImplicitCopy` attribute
 
-This proposal designs the `consuming` and `borrowing` modifiers to have minimal source
-impact when applied to parameters, on the expectation that, in typical Swift
-code that isn't using move-only types or other copy-controlling features,
-adjusting the convention is a useful optimization on its own without otherwise
-changing the programming model, letting the optimizer automatically minimize
-copies once the convention is manually optimized.
+Instead of having no-implicit-copy behavior be tied to the ownership-related
+binding forms and parameter modifiers, we could have an attribute that can
+be applied to any binding to say that it should not be implicitly copyable:
 
-It could alternatively be argued that explicitly stating the convention for
-a value argument indicates that the developer is interested in guaranteeing
-that the optimization occurs, and having the annotation imply changed behavior
-at call sites or inside the function definition, such as disabling implicit
-copies of the parameter inside the function, or implicitly taking an argument
-to a `consuming` parameter and ending its lifetime inside the caller after the
-call site. We believe that it is better to keep the behavior of the call in
-expressions independent of the declaration (to the degree possible with
-implicitly copyable values), and that explicit operators on the call site
-can be used in the important, but relatively rare, cases where the default
-optimizer behavior is insufficient to get optimal code.
+```
+@noImplicitCopy(self)
+func foo(x: @noImplicitCopy String) {
+    @noImplicitCopy let y = copy x
+}
+```
+
+We had [pitched this possibility](https://forums.swift.org/t/pitch-noimplicitcopy-attribute-for-local-variables-and-function-parameters/61506),
+but community feedback rightly pointed out the syntactic weight and noise
+of this approach, as well as the fact that, as an attribute, it makes the
+ability to control copies feel like an afterthought not well integrated
+with the rest of the language. We've decided not to continue in this direction,
+since we think that attaching no-implicit-copy behavior to the ownership
+modifiers themselves leads to a more coherent design.
+
+### `copy` as a regular function
+
+Unlike the `consume x` or `borrow x` operator, copying doesn't have any specific
+semantic needs that couldn't be done by a regular function. Instead of an
+operator, `copy` could be defined as a regular standard library function:
+
+```
+func copy<T>(_ value: T) -> T {
+    return value
+}
+```
+
+We propose `copy x` as an operator, because it makes the relation to
+`consume x` and `borrow x`, and it avoids the issues of polluting the
+global identifier namespace and occasionally needing to be qualified as
+`Swift.copy` if it was a standard library function.
+
+### Transitive no-implicit-copy constraint
+
+The no-implicit-copy constraint for a `borrowing` and `consuming` parameter
+only applies to that binding, and is not carried over to other variables
+or function call arguments receiving the binding's value. We could also
+say that the parameter can only be passed as an argument to another function
+if that function's parameter uses the `borrowing` or `consuming` modifier to
+keep implicit copies suppressed, or that it cannot be bound to `let` or `var`
+bindings and must be bound using one of the borrowing bindings once we have
+those. However, we think those additional restrictions would only make the
+`borrowing` and `consuming` modifiers harder to adopt, since developers would
+only be able to use them in cases where they can introduce them bottom-up from
+leaf functions.
+
+The transitivity restriction also would not really improve
+local reasoning; since the restriction is only on *implicit* copies, but
+explicit copies are still possible, calling into another function may lead
+to that other function performing copies, whether they're implicit or not.
+The only way to be sure would be to inspect the callee's implementation.
+One of the goals of SE-0377 is to introduce the parameter ownership modifiers
+in a way that minimizes disruption to the the rest of a codebase, allowing
+for the modifiers to be easily adopted in spots where the added control is
+necessary, and a transitivity requirement would interfere with that goal for
+little benefit.
 
 ## Related directions
 
-### Caller-side controls on implicit copying
-
-There are a number of caller-side operators we are considering to allow for
-performance-sensitive code to make assertions about call behavior. These
-are closely related to the `consuming` and `borrowing` parameter modifiers and so
-share their names. See also the
-[Selective control of implicit copying behavior](https://forums.swift.org/t/selective-control-of-implicit-copying-behavior-take-borrow-and-copy-operators-noimplicitcopy/60168)
-thread on the Swift forums for deeper discussion of this suite of features
-
 #### `consume` operator
 
-Currently under review as
-[SE-0366](https://github.com/apple/swift-evolution/blob/main/proposals/0366-move-function.md),
-it is useful to have an operator that explicitly ends the lifetime of a
+[SE-0366](https://github.com/apple/swift-evolution/blob/main/proposals/0366-move-function.md)
+introduced an operator that explicitly ends the lifetime of a
 variable before the end of its scope. This allows the compiler to reliably
 destroy the value of the variable, or transfer ownership, at the point of its
 last use, without depending on optimization and vague ARC optimizer rules.
@@ -404,21 +540,22 @@ func callUseFoo() {
 If `useFooWithoutTouchingGlobal` did in fact attempt to mutate `global`
 while the caller is borrowing it, an exclusivity failure would be raised.
 
-#### Move-only types, uncopyable values, and related features
+#### Noncopyable types
 
 The `consuming` versus `borrowing` distinction becomes much more important and
-prominent for values that cannot be implicitly copied. We have plans to
-introduce move-only types, whose values are never copyable, as well as
+prominent for values that cannot be implicitly copied.
+[SE-0390](https://github.com/apple/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md)
+introduces noncopyable types, whose values are never copyable, as well as
 attributes that suppress the compiler's implicit copying behavior selectively
 for particular variables or scopes. Operations that borrow
 a value allow the same value to continue being used, whereas operations that
 consume a value destroy it and prevent its continued use. This makes the
-convention used for move-only parameters a much more important part of their
+convention used for noncopyable parameters a much more important part of their
 API contract, since it directly affects whether the value is still available
 after the operation:
 
 ```swift
-moveonly struct FileHandle { ... }
+struct FileHandle: ~Copyable { ... }
 
 // Operations that open a file handle return new FileHandle values
 func open(path: FilePath) throws -> FileHandle
@@ -444,39 +581,9 @@ func hackPasswords() throws -> HackedPasswords {
 }
 ```
 
-When protocol requirements have parameters of move-only type, the ownership
-convention of the corresponding parameters in an implementing method will need to
-match exactly, since they cannot be implicitly copied in a thunk:
-
-```swift
-protocol WritableToFileHandle {
-  func write(to fh: borrowing FileHandle)
-}
-
-extension String: WritableToFileHandle {
-  // error: does not satisfy protocol requirement, ownership modifier for
-  // parameter of move-only type `FileHandle` does not match
-  /*
-  func write(to fh: consuming FileHandle) {
-    ...
-  }
-   */
-
-  // This is OK:
-  func write(to fh: borrowing FileHandle) {
-    ...
-  }
-}
-```
-
-All generic and existential types in the language today are assumed to be
-copyable, but copyability will need to become an optional constraint in order
-to allow move-only types to conform to protocols and be used in generic
-functions. When that happens, the need for strict matching of ownership
-modifiers in protocol requirements would extend also to any generic parameter
-types, associated types, and existential types that are not required to be
-copyable, as well as the `Self` type in a protocol that does not require
-conforming types to be copyable.
+As such, SE-0390 requires parameters of noncopyable type to explicitly state
+whether they are `borrowing` or `consuming`, since there isn't a clear
+default that is always safe to assume.
 
 ### `set`/`out` parameter convention
 
@@ -497,6 +604,40 @@ In Swift up to this point, return values have been the preferred mechanism for
 functions to pass values back to their callers. This proposal does not propose
 to add some kind of `out` parameter, but a future proposal could.
 
+### `borrowing`, `mutating`, and `consuming` local variables
+
+Swift currently lacks the ability to form local bindings to part of an
+aggregate without copying that part, other than by passing the part as
+an argument to a function call. We plan to introduce [`borrow` and `inout`
+bindings](https://forums.swift.org/t/pitch-borrow-and-inout-declaration-keywords/62366)
+that will provide this functionality, with the same no-implicit-copy constraint
+described by this proposal applied to these bindings.
+
+### Consistency for `inout` parameters and the `self` parameter of `mutating` methods
+
+`inout` parameters and `mutating` methods have been part of Swift since before
+version 1.0, and their existing behavior allows for implicit copying of the
+current value of the binding. We can't change the existing language
+behavior in Swift 5, but accepting this proposal would leave `inout` parameters
+and `mutating self` inconsistent with the new modifiers. There are a few things
+we could potentially do about that:
+
+- We could change the behavior of `inout` and `mutating self` parameters to
+  make them not implicitly copyable in Swift 6 language mode.
+- `inout` is also conspicuous now in not following the `-ing` convention we've
+  settled on for `consuming`/`borrowing`/`mutating` modifiers. We could introduce
+  `mutating` as a new parameter modifier spelling, with no-implicit-copy
+  behavior.
+
+One consideration is that, whereas `borrowing` and `consuming` are strictly
+optional for code that works only with copyable types, and is OK with letting
+the compiler manage copies automatically, there is no way to get in-place
+mutation through function parameters except via `inout`.  Tying
+no-implicit-copy behavior to mutating parameters could be seen as a violation
+of the "progressive disclosure" goal of these ownership features, since
+developers would not be able to avoid interacting with the ownership model when
+using `inout` parameters anymore.
+
 ## Acknowledgments
 
 Thanks to Robert Widmann for the original underscored implementation of
@@ -509,4 +650,10 @@ of this proposal used `take` and `taking` as the name of the callee-destroy conv
 
 The [second reviewed revision](https://github.com/apple/swift-evolution/blob/e3966645cf07d6103561454574ab3e2cc2b48ee9/proposals/0377-parameter-ownership-modifiers.md)
 used the imperative forms, `consume` and `borrow`, as parameter modifiers,
-which were changed to the gerunds `consuming` and `borrowing` in review.
+which were changed to the gerunds `consuming` and `borrowing` in review. The
+proposal was originally accepted after these revisions.
+
+The current revision alters the originally-accepted proposal to make it so that
+`borrowing` and `consuming` parameter bindings are not implicitly copyable,
+and introduces a `copy x` operator that can be used to explicitly allow copies
+where needed.
