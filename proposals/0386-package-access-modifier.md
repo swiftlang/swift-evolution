@@ -26,7 +26,7 @@ For example, here’s a scenario where a client has access to a utility API from
 
 
 Module `Engine` in `gamePkg`:
-```
+```swift
 public struct MainEngine {
     public init() { ...  }
     // Intended to be public
@@ -37,7 +37,7 @@ public struct MainEngine {
 ```
 
 Module `Game` in `gamePkg`:
-```
+```swift
 import Engine
 
 public func play() {
@@ -46,7 +46,7 @@ public func play() {
 ```
 
 Client `App` in `appPkg`:
-```
+```swift
 import Game
 import Engine
 
@@ -71,7 +71,7 @@ Our goal is to introduce a mechanism to Swift to recognize a package as a unit i
 `package` is introduced as an access modifier.  It cannot be combined with other access modifiers.
 `package` is a contextual keyword, so existing declarations named `package` will continue to work.  This follows the precedent of `open`, which was also added as a contextual keyword.  For example, the following is allowed:
 
-```
+```swift
 package var package: String {...}
 ```
 
@@ -80,7 +80,7 @@ package var package: String {...}
 The `package` keyword is added at the declaration site.  Using the scenario above, the helper API `run` can be declared with the new access modifier like so:
 
 Module `Engine`:
-```
+```swift
 public struct MainEngine {
     public init() { ...  }
     public var stats: String { ...  }
@@ -97,7 +97,7 @@ Swift requires that the declarations used in certain places (such as the signatu
 The `Game` module can access the helper API `run` since it is in the same package as `Engine`.
 
 Module `Game`:
-```
+```swift
 import Engine
 
 public func play() {
@@ -108,7 +108,7 @@ public func play() {
 However, if a client outside of the package tries to access the helper API, it will not be allowed.
 
 Client `App`:
-```
+```swift
 import Game
 import Engine
 
@@ -122,7 +122,7 @@ Swift as a language leaves it up to the build system to define the boundaries of
 
 A new flag `-package-name` is passed down to a commandline invocation, as follows.
 
-```
+```sh
 swiftc -module-name Engine -package-name gamePkg ...
 swiftc -module-name Game -package-name gamePkg ...
 swiftc -module-name App -package-name appPkg ...
@@ -136,7 +136,7 @@ The build system should make a best effort to ensure that package names are uniq
 
 If a target needs to be excluded from the package boundary, that can be done with a new `packageAccess` setting in the manifest, like so: 
 
-```
+```swift
   .target(name: "Game", dependencies: ["Engine"], packageAccess: false)
 ```
 
@@ -152,7 +152,7 @@ When the Swift frontend builds a `.swiftmodule` file directly from source, the f
 
 Here's an example.
 
-```
+```swift
 func internalFuncA() {}
 @usableFromInline func internalFuncB() {}
 
