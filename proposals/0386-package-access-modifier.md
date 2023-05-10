@@ -3,11 +3,10 @@
 * Proposal: [SE-0386](0386-package-access-modifier.md)
 * Authors: [Ellie Shin](https://github.com/elsh), [Alexis Laferriere](https://github.com/xymus)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (March 31st...May 1st, 2023**
+* Status: **Accepted**
 * Implementation: [apple/swift#61546](https://github.com/apple/swift/pull/62700), [apple/swift#62704](https://github.com/apple/swift/pull/62704), [apple/swift#62652](https://github.com/apple/swift/pull/62652), [apple/swift#62652](https://github.com/apple/swift/pull/62652)
-* Review: ([pitch](https://forums.swift.org/t/new-access-modifier-package/61459)) ([first review](https://forums.swift.org/t/se-0386-package-access-modifier/62808))
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/28fd2fb9b7258117f912cec5e5f7eb178520fbf2/proposals/NNNN-package-access-modifier.md),
-[2](https://github.com/apple/swift-evolution/blob/main/proposals/0386-package-access-modifier.md)
+* Review: ([pitch](https://forums.swift.org/t/new-access-modifier-package/61459)) ([first review](https://forums.swift.org/t/se-0386-package-access-modifier/62808)) ([second review](https://forums.swift.org/t/second-review-se-0386-package-access-modifier/64086)) ([acceptance](https://forums.swift.org/t/accepted-se-0386-package-access-modifier/64904))
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/28fd2fb9b7258117f912cec5e5f7eb178520fbf2/proposals/NNNN-package-access-modifier.md), [2](https://github.com/apple/swift-evolution/blob/32e51946296f67be79a58a8c23eb9d7460a06232/proposals/0386-package-access-modifier.md), [3](https://github.com/apple/swift-evolution/blob/4a3a11b18037526cf8d83a9d10b22b94890727e8/proposals/0386-package-access-modifier.md)
 
 ## Introduction
 
