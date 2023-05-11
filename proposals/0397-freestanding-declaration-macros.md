@@ -88,11 +88,11 @@ public struct WarningMacro: DeclarationMacro {
 
 ### Syntax
 
-The syntactic representation of a freestanding macro expansion site is a macro expansion declaration. A macro expansion declaration is described by the following grammar. It has the same production rule as a [macro expansion expression](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-expansion):
+The syntactic representation of a freestanding macro expansion site is a macro expansion declaration. A macro expansion declaration is described by the following grammar. It is based on the production rule as a [macro expansion expression](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-expansion), but with the addition of attributes and modifiers:
 
 ```
 declaration -> macro-expansion-declaration
-macro-expansion-declaration -> '#' identifier generic-argument-clause[opt] function-call-argument-clause[opt] trailing-closures[opt]
+macro-expansion-declaration -> attributes? declaration-modifiers? '#' identifier generic-argument-clause[opt] function-call-argument-clause[opt] trailing-closures[opt]
 ```
 
 At top level and function scope where both expressions and declarations are allowed, a freestanding macro expansion site is first parsed as a macro expansion expression. It will be replaced by a macro expansion declaration later during type checking, if the macro resolves to a declaration macro. It is ill-formed if a macro expansion expression resolves to a declaration macro but isn't the outermost expression. This parsing rule is required in case an expression starts with a macro expansion expression, such as in the following infix expression:
@@ -100,6 +100,49 @@ At top level and function scope where both expressions and declarations are allo
 ```swift
 #line + 1
 #line as Int?
+```
+
+#### Attributes and modifiers
+
+Any attributes and modifiers written on a freestanding macro declaration are implicitly applied to each declaration produced by the macro expansion. For example:
+
+```swift
+@available(toasterOS 2.0, *)
+public #gyb(
+  """
+  struct Int${0} { ... }
+  struct UInt${0} { ... }
+  """,
+  [8, 16, 32, 64]
+)
+```
+
+would expand to:
+
+```swift
+@available(toasterOS 2.0, *)
+public struct Int8 { ... }
+
+@available(toasterOS 2.0, *)
+public struct UInt8 { ... }
+
+@available(toasterOS 2.0, *)
+public struct Int16 { ... }
+
+@available(toasterOS 2.0, *)
+public struct UInt16 { ... }
+
+@available(toasterOS 2.0, *)
+public struct Int32 { ... }
+
+@available(toasterOS 2.0, *)
+public struct UInt32 { ... }
+
+@available(toasterOS 2.0, *)
+public struct Int64 { ... }
+
+@available(toasterOS 2.0, *)
+public struct UInt64 { ... }
 ```
 
 ### Restrictions
