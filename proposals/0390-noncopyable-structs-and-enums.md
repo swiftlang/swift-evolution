@@ -573,6 +573,14 @@ guard let condition = getCondition() else {
 use(x)
 ```
 
+For the purposes of the following discussion, a closure is considered nonescaping
+in the following cases:
+
+- if the closure literal appears as an argument to a function parameter of
+  non-`@escaping` function type, or
+- if the closure literal is assigned to a local `let` variable, that does not
+  itself get captured by an escaping closure.
+
 ### Borrowing operations
 
 The following operations are borrowing:
@@ -882,8 +890,7 @@ they can be copied and passed around arbitrarily, and multiple escaping closures
 can capture and access the same local variables alongside the local context
 from which those captures were taken. Variables captured by escaping closures
 thus behave like class properties; immutable captures are treated as always
-borrowed both inside the closure body and in the capture's original context
-after the closure was formed.
+borrowed both inside the closure body and in the capture's original context.
 
 ```
 func escape(_: @escaping () -> ()) {...}
@@ -893,6 +900,9 @@ func consume(_: consuming FileDescriptor) {}
 
 func foo() {
   let x = FileDescriptor()
+
+  // ERROR: cannot consume variable before it's been captured
+  consume(x)
 
   escape {
     borrow(x) // OK
@@ -909,13 +919,19 @@ func foo() {
 ```
 
 Mutable captures are subject to dynamic exclusivity checking like class
-properties are.
+properties are, and similarly cannot be consumed and reinitialized.
 
 ```
 var escapedClosure: (@escaping (inout FileDescriptor) -> ())?
 
 func foo() {
   var x = FileDescriptor()
+
+  // ERROR: cannot consume variable before it's been captured.
+  // (We could potentially support local consumption before the variable
+  // capture occurs as a future direction.)
+  consume(x)
+  x = FileDescriptor()
 
   escapedClosure = { _ in borrow(x) }
 
@@ -942,11 +958,9 @@ struct FileDescriptor: ~Copyable {
 ```
 
 Like a class `deinit`, a struct or enum `deinit` may not propagate any uncaught
-errors. The body of `deinit` has exclusive access to `self` for the duration
-of its execution, so `self` behaves as in a `mutating` method; it may be
-modified by the body of `deinit`, but must remain valid until the end of the
-deinit. (Allowing for partial invalidation inside a `deinit` is explored as
-a future direction.)
+errors. `self` behaves as in a `borrowing` method; it may not be
+modified or consumed by the body of `deinit`. (Allowing for mutation and
+partial invalidation inside a `deinit` is explored as a future direction.)
 
 A value's lifetime ends, and its `deinit` runs if present, in the following
 circumstances:
@@ -1565,6 +1579,65 @@ enum Soda {
 }
 ```
 
+### Allowing `deinit` to mutate or consume `self`, while avoiding accidental recursion
+
+During destruction, `deinit` formally has sole ownership of `self`, so it
+is possible to allow `deinit` to mutate or consume `self` as part of
+deinitialization. However, inside of other `mutating` or `consuming` methods,
+it's easy to inadvertently trigger implicit destruction of the value and
+reenter `deinit` again:
+
+```
+struct Foo: ~Copyable {
+  init() { ... }
+
+  consuming func consumingHelper() {
+    // If a consuming method does nothing else, it will run `deinit`
+  }
+
+  mutating func mutatingHelper() {
+    // A mutating method may consume and reassign self, indirectly triggering
+    // an implicit deinit
+    consumingHelper()
+    self = .init()
+  }
+
+  deinit {
+    // mutatingHelper calls consumingHelper, which calls deinit again, leading to an infinite loop
+    mutatingHelper() 
+  }
+}
+```
+
+Since this is an easy trap to fall into, before we allow `deinit` to mutate
+or consume `self`, it's worth considering whether there are any constraints we
+could impose to make it less likely to get into an infinite
+`deinit` loop situation when doing so. Some possibilities include:
+
+* We could say that the value remains immutable during `deinit`. Many types
+  don't need to modify their internal state for cleanup, especially if they
+  only store a pointer or handle to some resource. This seems overly
+  restrictive for other kinds of types that have direct ownership of resources,
+  though.
+* We could say that individual *fields* of the value inside of `deinit` are
+  mutable and consumable, but that the value as a whole is not. This would
+  allow for `deinit` to individually mutate and/or forward ownership of
+  elements of the value, but not pass off the entire value to be mutated or
+  consumed (and potentially re-deinited). This would allow for `deinit`s to
+  implement logic that modifies or consumes part of the value, but they
+  wouldn't be allowed to use any methods of the type, other than maybe
+  `borrowing` methods, to share implementation logic with other members of the
+  type.
+* Since `deinit` must be declared as part of the original type declaration, any
+  nongeneric methods that it can possibly call on the type must be defined in
+  the same module as the `deinit`, so we could potentially do some local
+  analysis of those methods. We could raise a warning or error if a method
+  called from the deinit either visibly contains any implicit deinit calls
+  itself, or cannot be analyzed because it's generic, from a protocol
+  extension, etc.
+* We could do nothing and leave it in developers' hands to understand why
+  deinit loops happen when they do.
+
 ### Finer-grained destructuring in `consuming` methods and `deinit`
 
 As currently specified, noncopyable types are (outside of `init` implementations)
@@ -1694,6 +1767,7 @@ which is a good optimization for copyable value types, but also allows for
 more expressivity with noncopyable properties.
 
 ### Static casts of functions with ownership modifiers
+
 The rule for casting function values via `as` or some other static, implicit 
 coercion is that a noncopyable parameter's ownership modifier must remain the 
 same. But there are some cases where static conversions of functions 

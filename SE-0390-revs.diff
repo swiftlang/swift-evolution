@@ -1,0 +1,46 @@
+diff --git a/proposals/0390-noncopyable-structs-and-enums.md b/proposals/0390-noncopyable-structs-and-enums.md
+index 9ea1d21e..1dd43893 100644
+--- a/proposals/0390-noncopyable-structs-and-enums.md
++++ b/proposals/0390-noncopyable-structs-and-enums.md
+@@ -882,8 +882,7 @@ they can be copied and passed around arbitrarily, and multiple escaping closures
+ can capture and access the same local variables alongside the local context
+ from which those captures were taken. Variables captured by escaping closures
+ thus behave like class properties; immutable captures are treated as always
+-borrowed both inside the closure body and in the capture's original context
+-after the closure was formed.
++borrowed both inside the closure body and in the capture's original context.
+ 
+ ```
+ func escape(_: @escaping () -> ()) {...}
+@@ -894,6 +893,9 @@ func consume(_: consuming FileDescriptor) {}
+ func foo() {
+   let x = FileDescriptor()
+ 
++  // ERROR: cannot consume variable before it's been captured
++  consume(x)
++
+   escape {
+     borrow(x) // OK
+     consume(x) // ERROR: cannot consume captured variable
+@@ -909,7 +911,7 @@ func foo() {
+ ```
+ 
+ Mutable captures are subject to dynamic exclusivity checking like class
+-properties are.
++properties are, and similarly cannot be consumed and reinitialized.
+ 
+ ```
+ var escapedClosure: (@escaping (inout FileDescriptor) -> ())?
+@@ -917,6 +919,12 @@ var escapedClosure: (@escaping (inout FileDescriptor) -> ())?
+ func foo() {
+   var x = FileDescriptor()
+ 
++  // ERROR: cannot consume variable before it's been captured.
++  // (We could potentially support local consumption before the variable
++  // capture occurs as a future direction.)
++  consume(x)
++  x = FileDescriptor()
++
+   escapedClosure = { _ in borrow(x) }
+ 
+   // Runtime error when exclusive access to `x` dynamically conflicts
