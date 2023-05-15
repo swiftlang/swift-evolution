@@ -6,7 +6,7 @@
 * Status: **Active review (May 15th...22nd, 2023)**
 * Vision: [Macros](https://github.com/apple/swift-evolution/blob/main/visions/macros.md)
 * Implementation: On `main` behind the experimental flag `FreestandingMacros`
-* Review: ([review](https://forums.swift.org/t/se-0397-freestanding-declaration-macros/64655))
+* Review: ([review](https://forums.swift.org/t/se-0397-freestanding-declaration-macros/64655)) ([partial acceptance and second review](https://forums.swift.org/t/se-0397-second-review-freestanding-declaration-macros/64997))
 * Previous revisions: ([1](https://github.com/apple/swift-evolution/blob/c0f1e6729b6ca1a4fc2367efe68612fde175afe4/proposals/0397-freestanding-declaration-macros.md))
 
 ## Introduction
