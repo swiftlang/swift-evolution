@@ -128,16 +128,18 @@ struct ContentView: View {
 
 Similarly, other SwiftUI property wrappers could be `let` declared when they do not require more than a single initialization.
 
-### Property wrappers with `nonmutating set`
+## Alternatives considered
 
-Property wrappers that have a `wrappedValue` property with a `nonmutating set` (e.g., SwiftUI's [`@State`](https://developer.apple.com/documentation/swiftui/state/wrappedvalue) and [`@Binding`](https://developer.apple.com/documentation/swiftui/binding/wrappedvalue)) will preserve the reference semantics of the `wrappedValue` implementation even when marked as a `let` declaration. For example:  
+### @State and @Binding property wrappers with `nonmutating set`
+
+Currently, SwiftUI offers two property wrappers, [`@State`](https://developer.apple.com/documentation/swiftui/state/wrappedvalue) and [`@Binding`](https://developer.apple.com/documentation/swiftui/binding/wrappedvalue)) that have a `wrappedValue` property with a `nonmutating set`. This allows the backing types to preserve the reference semantics of the `wrappedValue` implementation.
+
+A `var` declared `@State` property currently generates a mutating set that reflects `@State`'s reference based storage:
 
 ```swift
-@State let weekday: String = "Monday"
-```
-Here, `weekday` is an immutable instance of the `@State` property wrapper, but its `wrappedValue` storage will retain its mutability and reference type traits. This will translate to:
-```swift
-private let _weekday: State<String> = State<String>(wrappedValue: "Monday")
+@State var weekday: String = "Monday"
+
+private var _weekday: State<String> = State<String>(wrappedValue: "Monday")
 var weekday : String {
   get { 
     return _weekday.wrappedValue 
@@ -149,31 +151,50 @@ var weekday : String {
     yield () 
   }
 }
-var $weekday: Binding<String> {
-  get { return _weekday.projectedValue }
+```
+
+Declaring the `@State` property with a `let` will remove the mutating setter:
+
+```swift
+@State let weekday: String = "Monday"
+
+private let _weekday: State<String> = State<String>(wrappedValue: "Monday")
+var weekday : String {
+  get { 
+    return _weekday.wrappedValue 
+  }
 }
 ```
 
-Marking `weekday` as a let declared property will not remove access to its `wrappedValue`'s nonmutating set and the `wrappedValue` can be assigned via the backing property, `_weekday`:
+[There is an argument to be made](https://forums.swift.org/t/pitch-allow-property-wrappers-on-let-declarations/61750/20) in favor of retaining the `mutating set` for let declare @State and @Binding to signify their reference based storage. Afterall, a property wrapper's `wrappedValue` could be assigned via the `_weekday` backing property, even if `weekday` was marked with a `let` instead of a `var`.
+
+However, we have elected to remove the `mutating set` for `let` declared `@State` or `@Binding` to maintain language consistency. Since property wrapper is just a struct or class with an attribute and a wrappedValue, a struct with a backing type of a class would not generate a mutating setter for its instances. For example:
 
 ```swift
-_weekday.wrappedValue = "Tuesday"
+class A {
+  init () {}
+}
+
+struct B {
+  var num: A
+
+  init(n: A) {
+    self.num = n
+  }
+}
+
+struct Test {
+  let b: B // note: change 'let' to 'var' to make it mutable
+  
+  var test: A {
+    get { b.num }
+    nonmutating set { b.num = newValue } // error: cannot assign to property: 'b' is a 'let' constant
+  }
+}
 ```
 
-However, this does not affect the immutability of `weekday`, which can only be assigned to once like any ordinary let wrapped property. Any attempt to reassign `weekday` will result in an error:
+Should SwiftUI or general property wrapper usage evolve in a different direction in the future, this decision can be reconsidered to accommodate backing type traits in instances.
 
-```swift
-weekday = "Wednesday" // Error: Cannot assign to value: 'weekday' is a 'let' constant
-```
+## Effect on ABI stability/API resilience
 
-## Source compatibility
-
-This is an additive feature that does not impact source compatibility.
-
-## Effect on ABI stability
-
-This is an additive change that has no direct impact that compromises ABI stability.
-
-## Effect on API resilience
-
-This is an additive change that has no impact on API resilience.
+This is an additive change that does not impact source compatibility, does not compromise ABI stability or API resilience, and requires no runtime support for back deployment.
