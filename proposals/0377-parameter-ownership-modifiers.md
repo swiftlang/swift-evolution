@@ -245,8 +245,8 @@ A value would need to be implicitly copied if:
 where *consuming*, *borrowing*, and *mutating operations* are as described for
 values of noncopyable type in
 [SE-0390](https://github.com/apple/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md#using-noncopyable-values).
-In essence, disabling implicit copying for a value makes it behave as if it
-were a value of noncopyable type.
+In essence, disabling implicit copying for a binding makes the binding behave
+as if it were of some noncopyable type.
 
 To allow a copy to occur, the `copy x` operator may be used:
 
@@ -325,7 +325,9 @@ for which copying is equivalent to `memcpy` and destroying is a no-op; however,
 
 `consuming` or `borrowing` break ABI for ABI-stable libraries, but are intended to have
 minimal impact on source-level API. When using copyable types, adding or
-changing these annotations to an API should not affect its existing clients.
+changing these annotations to an API should not affect its existing clients,
+except where those clients have also adopted the not-implicitly-copyable
+conventions.
 
 ## Alternatives considered
 
