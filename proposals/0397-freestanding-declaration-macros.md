@@ -257,7 +257,7 @@ struct JSONValue: Codable {
 
 ## Source compatibility
 
-Freestanding macros use the same syntax introduced for [expression macros](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md), which were themselves a pure extension without an impact on source compatibility. Because a given macro can only have a single freestanding role, and we retain the parsing rules for macro expansion expressions, this proposal introduces no new ambiguities with SE-0392.
+Freestanding macros use the same syntax introduced for [expression macros](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md), which were themselves a pure extension without an impact on source compatibility. Because a given macro can only have a single freestanding role, and we retain the parsing rules for macro expansion expressions, this proposal introduces no new ambiguities with SE-0382.
 
 ## Effect on ABI stability
 
