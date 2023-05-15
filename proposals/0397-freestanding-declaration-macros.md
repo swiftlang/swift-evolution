@@ -3,10 +3,11 @@
 * Proposal: [SE-0397](0397-freestanding-declaration-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Richard Wei](https://github.com/rxwei), [Holly Borla](https://github.com/hborla)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (April 27th...May 8th, 2023)**
+* Status: **Active review (May 15th...22nd, 2023)**
 * Vision: [Macros](https://github.com/apple/swift-evolution/blob/main/visions/macros.md)
 * Implementation: On `main` behind the experimental flag `FreestandingMacros`
 * Review: ([review](https://forums.swift.org/t/se-0397-freestanding-declaration-macros/64655))
+* Previous revisions: ([1](https://github.com/apple/swift-evolution/blob/c0f1e6729b6ca1a4fc2367efe68612fde175afe4/proposals/0397-freestanding-declaration-macros.md))
 
 ## Introduction
 
