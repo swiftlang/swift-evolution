@@ -1,11 +1,12 @@
 # Tuple of value pack expansion
 
-* Proposal: [SE-NNNN](nnnn-tuple-of-value-pack-expansion.md)
+* Proposal: [SE-0399](0399-tuple-of-value-pack-expansion.md)
 * Authors: [Sophia Poirier](https://github.com/sophiapoirier), [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (May 16...29, 2023)**
 * Upcoming Feature Flag: `VariadicGenerics`
-* Previous Proposal: [SE-0393](0393-parameter-packs.md)
+* Previous Proposals: [SE-0393](0393-parameter-packs.md), [SE-0398](0398-variadic-types.md)
+* Review: ([pitch](https://forums.swift.org/t/tuple-of-value-pack-expansion/64269))
 
 ## Introduction
 
