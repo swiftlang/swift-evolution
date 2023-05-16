@@ -3,8 +3,7 @@
 - Proposal: [SE-0392](0392-custom-actor-executors.md)
 - Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall), [Kavon Farvardin](https://github.com/kavon)
 - Review Manager: [Joe Groff](https://github.com/jckarter)
-- Status: **Accepted**
-- Implementation: Partially implemented on `main`
+- Status: **Implemented (Swift 5.9)**
 - Previous threads:
   - Original pitch thread from around Swift 5.5: [Support custom executors in Swift Concurrency](https://forums.swift.org/t/support-custom-executors-in-swift-concurrency/44425)
   - Original "assume..." proposal which was subsumed into this proposal, as it relates closely to asserting on executors: [Pitch: Unsafe Assume on MainActor](https://forums.swift.org/t/pitch-unsafe-assume-on-mainactor/63074/)
