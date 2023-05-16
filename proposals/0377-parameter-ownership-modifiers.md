@@ -232,7 +232,6 @@ extension String {
 }
 ```
 
-
 A value would need to be implicitly copied if:
 
 - a *consuming operation* is applied to a `borrowing` binding, or
@@ -286,6 +285,28 @@ func baz(a: consuming String) {
 
     let b = a
     let bb = (b, b) // OK, b is implicitly copyable
+}
+```
+
+To clarify the boundary within which the no-implicit-copy constraint applies, a
+parameter binding's value *is* noncopyable as part of the *call expression* in
+the caller, so if forming the call requires copying, that will raise an error,
+even if the parameter would be implicitly copyable in the callee. The function
+body serves as the boundary for the no-implicit-copy constraint:
+
+```
+struct Bar {
+    var a: String
+    var b: String
+    init(ab: String) {
+        // OK, ab is implicitly copyable here
+        a = ab
+        b = ab
+    }
+}
+
+func foo(x: borrowing String) {
+    _ = Bar(ab: x) // ERROR: would need to copy `x` to let `Bar.init` consume it
 }
 ```
 
