@@ -474,6 +474,12 @@ The following operations are consuming:
     c.property = x
     use(x) // ERROR: x consumed by assignment to `c.property`
     ```
+
+    The one exception is assigning to the "black hole" `_ = x`, which is
+    a borrowing operation, as noted below. This allows for the
+    `_ = x` idiom to still be used to prevent warnings about a borrowed
+    binding that is otherwise unused.
+
 - passing an argument to a `consuming` parameter of a function:
 
     ```swift
@@ -531,7 +537,7 @@ The following operations are consuming:
 
     let x = FileDescriptorOrBuffer.file(FileDescriptor())
 
-    switch x {
+    switch consume x {
     case .file(let f):
       break
     case .buffer(let b):
@@ -540,6 +546,12 @@ The following operations are consuming:
 
     use(x) // ERROR: x consumed by `switch`
     ```
+
+    In order to allow for borrowing pattern matching to potentially become
+    the default later, when it's supported, the operand to `switch` or
+    the right-hand side of a `case` condition in an `if` or `while` must
+    use the `consume` operator in order to indicate that it is consumed.
+    We may want `switch x` to borrow by default in the future.
 
 - iterating a `Sequence` with a `for` loop:
 
@@ -581,6 +593,9 @@ in the following cases:
 - if the closure literal is assigned to a local `let` variable, that does not
   itself get captured by an escaping closure.
 
+These cases correspond to the cases where a closure is allowed to capture an
+`inout` parameter from its surrounding scope, before this proposal.
+
 ### Borrowing operations
 
 The following operations are borrowing:
@@ -605,6 +620,8 @@ The following operations are borrowing:
   of the accessor's execution.
 - Capturing an immutable local binding into a nonescaping closure borrows the
   binding for the duration of the callee that receives the nonescaping closure.
+- Assigning into the "black hole" `_ = x` borrows the right-hand side of the
+  assignment.
 
 ### Mutating operations
 
@@ -919,7 +936,12 @@ func foo() {
 ```
 
 Mutable captures are subject to dynamic exclusivity checking like class
-properties are, and similarly cannot be consumed and reinitialized.
+properties are, and similarly cannot be consumed and reinitialized. When
+a closure escapes, the compiler isn't able to statically know when the closure
+is invoked, and it may even be invoked multiple overlapping times, or
+simultaneously on different threads if the closure is `@Sendable`, so the
+captures must always remain in a valid state for memory safety, and exclusivity
+of mutations can only be enforced dynamically.
 
 ```
 var escapedClosure: (@escaping (inout FileDescriptor) -> ())?
@@ -1799,9 +1821,28 @@ value is required to provide a non-borrowed value to the underlying function.
 
 ## Revision history
 
-This version of the proposal makes the following changes from the
-[first reviewed revision](https://github.com/apple/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md)
-of this proposal:
+This revision makes the following changes from the [second reviewed revision](https://github.com/apple/swift-evolution/blob/a9e21e3a4eb9526f998915c6554c7c72e5885a91/proposals/0390-noncopyable-structs-and-enums.md)
+in response to Language Steering Group review and implementation experience:
+
+- `_ = x` is now a borrowing operation.
+- `switch` and `if/while case` require the subject of a pattern match to use
+  the `consume x` operator. The fact that they are consuming operations now
+  is an artifact of the implementation, and with further development, we may
+  want to make the default semantics of `switch x` without explicit consumption
+  to be borrowing.
+- Escaped closure captures are constrained from being consumed for their
+  entire lifetime, even before the closure that escapes it is formed. This
+  analysis was not practical to implement using our current analysis, and the
+  added expressivity is unlikely to be worth the implementation complexity.
+- `self` in a deinit is currently constrained to be immutable, since there
+  is [ongoing discussion](https://forums.swift.org/t/se-0390-noncopyable-type-deinit-s-mutation-and-accidental-recursion/64767)
+  about how best to manage mutation or consumption during deinits while
+  managing the possibility to accidentally cause recursion into `deinit`
+  by implicit destruction.
+
+The [second reviewed revision](https://github.com/apple/swift-evolution/blob/a9e21e3a4eb9526f998915c6554c7c72e5885a91/proposals/0390-noncopyable-structs-and-enums.md)
+of the proposal made the following changes from the
+[first reviewed revision](https://github.com/apple/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md):
 
 - The original revision did not provide a `Copyable` generic constraint, and
   declared types as noncopyable using a `@noncopyable` attribute. The
@@ -1817,8 +1858,10 @@ of this proposal:
   the behavior of `mem::forget` in Rust doesn't correspond to the semantics of
   the operation proposed here, and the language workgroup doesn't find the
   term clear enough on its own. This revision of the proposal chooses the
-  more explicit `suppressdeinit`, which is long and awkward but at least
-  explicit, as a starting point for further review discussion.
+  `discard` as a starting point for further review discussion. Furthermore,
+  we limit its use to types whose contents are otherwise trivial, in order to
+  avoid committing to interactions with elementwise consumption of fields
+  that we may want to refine later.
 
 - The original revision allowed for a `consuming` method declared anywhere in
   the type's original module to suppress `deinit`. This revision narrows the
