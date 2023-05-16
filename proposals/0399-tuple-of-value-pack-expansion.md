@@ -6,7 +6,7 @@
 * Status: **Active review (May 16...29, 2023)**
 * Upcoming Feature Flag: `VariadicGenerics`
 * Previous Proposals: [SE-0393](0393-parameter-packs.md), [SE-0398](0398-variadic-types.md)
-* Review: ([pitch](https://forums.swift.org/t/tuple-of-value-pack-expansion/64269))
+* Review: ([pitch](https://forums.swift.org/t/tuple-of-value-pack-expansion/64269)) ([review](https://forums.swift.org/t/se-0399-tuple-of-value-pack-expansion/65017))
 
 ## Introduction
 
