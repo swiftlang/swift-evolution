@@ -10,7 +10,7 @@
 * Version 1: [Initial pitch](https://forums.swift.org/t/pitch-observation/62051)
 * Version 2: Previously Observation registered observers directly to `Observable`, the new approach registers observers to an `Observable` via a `ObservationTransactionModel`. These models control the "edge" of where the change is emitted. They are the responsible component for notifying the observers of events. This allows the observers to focus on just the event and not worry about "leading" or "trailing" (will/did) "edges" of the signal. Additionally the pitch was shifted from the type wrapper feature over to the more appropriate macro features.
 * Version 3: The `Observer` protocol and `addObserver(_:)` method are gone in favor of providing async sequences of changes and transactions.
-* Version 4: The proposal now focuses on the `withTracking(_:changes:)` function instead of including the asynchronous `values(for:)` and `changes(for:)` methods.
+* Version 4: In order to support observation for subclasses and to provide space to address design question around the asynchronous `values(for:)` and `changes(for:)` methods, the proposal now focuses on an `Observable` marker protocol and the `withTracking(_:changes:)` function.
 
 #### Suggested Reading
 
@@ -102,7 +102,7 @@ The `Observable` protocol, `@Observable` macro, and a handful of supporting type
 
 ### `Observable` protocol
 
-Observable types conform to the `Observable` marker protocol. While the `Observable` protocol doesn't have formal requirments, it includes a semantic requirement that conforming types must implement tracking for each stored property using an `ObservationRegistrar`. Most types can meet that requirement simply by using the `@Observable` macro:
+Observable types conform to the `Observable` marker protocol. While the `Observable` protocol doesn't have formal requirements, it includes a semantic requirement that conforming types must implement tracking for each stored property using an `ObservationRegistrar`. Most types can meet that requirement simply by using the `@Observable` macro:
 
 ```swift
 @Observable public final class MyObject {
@@ -492,9 +492,9 @@ This API will be housed in a module that is part of the Swift language but outsi
 
 The requirement that all stored properties of an observable type have initial values could be relaxed in the future, if language features are added that would support that. For example, property wrappers have a feature that allows their underlying wrapped value to be provided in an initializer rather than as a default value. Generalizing that feature to all properties could allow the `@Observable` macro to enable a more typical initialization implementation.
 
-The initial implementation will not track changes for key paths that have more than one layer of components. For example, key paths such as `\.account` would work, but `\.account.name` would not. This feature would be possible as soon as the standard library offers a mechanism to iterate components of a key path. Since there is no way to determine this yet, key paths that have more than one component will never observe any changes.
-
 Another area of focus for future enhancements is support for observable `actor` types. This would require specific handling for key paths that currently does not exist for actors.
+
+An earlier version of this proposal included asynchronous sequences of coalesced transactions and individual property changes, named `values(for:)` and `changes(for:)`. Similar invariant-preserving asynchronous sequences could be added in a future proposal.
 
 ## Alternatives considered
 
