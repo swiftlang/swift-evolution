@@ -197,7 +197,7 @@ Metatypes (such as `Int.Type`, the type produced by the expression `Int.self`) a
 
 #### `Sendable` conformance checking for structs and enums
 
-`Sendable` types are extremely common in Swift and aggregates of them are also safe to transfer across concurrency domains.  As such, the Swift compiler allows direct conformance to `Sendable` for structs and classes that are compositions of other `Sendable` types:
+`Sendable` types are extremely common in Swift and aggregates of them are also safe to transfer across concurrency domains.  As such, the Swift compiler allows direct conformance to `Sendable` for structs and enums that are compositions of other `Sendable` types:
 
 ```swift
 struct MyPerson : Sendable { var name: String, age: Int }
