@@ -1,8 +1,8 @@
 # Allow Property Wrappers on Let Declarations
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-allow-let-property-wrapper.md)
 * Authors: [Amritpan Kaur](https://github.com/amritpan), [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Awaiting review**
 * Implementation: [apple/allow-let-property-wrapper](https://github.com/apple/swift/pull/62342) 
 
