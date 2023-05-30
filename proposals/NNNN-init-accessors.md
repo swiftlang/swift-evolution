@@ -356,3 +356,7 @@ This syntax choice is misleading because the effects look like function paramete
 ### `init` accessors for local variables
 
 `init` accessors for local variables have different implications on definite initialization, because re-writing assignment to `init` or `set` is not based on the initialization state of `self`. Local variable getters and setters can also capture any other local variables in scope, which raises more challenges for diagnosing escaping uses before initialization during the same pass where assignments may be re-written to `init` or `set`. As such, local variables with `init` accessors are a future direction.
+
+## Acknowledgments
+
+Thank you to TJ Usiyan, Michel Fortin, and others for suggesting alternative syntax ideas for `init` accessor effects; thank you to Pavel Yaskevich for helping with the implementation.
