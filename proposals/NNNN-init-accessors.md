@@ -57,8 +57,8 @@ This proposal adds _`init` accessors_ to opt computed properties on types into v
 struct Angle {
   var degrees: Double
   var radians: Double {
-    init(newValue) initializes(degrees) {
-      degrees = newValue * 180 / .pi
+    init(initialValue) initializes(degrees) {
+      degrees = initialValue * 180 / .pi
     }
 
     get { degrees * .pi / 180 }
