@@ -57,7 +57,7 @@ This proposal adds _`init` accessors_ to opt computed properties on types into v
 struct Angle {
   var degrees: Double
   var radians: Double {
-    init(newValue, initializes: degrees) {
+    init(newValue) initializes(degrees) {
       degrees = newValue * 180 / .pi
     }
 
@@ -75,16 +75,16 @@ struct Angle {
 }
 ```
 
-The signature of an `init` accessor specifies up to two sets of stored properties: the access dependencies (via `accesses`) and the initialized properties (via `initializes`). Access dependencies specify the other stored properties that can be accessed from within the `init` accessor (no other uses of `self` are allowed), and therefore must be initialized before the computed property's `init` accessor is invoked. The `init` accessor must initialize each of the initialized stored properties on all control flow paths. The `radians` property in the example above specifies no access dependencies, but initializes the `degrees` property, so it specifies only `initializes: degrees`.
+The signature of an `init` accessor specifies up to two sets of stored properties: the properties that are accessed (via `accesses`) and the properties that are initialized (via `initializes`) by the accessor. `initializes` and `accesses` are side-effects of the `init` accessor. Access effects specify the other stored properties that can be accessed from within the `init` accessor (no other uses of `self` are allowed), and therefore must be initialized before the computed property's `init` accessor is invoked. The `init` accessor must initialize each of the initialized stored properties on all control flow paths. The `radians` property in the example above specifies no access effect, but initializes the `degrees` property, so it specifies only `initializes: degrees`.
 
-Access dependencies allow a computed property to be initialized by placing its contents into another stored property:
+Access effects allow a computed property to be initialized by placing its contents into another stored property:
 
 ```swift
 struct ProposalViaDictionary {
   private var dictionary: [String: String] = [:]
 
   var title: String {
-    init(newValue, accesses: dictionary) {
+    init(newValue) accesses(dictionary) {
       dictionary["title"] = newValue
     }
 
@@ -93,7 +93,7 @@ struct ProposalViaDictionary {
   }
 
    var text: String {
-    init(newValue, accesses: dictionary) {
+    init(newValue) accesses(dictionary) {
       dictionary["text"] = newValue
     }
 
@@ -123,7 +123,7 @@ struct Wrapper<T> {
 struct S {
   private var _value: Wrapper<Int>
   var value: Int {
-    init(newValue, initializes: _value) {
+    init(newValue) initializes(_value) {
       self._value = Wrapper(wrappedValue: newValue)
     }
 
@@ -149,21 +149,13 @@ This proposal allows macros to model the following property-wrapper-like pattern
 This proposal adds new syntax for `init` accessor blocks, which can be written in the accessor list of a computed property. Init accessors add the following production rules to the grammar:
 
 ```
-init-accessor -> 'init' init-accessor-signature[opt] function-body
+init-accessor -> 'init' init-accessor-parameter[opt] init-effect[opt] access-effect[opt] function-body
 
-init-accessor-signature -> '(' init-dependency-clause [opt] ')'
+init-accessor-parameter -> '(' identifier ')'
 
-init-dependency-clause -> identifier
-init-dependency-clause -> identifier ',' init-dependencies
-init-dependency-clause -> init-dependencies
+init-effect -> 'initializes' '(' identifier-list ')'
 
-init-dependencies -> initializes-list
-init-dependencies -> initializes-list ',' accesses-list
-init-dependences -> access-list
-
-initializes-list -> 'initializes' ':' identifier-list
-
-accesses-list -> 'accesses' ':' identifier-list
+access-effect -> 'accesses' '(' identifier-list ')'
 
 identifier-list -> identifier
 identifier-list -> identifier ',' identifier-list
@@ -171,11 +163,11 @@ identifier-list -> identifier ',' identifier-list
 accessor-block -> init-accessor
 ```
 
-The `identifier` in an `init-dependency-clause`, if provided, is the name of the parameter that contains the initial value. If not provided, a parameter with the name `newValue` is automatically created.
+The `identifier` in an `init-accessor-parameter`, if provided, is the name of the parameter that contains the initial value. If not provided, a parameter with the name `newValue` is automatically created.
 
 ### `init` accessor signatures
 
-`init` accessor declarations can optionally specify a signature. An `init` accessor signature is composed of a parameter for the initial value, a list of stored properties that are initialized by this accessor specified with the `initializes:` label, and a list of stored properties that are accessed by this accessor specified with the `accesses:` labe, all of which are optional:
+`init` accessor declarations can optionally specify a signature. An `init` accessor signature is composed of a parameter for the initial value, a list of stored properties that are initialized by this accessor specified with the contextual `initializes` keyword, and a list of stored properties that are accessed by this accessor specified with the contextual `accesses` keyword, all of which are optional:
 
 ```swift
 struct S {
@@ -184,7 +176,7 @@ struct S {
   var _x: Int
 
   var x: Int {
-    init(newValue, initializes: _x, accesses: readMe) {
+    init(newValue) initializes(_x) accesses(readMe) {
       print(readMe)
       _x = newValue
     }
@@ -216,7 +208,7 @@ struct S {
   var x1: Int
   var x2: Int
   var computed: Int {
-    init(newValue, initializes: x1, x2) { ... }
+    init(newValue) initializes(x1, x2) { ... }
   }
 
   init() {
@@ -233,7 +225,7 @@ struct S {
   var x2: Int
   var x3: Int
   var computed: Int {
-    init(newValue, initializes: x1, x2) { ... }
+    init(newValue) initializes(x1, x2) { ... }
   }
 
   init() {
@@ -251,7 +243,7 @@ struct S {
   var x: Int
   var y: Int
   var point: (Int, Int) {
-    init(newValue, initializes: x, y) {
+    init(newValue) initializes(x, y) {
 	    (self.x, self.y) = newValue
     }
     get { (x, y) }
@@ -273,7 +265,7 @@ If a struct does not declare its own initializers, it receives an implicit membe
 struct S {
   var _x: Int
   var x: Int {
-    init(newValue, initializes: _x) {
+    init(newValue) initializes(_x) {
       _x = newValue
     }
 
@@ -296,13 +288,13 @@ init(x: Int, y: Int) {
 }
 ```
 
-A memberwise initializer cannot be synthesized if a stored property that is an `accesses:` dependency of a computed property is ordered after that computed property in the source code:
+A memberwise initializer cannot be synthesized if a stored property that is an `accesses` effect of a computed property is ordered after that computed property in the source code:
 
 ```swift
 struct S {
   var _x: Int
   var x: Int {
-    init(newValue, initializes: _x, reads: y) {
+    init(newValue) initializes(_x) accesses(y) {
       _x = newValue
     }
 
@@ -335,7 +327,29 @@ Note that macro-expanded declarations are ordered after the attached-to declarat
 
 ## Implications on adoption
 
-Because `init` accessors are always called from within the defining module, adopting `init` accessors is an ABI-compatible change. Adding an `init` accessor to an existing property also cannot have any source compatibility impact outside of the defining module; the only possible source incompatibilities are on the generated memberwise initializer (if new entries are added), or on the type's `init` implementation (if new initialization dependencies are added).
+Because `init` accessors are always called from within the defining module, adopting `init` accessors is an ABI-compatible change. Adding an `init` accessor to an existing property also cannot have any source compatibility impact outside of the defining module; the only possible source incompatibilities are on the generated memberwise initializer (if new entries are added), or on the type's `init` implementation (if new initialization effects are added).
+
+## Alternatives considered
+
+A previous version of this proposal specified init accessor effects in the parameter list using special labels:
+
+```swift
+struct S {
+  var _x: Int
+  var x: Int {
+    init(newValue,  initializes: _x, accesses: y) {
+      _x = newValue
+    }
+
+    get { _x }
+    set { _x = newValue }
+  }
+
+  var y: Int
+}
+```
+
+This syntax choice is misleading because the effects look like function parameters, while `initializes` behaves more like the output of an init accessor, and `accesses` are not explicitly provided at the call-site. Conceptually, `initializes` and `accesses` are side effects of an `init` accessor, so the proposal was revised to place these modifiers in the effects clause.
 
 ## Future directions
 
