@@ -6,7 +6,7 @@ This document lays out a vision for the development of the "forward" half of C++
 
 “Reverse” interoperability (using Swift APIs from C++) is another extremely important part of the interoperability story.  However, reverse interoperability has largely different goals and constraints, which necessarily mean a different design and therefore a different vision document. The [vision for reverse interoperability](https://github.com/apple/swift-evolution/blob/main/visions/using-swift-from-c%2B%2B.md) has already been [accepted](https://forums.swift.org/t/accepted-a-vision-for-using-swift-from-c/62102) by the Language Workgroup.
 
-This document is a prospective feature vision document, as described in the [draft review management guidelines](https://github.com/rjmccall/swift-evolution/blob/057b2383102f34c3d0f5b257f82bba0f5b94683d/review_management.md#future-directions-and-roadmaps) of the Swift evolution process.  It has not yet been approved by the Language Workgroup.
+This document is an official feature vision document, as described in the [draft review management guidelines](https://github.com/rjmccall/swift-evolution/blob/057b2383102f34c3d0f5b257f82bba0f5b94683d/review_management.md#future-directions-and-roadmaps) of the Swift evolution process.  The Language Workgroup has endorsed the goals and basic approach laid out in this document. This endorsement is not a pre-approval of any of the concrete proposals that may come out of this document. All proposals will undergo normal evolution review, which may result in rejection or revision from how they appear in this document.
 
 ## Goals
 
