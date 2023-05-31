@@ -6,7 +6,7 @@
 * Status: **Accepted**
 * Implementation: Swift 5.9, without no-implicit-copy constraint
 * Review: ([first pitch](https://forums.swift.org/t/pitch-formally-defining-consuming-and-nonconsuming-argument-type-modifiers/54313)) ([second pitch](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)) ([first review](https://forums.swift.org/t/se-0377-borrow-and-take-parameter-ownership-modifiers/61020)) ([second review](https://forums.swift.org/t/combined-se-0366-third-review-and-se-0377-second-review-rename-take-taking-to-consume-consuming/61904)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0377-borrowing-and-consuming-parameter-ownership-modifiers/62759)) ([revision and third review](https://forums.swift.org/t/se-0377-revision-make-borrowing-and-consuming-parameters-require-explicit-copying-with-the-copy-operator/64996)) ([revision acceptance](https://forums.swift.org/t/accepted-se-0377-revision-make-borrowing-and-consuming-parameters-require-explicit-copying-with-the-copy-operator/65293))
-* Previous Revisions: ([first review](https://github.com/apple/swift-evolution/blob/3f984e6183ce832307bb73ec72c842f6cb0aab86/proposals/0377-parameter-ownership-modifiers.md)), ([originally accepted revision](https://github.com/apple/swift-evolution/blob/7e1d16316e5f68eb94546df9241aa6b4cacb9411/proposals/0377-parameter-ownership-modifiers.md))
+* Previous Revisions: ([as of first review](https://github.com/apple/swift-evolution/blob/3f984e6183ce832307bb73ec72c842f6cb0aab86/proposals/0377-parameter-ownership-modifiers.md)) ([as of second review](https://github.com/apple/swift-evolution/blob/7e1d16316e5f68eb94546df9241aa6b4cacb9411/proposals/0377-parameter-ownership-modifiers.md))
 
 ## Introduction
 
