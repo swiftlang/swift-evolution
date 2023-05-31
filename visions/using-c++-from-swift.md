@@ -36,8 +36,8 @@ C++ provides tools to create high-performance APIs. The Swift compiler should em
 
 C++ is a multi-paradigm language, designed to fit many use cases and allow many different programming styles. Different codebases often express the same concept in different ways. There is no prevailing consensus among C++ programmers about the right way to express specific concepts: how to name types and methods, how much to use templates, when to use heap allocation, how to propagate and handle errors, and so on. This creates problems for importing C++ APIs into Swift, which tends to have stronger conventions, some of which are backed by language rules. For instance, it is a common pattern in some C++ codebases to have classes that are only (or at least mostly) intended to be heap-allocated and passed around by pointer; consider this example:
 
-```
-// StatefulObject has object identity and reference semantcs: 
+```cpp
+// StatefulObject has object identity and reference semantics: 
 // it should be constructed with "create" and used via a pointer.
 struct StatefulObject {
   StatefulObject(const StatefulObject&) = delete;
@@ -153,24 +153,24 @@ The safety problem posed by view types is very broad. If we apply this categoriz
 
 Probably the most common pattern of projection in C++ APIs is a method that returns a reference or pointer to memory that depends on `this`.  Consider this example:
 
-```
+```cpp
 const std::string &getName() const { return this->_name; }
 ```
 
 There are several possibilities for dealing with this pattern. For example, Swift could wrap it in a `_read` accessor, implicitly encoding that the reference is only available during an access to the containing object. Swift could also add explicit lifetime-dependency features, allowing this to be treated as a return of a borrowed value. Alternatively, Swift could simply force the return value to be immediately copied after return, as if the call actually returned an owned value. It's unclear which of these would be the best approach; perhaps a combination would. This is something that will need to be investigated over time, incorporating the experience of the community with using this feature.
 
 But there are also many projections in C++ that don't match the above pattern.  Consider the following API which returns a vector of internal pointers:
-```
+```cpp
 std::vector<int *> OwnedType::projectsInternalStorage(); 
 ```
 
 Or this API which fills in a pointer that has two levels of indirection:
-```
+```cpp
 void VectorLike::begin(int **out) { *out = data(); }
 ```
 
 Or even this global function that projects one of its parameters:
-```
+```cpp
 int *begin(std::vector<int> *v) { return v->data(); }
 ```
 
@@ -197,13 +197,14 @@ Swift should also assume that C++ will not mutate values through `const` pointer
 As discussed in the "View types" section, the Swift compiler must make assumptions about the C++ APIs that it is importing, and mutability is another place where Swift will need to make reasonable (not conservative) assumptions about the APIs that it is importing, promoting C++‘s weak notion of `const` to Swift’s much stricter ideal.
 
 Programmers will see some benefits from Swift's stronger mutability model immediately. Consider this example:
-```
+```cpp
 // C++
 void append_n_times(std::string& s, const std::string& m, size_t n) {
     for (size_t i = 0; i < n; ++i)
       s += m;
 }
-
+```
+```swift
 // Swift
 var local: std.string = "a"
 append_n_times(&local, local, 5)
@@ -254,7 +255,7 @@ This document outlines a strategy for importing APIs that rely on semantic infor
 
 Here a programmer has written a very large `StatefulObject` which contains many fields:
 
-```
+```cpp
 struct StatefulObject {
   std::array<std::string, 32> names;
   std::array<std::string, 32> places;
@@ -276,13 +277,13 @@ In Swift, this `StatefulObject` should be imported as a reference type, as it ha
 
 Here someone has written an API that uses `StatefulObject` as a value type.
 
-```
+```cpp
 StatefulObject makeAppState();
 ```
 
 This will invoke a copy of `StatefulObject` which violates the semantics that the API was written with. To be useable from Swift, this API needs to be updated to pass the object indirectly (by reference):
 
-```
+```cpp
 StatefulObject *makeAppState(); // OK
 const StatefulObject *makeAppState(); // OK
 StatefulObject &makeAppState(); // OK
@@ -293,7 +294,7 @@ const StatefulObject &makeAppState(); // OK
 
 Instances of `StatefulObject` above are manually managed by the programmer, they create it with the create method and are responsible for destroying it once it is no longer needed. However, some reference types need to exist for the duration of the program, these references types are known as “immortal.” Examples of these immortal reference types might be pool allocators or app contexts. Let’s look at a `GameContext` object which allocates (and owns) various game elements:
 
-```
+```cpp
 struct GameContext {
   // ...
   
@@ -311,7 +312,7 @@ Here the `GameContext` is meant to last for the entire game as a global allocato
 
 While the `GameContext` will live for the duration of the program, individual `GameObject` should be released once they’re done being used. One such object is Player:
 
-```
+```cpp
 struct GameObject {
   int referenceCount;
   
@@ -336,7 +337,7 @@ Here Player uses the `gameObjectRetain` and `gameObjectRelease` function to manu
 
 **Projections** are values rather than types. An example of a method which yields a projection is the `c_str` method on `std::string`.
 
-```
+```cpp
 struct string { // String is an owned type.
   char *storage;
   size_t size;
@@ -346,7 +347,7 @@ struct string { // String is an owned type.
 
 Iterators are also projections:
 
-```
+```cpp
   char *begin() { return storage; } // Projects internal storage
   char *end() { return storage + size; } // Projects internal storage
 ```
@@ -358,7 +359,7 @@ Because `string` is an owned type, the Swift compiler cannot represent a project
 
 The following section will go further into depth on the issues with using projections of self contained types in Swift, rather than proposing a solution on how to import them. Let’s start with an example Swift program that naively imports some self-contained type and returns a projections of it:
 
-```
+```swift
 var v = vector(1)
 let start = v.begin()
 doSomething(start)
@@ -367,7 +368,7 @@ fixLifetime(v)
 
 To understand the problem with this code, the following snippet highlights where an implicit copy is created and destroyed:
 
-```
+```swift
 var v = vector(1)
 let copy = copy(v)
 let start = copy.begin()
@@ -386,7 +387,7 @@ This model cannot be adopted in Swift, however, because the the same lexical lif
 
 The following example highlights the case described above:
 
-```
+```swift
 func getCString(str: std.string) -> UnsafePointer<CChar> { str.c_str() }
 ```
 
