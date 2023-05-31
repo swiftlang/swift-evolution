@@ -78,7 +78,7 @@ existential types, protocols, and associated type requirements implicitly
 require it. Types may explicitly declare that they are `Copyable`, and generic
 types may explicitly require `Copyable`, but this currently has no effect.
 
-```
+```swift
 struct Foo<T: Copyable>: Copyable {}
 ```
 
@@ -129,7 +129,7 @@ class SharedFile {
 A class type declaration may not use `~Copyable`; all class types remain copyable
 by retaining and releasing references to the object.
 
-```
+```swift
 // ERROR: classes must be `Copyable`
 class SharedFile: ~Copyable {
   var file: FileDescriptor
@@ -140,7 +140,7 @@ It is also not yet allowed to suppress the `Copyable` requirement on generic
 parameters, associated type requirements in protocols, or the `Self` type
 in a protocol declaration, or in extensions:
 
-```
+```swift
 // ERROR: generic parameter types must be `Copyable`
 func foo<T: ~Copyable>(x: T) {}
 
@@ -156,7 +156,7 @@ extension FileWithPath: ~Copyable {}
 
 `Copyable` also cannot be suppressed in existential type declarations:
 
-```
+```swift
 // ERROR: `any` types must be `Copyable`
 let foo: any ~Copyable = FileDescriptor()
 ```
@@ -392,7 +392,7 @@ multiple times, even to a `borrowing` and `consuming` parameter of the same
 call, and the compiler will copy as necessary to make all of the function's
 parameters valid according to their ownership specifiers:
 
-```
+```swift
 func borrow(_: borrowing Value, and _: borrowing Value) {}
 func consume(_: consuming Value, butBorrow _: borrowing Value) {}
 let x = Value()
@@ -406,7 +406,7 @@ without copying. This makes the second call above impossible for a noncopyable
 `x`, since attempting to consume `x` would end the binding's lifetime while
 it also needs to be borrowed:
 
-```
+```swift
 func borrow(_: borrowing FileDescriptor, and _: borrowing FileDescriptor) {}
 func consume(_: consuming FileDescriptor, butBorrow _: borrowing FileDescriptor) {}
 let x = FileDescriptor()
@@ -421,7 +421,7 @@ Swift will copy the value of a variable if it is passed both by value and
 while leaving the original binding available for the `inout` parameter to
 exclusively access:
 
-```
+```swift
 func update(_: inout Value, butBorrow _: borrow Value) {}
 func update(_: inout Value, butConsume _: consume Value) {}
 var x = Value()
@@ -432,7 +432,7 @@ update(&x, butConsume: x) // also fine, we'll also copy
 But again, for a noncopyable value, this implicit copy is impossible, so
 these sorts of calls become exclusivity errors:
 
-```
+```swift
 func update(_: inout FileDescriptor, butBorrow _: borrow FileDescriptor) {}
 func update(_: inout FileDescriptor, butConsume _: consume FileDescriptor) {}
 
@@ -722,7 +722,7 @@ affect the ownership of `self` while the accessor executes. `consuming get`
 is particularly useful as a way of forwarding ownership of part of an aggregate,
 such as to take ownership away from a wrapper type:
 
-```
+```swift
 struct FileDescriptorWrapper: ~Copyable {
   private var _value: FileDescriptor
 
@@ -740,7 +740,7 @@ Because getters return owned values, non-`consuming` getters generally cannot
 be used to wrap noncopyable stored properties, since doing so would require
 copying the value out of the aggregate:
 
-```
+```swift
 class File {
   private var _descriptor: FileDescriptor
 
@@ -763,7 +763,7 @@ the type's definition, client code cannot perform consuming operations on
 the value, since it would need to take away the container's ownership to do
 so:
 
-```
+```swift
 struct Inner: ~Copyable {}
 
 struct Outer: ~Copyable {
@@ -777,7 +777,7 @@ let i = outer.inner // ERROR: can't take `inner` away from `outer`
 However, when code has the ability to mutate the member, it may freely modify,
 reassign, or replace the value in the field:
 
-```
+```swift
 var outer = Outer()
 let newInner = Inner()
 // OK, transfers ownership of `newInner` to `outer`, destroying its previous
@@ -789,7 +789,7 @@ Note that, as currently defined, `switch` to pattern-match an `enum` is a
 consuming operation, so it can only be performed inside `consuming` methods
 on the type's original definition:
 
-```
+```swift
 enum OuterEnum: ~Copyable {
   case inner(Inner)
   case file(FileDescriptor)
@@ -817,7 +817,7 @@ failures, as it will for local variables and value types, but a runtime error
 will occur if an uncaught exclusivity error occurs, such as an attempt to mutate
 an object's stored property while it is being borrowed:
 
-```
+```swift
 class Foo {
   var fd: FileDescriptor
 
@@ -847,7 +847,7 @@ The dynamic borrow state of properties is tracked independently for every
 stored property in the class, so it is safe to mutate one property while other
 properties of the same object are also being mutated or borrowed:
 
-```
+```swift
 class SocketTriple {
   var in, middle, out: FileDescriptor
 }
@@ -876,7 +876,7 @@ currently being pitched, this would manifest as a borrow of the noncopyable
 reference, preventing mutation or consumption of the reference during
 dynamically-asserted accesses to its properties:
 
-```
+```swift
 class SocketTriple {
   var in, middle, out: FileDescriptor
 }
@@ -909,7 +909,7 @@ from which those captures were taken. Variables captured by escaping closures
 thus behave like class properties; immutable captures are treated as always
 borrowed both inside the closure body and in the capture's original context.
 
-```
+```swift
 func escape(_: @escaping () -> ()) {...}
 
 func borrow(_: borrowing FileDescriptor) {}
@@ -943,7 +943,7 @@ simultaneously on different threads if the closure is `@Sendable`, so the
 captures must always remain in a valid state for memory safety, and exclusivity
 of mutations can only be enforced dynamically.
 
-```
+```swift
 var escapedClosure: (@escaping (inout FileDescriptor) -> ())?
 
 func foo() {
@@ -1191,7 +1191,7 @@ must be used to explicitly end the value's lifetime using its `deinit` if
 `discard` is used to conditionally destroy the value on other paths
 through the method.
 
-```
+```swift
 struct MemoryBuffer: ~Copyable {
   private var address: UnsafeRawPointer
 
@@ -1334,7 +1334,7 @@ It's a reasonable question why declaring a type as noncopyable isn't spelled
 like a regular protocol constraint, instead of as the removal of an existing
 constraint:
 
-```
+```swift
 struct Foo: NonCopyable {}
 ```
 
@@ -1347,7 +1347,7 @@ like `Array` and `Dictionary` would become copyable only when the elements they
 contain are copyable. However, we cannot write this in terms of `NonCopyable`
 conditional requirements, since if we write:
 
-```
+```swift
 extension Dictionary: NonCopyable where Key: NonCopyable, Value: NonCopyable {}
 ```
 
@@ -1356,7 +1356,7 @@ are noncopyable, which is wrong because we can't copy the dictionary even if
 only the keys or only the values are noncopyable. If we flip the constraint to
 `Copyable`, the correct thing would fall out naturally:
 
-```
+```swift
 extension Dictionary: Copyable where Key: Copyable, Value: Copyable {}
 ```
 
@@ -1400,7 +1400,7 @@ operation that forwards ownership of the `Optional` value's payload, if any,
 writing `nil` back. Eventually this could be written as an extension method
 on `Optional`:
 
-```
+```swift
 extension Optional where Self: ~Copyable {
   mutating func take() -> Wrapped {
     switch self {
@@ -1467,7 +1467,7 @@ eventually be generic over copyable and non-copyable types, with the ability
 to be copyable for some generic arguments but not all. A simple case might be
 a tuple-like `Pair` struct:
 
-```
+```swift
 struct Pair<T: ~Copyable, U: ~Copyable>: ~Copyable {
   var first: T
   var second: U
@@ -1477,7 +1477,7 @@ struct Pair<T: ~Copyable, U: ~Copyable>: ~Copyable {
 We will need a way to express this conditional copyability, perhaps using
 conditional conformance style declarations:
 
-```
+```swift
 extension Pair: Copyable where T: Copyable, U: Copyable {}
 ```
 
@@ -1488,7 +1488,7 @@ derived because of aspects of its declaration or usage. For instance, enums that
 don't have any associated values are implicitly made `Hashable` (and,
 by refinement, `Equatable`):
 
-```
+```swift
 enum Foo {
   case a, b, c
 }
@@ -1501,7 +1501,7 @@ print(Foo.a == Foo.b)
 and internal structs and enums are implicitly `Sendable` if all of their
 components are `Sendable`:
 
-```
+```swift
 struct Bar {
     var x: Int, y: Int
 }
@@ -1522,7 +1522,7 @@ automatically derived conformances. We propose to introduce the `~Constraint`
 syntax as a way to explicitly suppress automatic derivation of a conformance 
 that would otherwise be performed for a declaration:
 
-```
+```swift
 enum Candy: ~Equatable {
     case redVimes, twisslers, smickers
 }
@@ -1548,7 +1548,7 @@ derivation of conformance. It does **not** mean that the type strictly does
 not conform to the protocol. Extensions may add the conformance back separately,
 possibly conditionally:
 
-```
+```swift
 struct ResourceHandle<T: Resource>: ~Sendable {
     // although this is an integer, it represents a system resource that
     // gives access to values of type `T`, which may not be thread safe
@@ -1585,7 +1585,7 @@ provide your own implementation of `==` for an enum, but are fine with Equatable
 (and Hashable, etc) being derived for you, then the derivation of `Equatable` 
 already will use your version of `==`.
 
-```
+```swift
 enum Soda {
     case mxPepper, drPibb, doogh
 
@@ -1609,7 +1609,7 @@ deinitialization. However, inside of other `mutating` or `consuming` methods,
 it's easy to inadvertently trigger implicit destruction of the value and
 reenter `deinit` again:
 
-```
+```swift
 struct Foo: ~Copyable {
   init() { ... }
 
@@ -1721,7 +1721,7 @@ The choice of what effect `discard` has on the lifetime of the fields affects
 the observed order in which field deinits occurs, but also affects how code
 would be expressed that performs destructuring or partial invalidation:
 
-```
+```swift
 struct SocketPair: ~Copyable {
   let input, output: FileDescriptor
 
