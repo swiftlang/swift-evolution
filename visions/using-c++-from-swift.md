@@ -197,6 +197,7 @@ Swift should also assume that C++ will not mutate values through `const` pointer
 As discussed in the "View types" section, the Swift compiler must make assumptions about the C++ APIs that it is importing, and mutability is another place where Swift will need to make reasonable (not conservative) assumptions about the APIs that it is importing, promoting C++‘s weak notion of `const` to Swift’s much stricter ideal.
 
 Programmers will see some benefits from Swift's stronger mutability model immediately. Consider this example:
+
 ```cpp
 // C++
 void append_n_times(std::string& s, const std::string& m, size_t n) {
@@ -204,11 +205,13 @@ void append_n_times(std::string& s, const std::string& m, size_t n) {
       s += m;
 }
 ```
+
 ```swift
 // Swift
 var local: std.string = "a"
 append_n_times(&local, local, 5)
 ```
+
 `append_n_times` misbehaves if `s` and `m` alias because `m` will be modified by the append: `s` will contain `2^n` copies of the original string instead of `n + 1`. This is not possible when called from Swift because Swift does not permit mutable arguments to be aliased, so the argument for `m` will be copied. (And if the programmer requests that this copy not happen, e.g. by explicitly borrowing that argument, the call will be statically diagnosed as ill-formed.)
 
 ### Computed properties
@@ -267,7 +270,6 @@ struct StatefulObject {
   StatefulObject *create() { return new StatefulObject(); }
 };
 ```
-
 
 Because this object is so expensive to copy, the programmer decided to delete the copy constructor. The programmer also decided that this object should be allocated on the heap, so they decided to delete the default constructor, and provide a create method in its place. 
 
