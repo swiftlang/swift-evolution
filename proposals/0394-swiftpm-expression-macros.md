@@ -3,7 +3,7 @@
 * Proposal: [SE-0394](0394-swiftpm-expression-macros.md)
 * Authors: [Boris Buegling](https://github.com/neonichu), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: **Available behind pre-release tools-version** ([apple/swift-package-manager#6185](https://github.com/apple/swift-package-manager/pull/6185), [apple/swift-package-manager#6200](https://github.com/apple/swift-package-manager/pull/6200))
 * Review: ([pitch 1](https://forums.swift.org/t/pitch-package-manager-support-for-custom-macros/63482)) ([pitch 2](https://forums.swift.org/t/pitch-2-package-manager-support-for-custom-macros/63868)) ([review](https://forums.swift.org/t/se-0394-package-manager-support-for-custom-macros/64170)) ([acceptance](https://forums.swift.org/t/accepted-se-0394-package-manager-support-for-custom-macros/64589))
 

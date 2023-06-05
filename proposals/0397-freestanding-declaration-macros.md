@@ -3,7 +3,7 @@
 * Proposal: [SE-0397](0397-freestanding-declaration-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Richard Wei](https://github.com/rxwei), [Holly Borla](https://github.com/hborla)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Vision: [Macros](https://github.com/apple/swift-evolution/blob/main/visions/macros.md)
 * Implementation: On `main` behind the experimental flag `FreestandingMacros`
 * Review: ([review](https://forums.swift.org/t/se-0397-freestanding-declaration-macros/64655)) ([partial acceptance and second review](https://forums.swift.org/t/se-0397-second-review-freestanding-declaration-macros/64997)) ([acceptance](https://forums.swift.org/t/accepted-se-0397-freestanding-declaration-macros/65167))
