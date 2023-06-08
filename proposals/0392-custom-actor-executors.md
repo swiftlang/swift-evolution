@@ -121,7 +121,7 @@ Asserting the apropriate executor is used in a synchronous piece of code looks l
 
 ````swift
 func synchronousButNeedsMainActorContext() {
-  // check if we're executing on the maina actor context (or crash if we're not)
+  // check if we're executing on the main actor context (or crash if we're not)
   MainActor.preconditionIsolated()
   
   // same as precondition, however only in DEBUG builds
