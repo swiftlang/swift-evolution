@@ -4,14 +4,15 @@
 * Authors: [Holly Borla](https://github.com/hborla), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Implementation: On `main` behind experimental feature flag `InitAccessors`
 
 ## Introduction
 
-Init accessors generalize the out-of-line initialization feature of property wrappers to allow any computed property on types to opt into definite initialization analysis, and subsume initialization of a stored property with custom initialization code.
+Init accessors generalize the out-of-line initialization feature of property wrappers to allow any computed property on types to opt into definite initialization analysis, and subsume initialization of a set of stored properties with custom initialization code.
 
 ## Motivation
 
-Swift applies [definite initialization analysis](https://en.wikipedia.org/wiki/Definite_assignment_analysis) to stored properties, stored local variables, and variables with property wrappers. Definite initialization ensures that memory is initialized on all paths before it is accessed. A common pattern in Swift code is to use one property as backing storage for one or more computed properties, and abstractions like [property wrappers](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and now [attached macros](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md) help facilitate this pattern. Under this pattern, the backing storage is an implementation detail, and most code works with the computed property, including initializers.
+Swift applies [definite initialization analysis](https://en.wikipedia.org/wiki/Definite_assignment_analysis) to stored properties, stored local variables, and variables with property wrappers. Definite initialization ensures that memory is initialized on all paths before it is accessed. A common pattern in Swift code is to use one property as backing storage for one or more computed properties, and abstractions like [property wrappers](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and [attached macros](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md) help facilitate this pattern. Under this pattern, the backing storage is an implementation detail, and most code works with the computed property, including initializers.
 
 Property wrappers support bespoke definite initialization that allows initializing the backing property wrapper storage via the computed property, always re-writing initialization-via-wrapped-property in the form `self.value = value` to initialization of the backing storage in the form of `_value = Wrapper(wrappedValue: value)`:
 
@@ -34,7 +35,7 @@ struct S {
 }
 ```
 
-The ad-hoc nature of property wrapper initializers mixed with an exact definite initialization pattern prevent property wrappers with additional arguments from being initialized out-of-line. Furthermore, property-wrapper-like macros cannot achieve the same initializer usability, because any backing storage variables added must be initialized directly instead of supporting initialization through computed properties. For example, the proposed [`@Observable` macro](https://github.com/apple/swift-evolution/blob/main/proposals/0395-observability.md) applies a property-wrapper-like transform that turns stored properties into computed properties backed by the observation APIs, but it provides no way to write an initializer using the original property names like the programmer expects:
+The ad-hoc nature of property wrapper initializers mixed with an exact definite initialization pattern prevent property wrappers with additional arguments from being initialized out-of-line. Furthermore, property-wrapper-like macros cannot achieve the same initializer usability, because any backing storage variables added must be initialized directly instead of supporting initialization through computed properties. For example, the [`@Observable` macro](https://github.com/apple/swift-evolution/blob/main/proposals/0395-observability.md) applies a property-wrapper-like transform that turns stored properties into computed properties backed by the observation APIs, but it provides no way to write an initializer using the original property names like the programmer expects:
 
 ```swift
 @Observable
@@ -66,7 +67,7 @@ struct Angle {
   }
 
   init(degrees: Double) {
-    self.degrees = degrees // sets 'self.degrees' directly
+    self.degrees = degrees // initializes 'self.degrees' directly
   }
 
   init(radians: Double) {
@@ -75,7 +76,7 @@ struct Angle {
 }
 ```
 
-The signature of an `init` accessor specifies up to two sets of stored properties: the properties that are accessed (via `accesses`) and the properties that are initialized (via `initializes`) by the accessor. `initializes` and `accesses` are side-effects of the `init` accessor. Access effects specify the other stored properties that can be accessed from within the `init` accessor (no other uses of `self` are allowed), and therefore must be initialized before the computed property's `init` accessor is invoked. The `init` accessor must initialize each of the initialized stored properties on all control flow paths. The `radians` property in the example above specifies no access effect, but initializes the `degrees` property, so it specifies only `initializes: degrees`.
+The signature of an `init` accessor specifies up to two sets of stored properties: the properties that are accessed (via `accesses`) and the properties that are initialized (via `initializes`) by the accessor. `initializes` and `accesses` are side-effects of the `init` accessor. Access effects specify the other stored properties that can be accessed from within the `init` accessor (no other uses of `self` are allowed), and therefore must be initialized before the computed property's `init` accessor is invoked. The `init` accessor must initialize each of the initialized stored properties on all control flow paths. The `radians` property in the example above specifies no access effect, but initializes the `degrees` property, so it specifies only `initializes(degrees)`.
 
 Access effects allow a computed property to be initialized by placing its contents into another stored property:
 
@@ -217,7 +218,7 @@ struct S {
 }
 ```
 
-An assignment to a stored property before all of `self` is initialized will initialize that stored property. When all of the stored properties listed in the `initializes:` clause of a computed property with an `init` accessor have been initialized, that computed property is virtually initialized:
+An assignment to a stored property before all of `self` is initialized will initialize that stored property. When all of the stored properties listed in the `initializes` clause of a computed property with an `init` accessor have been initialized, that computed property is virtually initialized:
 
 ```swift
 struct S {
@@ -236,7 +237,7 @@ struct S {
 }
 ```
 
-An assignment to a computed property where at least one of the stored properties listed in `initializes:` is initialized, but `self` is not initialized, is an error. This prevents double-initialization of the underlying stored properties:
+An assignment to a computed property where at least one of the stored properties listed in `initializes` is initialized, but `self` is not initialized, is an error. This prevents double-initialization of the underlying stored properties:
 
 ```swift
 struct S {
