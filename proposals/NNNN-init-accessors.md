@@ -52,7 +52,7 @@ struct Proposal {
 
 ## Proposed solution
 
-This proposal adds _`init` accessors_ to opt computed properties on types into virtual initialization that subsumes initialization of a set of zero or more specified stored properties, which allows assigning to computed properties in the body of a type's initializer:
+This proposal adds _`init` accessors_ to opt computed properties on types into definite initialization that subsumes initialization of a set of zero or more specified stored properties, which allows assigning to computed properties in the body of a type's initializer:
 
 ```swift
 struct Angle {
@@ -200,9 +200,9 @@ The semantics of an assignment inside of a type's initializer depend on whether 
 
 With this proposal, all of `self` is initialized if:
 * All stored properties are initialized on all paths, and
-* All computed properties with `init` accessors are virtually initialized on all paths.
+* All computed properties with `init` accessors are initialized on all paths.
 
-An assignment to a computed property with an `init` accessor before all of `self` is initialized will virtually initialize the computed property and initialize all of the stored properties specified in its `initializes` clause:
+An assignment to a computed property with an `init` accessor before all of `self` is initialized will call the computed property's `init` accessor and initialize all of the stored properties specified in its `initializes` clause:
 
 ```swift
 struct S {
@@ -218,7 +218,7 @@ struct S {
 }
 ```
 
-An assignment to a stored property before all of `self` is initialized will initialize that stored property. When all of the stored properties listed in the `initializes` clause of a computed property with an `init` accessor have been initialized, that computed property is virtually initialized:
+An assignment to a stored property before all of `self` is initialized will initialize that stored property. When all of the stored properties listed in the `initializes` clause of a computed property with an `init` accessor have been initialized, that computed property is considered initialized:
 
 ```swift
 struct S {
