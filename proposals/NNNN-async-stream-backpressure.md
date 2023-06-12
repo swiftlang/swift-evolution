@@ -254,7 +254,7 @@ let (stream, source) = AsyncStream.makeStream(
 )
 
 let task = Task {
-    for await element in source {
+    for await element in stream {
 
     }
 }
