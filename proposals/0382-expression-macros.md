@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Expression macros provide a way to extend Swift with new kinds of expressions, which can perform arbitary syntactic transformations on their arguments to produce new code. Expression macros make it possible to extend Swift in ways that were only previously possible by introducing new language features, helping developers build more expressive libraries and eliminate extraneous boilerplate.
+Expression macros provide a way to extend Swift with new kinds of expressions, which can perform arbitrary syntactic transformations on their arguments to produce new code. Expression macros make it possible to extend Swift in ways that were only previously possible by introducing new language features, helping developers build more expressive libraries and eliminate extraneous boilerplate.
 
 ## Motivation
 
@@ -187,7 +187,7 @@ The `#` syntax for macro expansion expressions was specifically chosen because S
 
 Both `function-call-argument-clause` and `trailing-closures` are optional. When both are omitted, the macro is expanded as-if the empty argument list `()` were provided. Macros are not first-class entities in the way functions are, so they cannot be passed around as values and do not need an "unapplied macro" syntax. This allows `#line` et al to be macros without requiring them to be written as `#line()`. There is some precedent for this with property wrappers, which will also be used for attached macros.
 
-When a macro expansion is encountered in the source code, it's expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call, and does not involve the macro definition.
+When a macro expansion is encountered in the source code, its expansion occurs in two phases. The first phase is the type-check phase, where the arguments to the macro are type-checked against the parameters of the named macro, and the result type of the named macro is checked against the context in which the macro expansion occurs. This type-checking is equivalent to that performed for a function call, and does not involve the macro definition.
 
 The second phase is the macro expansion phase, during which the syntax of the macro arguments is provided to the macro definition. For builtin-macro definitions, the behavior at this point depends on the semantics of the macro, e.g., the `externalMacro` macro invokes the external program and provides it with the source code of the macro expansion. For other macros, the arguments are substituted into the `macro-expansion-expression` of the definition. For example:
 
