@@ -70,8 +70,8 @@ struct Angle {
     self.degrees = degrees // initializes 'self.degrees' directly
   }
 
-  init(radians: Double) {
-    self.radians = radians // calls init accessor with 'radians'
+  init(radiansParam: Double) {
+    self.radians = radiansParam // calls init accessor for 'self.radians', passing 'radiansParam' as the argument
   }
 }
 ```
@@ -82,7 +82,7 @@ Access effects allow a computed property to be initialized by placing its conten
 
 ```swift
 struct ProposalViaDictionary {
-  private var dictionary: [String: String] = [:]
+  private var dictionary: [String: String]
 
   var title: String {
     init(newValue) accesses(dictionary) {
@@ -103,6 +103,7 @@ struct ProposalViaDictionary {
   }
 
   init(title: String, text: String) {
+    self.dictionary = [:] // 'dictionary' must be initialized before init accessors access it
     self.title = title // calls init accessor to insert title into the dictionary
     self.text = text   // calls init accessor to insert text into the dictionary
 
@@ -158,17 +159,26 @@ init-effect -> 'initializes' '(' identifier-list ')'
 
 access-effect -> 'accesses' '(' identifier-list ')'
 
-identifier-list -> identifier
-identifier-list -> identifier ',' identifier-list
-
 accessor-block -> init-accessor
 ```
 
-The `identifier` in an `init-accessor-parameter`, if provided, is the name of the parameter that contains the initial value. If not provided, a parameter with the name `newValue` is automatically created.
+The `identifier` in an `init-accessor-parameter`, if provided, is the name of the parameter that contains the initial value. If not provided, a parameter with the name `newValue` is automatically created. The minimal init accessor has no parameter list and no initialization effects:
+
+```swift
+struct Minimal {
+  var value: Int {
+    init {
+      print("init accessor called with \(newValue)")
+    }
+
+    get { 0 }
+  }
+}
+```
 
 ### `init` accessor signatures
 
-`init` accessor declarations can optionally specify a signature. An `init` accessor signature is composed of a parameter for the initial value, a list of stored properties that are initialized by this accessor specified with the contextual `initializes` keyword, and a list of stored properties that are accessed by this accessor specified with the contextual `accesses` keyword, all of which are optional:
+`init` accessor declarations can optionally specify a signature. An `init` accessor signature is composed of a parameter list, followed by an initialization effects specifier clause. The initialization effects can include a list of stored properties that are initialized by this accessor specified in the argument list of the contextual `initializes` keyword, and a list of stored properties that are accessed by this accessor specified in the argument list of the contextual `accesses` keyword, each of which are optional:
 
 ```swift
 struct S {
@@ -190,9 +200,9 @@ struct S {
 
 If the accessor uses the default parameter name `newValue` and neither initializes nor accesses any stored property, the signature is not required.
 
-Init accessors can subsume the initialization of a set of stored properties. Subsumed stored properties are specified through the `initializes:` clause of the accessor signature. The body of an `init` accessor is required to initialize the subsumed stored properties on all control flow paths.
+Init accessors can subsume the initialization of a set of stored properties. Subsumed stored properties are specified through the `initializes` effect. The body of an `init` accessor is required to initialize the subsumed stored properties on all control flow paths.
 
-Init accessors can also require a set of stored properties to already be initialized when the body is evaluated, which are specified through the `accesses:` cause of the signature. These stored properties can be accessed in the accessor body; no other properties or methods on `self` are available inside the accessor body, nor is `self` available as a whole object (i.e., to call methods on it).
+Init accessors can also require a set of stored properties to already be initialized when the body is evaluated, which are specified through the `accesses` effect. These stored properties can be accessed in the accessor body; no other properties or methods on `self` are available inside the accessor body, nor is `self` available as a whole object (i.e., to call methods on it).
 
 ### Definite initialization of properties on `self`
 
@@ -289,7 +299,7 @@ init(x: Int, y: Int) {
 }
 ```
 
-A memberwise initializer cannot be synthesized if a stored property that is an `accesses` effect of a computed property is ordered after that computed property in the source code:
+A memberwise initializer will not be synthesized if a stored property that is an `accesses` effect of a computed property is ordered after that computed property in the source code:
 
 ```swift
 struct S {
@@ -315,8 +325,6 @@ init(x: Int, y: Int) {
   self.y = y
 }
 ```
-
-Note that macro-expanded declarations are ordered after the attached-to declaration for peer macros, and at the end of the member list as written for member macros.
 
 ## Source compatibility
 
