@@ -193,6 +193,109 @@ With the above APIs, we should be able to effectively bridge any system into an
 asynchronous stream regardless if the system is callback-based, blocking or
 asynchronous.
 
+### Downstream consumer termination
+
+Calling `finish()` terminates the downstream consumer. Below is an example of
+this:
+
+```swift
+// Termination through calling finish
+let (stream, source) = AsyncStream.makeStream(
+    of: Int.self,
+    backPressureStrategy: .watermark(low: 2, high: 4)
+)
+
+_ = try source.write(1)
+source.finish()
+
+for await element in stream {
+    print(element)
+}
+print("Finished")
+
+// Prints
+// 1
+// Finished
+```
+
+The other way to terminate the consumer is by deiniting the source. This has the
+same effect as calling `finish()` and makes sure that no consumer is stuck
+indefinitely. 
+
+```swift
+// Termination through deiniting the source
+let (stream, _) = AsyncStream.makeStream(
+    of: Int.self,
+    backPressureStrategy: .watermark(low: 2, high: 4)
+)
+
+for await element in stream {
+    print(element)
+}
+print("Finished")
+
+// Prints
+// Finished
+```
+
+Trying to write more elements after the source has been finish will result in an
+error thrown from the write methods.
+
+### Upstream producer termination
+
+The producer will get notified about termination through the `onTerminate`
+callback. Termination of the producer happens in the following scenarios:
+
+```swift
+// Termination through task cancellation
+let (stream, source) = AsyncStream.makeStream(
+    of: Int.self,
+    backPressureStrategy: .watermark(low: 2, high: 4)
+)
+
+let task = Task {
+    for await element in source {
+
+    }
+}
+task.cancel()
+```
+
+```swift
+// Termination through deiniting the sequence
+let (_, source) = AsyncStream.makeStream(
+    of: Int.self,
+    backPressureStrategy: .watermark(low: 2, high: 4)
+)
+```
+
+```swift
+// Termination through deiniting the iterator
+let (stream, source) = AsyncStream.makeStream(
+    of: Int.self,
+    backPressureStrategy: .watermark(low: 2, high: 4)
+)
+_ = stream.makeAsyncIterator()
+```
+
+```swift
+// Termination through calling finish
+let (stream, source) = AsyncStream.makeStream(
+    of: Int.self,
+    backPressureStrategy: .watermark(low: 2, high: 4)
+)
+
+_ = try source.write(1)
+source.finish()
+
+for await element in stream {}
+
+// onTerminate will be called after all elements have been consumed
+```
+
+Similar to the downstream consumer termination, trying to write more elements after the
+producer has been terminated will result in an error thrown from the write methods. 
+
 ## Detailed design
 
 All new APIs on `AsyncStream` and `AsyncThrowingStream` are as follows:
@@ -468,6 +571,25 @@ extension AsyncStream {
 }
 ```
 
+## Comparison to other root asynchronous sequences
+
+### swift-async-algorithm: AsyncChannel
+
+The `AsyncChannel` is a multi-consumer/multi-producer root asynchronous sequence
+which can be used to communicate between two tasks. It only offers asynchronous
+production APIs and has no internal buffer. This means that any producer will be
+suspended until its value has been consumed. `AsyncChannel` can handle multiple
+consumers and resumes them in FIFO order.
+
+### swift-nio: NIOAsyncSequenceProducer
+
+The NIO team have created their own root asynchronous sequence with the goal to
+provide a high performance sequence that can be used to bridge a NIO `Channel`
+inbound stream into Concurrency. The `NIOAsyncSequenceProducer` is a highly
+generic and fully inlinable type and quite unwiedly to use. This proposal is
+heavily inspired by the learnings from this type but tries to create a more
+flexible and easier to use API that fits into the standard library.
+
 ## Source compatibility
 
 This change is additive and does not affect source compatibility.
@@ -486,7 +608,7 @@ An adaptive strategy regulates the backpressure based on the rate of
 consumption and production. With the proposed new APIs we can easily add further
 strategies.
 
-### Element size depended strategy
+### Element size dependent strategy
 
 When the stream's element is a collection type then the proposed high/low
 watermark backpressure strategy might lead to unexpected results since each
@@ -555,3 +677,8 @@ considered:
 
 - `enqueue`
 - `send`
+
+## Acknowledgements
+
+- [Johannes Weiss](https://github.com/weissi) - For making me aware how
+  important this problem is and providing great ideas on how to shape the API.
