@@ -360,6 +360,15 @@ struct S {
 
 This syntax choice is misleading because the effects look like function parameters, while `initializes` behaves more like the output of an init accessor, and `accesses` are not explicitly provided at the call-site. Conceptually, `initializes` and `accesses` are side effects of an `init` accessor, so the proposal was revised to place these modifiers in the effects clause.
 
+Other syntax suggestions from pitch reviewers included:
+
+* Using a capture-list-style clause, e.g. `init { [&x, y] in ... }`
+* Attributes on the computed property itself, e.g. `@initializes(_x) var x: Int { ... }`
+* Using more concise effect names, e.g. `writes` and `reads` instead of `initializes` and `accesses`
+* And more!
+
+However, the current synatx in this proposal most accurately models the semantics of initialization effects. An `init` accessor is a function -- not a closure -- that has side-effects related to initialization. _Only_ the `init` accessor has these effects; though the `set` accessor often contains code that looks the same as the code in the `init` accessor, the effects of these accessors are different. Because `init` accessors are called before all of `self` is initialized, they do not recieve a fully-initialized `self` as a parameter like `set` accessors do, and assignments to `initializes` stored properties in `init` accessors have the same semantics as that of a standard initializer, such as suppressing `willSet` and `didSet` observers. These reasons reinforce the decision to specify `initializes` and `accesses` in the effects clause of an `init` accessor.
+
 ## Future directions
 
 ### `init` accessors for local variables
