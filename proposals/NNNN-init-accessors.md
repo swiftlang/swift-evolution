@@ -114,7 +114,7 @@ struct ProposalViaDictionary {
 
 Both `init` accessors document that they access `dictionary`, which allows them to insert the new values into the dictionary with the appropriate key as part of initialization. This allows one to fully abstract away the storage mechanism used in the type.
 
-With this proposal, property wrappers have no bespoke definite initialization support. Instead, the desugaring includes an `init` accessor for wrapped properties. The property wrapper code in the Motivation section will desugar to the following code:
+Finally, computed properties with `init` accessors are privileged in the synthesized member-wise initializer. With this proposal, property wrappers have no bespoke definite and member-wise initialization support. Instead, the desugaring for property wrappers with an `init(wrappedValue:)` includes an `init` accessor for wrapped properties and a member-wise initializer including wrapped values instead of the respective backing storage. The property wrapper code in the Motivation section will desugar to the following code:
 
 ```swift
 @propertyWrapper
@@ -133,10 +133,13 @@ struct S {
     set { _value.wrappedValue = newValue }
   }
 
+  // This initializer is the same as the generated member-wise initializer.
   init(value: Int) {
-    self.value = value  // Calls 'init' accessor on 'value'
+    self.value = value  // Calls 'init' accessor on 'self.value'
   }
 }
+
+S(value: 10)
 ```
 
 This proposal allows macros to model the following property-wrapper-like patterns including out-of-line initialization of the computed property:
@@ -270,7 +273,7 @@ struct S {
 
 ### Memberwise initializers
 
-If a struct does not declare its own initializers, it receives an implicit memberwise initializer based on the stored properties of the struct, because the storage is what needs to be initialized. Because `init` provide a preferred mechanism for initializing storage, the memberwise initializer parameter list will include any computed properties that subsume the initialization of stored properties instead of parameters for those stored properties.
+If a struct does not declare its own initializers, it receives an implicit memberwise initializer based on the stored properties of the struct, because the storage is what needs to be initialized. Because many use-cases for `init` accessors are fully abstracting a single computed property to be backed by a single stored property, such as in the property-wrapper use case, an `init` accessor provides a preferred mechansim for initializing storage because the programmer will primarily interact with that storage through the computed property. As such, the memberwise initializer parameter list will include any computed properties that subsume the initialization of stored properties instead of parameters for those stored properties.
 
 ```swift
 struct S {
@@ -325,6 +328,8 @@ init(x: Int, y: Int) {
   self.y = y
 }
 ```
+
+Use cases for `init` accessors that provide a projection of a stored property as various units through several computed properties don't have a single preferred unit from which to initialize. Most likely, these use cases want a different member-wise initializer for each unit that you can initialize from. If a type contains several computed properties with `init` accessors that initialize the same stored property, a member-wise initializer will not be synthesized.
 
 ## Source compatibility
 
