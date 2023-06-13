@@ -231,6 +231,34 @@ struct S {
 }
 ```
 
+An assignment to a computed property that has not been initialized on all paths will be re-written to an `init` accessor call:
+
+```swift
+struct S {
+  var x: Int
+  var y: Int
+  var point: (Int, Int) {
+    init(newValue) initializes(x, y) {
+	    (self.x, self.y) = newValue
+    }
+    get { (x, y) }
+    set { (x, y) = newValue }
+  }
+
+  init(x: Int, y: Int) {
+    if (x == y) {
+      self.point = (x, x) // calls 'init' accessor
+    }
+
+    // 'self.point' is not initialized on all paths here
+
+    self.point = (x, y) // calls 'init' accessor
+
+    // 'self.point' is initialized on all paths here
+  }
+}
+```
+
 An assignment to a stored property before all of `self` is initialized will initialize that stored property. When all of the stored properties listed in the `initializes` clause of a computed property with an `init` accessor have been initialized, that computed property is considered initialized:
 
 ```swift
