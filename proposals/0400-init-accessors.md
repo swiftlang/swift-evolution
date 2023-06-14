@@ -5,7 +5,7 @@
 * Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
 * Status: **Active review (June 14th...June 26th, 2023)**
 * Implementation: On `main` behind experimental feature flag `InitAccessors`
-* Review: ([pitch](https://forums.swift.org/t/pitch-init-accessors/64881))
+* Review: ([pitch](https://forums.swift.org/t/pitch-init-accessors/64881)) ([review](https://forums.swift.org/t/se-0400-init-accessors/65583))
 
 ## Introduction
 
