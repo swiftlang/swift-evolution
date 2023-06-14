@@ -27,11 +27,11 @@ struct S {
   @Wrapper var value: Int
 
   init(value: Int) {
-    self.value = value  // Re-written to self._x = Wrapper(wrappedValue: value)
+    self.value = value  // Re-written to self._value = Wrapper(wrappedValue: value)
   }
 
   init(other: Int) {
-    self._value = Wrapper(wrappedValue: other) // Okay, initializes storage '_x' directly
+    self._value = Wrapper(wrappedValue: other) // Okay, initializes storage '_value' directly
   }
 }
 ```
