@@ -1,10 +1,11 @@
 # Init Accessors
 
-* Proposal: [SE-NNNN](NNNN-init-accessors.md)
+* Proposal: [SE-0400](0400-init-accessors.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Doug Gregor](https://github.com/douggregor)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
+* Status: **Active review (June 14th...June 26th, 2023)**
 * Implementation: On `main` behind experimental feature flag `InitAccessors`
+* Review: ([pitch](https://forums.swift.org/t/pitch-init-accessors/64881))
 
 ## Introduction
 
