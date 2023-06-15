@@ -116,7 +116,7 @@ Removing the property wrapper on `DBConnection.connectionID` would remove the in
   
 ### Does this cause actual problems?
 
-This behavior has caused quite a bit of confusion in the community. For example, see [this recent tweet](https://twitter.com/teilweise/status/1580105376913297409?s=61&t=hwuO4NDJK1aIxSntRwDuZw), [this recent blog post](https://oleb.net/2022/swiftui-task-mainactor/), and [this entire Swift Forums thread](https://forums.swift.org/t/reconsider-inference-of-global-actor-based-on-property-wrappers/60821). One particular callout comes from [this post](https://forums.swift.org/t/reconsider-inference-of-global-actor-based-on-property-wrappers/60821/6/), where this inference made it hard to adopt Swift Concurrency in some cases, because the actor isolation goes "viral" beyond the intended scope:
+This behavior has caused quite a bit of confusion in the community. For example, see [this tweet](https://twitter.com/teilweise/status/1580105376913297409?s=61&t=hwuO4NDJK1aIxSntRwDuZw), [this blog post](https://oleb.net/2022/swiftui-task-mainactor/), and [this entire Swift Forums thread](https://forums.swift.org/t/reconsider-inference-of-global-actor-based-on-property-wrappers/60821). One particular callout comes from [this post](https://forums.swift.org/t/reconsider-inference-of-global-actor-based-on-property-wrappers/60821/6/), where this inference made it hard to adopt Swift Concurrency in some cases, because the actor isolation goes "viral" beyond the intended scope:
 
 ```swift
 class MyContainer {
