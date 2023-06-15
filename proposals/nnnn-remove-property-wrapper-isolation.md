@@ -141,7 +141,7 @@ In the Swift 5 language mode, isolation will continue to be inferred as it curre
 
 ## Detailed design
 
-[`ActorIsolationRequest.getIsolationFromWrappers()`](https://github.com/apple/swift/blob/main/lib/Sema/TypeCheckConcurrency.cpp#L3445) implements the actor isolation inference described in this proposal. That function will be adjusted to avoid producing any inference when running in the Swift 6 language mode or when the compiler flag described above is passed.
+[`ActorIsolationRequest.getIsolationFromWrappers()`](https://github.com/apple/swift/blob/85d59d2e55e5e063c552c15f12a8abe933d8438a/lib/Sema/TypeCheckConcurrency.cpp#L3618) implements the actor isolation inference described in this proposal. That function will be adjusted to avoid producing any inference when running in the Swift 6 language mode or when the compiler flag described above is passed.
 
 ## Source compatibility
 
