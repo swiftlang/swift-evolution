@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active review (June 16th...June 30th, 2023)**
 * Implementation: [apple/swift#63884](https://github.com/apple/swift/pull/63884)
-* Review: ([pitch]([https://forums.swift.org/t/pitch-init-accessors/64881](https://forums.swift.org/t/pitch-stop-inferring-actor-isolation-based-on-property-wrapper-usage/63262)))
+* Review: ([pitch](https://forums.swift.org/t/pitch-stop-inferring-actor-isolation-based-on-property-wrapper-usage/63262)) ([review](https://forums.swift.org/t/se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/65618))
 
 <!---
 *During the review process, add the following fields as needed:*
