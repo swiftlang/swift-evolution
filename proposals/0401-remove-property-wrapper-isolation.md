@@ -160,7 +160,7 @@ Project | Outcome | Notes
 [AlamoFire](https://github.com/Alamofire/Alamofire) | Fully Compatible | Uses custom property wrappers, but none are actor isolated
 [Day One (Mac)](https://dayoneapp.com) | Fully Compatible | Uses SwiftUI property wrappers. (Not open source)
 [Eureka](https://github.com/xmartlabs/Eureka) | Fully Compatible | Does not use property wrappers at all
-[NetNewsWire]([https://github.com/Alamofire/Alamofire](https://github.com/Ranchero-Software/NetNewsWire)) | Fully Compatible | Uses SwiftUI property wrappers
+[NetNewsWire](https://github.com/Ranchero-Software/NetNewsWire) | Fully Compatible | Uses SwiftUI property wrappers
 [swift-nio](https://github.com/apple/swift-nio) | Fully Compatible | Does not use property wrappers at all
 [SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON) | Fully Compatible | Does not use property wrappers at all
 [XcodesApp](https://github.com/RobotsAndPencils/XcodesApp) | Fully Compatible | Uses SwiftUI property wrappers
