@@ -60,6 +60,8 @@ extension FooView {
 
 What previously took 3 lines now only takes one, and the code is just as clear.
 
+This has already been adopted in various places. Some helper libraries introduce this as an extension method on `NSObjectProtocol`, and `SwiftSyntax` has a similar method available on its syntax nodes.
+
 ## Detailed design
 
 We introduce two new functions, both called `with(_:)`; a synchronous and asynchronous overload.
