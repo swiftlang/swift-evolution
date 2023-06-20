@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: No pull request yet, but the implementation is [here](https://github.com/aggie33/withSwift).
-* Review: (Pitch)[https://forums.swift.org/t/pitch-with-functions-in-the-standard-library/65716]
+* Review: [Pitch])(https://forums.swift.org/t/pitch-with-functions-in-the-standard-library/65716)
 
 ## Introduction
 
