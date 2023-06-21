@@ -23,7 +23,7 @@ func zip<each S>(_ seq: repeat each S) -> ???
 
 ## Proposed solution
 
-In the generic parameter list of a generic type, the `each` keyword declares a generic parameter pack, just like it does in the generic parameter list of a generic function. The types of stored properties can contain pack expansion types, as in `let seq` and `var iter` above.
+In the generic parameter list of a generic type, the `each` keyword declares a generic parameter pack, just like it does in the generic parameter list of a generic function. The types of stored properties can contain pack expansion types, as in `let seq` and `var iter` below.
 
 This lets us define the return type of the variadic `zip` function as follows:
 
