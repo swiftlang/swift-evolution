@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [aggie33](https://github.com/aggie33)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting review**
 * Implementation: [swift#66806](https://github.com/apple/swift/pull/66806)
 * Review: [Pitch](https://forums.swift.org/t/pitch-with-functions-in-the-standard-library/65716)
 
