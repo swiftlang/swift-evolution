@@ -107,7 +107,7 @@ Let's continue with the implementation of the `stringify` macro. It's a new type
 ```swift
 import SwiftSyntax
 import SwiftSyntaxBuilder
-import _SwiftSyntaxMacros
+import SwiftSyntaxMacros
 
 public struct StringifyMacro: ExpressionMacro {
   public static func expansion(
