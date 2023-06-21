@@ -122,6 +122,16 @@ While this functionality could improve code, it is trivial and easy to add to a 
 ### Make `with` a macro instead
 This would allow the macro to expand to a simple closure, but it feels unnecessary considering this is easily implemented as a function.
 
+### Use an operator instead of `with`
+This could allow for terser syntax than `with(_:transform:)` and allow you to skip the parentheses, like this. 
+```swift
+NumberFormatter() &> {
+  $0.numberStyle = .currency
+}
+```
+However, I feel like introducing such a new operator to the standard library for this isn't necessary, and could cause source-break if anyone else defined this operator. There's also the question of which operator would be best to use.
+
+
 ## Acknowledgments
 
 N/A
