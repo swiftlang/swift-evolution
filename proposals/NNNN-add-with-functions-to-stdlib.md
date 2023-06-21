@@ -122,6 +122,9 @@ While this functionality could improve code, it is trivial and easy to add to a 
 ### Make `with` a macro instead
 This would allow the macro to expand to a simple closure, but it feels unnecessary considering this is easily implemented as a function.
 
+### Use a different name for the `with` function
+Multiple names could make sense; in the pitch thread, one commenter proposed `modify`. `withCopy(of:transform:)` could make its functionality clearer, but is more verbose. `with` is already used in multiple standard library functions, including `withUnsafeBytes(of:)` and `withUnsafePointer(to:)`.
+
 ### Use an operator instead of `with`
 This could allow for terser syntax than `with(_:transform:)` and allow you to skip the parentheses, like this. 
 ```swift
