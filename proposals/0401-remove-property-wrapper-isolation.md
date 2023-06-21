@@ -131,7 +131,7 @@ class Contained {
 
 The author created an `@OnMainThread` property wrapper, intended to declare that a particular property was isolated to the main thread. However, they cannot enforce that by using `@MainActor` within the property wrapper, because doing so causes the entire contained type to become unexpectedly isolated.
 
-It's not clear why this upward inference based on property wrappers was initially proposed. No discussion of that aspect was found during the Global Actors review. We can speculate that it may have been intended to make it easier to interact with SwiftUI's `@ObservedObject` when that first rolled out. But it's not clear it actually makes anything significantly easier; it only saves us from writing a single annotation on the type, and the loss of that annotation introduces violations of the [principle of least surprise](https://en.wikipedia.org/wiki/Principle_of_least_astonishment).
+The [original motivation](https://forums.swift.org/t/se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/65618/10) for this inference rule was to reduce the annotation burden when using property wrappers like SwiftUI's `@ObservedObject`. But it's not clear it actually makes anything significantly easier; it only saves us from writing a single annotation on the type, and the loss of that annotation introduces violations of the [principle of least surprise](https://en.wikipedia.org/wiki/Principle_of_least_astonishment).
 
 
 ## Proposed solution
