@@ -194,6 +194,8 @@ pointer (unsupported but not uncommon):
         }
       }
     }
+    
+Note that `property` must be passed `inout` by using the `&` sigil. Simply calling `withUnsafePointer(to: property)` would create a temporary copy of `property`.
 
 To pass a class reference through an opaque pointer:
 
@@ -246,11 +248,13 @@ This can be rewritten using the direct, low-level `withUnsafePointer` workaround
       static var key = "key"
 
       func getObject() -> Any? {
-        withUnsafePointer(to: Container.key) {
+        withUnsafePointer(to: &Container.key) {
           return objc_getAssociatedObject(self, $0)
         }
       }
     }
+
+Note that `Container.key` must be passed `inout` by using the `&` sigil. Simply calling `withUnsafePointer(to: Container.key)` would create a temporary copy of the key.
 
 Alternatively, you can use the key's object identity rather the address of the property. But this only works with objects that require separate allocation at instantiation. Neither NSString, nor NSNumber can be safely used. NSObject is a safe bet:
 
