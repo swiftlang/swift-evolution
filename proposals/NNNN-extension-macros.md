@@ -51,7 +51,7 @@ extension S: MyProtocol where T: MyProtocol {
 }
 ```
 
-All 3 components of an extension are optional, so the macro can choose what the extension is composed of. For example, an extension macro could add only a member list, or a conformance + member list with no `where` clause. However, any conformances or members must be specified upfront by the `@attached(extension)` attribute.
+The generated extensions of the macro must only extend the type the macro is attached to. Any conformances or members must also be specified upfront by the `@attached(extension)` attribute.
 
 ## Detailed design
 
@@ -63,6 +63,41 @@ SE-0389 states that whenever a macro produces declarations that are visible to o
 * The names of protocols that are listed in the extension's conformance clause.
 
 It is an error for a macro to add a conformance or an extension member that is not covered by the `@attached(extension)` attribute.
+
+### Extension macros applied to nested types
+
+Extensions are only valid at the top-level. When an extension macro is applied to a nested type:
+
+```swift
+@attached(extension, conformances: MyProtocol, names: named(requirement))
+macro MyProtocol = #externalMacro(...)
+
+struct Outer {
+  @MyProtocol
+  struct Inner {}
+}
+```
+
+The macro expansion containing the extension is inserted at the top-level. The above code expands to:
+
+```swift
+struct Outer {
+  struct Inner {}
+}
+
+extension Outer.Inner: MyProtocol {
+  func requirement() { ... }
+}
+```
+
+It is an error to apply an extension macro to a local type, because there is no way to write an extension on a local type in Swift:
+
+```swift
+func test() {
+  @MyProtocol // error
+  struct LocalType {}
+}
+```
 
 ### Implementing extension macros
 
@@ -80,19 +115,15 @@ public protocol ExtensionMacro: AttachedMacro {
   ///   - declaration: The declaration the macro attribute is attached to.
   ///   - context: The context in which to perform the macro expansion.
   ///
-  /// - Returns: the set of `(type?, where-clause?, member-list)` tuples that 
-  ///   each provide an optional protocol type to which the declared type
-  ///   conforms, an optional 'where' clause for the extension, and a member
-  ///   list.
+  /// - Returns: the set of extensions declarations introduced by the macro,
+  ///   which are always inserted at top-level scope.
   static func expansion(
     of node: AttributeSyntax,
-    providingConformancesOf declaration: some DeclGroupSyntax,
+    providingExtensionsOf declaration: some DeclGroupSyntax,
     in context: some MacroExpansionContext
-  ) throws -> [(TypeSyntax?, WhereClauseSyntax?, [DeclSyntax])]
+  ) throws -> [ExtensionDeclSyntax]
 }
 ```
-
-In the return type of the `expansion` method, the `TypeSyntax` represents the protocol in the extension's conformance clause, the `WhereClauseSyntax` represents the generic requirements that apply to the conformance (which becomes conditional) and/or the extension members, and the array of `DeclSyntax` represents the members inside the extension.
 
 ## Acknowledgments
 
