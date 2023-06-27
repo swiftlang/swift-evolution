@@ -1,5 +1,13 @@
 # Generalize `conformance` macros as `extension` macros
 
+* Proposal: [SE-NNNN](NNNN-extension-macros.md)
+* Authors: [Holly Borla](https://github.com/hborla)
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Awaiting implementation**
+* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
+* Review: ([pitch](https://forums.swift.org/t/pitch-generalize-conformance-macros-as-extension-macros/65653))
+
+
 ## Introduction
 
 This proposal generalizes the `conformance` macro role as an `extension` macro role that can add a member list to an extension in addition to a protocol and `where` clause.
@@ -124,6 +132,18 @@ public protocol ExtensionMacro: AttachedMacro {
   ) throws -> [ExtensionDeclSyntax]
 }
 ```
+
+## Source compatibility
+
+This propsoal removes the `conformance` macro role from SE-0389, which is accepted and implemented in Swift 5.9. If this proposal is accepted after 5.9, the `conformance` macro role will remain in the language as sugar for an `extension` macro that adds only a conformance.
+
+## ABI compatibility
+
+Extensions macros are expanded to regular Swift code at compile-time and have no ABI impact.
+
+## Implications on adoption
+
+The adoption implications for using extensions macros are the same as writing the expanded code manually in the project.
 
 ## Acknowledgments
 
