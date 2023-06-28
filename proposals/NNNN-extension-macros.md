@@ -4,7 +4,7 @@
 * Authors: [Holly Borla](https://github.com/hborla)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Awaiting implementation**
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
+* Implementation: [apple/swift#66967](https://github.com/apple/swift/pull/66967), [apple/swift-syntax#1859](https://github.com/apple/swift-syntax/pull/1859)
 * Review: ([pitch](https://forums.swift.org/t/pitch-generalize-conformance-macros-as-extension-macros/65653))
 
 
