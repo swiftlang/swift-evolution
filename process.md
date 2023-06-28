@@ -192,6 +192,10 @@ END DATE>>. The proposal is available here:
 
 Reviews are an important part of the Swift evolution process. All review feedback should be either on this forum thread or, if you would like to keep your feedback private, directly to the review manager. When emailing the review manager directly, please keep the proposal link at the top of the message.
 
+##### Trying it out
+
+If you'd like to try this proposal out, you can [download a toolchain supporting it here]().  You will need to add `-enable-experimental-feature FLAGNAME` to your build flags.  \<\<Review managers should revise this section as necessary, or they can delete it if a toolchain is considered unnecessary for this proposal.\>\>
+
 ##### What goes into a review?
 
 The goal of the review process is to improve the proposal under review
