@@ -121,17 +121,31 @@ public protocol ExtensionMacro: AttachedMacro {
   /// - Parameters:
   ///   - node: The custom attribute describing the attached macro.
   ///   - declaration: The declaration the macro attribute is attached to.
+  ///   - type: The type to provide extensions of.
   ///   - context: The context in which to perform the macro expansion.
   ///
   /// - Returns: the set of extensions declarations introduced by the macro,
-  ///   which are always inserted at top-level scope.
+  ///   which are always inserted at top-level scope. Each extension must extend
+  ///   the `type` parameter.
   static func expansion(
     of node: AttributeSyntax,
-    providingExtensionsOf declaration: some DeclGroupSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol
     in context: some MacroExpansionContext
   ) throws -> [ExtensionDeclSyntax]
 }
 ```
+
+Each `ExtensionDeclSyntax` in the resulting array must use the `providingExtensionsOf` parameter as the extended type, which is a qualified type name. For example, for the following code:
+
+```swift
+struct Outer {
+  @MyProtocol
+  struct Inner {}
+}
+```
+
+The type syntax passed to `ExtensionMacro.expansion` for `providingExtensionsOf` is `Outer.Inner`.
 
 ## Source compatibility
 
