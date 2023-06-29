@@ -3,8 +3,8 @@
 * Proposal: [SE-0390](0390-noncopyable-structs-and-enums.md)
 * Authors: [Joe Groff](https://github.com/jckarter), [Michael Gottesman](https://github.com/gottesmm), [Andrew Trick](https://github.com/atrick), [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: [Stephen Canon](https://github.com/stephentyrone)
-* Status: **Accepted**
-* Implementation: on main as `@_moveOnly` behind the `-enable-experimental-move-only` option
+* Status: **Implemented (Swift 5.9)**
+* Implementation: in main branch of compiler
 * Review: ([pitch](https://forums.swift.org/t/pitch-noncopyable-or-move-only-structs-and-enums/61903)) ([first review](https://forums.swift.org/t/se-0390-noncopyable-structs-and-enums/63258)) ([second review](https://forums.swift.org/t/second-review-se-0390-noncopyable-structs-and-enums/63866)) ([acceptance](https://forums.swift.org/t/accepted-se-0390-noncopyable-structs-and-enums/65157))
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md)
 
