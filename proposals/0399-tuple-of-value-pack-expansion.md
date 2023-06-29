@@ -3,7 +3,7 @@
 * Proposal: [SE-0399](0399-tuple-of-value-pack-expansion.md)
 * Authors: [Sophia Poirier](https://github.com/sophiapoirier), [Holly Borla](https://github.com/hborla)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: On `main` gated behind `-enable-experimental-feature VariadicGenerics`
 * Previous Proposals: [SE-0393](0393-parameter-packs.md), [SE-0398](0398-variadic-types.md)
 * Review: ([pitch](https://forums.swift.org/t/tuple-of-value-pack-expansion/64269)) ([review](https://forums.swift.org/t/se-0399-tuple-of-value-pack-expansion/65017)) ([acceptance](https://forums.swift.org/t/accepted-se-0399-tuple-of-value-pack-expansion/65271))
