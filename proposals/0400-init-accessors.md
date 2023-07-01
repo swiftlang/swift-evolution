@@ -556,6 +556,43 @@ However, the current syntax in this proposal, which uses an attribute, most accu
 
 `init` accessors for local variables have different implications on definite initialization, because re-writing assignment to `init` or `set` is not based on the initialization state of `self`. Local variable getters and setters can also capture any other local variables in scope, which raises more challenges for diagnosing escaping uses before initialization during the same pass where assignments may be re-written to `init` or `set`. As such, local variables with `init` accessors are a future direction.
 
+### Generalization of storage restrictions to other functions
+
+In the future, the `storageRestrictions` attribute could be be generalized to apply to other functions. For example, this could allow one to implement a common initialization function within a class:
+
+```swift
+class C {
+  var id: String
+  var state: State
+
+  @storageRestrictions(initializes: state, accesses: id)
+  func initState() {
+    self.state = /* initialization code here */
+  }
+
+  init(id: String) {
+    self.id = id
+    initState() // okay, accesses id and initializes state
+  }
+}
+```
+
+The principles are the same as with `init` accessors: a function's implementation can be restricted to only access certain stored properties, and to initialize others along all paths. A call to the function then participates in definite initialization.
+
+This generalization comes with limitations that were not relevant to `init` accessors, because the functions are more akin to fragments of an initializer. For example, the `initState` function cannot be called after `state` is initialized (because it would re-initialize `state`), nor can it be used as a "first-class" function:
+
+```swift
+  init(id: String) {
+    self.id = id
+    initState() // okay, accesses id and initializes state
+
+    initState() // error, 'state' is already initialized
+    let fn = self.initState // error: can't treat it like a function value
+  }
+```
+
+These limitations are severe enough that this future direction would require a significant amount of justification on its own to pursue, and therefore is not part of the `init` accessors proposal.
+
 ## Revision history
 
 * Following the initial review:
@@ -563,6 +600,7 @@ However, the current syntax in this proposal, which uses an attribute, most accu
   * Add section on init accessors for computed properties.
   * Add section on init accessors for read-only properties.
   * Allow reordering of the initializations in the synthesized memberwise initializer to respect `accesses` restrictions.
+  * Add a potential future direction for the generalization of storage restrictions to other functions.
 
 ## Acknowledgments
 
