@@ -324,7 +324,7 @@ struct S {
 
 ### Memberwise initializers
 
-If a struct does not declare its own initializers, it receives an implicit memberwise initializer based on the stored properties of the struct, because the storage is what needs to be initialized. Because many use-cases for `init` accessors are fully abstracting a single computed property to be backed by a single stored property, such as in the property-wrapper use case, an `init` accessor provides a preferred mechanism for initializing storage because the programmer will primarily interact with that storage through the computed property. As such, the memberwise initializer parameter list will include any computed properties that subsume the initialization of stored properties instead of parameters for those stored properties.
+If a struct does not declare its own initializers, it receives an implicit memberwise initializer based on the stored properties of the struct, because the storage is what needs to be initialized. Because many use-cases for `init` accessors are fully abstracting a single computed property to be backed by a single stored property, such as in the property-wrapper use case, an `init` accessor provides a preferred mechanism for initializing storage because the programmer will primarily interact with that storage through the computed property. As such, the memberwise initializer parameter list will include computed properties that have init accessors along with only those stored properties that have not been subsumed by an init accessor.
 
 ```swift
 struct S {
@@ -355,7 +355,7 @@ init(x: Int, y: Int) {
 }
 ```
 
-A memberwise initializer will not be synthesized if a stored property that is an `accesses` effect of a computed property is ordered after that computed property in the source code:
+The parameters of the memberwise initializer follow source order. However, if an init accessor `accesses` a stored property that precedes it in the memberwise initializer, then the properties cannot be initialized in the same order as the parameters occur in the memberwise initializer. For example:
 
 ```swift
 struct S {
@@ -375,7 +375,7 @@ struct S {
 }
 ```
 
-The above struct would receive the following memberwise initializer, which is invalid so an error is emitted:
+If the memberwise initializer of the above struct were written to initialize the properties in the same order as the parameters, it would produce an error:
 
 ```swift
 init(x: Int, y: Int) {
@@ -384,7 +384,18 @@ init(x: Int, y: Int) {
 }
 ```
 
-Use cases for `init` accessors that provide a projection of a stored property as various units through several computed properties don't have a single preferred unit from which to initialize. Most likely, these use cases want a different member-wise initializer for each unit that you can initialize from. If a type contains several computed properties with `init` accessors that initialize the same stored property, a member-wise initializer will not be synthesized.
+Therefore, the compiler will order the initializations in the synthesized memberwise initializer to respect the `accesses` clauses:
+
+```swift
+init(x: Int, y: Int) {
+  self.y = y
+  self.x = x
+}
+```
+
+The initial review of this proposal suppressed the memberwise initializer in such cases, based on a concern that out-of-order initialization would cause surprises. However, given the fact that the fields are initialized independently (or have `accessses` relationships that defiee their relative ordering), and that side effects here are limited to those of the `init` accessors themselves, one has to introduce global side effects during initialization to observe any difference.
+
+There remain cases where a memberwise initializer cannot be synthesized. For example, if a type contains several computed properties with `init` accessors that initialize the same stored property, it is not clear which computed property should be used within the member-wise initializer. In such cases, a member-wise initializer will not be synthesized.
 
 ### Init accessors on computed properties
 
@@ -551,6 +562,7 @@ However, the current syntax in this proposal, which uses an attribute, most accu
   * Replaced the "effects" syntax with the `@storageRestrictions` attribute.
   * Add section on init accessors for computed properties.
   * Add section on init accessors for read-only properties.
+  * Allow reordering of the initializations in the synthesized memberwise initializer to respect `accesses` restrictions.
 
 ## Acknowledgments
 
