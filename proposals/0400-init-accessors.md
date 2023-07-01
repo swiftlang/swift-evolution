@@ -386,6 +386,34 @@ init(x: Int, y: Int) {
 
 Use cases for `init` accessors that provide a projection of a stored property as various units through several computed properties don't have a single preferred unit from which to initialize. Most likely, these use cases want a different member-wise initializer for each unit that you can initialize from. If a type contains several computed properties with `init` accessors that initialize the same stored property, a member-wise initializer will not be synthesized.
 
+### Init accessors on computed properties
+
+An init accessor can be provided on a computed property, in which case it is used for initialization and as a default argument in the memberwise initializer. For example, given the following:
+
+```swift
+struct Angle {
+  var degrees: Double
+  
+  var radians: Double = 0 {
+    @storageRestrictions(initializes: degrees)
+    init(initialValue) {
+      degrees = initialValue * 180 / .pi
+    }
+
+    get { degrees * .pi / 180 }
+    set { degrees = newValue * 180 / .pi }
+  }
+}
+```
+
+The synthesized memberwise initializer will use the initial value as a default argument, so it will look like the following:
+
+```swift
+init(radians: Double = 0) {
+  self.radians = radians  // calls init accessor, which initializes degrees
+}
+```
+
 ## Source compatibility
 
 `init` accessors are an additive capability with new syntax; there is no impact on existing source code.
@@ -496,6 +524,7 @@ However, the current syntax in this proposal, which uses an attribute, most accu
 
 * Following the initial review:
   * Replaced the "effects" syntax with the `@storageRestrictions` attribute.
+  * Add section on init accessors for computed properties.
 
 ## Acknowledgments
 
