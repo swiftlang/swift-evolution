@@ -59,7 +59,8 @@ This proposal adds _`init` accessors_ to opt computed properties on types into d
 struct Angle {
   var degrees: Double
   var radians: Double {
-    init(initialValue) initializes(degrees) {
+    @storageRestrictions(initializes: degrees)
+    init(initialValue)  {
       degrees = initialValue * 180 / .pi
     }
 
@@ -77,7 +78,7 @@ struct Angle {
 }
 ```
 
-The signature of an `init` accessor specifies up to two sets of stored properties: the properties that are accessed (via `accesses`) and the properties that are initialized (via `initializes`) by the accessor. `initializes` and `accesses` are side-effects of the `init` accessor. Access effects specify the other stored properties that can be accessed from within the `init` accessor (no other uses of `self` are allowed), and therefore must be initialized before the computed property's `init` accessor is invoked. The `init` accessor must initialize each of the initialized stored properties on all control flow paths. The `radians` property in the example above specifies no access effect, but initializes the `degrees` property, so it specifies only `initializes(degrees)`.
+The signature of an `init` accessor specifies up to two sets of stored properties: the properties that are accessed (via `accesses`) and the properties that are initialized (via `initializes`) by the accessor. `initializes` and `accesses` are side-effects of the `init` accessor. Access effects specify the other stored properties that can be accessed from within the `init` accessor (no other uses of `self` are allowed), and therefore must be initialized before the computed property's `init` accessor is invoked. The `init` accessor must initialize each of the initialized stored properties on all control flow paths. The `radians` property in the example above specifies no access effect, but initializes the `degrees` property, so it specifies only `initializes: degrees`.
 
 Access effects allow a computed property to be initialized by placing its contents into another stored property:
 
@@ -86,7 +87,8 @@ struct ProposalViaDictionary {
   private var dictionary: [String: String]
 
   var title: String {
-    init(newValue) accesses(dictionary) {
+    @storageRestrictions(accesses: dictionary)
+    init(newValue)  {
       dictionary["title"] = newValue
     }
 
@@ -95,7 +97,8 @@ struct ProposalViaDictionary {
   }
 
    var text: String {
-    init(newValue) accesses(dictionary) {
+    @storageRestrictions(accesses: dictionary)
+    init(newValue) {
       dictionary["text"] = newValue
     }
 
@@ -126,7 +129,8 @@ struct Wrapper<T> {
 struct S {
   private var _value: Wrapper<Int>
   var value: Int {
-    init(newValue) initializes(_value) {
+    @storageRestrictions(initializes: _value)
+    init(newValue)  {
       self._value = Wrapper(wrappedValue: newValue)
     }
 
@@ -152,16 +156,12 @@ This proposal allows macros to model the following property-wrapper-like pattern
 
 ### Syntax
 
-This proposal adds new syntax for `init` accessor blocks, which can be written in the accessor list of a computed property. Init accessors add the following production rules to the grammar:
+The proposal adds a new kind of accessor, an `init` accessor, which can be written in the accessor list of a computed property. Init accessors add the following production rules to the grammar:
 
 ```
-init-accessor -> 'init' init-accessor-parameter[opt] init-effect[opt] access-effect[opt] function-body
+init-accessor -> 'init' init-accessor-parameter[opt] function-body
 
 init-accessor-parameter -> '(' identifier ')'
-
-init-effect -> 'initializes' '(' identifier-list ')'
-
-access-effect -> 'accesses' '(' identifier-list ')'
 
 accessor-block -> init-accessor
 ```
@@ -180,9 +180,22 @@ struct Minimal {
 }
 ```
 
-### `init` accessor signatures
+This proposal also adds a new `storageRestrictions` attribute to describe the storage restrictions for `init` accessor blocks. The attribute can only be used on `init` accessors.  The attribute is described by the following production rules in the grammar:
 
-`init` accessor declarations can optionally specify a signature. An `init` accessor signature is composed of a parameter list, followed by an initialization effects specifier clause. The initialization effects can include a list of stored properties that are initialized by this accessor specified in the argument list of the contextual `initializes` keyword, and a list of stored properties that are accessed by this accessor specified in the argument list of the contextual `accesses` keyword, each of which are optional:
+```
+attribute ::= storage-restrictions-attribute
+
+storage-restrictions-attribute ::= '@' storageRestrictions '(' storage-restrictions[opt] ')'
+
+storage-restrictions-initializes ::= 'initializes' ':' identifier-list
+storage-restrictions-accesses ::= 'accesses' ':' identifier-list
+
+storage-restrictions ::= storage-restrictions-accesses
+storage-restrictions ::= storage-restrictions-initializes
+storage-restrictions ::= storage-restrictions-initializes ',' storage-restrictions-accesses
+```
+
+The storage restriction attribute can include a list of stored properties that are initialized by this accessor (the identifier list in `storage-restrictions-initializes`), and a list of stored properties that are accessed by this accessor (the identifier list in `storage-restrictions-accesses`), each of which are optional:
 
 ```swift
 struct S {
@@ -191,7 +204,8 @@ struct S {
   var _x: Int
 
   var x: Int {
-    init(newValue) initializes(_x) accesses(readMe) {
+    @storageRestrictions(initializes: _x, accesses: readMe)
+    init(newValue) {
       print(readMe)
       _x = newValue
     }
@@ -204,9 +218,9 @@ struct S {
 
 If the accessor uses the default parameter name `newValue` and neither initializes nor accesses any stored property, the signature is not required.
 
-Init accessors can subsume the initialization of a set of stored properties. Subsumed stored properties are specified through the `initializes` effect. The body of an `init` accessor is required to initialize the subsumed stored properties on all control flow paths.
+Init accessors can subsume the initialization of a set of stored properties. Subsumed stored properties are specified through the `initializes` argument to the attribute. The body of an `init` accessor is required to initialize the subsumed stored properties on all control flow paths.
 
-Init accessors can also require a set of stored properties to already be initialized when the body is evaluated, which are specified through the `accesses` effect. These stored properties can be accessed in the accessor body; no other properties or methods on `self` are available inside the accessor body, nor is `self` available as a whole object (i.e., to call methods on it).
+Init accessors can also require a set of stored properties to already be initialized when the body is evaluated, which are specified through the `accesses` argument to the attribute. These stored properties can be accessed in the accessor body; no other properties or methods on `self` are available inside the accessor body, nor is `self` available as a whole object (i.e., to call methods on it).
 
 ### Definite initialization of properties on `self`
 
@@ -222,8 +236,10 @@ An assignment to a computed property with an `init` accessor before all of `self
 struct S {
   var x1: Int
   var x2: Int
+  
+  @storageRestrictions(initializes: x1, x2)
   var computed: Int {
-    init(newValue) initializes(x1, x2) { ... }
+    init(newValue) { ... }
   }
 
   init() {
@@ -238,8 +254,10 @@ An assignment to a computed property that has not been initialized on all paths 
 struct S {
   var x: Int
   var y: Int
+  
+  @storageRestrictions(initializes: x, y)
   var point: (Int, Int) {
-    init(newValue) initializes(x, y) {
+    init(newValue) {
 	    (self.x, self.y) = newValue
     }
     get { (x, y) }
@@ -267,8 +285,10 @@ struct S {
   var x1: Int
   var x2: Int
   var x3: Int
+  
+  @storageRestrictions(initializes: x1, x2)
   var computed: Int {
-    init(newValue) initializes(x1, x2) { ... }
+    init(newValue) { ... }
   }
 
   init() {
@@ -285,8 +305,10 @@ An assignment to a computed property where at least one of the stored properties
 struct S {
   var x: Int
   var y: Int
+  
+  @storageRestrictions(initializes: x, y)
   var point: (Int, Int) {
-    init(newValue) initializes(x, y) {
+    init(newValue) {
 	    (self.x, self.y) = newValue
     }
     get { (x, y) }
@@ -302,13 +324,15 @@ struct S {
 
 ### Memberwise initializers
 
-If a struct does not declare its own initializers, it receives an implicit memberwise initializer based on the stored properties of the struct, because the storage is what needs to be initialized. Because many use-cases for `init` accessors are fully abstracting a single computed property to be backed by a single stored property, such as in the property-wrapper use case, an `init` accessor provides a preferred mechansim for initializing storage because the programmer will primarily interact with that storage through the computed property. As such, the memberwise initializer parameter list will include any computed properties that subsume the initialization of stored properties instead of parameters for those stored properties.
+If a struct does not declare its own initializers, it receives an implicit memberwise initializer based on the stored properties of the struct, because the storage is what needs to be initialized. Because many use-cases for `init` accessors are fully abstracting a single computed property to be backed by a single stored property, such as in the property-wrapper use case, an `init` accessor provides a preferred mechanism for initializing storage because the programmer will primarily interact with that storage through the computed property. As such, the memberwise initializer parameter list will include any computed properties that subsume the initialization of stored properties instead of parameters for those stored properties.
 
 ```swift
 struct S {
   var _x: Int
+  
+  @storageRestrictions(initializes: _x)
   var x: Int {
-    init(newValue) initializes(_x) {
+    init(newValue) {
       _x = newValue
     }
 
@@ -336,8 +360,10 @@ A memberwise initializer will not be synthesized if a stored property that is an
 ```swift
 struct S {
   var _x: Int
+
+  @storageRestrictions(initializes: _x, accesses: y)
   var x: Int {
-    init(newValue) initializes(_x) accesses(y) {
+    init(newValue) {
       _x = newValue
     }
 
@@ -374,7 +400,9 @@ Because `init` accessors are always called from within the defining module, adop
 
 ## Alternatives considered
 
-A previous version of this proposal specified init accessor effects in the parameter list using special labels:
+### Syntax for "initializes" and "accesses"
+
+A number of different syntaxes have been considered for specifying the set of stored properties that are initialized or accessed by a property that has an `init` accessor. The original pitch specified them in the parameter list using special labels:
 
 ```swift
 struct S {
@@ -394,20 +422,80 @@ struct S {
 
 This syntax choice is misleading because the effects look like function parameters, while `initializes` behaves more like the output of an init accessor, and `accesses` are not explicitly provided at the call-site. Conceptually, `initializes` and `accesses` are side effects of an `init` accessor, so the proposal was revised to place these modifiers in the effects clause.
 
+The first reviewed version of this proposal placed `initializes` and `accesses` along with other *effects*, e.g.,
+
+```swift
+struct S {
+  var _x: Int
+  var x: Int {
+    init(newValue) initializes(_x), accesses(y) {
+      _x = newValue
+    }
+
+    get { _x }
+    set { _x = newValue }
+  }
+
+  var y: Int
+}
+```
+
+However, `initializes` and `effects` don't behave in the same manner as other effects in Swift, such as `throws` and `async`, for several reasons. First, there's no annotation like `try` or `await` at the call site. Second, these aren't part of the type of the entity (e.g., there is not function type that has an `initializes` clause). Therefore, using the effects clause is not a good match for Swift's semantic model.
+
+The current proposal uses an attribute. With attributes, there is question of whether we can remove the `@` to turn it into a declaration modifier:
+
+```swift
+struct S {
+  var _x: Int
+  var x: Int {
+    storageRestrictions(initializes: _x, accesses: y)
+    init(newValue) {
+      _x = newValue
+    }
+
+    get { _x }
+    set { _x = newValue }
+  }
+
+  var y: Int
+}
+```
+
+This is doable within the confines of this proposal's init accessors, but would prevent further extensions of this proposal that would allow the use of `initializes` or `accesses` on arbitrary functions. For example, such an extension might allow the following
+
+```swift
+var _x, _y: Double
+
+storageRestrictions(initializes: _x, _y)
+func initCoordinates(radius: Double, angle: Double) { ... }
+
+if let (r, theta) = decodeAsPolar() {
+  initCoordinates(radius: r, angle: theta)
+} else {
+  // ...
+}
+```
+
+However, there is a parsing ambiguity in the above because `storageRestrictions(initializes: _x, _y)` could be a call to a function names `storageRestrictions(initializes:)` or it could be a declaration modifier specifying that `initCoordinates` initializes `_x` and `_y`. 
+
 Other syntax suggestions from pitch reviewers included:
 
 * Using a capture-list-style clause, e.g. `init { [&x, y] in ... }`
-* Attributes on the computed property itself, e.g. `@initializes(_x) var x: Int { ... }`
 * Using more concise effect names, e.g. `writes` and `reads` instead of `initializes` and `accesses`
 * And more!
 
-However, the current syntax in this proposal most accurately models the semantics of initialization effects. An `init` accessor is a function -- not a closure -- that has side-effects related to initialization. _Only_ the `init` accessor has these effects; though the `set` accessor often contains code that looks the same as the code in the `init` accessor, the effects of these accessors are different. Because `init` accessors are called before all of `self` is initialized, they do not recieve a fully-initialized `self` as a parameter like `set` accessors do, and assignments to `initializes` stored properties in `init` accessors have the same semantics as that of a standard initializer, such as suppressing `willSet` and `didSet` observers. These reasons reinforce the decision to specify `initializes` and `accesses` in the effects clause of an `init` accessor.
+However, the current syntax in this proposal, which uses an attribute, most accurately models the semantics of initialization effects. An `init` accessor is a function -- not a closure -- that has side-effects related to initialization. _Only_ the `init` accessor has these effects; though the `set` accessor often contains code that looks the same as the code in the `init` accessor, the effects of these accessors are different. Because `init` accessors are called before all of `self` is initialized, they do not recieve a fully-initialized `self` as a parameter like `set` accessors do, and assignments to `initializes` stored properties in `init` accessors have the same semantics as that of a standard initializer, such as suppressing `willSet` and `didSet` observers. 
 
 ## Future directions
 
 ### `init` accessors for local variables
 
 `init` accessors for local variables have different implications on definite initialization, because re-writing assignment to `init` or `set` is not based on the initialization state of `self`. Local variable getters and setters can also capture any other local variables in scope, which raises more challenges for diagnosing escaping uses before initialization during the same pass where assignments may be re-written to `init` or `set`. As such, local variables with `init` accessors are a future direction.
+
+## Revision history
+
+* Following the initial review:
+  * Replaced the "effects" syntax with the `@storageRestrictions` attribute.
 
 ## Acknowledgments
 
