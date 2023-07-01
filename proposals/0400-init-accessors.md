@@ -414,6 +414,31 @@ init(radians: Double = 0) {
 }
 ```
 
+### Init accessors for read-only properties
+
+Init accessors can be provided for properties that lack a getter. Such properties act much like a `let` property, able to be initialized (exactly) once and not set thereafter:
+
+```swift
+struct S {
+  var _x: Int
+
+  @storageRestrictions(initializes: _x)
+  var x: Int {
+    init(initialValue) {
+      self._x = x
+    }
+
+    get { _x }
+  }
+
+  init(halfOf y: Int) {
+    self.x = y / 2 // okay, calls init accessor for x
+    self.x = y / 2 // error, 'x' cannot be set
+  }
+}
+
+```
+
 ## Source compatibility
 
 `init` accessors are an additive capability with new syntax; there is no impact on existing source code.
@@ -525,6 +550,7 @@ However, the current syntax in this proposal, which uses an attribute, most accu
 * Following the initial review:
   * Replaced the "effects" syntax with the `@storageRestrictions` attribute.
   * Add section on init accessors for computed properties.
+  * Add section on init accessors for read-only properties.
 
 ## Acknowledgments
 
