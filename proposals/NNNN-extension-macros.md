@@ -39,7 +39,7 @@ Extensions also have stylistic benefits. Code inside an extension will share the
 
 ## Proposed solution
 
-This proposal removes the `conformance` macro role in favor or an `extension` macro role. An `extension` macro role can be used with the `@attached` macro attribute, and it can add a conformance, a where clause, and a member list in an extension on the type the macro is attached to:
+This proposal removes the `conformance` macro role in favor of an `extension` macro role. An `extension` macro role can be used with the `@attached` macro attribute, and it can add a conformance, a `where` clause, and a member list in an extension on the type the macro is attached to:
 
 ```swift
 protocol MyProtocol {
