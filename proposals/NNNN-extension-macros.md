@@ -63,16 +63,26 @@ The generated extensions of the macro must only extend the type the macro is att
 
 ## Detailed design
 
-### Specifying macro-introduced protocol conformances
+### Specifying macro-introduced protocol conformances and member names
 
 SE-0389 states that whenever a macro produces declarations that are visible to other Swift code, it is required to declare the names in advance. This rule also applies to extension macros, which must specify:
 
 * Declarations inside the extension, which can be specified using `named`, `prefixed`, `suffixed`, and `arbitrary`.
-* The names of protocols that are listed in the extension's conformance clause.
+* The names of protocols that are listed in the extension's conformance clause. These protocols are specified in the `conformances:` list of the `@attached(conformances:)` attribute. Each name that appears in this list must be a conformance constraint, where a conformance constraint is one of:
+  * A protocol name
+  * A typealias whose underlying type is a conformance constraint
+  * A protocol composition whose entires are each a conformance constraint
 
-It is an error for a macro to add a conformance or an extension member that is not covered by the `@attached(extension)` attribute.
+The following restrictions apply to generated conformances and names listed in `@attached(extension)`:
 
-### Extension macros applied to nested types
+* An extension macro cannot add a conformance to a protocol that is not covered by the `conformances:` list in `@attached(extension, conformnaces:)`.
+* An extension macro cannot add a member that is not covered by the `names:` list in `@attached(extension, names:)`.
+* An extension macro cannot introduce an extension with an attached `peer` macro, because the peer-macro-generated names are not covered by the original `@attached(extension)` attribute.
+
+### Extension macro application
+
+Extension macros can only be attached to the primary declaration of a nominal type; they cannot be attached to typealias or extension declarations.
+
 
 Extensions are only valid at the top-level. When an extension macro is applied to a nested type:
 
