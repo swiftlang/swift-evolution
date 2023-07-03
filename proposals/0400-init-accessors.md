@@ -393,7 +393,7 @@ init(x: Int, y: Int) {
 }
 ```
 
-The initial review of this proposal suppressed the memberwise initializer in such cases, based on a concern that out-of-order initialization would cause surprises. However, given the fact that the fields are initialized independently (or have `accessses` relationships that defiee their relative ordering), and that side effects here are limited to those of the `init` accessors themselves, one has to introduce global side effects during initialization to observe any difference.
+The initial review of this proposal suppressed the memberwise initializer in such cases, based on a concern that out-of-order initialization would cause surprises. However, given the fact that the fields are initialized independently (or have `accessses` relationships that define their relative ordering), and that side effects here are limited to those of the `init` accessors themselves, one has to introduce global side effects during initialization to observe any difference.
 
 There remain cases where a memberwise initializer cannot be synthesized. For example, if a type contains several computed properties with `init` accessors that initialize the same stored property, it is not clear which computed property should be used within the member-wise initializer. In such cases, a member-wise initializer will not be synthesized.
 
@@ -405,7 +405,7 @@ An init accessor can be provided on a computed property, in which case it is use
 struct Angle {
   var degrees: Double
   
-  var radians: Double = 0 {
+  var radians: Double {
     @storageRestrictions(initializes: degrees)
     init(initialValue) {
       degrees = initialValue * 180 / .pi
@@ -414,14 +414,6 @@ struct Angle {
     get { degrees * .pi / 180 }
     set { degrees = newValue * 180 / .pi }
   }
-}
-```
-
-The synthesized memberwise initializer will use the initial value as a default argument, so it will look like the following:
-
-```swift
-init(radians: Double = 0) {
-  self.radians = radians  // calls init accessor, which initializes degrees
 }
 ```
 
@@ -448,6 +440,47 @@ struct S {
   }
 }
 
+```
+
+### Initial values on properties with an init accessor
+
+A property with an init accessor can have an initial value, e.g.,
+
+```swift
+struct WithInitialValues {
+  var _x: Int
+
+  var x: Int = 0 {
+    @storageRestrictions(initializes: _x)
+    init(initialValue) {
+      _x = initialValue
+    }
+
+    get { ... }
+    set { ... }
+  }
+
+  var y: Int
+}
+```
+
+The synthesized memberwise initializer will use the initial value as a default argument, so it will look like the following:
+
+```swift
+init(x: Int = 0, y: Int) {
+  self.x = x  // calls init accessor, which initializes _x
+  self.y = y
+}
+```
+
+In a manually written initializer, the initial value will be used to initialize the property with the init accessor prior to any user-written code:
+
+```swift
+init() {
+  // implicitly initializes self.x = 0
+  self.y = 10
+  self.x = 20 // calls setter
+}
 ```
 
 ## Source compatibility
@@ -601,6 +634,7 @@ These limitations are severe enough that this future direction would require a s
   * Add section on init accessors for read-only properties.
   * Allow reordering of the initializations in the synthesized memberwise initializer to respect `accesses` restrictions.
   * Add a potential future direction for the generalization of storage restrictions to other functions.
+  * Clarify the behavior of properties that have init accessors and initial values.
 
 ## Acknowledgments
 
