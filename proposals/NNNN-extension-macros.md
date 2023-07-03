@@ -84,7 +84,7 @@ The following restrictions apply to generated conformances and names listed in `
 Extension macros can only be attached to the primary declaration of a nominal type; they cannot be attached to typealias or extension declarations.
 
 
-Extensions are only valid at the top-level. When an extension macro is applied to a nested type:
+Swift only allows `extension` declarations at the top level in a file. Despite this, extension macros can be applied to a nested type:
 
 ```swift
 @attached(extension, conformances: MyProtocol, names: named(requirement))
