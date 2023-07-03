@@ -27,7 +27,7 @@ struct S {}
 extension S: Equatable {}
 ```
 
-However, the `conformance` macro role is extremely limited on its own. They _only_ have the ability to return a protocol name and the syntax for a `where` clause. If the protocol conformance requires members -- as most protocol conformances do -- those must be added through a separate `member` macro role.
+However, the `conformance` macro role is extremely limited on its own. A conformance macro _only_ has the ability to return a protocol name and the syntax for a `where` clause. If the protocol conformance requires members --- as most protocol conformances do --- those must be added through a separate `member` macro role.
 
 More importantly, conformance macros are the only way for a macro to expand to an extension on the annotated type. The inability to add members in an extension of a type rather than the primary declaration is a serious limitation of the macro system, because extensions have several important semantic implications, including (but not limited to):
 
