@@ -96,7 +96,7 @@ struct Outer {
 }
 ```
 
-The macro expansion containing the extension is inserted at the top-level. The above code expands to:
+In this situation, the macro expansion containing the `extension` is inserted at the top level of the file, instead of immediately where the macro is invoked, where the `extension` would be invalid. The above code expands to:
 
 ```swift
 struct Outer {
