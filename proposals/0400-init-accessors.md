@@ -419,7 +419,7 @@ struct Angle {
 
 ### Init accessors for read-only properties
 
-Init accessors can be provided for properties that lack a getter. Such properties act much like a `let` property, able to be initialized (exactly) once and not set thereafter:
+Init accessors can be provided for properties that lack a setter. Such properties act much like a `let` property, able to be initialized (exactly) once and not set thereafter:
 
 ```swift
 struct S {
