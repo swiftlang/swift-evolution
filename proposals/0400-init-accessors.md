@@ -417,6 +417,14 @@ struct Angle {
 }
 ```
 
+The implicit memberwise initializer will contain `radians`, but not the `degrees` stored property that it subsumes:
+
+```swift
+init(radians: Double) {
+  self.radians = radians // calls init accessor, subsumes initialization of 'degrees'
+}
+```
+
 ### Init accessors for read-only properties
 
 Init accessors can be provided for properties that lack a setter. Such properties act much like a `let` property, able to be initialized (exactly) once and not set thereafter:
