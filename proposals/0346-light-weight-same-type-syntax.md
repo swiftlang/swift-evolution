@@ -451,7 +451,7 @@ extension Convertible(from: String, to: Int) {
 }
 
 extension Convertible(from: String, to: Double) {
-  static func convert(_: String) -> Int
+  static func convert(_: String) -> Double
 }
 ```
 
