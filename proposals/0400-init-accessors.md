@@ -237,8 +237,8 @@ struct S {
   var x1: Int
   var x2: Int
   
-  @storageRestrictions(initializes: x1, x2)
   var computed: Int {
+    @storageRestrictions(initializes: x1, x2)
     init(newValue) { ... }
   }
 
@@ -255,8 +255,8 @@ struct S {
   var x: Int
   var y: Int
   
-  @storageRestrictions(initializes: x, y)
   var point: (Int, Int) {
+    @storageRestrictions(initializes: x, y)
     init(newValue) {
 	    (self.x, self.y) = newValue
     }
@@ -286,8 +286,8 @@ struct S {
   var x2: Int
   var x3: Int
   
-  @storageRestrictions(initializes: x1, x2)
   var computed: Int {
+    @storageRestrictions(initializes: x1, x2)
     init(newValue) { ... }
   }
 
@@ -306,10 +306,10 @@ struct S {
   var x: Int
   var y: Int
   
-  @storageRestrictions(initializes: x, y)
   var point: (Int, Int) {
+    @storageRestrictions(initializes: x, y)
     init(newValue) {
-	    (self.x, self.y) = newValue
+      (self.x, self.y) = newValue
     }
     get { (x, y) }
     set { (x, y) = newValue }
@@ -330,8 +330,8 @@ If a struct does not declare its own initializers, it receives an implicit membe
 struct S {
   var _x: Int
   
-  @storageRestrictions(initializes: _x)
   var x: Int {
+    @storageRestrictions(initializes: _x)
     init(newValue) {
       _x = newValue
     }
@@ -361,8 +361,8 @@ The parameters of the memberwise initializer follow source order. However, if an
 struct S {
   var _x: Int
 
-  @storageRestrictions(initializes: _x, accesses: y)
   var x: Int {
+    @storageRestrictions(initializes: _x, accesses: y)
     init(newValue) {
       _x = newValue
     }
@@ -433,8 +433,8 @@ Init accessors can be provided for properties that lack a setter. Such propertie
 struct S {
   var _x: Int
 
-  @storageRestrictions(initializes: _x)
   var x: Int {
+    @storageRestrictions(initializes: _x)
     init(initialValue) {
       self._x = x
     }
