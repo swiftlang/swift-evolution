@@ -74,7 +74,7 @@ SE-0389 states that whenever a macro produces declarations that are visible to o
 
 The following restrictions apply to generated conformances and names listed in `@attached(extension)`:
 
-* An extension macro cannot add a conformance to a protocol that is not covered by the `conformances:` list in `@attached(extension, conformnaces:)`.
+* An extension macro cannot add a conformance to a protocol that is not covered by the `conformances:` list in `@attached(extension, conformances:)`.
 * An extension macro cannot add a member that is not covered by the `names:` list in `@attached(extension, names:)`.
 * An extension macro cannot introduce an extension with an attached `peer` macro, because the peer-macro-generated names are not covered by the original `@attached(extension)` attribute.
 
@@ -136,7 +136,7 @@ public protocol ExtensionMacro: AttachedMacro {
   ///     to.
   ///   - context: The context in which to perform the macro expansion.
   ///
-  /// - Returns: the set of extensions declarations introduced by the macro,
+  /// - Returns: the set of extension declarations introduced by the macro,
   ///   which are always inserted at top-level scope. Each extension must extend
   ///   the `type` parameter.
   static func expansion(
@@ -170,7 +170,7 @@ For example, consider the following code which contains an attached extension ma
 protocol Encodable {}
 protocol Decodable {}
 
-typelias Codable = Encodable & Decodable
+typealias Codable = Encodable & Decodable
 
 @attached(extension, conformances: Codable)
 macro MyMacro() = #externalMacro(...)
@@ -181,11 +181,11 @@ struct S { ... }
 extension S: Encodable { ... }
 ```
 
-The extension macro can add conformances to `Codable`, aka `Encodable & Decodable`. Because the struct `S` already conforms to `Encodable` in the original source, the `ExtensionMacro.expansion` method will recieve the argument `[TypeSyntax(Encodable)]` for the `conformingTo:` parameter. Using this information, the macro implementation can decide to only add an extension with a conformance to `Decodable`.
+The extension macro can add conformances to `Codable`, aka `Encodable & Decodable`. Because the struct `S` already conforms to `Encodable` in the original source, the `ExtensionMacro.expansion` method will receive the argument `[TypeSyntax(Encodable)]` for the `conformingTo:` parameter. Using this information, the macro implementation can decide to only add an extension with a conformance to `Decodable`.
 
 ## Source compatibility
 
-This propsoal removes the `conformance` macro role from SE-0389, which is accepted and implemented in Swift 5.9. If this proposal is accepted after 5.9, the `conformance` macro role will remain in the language as sugar for an `extension` macro that adds only a conformance.
+This proposal removes the `conformance` macro role from SE-0389, which is accepted and implemented in Swift 5.9. If this proposal is accepted after 5.9, the `conformance` macro role will remain in the language as sugar for an `extension` macro that adds only a conformance.
 
 ## ABI compatibility
 
