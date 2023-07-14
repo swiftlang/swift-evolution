@@ -579,6 +579,7 @@ is not consumed may continue using it:
 let x = FileDescriptor()
 guard let condition = getCondition() else {
   consume(x)
+  return
 }
 // We can continue using x here, since only the exit branch of the guard
 // consumed it
