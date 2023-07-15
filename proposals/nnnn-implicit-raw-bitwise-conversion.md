@@ -177,7 +177,7 @@ The new diagnostic will only warn on code that views the raw bytes of a class re
 
 ### Workarounds for common cases
 
-Users can silence the warning using an explicit conversion, such as `withUnsafePointer`, `withUnsafeBytes`, or `Unamanged.toOpaque()` as follows.  Note that these are all extremely dangerous use cases that are not generally supported, but they will work in practice under specific conditions. Those conditions are out of scope for this proposal, but they are the same regardless of whether the code relies on implicit conversion or uses the explicit conversions below...
+Users can silence the warning using an explicit conversion, such as `withUnsafePointer`, `withUnsafeMutablePointer`, `withUnsafeBytes`, `withUnsafeMutableBytes`, or `Unmanaged.toOpaque()` as follows. Note that these are all extremely dangerous use cases that are not generally supported, but they will work in practice under specific conditions. Those conditions are out of scope for this proposal, but they are the same regardless of whether the code relies on implicit conversion or uses the explicit conversions below...
 
 To pass the address of an internal stored property through an opaque
 pointer (unsupported but not uncommon):
@@ -212,14 +212,14 @@ To expose the bitwise representation of class references:
     func readBytes(_ pointer: UnsafeRawPointer) {...}
 
     withUnsafePointer(to: object) {
-      readBytes($0.baseAddress!)
+      readBytes($0)
     }
     
 
 The diagnostic message does not mention specific workarounds, such as `withUnsafeBytes(of:)`, because, although helpful for migration, that would push developers toward writing invalid code in the future. For example, if a user incorrectly tries to convert a user-defined collection directly to a raw pointer, a diagnostic that suggests `withUnsafeBytes(of:)` would encourage rewriting the code as follows:
 
     withUnsafeBytes(of: &collection) {
-      readBytes($0)
+      readBytes($0.baseAddress!)
     }
 
 This actually promotes the behavior that we're trying to prevent! Quite often, the programmer instead needs to reach for a method on a collection type, such as Data.withUnsafeBytes().
