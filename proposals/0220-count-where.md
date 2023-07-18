@@ -2,10 +2,11 @@
 
 * Proposal: [SE-0220](0220-count-where.md)
 * Author: [Soroush Khanlou](https://github.com/khanlou)
-* Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted (2018-08-15)**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (July 18 – July 28, 2023)**
+* Previous status: **Accepted (2018-08-15) then Expired**
 * Implementation: [apple/swift#16099](https://github.com/apple/swift/pull/16099), [apple/swift#22289](https://github.com/apple/swift/pull/22289) (revert PR)
-* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0220-count-where/15280), [Additional Commentary](https://forums.swift.org/t/require-parameter-names-when-referencing-to-functions/27048)
+* Previous Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0220-count-where/15280), [Additional Commentary](https://forums.swift.org/t/require-parameter-names-when-referencing-to-functions/27048)
 
 ## Introduction
 
