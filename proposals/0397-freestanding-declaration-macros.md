@@ -153,7 +153,7 @@ Like attached peer macros, a freestanding declaration macro can expand to any de
 - [**Specifying newly-introduced names**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#specifying-newly-introduced-names)
   - Note that only `named(...)` and `arbitrary` are allowed as macro-introduced names for a declaration macro. `overloaded`, `prefixed`, and `suffixed` do not make sense when there is no declaration from which to derive names.
 - [**Visibility of names used and introduced by macros**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#visibility-of-names-used-and-introduced-by-macros)
-- [**Restrictions on `arbitrary` names**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md##restrictions-on-arbitrary-names)
+- [**Restrictions on `arbitrary` names**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#restrictions-on-arbitrary-names)
 - [**Permitted declaration kinds**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#permitted-declaration-kinds)
 
 One additional restriction is that a macro declaration can have at most one freestanding macro role. This is because top level and function scopes allow a combination of expressions, statements, and declarations, which would be ambiguous to a freestanding macro expansion with multiple roles.
