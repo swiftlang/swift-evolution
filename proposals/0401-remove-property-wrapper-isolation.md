@@ -3,10 +3,10 @@
 * Proposal: [SE-0401](0401-remove-property-wrapper-isolation.md)
 * Authors: [BJ Homer](https://github.com/bjhomer)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active review (June 16th...June 30th, 2023)**
+* Status: **Accepted**
 * Implementation: [apple/swift#63884](https://github.com/apple/swift/pull/63884)
-* Upcoming Feature Flag: `DisableActorInferenceFromPropertyWrapperUsage`
-* Review: ([pitch](https://forums.swift.org/t/pitch-stop-inferring-actor-isolation-based-on-property-wrapper-usage/63262)) ([review](https://forums.swift.org/t/se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/65618))
+* Upcoming Feature Flag: `DisableOutwardActorInference`
+* Review: ([pitch](https://forums.swift.org/t/pitch-stop-inferring-actor-isolation-based-on-property-wrapper-usage/63262)) ([review](https://forums.swift.org/t/se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/65618)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/66241))
 
 ## Introduction
 
@@ -130,7 +130,7 @@ The [original motivation](https://forums.swift.org/t/se-0401-remove-actor-isolat
 
 The proposal is simple: In the Swift 6 language mode, property wrappers used within a type will not affect the type's actor isolation. We simply disable this inference step entirely.
 
-In the Swift 5 language mode, isolation will continue to be inferred as it currently is. The new behavior can be requested using the **`-enable-upcoming-feature DisableActorInferenceFromPropertyWrapperUsage`** compiler flag.
+In the Swift 5 language mode, isolation will continue to be inferred as it currently is. The new behavior can be requested using the **`-enable-upcoming-feature DisableOutwardActorInference`** compiler flag.
 
 ## Detailed design
 
