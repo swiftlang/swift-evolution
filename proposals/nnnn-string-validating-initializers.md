@@ -275,9 +275,17 @@ This would produce a compile-time ambiguity on platforms where `CChar` is typeal
 
 When decoding a byte stream, obtaining the details of a validation failure would be useful in order to diagnose issues. We would like to provide this functionality, but the current input validation functionality is not well-suited for it. This is left as a future improvement.
 
-#### Add normalizing initializers, improve repairing initializers
+#### Add normalizing initializers
 
-It is often desirable to normalize strings, but the standard library does not expose public API for doing so. Hypothetical normalizing initializers should have convenience initializers similar to the validating convenience initializers. Input-repairing initializers should also have convenience initializers.
+It is often desirable to normalize strings, but the standard library does not expose public API for doing so. Hypothetical normalizing initializers should have convenience initializers similar to the validating convenience initializers.
+
+#### Other
+
+Add initializer from `some Sequence<UnicodeScalar>`.
+
+Add more discoverable convenience initializers for the input-repairing initialization case.
+
+Add API devoted to input validation specifically.
 
 ## Acknowledgements
 
