@@ -3,9 +3,9 @@
 * Proposal: [SE-0402](0402-extension-macros.md)
 * Authors: [Holly Borla](https://github.com/hborla)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (July 3rd...17th, 2023)**
+* Status: **Accepted**
 * Implementation: [apple/swift#66967](https://github.com/apple/swift/pull/66967), [apple/swift-syntax#1859](https://github.com/apple/swift-syntax/pull/1859)
-* Review: ([pitch](https://forums.swift.org/t/pitch-generalize-conformance-macros-as-extension-macros/65653)) ([review](https://forums.swift.org/t/se-0402-generalize-conformance-macros-as-extension-macros/65965))
+* Review: ([pitch](https://forums.swift.org/t/pitch-generalize-conformance-macros-as-extension-macros/65653)) ([review](https://forums.swift.org/t/se-0402-generalize-conformance-macros-as-extension-macros/65965)) ([acceptance](https://forums.swift.org/t/accepted-se-0402-generalize-conformance-macros-as-extension-macros/66276))
 
 ## Introduction
 
