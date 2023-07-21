@@ -574,6 +574,27 @@ f(1) { x in
 
 Therefore, a macro used within a closure or function body can only introduce declarations using names produced by `createUniqueName`. This maintains the [two-phase of checking macros](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-expansion) where type checking and inference is performed without expanding the macro, then the macro is expanded and its result type-checked independently, with no ability to influence type inference further.
 
+### Restrictions on `arbitrary` names
+
+Attached macros that specify `arbitrary` names require expanding the macro in order to determine the exact set of names that the macro generates. This means that name lookup must expand all macros that can produce `arbitrary` names in the given scope in order to determine name lookup results. This is a problem for macros that introduce names at global scope, because any unqualified or module qualified lookup must expand those macros. However, because macro attributes can have arguments that are type-checked prior to macro expansion, type checking those arguments may require unqualified or module qualified name lookup that requires expanding that same macro, which is fundamentally circular. Though macro arguments do not have visibility of macro-generated names in the same scope, macro argument type checking can invoke type checking of other declarations that can use macro-generated names. For example:
+
+```swift
+@attached(peer, names: arbitrary)
+macro IntroduceArbitraryPeers<T>(_: T) = #externalMacro(...)
+
+@IntroduceArbitraryPeers(MyType().x)
+struct S {}
+
+struct MyType {
+  var x: AnotherType
+}
+```
+
+Resolving the macro attribute `@IntroduceArbitraryPeers(MyType().x)` can invoke type-checking of the `var x: AnotherType` property of the `MyType` struct. Unqualified lookup of `AnotherType` must expand `@IntroduceArbitraryPeers` because the macro can introduce arbitrary names; it might introduce a top-level type called `AnotherType`. Resolving the `@IntroduceArbitraryPeers` attribute depends on type checking the `var x: AnotherType` property, and type checking the property depends on expanding the `@IntroduceArbitraryPeers` macro, which results in a circular reference error.
+
+Because `arbitrary` names introduced at global scope are extremely prone to circularity, peer macros attached to top-level declarations cannot introduce `arbitrary` names.
+
+
 ### Ordering of macro expansions
 
 When multiple macros are applied to a single declaration, the order in which macros are expanded could have a significant impact on the resulting program if the the outputs of one macro expansion are treated as inputs to the others. This form of macro composition could be fairly powerful, but it also can have a number of surprising side effects:
