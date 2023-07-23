@@ -4,9 +4,8 @@
 * Authors: [Karl Wagner](https://github.com/karwa)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [apple/swift#66247](https://github.com/apple/swift/pull/66247)
-* Upcoming Feature Flag: `NestedProtocols`
-* Review: ([pitch](https://forums.swift.org/...))
+* Implementation: [apple/swift#66247](https://github.com/apple/swift/pull/66247) (gated behind flag `-enable-experimental-feature NestedProtocols`)
+* Review: ([pitch](https://forums.swift.org/t/pitch-allow-protocols-to-be-nested-in-non-generic-contexts/65285))
 
 ## Introduction
 
@@ -115,6 +114,25 @@ Supporting this would require either:
 
 Neither is in in-scope for this proposal, but this author feels there is enough benefit here even without supporting generic contexts. Either of these would certainly make for interesting future directions.
 
+### Associated Type matching
+
+When nested in a concrete type, protocols do not witness associated type requirements.
+
+```swift
+protocol Widget {
+  associatedtype Delegate
+}
+
+struct TableWidget: Widget {
+  // Does NOT witness Widget.Delegate
+  protocol Delegate { ... }
+}
+```
+
+Associated types associate one concrete type with one conforming type. Protocols are constraint types which many concrete types may conform to, so there is no obvious meaning to having a protocol witness an associated type requirement.
+
+There have been discussions in the past about whether protocols could gain an "associated protocol" feature, which would allow these networks of constraint types to be expressed. If such a feature were ever introduced, it may be reasonable for associated protocol requirements to be witnessed by nested protocols, the same way associated type requirements can be witnessed by nested concrete types today.
+
 ## Source compatibility
 
 This feature is additive.
@@ -123,13 +141,13 @@ This feature is additive.
 
 This proposal is purely an extension of the language's ABI and does not change any existing features.
 
-As with other nested types, the parent context forms part of the mangled name of a nested protocol. Therefore, moving the protocol around is an ABI-incompatible change.
-
 ## Implications on adoption
 
-This feature can be freely adopted and un-adopted in source
-code with no deployment constraints and without affecting source or ABI
-compatibility.
+This feature can be freely adopted and un-adopted in source code with no deployment constraints.
+
+In general, moving a protocol in/out of a parent context is a source-breaking change. However, this breakage can mitigated by providing a `typealias` to the new name.
+
+As with other nested types, the parent context forms part of the mangled name of a nested protocol. Therefore, moving a protocol in/out of a parent context is an ABI-incompatible change.
 
 ## Future directions
 
