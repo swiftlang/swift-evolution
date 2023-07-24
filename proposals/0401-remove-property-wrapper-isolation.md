@@ -3,7 +3,7 @@
 * Proposal: [SE-0401](0401-remove-property-wrapper-isolation.md)
 * Authors: [BJ Homer](https://github.com/bjhomer)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: [apple/swift#63884](https://github.com/apple/swift/pull/63884)
 * Upcoming Feature Flag: `DisableOutwardActorInference`
 * Review: ([pitch](https://forums.swift.org/t/pitch-stop-inferring-actor-isolation-based-on-property-wrapper-usage/63262)) ([review](https://forums.swift.org/t/se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/65618)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/66241))
