@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hbborla)
 * Status: **Active review (July 24 - August 7, 2023)**
 * Implementation: [apple/swift#66247](https://github.com/apple/swift/pull/66247) (gated behind flag `-enable-experimental-feature NestedProtocols`)
-* Review: ([pitch](https://forums.swift.org/t/pitch-allow-protocols-to-be-nested-in-non-generic-contexts/65285))
+* Review: ([pitch](https://forums.swift.org/t/pitch-allow-protocols-to-be-nested-in-non-generic-contexts/65285)), ([review](https://forums.swift.org/t/se-0404-allow-protocols-to-be-nested-in-non-generic-contexts/66332))
 
 ## Introduction
 
