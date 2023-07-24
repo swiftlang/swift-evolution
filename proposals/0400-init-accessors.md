@@ -3,7 +3,7 @@
 * Proposal: [SE-0400](0400-init-accessors.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: On `main` behind experimental feature flag `InitAccessors`
 * Review: ([pitch](https://forums.swift.org/t/pitch-init-accessors/64881)) ([review](https://forums.swift.org/t/se-0400-init-accessors/65583)) ([acceptance](https://forums.swift.org/t/accepted-se-0400-init-accessors/66212))
 
