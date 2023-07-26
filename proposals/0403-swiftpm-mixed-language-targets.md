@@ -94,19 +94,13 @@ MixedPackage
         └── TestConstants.swift ⎦
 ```
 
-The proposed solution would enable the above package to have the following
-capabilities:
-1. Export public API of the mixed language sources as a single module for
-   clients of the package.
-1. Use Obj-C compatible Swift API from target’s Swift sources within the
-   target’s Obj-C sources.
-1. Use all API exposed by target’s Objective-C or C sources within the target’s
-   Swift sources.
-1. Use internal C based language types within the Clang part of the module.
-1. Use internal Swift types within the Swift part of the module.
-1. Access target resources from a Swift and Objective-C context.
-1. Define test utility types in either Obj-C or Swift and use them in both
-   Swift and Obj-C test files.
+The proposed solution would enable the above package to do the following:
+1. Export the public API from across the mixed language sources.
+1. Use C/Objective-C/C++ compatible Swift API from target’s Swift sources
+   within the target’s C/Objective-C/C++ sources.
+1. Use Swift compatible C/Objective-C/C++ API from target’s C/Objective-C/C++
+   sources within the target’s Swift sources.
+1. Access target resources from Swift and Objective-C contexts.
 
 ### Requirements
 
