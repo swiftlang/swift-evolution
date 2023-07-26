@@ -265,44 +265,9 @@ would look like such:
 └── MixedTarget.build
     ├── ...
     └── Intermediates
-        ├── module.modulemap
         ├── all-product-headers.yaml
         ├── unextended-module.modulemap
         └── unextended-module-overlay.yaml
-```
-
-#### module.modulemap
-
-A mixed target will either have a custom module map defined by the package
-author or it won’t. In both cases, the package manager creates an intermediary
-module map in the `Intermediates` subdirectory that exposes the generated
-interop header via a submodule. This is needed when compiling the target’s
-Objective-C sources so that the sources can import the generated interop
-header–– making Objective-C compatible types defined in the target’s Swift API
-visible within an Objective-C context.
-
-> Note: As opposed to the unextended module map, the contents of the
-> `module MixedTarget { … }` is not important here because the module map’s
-> sole purpose is to assist in the compilation of the target’s Objective-C
-> sources, which access other C Language types defined in the target via
-> importing headers found in the target’s header search paths. Nonetheless, the
-> `module MixedTarget { … }` declaration is the same between the intermediary
-> `module.modulemap` and `unextended-module.modulemap` for consistency.
-
-```
-// module.modulemap
-
-// See above note for context regarding this module declaration.
-module MixedTarget {
-  umbrella "/Users/crusty/Developer/MixedTarget/Sources"
-  export *
-}
-
-// A submodule exposes the generated interop header for Objective-C clients.
-module MixedTarget.Swift {
-  header "/Users/crusty/Developer/MixedTarget/.build/.../MixedTarget.build/MixedTarget-Swift.h"
-  requires objc
-}
 ```
 
 #### all-product-headers.yaml
@@ -313,14 +278,9 @@ accordingly so that the build can be successful. The positioning is determined
 based on whether or not the package author has defined a custom module map in
 the mixed target:
 - If there is a custom module map, then the overlay is created over the
-  directory that contains the custom module map. The overlay has two
+  directory that contains the custom module map. The overlay has the following
   responsibilities:
-    1. Redirect the path to the custom module map to the intermediary module
-       map. This means that when the custom module map is read from, the
-       contents will instead come from the intermediary module map. This is
-       done to avoid a module redeclaration error from there being two
-       discoverable, distinct module maps.
-    2. Add the generated interop header to the directory. This will enable the
+    1. Add the generated interop header to the directory. This will enable the
        header to be imported within this target via
        `#import MixedTarget-Swift.h`.
 - If there is no custom module map, then the overlay is created over the
@@ -345,15 +305,6 @@ without a custom module map.
         "type": "directory",
         "contents":
           [
-            // Note #2: Including the below file has no effect when there is
-            // no custom module map because the module.modulemap already
-            // exists in the Intermediates subdirectory. It is included to
-            // simplify the VFS templating logic between the two cases.
-            {
-              "name": "module.modulemap",
-              "type": "file",
-              "external-contents": "/Users/crusty/Developer/MixedTarget/.build/.../MixedTarget.build/Intermediates/module.modulemap",
-            },
             {
               "name": "MixedTarget-Swift.h",
               "type": "file",
