@@ -625,9 +625,7 @@ The below sample shows what this overlay file may look like:
 ### Mixed language Test Targets
 
 To complement library targets with mixed languages, mixed test targets are
-also supported as part of this proposal. Using the same strategy, mixed test
-targets are built with intermediary module maps that enable the sharing of
-mixed language testing utilities.
+also supported as part of this proposal.
 
 Using the [example package][mixed-package] from before, consider the following
 layout of the package's `Tests` directory.
@@ -645,11 +643,10 @@ MixedPackage
 ```
 
 The types defined in `ObjcTestConstants.h` are visible in `SithTests.m` (via
-importing the header) and implicitly visible in `JediTests.swift`.
+importing the header).
 
 The Objective-C compatible types defined in `TestConstants.swift` are visible
-in `SithTests.m` (via importing the generated `MixedPackageTests-Swift.h`
-header) and implicitly visible in `JediTests.swift`.
+in `JediTests.swift` (via importing the header).
 
 This design should give package authors flexibility in designing test suites
 for their mixed targets.
@@ -663,13 +660,6 @@ targets.
   done by configuring the test target's [C settings][CSetting] to search for
   the mixed target's headers via the
   [`.headerSearchPaths(_:_:)`][headerSearchPath] setting.
-
-- **Expose non-public C-Language types to Swift test files**: This can be done
-  by adding a header to the test target that imports the desired non-public
-  header(s). Note that the test target will need to be configured to include
-  the mixed test target's header in its header search paths (see above
-  strategy). Additionally, the test target will need at least one `.m` file
-  (e.g. a blank `Dummy.m` file).
 
 - **Expose `internal` Swift types to Swift test files**: As expected, Swift
   types with `internal` access be tested within a Swift test file by importing
@@ -695,12 +685,6 @@ There are several failure cases that may surface to end users:
   Target with mixed sources at '\(path)' is a \(type) target; targets
   with mixed language sources are only supported for library and test
   targets.
-  ```
-- Attempting to build a mixed target containing a custom module map
-  that contains a `$(MixedTargetName).Swift` submodule.
-  ```
-  The target's module map may not contain a Swift submodule for the
-  module \(target name).
   ```
 
 ### Testing
