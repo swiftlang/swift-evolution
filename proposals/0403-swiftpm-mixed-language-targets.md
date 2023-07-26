@@ -120,8 +120,8 @@ language target(s).
 
 #### Importing within a **Swift** context
 
-A mixed target, `MixedPackage`, can be imported into a **Swift** file via an
-`import` statement:
+The public API of a mixed target, `MixedPackage`, can be imported into a
+**Swift** file via an `import` statement:
 
 ```swift
 // MyClientTarget.swift
@@ -129,10 +129,7 @@ A mixed target, `MixedPackage`, can be imported into a **Swift** file via an
 import MixedPackage
 ```
 
-This imports the module's `public`/`open` Swift types as well as public
-Objective-C/C headers.
-
-_Testing targets_ can import the mixed target via
+Testing targets can import the mixed target via
 `@testable import MixedPackage`. As expected, this will expose internal Swift
 types within the module. It will not expose any non-public C language types.
 
