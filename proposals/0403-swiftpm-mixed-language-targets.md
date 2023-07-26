@@ -102,7 +102,7 @@ The proposed solution would enable the above package to do the following:
    sources within the target’s Swift sources.
 1. Access target resources from Swift and Objective-C contexts.
 
-### Requirements
+### Limitations
 
 Initial support for targets containing mixed language sources will have the
 following requirements:
@@ -111,8 +111,6 @@ following requirements:
 1. The target must be built on a Mac. This is because the Swift
    compiler-generated Objective-C compatibility header is only generated on
    macOS.
-1. If the target contains a custom module map, it cannot contain a submodule of
-   the form `$(ModuleName).Swift`.
 
 ### Importing a mixed target
 
