@@ -3,7 +3,7 @@
 - Proposal: [SE-0387](0387-cross-compilation-destinations.md)
 - Authors: [Max Desiatov](https://github.com/MaxDesiatov), [Saleem Abdulrasool](https://github.com/compnerd), [Evan Wilde](https://github.com/etcwilde)
 - Review Manager: [Mishal Shah](https://github.com/shahmishal)
-- Status: **Active Review (April 27...May 5, 2023)**
+- Status: **Accepted**
 - Implementation: [apple/swift-package-manager#5911](https://github.com/apple/swift-package-manager/pull/5911),
   [apple/swift-package-manager#5922](https://github.com/apple/swift-package-manager/pull/5922),
   [apple/swift-package-manager#6023](https://github.com/apple/swift-package-manager/pull/6023), 
