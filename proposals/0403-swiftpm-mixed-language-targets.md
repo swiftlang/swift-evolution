@@ -56,15 +56,16 @@ packages without exposing language barrier complexity to clients.
 
 At a high level, the package creation process is split into two parts based on
 the language of the sources. The Swift sources are built by the Swift compiler
-and the C Language sources are built by the Clang compiler. To achieve
-interoperability between the two halves of the package, a few things have to
-happen:
+and the C Language sources are built by the Clang compiler. Achieving
+interoperability between the two halves of the package depends on which
+language(s) is/are being mixed with Swift. Package authors will need to
+explicitly opt in to language interoperability via the `PackageDescription`
+module's [`SwiftSetting.InteroperabilityMode`] API.
+
 1. The Swift compiler is made aware of the Clang part of the package when
    building the Swift sources into a `swiftmodule`.
-1. The generated interoperability header emitted by the Swift compiler is added
-   as a submodule to the Clang part of the package’s generated module map.
-1. The Clang part of the package is built with knowledge of the generated
-   interoperability header.
+1. The Clang part of the package is built with knowledge of any generated
+   interoperability headers.
 
 The [following example][mixed-package] defines a package containing mixed
 language sources.
@@ -724,3 +725,5 @@ listed in the Future Directions section as an area of future work.
 [CSetting]: https://developer.apple.com/documentation/packagedescription/target/csettings
 
 [headerSearchPath]: https://developer.apple.com/documentation/packagedescription/csetting/headersearchpath(_:_:)
+
+[`SwiftSetting.InteroperabilityMode`]: https://developer.apple.com/documentation/packagedescription/swiftsetting/interoperabilitymode
