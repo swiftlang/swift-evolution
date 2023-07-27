@@ -454,7 +454,7 @@ ready, the generator copies files from the image to a corresponding `.artifactbu
 ## Security
 
 The proposed `--checksum` flag provides basic means of verifying Swift SDK bundle's validity. As a future direction,
-we'd like to consider sandboxing and codesigning toolchains included in Swift SDKs running on macOS.
+we'd like to consider sandboxed and codesigned toolchains included in Swift SDKs running on macOS.
 
 ## Impact on Existing Packages
 
