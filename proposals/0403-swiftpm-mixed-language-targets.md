@@ -97,8 +97,8 @@ MixedPackage
         └── SwiftTestConstants.swift ⎦
 ```
 
-The proposed solution would enable the above package to do the following:
-1. Export the public API from across the mixed language sources.
+The proposed solution would enable the above targets to do the following:
+1. Export their public API, if any, from across the mixed language sources.
 1. Use C/Objective-C/C++ compatible Swift API from target’s Swift sources
    within the target’s C/Objective-C/C++ sources.
 1. Use Swift compatible C/Objective-C/C++ API from target’s C/Objective-C/C++
@@ -108,12 +108,10 @@ The proposed solution would enable the above package to do the following:
 ### Limitations
 
 Initial support for targets containing mixed language sources will have the
-following requirements:
+following limitations:
 1. The target must be either a library or test target. Support for other types
    of targets is deferred until the use cases become clear.
-1. The target must be built on a Mac. This is because the Swift
-   compiler-generated Objective-C compatibility header is only generated on
-   macOS.
+
 
 ### Importing a mixed target
 
