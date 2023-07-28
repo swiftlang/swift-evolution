@@ -153,47 +153,29 @@ MixedPackage
 └── Sources
      ├── NewCar.swift
      └── include                  ]-- Public headers directory
-        ├── MixedPackage
-        │   ├── OldCar.h
-        │   └── MixedPackage.h    ⎤-- These headers are generated
-        └── MixedPackage-Swift.h  ⎦   by the package manager and
-                                      virtually overlayed
-                                      within the package's public
-                                      headers directory. More
-                                      details in the Detailed
-                                      Design section. *
+        ├── OldCar.h
+        └── MixedPackage-Swift.h  ]-- This header is generated
+                                      during the build.
 ```
 
-\* The generated interop header (`$(TARGET_NAME)-Swift.h`) is always
-generated for a mixed target (even when there is no Objective-C compatible
-Swift API). On the other hand, the umbrella header located at
-`$(PUBLIC_HDRS_DIR)/$(TARGET_NAME)/$(TARGET_NAME).h` is only generated when
-the mixed target does not contain an umbrella header at that path. It imports
-all Objective-C/C headers and acts as the bridging header used in the generated
-interop header.
 
-`MixedPackage`'s public headers directory (`include`) is added a header
-search path to client targets. The following example demonstrates all the
-possible public headers that can be imported from `MixedPackage`.
+Like Clang targets, `MixedPackage`'s public headers directory (`include` in the
+above example) is added a header search path to client targets. The following
+example demonstrates all the possible public headers that can be imported from
+`MixedPackage`.
 
 ```objc
 // MyClientTarget.m
 
-// Import the public non-Swift API if module imports are supported.
+// If module imports are supported, the public API (including API in the
+// generated Swift header) can be imported via a module import.
 @import MixedPackage;
 // Imports types defined in `OldCar.h`.
-#import "MixedPackage/OldCar.h"
-// Imports a generated umbrella header that includes all public Objective-C/C
-// headers within `MixedPackage`. **
-#import "MixedPackage/MixedPackage.h"
+#import "OldCar.h"
 // Imports Objective-C compatible Swift types defined in `MixedPackage`.
 #import "MixedPackage-Swift.h"
 ```
 
-> ** NOTE: If imported, the generated umbrella/bridging header will need to
-> appear _before_ importing the generated interop header. This is due to the
-> intrinsic relationship between the generated interop header and the
-> generated umbrella/bridging header.
 
 ## Detailed design
 
