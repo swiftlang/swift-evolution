@@ -441,10 +441,6 @@ There are several failure cases that may surface to end users:
   ```
   target at '\(path)' contains mixed language source files; feature not supported
   ```
-- Attempting to build a mixed target anywhere other than macOS.
-  ```
-  Targets with mixed language sources are only supported on Apple platforms.
-  ```
 - Attempting to build a mixed target that is neither a library target
   or test target.
   ```
