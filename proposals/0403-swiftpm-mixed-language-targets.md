@@ -500,8 +500,4 @@ listed in the Future Directions section as an area of future work.
 
 [mixed-target-error]: https://github.com/apple/swift-package-manager/blob/ce099264a187759c2f587393bd209d317a0352b4/Sources/PackageLoading/TargetSourcesBuilder.swift#L183-L189
 
-[CSetting]: https://developer.apple.com/documentation/packagedescription/target/csettings
-
-[headerSearchPath]: https://developer.apple.com/documentation/packagedescription/csetting/headersearchpath(_:_:)
-
 [`SwiftSetting.InteroperabilityMode`]: https://developer.apple.com/documentation/packagedescription/swiftsetting/interoperabilitymode
