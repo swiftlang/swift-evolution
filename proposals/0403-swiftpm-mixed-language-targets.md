@@ -694,6 +694,9 @@ listed in the Future Directions section as an area of future work.
 
 ## Future Directions
 
+- Enable package manager plugin tools to process mixed language targets.
+- Enable package authors to expose non-public headers to their mixed
+  target's Swift implemention.
 - Investigate uses cases for extending mixed language target support to
   currently unsupported types of targets (e.g. executables).
 - Investigate uses cases for expanding the level of mixed target support when
