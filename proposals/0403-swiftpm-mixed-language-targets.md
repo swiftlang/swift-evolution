@@ -603,21 +603,6 @@ in `JediTests.swift` (via importing the header).
 This design should give package authors flexibility in designing test suites
 for their mixed targets.
 
-#### Testing Visibility
-
-Documented below are several strategies for testing types defined in mixed
-targets.
-
-- **Expose non-public C-Language types to Objective-C test files**: This is
-  done by configuring the test target's [C settings][CSetting] to search for
-  the mixed target's headers via the
-  [`.headerSearchPaths(_:_:)`][headerSearchPath] setting.
-
-- **Expose `internal` Swift types to Swift test files**: As expected, Swift
-  types with `internal` access be tested within a Swift test file by importing
-  with `@testable`.
-
-Note: Objective-C test files cannot import non-public Swift types.
 
 ### Failure cases
 
