@@ -699,8 +699,6 @@ listed in the Future Directions section as an area of future work.
   target's Swift implemention.
 - Investigate uses cases for extending mixed language target support to
   currently unsupported types of targets (e.g. executables).
-- Investigate uses cases for expanding the level of mixed target support when
-  building on non-macOS machines.
 - Extend this solution so that all targets are mixed language targets by
   default. This refactor would simplify the current implementation of the
   package manager.
