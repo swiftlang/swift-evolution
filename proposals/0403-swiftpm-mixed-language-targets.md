@@ -241,21 +241,14 @@ the target’s C language sources. This is specified in the llbuild manifest
 
 ##### Build flags for the Swift part of the target
 
-The following flags are used when compiling the **Swift** part of the target:
 1. `-import-underlying-module` This flag triggers a partial build of the
    underlying C language sources when building the Swift module. This critical
    flag enables the Swift sources to use C language types defined in the Clang
    part of the target.
-1. `-I /path/to/overlay_directory` The above `-import-underlying-module` flag
-   will look for a module map in the given header search path. The overlay
-   directory chosen when creating the above VFS overlay files is used here.
-1. `-ivfsoverlay /path/to/Intermediates/all-product-headers.yaml` This enables
-   the overlay to take effect during the compilation. Specifically, it will be
-   used during the partial build of the C language sources that is triggered by
-   the `-import-underlying-module` flag.
-1. `-ivfsoverlay /path/to/Intermediates/unextended-module-overlay.yaml` This
-   enables the overlay to take effect during the compilation. Specifically, it
-   will be used when compiling the Swift sources.
+1. `-I /path/to/modulemap_dir` The above `-import-underlying-module` flag
+   will look for a module map in the given header search path. This may be
+   either the public headers directory or the build directory, depending on
+   whether a custom module map is provided.
 1. `-I $(target’s path)` Adding the target's [path] allows for importing
    headers using paths relative to the root of the target. Because passing
    `-import-underlying-module` triggers a partial build of the C language
