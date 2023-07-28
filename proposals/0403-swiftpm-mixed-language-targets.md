@@ -65,7 +65,9 @@ and the C/Objective-C/C++ sources are built by the Clang compiler.
 1. The Clang part of the package is built with knowledge of the
    interoperability Swift header. The contents of this header will vary
    depending on if/what language-specific interoperability mode is configured
-   on the target.
+   on the target. The interoperability header is modularized as part of the
+   mixed target's public interface.
+
 
 The [following example][mixed-package] defines a package containing mixed
 language sources.
