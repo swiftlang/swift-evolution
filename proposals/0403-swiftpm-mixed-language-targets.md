@@ -223,19 +223,18 @@ flowchart LR
     G>Mixed sources] --> MixedTarget --> MixedTargetBuildDescription
 ```
 
+### Building a mixed language target
 
 
 
 
 
 
-
-#### Bringing everything together with build flags
 
 The Swift part of the target is built before the Clang part. This is because
-the C language sources may require resolving an import of the generated interop
-header, and that header is emitted alongside the Swift module when the Swift
-part of the target is built. This relationship is enforced in that the
+the C language sources may require resolving a textual import of the generated
+interop header, and that header is emitted alongside the Swift module when the
+Swift part of the target is built. This relationship is enforced in that the
 generated interop header is listed as an input to the compilation commands for
 the target’s C language sources. This is specified in the llbuild manifest
 (`debug.yaml` in the packag's `.build` directory).
