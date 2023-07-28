@@ -275,32 +275,11 @@ build nodes for the its `SwiftTargetBuildDescription` and
 
 #### Build artifacts for client targets
 
-As explained above, intermediary artifacts support the mixed target’s
-build process. For example, the intermediary module maps intentionally expose
-all headers so all types defined in the target’s headers can be used in the
-Swift sources. While this module map setup was ideal for building the mixed
-target, it is not ideal for clients depending on a mixed target because the
-client would have access to all headers. Therefore, building a mixed target
-will create an additional module map and, conditionally, a corresponding VFS
-overlay for use by clients depending on the mixed target.
 
-The two files are considered product build artifacts and are stored in an
-`Product` subdirectory within the target’s build folder. The `Product`
-subdirectory is something specific to building mixed targets and is therefore
-part of this proposal’s design.
 
-For example, for a target named `MixedTarget`, the `Product` subdirectory would
-look like such:
 
-```
-/Users/crusty/Developer/MixedTarget/.build/x86_64-apple-macosx/debug/
-├── ...
-└── MixedTarget.build
-    ├── ...
-    └── Product
-        ├── module.modulemap
-        └── all-product-headers.yaml
-```
+
+
 
 ##### module.modulemap
 
@@ -320,8 +299,7 @@ There are two cases when creating the product module map:
 > Note: It’s possible that the Clang part of the module exports no public API.
 > This could be the case for a target whose public API surface is written in
 > Swift but whose implementation is written in Objective-C. In this case, the
-> primary module declaration will not specify any headers or umbrella
-> directories.
+> primary module declaration will expose no headers.
 
 Below is an example of a module map for a target that has an umbrella
 header in its public headers directory (`include`).
@@ -332,12 +310,12 @@ header in its public headers directory (`include`).
 // This declaration is either copied from the custom module map or generated
 // via the rules from SE-0038.
 module MixedTarget {
-    umbrella header "/Users/crusty/Developer/MixedTarget/Sources/MixedTarget/include/MixedTarget.h"
+    umbrella header "MixedTarget.h"
     export *
 }
 // This is added on by the package manager.
 module MixedTarget.Swift {
-    header "/Users/crusty/Developer/MixedTarget/.build/.../MixedTarget.build/MixedTarget-Swift.h"
+    header "MixedTarget-Swift.h"
     requires objc
 }
 ```
