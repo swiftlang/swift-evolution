@@ -48,24 +48,24 @@ experience.
 
 ## Proposed solution
 
-This solution enables the package manager to determine if a target contains
-mixed language sources and build it as a single module. This happens as an
-implementation detail and doesn't require changes to the package manager's
-public API. This is cleaner and easier because developers can organize their
-packages without exposing language barrier complexity to clients.
+Package authors can create a mixed target by mixing language sources in their
+target's source directory. When mixing some languages, like C++, authors have
+the option of opting in to advanced interoperability features by configuring
+the target with an interoperability mode [`SwiftSetting.InteroperabilityMode`].
 
-At a high level, the package creation process is split into two parts based on
+When building a mixed language target, the package manager will build the
+public API into a single module for use by clients.
+
+At a high level, the build process is split into two parts based on
 the language of the sources. The Swift sources are built by the Swift compiler
-and the C Language sources are built by the Clang compiler. Achieving
-interoperability between the two halves of the package depends on which
-language(s) is/are being mixed with Swift. Package authors will need to
-explicitly opt in to language interoperability via the `PackageDescription`
-module's [`SwiftSetting.InteroperabilityMode`] API.
+and the C/Objective-C/C++ sources are built by the Clang compiler.
 
 1. The Swift compiler is made aware of the Clang part of the package when
    building the Swift sources into a `swiftmodule`.
-1. The Clang part of the package is built with knowledge of any generated
-   interoperability headers.
+1. The Clang part of the package is built with knowledge of the
+   interoperability Swift header. The contents of this header will vary
+   depending on if/what language-specific interoperability mode is configured
+   on the target.
 
 The [following example][mixed-package] defines a package containing mixed
 language sources.
@@ -140,7 +140,7 @@ How a mixed target, `MixedPackage`, is imported into an **C/Objective-C/C++**
 file will vary dependong on the language it is being imported in.
 
 When Clang modules are supported, clients can import the module. Textual
-imports are also an option. 
+imports are also an option.
 
 **Note that the C/Objective-C/C++ compatible Swift API is only available via
 textually importing the generated Swift header.**
