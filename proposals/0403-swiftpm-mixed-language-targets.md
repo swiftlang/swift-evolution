@@ -90,11 +90,11 @@ MixedPackage
 │           └── droid_debug.h   ⎦
 └── Tests
     └── MixedPackageTests
-        ├── JediTests.swift     ]-- Swift tests
-        ├── SithTests.m         ]-- Objective-C tests
-        ├── ObjcTestConstants.h ⎤-- Mixed language test utils
-        ├── ObjcTestConstants.m ⎟
-        └── TestConstants.swift ⎦
+        ├── JediTests.swift          ]-- Swift tests
+        ├── SithTests.m              ]-- Objective-C tests
+        ├── ObjcTestConstants.h      ⎤-- Mixed language test utils
+        ├── ObjcTestConstants.m      ⎟
+        └── SwiftTestConstants.swift ⎦
 ```
 
 The proposed solution would enable the above package to do the following:
