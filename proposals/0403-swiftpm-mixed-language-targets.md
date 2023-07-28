@@ -239,8 +239,8 @@ generated interop header is listed as an input to the compilation commands for
 the target’s C language sources. This is specified in the llbuild manifest
 (`debug.yaml` in the packag's `.build` directory).
 
-##### Build flags for the Swift part of the target
-
+##### Additional Swift build flags
+The following flags are used when compiling the **Swift** part of the target:
 1. `-import-underlying-module` This flag triggers a partial build of the
    underlying C language sources when building the Swift module. This critical
    flag enables the Swift sources to use C language types defined in the Clang
@@ -254,15 +254,12 @@ the target’s C language sources. This is specified in the llbuild manifest
    `-import-underlying-module` triggers a partial build of the C language
    sources, this is needed for resolving possible header imports.
 
-##### Build flags for the Clang part of the target
+##### Additional Clang build flags
 The following flags are used when compiling the **Clang** part of the target:
 1. `-I $(target’s path)` Adding the target's [path] allows for importing
    headers using paths relative to the root of the target.
-1. `-ivfsoverlay /path/to/Intermediates/all-product-headers.yaml` This enables
-   the overlay to take effect during the compilation.
-1. `-I /path/to/Intermediates/` The above overlay virtually adds the generated
-   Swift header to the overlay directory. Adding it as a search path enables it
-   to then be imported with `#import “$(TargetName)-Swift.h”`.
+1. `-I /path/to/generated_swift_header/` The generated Swift header may be
+   needed when compiling the Clang sources.
 
 #### Performing the build
 
