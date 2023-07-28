@@ -179,7 +179,7 @@ example demonstrates all the possible public headers that can be imported from
 
 ## Detailed design
 
-### Modeling a mixed language target and its build process
+### Modeling a mixed language target
 
 Up until this proposal, when a package was loading, each target was represented
 programmatically as either a [`SwiftTarget`] or [`ClangTarget`]. Which of these
