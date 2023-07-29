@@ -370,6 +370,32 @@ The below sample shows what this overlay file may look like:
 }
 ```
 
+### Related change to the Swift compiler
+
+When the Swift compiler creates the generated interop header (via
+`-emit-objc-header`), any Objective-C symbol referenced in the Swift API that
+cannot be forward declared (e.g. superclass, protocol, etc.) will attempt to
+be imported via an umbrella header. Since the compiler evaluates
+the target as a framework (as opposed to an app), the compiler assumes an
+umbrella header exists in a subdirectory (named after the module) within
+the public headers directory:
+        
+    #import <$(ModuleName)/$(ModuleName).h>
+        
+The compiler assumes that the above path can be resolved relative to the public
+header directory. Instead of forcing package authors to structure their
+packages around that constraint, the Swift compiler's interop header generation
+logic will be ammended to do the following in such cases where the target
+does not have the public headers directory structure of an xcframework:
+
+- If an umbrella header that is modularized by the Clang module exists, the
+  interop header emit a reference directly to that umbrella header instead.
+- Else, the interop header will import all textual includes from the Clang
+  module map.
+
+See the related discussion [thread][swift-compiler-thread-fr] from the initial
+formal review.
+
 ### Mixed language Test Targets
 
 To complement library targets with mixed languages, mixed test targets are
@@ -501,3 +527,5 @@ listed in the Future Directions section as an area of future work.
 [mixed-target-error]: https://github.com/apple/swift-package-manager/blob/ce099264a187759c2f587393bd209d317a0352b4/Sources/PackageLoading/TargetSourcesBuilder.swift#L183-L189
 
 [`SwiftSetting.InteroperabilityMode`]: https://developer.apple.com/documentation/packagedescription/swiftsetting/interoperabilitymode
+
+[swift-compiler-thread-fr]: https://forums.swift.org/t/se-0403-package-manager-mixed-language-target-support/66202/32
