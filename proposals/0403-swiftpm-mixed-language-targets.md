@@ -370,6 +370,18 @@ The below sample shows what this overlay file may look like:
 }
 ```
 
+### Additional changes to the package manager
+
+It is the goal for mixed language targets to work on all platforms supported
+by the package manager. One obstacle to that is that the package manager,
+at the time of this proposal, does not invoke the build system with the
+flag needed to emit the interoperability header
+([code][should-emit-header]). This limitation is outdated and will be
+removed as part of this proposal.
+
+See the related discussion [thread][swift-emit-header-fr] from the initial
+formal review.
+
 ### Related change to the Swift compiler
 
 When the Swift compiler creates the generated interop header (via
@@ -529,3 +541,7 @@ listed in the Future Directions section as an area of future work.
 [`SwiftSetting.InteroperabilityMode`]: https://developer.apple.com/documentation/packagedescription/swiftsetting/interoperabilitymode
 
 [swift-compiler-thread-fr]: https://forums.swift.org/t/se-0403-package-manager-mixed-language-target-support/66202/32
+
+[should-emit-header]: https://github.com/apple/swift-package-manager/blob/6478e2724b8bf77856ff358cba5f59a4a62978bf/Sources/Build/BuildDescription/SwiftTargetBuildDescription.swift#L732-L735
+
+[swift-emit-header-fr]: https://forums.swift.org/t/se-0403-package-manager-mixed-language-target-support/66202/31
