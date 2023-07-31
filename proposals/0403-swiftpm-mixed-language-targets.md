@@ -331,10 +331,10 @@ header in its public headers directory (`include`).
 // This declaration is either copied from the custom module map or generated
 // via the rules from SE-0038.
 module MixedTarget {
-    umbrella header "MixedTarget.h"
+    umbrella header "/Users/crusty/Developer/MixedTarget/Sources/MixedTarget/include/MixedTarget.h"
     export *
 }
-// This is added on by the package manager.
+// This is added on by the package manager as part of this proposal.
 module MixedTarget.Swift {
     header "MixedTarget-Swift.h"
     requires objc
