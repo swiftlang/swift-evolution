@@ -243,22 +243,40 @@ the target’s C language sources. This is specified in the llbuild manifest
 (`debug.yaml` in the packag's `.build` directory).
 
 ##### Additional Swift build flags
-The following flags are used when compiling the **Swift** part of the target:
+The following flags are additionally used when compiling the Swift sub-target:
 1. `-import-underlying-module` This flag triggers a partial build of the
    underlying C language sources when building the Swift module. This critical
    flag enables the Swift sources to use C language types defined in the Clang
    part of the target.
 1. `-I /path/to/modulemap_dir` The above `-import-underlying-module` flag
-   will look for a module map in the given header search path. This may be
-   either the public headers directory or the build directory, depending on
-   whether a custom module map is provided.
-1. `-I $(target’s path)` Adding the target's [path] allows for importing
-   headers using paths relative to the root of the target. Because passing
-   `-import-underlying-module` triggers a partial build of the C language
+   will look for a module map in the given header search path. The module
+   map used here cannot modularize the generated interop header as will be
+   created from building the Swift sub-target and therefore does not exist
+   yet. If a custom module map is provided, the public headers directory
+   will be used as that is where the custom module map is enforced to be
+   located. It's also enforced that this module map does not expose an
+   interop header. If a custom module map is _not_ provided, the package
+   manager will pass the target's build directory as that is where a module
+   map will be synthesized. This module map will be _un-extended_, in that
+   it does not modularize the generated interop header.
+1. _If a custom module is NOT provided,_ the package manager will synthesize
+   two module maps. One is _extended_ in that it modualrizes the generated
+   interop header. The other is _un-extended_ in that it does not modularize
+   the generated interop header. A VFS Overlay file is created to swap the
+   extended one (named `module.modulemap`) for the unextended one
+   (`unextended-module.modulemap`) for the build.
+1. `-Xcc -I -Xcc $(TARGET_SRC_PATH)` Adding the target's [path] allows for
+   importing headers using paths relative to the root of the target. Because
+   passing `-import-underlying-module` triggers a partial build of the Clang
    sources, this is needed for resolving possible header imports.
+1. `-Xcc -I -Xcc $(TARGET_PUBLIC_HDRS)` Adding the target's public header's
+   path allows for importing headers using paths relative to the public
+   header's directory. Because passing `-import-underlying-module` triggers
+   a partial build of the Clang sources, this is needed for resolving
+   possible header imports.
 
 ##### Additional Clang build flags
-The following flags are used when compiling the **Clang** part of the target:
+The following flags are additionally used when compiling the Clang sub-target:
 1. `-I $(target’s path)` Adding the target's [path] allows for importing
    headers using paths relative to the root of the target.
 1. `-I /path/to/generated_swift_header/` The generated Swift header may be
