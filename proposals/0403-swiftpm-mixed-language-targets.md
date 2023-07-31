@@ -279,7 +279,7 @@ The following flags are additionally used when compiling the Swift sub-target:
 The following flags are additionally used when compiling the Clang sub-target:
 1. `-I $(target’s path)` Adding the target's [path] allows for importing
    headers using paths relative to the root of the target.
-1. `-I /path/to/generated_swift_header/` The generated Swift header may be
+1. `-I /path/to/generated_swift_header_dir/` The generated Swift header may be
    needed when compiling the Clang sources.
 
 #### Performing the build
