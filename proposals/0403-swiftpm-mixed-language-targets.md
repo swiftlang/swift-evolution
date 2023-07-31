@@ -302,7 +302,7 @@ build nodes for the its `SwiftTargetBuildDescription` and
 
 
 
-##### module.modulemap
+##### Module Maps
 
 The product module map’s purpose is to define the public API of the mixed
 language module. It has two parts, a primary module declaration and a secondary
@@ -310,12 +310,20 @@ submodule declaration. The former of which exposes the public C language
 headers and the latter of which exposes the generated interop header.
 
 There are two cases when creating the product module map:
-- If a custom module map exists in the target, its contents are copied to the
-  product module map and a submodule is added to expose the generated interop
-  header.
+- If a custom module map exists in the target, its contents are copied and
+  extended to modularize the generated interop header. These contents are
+  written to the build directory as `extended-custom-module.modulemap`.
+  Since the public header directory and build directory are passed as import
+  paths to the build invocations, a different name is needed for this module
+  map as the `-import-underlying-module` should only be able to find one
+  `module.modulemap` file from the given import paths.
 - Else, the product module map’s contents will be generated via the same
   generation rules established in [SE-0038] with an added step to generate the
-  `.Swift` submodule.
+  `.Swift` submodule. This file is called `module.modulemap` and lives in the
+  build directory.
+
+Clients will use an _extended_ module map that includes the modularized interop
+header. Building the target will use _unextended_ module map.
 
 > Note: It’s possible that the Clang part of the module exports no public API.
 > This could be the case for a target whose public API surface is written in
@@ -326,7 +334,7 @@ Below is an example of a module map for a target that has an umbrella
 header in its public headers directory (`include`).
 
 ```
-// module.modulemap
+// extended-custom-module.modulemap
 
 // This declaration is either copied from the custom module map or generated
 // via the rules from SE-0038.
@@ -343,52 +351,16 @@ module MixedTarget.Swift {
 
 ##### all-product-headers.yaml
 
-The product `all-product-headers.yaml` overlay file is only created when there
-exists a custom module map that needs to be swapped out for the product module
-map.
+An `all-product-headers.yaml` VFS overlay file will adjust the public headers
+directory to expose the interop header as a relative path, and, if a custom
+module map exists, swap it out for the extended one that modualrizes the interop
+header.
 
-In the case that this overlay file exists, it will be passed alongside the
-product module map as a compilation argument to clients:
+In either case, it will be passed alongside the module map as a compilation
+argument to clients:
 ```
 -fmodule-map-file=/Users/crusty/Developer/MixedTarget/Sources/MixedTarget/include/module.modulemap
 -ivfsoverlay /Users/crusty/Developer/MixedTarget/.build/.../MixedTarget.build/Product/all-product-headers.yaml
-```
-
-The `-fmodule-map-file` argument tells the client to find the mixed target’s
-module map in its public `include` directory. However, the product module map
-should be used instead of the custom module map, so passing the overlay via
-`-vfsoverlay` will ensure that resolving the module map path redirects to the
-product module map in the build directory. The reason this is necessary is
-because a custom module map will likely have relative paths within it (e.g.
-`umbrella header “MyHeader.h”`) that are preserved when its contents are copied
-to the product module map. In order for these relative paths to be resolved,
-the product module map needs to appear as if it is in the original directory
-that the custom module map resides in.
-
-The below sample shows what this overlay file may look like:
-```yaml
-// all-product-headers.yaml
-
-{
-  "version": 0,
-  "case-sensitive": false,
-  "roots":
-    [
-      {
-        "name": "/Users/crusty/Developer/MixedTarget/Sources/MixedTarget/include",
-        "type": "directory",
-        "contents":
-          [
-            {
-              "name": "module.modulemap",
-              "type": "file",
-              "external-contents": "/Users/crusty/Developer/MixedTarget/.build/.../MixedTarget.build/Product/module.modulemap",
-            },
-          ],
-      },
-    ],
-  "use-external-names": false,
-}
 ```
 
 ### Additional changes to the package manager
