@@ -111,7 +111,10 @@ Initial support for targets containing mixed language sources will have the
 following limitations:
 1. The target must be either a library or test target. Support for other types
    of targets is deferred until the use cases become clear.
-
+1. If the target contains a custom module map, it cannot contain a submodule of
+   the form `$(ModuleName).Swift`. This is because the package manager will
+   synthesize an _extended_ module map that includes a submodule that
+   modularizes the generated Swift interop header.
 
 ### Importing a mixed target
 
@@ -452,6 +455,12 @@ There are several failure cases that may surface to end users:
   Target with mixed sources at '\(path)' is a \(type) target; targets
   with mixed language sources are only supported for library and test
   targets.
+  ```
+- Attempting to build a mixed target containing a custom module map
+  that contains a `$(MixedTargetName).Swift` submodule.
+  ```
+  The target's module map may not contain a Swift submodule for the
+  module \(target name).
   ```
 
 ### Testing
