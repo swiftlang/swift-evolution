@@ -145,8 +145,6 @@ file will vary dependong on the language it is being imported in.
 When Clang modules are supported, clients can import the module. Textual
 imports are also an option.
 
-**Note that the C/Objective-C/C++ compatible Swift API is only available via
-textually importing the generated Swift header.**
 
 For this example, consider `MixedPackage` being organized as such:
 
