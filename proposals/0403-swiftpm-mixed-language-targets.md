@@ -302,12 +302,12 @@ build nodes for the its `SwiftTargetBuildDescription` and
 
 ##### Module Maps
 
-The product module map’s purpose is to define the public API of the mixed
+The client-facing module map’s purpose is to define the public API of the mixed
 language module. It has two parts, a primary module declaration and a secondary
 submodule declaration. The former of which exposes the public C language
 headers and the latter of which exposes the generated interop header.
 
-There are two cases when creating the product module map:
+There are two cases when creating the client-facing module map:
 - If a custom module map exists in the target, its contents are copied and
   extended to modularize the generated interop header. These contents are
   written to the build directory as `extended-custom-module.modulemap`.
@@ -315,7 +315,7 @@ There are two cases when creating the product module map:
   paths to the build invocations, a different name is needed for this module
   map as the `-import-underlying-module` should only be able to find one
   `module.modulemap` file from the given import paths.
-- Else, the product module map’s contents will be generated via the same
+- Else, the module map’s contents will be generated via the same
   generation rules established in [SE-0038] with an added step to generate the
   `.Swift` submodule. This file is called `module.modulemap` and lives in the
   build directory.
