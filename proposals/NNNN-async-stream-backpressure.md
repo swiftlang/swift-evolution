@@ -14,7 +14,9 @@ introduced new `Async[Throwing]Stream` types which act as root asynchronous
 sequences. These two types allow bridging from synchronous callbacks such as
 delegates to an asynchronous sequence. This proposal adds a new way of
 constructing asynchronous streams with the goal to bridge backpressured systems
-into an asynchronous sequence.
+into an asynchronous sequence. Furthermore, this proposal aims to clarify the
+cancellation behaviour both when the consuming task is cancelled and when
+the production side indicates termination.
 
 ## Motivation
 
@@ -44,8 +46,8 @@ Root asynchronous sequences need to relay the backpressure to the producing
 system. `Async[Throwing]Stream` aims to support backpressure by providing a
 configurable buffer and returning
 `Async[Throwing]Stream.Continuation.YieldResult` which contains the current
-buffer depth from the `yield(:)` method. However, only providing the current
-buffer depth on `yield(:)` is not enough to bridge a backpressured system into
+buffer depth from the `yield()` method. However, only providing the current
+buffer depth on `yield()` is not enough to bridge a backpressured system into
 an asynchronous sequence since this can only be used as a "stop" signal but we
 are missing a signal to indicate resuming the production. The only viable
 backpressure strategy that can be implemented with the current API is a timed
@@ -146,7 +148,7 @@ do {
        // Trigger more production
     
     case .enqueueCallback(let callbackToken):
-        source.enqueueCallback(callbackToken: callbackToken, onProduceMore: { result in
+        source.enqueueCallback(token: callbackToken, onProduceMore: { result in
             switch result {
             case .success:
                 // Trigger more production
@@ -156,7 +158,7 @@ do {
         })
     }
 } catch {
-    // `write(contentsOf)` throws if the asynchronous stream already terminated
+    // `write(contentsOf:)` throws if the asynchronous stream already terminated
 }
 ```
 
@@ -194,6 +196,9 @@ asynchronous stream regardless if the system is callback-based, blocking or
 asynchronous.
 
 ### Downstream consumer termination
+
+> When reading the next two examples around termination behaviour keep in mind
+that the newly proposed APIs are providing a strict unicast asynchronous sequence.
 
 Calling `finish()` terminates the downstream consumer. Below is an example of
 this:
@@ -368,7 +373,7 @@ extension AsyncStream {
 
         /// Enqueues a callback that will be invoked once more elements should be produced.
         ///
-        /// Call this method after ``write(contentsOf:)`` or ``write(:)`` returned ``WriteResult/enqueueCallback(_:)``.
+        /// Call this method after ``write(contentsOf:)`` or ``write(_:)`` returned ``WriteResult/enqueueCallback(_:)``.
         ///
         /// - Important: Enqueueing the same token multiple times is not allowed.
         ///
@@ -528,7 +533,7 @@ extension AsyncThrowingStream {
 
         /// Enqueues a callback that will be invoked once more elements should be produced.
         ///
-        /// Call this method after ``write(contentsOf:)`` or ``write(:)`` returned ``WriteResult/enqueueCallback(_:)``.
+        /// Call this method after ``write(contentsOf:)`` or ``write(_:)`` returned ``WriteResult/enqueueCallback(_:)``.
         ///
         /// - Important: Enqueueing the same token multiple times is not allowed.
         ///
@@ -683,7 +688,15 @@ backpressure strategy that supports inspecting the size of the collection.
 
 In the future, we could deprecate the current continuation based APIs since the
 new proposed APIs are also capable of bridging non-backpressured producers by
-just discarding the `WriteResult`.
+just discarding the `WriteResult`. The only use-case that the new APIs do not
+cover is the _anycast_ behaviour of the current `AsyncStream` where one can
+create multiple iterators to the stream as long as no two iterators are
+consuming the stream at the same time. This can be solved via additional
+algorithms such as `broadcast` in the `swift-async-algorithms` package.
+
+To give developers more time to adopt the new APIs the deprecation of the
+current APIs should deferred to a future version. Especially since those new
+APIs are not backdeployed like the current Concurrency runtime.
 
 ### Introduce a `Writer` and an `AsyncWriter` protocol
 
@@ -712,7 +725,7 @@ backpressure strategies such as high/low watermarks without continuously asking
 what the buffer depth is. That would result in a very inefficient
 implementation. 
 
-### Extending the `Async[Throwing]Stream.Continuation`
+### Extending `Async[Throwing]Stream.Continuation`
 
 Extending the current APIs to support all expected behaviors is problematic
 since it would change the semantics and might lead to currently working code
@@ -772,7 +785,16 @@ the future and we can just default it to the current behaviour.
 The `onProducerMore` callback takes a `Result<Void, Error>` which is used to
 indicate if the producer should produce more or if the asynchronous stream
 finished. We could introduce a new type for this but the proposal decided
-against it since it effectively is a result type.  
+against it since it effectively is a result type.
+
+### Use an initializer instead of factory methods
+
+Instead of providing a `makeStream` factory method we could use an initializer
+approach that takes a closure which gets the `Source` passed into. A similar API
+has been offered with the `Continuation` based approach and
+[SE-0388](https://github.com/apple/swift-evolution/blob/main/proposals/0388-async-stream-factory.md)
+introduced new factory methods to solve some of the usability ergonomics with
+the initializer based APIs.
 
 ## Acknowledgements
 
