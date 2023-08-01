@@ -31,19 +31,15 @@ extension String {
 }
 ```
 
-For convenience and discoverability, we will also provide initializers that specify the input encoding as part as an argument label:
+For convenience and discoverability for the most common case, we will also provide an initializer that specifies the UTF-8 input encoding as part of its argument label:
 
 ```swift
 extension String {
   public init?(validatingAsUTF8 codeUnits: some Sequence<UTF8.CodeUnit>)
-
-  public init?(validatingAsUTF16 codeUnits: some Sequence<UTF16.CodeUnit>)
-
-  public init?(validatingAsUTF32 codeUnits: some Sequence<UTF32.CodeUnit>)
 }
 ```
 
-These will construct a new `String`, returning `nil` when their input is found invalid according to the encoding specified by the label.
+This will construct a new `String`, returning `nil` when the input is found invalid according to the UTF-8 encoding.
 
 When handling with data obtained from C, it is frequently the case that UTF-8 data is represented by `CChar` rather than `UInt8`. We will provide a convenience initializer for this use case, noting that it typically involves contiguous memory, and as such is well-served by explicitly using an abstraction for contiguous memory (`UnsafeBufferPointer<CChar>`):
 
@@ -53,7 +49,7 @@ extension String {
 }
 ```
 
-`String` already features a validating initializer for UTF-8 input. Is is intended for C interoperability,  but its argument label does not convey the expectation that its input is a null-terminated C string. We propose to rename it in order to clarify this:
+`String` already features a validating initializer for UTF-8 input. It is intended for C interoperability,  but its argument label does not convey the expectation that its input is a null-terminated C string. We propose to rename it in order to clarify this:
 
 ```swift
 extension String {
@@ -114,66 +110,21 @@ extension String {
   /// then with an ill-formed code unit sequence.
   ///
   ///     let validUTF8: [UInt8] = [67, 97, 102, 195, 169]
-  ///     let valid = String.init(validatingAsUTF8: validUTF8)
+  ///     let valid = String(validatingAsUTF8: validUTF8)
   ///     print(valid)
   ///     // Prints "Optional("Café")"
   ///
   ///     let invalidUTF8: [UInt8] = [67, 195, 0]
-  ///     let invalid = String.init(validatingAsUTF8: invalidUTF8)
+  ///     let invalid = String(validatingAsUTF8: invalidUTF8)
   ///     print(invalid)
   ///     // Prints "nil"
+  ///
+  /// Note: This initializer is functionally equivalent to using
+  ///       `String(validating: some Sequence<UTF8.CodeUnit>, as: UTF8.self)`.
   ///
   /// - Parameters
   ///   - codeUnits: A sequence of code units that encode a `String`
   public init?(validatingAsUTF8 codeUnits: some Sequence<UTF8.CodeUnit>)
-
-  /// Create a new `String` by copying and validating the sequence of
-  /// UTF-16 code units passed in.
-  ///
-  /// This initializer does not try to repair ill-formed code unit sequences.
-  /// If any are found, the result of the initializer is `nil`.
-  ///
-  /// The following example calls this initializer with the contents of two
-  /// different arrays---first with a well-formed UTF-16 code unit sequence and
-  /// then with an ill-formed code unit sequence.
-  ///
-  ///     let validUTF16: [UInt16] = [67, 97, 102, 233]
-  ///     let valid = String(validatingAsUTF16: validUTF16)
-  ///     print(valid)
-  ///     // Prints "Optional("Café")"
-  ///
-  ///     let invalidUTF16: [UInt16] = [0x41, 0x42, 0xd801]
-  ///     let invalid = String(validatingAsUTF16: invalidUTF16)
-  ///     print(invalid)
-  ///     // Prints "nil"
-  ///
-  /// - Parameters
-  ///   - codeUnits: A sequence of code units that encode a `String`
-  public init?(validatingAsUTF16 codeUnits: some Sequence<UTF16.CodeUnit>)
-
-  /// Create a new `String` by copying and validating the sequence of
-  /// UTF-32 code units passed in.
-  ///
-  /// This initializer does not try to repair ill-formed code unit sequences.
-  /// If any are found, the result of the initializer is `nil`.
-  ///
-  /// The following example calls this initializer with the contents of two
-  /// different arrays---first with correct UTF-32 code units and then with
-  /// a sequence containing an ill-formed code unit.
-  ///
-  ///     let validUTF32: [UInt32] = [67, 97, 102, 233]
-  ///     let valid = String(validatingAsUTF32: validUTF32)
-  ///     print(valid)
-  ///     // Prints "Optional("Café")"
-  ///
-  ///     let invalidUTF32: [UInt32] = [0x41, 0x42, 0xd801]
-  ///     let invalid = String(validatingAsUTF32: invalidUTF32)
-  ///     print(invalid)
-  ///     // Prints "nil"
-  ///
-  /// - Parameters
-  ///   - codeUnits: A sequence of code units that encode a `String`
-  public init?(validatingAsUTF32 codeUnits: some Sequence<UTF32.CodeUnit>)
 }
 ```
 
@@ -191,14 +142,14 @@ extension String {
   ///
   ///     let validUTF8: [CChar] = [67, 97, 102, -61, -87]
   ///     validUTF8.withUnsafeBufferPointer {
-  ///         let s = String.init(validatingAsUTF8: $0)
+  ///         let s = String(validatingAsUTF8: $0)
   ///         print(s)
   ///     }
   ///     // Prints "Optional("Café")"
   ///
   ///     let invalidUTF8: [CChar] = [67, -61, 0]
   ///     invalidUTF8.withUnsafeBufferPointer {
-  ///         let s = String.init(validatingAsUTF8: $0)
+  ///         let s = String(validatingAsUTF8: $0)
   ///         print(s)
   ///     }
   ///     // Prints "nil"
@@ -275,17 +226,18 @@ This would produce a compile-time ambiguity on platforms where `CChar` is typeal
 
 When decoding a byte stream, obtaining the details of a validation failure would be useful in order to diagnose issues. We would like to provide this functionality, but the current input validation functionality is not well-suited for it. This is left as a future improvement.
 
-#### Add normalizing initializers
+#### Improve input-repairing initialization
 
-It is often desirable to normalize strings, but the standard library does not expose public API for doing so. Hypothetical normalizing initializers should have convenience initializers similar to the validating convenience initializers.
+There is only one initializer in the standard library for input-repairing initilization, and it suffers from a discoverability issue. We can add a more discoverable version specifically for the UTF-8 encoding, similarly to one of the additions proposed here.
+
+#### Add normalization options
+
+It is often desirable to normalize strings, but the standard library does not expose public API for doing so. We could add initializers that perform normalization, as well as mutating functions that perform normalization.
 
 #### Other
 
-Add initializer from `some Sequence<UnicodeScalar>`.
-
-Add more discoverable convenience initializers for the input-repairing initialization case.
-
-Add API devoted to input validation specifically.
+- Add a (non-failable) initializer to create a `String` from `some Sequence<UnicodeScalar>`.
+- Add API devoted to input validation specifically.
 
 ## Acknowledgements
 
