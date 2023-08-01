@@ -365,9 +365,9 @@ func eraseQAssocWithSE0309(q: any Q) {
 
 ### Contravariant erasure for parameters of function type
 
-While covariant erasure applies to the result type of a generic function, the opposite applies to other parameters of the generic function. This affects parameters of function type that reference the generic parameter binding to the opened existential, which will be type-erased to their upper bounds . For example:
+While covariant erasure applies to the result type of a generic function, the opposite applies to other parameters of the generic function. This affects parameters of function type that reference the generic parameter binding to the opened existential, which will be type-erased to their upper bounds. For example:
 
-```swi
+```swift
 func acceptValueAndFunction<T: P>(_ value: T, body: (T) -> Void) { ... }
 
 func testContravariantErasure(p: any P) {
