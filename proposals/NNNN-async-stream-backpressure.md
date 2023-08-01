@@ -4,7 +4,7 @@
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: WIP: [apple/swift#66488](https://github.com/apple/swift/pull/66488)
+* Implementation: [apple/swift#66488](https://github.com/apple/swift/pull/66488)
 * Review: ([pitch](https://forums.swift.org/t/pitch-new-apis-for-async-throwing-stream-with-backpressure-support/65449))
 
 ## Introduction
@@ -32,10 +32,10 @@ In general, `AsyncSequence` implementations can be divided into two kinds: Root
 asynchronous sequences that are the source of values such as
 `Async[Throwing]Stream` and transformational asynchronous sequences such as
 `AsyncMapSequence`. Most transformational asynchronous sequences implicitly
-fulfill the above behaviors since they forward any demand to an underlying
-asynchronous sequence that should implement the behaviors. On the other hand,
-root asynchronous sequences need to make sure that all of the above behaviors
-are correctly implemented. Let's look at the current behavior of
+fulfill the above behaviors since they forward any demand to a base asynchronous
+sequence that should implement the behaviors. On the other hand, root
+asynchronous sequences need to make sure that all of the above behaviors are
+correctly implemented. Let's look at the current behavior of
 `Async[Throwing]Stream` to see if and how it achieves these behaviors.
 
 ### Backpressure
@@ -60,7 +60,7 @@ implementation supports multiple consumers or not. This allows the creation of
 unicast and multicast asynchronous sequences. The difference between a unicast
 and multicast asynchronous sequence is if they allow multiple iterators to be
 created. `AsyncStream` does support the creation of multiple iterators and it
-does handle multiple consumers correctly. On the other hand
+does handle multiple consumers correctly. On the other hand,
 `AsyncThrowingStream` also supports multiple iterators but does `fatalError`
 when more than one iterator has to suspend. The original proposal states:
 
@@ -112,7 +112,7 @@ are the behaviors where `Async[Throwing]Stream` diverges from the expectations.
 - Multi/single consumer:
   - Divergent implementation between throwing and non-throwing variant
   - Supports multiple consumers even though proposal positions it as a unicast
-   asynchronous sequence
+  asynchronous sequence
 - Consumer termination: Doesn't handle the `Continuation` being `deinit`ed
 - Producer termination: Happens on first consumer termination 
 
@@ -121,15 +121,15 @@ the above-mentioned behaviors.
 
 ### Creating an AsyncStream with backpressure support
 
-You can create an `AsyncStream` instance using the new `makeStream(of:
-backPressureStrategy:)` method. This method returns you the stream and the
+You can create an `Async[Throwing]Stream` instance using the new `makeStream(of:
+backpressureStrategy:)` method. This method returns you the stream and the
 source. The source can be used to write new values to the asynchronous stream.
 The new API specifically provides a multi-producer/single-consumer pattern.
 
 ```swift
 let (stream, source) = AsyncStream.makeStream(
     of: Int.self,
-    backPressureStrategy: .watermark(low: 2, high: 4)
+    backpressureStrategy: .watermark(low: 2, high: 4)
 )
 ```
 
@@ -160,15 +160,15 @@ do {
 }
 ```
 
-The above API offers the most control when bridging a synchronous producer to an
-asynchronous sequence. First, you have to write values using the
-`write(contentsOf:)` which returns a `WriteResult`. The result either indicates
-that more values should be produced or that a callback should be enqueued by
-calling the `enqueueCallback(callbackToken: onProduceMore:)` method. This callback
-is invoked once the backpressure strategy decided that more values should be
-produced. This API aims to offer the most flexibility with the greatest
-performance. The callback only has to be allocated in the case where the
-producer needs to be suspended.
+The above API offers the most control and highest performance when bridging a
+synchronous producer to an asynchronous sequence. First, you have to write
+values using the `write(contentsOf:)` which returns a `WriteResult`. The result
+either indicates that more values should be produced or that a callback should
+be enqueued by calling the `enqueueCallback(callbackToken: onProduceMore:)`
+method. This callback is invoked once the backpressure strategy decided that
+more values should be produced. This API aims to offer the most flexibility with
+the greatest performance. The callback only has to be allocated in the case
+where the producer needs to be suspended.
 
 Additionally, the above API is the building block for some higher-level and
 easier-to-use APIs to write values to the asynchronous stream. Below is an
@@ -202,10 +202,10 @@ this:
 // Termination through calling finish
 let (stream, source) = AsyncStream.makeStream(
     of: Int.self,
-    backPressureStrategy: .watermark(low: 2, high: 4)
+    backpressureStrategy: .watermark(low: 2, high: 4)
 )
 
-_ = try source.write(1)
+_ = try await source.write(1)
 source.finish()
 
 for await element in stream {
@@ -226,7 +226,7 @@ indefinitely.
 // Termination through deiniting the source
 let (stream, _) = AsyncStream.makeStream(
     of: Int.self,
-    backPressureStrategy: .watermark(low: 2, high: 4)
+    backpressureStrategy: .watermark(low: 2, high: 4)
 )
 
 for await element in stream {
@@ -250,7 +250,7 @@ callback. Termination of the producer happens in the following scenarios:
 // Termination through task cancellation
 let (stream, source) = AsyncStream.makeStream(
     of: Int.self,
-    backPressureStrategy: .watermark(low: 2, high: 4)
+    backpressureStrategy: .watermark(low: 2, high: 4)
 )
 
 let task = Task {
@@ -265,7 +265,7 @@ task.cancel()
 // Termination through deiniting the sequence
 let (_, source) = AsyncStream.makeStream(
     of: Int.self,
-    backPressureStrategy: .watermark(low: 2, high: 4)
+    backpressureStrategy: .watermark(low: 2, high: 4)
 )
 ```
 
@@ -273,7 +273,7 @@ let (_, source) = AsyncStream.makeStream(
 // Termination through deiniting the iterator
 let (stream, source) = AsyncStream.makeStream(
     of: Int.self,
-    backPressureStrategy: .watermark(low: 2, high: 4)
+    backpressureStrategy: .watermark(low: 2, high: 4)
 )
 _ = stream.makeAsyncIterator()
 ```
@@ -282,7 +282,7 @@ _ = stream.makeAsyncIterator()
 // Termination through calling finish
 let (stream, source) = AsyncStream.makeStream(
     of: Int.self,
-    backPressureStrategy: .watermark(low: 2, high: 4)
+    backpressureStrategy: .watermark(low: 2, high: 4)
 )
 
 _ = try source.write(1)
@@ -301,163 +301,32 @@ producer has been terminated will result in an error thrown from the write metho
 All new APIs on `AsyncStream` and `AsyncThrowingStream` are as follows:
 
 ```swift
-extension AsyncThrowingStream {
-    /// A mechanism to interface between producer code and an asynchronous stream.
-    ///
-    /// Use this source to provide elements to the stream by calling one of the `write` methods, then terminate the stream normally
-    /// by calling the `finish()` method. You can also use the source's `finish(throwing:)` method to terminate the stream by
-    /// throwing an error.
-    public struct Source: Sendable {
-        /// A strategy that handles the backpressure of the asynchronous stream.
-        public enum BackPressureStrategy: Sendable {
-            /// When the high water mark is reached producers will be suspended. All producers will be resumed again once
-            /// the low water mark is reached.
-            case watermark(low: Int, high: Int)
-        }
-
-        /// A type that indicates the result of writing elements to the source.
-        @frozen
-        public enum WriteResult: Sendable {
-            /// A token that is returned when the asynchronous stream's backpressure strategy indicated that any producer should
-            /// be suspended. Use this token to enqueue a callback by  calling the ``enqueueCallback(_:)`` method.
-            public struct CallbackToken : Sendable {}
-
-            /// Indicates that more elements should be produced and written to the source.
-            case produceMore
-
-            /// Indicates that a callback should be enqueued.
-            ///
-            /// The associated token should be passed to the ``enqueueCallback(_:)`` method.
-            case enqueueCallback(CallbackToken)
-        }
-
-        internal init(storage: Storage)
-
-        /// Writes new elements to the asynchronous stream.
-        /// 
-        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
-        /// first element of the provided sequence. If the asynchronous stream already terminated then this method will throw an error
-        /// indicating the failure.
-        ///
-        /// - Parameter sequence: The elements to write to the asynchronous stream.
-        /// - Returns: The result that indicates if more elements should be produced at this time.
-        public func write<S>(contentsOf sequence: S) throws -> WriteResult where Element == S.Element, S : Sequence
-
-        /// Writes the element to the asynchronous stream.
-        /// 
-        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
-        /// provided element. If the asynchronous stream already terminated then this method will throw an error
-        /// indicating the failure.
-        ///
-        /// - Parameter element: The element to write to the asynchronous stream.
-        /// - Returns: The result that indicates if more elements should be produced at this time.
-        public func write(_ element: Element) throws -> WriteResult
-
-        /// Enqueues a callback that will be invoked once more elements should be produced.
-        ///
-        /// Call this method after ``write(contentsOf:)`` or ``write(:)`` returned a ``WriteResult/enqueueCallback(_:)``.
-        ///
-        /// - Important: Enqueueing the same token multiple times is not allowed.
-        ///
-        /// - Parameters:
-        ///   - callbackToken: The callback token.
-        ///   - onProduceMore: The callback which gets invoked once more elements should be produced.
-        public func enqueueCallback(callbackToken: WriteResult.CallbackToken, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void)
-
-        /// Cancel an enqueued callback.
-        ///
-        /// Call this method to cancel a callback enqueued by the ``enqueueCallback(callbackToken:onProduceMore:)`` method.
-        ///
-        /// > Note: This methods supports being called before ``enqueueCallback(callbackToken:onProduceMore:)`` is called and
-        /// will mark the passed `callbackToken` as cancelled.
-        ///
-        /// - Parameter callbackToken: The callback token.
-        public func cancelCallback(callbackToken: WriteResult.CallbackToken)
-
-        /// Write new elements to the asynchronous stream and provide a callback which will be invoked once more elements should be produced.
-        ///
-        /// - Parameters:
-        ///   - sequence: The elements to write to the asynchronous stream.
-        ///   - onProduceMore: The callback which gets invoked once more elements should be produced. This callback might be
-        ///   invoked during the call to ``write(contentsOf:onProduceMore:)``.
-        public func write<S>(contentsOf sequence: S, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) where Element == S.Element, S : Sequence
-
-        /// Writes the element to the asynchronous stream.
-        /// 
-        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
-        /// provided element. If the asynchronous stream already terminated then this method will throw an error
-        /// indicating the failure.
-        ///
-        /// - Parameters:
-        ///   - sequence: The element to write to the asynchronous stream.
-        ///   - onProduceMore: The callback which gets invoked once more elements should be produced. This callback might be
-        ///   invoked during the call to ``write(contentsOf:onProduceMore:)``.
-        public func write(_ element: Element, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) throws 
-
-        /// Write new elements to the asynchronous stream.
-        ///
-        /// This method returns once more elements should be produced.
-        ///
-        /// - Parameters:
-        ///   - sequence: The elements to write to the asynchronous stream.
-        public func write<S>(contentsOf sequence: S) async throws where Element == S.Element, S : Sequence
-
-        /// Write new element to the asynchronous stream.
-        ///
-        /// This method returns once more elements should be produced.
-        ///
-        /// - Parameters:
-        ///   - sequence: The element to write to the asynchronous stream.
-        public func write(_ element: Element) async throws
-
-        /// Indicates that the production terminated.
-        ///
-        /// After all buffered elements are consumed the next iteration point will return `nil` or throw an error.
-        ///
-        /// Calling this function more than once has no effect. After calling finish, the stream enters a terminal state and doesn’t produce any additional elements.
-        ///
-        /// - Parameters:
-        ///   - error: The error to throw, or nil, to finish normally.
-        public func finish(throwing error: Failure?)
-    }
-
-      /// Initializes a new ``AsyncThrowingStream`` and an ``AsyncThrowingStream/Source``.
-    ///
-    /// - Parameters:
-    ///   - elementType: The element type of the stream.
-    ///   - failureType: The failure type of the stream.
-    ///   - backPressureStrategy: The backpressure strategy that the stream should use.
-    ///   - onTermination: A callback to invoke when the iteration of the asynchronous stream has terminated.  
-    /// - Returns: A tuple containing the stream and its source. The source should be passed to the
-    /// producer while the stream should be passed to the consumer.
-    public static func makeStream(
-        of elementType: Element.Type = Element.self,
-        throwing failureType: Failure.Type = Failure.self,
-        backPressureStrategy: Source.BackPressureStrategy,
-        onTermination: (@Sendable () -> Void)? = nil
-    ) -> (`Self`, Source) where Failure == Error
-}
+/// Error that is thrown from the various `write` methods of the
+/// ``AsyncStream.Source`` and ``AsyncThrowingStream.Source``.
+/// 
+/// This error is thrown when the asynchronous stream is already finished when
+/// trying to write new elements.
+public struct AsyncStreamAlreadyFinishedError: Error {}
 
 extension AsyncStream {
     /// A mechanism to interface between producer code and an asynchronous stream.
     ///
     /// Use this source to provide elements to the stream by calling one of the `write` methods, then terminate the stream normally
-    /// by calling the `finish()` method. You can also use the source's `finish(throwing:)` method to terminate the stream by
-    /// throwing an error.
+    /// by calling the `finish()` method.
     public struct Source: Sendable {
         /// A strategy that handles the backpressure of the asynchronous stream.
-        public enum BackPressureStrategy: Sendable {
-            /// When the high water mark is reached producers will be suspended. All producers will be resumed again once
-            /// the low water mark is reached.
-            case watermark(low: Int, high: Int)
+        public struct BackpressureStrategy: Sendable {
+            /// When the high watermark is reached producers will be suspended. All producers will be resumed again once
+            /// the low watermark is reached.
+            public static func watermark(low: Int, high: Int) -> BackpressureStrategy {}
         }
 
         /// A type that indicates the result of writing elements to the source.
         @frozen
         public enum WriteResult: Sendable {
-            /// A token that is returned when the asynchronous stream's backpressure strategy indicated that any producer should
+            /// A token that is returned when the asynchronous stream's backpressure strategy indicated that production should
             /// be suspended. Use this token to enqueue a callback by  calling the ``enqueueCallback(_:)`` method.
-            public struct CallbackToken : Sendable {}
+            public struct CallbackToken: Sendable {}
 
             /// Indicates that more elements should be produced and written to the source.
             case produceMore
@@ -468,106 +337,299 @@ extension AsyncStream {
             case enqueueCallback(CallbackToken)
         }
 
-        internal init(storage: Storage)
+        /// A callback to invoke when the stream finished.
+        ///
+        /// The stream finishes and calls this closure in the following cases:
+        /// - No iterator was created and the sequence was deinited
+        /// - An iterator was created and deinited
+        /// - After ``finish(throwing:)`` was called and all elements have been consumed
+        /// - The consuming task got cancelled
+        public var onTermination: (@Sendable () -> Void)?
 
         /// Writes new elements to the asynchronous stream.
-        /// 
+        ///
         /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
         /// first element of the provided sequence. If the asynchronous stream already terminated then this method will throw an error
         /// indicating the failure.
         ///
         /// - Parameter sequence: The elements to write to the asynchronous stream.
         /// - Returns: The result that indicates if more elements should be produced at this time.
-        public func write<S>(contentsOf sequence: S) throws -> WriteResult where Element == S.Element, S : Sequence
+        public func write<S>(contentsOf sequence: S) throws -> WriteResult where Element == S.Element, S: Sequence {}
 
-        /// Writes the element to the asynchronous stream.
-        /// 
+        /// Write the element to the asynchronous stream.
+        ///
         /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
         /// provided element. If the asynchronous stream already terminated then this method will throw an error
         /// indicating the failure.
         ///
         /// - Parameter element: The element to write to the asynchronous stream.
         /// - Returns: The result that indicates if more elements should be produced at this time.
-        public func write(_ element: Element) throws -> WriteResult
+        public func write(_ element: Element) throws -> WriteResult {}
 
         /// Enqueues a callback that will be invoked once more elements should be produced.
         ///
-        /// Call this method after ``write(contentsOf:)`` or ``write(:)`` returned a ``WriteResult/enqueueCallback(_:)``.
+        /// Call this method after ``write(contentsOf:)`` or ``write(:)`` returned ``WriteResult/enqueueCallback(_:)``.
         ///
         /// - Important: Enqueueing the same token multiple times is not allowed.
         ///
         /// - Parameters:
-        ///   - callbackToken: The callback token.
+        ///   - token: The callback token.
         ///   - onProduceMore: The callback which gets invoked once more elements should be produced.
-        public func enqueueCallback(callbackToken: WriteResult.CallbackToken, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void)
+        public func enqueueCallback(token: WriteResult.CallbackToken, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) {}
 
         /// Cancel an enqueued callback.
         ///
         /// Call this method to cancel a callback enqueued by the ``enqueueCallback(callbackToken:onProduceMore:)`` method.
         ///
-        /// > Note: This methods supports being called before ``enqueueCallback(callbackToken:onProduceMore:)`` is called and
-        /// will mark the passed `callbackToken` as cancelled.
+        /// - Note: This methods supports being called before ``enqueueCallback(callbackToken:onProduceMore:)`` is called and
+        /// will mark the passed `token` as cancelled.
         ///
-        /// - Parameter callbackToken: The callback token.
-        public func cancelCallback(callbackToken: WriteResult.CallbackToken)
+        /// - Parameter token: The callback token.
+        public func cancelCallback(token: WriteResult.CallbackToken) {}
 
         /// Write new elements to the asynchronous stream and provide a callback which will be invoked once more elements should be produced.
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// first element of the provided sequence. If the asynchronous stream already terminated then `onProduceMore` will be invoked with
+        /// a `Result.failure`.
         ///
         /// - Parameters:
         ///   - sequence: The elements to write to the asynchronous stream.
         ///   - onProduceMore: The callback which gets invoked once more elements should be produced. This callback might be
         ///   invoked during the call to ``write(contentsOf:onProduceMore:)``.
-        public func write<S>(contentsOf sequence: S, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) where Element == S.Element, S : Sequence
+        public func write<S>(contentsOf sequence: S, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) where Element == S.Element, S: Sequence {}
 
         /// Writes the element to the asynchronous stream.
-        /// 
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// provided element. If the asynchronous stream already terminated then `onProduceMore` will be invoked with
+        /// a `Result.failure`.
+        ///
+        /// - Parameters:
+        ///   - sequence: The element to write to the asynchronous stream.
+        ///   - onProduceMore: The callback which gets invoked once more elements should be produced. This callback might be
+        ///   invoked during the call to ``write(_:onProduceMore:)``.
+        public func write(_ element: Element, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) {}
+
+        /// Write new elements to the asynchronous stream.
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// first element of the provided sequence. If the asynchronous stream already terminated then this method will throw an error
+        /// indicating the failure.
+        ///
+        /// This method returns once more elements should be produced.
+        ///
+        /// - Parameters:
+        ///   - sequence: The elements to write to the asynchronous stream.
+        public func write<S>(contentsOf sequence: S) async throws where Element == S.Element, S: Sequence {}
+
+        /// Write new element to the asynchronous stream.
+        ///
         /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
         /// provided element. If the asynchronous stream already terminated then this method will throw an error
         /// indicating the failure.
         ///
+        /// This method returns once more elements should be produced.
+        ///
         /// - Parameters:
         ///   - sequence: The element to write to the asynchronous stream.
-        ///   - onProduceMore: The callback which gets invoked once more elements should be produced. This callback might be
-        ///   invoked during the call to ``write(contentsOf:onProduceMore:)``.
-        public func write(_ element: Element, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) throws 
+        public func write(_ element: Element) async throws {}
 
-        /// Write new elements to the asynchronous stream.
+        /// Write the elements of the asynchronous sequence to the asynchronous stream.
         ///
-        /// This method returns once more elements should be produced.
+        /// This method returns once the provided asynchronous sequence or the  the asynchronous stream finished.
+        ///
+        /// - Important: This method does not finish the source if consuming the upstream sequence terminated.
         ///
         /// - Parameters:
         ///   - sequence: The elements to write to the asynchronous stream.
-        public func write<S>(contentsOf sequence: S) async throws where Element == S.Element, S : Sequence
-
-        /// Write new element to the asynchronous stream.
-        ///
-        /// This method returns once more elements should be produced.
-        ///
-        /// - Parameters:
-        ///   - sequence: The element to write to the asynchronous stream.
-        public func write(_ element: Element) async throws
+        public func write<S>(contentsOf sequence: S) async throws where Element == S.Element, S: AsyncSequence {}
 
         /// Indicates that the production terminated.
         ///
         /// After all buffered elements are consumed the next iteration point will return `nil`.
         ///
-        /// Calling this function more than once has no effect. After calling finish, the stream enters a terminal state and doesn’t produce any additional elements.
-        public func finish()
+        /// Calling this function more than once has no effect. After calling finish, the stream enters a terminal state and doesn't accept
+        /// new elements.
+        public func finish() {}
     }
 
-      /// Initializes a new ``AsyncStream`` and an ``AsyncStream/Source``.
+    /// Initializes a new ``AsyncStream`` and an ``AsyncStream/Source``.
     ///
     /// - Parameters:
     ///   - elementType: The element type of the stream.
-    ///   - backPressureStrategy: The backpressure strategy that the stream should use.
-    ///   - onTermination: A callback to invoke when the iteration of the asynchronous stream has terminated.  
+    ///   - backpressureStrategy: The backpressure strategy that the stream should use.
     /// - Returns: A tuple containing the stream and its source. The source should be passed to the
-    /// producer while the stream should be passed to the consumer.
+    ///   producer while the stream should be passed to the consumer.
     public static func makeStream(
         of elementType: Element.Type = Element.self,
-        backPressureStrategy: Source.BackPressureStrategy,
-        onTermination: (@Sendable () -> Void)? = nil
-    ) -> (`Self`, Source) where Failure == Error
+        backpressureStrategy: Source.BackpressureStrategy
+    ) -> (`Self`, Source) {}
+}
+
+extension AsyncThrowingStream {
+    /// A mechanism to interface between producer code and an asynchronous stream.
+    ///
+    /// Use this source to provide elements to the stream by calling one of the `write` methods, then terminate the stream normally
+    /// by calling the `finish()` method. You can also use the source's `finish(throwing:)` method to terminate the stream by
+    /// throwing an error
+    public struct Source: Sendable {
+        /// A strategy that handles the backpressure of the asynchronous stream.
+        public struct BackpressureStrategy: Sendable {
+            /// When the high watermark is reached producers will be suspended. All producers will be resumed again once
+            /// the low watermark is reached.
+            public static func watermark(low: Int, high: Int) -> BackpressureStrategy {}
+        }
+
+        /// A type that indicates the result of writing elements to the source.
+        @frozen
+        public enum WriteResult: Sendable {
+            /// A token that is returned when the asynchronous stream's backpressure strategy indicated that production should
+            /// be suspended. Use this token to enqueue a callback by  calling the ``enqueueCallback(_:)`` method.
+            public struct CallbackToken: Sendable {}
+
+            /// Indicates that more elements should be produced and written to the source.
+            case produceMore
+
+            /// Indicates that a callback should be enqueued.
+            ///
+            /// The associated token should be passed to the ``enqueueCallback(_:)`` method.
+            case enqueueCallback(CallbackToken)
+        }
+
+        /// A callback to invoke when the stream finished.
+        ///
+        /// The stream finishes and calls this closure in the following cases:
+        /// - No iterator was created and the sequence was deinited
+        /// - An iterator was created and deinited
+        /// - After ``finish(throwing:)`` was called and all elements have been consumed
+        /// - The consuming task got cancelled
+        public var onTermination: (@Sendable () -> Void)? {}
+
+        /// Writes new elements to the asynchronous stream.
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// first element of the provided sequence. If the asynchronous stream already terminated then this method will throw an error
+        /// indicating the failure.
+        ///
+        /// - Parameter sequence: The elements to write to the asynchronous stream.
+        /// - Returns: The result that indicates if more elements should be produced at this time.
+        public func write<S>(contentsOf sequence: S) throws -> WriteResult where Element == S.Element, S: Sequence {}
+
+        /// Write the element to the asynchronous stream.
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// provided element. If the asynchronous stream already terminated then this method will throw an error
+        /// indicating the failure.
+        ///
+        /// - Parameter element: The element to write to the asynchronous stream.
+        /// - Returns: The result that indicates if more elements should be produced at this time.
+        public func write(_ element: Element) throws -> WriteResult {}
+
+        /// Enqueues a callback that will be invoked once more elements should be produced.
+        ///
+        /// Call this method after ``write(contentsOf:)`` or ``write(:)`` returned ``WriteResult/enqueueCallback(_:)``.
+        ///
+        /// - Important: Enqueueing the same token multiple times is not allowed.
+        ///
+        /// - Parameters:
+        ///   - token: The callback token.
+        ///   - onProduceMore: The callback which gets invoked once more elements should be produced.
+        public func enqueueCallback(token: WriteResult.CallbackToken, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) {}
+
+        /// Cancel an enqueued callback.
+        ///
+        /// Call this method to cancel a callback enqueued by the ``enqueueCallback(callbackToken:onProduceMore:)`` method.
+        ///
+        /// - Note: This methods supports being called before ``enqueueCallback(callbackToken:onProduceMore:)`` is called and
+        /// will mark the passed `token` as cancelled.
+        ///
+        /// - Parameter token: The callback token.
+        public func cancelCallback(token: WriteResult.CallbackToken) {}
+
+        /// Write new elements to the asynchronous stream and provide a callback which will be invoked once more elements should be produced.
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// first element of the provided sequence. If the asynchronous stream already terminated then `onProduceMore` will be invoked with
+        /// a `Result.failure`.
+        ///
+        /// - Parameters:
+        ///   - sequence: The elements to write to the asynchronous stream.
+        ///   - onProduceMore: The callback which gets invoked once more elements should be produced. This callback might be
+        ///   invoked during the call to ``write(contentsOf:onProduceMore:)``.
+        public func write<S>(contentsOf sequence: S, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) where Element == S.Element, S: Sequence {}
+
+        /// Writes the element to the asynchronous stream.
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// provided element. If the asynchronous stream already terminated then `onProduceMore` will be invoked with
+        /// a `Result.failure`.
+        ///
+        /// - Parameters:
+        ///   - sequence: The element to write to the asynchronous stream.
+        ///   - onProduceMore: The callback which gets invoked once more elements should be produced. This callback might be
+        ///   invoked during the call to ``write(_:onProduceMore:)``.
+        public func write(_ element: Element, onProduceMore: @escaping @Sendable (Result<Void, Error>) -> Void) {}
+
+        /// Write new elements to the asynchronous stream.
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// first element of the provided sequence. If the asynchronous stream already terminated then this method will throw an error
+        /// indicating the failure.
+        ///
+        /// This method returns once more elements should be produced.
+        ///
+        /// - Parameters:
+        ///   - sequence: The elements to write to the asynchronous stream.
+        public func write<S>(contentsOf sequence: S) async throws where Element == S.Element, S: Sequence {}
+
+        /// Write new element to the asynchronous stream.
+        ///
+        /// If there is a task consuming the stream and awaiting the next element then the task will get resumed with the
+        /// provided element. If the asynchronous stream already terminated then this method will throw an error
+        /// indicating the failure.
+        ///
+        /// This method returns once more elements should be produced.
+        ///
+        /// - Parameters:
+        ///   - sequence: The element to write to the asynchronous stream.
+        public func write(_ element: Element) async throws {}
+
+        /// Write the elements of the asynchronous sequence to the asynchronous stream.
+        ///
+        /// This method returns once the provided asynchronous sequence or the  the asynchronous stream finished.
+        ///
+        /// - Important: This method does not finish the source if consuming the upstream sequence terminated.
+        ///
+        /// - Parameters:
+        ///   - sequence: The elements to write to the asynchronous stream.
+        public func write<S>(contentsOf sequence: S) async throws where Element == S.Element, S: AsyncSequence {}
+
+        /// Indicates that the production terminated.
+        ///
+        /// After all buffered elements are consumed the next iteration point will return `nil` or throw an error.
+        ///
+        /// Calling this function more than once has no effect. After calling finish, the stream enters a terminal state and doesn't accept
+        /// new elements.
+        ///
+        /// - Parameters:
+        ///   - error: The error to throw, or `nil`, to finish normally.
+        public func finish(throwing error: Failure?) {}
+    }
+
+    /// Initializes a new ``AsyncThrowingStream`` and an ``AsyncThrowingStream/Source``.
+    ///
+    /// - Parameters:
+    ///   - elementType: The element type of the stream.
+    ///   - failureType: The failure type of the stream.
+    ///   - backpressureStrategy: The backpressure strategy that the stream should use.
+    /// - Returns: A tuple containing the stream and its source. The source should be passed to the
+    ///   producer while the stream should be passed to the consumer.
+    public static func makeStream(
+        of elementType: Element.Type = Element.self,
+        throwing failureType: Failure.Type = Failure.self,
+        backpressureStrategy: Source.BackpressureStrategy
+    ) -> (`Self`, Source) where Failure == Error {}
 }
 ```
 
@@ -596,7 +658,9 @@ This change is additive and does not affect source compatibility.
 
 ## ABI compatibility
 
-This change is additive and does not affect ABI compatibility.
+This change is additive and does not affect ABI compatibility. All new methods
+are non-inlineable leaving us flexiblity to change the implementation in the
+future.
 
 ## Future directions
 
@@ -669,16 +733,52 @@ The proposal decided against sticking to the current names since the existing
 names caused confusion to them being used in multiple places. Continuation was
 both used by the `AsyncStream` but also by Swift Concurrency via
 `CheckedContinuation` and `UnsafeContinuation`. Similarly, yield was used by
-both `AsyncStream.Continuation.yield()`, `Task.yield()` and the yield keyword.
+both `AsyncStream.Continuation.yield()`, `Task.yield()` and the `yield` keyword.
 Having different names for these different concepts makes it easier to explain
 their usage. The currently proposed `write` names were choosen to align with the
-future direction of adding an `AsyncWriter` protocol. Other names that were
-considered:
+future direction of adding an `AsyncWriter` protocol. `Source` is a common name
+in flow based systems such as Akka. Other names that were considered:
 
 - `enqueue`
 - `send`
 
+### Provide the `onTermination` callback to the factory method
+
+During development of the new APIs, I first tried to provide the `onTermination`
+callback in the `makeStream` method. However, that showed significant usability
+problems in scenarios where one wants to store the source in a type and
+reference `self` in the `onTermination` closure at the same time; hence, I kept
+the current pattern of setting the `onTermination` closure on the source.
+
+### Provide a `onConsumerCancellation` callback
+
+During the pitch phase it was raised that we should provide a
+`onConsumerCancellation` callback which gets invoked once the asynchronous
+stream notices that the consuming task got cancelled. This callback could be
+used to customize how cancellation is handled by the stream e.g. one could
+imagine writing a few more elements to the stream before finishing it. Right now
+the stream immediately returns `nil` or throws a `CancellationError` when it
+notices cancellation. This proposal decided to not provide this customization
+because it opens up the possiblity that asynchronous streams are not terminating
+when implemented incorrectly. Additionally, asynchronous sequences are not the
+only place where task cancellation leads to an immediate error being thrown i.e.
+`Task.sleep()` does the same. Hence, the value of the asynchronous not
+terminating immediately brings little value when the next call in the iterating
+task might throw. However, the implementation is flexible enough to add this in
+the future and we can just default it to the current behaviour.
+
+### Create a custom type for the `Result` of the `onProduceMore` callback
+
+The `onProducerMore` callback takes a `Result<Void, Error>` which is used to
+indicate if the producer should produce more or if the asynchronous stream
+finished. We could introduce a new type for this but the proposal decided
+against it since it effectively is a result type.  
+
 ## Acknowledgements
 
 - [Johannes Weiss](https://github.com/weissi) - For making me aware how
-  important this problem is and providing great ideas on how to shape the API.
+important this problem is and providing great ideas on how to shape the API.
+- [Philippe Hausler](https://github.com/phausler) - For helping me designing the
+APIs and continuously providing feedback
+- [George Barnett](https://github.com/glbrntt) - For providing extensive code
+reviews and testing the implementation.
