@@ -1,15 +1,15 @@
-# Add `with` functions to the Standard Library
+# Add `with` magic methods to Swift
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [aggie33](https://github.com/aggie33)
 * Review Manager: TBD
-* Status: **Awaiting review**
-* Implementation: [swift#66806](https://github.com/apple/swift/pull/66806)
+* Status: **Awaiting implementation**
+* Implementation: **Awaiting implementation**
 * Review: [Pitch](https://forums.swift.org/t/pitch-with-functions-in-the-standard-library/65716)
 
 ## Introduction
 
-Add two `with(_:)` functions to the standard library to allow for easier modification of values.
+Add two `with(_:)` methods to Swift to allow for easier modification of values.
 
 ## Motivation
 
@@ -36,25 +36,64 @@ extension FooView {
 }
 ```
 
+This might not seem too difficult, but it can become tedious and repetitive. Imagine if you were wrapping a UIKit view, such as UIButton.
+
+```swift
+struct SwiftyButton: UIViewRepresentable {
+   private var role: UIButton.Role
+   private var behavioralStyle: UIBehavioralStyle
+
+   func makeUIView(...) -> UIButton { ... }
+   func updateUIView(...) { ... }
+}
+```
+For each modifier method, you need to repeat the same copying boilerplate.
+```swift
+extension SwiftyButton {
+    func role(_ role: UIButton.Role) -> SwiftyButton {
+        var copy = self
+        copy.role = role
+        return copy
+    }
+
+    func behavioralStyle(_ style: UIBehavioralStyle) -> SwiftyButton {
+        var copy = self
+        copy.behavioralStyle = style
+        return copy
+    }
+}
+```
+This is tedious, and it hides what the method is actually doing. 2/3rds of each method is the same copying boilerplate. 
+
 ## Proposed solution
 
-Using the new `with` functions in this proposal, the two pieces of code above could be rewritten as follows.
+I propose we add two magic `with` methods to all types. These methods would take a copy of `self`, and a closure that modifies that copy. They would return the copy. The above code can be rewritten to be clearer and shorter with these methods.
 
 ``` swift
-let components = with(URLComponents()) { components in
+let components = URLComponents().with { components in
   components.path = "foo"
   components.password = "bar"
 }
 ```
 
 What this code does is clearer, because the value being modified is at the beginning instead of the end, and clutter is removed.
-The SwiftUI view example is also improved by these functions.
+The SwiftUI view examples is also improved by these functions.
 
 ```swift
 extension FooView {
   func bar() -> some View {
-    with(self) { $0.bar = true }
+    self.with { $0.bar = true }
   }
+}
+
+extension SwiftyButton {
+    func role(_ role: UIButton.Role) -> SwiftyButton {
+        self.with { $0.role = role }
+    }
+
+    func behavioralStyle(_ style: UIBehavioralStyle) -> SwiftyButton {
+        self.with { $0.behavioralStyle = style } 
+    }
 }
 ```
 
@@ -64,37 +103,39 @@ This has already been adopted in various places. Some helper libraries introduce
 
 ## Detailed design
 
-We introduce two new functions, both called `with(_:)`; a synchronous and asynchronous overload.
+We introduce two new methods on `Any` using compiler magic, both called `with(_:)`; a synchronous and asynchronous overload.
 ```swift
-/// Makes a copy of `value` and invokes `transform` on it, then returns the modified value.
-/// - Parameters:
-///   - value: The value to modify.
-///   - transform: The closure used to modify the value.
-/// - Throws: An error, if the closure throws one.
-/// - Returns: The modified value.
-@inlinable // trivial implementation, generic
-public func with<T>(_ value: T, transform: (inout T) throws -> Void) rethrows -> T {
-    var copy = value
-    try transform(&copy)
-    return copy
-}
-
-/// Makes a copy of `value` and invokes `transform` on it, then returns the modified value.
-/// - Parameters:
-///   - value: The value to modify.
-///   - transform: The closure used to modify the value.
-/// - Throws: An error, if the closure throws one.
-/// - Returns: The modified value.
-@inlinable // trivial implementation, generic
-public func with<T>(_ value: T, transform: (inout T) async throws -> Void) async rethrows -> T {
-    var copy = value
-    try await transform(&copy)
-    return copy
+extension Any {
+    /// Makes a copy of `self` and invokes `transform` on it, then returns the modified value.
+    /// - Parameters:
+    ///   - transform: The closure used to modify `self`.
+    @inlinable // trivial implementation, generic
+    public func with(transform: (inout Self) throws -> Void) rethrows -> Self {
+        var copy = self
+        try transform(&copy)
+        return copy
+    }
+    
+    /// Makes a copy of `self` and invokes `transform` on it, then returns the modified value.
+    /// - Parameters:
+    ///   - transform: The closure used to modify `self`.
+    @inlinable // trivial implementation, generic
+    public func with(transform: (inout Self) async throws -> Void) async rethrows -> Self {
+        var copy = self
+        try await transform(&copy)
+        return copy
+    }
 }
 ```
 ## Source compatibility
 
-This could result in a source-break if someone declared a free function named `with(_:)` with these parameters in their library; however due to the simple nature of this function, we think that a user-defined implementation would probably do the same thing. Also, user-defined functions are preferred over standard library functions, so this shouldn't be an issue.
+This could result in a source-break if someone declared a method on their type with the same name and parameters; however, it seems likely that such a method would do the same thing as this one. If someone declared a with method using different parameters, and then made an unapplied reference to it:
+```swift
+let closure = foo.with // some closure type
+// ...
+closure(5, 6, 7)
+```
+That would cause source-break, as the reference would no longer be clear. However, this seems unlikely.
 
 ## ABI compatibility
 
@@ -108,32 +149,27 @@ compatibility.
 
 ## Future directions
 
-### Add `with` as a magical extension on `Any`
-This could potentially make it easier to use the `with` function, but is not necessary for this proposal.
-
 ### Add `with` overloads that allow you to return a value inside of the closure
-This would allow you to more easily use certain mutating methods that return a value, but is not necessary for this proposal.
+This would allow you to more easily use certain mutating methods that return a value.
+
+### Allow arbitrary extensions on `Any`
+This would allow anyone to easily write methods like this, or other helpers. For example, `print` could be made a method.
+```swift
+extension Any {
+    func print() { Swift.print(self) }
+}
+```
 
 ## Alternatives considered
 
 ### Do nothing
-While this functionality could improve code, it is trivial and easy to add to a codebase. However, I think a fairly widely useful function like this belongs in the standard library.
+This is a common problem, so I think we should do something.
 
-### Make `with` a macro instead
-This would allow the macro to expand to a simple closure, but it feels unnecessary considering this is easily implemented as a function.
+### Use a `with` free function.
+This was what was suggested in the initial version of this proposal. However, the `with` method was more popular with the Swift community.
 
-### Use a different name for the `with` function
-Multiple names could make sense; in the pitch thread, one commenter proposed `modify`. `withCopy(of:transform:)` could make its functionality clearer, but is more verbose. `with` is already used in multiple standard library functions, including `withUnsafeBytes(of:)` and `withUnsafePointer(to:)`.
-
-### Use an operator instead of `with`
-This could allow for terser syntax than `with(_:transform:)` and allow you to skip the parentheses, like this. 
-```swift
-NumberFormatter() &> {
-  $0.numberStyle = .currency
-}
-```
-However, I feel like introducing such a new operator to the standard library for this isn't necessary, and could cause source-break if anyone else defined this operator. There's also the question of which operator would be best to use.
-
+### Use an operator instead of `with`.
+While an operator would be terser, and wouldn't require compiler magic; it's less discoverable and might confuse new users. Also, the question would remain of what operator to use.
 
 ## Acknowledgments
 
