@@ -41,7 +41,7 @@ extension String {
 
 This will construct a new `String`, returning `nil` when the input is found invalid according to the UTF-8 encoding.
 
-When handling with data obtained from C, it is frequently the case that UTF-8 data is represented by `CChar` rather than `UInt8`. We will provide a convenience initializer for this use case, noting that it typically involves contiguous memory, and as such is well-served by explicitly using an abstraction for contiguous memory (`UnsafeBufferPointer<CChar>`):
+When processing data obtained from C, it is frequently the case that UTF-8 data is represented by `CChar` rather than `UInt8`. We will provide a convenience initializer for this use case. Noting that this situation typically involves contiguous memory, we believe it will be well-served by explicitly using an abstraction for contiguous memory (`UnsafeBufferPointer<CChar>`):
 
 ```swift
 extension String {
@@ -49,7 +49,9 @@ extension String {
 }
 ```
 
-`String` already features a validating initializer for UTF-8 input. It is intended for C interoperability,  but its argument label does not convey the expectation that its input is a null-terminated C string. We propose to rename it in order to clarify this:
+The `String.init(validatingAsUTF8:)` functions convert their whole input, including any embedded `\0` code units.
+
+`String` already features a validating initializer for UTF-8 input, though it is intended for C interoperability.  Its argument label does not convey the expectation that its input is a null-terminated C string, and this has caused errors. We propose to change the labels in order to clarify the preconditions:
 
 ```swift
 extension String {
@@ -136,11 +138,11 @@ extension String {
   /// This initializer does not try to repair ill-formed code unit sequences.
   /// If any are found, the result of the initializer is `nil`.
   ///
-  /// The following example calls this initializer with pointers to the
-  /// contents of two different `CChar` arrays---first with a well-formed UTF-8
+  /// The following example calls this initializer with the contents of two
+  /// different `CChar` arrays---first with a well-formed UTF-8
   /// code unit sequence and then with an ill-formed code unit sequence.
   ///
-  ///     let validUTF8: [CChar] = [67, 97, 102, -61, -87]
+  ///     let validUTF8: [CChar] = [67, 97, 0, 102, -61, -87]
   ///     validUTF8.withUnsafeBufferPointer {
   ///         let s = String(validatingAsUTF8: $0)
   ///         print(s)
