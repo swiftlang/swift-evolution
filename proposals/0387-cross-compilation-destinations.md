@@ -46,28 +46,27 @@
 
 Cross-compilation is a common development use case. When cross-compiling, we need to refer to these concepts:
 
-- **toolchain** is a set of tools used to build an application or a library;
-- **triple** describes features of a given machine such as CPU architecture, vendor, OS etc, corresponding to LLVM's
+- a **toolchain** is a set of tools used to build an application or a library;
+- a **triple** describes features of a given machine such as CPU architecture, vendor, OS etc, corresponding to LLVM's
   triple;
-- **build-time triple** describes a machine where application or library code is built;
-- **run-time triple** describes a machine where application or library code is running;
-- **SDK** is a set of dynamic and/or static libraries, headers, and other resources required to generate code for the
-  run-time triple.
+- a **host triple** describes a machine where application or library code is built;
+- a **target triple** describes a machine where application or library code is running;
+- an **SDK** is a set of dynamic and/or static libraries, headers, and other resources required to generate code for the
+  target triple.
+
+When a triple of a machine on which the toolchain is built is different from the host triple, we'll call it a **build triple**.
+The cross-compilation configuration itself that involves three different triples is called
+[the Canadian Cross](https://en.wikipedia.org/wiki/Cross_compiler#Canadian_Cross).
 
 Let’s call a Swift toolchain and an SDK bundled together a **Swift SDK**.
-
-Authors of the proposal are aware of the established "build/host/target platform" naming convention, but feel that
-"target" already has a different meaning within the build systems nomenclature. In addition, "platform"
-itself is quite loosely defined. For the avoidance of possible confusion, we're using "build-time triple" and "run-time
-triple" terms in this proposal.
 
 ## Motivation
 
 In Swift 5.8 and earlier versions users can cross-compile their code with so called "destination files" passed to 
 SwiftPM invocations. These destination files are produced on an ad-hoc basis for different combinations of
-build-time and run-time triples. For example, scripts that produce macOS → Linux destinations were created by both
+host and target triples. For example, scripts that produce macOS → Linux destinations were created by both
 [the Swift
-team](https://github.com/apple/swift-package-manager/blob/swift-5.7-RELEASE/Utilities/build_ubuntu_cross_compilation_toolchain)
+team](https://github.com/apple/swift-package-manager/blob/swift-5.8-RELEASE/Utilities/build_ubuntu_cross_compilation_toolchain)
 and [the Swift community](https://github.com/SPMDestinations/homebrew-tap). At the same time, the distribution process
 of assets required for cross-compiling is cumbersome. After building a destination tree on the file system, required 
 metadata files rely on hardcoded absolute paths. Adding support for relative paths in destination's metadata and 
@@ -82,7 +81,7 @@ In other cases, building in a Docker container is not always the best solution f
 example, when working with Swift AWS Lambda Runtime, some developers may find that installing Docker just for building a
 project is a daunting step that shouldn’t be required.
 
-The solution described below is general enough to scale for any build-time/run-time triple combination.
+The solution described below is general enough to scale for any host/target triple combination.
 
 ## Proposed Solution
 
@@ -161,7 +160,7 @@ in `aarch64-unknown-linux-gnu` and `x86_64-unknown-linux-gnu` subdirectories.
 
 `info.json` bundle manifests at the root of artifact bundles should specify `"type": "swiftSDK"` for
 corresponding artifacts. Artifact identifiers in this manifest file uniquely identify a Swift SDK, and
-`supportedTriples` property in `info.json` should contain build-time triples that a given Swift SDK supports. The rest
+`supportedTriples` property in `info.json` should contain host triples that a given Swift SDK supports. The rest
 of the properties of bundle manifests introduced in SE-0305 are preserved.
 
 Here's how `info.json` file could look like for `swift-5.9_ubuntu.artifactbundle` introduced in the example
@@ -317,14 +316,14 @@ provided within the bundle.
 Note the presence of `swift-sdk.json` files in each `<Swift SDK artifact>` subdirectory. These files should contain
 a JSON dictionary with an evolved version of the schema of [existing `destination.json` files that SwiftPM already
 supports](https://github.com/apple/swift-package-manager/pull/1098) and `destination.json` files presented in the pitch
-version of this proposal, hence `"schemaVersion": "3.0"`. We'll keep parsing `"version": 1` and `"version": 2` for
-backward compatibility, but for consistency with `info.json` this field is renamed to `"schemaVersion"`. Here's an
-informally defined schema for these files:
+version of this proposal, hence `"schemaVersion": "4.0"`. We'll keep parsing `"version": 1`, `"version": 2`,
+and `"version": "3.0"` for backward compatibility, but for consistency with `info.json` this field is renamed to
+`"schemaVersion"`. Here's an informally defined schema for these files:
 
 ```json5
 {
-  "schemaVersion": "3.0",
-  "runTimeTriples": [
+  "schemaVersion": "4.0",
+  "targetTriples": [
     "<triple1>": {
       "sdkRootPath": "<a required path relative to `swift-sdk.json` containing SDK root>",
       // all of the properties listed below are optional:
@@ -334,7 +333,7 @@ informally defined schema for these files:
       "librarySearchPaths": ["<array of paths relative to `swift-sdk.json` containing libraries>"],
       "toolsetPaths": ["<array of paths relative to `swift-sdk.json` containing toolset files>"]
     },
-    // a Swift SDK can support more than one run-time triple:
+    // a Swift SDK can support more than one target triple:
     "<triple2>": {
       "sdkRootPath": "<a required path relative to `swift-sdk.json` containing SDK root>",
       // all of the properties listed below are optional:
@@ -364,8 +363,8 @@ Here's `swift-sdk.json` file for the `ubuntu_jammy` artifact previously introduc
 
 ```json5
 {
-  "schemaVersion": "3.0",
-  "runTimeTriples": [
+  "schemaVersion": "4.0",
+  "targetTriples": [
     "aarch64-unknown-linux-gnu": {
       "sdkRootPath": "aarch64-unknown-linux-gnu/ubuntu-jammy.sdk",
       "toolsetPaths": ["aarch64-unknown-linux-gnu/toolset.json"]
@@ -398,7 +397,7 @@ To manage Swift SDKs, we'd like to introduce a new `swift sdk` command with thre
   `install` subcommand with `--update` flag to allow updating an already installed Swift SDK artifact to a new
   version.
 - `swift sdk list`, which prints a list of already installed Swift SDKs with their identifiers.
-- `swift sdk configure <identifier> <run-time-triple>`, which allows users to provide additional search paths and toolsets to be
+- `swift sdk configure <identifier> <target-triple>`, which allows users to provide additional search paths and toolsets to be
 used subsequently when building with a given Swift SDK. Specifically, multiple `--swift-resources-path`,
 `--include-search-path`, `--library-search-path`, and `--toolset` options with corresponding paths can be provided,
 which then will be stored as configuration for this Swift SDK. 
@@ -414,7 +413,7 @@ After a Swift SDK is installed, users can refer to it via its identifier passed 
 swift build --swift-sdk ubuntu_focal
 ```
 
-We'd also like to make `--swift-sdk` option flexible enough to recognize run-time triples when there's only a single
+We'd also like to make `--swift-sdk` option flexible enough to recognize target triples when there's only a single
 Swift SDK installed for such triple:
 
 ```
@@ -426,7 +425,7 @@ asking the user to select a single one via its identifier instead.
 
 ### Swift SDK Bundle Generation
 
-Swift SDKs can be generated quite differently, depending on build-time and run-time triple combinations and user's
+Swift SDKs can be generated quite differently, depending on host and target triple combinations and user's
 needs. We intentionally don't specify in this proposal how exactly Swift SDK bundles should be generated.
 
 Authors of this document intend to publish source code for a macOS → Linux Swift SDK generator, which community is
@@ -435,7 +434,7 @@ up the build environment locally before copying it to a Swift SDK tree. Relying 
 easier to reuse and customize existing build environments. Important to clarify, that Docker is only used for bundle
 generation, and users of Swift SDK bundles do not need to have Docker installed on their machine to use these bundles.
 
-As an example, Swift SDK publishers looking to add a library to an Ubuntu 22.04 run-time environment would modify a
+As an example, Swift SDK publishers looking to add a library to an Ubuntu 22.04 target environment would modify a
 `Dockerfile` similar to this one in their Swift SDK generator source code:
 
 ```dockerfile
@@ -464,7 +463,7 @@ This is an additive change with no impact on existing packages.
 
 ### Rust
 
-In the Rust ecosystem, its toolchain and standard library built for a run-time triple are managed by [the `rustup`
+In the Rust ecosystem, its toolchain and standard library built for a target triple are managed by [the `rustup`
 tool](https://github.com/rust-lang/rustup). For example, artifacts required for cross-compilation to
 `aarch64-linux-unknown-gnu` are installed with
 [`rustup target add aarch64-linux-unknown-gnu`](https://rust-lang.github.io/rustup/cross-compilation.html). Then
@@ -476,7 +475,7 @@ C/C++ interop on the same level as Swift. It means that Rust packages much more 
 system-provided packages to be available in the same way that SwiftPM allows with `systemLibrary`.
 
 Currently, Rust doesn’t supply all of the required tools when running `rustup target add`. It’s left to a user to
-specify paths to a linker that’s suitable for their build-time/run-time triple combination manually in a config file. We
+specify paths to a linker that’s suitable for their host/target triple combination manually in a config file. We
 feel that this should be unnecessary, which is why Swift SDK bundles proposed for Swift can provide their own tools
 via toolset configuration files.
 
@@ -512,7 +511,7 @@ we’re looking for a solution that can be generalized for all possible platform
 
 ### Alternative Bundle Formats
 
-One alternative is to allow only a single build-time/run-time combination per bundle, but this may complicate
+One alternative is to allow only a single host/target combination per bundle, but this may complicate
 distribution of Swift SDK bundles in some scenarios. The existing `.artifactbundle` format is flexible enough to
 support bundles with a single or multiple combinations.
 
@@ -520,7 +519,16 @@ Different formats of Swift SDK bundles can be considered, but we don't think tho
 from the proposed one. If they were different, this would complicate bundle distribution scenarios for users who want to
 publish their own artifact bundles with executables, as defined in SE-0305.
 
-## Making Swift SDK Bundles Fully Self-Contained
+### Triples nomenclature
+
+Authors of the proposal considered alternative nomenclature to the established "build/host/target platform" naming convention,
+but felt that preserving consistency with other ecosystems is more important. 
+
+While "target" already has a different meaning within the build systems nomenclature, users are most likely to stumble upon
+targets when working with SwiftPM package manifests. To avoid this ambiguity, as a future direction SwiftPM can consider renaming
+`target` declarations used in `Package.swift` to a different unambiguous term.
+
+### Making Swift SDK Bundles Fully Self-Contained
 
 Some users expressed interest in self-contained Swift SDK bundles that ignore the value of `PATH` environment variable
 and prevent launching any executables from outside of a bundle. So far in our practice we haven't seen any problems
@@ -539,7 +547,7 @@ predictable way and is consistent with established CLI conventions.
 
 Platform triples are not specific enough in certain cases. For example, `aarch64-unknown-linux` host triple can’t
 prevent a user from installing a Swift SDK bundle on an unsupported Linux distribution. In the future we could
-deprecate `supportedTriples` and `runTimeTriples` JSON properties in favor of dictionaries with keys and values that
+deprecate `supportedTriples` and `targetTriples` JSON properties in favor of dictionaries with keys and values that
 describe aspects of platforms that are important for Swift SDKs. Such dictionaries could look like this:
 
 ```json5
@@ -559,7 +567,7 @@ compilation and potentially even runtime checks.
 
 After an application is built with a Swift SDK, there are other development workflow steps to be improved. We could
 introduce new types of plugins invoked by `swift run` and `swift test` for purposes of remote running, debugging, and
-testing. For Linux run-time triples, these plugins could delegate to Docker for running produced executables.
+testing. For Linux target triples, these plugins could delegate to Docker for running produced executables.
 
 ### `swift sdk select` Subcommand
 
@@ -571,14 +579,14 @@ fully work.
 
 ### SwiftPM and SourceKit-LSP Improvements
 
-It is a known issue that SwiftPM can’t run multiple concurrent builds for different run-time triples. This may cause
+It is a known issue that SwiftPM can’t run multiple concurrent builds for different target triples. This may cause
 issues when SourceKit-LSP is building a project for indexing purposes (for a host platform by default), while a user may
-be trying to build for a run-time for example for testing. One of these build processes will fail due to the
+be trying to build for a target for testing, for example. One of these build processes will fail due to the
 process locking the build database. A potential solution would be to maintain separate build databases per platform.
 
 Another issue related to SourceKit-LSP is that [it always build and indexes source code for the host
 platform](https://github.com/apple/sourcekit-lsp/issues/601). Ideally, we want it to maintain indices for multiple
-platforms at the same time. Users should be able to select run-time triples and corresponding indices to enable
+platforms at the same time. Users should be able to select target triples and corresponding indices to enable
 semantic syntax highlighting, auto-complete, and other features for areas of code that are conditionally compiled with
 `#if` directives.
 
