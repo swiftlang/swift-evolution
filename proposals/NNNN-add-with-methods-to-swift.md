@@ -88,20 +88,20 @@ This is tedious, and it hides what the method is actually doing. Two-thirds of e
 We propose adding a `with` method to all types, which let you modify values within a single expression. The above examples can be simplified by adopting this method:
 
 ``` swift
-let components = URLComponents().with {
-  $0.scheme = "https"
-  $0.host = "forums.swift.org"
-  $0.path = "/c/evolution"
+let components = URLComponents().with { components in
+  components.scheme = "https"
+  components.host = "forums.swift.org"
+  components.path = "/c/evolution"
 }
 
 navigate(to: components.url)
 
 // or:
 
-navigate(to: URLComponents().with {
-  $0.scheme = "https"
-  $0.host = "forums.swift.org"
-  $0.path = "/c/evolution"
+navigate(to: URLComponents().with { components in
+  components.scheme = "https"
+  components.host = "forums.swift.org"
+  component.path = "/c/evolution"
 }.url)
 ```
 
