@@ -1,9 +1,9 @@
-# String initializers with encoding validation
+# String Initializers with Encoding Validation
 
-* Proposal: [SE-NNNN String initializers with encoding validation](https://gist.github.com/glessard/d1ed79b7968b4ad2115462b3d1eba805)
+* Proposal: [SE-0405](https://github.com/apple/swift-evolution/blob/main/proposals/0405-string-validating-initializers.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: Pitch
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active Review (August 8–22, 2023)**
 * Bugs: rdar://99276048, rdar://99832858
 * Implementation: [Staged package](https://github.com/apple/swift-evolution-staging/tree/input-validating-string-initializers)
 * Review: ([pitch](https://forums.swift.org/t/66206))
