@@ -6,7 +6,7 @@
 * Status: **Active Review (August 8–22, 2023)**
 * Bugs: rdar://99276048, rdar://99832858
 * Implementation: [Staged package](https://github.com/apple/swift-evolution-staging/tree/input-validating-string-initializers)
-* Review: ([pitch](https://forums.swift.org/t/66206))
+* Review: ([pitch](https://forums.swift.org/t/66206)), ([review](https://forums.swift.org/t/se-0405-string-initializers-with-encoding-validation/66655))
 * Previous Revision: ([0](https://gist.github.com/glessard/d1ed79b7968b4ad2115462b3d1eba805))
 
 ## Introduction
