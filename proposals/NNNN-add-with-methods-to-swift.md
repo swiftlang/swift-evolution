@@ -123,6 +123,38 @@ extension CustomButtonView {
 }
 ```
 
+Since the `with` method takes a closure, you aren't limited to just setting properties. It supports the full range of functionality supported elsewhere in the language:
+
+```swift
+// Using control flow to conditionally set certain properties:
+let components = URLComponents().with { components in
+  components.scheme = "https"
+  components.host = "forums.swift.org"
+  components.path = "/c/evolution/18"
+
+  if let credentials {
+    components.user = credentials.username
+    components.password = credentials.password
+  }
+}
+```
+
+```swift
+// Accessing current values when determining the updated value:
+let originalComponents = makeURLComponents()
+
+let updatedComponents1 = originalComponents.with { components in
+  components.port? += 1
+}
+
+let updatedComponents2= originalComponents.with { components in
+  if (components.queryItems ?? []).isEmpty {
+    components.queryItems = [defaultQueryItem]
+  }
+}
+```
+
+
 ## Detailed design
 
 We would introduce a `with` method, available on all types, with both a synchronous and asynchronous overload.
@@ -329,6 +361,76 @@ let url2 = (URLComponents() |> {
 ```
 
 Introducing new operators to the standard library also requires meeting a very high bar. Operators are maximally terse, but can be difficult to understand if you aren't familiar with the specific symbol yet. Swift typically prefers using established operators from the C family of languages, and there isn't an obvious existing precedent to follow for this operation.
+
+### Builder pattern
+
+Another common approach for modifying values in a single expression, especially in SwiftUI, is the builder pattern. If applied to the above examples, this could look like:
+
+```swift
+let components = URLComponents()
+  .scheme("https")
+  .host("forums.swift.org")
+  .path("/c/evolution")
+```
+
+We could conceivably automatically support this pattern for all propeties, by synthesizing implicit functions of the form:
+
+```swift
+func scheme(_ value: String) -> Self {
+  var copy = self
+  copy.scheme = value
+  return copy
+}
+```
+
+While this pattern is visually pleasing for simple cases, it is less expressive than a `with` function that takes a closure. There are many types of modifications that are simple when using a `with` closure but are not available if only using an altnertive synthesized builder pattern.
+
+In the builder pattern it is more difficult to express conditional logic:
+
+```swift
+// Using the with method:
+let components = URLComponents().with { components in
+  components.scheme = "https"
+  components.host = "forums.swift.org"
+  components.path = "/c/evolution/18"
+
+  if let credentials {
+    components.user = credentials.username
+    components.password = credentials.password
+  }
+}
+
+// Using the builder pattern:
+var components = URLComponents()
+  .scheme("https")
+  .host("forums.swift.org")
+  .path("/c/evolution")
+
+if let credentials {
+  components = components
+    .user(credentials.username)
+    .password(credentials.password)
+}
+```
+
+and you can't easily reference existing values of properties being modified:
+
+```swift
+let originalComponents = makeURLComponents()
+
+// Using the with method:
+let updatedComponents = originalComponents.with { components in
+  components.port? += 1
+}
+
+// Using the builder pattern:
+let updatedComponents = 
+  if let originalPort = originalComponents.port {
+    originalComponents.port(originalPort + 1)
+  } else {
+    originalComponents
+  }
+```
 
 ## Acknowledgments
 
