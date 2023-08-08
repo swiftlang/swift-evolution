@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](NNNN-async-stream-backpressure.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
-* Review Manager: TBD
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Awaiting review**
 * Implementation: [apple/swift#66488](https://github.com/apple/swift/pull/66488)
 * Review: ([pitch](https://forums.swift.org/t/pitch-new-apis-for-async-throwing-stream-with-backpressure-support/65449))
