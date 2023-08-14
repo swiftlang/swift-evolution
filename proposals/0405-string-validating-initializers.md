@@ -202,11 +202,15 @@ extension String {
 
 ## Source Compatibility
 
-This proposal is strictly additive.
+This proposal consists mostly of additions, which are by definition source compatible.
+
+The proposal includes the renaming of one function from `String.init?(validatingUTF8:)` to `String.init?(validatingCString:)`. The existing function name will be deprecated, producing a warning. A fixit will support an easy transition to the renamed version of the function.
 
 ## ABI Compatibility
 
 This proposal adds new functions to the ABI.
+
+The renamed function reuses the existing ABI entry point, making the change ABI-compatible.
 
 ## Implications on adoption
 
