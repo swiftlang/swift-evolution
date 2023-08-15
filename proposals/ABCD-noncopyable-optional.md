@@ -319,6 +319,30 @@ is to *dynamically* reset `x` to `nil`, from what `consume x` does, which is to
 `take` makes this difference easier to understand and discuss. The name
 `take` is also [used in Rust for the same operation](https://doc.rust-lang.org/std/option/enum.Option.html#method.take).
 
+### Providing fully generic `swap` and/or `replace` operations
+
+`Optional.take` can be looked at as a special case of the more general need
+to replace a noncopyable value with a new value access while taking ownership
+of the old value. The standard library already contains a global function
+`swap<T>(_: inout T, _: inout T)` that can be used for this purpose; if it
+were generalized to allow for noncopyable types, then the same effect as
+`Optional.take()` could be had with:
+
+```
+var oldValue = nil
+swap(&someObject.optional, &oldValue) // swap in nil, swap out the old value
+```
+
+A variation where the replacement value is passed in by value and the old value
+is returned, which Rust calls `replace`, might be more fluent in many cases:
+
+```
+let oldValue = replace(&someObject.optional, with: nil)
+```
+
+Both or either of these APIs could be added and allowed for noncopyable types
+in addition or instead of the `take` method specific to `Optional`.
+
 ## Future directions
 
 ### Noncopyable generics
