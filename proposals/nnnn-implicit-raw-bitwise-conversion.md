@@ -17,49 +17,63 @@ The implicit raw pointer casts that we want to prohibit happen accidentally, wit
 
 Swift supports implicit inout conversion to unsafe pointers, meaning that a mutable variable can be passed `inout` to a function that receives an unsafe pointer to the value. According to the normal rules for pointer conversion, this naturally extends to raw pointers. Raw pointers allow the pointer-taking function to operate directly on the value's bytes.
 
-    func readBytes(_ pointer: UnsafeRawPointer) {
-      assert(pointer.load(as: UInt16.self) == 0xaaaa)
-    }
-        
-    var x: UInt16 = 0xaaaa
-    readBytes(&x)
+```swift
+func readBytes(_ pointer: UnsafeRawPointer) {
+  assert(pointer.load(as: UInt16.self) == 0xaaaa)
+}
+    
+var x: UInt16 = 0xaaaa
+readBytes(&x)
+```
      
 Another higher-level form of implicit pointer conversion allows Swift Array and String values to be passed directly to pointer-taking functions. Here, the callee receives a pointer to the object's contiguously stored elements, rather than to the object itself:
 
-    let array = [UInt16(0xaaaa)]
-    readBytes(array)
+```swift
+let array = [UInt16(0xaaaa)]
+readBytes(array)
+```
 
 These two features are a dangerous combination. The Array and String conversion feature sets up an expectation that collection data types can, in general, be implicitly converted to their elements. When a programmer attempts to make use of this feature for non-Array, non-String data types, they can easily fall into the more general `inout` conversion behavior instead. Rather than creating a pointer to the collection's elements, the compiler instead exposes the data type's internal representation without warning.
 
 Here, the user likely wants to inspect the contents of a string, but instead they've leaked the internal representation:
 
-    func inspectString(string: inout String) {
-      readBytes(&string) // reads the string's internal representation
-    }
+```swift
+func inspectString(string: inout String) {
+  readBytes(&string) // reads the string's internal representation
+}
+```
 
 This is a pernicious security issue because the code will happen to work during testing for small strings. Removing the '&' sigil changes the string conversion into an array-like conversion:
 
-    func inspectString(string: inout String) {
-      readBytes(string) // reads the string's characters
-    }
+```swift
+func inspectString(string: inout String) {
+  readBytes(string) // reads the string's characters
+}
+```
 
 In the next example, the author clearly expected Foundation.Data to have the same sort of implicit conversion support as Array:
 
-    func foo(data: inout Data) {
-      readBytes(&data)
-    }
+```swift
+func foo(data: inout Data) {
+  readBytes(&data)
+}
+```
 
 This compiles without warning, but it unintentionally exposes data object's internal storage representation rather than its elements.
 
 Swift 5.7 generalized the type checker's handling of raw pointers to include C functions that take `char *`. This makes the dangerous combination easier to stumble into:
 
-    void read_char(char *input);
-    read_char(&string) // wrong
+```swift
+void read_char(char *input);
+read_char(&string) // wrong
+```
 
 The problem of accidentally casting String and Foundation.Data to a raw pointer is a dramatic example of a much broader problem. A type that contains no class references is referred to as bitwise copyable, because copying its value is equivalent to calling `memcpy`--the copy operations does not carry any type-specific semantics. Casting bitwise-copyable types to raw pointers is reasonable, and has always been supported. Implicit conversion from a non-bitwise-copyable type to a raw pointer, however, is extremely dangerous, and almost always accidental:
 
-    var object: AnyObject = ...
-    readBytes(&object)
+```swift
+var object: AnyObject = ...
+readBytes(&object)
+```
 
 Balancing safety with C interoperability usability is often difficult, but in this case we can achieve much greater safety without sacrificing much overall usability. Given the recent improvements to pointer interoperability in Swift 5.7, and with a major language update on the horizon, this good time to correct this behavior.
 
@@ -75,16 +89,19 @@ Concrete types in which the compiler has visibility into the members of the type
 
 Unbound generic types, on the other hand, are conservatively considered non-bitwise-copyable, so the following example will produce a warning:
 
-    func inoutGeneric<T>(t: inout T) {
-      readBytes(&t)  // warning: forming an 'UnsafeRawPointer' to a variable of type 'T' ...
-
-    }
+```swift
+func inoutGeneric<T>(t: inout T) {
+  readBytes(&t)  // warning: forming an 'UnsafeRawPointer' to a variable of type 'T' ...
+}
+```
 
 To mitigate source breakage, conversion of generic types that conform to `FixedWidthInteger` will be allowed.
 
-    func inoutGeneric<T: FixedWidthInteger>(t: inout T) {
-      readBytes(&t)  // no warning
-    }
+```swift
+func inoutGeneric<T: FixedWidthInteger>(t: inout T) {
+  readBytes(&t)  // no warning
+}
+```
 
 This will handle common generic cases that rely on inout to raw pointer conversion, such as `Unicode.Encoding.CodeUnit` and swift-nio's `ByteBuffer` API.
 It is safe to assume that fixed-width integers are bitwise-copyable.
@@ -95,31 +112,35 @@ As discussion in Future Directions, we plan to provide a `BitwiseCopyable` layou
 
 Given Swift declarations:
 
-    func readBytes(_ pointer: UnsafeRawPointer) {...}
-    func writeBytes(_ pointer: UnsafeMutableRawPointer) {...}
+```swift
+func readBytes(_ pointer: UnsafeRawPointer) {...}
+func writeBytes(_ pointer: UnsafeMutableRawPointer) {...}
+```
 
 The new diagnostic warns on the following implicit casts:
 
-    // Let T be a statically non-bitwise-copyable type...
+```swift
+// Let T be a statically non-bitwise-copyable type...
 
-    var t: T = ... 
-    readBytes(&t)
-    writeBytes(&t)
+var t: T = ... 
+readBytes(&t)
+writeBytes(&t)
 
-    let constArray: [T] = ...
-    readBytes(constArray)
+let constArray: [T] = ...
+readBytes(constArray)
 
-    var array: [T] = ...
-    readBytes(&array)
-    writeBytes(&array)
+var array: [T] = ...
+readBytes(&array)
+writeBytes(&array)
 
-    var string: String = ...
-    readBytes(&string)
-    writeBytes(&string)
+var string: String = ...
+readBytes(&string)
+writeBytes(&string)
 
-    var data: Data = ...
-    readBytes(&data)
-    writeBytes(&data)
+var data: Data = ...
+readBytes(&data)
+writeBytes(&data)
+```
 
 The warning for general types takes the form:
 
@@ -135,33 +156,39 @@ The warning for Strings takes the form:
 
 Implicit casts from a FixedWidthInteger will continue to be supported without a warning:
 
-    var int: some FixedWidthInteger = ...
-    readBytes(&int)
-    writeBytes(&int)
+```swift
+var int: some FixedWidthInteger = ...
+readBytes(&int)
+writeBytes(&int)
 
-    let constIntArray: [some FixedWidthInteger] = ...
-    readBytes(constIntArray)
+let constIntArray: [some FixedWidthInteger] = ...
+readBytes(constIntArray)
 
-    var intArray: [some FixedWidthInteger] = ...
-    readBytes(&intArray)
-    writeBytes(&intArray)
+var intArray: [some FixedWidthInteger] = ...
+readBytes(&intArray)
+writeBytes(&intArray)
+```
 
 Implicit casts from bitwise copyable collection elements, will continue to be supported without a warning:
 
-    var byteArray: [UInt8] = [0]
-    readBytes(&byteArray)
-    writeBytes(&byteArray)
+```swift
+var byteArray: [UInt8] = [0]
+readBytes(&byteArray)
+writeBytes(&byteArray)
 
-    let string: String = sarg
-    readBytes(string)
-    readUInt8(string)
+let string: String = sarg
+readBytes(string)
+readUInt8(string)
+```
 
 Given the C declarations:
 
-    void read_char(const char *input);
-    void read_uchar(const unsigned char *input);
-    void write_char(char *input);
-    void write_uchar(unsigned char *input);
+```c
+void read_char(const char *input);
+void read_uchar(const unsigned char *input);
+void write_char(char *input);
+void write_uchar(unsigned char *input);
+```
 
 Per [SE-0324: Relax diagnostics for pointer arguments to C functions](https://github.com/apple/swift-evolution/blob/main/proposals/0324-c-lang-pointer-arg-conversion.md), all of the above implicit casts will have the same behavior after substituting `read_char` or `read_uchar` in place of `readBytes`  after substituting `write_char` or `write_uchar` in place of `writeBytes`.
 
@@ -182,45 +209,52 @@ Users can silence the warning using an explicit conversion, such as `withUnsafeP
 To pass the address of an internal stored property through an opaque
 pointer (unsupported but not uncommon):
 
-    // C declaration
-    // void take_opaque_pointer(void *);
+```swift
+// C declaration
+// void take_opaque_pointer(void *);
 
-    class TestStoredProperty {
-      var property: AnyObject? = nil
+class TestStoredProperty {
+  var property: AnyObject? = nil
 
-      func testPropertyId() {
-        withUnsafePointer(to: &property) {
-          take_opaque_pointer($0)
-        }
-      }
+  func testPropertyId() {
+    withUnsafePointer(to: &property) {
+      take_opaque_pointer($0)
     }
+  }
+}
+```
     
 Note that `property` must be passed `inout` by using the `&` sigil. Simply calling `withUnsafePointer(to: property)` would create a temporary copy of `property`.
 
 To pass a class reference through an opaque pointer:
 
-    // C decl
-    // void take_opaque_pointer(void *);
-    
-    let object: AnyObject = ...
-    withExtendedLifetime (object) {
-      take_opaque_pointer(Unmanaged.passUnretained(object).toOpaque());
-    }
+```swift
+// C decl
+// void take_opaque_pointer(void *);
+
+let object: AnyObject = ...
+withExtendedLifetime (object) {
+  take_opaque_pointer(Unmanaged.passUnretained(object).toOpaque());
+}
+```
 
 To expose the bitwise representation of class references:
 
-    func readBytes(_ pointer: UnsafeRawPointer) {...}
+```swift
+func readBytes(_ pointer: UnsafeRawPointer) {...}
 
-    withUnsafePointer(to: object) {
-      readBytes($0)
-    }
-    
+withUnsafePointer(to: object) {
+  readBytes($0)
+}
+```
 
 The diagnostic message does not mention specific workarounds, such as `withUnsafeBytes(of:)`, because, although helpful for migration, that would push developers toward writing invalid code in the future. For example, if a user incorrectly tries to convert a user-defined collection directly to a raw pointer, a diagnostic that suggests `withUnsafeBytes(of:)` would encourage rewriting the code as follows:
 
-    withUnsafeBytes(of: &collection) {
-      readBytes($0.baseAddress!)
-    }
+```swift
+withUnsafeBytes(of: &collection) {
+  readBytes($0.baseAddress!)
+}
+```
 
 This actually promotes the behavior that we're trying to prevent! Quite often, the programmer instead needs to reach for a method on a collection type, such as Data.withUnsafeBytes().
     
@@ -230,71 +264,79 @@ Associated objects are strongly discouraged in Swift and may be deprecated. None
 
 Code that attempts to take the address of a String as an associated object key will now raise a type conversion warning:
 
-    import Foundation
-     
-    class Container {
-      static var key = "key"
+```swift
+import Foundation
+ 
+class Container {
+  static var key = "key"
 
-      func getObject() -> Any? {
-        // warning: forming 'UnsafeRawPointer' to an inout variable of type String
-        // exposes the internal representation rather than the string contents.
-        return objc_getAssociatedObject(self, &Container.key)
-      }
-    }
+  func getObject() -> Any? {
+    // warning: forming 'UnsafeRawPointer' to an inout variable of type String
+    // exposes the internal representation rather than the string contents.
+    return objc_getAssociatedObject(self, &Container.key)
+  }
+}
+```
 
 This can be rewritten using the direct, low-level `withUnsafePointer` workaround:
 
-    class Container {
-      static var key = "key"
+```swift
+class Container {
+  static var key = "key"
 
-      func getObject() -> Any? {
-        withUnsafePointer(to: &Container.key) {
-          return objc_getAssociatedObject(self, $0)
-        }
-      }
+  func getObject() -> Any? {
+    withUnsafePointer(to: &Container.key) {
+      return objc_getAssociatedObject(self, $0)
     }
+  }
+}
+```
 
 Note that `Container.key` must be passed `inout` by using the `&` sigil. Simply calling `withUnsafePointer(to: Container.key)` would create a temporary copy of the key.
 
 Alternatively, you can use the key's object identity rather the address of the property. But this only works with objects that require separate allocation at instantiation. Neither NSString, nor NSNumber can be safely used. NSObject is a safe bet:
 
-    class Container {
-      static var key = NSObject()
+```swift
+class Container {
+  static var key = NSObject()
 
-      func getID(_ object: AnyObject) -> UnsafeRawPointer {
-        return UnsafeRawPointer(Unmanaged.passUnretained(object).toOpaque())
-      }
-      func getObject() -> Any? {
-        return objc_getAssociatedObject(self, getID(Container.key))
-      }
-    }
+  func getID(_ object: AnyObject) -> UnsafeRawPointer {
+    return UnsafeRawPointer(Unmanaged.passUnretained(object).toOpaque())
+  }
+  func getObject() -> Any? {
+    return objc_getAssociatedObject(self, getID(Container.key))
+  }
+}
+```
 
 A safer and more principled approach would be to use a general purpose property wrapper to define unique, pointer-sized keys:
 
-    @propertyWrapper
-    struct UniqueAddress {
-      var _placeholder: Int8 = 0
-     
-      var wrappedValue: UnsafeRawPointer {
-        mutating get {
-          // This is "ok" only as long as the wrapped property appears
-          // inside of something with a stable address (a global/static
-          // variable or class property) and the pointer is never read or
-          // written through, only used for its unique value
-          return withUnsafeBytes(of: &self) {
-            return $0.baseAddress.unsafelyUnwrapped
-          }
-        }
+```swift
+@propertyWrapper
+struct UniqueAddress {
+  var _placeholder: Int8 = 0
+ 
+  var wrappedValue: UnsafeRawPointer {
+    mutating get {
+      // This is "ok" only as long as the wrapped property appears
+      // inside of something with a stable address (a global/static
+      // variable or class property) and the pointer is never read or
+      // written through, only used for its unique value
+      return withUnsafeBytes(of: &self) {
+        return $0.baseAddress.unsafelyUnwrapped
       }
     }
-    
-    class Container {
-      @UniqueAddress static var key
-      
-      func getObject() -> Any? {
-        return objc_getAssociatedObject(self, Container.key)
-      }
-    }
+  }
+}
+
+class Container {
+  @UniqueAddress static var key
+  
+  func getObject() -> Any? {
+    return objc_getAssociatedObject(self, Container.key)
+  }
+}
+```
 
 ## Effects on ABI stability
 
@@ -319,20 +361,26 @@ We could forbid all implicit inout conversion to raw pointers, except for direct
 
 The most common uses involving C functions would still work:
 
-    char c_buffer[10]; // C header
-    read_char(&c_buffer) // called from Swift code
+```c
+char c_buffer[10]; // C header
+read_char(&c_buffer) // called from Swift code
+```
 
 This would, however, break legitimate uses of inout-to-raw-pointer conversion in Swift, forcing the use of a closure-taking API. There are already published examples of Swift-to-C interoperability that rely on this feature, similar to the example from the introduction:
 
-    var x: UInt16 = 0xaaaa
-    readBytes(&x)
+```swift
+var x: UInt16 = 0xaaaa
+readBytes(&x)
+```
 
 We would need to ask users to migrate all these cases to:
 
-    var x: UInt16 = 0xaaaa
-    withUnsafeBytes(of: x) {
-      readBytes($0)
-    }
+```swift
+var x: UInt16 = 0xaaaa
+withUnsafeBytes(of: x) {
+  readBytes($0)
+}
+```
     
 While this may seem consistent with Swift's policy of explicitly requiring an "unsafe" API in cases that may lead to undefined behavior, the downsides outweigh that benefit:
 
@@ -349,10 +397,14 @@ More importantly, *this solution does not actually address the cases that pose t
 
 Implicit conversion is generally dangerous because it allows interior pointers to escape, exposing undefined behavior and use-after-free security bugs. The most commonly misused cases are the special cases that were added for convenience: Arrays, and Strings. We could disable these special cases. For example, this would now be en error:
 
-    void read_char(char *input);
-    
-    let string: String = ...
-    read_char(string)
+```c
+void read_char(char *input);
+```
+
+```swift
+let string: String = ...
+read_char(string)
+```
 
 This case is not as dangerous as the inout conversion to raw pointers case addressed by this proposal because it does not expose internal control data. This case is only problematic when the pointer-taking-function returns or otherwise escapes the transient pointer, potentially resulting in a use-after-free, which is common problem with C APIs in general.
 
@@ -368,16 +420,18 @@ Generic code may require a source compatibility workaround even for generic type
 
 The following conversions would now be valid:
 
-    func foo<T: BitwiseCopyable>(_: T.Type) {
-      var t: T = ...
-      readBytes(&t)
-   
-      let array: [T] = ...
-      readBytes(t)
-   
-      var array: [T] = ...
-      readBytes(&t)
-    }
+```swift
+func foo<T: BitwiseCopyable>(_: T.Type) {
+  var t: T = ...
+  readBytes(&t)
+
+  let array: [T] = ...
+  readBytes(t)
+
+  var array: [T] = ...
+  readBytes(&t)
+}
+```
     
 Various standard API's already require bitwise copyability, but there is no way to express the requirement. Instead, we use dynamic `_isPOD()` assertions. For years, there has been strong consensus that this should be handled by a layout constraint. Having this generic type constraint would give users a way to work around the new conversion restrictions in generic code.
 
@@ -386,22 +440,24 @@ A proposal for this feature is in progress. We expect `BitwiseCopyable` to be av
 ### Forbid withUnsafeBytes(of:_:) for non-bitwise-copyable or CoW types
 
 The following use cases should be illegal similar to their inout conversion counterparts. When programmers ask for the "bytes" of a collection, they almost certainly wanted to view the elements. Rather than leak the internal representation of the collection.
-    
-    var string: String = ...
-    withUnsafeBytes(of: &string) {...}
 
-    var array: [T] = ...
-    withUnsafeBytes(of: &array) {...}
+```swift    
+var string: String = ...
+withUnsafeBytes(of: &string) {...}
 
-    var set: Set<T> = ...
-    withUnsafeBytes(of: &set) {...}
+var array: [T] = ...
+withUnsafeBytes(of: &array) {...}
 
-    var data: Data = ...
-    withUnsafeBytes(of: &data) {...}
+var set: Set<T> = ...
+withUnsafeBytes(of: &set) {...}
+
+var data: Data = ...
+withUnsafeBytes(of: &data) {...}
+```
 
 In the future, this can be done with an overload:
 
-```
+```swift
 @available(swift, deprecated: 6, message: "either use withUnsafePointer(of:) to point to a value containing object references, or use a method to retrieve the contents of a container")
 public func withUnsafeBytes<T: BitwiseCopyable, Result>(
   of value: inout T,
@@ -411,7 +467,7 @@ public func withUnsafeBytes<T: BitwiseCopyable, Result>(
 
 By adding a new CopyOnWriteValue marker protocol with conformances from String, Array, Set, and Data, this restriction could be narrowed to diagnose only the most confusing cases shown above without affecting all non-bitwise-copyable values.
 
-```
+```swift
 @available(swift, deprecated: 6, message: "use a method to retrieve the contents of a container")
 public func withUnsafeBytes<T: CopyOnWriteValue, Result>(
   of value: inout T,
