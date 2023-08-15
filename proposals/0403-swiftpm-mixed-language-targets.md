@@ -201,6 +201,10 @@ While an implementation detail, it’s worth noting that in this approach, a
 Clang sources. This extends to the `MixedTargetDescription` type in that it
 wraps a `SwiftTargetDescription` and `ClangTargetDescription`.
 
+Using this approach allows for greater code-reuse, and reduces the chance of
+introducing a regression from changing existing sub-target types like
+`SwiftTarget` and `ClangTarget`.
+
 The role of the `MixedTargetBuildDescription` is to generate auxiliary
 artifacts needed for the build and pass specific build flags to the underlying
 `SwiftTargetBuildDescription` and `ClangTargetBuildDescription`.
@@ -480,30 +484,6 @@ Additionally, this feature will be gated on a tools minor version update, so
 mixed language targets building on older toolchains that do not support this
 feature will continue to [throw an error][mixed-target-error].
 
-## Alternatives considered
-
-### Provide custom implementations for `MixedTarget` and `MixedTargetBuildDescription`
-
-As explained in the Detailed Design section, these two types effectively wrap
-the Swift and Clang parts necessary to define or build the target. One
-alternative approach was to provide custom implementations that did not heavily
-rely on code reuse of existing types. The deciding drawback of this approach
-was that it would have resulted in a lot of duplicated code.
-
-### Consolidate target modeling logic so that all targets are `MixedTarget`s
-
-The deciding drawback here was the risk of introducing a regression in how
-Swift or Clang targets are built. A benefit of the chosen design over this
-alternative is that the code paths introduced in this proposal have little
-crossover with the existing code paths that build Swift or Clang targets–
-further reducing the chance of introducing an untested regression. However,
-this alternative should be considered as a future direction for the package
-manager. The chosen design offers a natural path to making all targets mixed
-source targets by default. The implementations from `ClangTarget`,
-`SwiftTarget`, `ClangTargetBuildDescription` and  `SwiftTargetBuildDescription`
-can be bubbled up to the mixed target types accordingly. This alternative is
-listed in the Future Directions section as an area of future work.
-
 ## Future Directions
 
 - Enable package authors to expose non-public headers to their mixed
@@ -511,8 +491,10 @@ listed in the Future Directions section as an area of future work.
 - Investigate uses cases for extending mixed language target support to
   currently unsupported types of targets (e.g. executables).
 - Extend this solution so that all targets are mixed language targets by
-  default. This refactor would simplify the current implementation of the
-  package manager.
+  default. This could simplify the implemention as language-specific types
+  like `ClangTarget`, `SwiftTarget`, and `MixedTarget` could be consolidated
+  into a single type. This approach was avoided in the initial implementation
+  of this feature to reduce the risk of introducing a regression.
 
 <!-- Links -->
 
