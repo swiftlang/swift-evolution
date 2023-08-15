@@ -488,8 +488,8 @@ feature will continue to [throw an error][mixed-target-error].
 
 - Enable package authors to expose non-public headers to their mixed
   target's Swift implemention.
-- Investigate uses cases for extending mixed language target support to
-  currently unsupported types of targets (e.g. executables).
+- Extend mixed language target support to currently unsupported types of
+  targets (e.g. executables).
 - Extend this solution so that all targets are mixed language targets by
   default. This could simplify the implemention as language-specific types
   like `ClangTarget`, `SwiftTarget`, and `MixedTarget` could be consolidated
