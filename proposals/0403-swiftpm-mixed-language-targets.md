@@ -455,20 +455,6 @@ There are several failure cases that may surface to end users:
   module \(target name).
   ```
 
-### Testing
-
-This feature was tested with a mix of unit and integration tests.
-- `Tests/BuildTests/BuildPlanTests.swift`: Added several unit tests to assert
-  behavior for fundamental mixed target use cases.
-- `Tests/PackageLoadingTests/ModuleMapGenerationTests.swift`: Added a unit test
-  to cover changes at the module map generation level.
-- `Tests/PackageLoadingTests/PackageBuilderTests.swift`: Added several unit
-  tests to assert behavior  when loading a mixed target.
-- `Tests/FunctionalTests/MixedTargetTests.swift`: Added a thorough suite of
-  integration tests that use targets defined in the `Fixtures/MixedTargets`
-  directory. These fixture targets double as documented examples for different
-  mixed target configurations.
-
 ## Security
 
 This has no impact on security, safety, or privacy.
