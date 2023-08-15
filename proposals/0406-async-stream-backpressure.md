@@ -5,7 +5,7 @@
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (August 15...28, 2023)**
 * Implementation: [apple/swift#66488](https://github.com/apple/swift/pull/66488)
-* Review: ([pitch](https://forums.swift.org/t/pitch-new-apis-for-async-throwing-stream-with-backpressure-support/65449))
+* Review: ([pitch](https://forums.swift.org/t/pitch-new-apis-for-async-throwing-stream-with-backpressure-support/65449)) ([review](https://forums.swift.org/t/se-0406-backpressure-support-for-asyncstream/66771))
 
 ## Introduction
 
