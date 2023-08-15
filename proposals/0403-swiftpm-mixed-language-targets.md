@@ -177,6 +177,69 @@ example demonstrates all the possible public headers that can be imported from
 #import "MixedPackage-Swift.h"
 ```
 
+## Plugin Support
+
+Package manager plugins should be able to process mixed language source
+targets. The following type will be added to the `PackagePlugin` module
+to represent a mixed language target in a plugin's context.
+
+This API was created by joining together the properties of the existing
+`SwiftSourceModuleTarget` and `ClangSourceModuleTarget` types
+([source][Swift-Clang-SourceModuleTarget]).
+
+```swift
+/// Represents a target consisting of a source code module compiled using both the Clang and Swift compiler.
+public struct MixedSourceModuleTarget: SourceModuleTarget {
+    /// Unique identifier for the target.
+    public let id: ID
+
+    /// The name of the target, as defined in the package manifest. This name
+    /// is unique among the targets of the package in which it is defined.
+    public let name: String
+
+    /// The kind of module, describing whether it contains unit tests, contains
+    /// the main entry point of an executable, or neither.
+    public let kind: ModuleKind
+
+    /// The absolute path of the target directory in the local file system.
+    public let directory: Path
+
+    /// Any other targets on which this target depends, in the same order as
+    /// they are specified in the package manifest. Conditional dependencies
+    /// that do not apply have already been filtered out.
+    public let dependencies: [TargetDependency]
+
+    /// The name of the module produced by the target (derived from the target
+    /// name, though future SwiftPM versions may allow this to be customized).
+    public let moduleName: String
+
+    /// The source files that are associated with this target (any files that
+    /// have been excluded in the manifest have already been filtered out).
+    public let sourceFiles: FileList
+
+    /// Any custom compilation conditions specified for the target's Swift sources.
+    public let swiftCompilationConditions: [String]
+
+    /// Any preprocessor definitions specified for the target's Clang sources.
+    public let clangPreprocessorDefinitions: [String]
+
+    /// Any custom header search paths specified for the Clang target.
+    public let headerSearchPaths: [String]
+
+    /// The directory containing public C headers, if applicable. This will
+    /// only be set for targets that have a directory of a public headers.
+    public let publicHeadersDirectory: Path?
+
+    /// Any custom linked libraries required by the module, as specified in the
+    /// package manifest.
+    public let linkedLibraries: [String]
+
+    /// Any custom linked frameworks required by the module, as specified in the
+    /// package manifest.
+    public let linkedFrameworks: [String]
+}
+```
+
 
 ## Detailed design
 
@@ -509,3 +572,5 @@ feature will continue to [throw an error][mixed-target-error].
 [should-emit-header]: https://github.com/apple/swift-package-manager/blob/6478e2724b8bf77856ff358cba5f59a4a62978bf/Sources/Build/BuildDescription/SwiftTargetBuildDescription.swift#L732-L735
 
 [swift-emit-header-fr]: https://forums.swift.org/t/se-0403-package-manager-mixed-language-target-support/66202/31
+
+[Swift-Clang-SourceModuleTarget]: https://github.com/apple/swift-package-manager/blob/8e512308530f808e9ef0cd149f4f632339c65bc4/Sources/PackagePlugin/PackageModel.swift#L231-L319
