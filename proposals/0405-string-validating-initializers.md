@@ -26,7 +26,7 @@ We will add a new `String` initializer that can fail, returning `nil`, when its 
 ```swift
 extension String {
   public init?<Encoding: Unicode.Encoding>(
-  	validating codeUnits: some Sequence<Encoding.CodeUnit>, as: Encoding.Type
+    validating codeUnits: some Sequence<Encoding.CodeUnit>, as: Encoding.Type
   )
 }
 ```
@@ -49,7 +49,7 @@ extension String {
 }
 ```
 
-The `String.init(validatingAsUTF8:)` functions convert their whole input, including any embedded `\0` code units.
+The `String.init(validatingAsUTF8:)` functions convert their whole input, including any embedded `\0` code units.
 
 `String` already features a validating initializer for UTF-8 input, though it is intended for C interoperability.  Its argument label does not convey the expectation that its input is a null-terminated C string, and this has caused errors. We propose to change the labels in order to clarify the preconditions:
 
@@ -202,11 +202,15 @@ extension String {
 
 ## Source Compatibility
 
-This proposal is strictly additive.
+This proposal consists mostly of additions, which are by definition source compatible.
+
+The proposal includes the renaming of one function from `String.init?(validatingUTF8:)` to `String.init?(validatingCString:)`. The existing function name will be deprecated, producing a warning. A fixit will support an easy transition to the renamed version of the function.
 
 ## ABI Compatibility
 
 This proposal adds new functions to the ABI.
+
+The renamed function reuses the existing ABI entry point, making the change ABI-compatible.
 
 ## Implications on adoption
 
