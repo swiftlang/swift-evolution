@@ -119,8 +119,9 @@ We suggest allowing any protocol to be used as a type and exercise the restricti
 
 ```swift
 protocol IntCollection: RangeReplaceableCollection where Self.Element == Int {}
+extension Array : IntCollection where Element == Int {}
 
-let array: IntCollection = [3, 1, 4, 1, 5]
+var array: any IntCollection = [3, 1, 4, 1, 5]
 
 array.append(9) // OK, 'Self.Element' is known to be 'Int'.
 ```
