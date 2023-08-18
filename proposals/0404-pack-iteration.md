@@ -50,7 +50,7 @@ We propose allowing iteration over value packs using `for-in` loops. With the ad
 ```swift
 func == <each Element: Equatable>(lhs: (repeat each Element), rhs: (repeat each Element)) -> Bool {
 
-  for left, right in repeat (each lhs, each rhs) {
+  for (left, right) in repeat (each lhs, each rhs) {
     guard left == right else { return false }
   }
   return true
