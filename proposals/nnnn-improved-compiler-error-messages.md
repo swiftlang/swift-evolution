@@ -19,7 +19,7 @@ struct Person {
 let adam = Person(name: "Adam", age: 18)
 adam.walk()
 ```
-When the above code compiles, the compiler error would be
+When the above code compiles, the compiler error is
 
 ```
 error: value of type 'Person' has no member 'walk'
