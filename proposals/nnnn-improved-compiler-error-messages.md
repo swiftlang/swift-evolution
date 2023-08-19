@@ -118,7 +118,7 @@ Also using a new compiler flag 'describe', we could reference the preceding erro
 The following would be the output
 
 ```
-This error occurs when a method is used on a type which doesn't implement it:
+This error occurs when a method is called on a type which doesn't implement it:
 
 Error:
 struct Example {}
