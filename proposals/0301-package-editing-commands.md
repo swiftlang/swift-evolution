@@ -1,3 +1,4 @@
+# https://github.com/apple/swift-evolution/blob/7003da1439ad60896ec14657dfce829f04b0632c/proposals/0301-package-editing-commands.md#editing-non-declarative-manifests
 # Package Editor Commands
 
 * Proposal: [SE-0301](0301-package-editing-commands.md) 
