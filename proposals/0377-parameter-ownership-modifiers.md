@@ -1,4 +1,4 @@
-# Main branch 
+# **Main branch**
 # `borrowing` and `consuming` parameter ownership modifiers
 
 * Proposal: [SE-0377](0377-parameter-ownership-modifiers.md)
