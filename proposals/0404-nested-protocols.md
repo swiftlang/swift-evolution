@@ -49,7 +49,7 @@ class TableView {
 }
 ```
 
-Protocols can also be nested within non-generic functions and closures. Admittedly, this is of somewhat limited utility, as all conformances to such protocols must also be within the same function. However, there is also no reason to artificially limit the complexity of the models which developers create within a function. Some codebases (of note, the Swift compiler itself) make use of large closures with nested types, and they beneift from abstractions using protocols.
+Protocols can also be nested within non-generic functions and closures. Admittedly, this is of somewhat limited utility, as all conformances to such protocols must also be within the same function. However, there is also no reason to artificially limit the complexity of the models which developers create within a function. Some codebases (of note, the Swift compiler itself) make use of large closures with nested types, and they benefit from abstractions using protocols.
 
 ```swift
 func doSomething() {
