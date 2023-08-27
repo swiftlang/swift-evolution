@@ -259,7 +259,7 @@ let string = Foo().with
 print(string.uppercased())
 ```
 
-To prevent this source break, we can make it so that the new `with` overload doesn't suppress the dynamic member subscrpt overload when accessing a dyanmic member named "with". Combining this with `@_disfavoredOverload` allows the above example to continue compiling / functioning exactly as it did before.
+To prevent this source break, we can make it so that the new `with` overload doesn't suppress the dynamic member subscrpt overload when accessing a dynamic member named "with". Combining this with `@_disfavoredOverload` allows the above example to continue compiling / functioning exactly as it did before.
 
 This additional behavior could potentially be removed in Swift 6 mode, where a source break could be acceptable.
 
