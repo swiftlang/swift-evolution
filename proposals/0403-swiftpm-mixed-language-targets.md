@@ -3,7 +3,7 @@
 * Proposal: [SE-0403](0403-swiftpm-mixed-language-targets.md)
 * Authors: [Nick Cooke](https://github.com/ncooke3)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Scheduled for review (July 17, 2023...July 28, 2023)**
+* Status: **Returned for Revision**
 * Implementation: [apple/swift-package-manager#5919](https://github.com/apple/swift-package-manager/pull/5919)
 * Decision Notes: [Pitch](https://forums.swift.org/t/61564)
 
