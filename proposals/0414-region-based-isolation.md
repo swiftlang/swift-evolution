@@ -903,10 +903,12 @@ allowed to be passed over isolation boundaries since they may have captured
 state from within the isolation domain in which the closure is defined. We would
 like to loosen these rules.
 
-#### Closure Captures
+#### Captures
 
-The rules for regions defined above specify that a closure's region is the merge
-of its non-`Sendable` captured parameters:
+A non-`Sendable` closure's region is the merge of its non-`Sendable` captured
+parameters. As such a nonisolated non-`Sendable` closure that only captures
+values that are in disconnected regions must itself be in a disconnected region
+and can be transferred:
 
 ```swift
 let x = NonSendable()
@@ -915,61 +917,99 @@ let y = NonSendable()
 // Regions: [(x), (y)]
 let closure = { useValues(x, y) }
 // Regions: [(x, y, closure)]
+await transferToMain(closure) // Ok to transfer!
+// Regions: [{(x, y, closure), @MainActor}]
 ```
 
-Since closure captures are actually a form of parameter when the closure is
-invoked, closure parameters like other function parameters are not allowed to be
-transferred within a closures body:
+A non-`Sendable` closure that captures an actor-isolated value is considered to
+be within the actor-isolated region of the value:
 
 ```swift
-let x = NonSendable()
-// Regions: [(x)]
-let closure: () async -> () = {
-  // Error! Cannot transfer a captured closure parameter!
-  await transferToMainActor(x)
-}
-```
+actor MyActor {
+  var ns = NonSendable()
 
-If a closure is isolated to an actor due to capturing an actor or part of an
-actor, then these captured parameters and the closure become merged into the
-actor's region meaning that their merged region cannot be transferred:
-
-```swift
-actor Actor {
-  var ns: NonSendable()
-
-  func useNonSendable(_ value: NonSendable) { ... }
-
-  func attemptToTransfer() async {
-    let x = NonSendable()
-    // Regions: [(x), {(self.ns), self}]
-    let closure: () -> () = { self.useNonSendable(x) }
-    // Regions: [{(self.ns, x, closure), self}]
-    await transferToMainActor(closure) // Error! Cannot transfer from actor region
-    await transferToMainActor(x) // Error! Cannot transfer from actor region
+  func doSomething() {
+    let closure = { print(self.ns) }
+    // Regions: [{(closure, self.ns), self}]
+    await transferToMain(closure) // Error! Cannot transfer value in actor region.
   }
 }
 ```
 
-In contrast, if a closure is nonisolated and only captures non-`Sendable` values
-from a disconnected region, then the resulting region from the closures
-formation is a disconnected isolation region:
+When a non-`Sendable` value is captured by an actor-isolated non-`Sendable`
+closure, we treat the value as being transferred into the actor isolation domain
+since the value is now able to merged into actor-isolated state:
 
 ```swift
-extension Actor {
+@MainActor var nonSendableGlobal = NonSendable()
+
+func globalActorIsolatedClosureTransfersExample() {
   let x = NonSendable()
-  // Regions: [(x)]
-  let closure: () -> () = { print(x) }
-  // Regions: [(x, closure)]
-  // ...
+  // Regions: [(x), {(nonSendableGlobal), MainActor}]
+  let closure = { @MainActor in
+    nonSendableGlobal = x // Error! x is transferred into @MainActor and then accessed later.
+  }
+  // Regions: [{(nonSendableGlobal, x, closure), MainActor}]
+  useValue(x) // Later access is here
+}
+
+actor MyActor {
+  var field = NonSendable()
+  
+  func closureThatCapturesActorIsolatedStateTransfersExample() {
+    let x = NonSendable()
+    // Regions: [(x), {(nonSendableGlobal), MainActor}]
+    let closure = {
+      self.field.doSomething()
+      x.doSomething() // Error! x is transferred into @MainActor and then accessed later.
+    }
+    // Regions: [{(nonSendableGlobal, x, closure), MainActor}]
+    useValue(x) // Later access is here
+  }
 }
 ```
 
-#### Transferring Nonisolated Closures
+Importantly this ensures that APIs like `assumeIsolated` that take an
+actor-isolated closure argument cannot introduce races by transferring function
+parameters of nonisolated functions into an isolated closure:
 
-A nonisolated non-`Sendable` synchronous or asynchronous closure can be
-transferred into another isolation domain if the closure's region is never
-used again locally:
+```swift
+@MainActor
+final class ContainsNonSendable {
+  var ns: NonSendableType = .init()
+
+  nonisolated func unsafeSet(_ ns: NonSendableType) {
+    self.assumeIsolated { isolatedSelf in
+      isolatedSelf.ns = ns // Error! Cannot transfer a parameter!
+    }
+  }
+}
+
+func assumeIsolatedError(actor: ContainsNonSendable) async {
+  let x = NonSendableType()
+  actor1.unsafeSet(x)
+  useValue(x) // Race is here
+}
+```
+
+Within the body of a non-`Sendable` closure, the closure and its non-`Sendable`
+captures are treated as being Task isolated since just like a parameter, both
+the closure and the captures may have uses in their caller:
+
+```swift
+var x = NonSendable()
+var closure = {}
+closure = {
+  await transferToMain(x) // Error! Cannot transfer Task isolated value!
+  await transferToMain(closure) // Error! Cannot transfer Task isolated value!
+}
+```
+
+#### Transferring
+
+A nonisolated non-`Sendable` synchronous or asynchronous closure that is in a
+disconnected region can be transferred into another isolation domain if the
+closure's region is never used again locally:
 
 ```swift
 extension MyActor {
@@ -995,16 +1035,11 @@ extension MyActor {
 }
 ```
 
-This follows from said closure being initialized within a disconnected
-isolation region.
-
-#### Isolated Closures
-
-A synchronous non-`Sendable` closure that is isolated to an actor cannot be
-transferred to a callsite that expects a synchronous closure. This is because as
-part of transferring the closure, we have erased the specific isolation domain
-that the closure was isolated to, so we cannot guarantee that we will invoke the
-value in the actor's isolation domain:
+An actor-isolated synchronous non-`Sendable` closure cannot be transferred to a
+callsite that expects a synchronous closure. This is because as part of
+transferring the closure, we have erased the specific isolation domain that the
+closure was isolated to, so we cannot guarantee that we will invoke the value in
+the actor's isolation domain:
 
 ```swift
 @MainActor func transferClosure(_ f: () -> ()) async { ... }
@@ -1023,13 +1058,13 @@ extension Actor {
 }
 ```
 
-In the future, we may be able to accept this code in the future if we allowed
-for isolated synchronous closures to propagate around the specific isolation
-domain that they belonged to and dynamically swap to it. We discuss *dynamic
-isolation domains* as an extension below.
+We may be able to accept this code in the future if we allowed for isolated
+synchronous closures to propagate around the specific isolation domain that they
+belonged to and dynamically swap to it. We discuss *dynamic isolation domains*
+as an extension below.
 
-In contrast, one can pass a synchronous non-`Sendable` isolated closure
-transferring call site that expects an asynchronous function argument. This is
+In contrast, one can transfer an actor-isolated synchronous non-`Sendable`
+closure at a call site that expects an asynchronous function argument. This is
 because the closure will be wrapped into an asynchronous thunk that will hop
 onto the defining isolation domain of the closure:
 
@@ -1054,9 +1089,9 @@ In the example above, since the closure is wrapped in the asynchronous thunk and
 that thunk hops onto the Actor's executor before calling the closure, we know
 that isolation to the actor is preserved when we call the synchronous closure.
 
-An asynchronous non-Sendable closure that is isolated to an actor can be
-transferred since upon the closure's invocation, we will always hop into the
-actor's isolation domain:
+An actor-isolated asynchronous non-`Sendable` closure can be transferred since
+upon the closure's invocation, we will always hop into the actor's isolation
+domain:
 
 ```swift
 extension Actor {
@@ -1074,6 +1109,119 @@ extension Actor {
     // ... so this is safe as well.
     await transferClosure(closure)
   }
+}
+```
+
+#### Closures and Global Actors
+
+If a closure uses values that are isolated from a global actor in any way, we
+assume that the closure must also be isolated to that global actor:
+
+```swift
+@MainActor func mainActorUtility() {}
+
+@MainActor func mainActorIsolatedClosure() async {
+  let closure = {
+    mainActorUtility()
+  }
+  // Regions: [{(closure), @MainActor}]
+  await transferToCustomActor(closure) // Error!
+}
+```
+
+If `mainActorUtility` was not called within `closure`'s body then `closure`
+would be disconnected and could be transferred:"
+
+```swift
+@MainActor func mainActorUtility() {}
+
+@MainActor func mainActorIsolatedClosure() async {
+  let closure = {
+    ...
+  }
+  // Regions: [(closure)]
+  await transferToCustomActor(closure) // Ok!
+}
+```
+
+### KeyPath
+
+A non-`Sendable` keypath that is not actor-isolated is considered to be
+disconnected and can be transferred into an isolation domain as long as the
+value's region is not reused again locally:
+
+```swift
+class Person {
+  var name = "John Smith"
+}
+
+class Wrapper<Root: AnyObject> {
+  var root: Root
+  init(root: Root) { self.root = root }
+  func setKeyPath<T>(_ keyPath: ReferenceWritableKeyPath<Root, T>, to value: T) {
+    root[keyPath: keyPath] = value
+  }
+}
+
+func useNonIsolatedKeyPath() async {
+  let nonIsolated = Person()
+  // Regions: [(nonIsolated)]
+  let wrapper = Wrapper(root: nonIsolated)
+  // Regions: [(nonIsolated, wrapper)]
+  let keyPath = \Person.name
+  // Regions: [(nonIsolated, wrapper, keyPath)]
+  await transferToMain(keyPath) // Ok!
+  await wrapper.setKeyPath(keyPath, to: "Jenny Smith") // Error!
+}
+```
+
+A non-`Sendable` keypath that is actor-isolated is considered to be in the
+actor's isolation domain and as such cannot be transferred out of the actor's
+isolation domain:
+
+```swift
+@MainActor
+final class MainActorIsolatedKlass {
+  var name = "John Smith"
+}
+
+@MainActor
+func useKeyPath() async {
+  let actorIsolatedKlass = MainActorIsolatedKlass()
+  // Regions: [{(actorIsolatedKlass.name), @MainActor}]
+  let wrapper = Wrapper(root: actorIsolatedKlass)
+  // Regions: [{(actorIsolatedKlass.name), @MainActor}]
+  let keyPath = \MainActorIsolatedKlass.name
+  // Regions: [{(actorIsolatedKlass.name, keyPath), @MainActor}]
+  await wrapper.setKeyPath(keyPath, to: "value") // Error! Cannot pass non-`Sendable`
+                                                 // keypath out of actor isolated domain.
+}
+```
+
+If a KeyPath captures any values then the KeyPath's region consists of a merge
+of the captured values regions combined with the actor-isolation region of the
+KeyPath if the KeyPath is isolated to an actor:
+
+```swift
+class NonSendableType {
+  subscript<T>(_ t: T) -> Bool { ... }
+}
+
+func keyPathInActorIsolatedRegionDueToCapture() async {
+  let mainActorKlass = MainActorIsolatedKlass()
+  // Regions: [{(mainActorKlass), @MainActor}]
+  let keyPath = \NonSendableType.[mainActorKlass]
+  // Regions: [{(mainActorKlass, keyPath), @MainActor}]
+  await transferToMainActor(keyPath) // Error! Cannot transfer keypath in actor isolated region!
+}
+
+func keyPathInDisconnectedRegionDueToCapture() async {
+  let ns = NonSendableType()
+  // Regions: [(ns)]
+  let keyPath = \NonSendableType.[ns]
+  // Regions: [(ns, keyPath)]
+  await transferToMainActor(ns)
+  useValue(keyPath) // Error! Use of keyPath after transferring ns
 }
 ```
 
