@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting Review**
 * Implementation: Already in main, currently requires explicit `_Backtracing` import.
-* Review: ([pitch][https://forums.swift.org/t/pitch-swift-backtracing-api/62741/20])
+* Review: ([pitch](https://forums.swift.org/t/pitch-swift-backtracing-api/62741/20))
 
 ## Introduction
 
