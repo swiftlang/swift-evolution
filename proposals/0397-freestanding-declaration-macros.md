@@ -148,7 +148,7 @@ public struct UInt64 { ... }
 
 ### Restrictions
 
-Like attached peer macros, a freestanding declaration macro can expand to any declaration that is syntatically and semantically well-formed within the context where the macro is expanded. It shares the same requirements and restrictions:
+Like attached peer macros, a freestanding declaration macro can expand to any declaration that is syntactically and semantically well-formed within the context where the macro is expanded. It shares the same requirements and restrictions:
 
 - [**Specifying newly-introduced names**](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#specifying-newly-introduced-names)
   - Note that only `named(...)` and `arbitrary` are allowed as macro-introduced names for a declaration macro. `overloaded`, `prefixed`, and `suffixed` do not make sense when there is no declaration from which to derive names.
