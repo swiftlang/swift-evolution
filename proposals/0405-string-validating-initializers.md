@@ -234,7 +234,7 @@ When decoding a byte stream, obtaining the details of a validation failure would
 
 #### Improve input-repairing initialization
 
-There is only one initializer in the standard library for input-repairing initilization, and it suffers from a discoverability issue. We can add a more discoverable version specifically for the UTF-8 encoding, similarly to one of the additions proposed here.
+There is only one initializer in the standard library for input-repairing initialization, and it suffers from a discoverability issue. We can add a more discoverable version specifically for the UTF-8 encoding, similarly to one of the additions proposed here.
 
 #### Add normalization options
 
