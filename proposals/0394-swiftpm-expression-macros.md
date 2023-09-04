@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Macros provide a way to extend Swift by performing arbitary syntactic transformations on input source code to produce new code. One example for this are expression macros which were previously proposed in [SE-0382](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md). This proposal covers how custom macros are defined, built and distributed as part of a Swift package.
+Macros provide a way to extend Swift by performing arbitrary syntactic transformations on input source code to produce new code. One example for this are expression macros which were previously proposed in [SE-0382](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md). This proposal covers how custom macros are defined, built and distributed as part of a Swift package.
 
 ## Motivation
 
