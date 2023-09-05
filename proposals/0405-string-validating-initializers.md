@@ -3,10 +3,10 @@
 * Proposal: [SE-0405](https://github.com/apple/swift-evolution/blob/main/proposals/0405-string-validating-initializers.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Active Review (August 8–22, 2023)**
+* Status: **Accepted**
 * Bugs: rdar://99276048, rdar://99832858
 * Implementation: [Staged package](https://github.com/apple/swift-evolution-staging/tree/input-validating-string-initializers)
-* Review: ([pitch](https://forums.swift.org/t/66206)), ([review](https://forums.swift.org/t/se-0405-string-initializers-with-encoding-validation/66655))
+* Review: ([pitch](https://forums.swift.org/t/66206)), ([review](https://forums.swift.org/t/se-0405-string-initializers-with-encoding-validation/66655)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0405-string-initializers-with-encoding-validation/67134))
 * Previous Revision: ([0](https://gist.github.com/glessard/d1ed79b7968b4ad2115462b3d1eba805))
 
 ## Introduction
