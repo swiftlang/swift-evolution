@@ -3,7 +3,7 @@
 * Proposal: [SE-0395](0395-observability.md)
 * Authors: [Philippe Hausler](https://github.com/phausler), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (May 30 – June 12, 2023)**
+* Status: **Implemented (Swift 5.9)**
 
 #### Changes
 
