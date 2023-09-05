@@ -71,7 +71,7 @@ creating multiple iterators and iterating over them separately, may produce an
 unexpected series of values.
 
 While that statement leaves room for any behavior we learned that a clear distinction
-of behavior for root asynchronous sequences is benficial; especially, when it comes to
+of behavior for root asynchronous sequences is benificial; especially, when it comes to
 how transformation algorithms are applied on top.
 
 ### Downstream consumer termination
