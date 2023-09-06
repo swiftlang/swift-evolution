@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0408](0408-pack-iteration.md)
 * Authors: [Sima Nerush](https://github.com/simanerush), [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Implementation In Progress**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor/)
+* Status: **Active Review (September 6...19, 2023)**
 * Implementation: [apple/swift#67594](https://github.com/apple/swift/pull/67594) (gated behind flag `-enable-experimental-feature PackIteration`)
 * Review: ([pitch](https://forums.swift.org/t/pitch-enable-pack-iteration/66168))
 
