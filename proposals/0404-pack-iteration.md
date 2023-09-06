@@ -1,6 +1,6 @@
 # Pack Iteration
 
-* Proposal: [SE-0404](0404-pack-iteration.md)
+* Proposal: [SE-0408](0408-pack-iteration.md)
 * Authors: [Sima Nerush](https://github.com/simanerush), [Holly Borla](https://github.com/hborla)
 * Review Manager: TBD
 * Status: **Implementation In Progress**
@@ -103,7 +103,7 @@ func iterate<each Element>(over element: repeat E<each Element>) {
   }
 }
 ```
-Unlike iterating over sequences, the pattern expression in the source of a `for-in repeat` loop is evaluated once at each iteration, instead of `n` times eagerly where `n` is the length of the packs captured by the pattern. If `p_i` is the pattern expression at the `i`th iteration and control flow exits the loop at iteration `i`, then `p_j` is not evaluated for `i < j < n`. For example:
+The pattern expression in the source of a `for-in repeat` loop is evaluated once at each iteration, instead of `n` times eagerly where `n` is the length of the packs captured by the pattern. If `p_i` is the pattern expression at the `i`th iteration and control flow exits the loop at iteration `i`, then `p_j` is not evaluated for `i < j < n`. For example:
 
 ```swift
 func printAndReturn<Value>(_ value: Value) -> Value {
