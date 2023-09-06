@@ -103,6 +103,40 @@ func iterate<each Element>(over element: repeat E<each Element>) {
   }
 }
 ```
+Unlike iterating over sequences, the pattern expression in the source of a `for-in repeat` loop is evaluated once at each iteration, instead of `n` times eagerly where `n` is the length of the packs captured by the pattern. If `p_i` is the pattern expression at the `i`th iteration and control flow exits the loop at iteration `i`, then `p_j` is not evaluated for `i < j < n`. For example:
+
+```swift
+func printAndReturn<Value>(_ value: Value) -> Value {
+  print("Evaluated pack element value \(value)")
+  return value
+}
+
+func iterate<each T>(_ t: repeat each T) {
+  var i = 0
+  for value in repeat printAndReturn(each t) {
+    print("Evaluating loop iteration \(i)")
+    if i == 1 { 
+      break 
+    } else {
+      i += 1
+    }
+  }
+  
+  print("Done iterating")
+}
+
+iterate(1, "hello", true)
+```
+
+The above code has the following output
+
+```
+Evaluated pack element value 1
+Evaluating loop iteration 0
+Evaluated pack element value "hello"
+Evaluating loop iteration 1
+Done iterating
+```
 
 ## Source Compatibility
 
