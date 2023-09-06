@@ -4,6 +4,7 @@
 * Authors: [Philippe Hausler](https://github.com/phausler), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.9)**
+* Review: (pitch)[https://forums.swift.org/t/pitch-observation-revised/63757] (first review)[https://forums.swift.org/t/se-0395-observability/64342/] (second review)[https://forums.swift.org/t/second-review-se-0395-observability/65261/] (acceptance)[https://forums.swift.org/t/accepted-with-revision-se-0395-observability/66760]
 
 #### Changes
 
