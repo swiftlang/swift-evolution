@@ -140,7 +140,7 @@ types within the module. It will not expose any non-public C language types.
 #### Importing within an **C/Objective-C/C++** context
 
 How a mixed target, `MixedPackage`, is imported into an **C/Objective-C/C++**
-file will vary dependong on the language it is being imported in.
+file will vary depending on the language it is being imported in.
 
 When Clang modules are supported, clients can import the module. Textual
 imports are also an option.
