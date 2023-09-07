@@ -103,17 +103,13 @@ extension String {
   /// then with an ill-formed ASCII code unit sequence.
   ///
   ///     let validUTF8: [Int8] = [67, 97, 0, 102, -61, -87]
-  ///     validUTF8.withUnsafeBufferPointer {
-  ///         let s = String(validating: $0, as: UTF8.self)
-  ///         print(s)
-  ///     }
+  ///     let valid = String(validating: $0, as: UTF8.self)
+  ///     print(valid)
   ///     // Prints "Optional("Café")"
   ///
   ///     let invalidASCII: [Int8] = [67, 97, -5]
-  ///     invalidUTF8.withUnsafeBufferPointer {
-  ///         let s = String(validating: $0, as)
-  ///         print(s)
-  ///     }
+  ///     let invalid = String(validating: $0, as: Unicode.ASCII.self)
+  ///     print(invalid)
   ///     // Prints "nil"
   ///
   /// - Parameters
