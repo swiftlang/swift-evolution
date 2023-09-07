@@ -7,7 +7,7 @@
 * Bugs: rdar://99276048, rdar://99832858
 * Implementation: [Staged package](https://github.com/apple/swift-evolution-staging/tree/input-validating-string-initializers)
 * Review: ([pitch](https://forums.swift.org/t/66206)), ([review](https://forums.swift.org/t/se-0405-string-initializers-with-encoding-validation/66655)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0405-string-initializers-with-encoding-validation/67134))
-* Previous Revision: ([0](https://gist.github.com/glessard/d1ed79b7968b4ad2115462b3d1eba805))
+* Previous Revisions: [0](https://gist.github.com/glessard/d1ed79b7968b4ad2115462b3d1eba805), [1](https://github.com/apple/swift-evolution/blob/37531427931a57ff2a76225741c99de8fa8b8c59/proposals/0405-string-validating-initializers.md)
 
 ## Introduction
 
@@ -26,41 +26,35 @@ We will add a new `String` initializer that can fail, returning `nil`, when its 
 ```swift
 extension String {
   public init?<Encoding: Unicode.Encoding>(
-    validating codeUnits: some Sequence<Encoding.CodeUnit>, as: Encoding.Type
+    validating codeUnits: some Sequence<Encoding.CodeUnit>,
+    as: Encoding.Type
   )
 }
 ```
 
-For convenience and discoverability for the most common case, we will also provide an initializer that specifies the UTF-8 input encoding as part of its argument label:
+When processing data obtained from C, it is frequently the case that UTF-8 data is represented by `Int8` (typically as `CChar`) rather than `UInt8`. We will provide a convenience initializer for this use case:
 
 ```swift
 extension String {
-  public init?(validatingAsUTF8 codeUnits: some Sequence<UTF8.CodeUnit>)
+  public init?<Encoding: Unicode.Encoding>(
+    validating codeUnits: some Sequence<Int8>,
+    as: Encoding.Type
+  ) where Encoding.CodeUnit == UInt8
 }
 ```
 
-This will construct a new `String`, returning `nil` when the input is found invalid according to the UTF-8 encoding.
-
-When processing data obtained from C, it is frequently the case that UTF-8 data is represented by `CChar` rather than `UInt8`. We will provide a convenience initializer for this use case. Noting that this situation typically involves contiguous memory, we believe it will be well-served by explicitly using an abstraction for contiguous memory (`UnsafeBufferPointer<CChar>`):
-
-```swift
-extension String {
-  public init?(validatingAsUTF8 codeUnits: UnsafeBufferPointer<CChar>)
-}
-```
-
-The `String.init(validatingAsUTF8:)` functions convert their whole input, including any embedded `\0` code units.
-
-`String` already features a validating initializer for UTF-8 input, though it is intended for C interoperability.  Its argument label does not convey the expectation that its input is a null-terminated C string, and this has caused errors. We propose to change the labels in order to clarify the preconditions:
+`String` already features a validating initializer for UTF-8 input, intended for C interoperability.  Its argument label does not convey the expectation that its input is a null-terminated C string, and this has caused errors. We propose to change the labels in order to clarify the preconditions:
 
 ```swift
 extension String {
   public init?(validatingCString nullTerminatedUTF8: UnsafePointer<CChar>)
 
-  @available(Swift 5.XLIX, deprecated, renamed:"String.init(validatingCString:)")
+  @available(Swift 5.XLIX, deprecated, renamed: "String.init(validatingCString:)")
   public init?(validatingUTF8 cString: UnsafePointer<CChar>)
 }
 ```
+
+Note that unlike `String.init?(validatingCString:)`, the `String.init?(validating:as:)` initializers convert their whole input, including any embedded `\0` code units.
 
 ## Detailed Design
 
@@ -78,7 +72,7 @@ extension String {
   /// different arrays---first with a well-formed UTF-8 code unit sequence and
   /// then with an ill-formed UTF-16 code unit sequence.
   ///
-  ///     let validUTF8: [UInt8] = [67, 97, 102, 195, 169]
+  ///     let validUTF8: [UInt8] = [67, 97, 0, 102, 195, 169]
   ///     let valid = String(validating: validUTF8, as: UTF8.self)
   ///     print(valid)
   ///     // Prints "Optional("Café")"
@@ -90,75 +84,43 @@ extension String {
   ///
   /// - Parameters
   ///   - codeUnits: A sequence of code units that encode a `String`
-  ///   - encoding: An implementation of `Unicode.Encoding` that should be used
+  ///   - encoding: A conformer to `Unicode.Encoding` to be used
   ///               to decode `codeUnits`.
   @inlinable
   public init?<Encoding>(
-    validating codeUnits: some Sequence<Encoding.CodeUnit>, as: Encoding.Type
+    validating codeUnits: some Sequence<Encoding.CodeUnit>,
+    as: Encoding.Type
   ) where Encoding: Unicode.Encoding
-}
-```
 
-```swift
-extension String {
   /// Create a new `String` by copying and validating the sequence of
-  /// UTF-8 code units passed in.
+  /// `Int8` passed in, according to the specified encoding.
   ///
   /// This initializer does not try to repair ill-formed code unit sequences.
   /// If any are found, the result of the initializer is `nil`.
   ///
   /// The following example calls this initializer with the contents of two
   /// different arrays---first with a well-formed UTF-8 code unit sequence and
-  /// then with an ill-formed code unit sequence.
+  /// then with an ill-formed ASCII code unit sequence.
   ///
-  ///     let validUTF8: [UInt8] = [67, 97, 102, 195, 169]
-  ///     let valid = String(validatingAsUTF8: validUTF8)
+  ///     let validUTF8: [Int8] = [67, 97, 0, 102, -61, -87]
+  ///     let valid = String(validating: $0, as: UTF8.self)
   ///     print(valid)
   ///     // Prints "Optional("Café")"
   ///
-  ///     let invalidUTF8: [UInt8] = [67, 195, 0]
-  ///     let invalid = String(validatingAsUTF8: invalidUTF8)
+  ///     let invalidASCII: [Int8] = [67, 97, -5]
+  ///     let invalid = String(validating: $0, as: Unicode.ASCII.self)
   ///     print(invalid)
   ///     // Prints "nil"
   ///
-  /// Note: This initializer is functionally equivalent to using
-  ///       `String(validating: some Sequence<UTF8.CodeUnit>, as: UTF8.self)`.
-  ///
   /// - Parameters
   ///   - codeUnits: A sequence of code units that encode a `String`
-  public init?(validatingAsUTF8 codeUnits: some Sequence<UTF8.CodeUnit>)
-}
-```
-
-```swift
-extension String {
-  /// Create a new `String` by copying and validating the sequence of `CChar`
-  /// passed in, by interpreting them as UTF-8 code units.
-  ///
-  /// This initializer does not try to repair ill-formed code unit sequences.
-  /// If any are found, the result of the initializer is `nil`.
-  ///
-  /// The following example calls this initializer with the contents of two
-  /// different `CChar` arrays---first with a well-formed UTF-8
-  /// code unit sequence and then with an ill-formed code unit sequence.
-  ///
-  ///     let validUTF8: [CChar] = [67, 97, 0, 102, -61, -87]
-  ///     validUTF8.withUnsafeBufferPointer {
-  ///         let s = String(validatingAsUTF8: $0)
-  ///         print(s)
-  ///     }
-  ///     // Prints "Optional("Café")"
-  ///
-  ///     let invalidUTF8: [CChar] = [67, -61, 0]
-  ///     invalidUTF8.withUnsafeBufferPointer {
-  ///         let s = String(validatingAsUTF8: $0)
-  ///         print(s)
-  ///     }
-  ///     // Prints "nil"
-  ///
-  /// - Parameters
-  ///   - codeUnits: A sequence of code units that encode a `String`
-  public init?(validatingAsUTF8 codeUnits: UnsafeBufferPointer<CChar>)
+  ///   - encoding: A conformer to `Unicode.Encoding` that can decode
+  ///               `codeUnits` as `UInt8`
+  @inlinable
+  public init?<Encoding>(
+    validating codeUnits: some Sequence<Int8>,
+    as: Encoding.Type
+  ) where Encoding: Unicode.Encoding, Encoding.CodeUnit == UInt8
 }
 ```
 
@@ -193,7 +155,7 @@ extension String {
   @_silgen_name("sSS14validatingUTF8SSSgSPys4Int8VG_tcfC")
   public init?(validatingCString nullTerminatedCodeUnits: UnsafePointer<CChar>)
   
-  @available(Swift 5.XLIX, deprecated, renamed:"String.init(validatingCString:)")
+  @available(Swift 5.XLIX, deprecated, renamed: "String.init(validatingCString:)")
   @_silgen_name("_swift_stdlib_legacy_String_validatingUTF8")
   @_alwaysEmitIntoClient
   public init?(validatingUTF8 cString: UnsafePointer<CChar>)
@@ -204,7 +166,7 @@ extension String {
 
 This proposal consists mostly of additions, which are by definition source compatible.
 
-The proposal includes the renaming of one function from `String.init?(validatingUTF8:)` to `String.init?(validatingCString:)`. The existing function name will be deprecated, producing a warning. A fixit will support an easy transition to the renamed version of the function.
+The proposal includes the renaming of one function from `String.init?(validatingUTF8:)` to `String.init?(validatingCString:)`. The existing function name will be deprecated, producing a warning. A fixit will support an easy transition to the renamed version of the function.
 
 ## ABI Compatibility
 
@@ -218,13 +180,21 @@ This feature requires a new version of the standard library.
 
 ## Alternatives considered
 
-#### The `validatingAsUTF8` argument label
+#### Initializers specifying the encoding by their argument label
 
-The argument label `validatingUTF8` seems like it may have been preferable to `validatingAsUTF8`, but using the former would have been source-breaking. The C string validation initializer takes an `UnsafePointer<UInt8>`, but it can also accept `[UInt8]` via implicit pointer conversion. Any use site that passes an `[UInt8]` to the C string validation initializer would have changed behaviour upon recompilation, from considering a null character (`\0`) as the termination of the C string to considering it as a valid, non-terminating character.
+For convenience and discoverability for the most common case, we originally proposed an initializer that specifies the UTF-8 input encoding as part of its argument label:
 
-#### Have the `CChar`-validating function take a parameter of type `some Sequence<CChar>`
+```swift
+extension String {
+  public init?(validatingAsUTF8 codeUnits: some Sequence<UTF8.CodeUnit>)
+}
+```
 
-This would produce a compile-time ambiguity on platforms where `CChar` is typealiased to `UInt8` rather than `Int8`. Using `UnsafeBufferPointer<CChar>` as the parameter type will avoid such a compile-time ambiguity.
+Reviewers and the Language Steering Group believed that this initializer does not carry its weight, and that the discoverability issues it sought to alleviate would best be solved by improved tooling.
+
+#### Have `String.init?(validating: some Sequence<Int8>)` take a parameter typed as `some Sequence<CChar>`, or as a specific `Collection` of `CChar`
+
+Defining this validating initializer in terms of `some Sequence<CChar>`  would produce a compile-time ambiguity on platforms where `CChar` is typealiased to `UInt8` rather than `Int8`. The reviewed proposal suggested defining it in terms of `UnsafeBufferPointer<CChar>`, since this parameter type would avoid such a compile-time ambiguity. The actual root of the problem is that `CChar` is a typealias instead of a separate type. Given this, discussions during the review period and by the Language Steering Group led to this initializer to be re-defined using `some Sequence<Int8>`. This solves the `CChar`-vs-`UInt8` interoperability issue at source-code level, and preserves as much flexibility as possible without ambiguities.
 
 ## Future directions
 
