@@ -1,6 +1,6 @@
 # String Initializers with Encoding Validation
 
-* Proposal: [SE-0405](https://github.com/apple/swift-evolution/blob/main/proposals/0405-string-validating-initializers.md)
+* Proposal: [SE-0405](0405-string-validating-initializers.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Accepted**
@@ -62,7 +62,7 @@ We want these new initializers to be performant. As such, their implementation s
 
 ```swift
 extension String {
-  /// Create a new `String` by copying and validating the sequence of
+  /// Creates a new `String` by copying and validating the sequence of
   /// code units passed in, according to the specified encoding.
   ///
   /// This initializer does not try to repair ill-formed code unit sequences.
@@ -82,17 +82,17 @@ extension String {
   ///     print(invalid)
   ///     // Prints "nil"
   ///
-  /// - Parameters
+  /// - Parameters:
   ///   - codeUnits: A sequence of code units that encode a `String`
   ///   - encoding: A conformer to `Unicode.Encoding` to be used
   ///               to decode `codeUnits`.
   @inlinable
   public init?<Encoding>(
     validating codeUnits: some Sequence<Encoding.CodeUnit>,
-    as: Encoding.Type
+    as encoding: Encoding.Type
   ) where Encoding: Unicode.Encoding
 
-  /// Create a new `String` by copying and validating the sequence of
+  /// Creates a new `String` by copying and validating the sequence of
   /// `Int8` passed in, according to the specified encoding.
   ///
   /// This initializer does not try to repair ill-formed code unit sequences.
@@ -103,30 +103,30 @@ extension String {
   /// then with an ill-formed ASCII code unit sequence.
   ///
   ///     let validUTF8: [Int8] = [67, 97, 0, 102, -61, -87]
-  ///     let valid = String(validating: $0, as: UTF8.self)
+  ///     let valid = String(validating: validUTF8, as: UTF8.self)
   ///     print(valid)
   ///     // Prints "Optional("Café")"
   ///
   ///     let invalidASCII: [Int8] = [67, 97, -5]
-  ///     let invalid = String(validating: $0, as: Unicode.ASCII.self)
+  ///     let invalid = String(validating: invalidASCII, as: Unicode.ASCII.self)
   ///     print(invalid)
   ///     // Prints "nil"
   ///
-  /// - Parameters
+  /// - Parameters:
   ///   - codeUnits: A sequence of code units that encode a `String`
   ///   - encoding: A conformer to `Unicode.Encoding` that can decode
   ///               `codeUnits` as `UInt8`
   @inlinable
   public init?<Encoding>(
     validating codeUnits: some Sequence<Int8>,
-    as: Encoding.Type
+    as encoding: Encoding.Type
   ) where Encoding: Unicode.Encoding, Encoding.CodeUnit == UInt8
 }
 ```
 
 ```swift
 extension String {
-  /// Create a new string by copying and validating the null-terminated UTF-8
+  /// Creates a new string by copying and validating the null-terminated UTF-8
   /// data referenced by the given pointer.
   ///
   /// This initializer does not try to repair ill-formed UTF-8 code unit
@@ -139,23 +139,23 @@ extension String {
   ///
   ///     let validUTF8: [CChar] = [67, 97, 102, -61, -87, 0]
   ///     validUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String(validatingUTF8: ptr.baseAddress!)
+  ///         let s = String(validatingCString: ptr.baseAddress!)
   ///         print(s)
   ///     }
   ///     // Prints "Optional("Café")"
   ///
   ///     let invalidUTF8: [CChar] = [67, 97, 102, -61, 0]
   ///     invalidUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String(validatingUTF8: ptr.baseAddress!)
+  ///         let s = String(validatingCString: ptr.baseAddress!)
   ///         print(s)
   ///     }
   ///     // Prints "nil"
   ///
-  /// - Parameter cString: A pointer to a null-terminated UTF-8 code sequence.
+  /// - Parameter nullTerminatedUTF8: A pointer to a null-terminated UTF-8 code sequence.
   @_silgen_name("sSS14validatingUTF8SSSgSPys4Int8VG_tcfC")
-  public init?(validatingCString nullTerminatedCodeUnits: UnsafePointer<CChar>)
+  public init?(validatingCString nullTerminatedUTF8: UnsafePointer<CChar>)
   
-  @available(Swift 5.XLIX, deprecated, renamed: "String.init(validatingCString:)")
+  @available(*, deprecated, renamed: "String.init(validatingCString:)")
   @_silgen_name("_swift_stdlib_legacy_String_validatingUTF8")
   @_alwaysEmitIntoClient
   public init?(validatingUTF8 cString: UnsafePointer<CChar>)
