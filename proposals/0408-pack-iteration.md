@@ -24,9 +24,10 @@ struct NotEqual: Error {}
 func == <each Element: Equatable>(lhs: (repeat each Element), rhs: (repeat each Element)) -> Bool {
   // Local throwing function for operating over each element of a pack expansion.
   func isEqual<T: Equatable>(_ left: T, _ right: T) throws {
-    if (left == right)
+    if left == right {
       return
-
+    }
+    
     throw NotEqual()
   }
 
