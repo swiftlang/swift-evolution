@@ -224,7 +224,7 @@ extension String {
         return (self, self) // ERROR: needs to copy `self`
     }
     consuming func bar() -> (String, String) {
-        return (self, self) // ERROR: needs to copy `x`
+        return (self, self) // ERROR: needs to copy `self`
     }
 }
 ```
