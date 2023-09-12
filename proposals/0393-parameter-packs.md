@@ -279,7 +279,7 @@ For example, the following substitutions both produce the element type `Int`:
 - Substituting `each T := {Int}` into `(repeat each T)`.
 - Substituting `each T := {}` into `(Int, repeat each T)`.
 
-Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would increase the surface area of the language. One-element tuples would need to be manually unrwapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
+Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would increase the surface area of the language. One-element tuples would need to be manually unwrapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
 
 
 ### Type matching
