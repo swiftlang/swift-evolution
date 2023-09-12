@@ -623,7 +623,7 @@ The pack parameter design where packs are distinct from tuples also does not pre
 
 ### Syntax alternatives to `repeat each`
 
-The `repeat each` syntax produces fairly verbose variadic generic code. However, the `repeat` keyword is explicit signal that the pattern is repeated under substitution, and requiring the `each` keyword for pack references indicates which types or values will be subsituted in the expansion. This syntax design helps enforce the mental model that pack expansions result in iteration over each element in the parameter pack at runtime.
+The `repeat each` syntax produces fairly verbose variadic generic code. However, the `repeat` keyword is explicit signal that the pattern is repeated under substitution, and requiring the `each` keyword for pack references indicates which types or values will be substituted in the expansion. This syntax design helps enforce the mental model that pack expansions result in iteration over each element in the parameter pack at runtime.
 
 The following syntax alternatives were also considered.
 
