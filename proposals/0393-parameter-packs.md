@@ -691,7 +691,7 @@ The downsides to postfix `*` include:
 
 #### Magic builtin `map` method
 
-The prevlence of `map` and `zip` in Swift makes this syntax an attractive option for variadic generics:
+The prevalence of `map` and `zip` in Swift makes this syntax an attractive option for variadic generics:
 
 ```swift
 func wrap<each T>(_ values: repeat each T) -> (repeat Wrapped<each T>) {
