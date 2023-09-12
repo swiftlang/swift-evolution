@@ -146,7 +146,7 @@ The substituted return type is the tuple type with two elements `(Pair<Int, Bool
 
 ### Type parameter packs
 
-The generic parameter list of a generic function can contain one or more _type parameter pack declarations_, written as an identifier preceeded by `each`:
+The generic parameter list of a generic function can contain one or more _type parameter pack declarations_, written as an identifier preceded by `each`:
 
 ```swift
 func variadic<each T, each U>() {}
