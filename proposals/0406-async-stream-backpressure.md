@@ -3,9 +3,9 @@
 * Proposal: [SE-0406](0406-async-stream-backpressure.md)
 * Author: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active review (August 15...28, 2023)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#66488](https://github.com/apple/swift/pull/66488)
-* Review: ([pitch](https://forums.swift.org/t/pitch-new-apis-for-async-throwing-stream-with-backpressure-support/65449)) ([review](https://forums.swift.org/t/se-0406-backpressure-support-for-asyncstream/66771))
+* Review: ([pitch](https://forums.swift.org/t/pitch-new-apis-for-async-throwing-stream-with-backpressure-support/65449)) ([review](https://forums.swift.org/t/se-0406-backpressure-support-for-asyncstream/66771)) ([return for revision](https://forums.swift.org/t/returned-for-revision-se-0406-backpressure-support-for-asyncstream/67248))
 
 ## Introduction
 
@@ -71,7 +71,7 @@ creating multiple iterators and iterating over them separately, may produce an
 unexpected series of values.
 
 While that statement leaves room for any behavior we learned that a clear distinction
-of behavior for root asynchronous sequences is benificial; especially, when it comes to
+of behavior for root asynchronous sequences is beneficial; especially, when it comes to
 how transformation algorithms are applied on top.
 
 ### Downstream consumer termination
