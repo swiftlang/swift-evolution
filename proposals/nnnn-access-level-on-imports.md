@@ -19,7 +19,7 @@
 
 Declaring the visibility of a dependency with an access-level modifier on import statements enables enforcing which declarations can reference the imported module.
 A dependency can be marked as being visible only to the source file, module, package, or to all clients.
-This brings the familiar behavior of the access-level on declarations to dependencies and imported declarations.
+This brings the familiar behavior of the access level of declarations to dependencies and imported declarations.
 This feature can hide implementation details from clients and helps to manage dependency creep.
 
 ## Motivation
@@ -30,7 +30,7 @@ but there is currently no equivalent official feature for dependencies.
 
 Each dependency may have a different intent;
 some are expected to be known to clients while other are for implementation details internal to the package, module, or source file.
-Without a way to enforce the intended access-level of dependencies
+Without a way to enforce the intended access level of dependencies
 it is easy to make a mistake and expose a dependency to clients by referencing it from a public declaration even if it's intended to be an implementation detail.
 
 When a dependency is less than public and other requirements are met,
@@ -39,7 +39,7 @@ This can speed up build times simply because the compiler needs to do less work.
 
 ## Proposed solution
 
-The core of this proposal consists of extending the current access-level logic to support declaring the existing keywords (excluding `open`) on import statements and
+The core of this proposal consists of extending the current access level logic to support declaring the existing keywords (excluding `open`) on import statements and
 applying the access level to the imported declarations.
 
 Here's an example case where a module `DatabaseAdapter` is an implementation detail of the local module.
@@ -58,36 +58,36 @@ To balance source compatibility and best practices, the proposed default import 
 ## Detailed design
 
 In this section we discuss the three main language changes of this proposal:
-accept access-level keywords on import statements to declare the visibility of the imported module,
+accept access-level modifiers on import statements to declare the visibility of the imported module,
 apply that information when type-checking the source file,
 and determine when indirect clients can skip loading transitive dependencies.
 We then cover other concerns addressed by this proposal:
-the different default access-levels of imports in Swift 5 and Swift 6,
+the different default access levels of imports in Swift 5 and Swift 6,
 and the relationship with other attributes on imports.
 
-### Declaring the access-level of an imported module
+### Declaring the access level of an imported module
 
-The access-level is declared in front of the import statement using some of the
-keywords used for a declaration: `public`, `package`, `internal`, `fileprivate`, and `private`.
+The access level is declared in front of the import statement using some of the
+modifiers used for a declaration: `public`, `package`, `internal`, `fileprivate`, and `private`.
 
 A public dependency can be referenced from any declaration and will be visible to all clients.
-It is declared with either the `public` keyword,
-or without a keyword in Swift 5 where an import is public by default.
+It is declared with either the `public` modifier,
+or without a modifier in Swift 5 where an import is public by default.
 
 ```swift
 public import PublicDependency
 import OtherPublicDependency // Swift 5 only
 ```
 
-A dependency visible only to the modules of the same package is declared with the `package` keyword.
+A dependency visible only to the modules of the same package is declared with the `package` modifier.
 Only `package`, `internal`, `fileprivate` and `private` declarations can reference the imported module.
 
 ```swift
 package import PackageDependency
 ```
 
-A dependency internal to the module is declared with the `internal` keyword,
-or without a keyword in Swift 6 mode where an import is public by default.
+A dependency internal to the module is declared with the `internal` modifier,
+or without a modifier in Swift 6 mode where an import is public by default.
 Only `internal`, `fileprivate` and `private` declarations can reference the imported module.
 
 ```swift
@@ -104,20 +104,20 @@ fileprivate import DependencyPrivateToThisFile
 private import OtherDependencyPrivateToThisFile
 ```
 
-The `open` access-level keyword is rejected on import statements.
+The `open` access-level modifier is rejected on import statements.
 
 ### Type-checking references to imported modules
 
-Current type-checking enforces that declaration respect their respective access-levels.
+Current type-checking enforces that declaration respect their respective access levels.
 It reports as errors when a more visible declaration refers to a less visible declaration.
 For example, it raises an error if a public function signature uses an internal type.
 
-This proposal extends the existing logic by using the access-level on the import statement as an upper bound to the visibility of imported declarations within the source file with the import.
+This proposal extends the existing logic by using the access level on the import statement as an upper bound to the visibility of imported declarations within the source file with the import.
 For example, when type-checking a source file with an `internal import SomeModule`,
-we consider all declarations imported from `SomeModule` to have an access-level of `internal` in the context of the file.
+we consider all declarations imported from `SomeModule` to have an access level of `internal` in the context of the file.
 In this case, type-checking will enforce that declarations imported as `internal` are only referenced from `internal` or lower declaration signatures and in regular function bodies.
 They cannot appear in public declarations, `@usableFromInline` declarations, or inlinable code.
-This will be reported by the familiar diagnostics currently applied to access-level on declarations and inlinable code.
+This will be reported by the familiar diagnostics currently applied to access-level modifiers on declarations and to inlinable code.
 
 We apply the same logic for `package`, `fileprivate` and `private` import statements.
 In the case of a `public` import, there is no restriction on how the imported declarations can be used
@@ -145,15 +145,15 @@ public func useInInlinableBody() {
 
 ### Transitive dependency loading
 
-When using this access-level information at the module level,
+When using this access level information at the module level,
 if a dependency is never imported publicly and other requirements are met,
 it becomes possible to hide the dependency from clients.
 The clients can then be built without loading the transitive dependency.
 This can speed up build times and
 lift the need to distribute modules that are implementation details.
 
-The same dependency can be imported with different access-levels by different files of a same module.
-At the module level we only take into account the most permissive access-level.
+The same dependency can be imported with different access levels by different files of a same module.
+At the module level we only take into account the most permissive access level.
 For example, if a dependency is imported both as `package` and `internal` from two different files,
 we consider the dependency to be of a `package` visibility at the module level.
 
@@ -195,22 +195,22 @@ Note that the same dependency may still be loaded for a different import path.
 The module associated with a hidden dependency doesn't need to be distributed to clients.
 However, the binary associated to the module still needs to be distributed to execute the resulting program.
 
-### Default import access-level in Swift 5 and Swift 6
+### Default import access level in Swift 5 and Swift 6
 
-The access-level of a default import statement without an explicit access-level keyword depends on the language version.
-We list here the implicit access-levels and reasoning behind this choice.
+The access level of a default import statement without an explicit access-level modifier depends on the language version.
+We list here the implicit access levels and reasoning behind this choice.
 
 In Swift 5 an import is public by default.
 This choice preserves source compatibility.
 The only official import previously available in Swift 5 behaves like the public import proposed in this document.
 
 In Swift 6 mode an import is internal by default.
-This will align the behavior of imports with declarations where the implicit access-level is internal.
+This will align the behavior of imports with declarations where the implicit access level is internal.
 It should help limit unintentional dependency creep as marking a dependency public will require an intentional extra keyword.
 
 The Swift 6 change will likely break source compatibility for libraries.
-A migration tool could automatically insert the `public` keyword where required.
-Where the tool is unavailable, a simple script can insert a `public` keyword in front of all imports to preserve the Swift 5 behavior.
+A migration tool could automatically insert the `public` modifier where required.
+Where the tool is unavailable, a simple script can insert a `public` modifier in front of all imports to preserve the Swift 5 behavior.
 
 The upcoming feature flag `InternalImports` will enable the Swift 6 behavior even when using Swift 5.
 
@@ -223,8 +223,8 @@ both with the keyword or the default public visibility in Swift 6 mode.
 
 The `@testable` attribute allows the local module to reference the internal declarations of the imported module.
 The current design even allows to use an imported internal or package type in a public declaration.
-The access-level behavior applies in the same way as a normal import,
-all imported declarations have as upper-bound the access-level on the import statement.
+The access level behavior applies in the same way as a normal import,
+all imported declarations have as upper-bound the access level on the import statement.
 In the case of a `@testable` import, even the imported internal declarations are affected by the bound.
 
 ## Source compatibility
@@ -243,7 +243,7 @@ it is a compile time change enforced by type-checking.
 Adopting or reverting the adoption of this feature should not affect clients if used with care.
 
 In the case of adoption in a non-resilient module, the change is in type-checking of the module source files only.
-In this case changing the access-level of different dependencies won't affect clients.
+In this case changing the access level of different dependencies won't affect clients.
 
 For adoption in a resilient module,
 marking an existing import as less than public will affect how clients build.
@@ -283,13 +283,13 @@ The unofficial `@_implementationOnly` attribute offers a similar feature with bo
 This attribute has lead to instability and run time crashes when used from a non-resilient module or combined with an `@testable` import.
 It applies a slightly different semantic than this proposal and its type-checking isn't as strict as it could be.
 It relied on its own type-checking logic to report references to the implementation-only imported module from public declarations.
-In contrast, this proposal uses the existing access-level checking logic and semantics,
+In contrast, this proposal uses the existing access level checking logic and semantics,
 this should make it easier to learn.
 Plus this proposal introduces whole new features with `package` imports and file-scoped imports with `private` and `fileprivate`.
 
 ### Use `open import` as an official `@_exported import`
 
-The access-level keyword `open` remains available for use on imports as this proposal doesn't assign it a specific meaning.
+The access-level modifier `open` remains available for use on imports as this proposal doesn't assign it a specific meaning.
 It has been suggested to use it as an official `@_exported`.
 That is, mark an import that is visible from all source files of the module and shown to clients as if it was part of the same module.
 We usually use `@_exported` for Swift overlays to clang module
@@ -299,7 +299,7 @@ Two main reasons keep me from incorporating this change to this proposal:
 
 1. A declaration marked as `open` can be overridden from outside the module.
    This meaning has no relation with the behavior of `@_exported`.
-   The other access-levels have a corresponding meaning between their use on a declaration and on an import statement.
+   The other access levels have a corresponding meaning between their use on a declaration and on an import statement.
 2. A motivation for this proposal is to hide implementation details and limit dependency creep.
    Encouraging the use of `open import` or `@_exported` goes against this motivation and addresses a different set of problems.
    It should be discussed in a distinct proposal with related motivations.
@@ -309,7 +309,7 @@ Two main reasons keep me from incorporating this change to this proposal:
 By analyzing a module the compiler could determine which dependencies are used by public declarations and need to be visible to clients.
 We could then automatically consider all other dependencies as internal and hide them from indirect clients if the other criteria are met.
 
-This approach lacks the duplication of information offered by the access-level keyword on the import statement and the references in declarations.
+This approach lacks the duplication of information offered by the access-level modifier on the import statement and the references in declarations.
 This duplication enables the type-checking behavior described in this proposal by
 allowing the compiler to compare the intent marked on the import with the use in declarations.
 This check is important when the dependency is not distributed,
