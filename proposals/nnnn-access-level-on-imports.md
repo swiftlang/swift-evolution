@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](NNNN-access-level-on-imports.md)
 * Author: [Alexis Laferrière](https://github.com/xymus)
-* Review Manager: TBD
+* Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
 * Status: **Awaiting review**
 * Implementation:
     * [apple/swift#63912](https://github.com/apple/swift/pull/63912)
