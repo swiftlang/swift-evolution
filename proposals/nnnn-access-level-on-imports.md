@@ -4,15 +4,8 @@
 * Author: [Alexis Laferrière](https://github.com/xymus)
 * Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
 * Status: **Awaiting review**
-* Implementation:
-    * [apple/swift#63912](https://github.com/apple/swift/pull/63912)
-    * [apple/swift#63948](https://github.com/apple/swift/pull/63948)
-    * [apple/swift#63974](https://github.com/apple/swift/pull/63974)
-    * [apple/swift#64014](https://github.com/apple/swift/pull/64014)
-    * [apple/swift#64033](https://github.com/apple/swift/pull/64033)
-    * [apple/swift#64047](https://github.com/apple/swift/pull/64047)
-    * [apple/swift#64693](https://github.com/apple/swift/pull/64693)
-* Upcoming Feature Flag: `InternalImports` (Enables Swift 6 behavior with imports defaulting to internal)
+* Implementation: On main and release/5.9 gated behind the frontend flag `-enable-experimental-feature AccessLevelOnImport`
+* Upcoming Feature Flag: `InternalImports` (Enables Swift 6 behavior with imports defaulting to internal. Soon on main only.)
 * Review: ([pitch](https://forums.swift.org/t/pitch-access-level-on-import-statements/66657))
 
 ## Introduction
