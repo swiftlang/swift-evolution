@@ -109,8 +109,8 @@ They cannot appear in public declaration signatures, `@usableFromInline` declara
 This will be reported by the familiar diagnostics currently applied to access-level modifiers on declarations and to inlinable code.
 
 We apply the same logic for `package`, `fileprivate` and `private` import statements.
-In the case of a `public` import, there is no restriction on how the imported declarations can be used
-beyond the existing restrictions on imported `package` declarations which cannot be referenced from public declarations.
+In the case of a `public` import, there is no restriction on how the imported declarations can be referenced
+beyond the existing restrictions on imported `package` declarations which cannot be referenced from public declaration signatures.
 
 Here is an example of the approximate diagnostics produced from type-checking in a typical case with a `fileprivate` import.
 ```swift
@@ -303,9 +303,9 @@ Two main reasons keep me from incorporating this change to this proposal:
 By analyzing a module the compiler could determine which dependencies are used by public declarations and need to be visible to clients.
 We could then automatically consider all other dependencies as internal and hide them from indirect clients if the other criteria are met.
 
-This approach lacks the duplication of information offered by the access-level modifier on the import statement and the references in declarations.
+This approach lacks the duplication of information offered by the access-level modifier on the import statement and the references from declaration signatures.
 This duplication enables the type-checking behavior described in this proposal by
-allowing the compiler to compare the intent marked on the import with the use in declarations.
+allowing the compiler to compare the intent marked on the import with the use in declaration signatures.
 This check is important when the dependency is not distributed,
 a change from a hidden dependency to a public dependency may break the distributed module on a dependency that is not available to third parties.
 
