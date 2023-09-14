@@ -71,12 +71,10 @@ The access level is declared in front of the import statement using some of the
 modifiers used for a declaration: `public`, `package`, `internal`, `fileprivate`, and `private`.
 
 A public dependency can be referenced from any declaration and will be visible to all clients.
-It is declared with either the `public` modifier,
-or without a modifier in Swift 5 where an import is public by default.
+It is declared with the `public` modifier.
 
 ```swift
 public import PublicDependency
-import OtherPublicDependency // Swift 5 only
 ```
 
 A dependency visible only to the modules of the same package is declared with the `package` modifier.
@@ -86,13 +84,11 @@ Only `package`, `internal`, `fileprivate` and `private` declarations can referen
 package import PackageDependency
 ```
 
-A dependency internal to the module is declared with the `internal` modifier,
-or without a modifier in Swift 6 mode where an import is public by default.
+A dependency internal to the module is declared with the `internal` modifier.
 Only `internal`, `fileprivate` and `private` declarations can reference the imported module.
 
 ```swift
 internal import InternalDependency
-import OtherInternalDependency // Swift 6 only
 ```
 
 A dependency private to this source file is declared with either the `fileprivate` or the `private` modifier.
@@ -207,6 +203,11 @@ The only official import previously available in Swift 5 behaves like the public
 In Swift 6 mode an import is internal by default.
 This will align the behavior of imports with declarations where the implicit access level is internal.
 It should help limit unintentional dependency creep as marking a dependency public will require an explicit modifier.
+
+As a result, the following import is public in Swift 5, and internal in Swift 6 mode.
+```
+import ADependency
+```
 
 The Swift 6 change will likely break source compatibility for libraries.
 A migration tool could automatically insert the `public` modifier where required.
