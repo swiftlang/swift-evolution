@@ -221,6 +221,12 @@ The access level behavior applies in the same way as a normal import,
 all imported declarations have as upper-bound the access level on the import statement.
 In the case of a `@testable` import, even the imported internal declarations are affected by the bound.
 
+Current uses of `@_implementationOnly import` should be replaced with an internal import or lower.
+In comparison, this new feature enables stricter type-checking and shows fewer superfluous warnings.
+After replacing with an internal import, the transitive dependency loading requirements will remain the same for resilient modules,
+but will change for non-resilient modules where transitive dependencies must always be loaded.
+In all cases, updating modules relying on `@_implementationOnly` to instead use internal imports is strongly encouraged.
+
 ## Source compatibility
 
 To preserve source compatibility, imports are public by default in Swift 5.
@@ -249,13 +255,6 @@ so hiding them doesn't affect the clients.
 In practice, there are leaks allowing use of extension members from transitive dependencies.
 Adopting this feature may skip loading transitive dependencies and prevent those leaks,
 it can break source compatibility in code relying of those behaviors.
-
-### As a replacement to `@_implementationOnly`
-
-Replacing current uses of `@_implementationOnly` with an `internal` import or lower enables a stricter type-checking and shows fewer superfluous warnings.
-The transitive dependency loading requirements will remain the same for resilient modules,
-but will change for non-resilient modules where transitive dependencies must always be loaded.
-In all cases, updating modules relying on `@_implementationOnly` to instead use internal imports is strongly encouraged.
 
 ## Future directions
 
