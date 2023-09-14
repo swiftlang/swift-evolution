@@ -78,14 +78,14 @@ public import PublicDependency
 ```
 
 A dependency visible only to the modules of the same package is declared with the `package` modifier.
-Only `package`, `internal`, `fileprivate` and `private` declarations can reference the imported module.
+Only the signature of `package`, `internal`, `fileprivate` and `private` declarations can reference the imported module.
 
 ```swift
 package import PackageDependency
 ```
 
 A dependency internal to the module is declared with the `internal` modifier.
-Only `internal`, `fileprivate` and `private` declarations can reference the imported module.
+Only the signature of `internal`, `fileprivate` and `private` declarations can reference the imported module.
 
 ```swift
 internal import InternalDependency
@@ -93,7 +93,7 @@ internal import InternalDependency
 
 A dependency private to this source file is declared with either the `fileprivate` or the `private` modifier.
 In both cases the access is scoped to the source file declaring the import.
-Only `fileprivate` and `private` declarations can reference the imported module.
+Only the signature of `fileprivate` and `private` declarations can reference the imported module.
 
 ```swift
 fileprivate import DependencyPrivateToThisFile
@@ -112,7 +112,7 @@ This proposal extends the existing logic by using the access level on the import
 For example, when type-checking a source file with an `internal import SomeModule`,
 we consider all declarations imported from `SomeModule` to have an access level of `internal` in the context of the file.
 In this case, type-checking will enforce that declarations imported as `internal` are only referenced from `internal` or lower declaration signatures and in regular function bodies.
-They cannot appear in public declarations, `@usableFromInline` declarations, or inlinable code.
+They cannot appear in public declaration signatures, `@usableFromInline` declaration signatures, or inlinable code.
 This will be reported by the familiar diagnostics currently applied to access-level modifiers on declarations and to inlinable code.
 
 We apply the same logic for `package`, `fileprivate` and `private` import statements.
@@ -176,7 +176,7 @@ if none of these apply the dependency can be hidden.
 2. All dependencies of a non-resilient module must be loaded by transitive clients.
 
 3. Package dependencies must be loaded by transitive clients if the middle module and the transitive client are part of the same package.
-   This allows for package declarations to reference that dependency.
+   This allows for the signature of package declarations to reference that dependency.
    We consider two modules to be in the same package when their package name matches,
    applying the same logic used for package declarations.
 
