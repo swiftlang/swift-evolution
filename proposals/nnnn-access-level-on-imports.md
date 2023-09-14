@@ -45,7 +45,7 @@ internal func internalFunc() -> DatabaseAdapter.Entry {...} // Ok
 public func publicFunc() -> DatabaseAdapter.Entry {...} // error: function cannot be declared public because its result uses an internal type
 ```
 
-Additionally, this proposal uses the access level declared on each import statement in all source files composing a module to determine how module dependencies behave.
+Additionally, this proposal uses the access level declared on each import statement in all source files composing a module to determine when clients of a library need to load the library's dependencies or when they can be skipped.
 To balance source compatibility and best practices, the proposed default import has an implicit access level of public in Swift 5 and of internal in Swift 6 mode.
 
 ## Detailed design
