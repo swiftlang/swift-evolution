@@ -25,7 +25,7 @@ This feature can hide implementation details from clients and helps to manage de
 ## Motivation
 
 Good practices guide us to separate public and internal services to avoid having external clients rely on internal details. 
-Swift already offers access levels with their respective keywords applicable to declarations and enforcement during type-checking,
+Swift already offers access levels with their respective modifiers to declarations and enforcement during type-checking,
 but there is currently no equivalent official feature for dependencies.
 
 Each dependency may have a different intent;
@@ -39,7 +39,7 @@ This can speed up build times simply because the compiler needs to do less work.
 
 ## Proposed solution
 
-The core of this proposal consists of extending the current access level logic to support declaring the existing keywords (excluding `open`) on import statements and
+The core of this proposal consists of extending the current access level logic to support declaring the existing modifiers (excluding `open`) on import statements and
 applying the access level to the imported declarations.
 
 Here's an example case where a module `DatabaseAdapter` is an implementation detail of the local module.
@@ -95,7 +95,7 @@ internal import InternalDependency
 import OtherInternalDependency // Swift 6 only
 ```
 
-A dependency private to this source file is declared with either the `fileprivate` or the `private` keywords.
+A dependency private to this source file is declared with either the `fileprivate` or the `private` modifier.
 In both cases the access is scoped to the source file declaring the import.
 Only `fileprivate` and `private` declarations can reference the imported module.
 
@@ -206,7 +206,7 @@ The only official import previously available in Swift 5 behaves like the public
 
 In Swift 6 mode an import is internal by default.
 This will align the behavior of imports with declarations where the implicit access level is internal.
-It should help limit unintentional dependency creep as marking a dependency public will require an intentional extra keyword.
+It should help limit unintentional dependency creep as marking a dependency public will require an explicit modifier.
 
 The Swift 6 change will likely break source compatibility for libraries.
 A migration tool could automatically insert the `public` modifier where required.
@@ -219,7 +219,7 @@ The upcoming feature flag `InternalImports` will enable the Swift 6 behavior eve
 The `@_exported` attribute is a step above a `public` import
 as clients see the imported module declarations is if they were part of the local module.
 With this proposal, `@_exported` is accepted only on public import statements,
-both with the keyword or the default public visibility in Swift 6 mode.
+both with the modifier or the default public visibility in Swift 6 mode.
 
 The `@testable` attribute allows the local module to reference the internal declarations of the imported module.
 The current design even allows to use an imported internal or package type in a public declaration.
