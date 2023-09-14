@@ -17,15 +17,15 @@
 
 ## Introduction
 
-Declaring the visibility of a dependency with an access-level keyword on import statements enables enforcing which declarations can reference the imported module.
+Declaring the visibility of a dependency with an access-level modifier on import statements enables enforcing which declarations can reference the imported module.
 A dependency can be marked as being visible only to the source file, module, package, or to all clients.
 This brings the familiar behavior of the access-level on declarations to dependencies and imported declarations.
 This feature can hide implementation details from clients and helps to manage dependency creep.
 
 ## Motivation
 
-Good practices guides us to separate public and internal services to avoid having external clients rely on internal details. 
-Swift already offers access-levels with their respective keywords applicable to declarations and an enforcement at type-checking,
+Good practices guide us to separate public and internal services to avoid having external clients rely on internal details. 
+Swift already offers access levels with their respective keywords applicable to declarations and enforcement during type-checking,
 but there is currently no equivalent official feature for dependencies.
 
 Each dependency may have a different intent;
@@ -39,12 +39,12 @@ This can speed up build times simply because the compiler needs to do less work.
 
 ## Proposed solution
 
-The core of this proposal consists of extending the current access-level logic to support declaring the existing keywords on import statements and
-applying the access-level to the imported declarations.
+The core of this proposal consists of extending the current access-level logic to support declaring the existing keywords (excluding `open`) on import statements and
+applying the access level to the imported declarations.
 
 Here's an example case where a module `DatabaseAdapter` is an implementation detail of the local module.
 We don't want to expose it to clients so we mark the import as `internal`.
-The compiler then allows references to it from internal functions but reports references from public functions.
+The compiler then allows references to it from internal functions but diagnoses references from the signature of public functions.
 ```swift
 internal import DatabaseAdapter
 
@@ -52,8 +52,8 @@ internal func internalFunc() -> DatabaseAdapter.Entry {...} // Ok
 public func publicFunc() -> DatabaseAdapter.Entry {...} // error: function cannot be declared public because its result uses an internal type
 ```
 
-Additionally, this proposal uses the access-level declared on each import statements in all sources files composing a module to determine how module dependencies behave.
-To balance source compatibility and best practices, the proposed default import has an implicit access-level of public in Swift 5 and of internal in Swift 6 mode.
+Additionally, this proposal uses the access level declared on each import statement in all source files composing a module to determine how module dependencies behave.
+To balance source compatibility and best practices, the proposed default import has an implicit access level of public in Swift 5 and of internal in Swift 6 mode.
 
 ## Detailed design
 
