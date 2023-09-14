@@ -28,14 +28,14 @@ Good practices guide us to separate public and internal services to avoid having
 Swift already offers access levels with their respective modifiers to declarations and enforcement during type-checking,
 but there is currently no equivalent official feature for dependencies.
 
-Each dependency may have a different intent;
-some are expected to be known to clients while other are for implementation details internal to the package, module, or source file.
+The author of a library may have a different intent for each of the library dependencies;
+some are expected to be known to the library clients while other are for implementation details internal to the package, module, or source file.
 Without a way to enforce the intended access level of dependencies
-it is easy to make a mistake and expose a dependency to clients by referencing it from a public declaration even if it's intended to be an implementation detail.
+it is easy to make a mistake and expose a dependency of the library to the library clients by referencing it from a public declaration even if it's intended to remain an implementation detail.
 
-When a dependency is less than public and other requirements are met,
-it becomes possible to skip loading the dependency when building indirect clients.
-This can speed up build times simply because the compiler needs to do less work.
+All the library dependencies being visible to the library clients also requires the compiler to do more work than necessary.
+The compiler must load all of the library dependencies when building a client of the library,
+even the dependencies that are not actually required to build the client.
 
 ## Proposed solution
 
