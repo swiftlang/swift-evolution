@@ -213,7 +213,7 @@ The upcoming feature flag `InternalImports` will enable the Swift 6 behavior eve
 The `@_exported` attribute is a step above a `public` import
 as clients see the imported module declarations is if they were part of the local module.
 With this proposal, `@_exported` is accepted only on public import declarations,
-both with the modifier or the default public visibility in Swift 6 mode.
+both with the modifier or the default public visibility in Swift 5 mode.
 
 The `@testable` attribute allows the local module to reference the internal declarations of the imported module.
 The current design even allows to use an imported internal or package type in a public declaration.
