@@ -4,7 +4,7 @@
 - Authors: [shlim(JJong)](https://github.com/shlim0)
 - Review Manager: TBD
 - Status: **Awaiting review**
-- Review: ([pitch](https://forums.swift.org/...))
+- Review: ([pitch](https://forums.swift.org/t/pitch-access-level-must-follow-as-guiding-principle/67328))
 
 ## Introduction
 
