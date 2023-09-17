@@ -149,7 +149,7 @@ we consider the dependency to be of a `package` visibility at the module level.
 The module level information implies different behaviors for transitive clients of the dependency.
 Transitive clients are modules that indirectly import that dependency.
 For example, in the following scenario, `TransitiveClient` is a transitive client
-of the `IndirectDependency` via the import of `ImporterModule`.
+of the `IndirectDependency` via the import of `MiddleModule`.
 
 ```
 module IndirectDependency
