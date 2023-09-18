@@ -3,10 +3,10 @@
 * Proposal: [SE-0407](0407-member-macro-conformances.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (August 25th...September 4th, 2023)**
+* Status: **Accepted**
 * Vision: [Macros](https://github.com/apple/swift-evolution/blob/main/visions/macros.md)
 * Implementation: [apple/swift#67758](https://github.com/apple/swift/pull/67758)
-* Review: ([pitch](https://forums.swift.org/t/pitch-member-macros-that-know-what-conformances-are-missing/66590)) ([review](https://forums.swift.org/t/se-0407-member-macro-conformances/66951))
+* Review: ([pitch](https://forums.swift.org/t/pitch-member-macros-that-know-what-conformances-are-missing/66590)) ([review](https://forums.swift.org/t/se-0407-member-macro-conformances/66951)) ([acceptance](https://forums.swift.org/t/accepted-se-0407-member-macro-conformances/67345))
 
 ## Introduction
 
