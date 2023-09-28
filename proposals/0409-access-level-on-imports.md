@@ -208,7 +208,7 @@ Where the tool is unavailable, a simple script can insert a `public` modifier in
 
 The upcoming feature flag `InternalImports` will enable the Swift 6 behavior even when using Swift 5.
 
-### Relation with other attributes on imports
+### Relation with other imports modifiers
 
 The `@_exported` attribute is a step above a `public` import
 as clients see the imported module declarations is if they were part of the local module.
@@ -226,6 +226,15 @@ In comparison, this new feature enables stricter type-checking and shows fewer s
 After replacing with an internal import, the transitive dependency loading requirements will remain the same for resilient modules,
 but will change for non-resilient modules where transitive dependencies must always be loaded.
 In all cases, updating modules relying on `@_implementationOnly` to instead use internal imports is strongly encouraged.
+
+The scoped imports feature remains independent from the access level declared on the same import.
+Given the example below, the module `Foo` is a public dependency at the module-level and can be referenced from public declaration signatures in the local source file.
+The scoped part, `struct Foo.Bar`, is a hint to the name lookup logic to prioritize resolving references to `Bar` as this one compared to other `Bar` from other imports.
+Since there's no interactions between the two features,
+scoped imports cannot be used to restrict the access level of a single declaration.
+```
+public import struct Foo.Bar
+```
 
 ## Source compatibility
 
