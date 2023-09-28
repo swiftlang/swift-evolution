@@ -167,6 +167,9 @@ if none of these apply the dependency can be hidden.
 1. Public dependencies must always be loaded by transitive clients.
 
 2. All dependencies of a non-resilient module must be loaded by transitive clients.
+   The compiler need the dependencies to access information required at build time for non-resilient modules,
+   the same information is provided at run time by resilient modules.
+   This restriction is discussed further in the future directions section.
 
 3. Package dependencies must be loaded by transitive clients if the middle module and the transitive client are part of the same package.
    This allows for the signature of package declarations to reference that dependency.
