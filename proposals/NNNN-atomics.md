@@ -4,7 +4,7 @@
 * Author: [Karoy Lorentey](https://github.com/lorentey), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: TBD
 * Bug: [SR-9144](https://github.com/apple/swift/issues/51640)
-* Implementation: N/A
+* Implementation: https://github.com/apple/swift/pull/68857
 * Version: 2023-09-18
 * Status: **Awaiting review**
 
@@ -23,7 +23,7 @@ This proposal adds a limited set of low-level atomic operations to the Standard 
 
 Previous Swift-evolution thread: [Low-Level Atomic Operations](https://forums.swift.org/t/low-level-atomic-operations/34683)
 
-New Swift-evolution thread: [Atomics]()
+New Swift-evolution thread: [Atomics](https://forums.swift.org/t/atomics/67350)
 
 ## Revision History
 
@@ -42,6 +42,7 @@ New Swift-evolution thread: [Atomics]()
     * [The Atomic Protocol Hierarchy](#the-atomic-protocol-hierarchy)
       * [Optional Atomics](#optional-atomics)
       * [Custom Atomic Types](#custom-atomic-types)
+    * [Atomic Storage Types](#atomic-storage-types)
     * [DoubleWord](#doubleword)
     * [The Atomic type](#the-atomic-type)
     * [Basic Atomic Operations](#basic-atomic-operations)
@@ -54,8 +55,9 @@ New Swift-evolution thread: [Atomics]()
   * [Detailed Design](#detailed-design)
     * [Atomic Memory Orderings](#atomic-memory-orderings-1)
     * [Atomic Protocols](#atomic-protocols)
-      * [AtomicStorage](#atomicstorage)
       * [AtomicValue](#atomicvalue)
+      * [AtomicOptionalWrappable](#atomicoptionalwrappable)
+    * [Atomic Storage Types](#atomic-storage-types-1)
     * [DoubleWord](#doubleword-1)
     * [Atomic Types](#atomic-types)
       * [Atomic&lt;Value&gt;](#atomicvalue-1)
@@ -143,7 +145,7 @@ The atomic constructs later in this proposal implement concurrent read/write acc
 
 However, this alone does not give us a way to synchronize accesses to regular variables, or between atomic accesses to different memory locations. To support such synchronization, each atomic operation can be configured to also act as a synchronization point for other variable accesses within the same thread, preventing previous accesses from getting executed after the atomic operation, and/or vice versa. Atomic operations on another thread can then synchronize with the same point, establishing a strict (although partial) timeline between accesses performed by both threads. This way, we can reason about the possible ordering of operations across threads, even if we know nothing about how those operations are implemented. (This is how locks or dispatch queues can be used to serialize the execution of arbitrary blocks containing regular accesses to shared variables.) For more details, see \[[C++17], [N2153], [Boehm 2008]].
 
-In order to enable atomic synchronization within Swift, we must first introduce memory orderings who will give us control of the timeline of these operations across threads. Luckily, with the acceptance of [Clarify the Swift memory consistency model (SE-0282)](https://github.com/apple/swift-evolution/blob/main/proposals/0282-atomics.md), Swift already adopts the C/C++ concurrency memory model. In this model, concurrent access to shared state remains undefined behavior unless all such access is forced into a conflict-free timeline through explicit synchronization operations.
+In order to enable atomic synchronization within Swift, we must first introduce memory orderings that will give us control of the timeline of these operations across threads. Luckily, with the acceptance of [Clarify the Swift memory consistency model (SE-0282)](https://github.com/apple/swift-evolution/blob/main/proposals/0282-atomics.md), Swift already adopts the C/C++ concurrency memory model. In this model, concurrent access to shared state remains undefined behavior unless all such access is forced into a conflict-free timeline through explicit synchronization operations.
 
 This proposal introduces five distinct memory orderings, organized into three logical groups, from loosest to strictest:
 
@@ -196,7 +198,7 @@ Every atomic operation introduced later in this proposal requires an ordering ar
 
 Projects that prefer to default to sequentially consistent ordering are welcome to add non-public `Atomic` extensions that implement that. However, we expect that providing an implicit default ordering would be highly undesirable in most production uses of atomics.
 
-We also provide a top-level function called `atomicMemoryFence` that allows issuing a memory ordering constraint without directly associating it with a particular atomic operation. This corresponds to `std::memory_thread_fence` in C++ [[C++17]].
+We also provide a top-level function called `atomicMemoryFence` that allows issuing a memory ordering constraint without directly associating it with a particular atomic operation. This corresponds to `std::atomic_thread_fence` in C++ [[C++17]].
 
 ```swift
 /// Establishes a memory ordering without associating it with a
@@ -233,7 +235,7 @@ The notion of an atomic type is captured by the `AtomicValue` protocol.
 /// A type that supports atomic operations through a separate atomic storage
 /// representation.
 public protocol AtomicValue {
-  associatedtype AtomicRepresentation: AtomicStorage
+  associatedtype AtomicRepresentation
 
   static func encodeAtomicRepresentation(
     _ value: consuming Self
@@ -245,57 +247,9 @@ public protocol AtomicValue {
 }
 ```
 
-Backing the atomic representation is an `AtomicStorage` protocol that defines all of the atomic operations one must implement in order for the type itself to be used when lowering atomic operations.
-
-```swift
-/// The storage representation for an atomic value, providing pointer-based
-/// atomic operations. This is a low-level implementation detail of atomic
-/// types.
-public protocol AtomicStorage {
-  ...
-}
-```
-
-While `AtomicStorage` is a public protocol, its requirements are considered an implementation detail of the Standard Library. (They are replaced by ellipses above.)
-
 The requirements in `AtomicValue` set up a bidirectional mapping between values of the atomic type and an associated storage representation that implements the actual primitive atomic operations.
 
-Following existing Standard Library conventions for such interfaces, the names of all associated types and member requirements of the `AtomicStorage` protocol start with a leading underscore character. As with any other underscored interface exposed by the Standard Library, code that manually implements or directly uses these underscored requirements may fail to compile (or correctly run) when built using any Swift release other than the one for which it was initially written.
-
-The full set of standard types implementing `AtomicStorage` is listed below:
-
-```swift
-extension Int {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension Int8 {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension Int16 {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension Int32 {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension Int64 {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension UInt {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension UInt8 {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension UInt16 {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension UInt32 {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-extension UInt64 {
-  public struct AtomicRepresentation: AtomicStorage {...}
-}
-```
+`AtomicRepresentation` is intentionally left unconstrained because as you'll see later in the proposal, atomic operations are only available when `AtomicRepresentation` is one of the core atomic storage types found here: [Atomic Storage Types](#atomic-storage-types).
 
 The full set of standard types implementing `AtomicValue` is listed below:
 
@@ -324,10 +278,28 @@ extension Optional: AtomicValue where Wrapped: AtomicValue, ... {...}
 
 #### Optional Atomics
 
-The standard atomic pointer types and unmanaged references also support atomic operations on their optional-wrapped form. `Optional` implements this through a conditional conformance to `AtomicValue`; the exact constraint is an implementation detail. (It works by requiring the wrapped type's internal atomic storage representation to support a special nil value.)
+The standard atomic pointer types and unmanaged references also support atomic operations on their optional-wrapped form. To spell out this optional wrapped, we introduce a new protocol:
 
 ```swift
-extension Optional: AtomicValue where Wrapped: AtomicValue, ... {
+public protocol AtomicOptionalWrappable: AtomicValue {
+  associatedtype AtomicOptionalRepresentation
+
+  static func encodeAtomicOptionalRepresentation(
+    _ value: consuming Self?
+  ) -> AtomicOptionalRepresentation
+
+  static func decodeAtomicOptionalRepresentation(
+    _ representation: consuming AtomicOptionalRepresentation
+  ) -> Self?
+}
+```
+
+Similar to `AtomicValue`, `AtomicOptionalWrappable`'s requirements create a bidirectional mapping between an optional value of `Self` to some atomic optional storage representation and vice versa.
+
+`Optional` implements `AtomicValue` through a conditional conformance to this new `AtomicOptionalWrappable` protocol.
+
+```swift
+extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {
   ...
 }
 ```
@@ -335,11 +307,11 @@ extension Optional: AtomicValue where Wrapped: AtomicValue, ... {
 This proposal enables optional-atomics support for the following types:
 
 ```swift
-UnsafeRawPointer
-UnsafeMutableRawPointer
-UnsafePointer<Pointee>
-UnsafeMutablePointer<Pointee>
-Unmanaged<Instance>
+extension UnsafeRawPointer: AtomicOptionalWrappable {}
+extension UnsafeMutableRawPointer: AtomicOptionalWrappable {}
+extension UnsafePointer: AtomicOptionalWrappable {}
+extension UnsafeMutablePointer: AtomicOptionalWrappable {}
+extension Unmanaged: AtomicOptionalWrappable {}
 ```
 
 User code is not allowed to extend this list with additional types; this capability is reserved for potential future proposals.
@@ -356,8 +328,8 @@ class LockFreeSingleConsumerStack<Element> {
   }
   typealias NodePtr = UnsafeMutablePointer<Node>
 
-  private var _last = Atomic<NodePtr?>(nil)
-  private var _consumerCount = Atomic<Int>(0)
+  private let _last = Atomic<NodePtr?>(nil)
+  private let _consumerCount = Atomic<Int>(0)
 
   deinit {
     // Discard remaining nodes
@@ -443,6 +415,34 @@ if currentState.compareExchange(
 currentState.store(.stopped, ordering: .sequentiallyConsistent)
 ```
 
+### Atomic Storage Types
+
+Fundamental to working with atomics is knowing that CPUs can only do atomic operations on integers. While we could theoretically do atomic operations with our current list of standard library integer types (`Int8`, `Int16`, ...), some platforms don't ensure that these types have the same alignment as their size. For example, `Int64` and `UInt64` have 4 byte alignment on i386. Atomic operations must occur on correctly aligned types. To ensure this, we need to introduce helper types that all atomic operations will be traffiked through:
+
+```swift
+public struct AtomicInt8Storage {}
+public struct AtomicInt16Storage {}
+public struct AtomicInt32Storage {}
+public struct AtomicInt64Storage {}
+public struct AtomicInt128Storage {}
+```
+
+Because these are the fundamental atomic storage types, they will serve as the `AtomicRepresentation` for all of the standard integer types:
+
+```swift
+extension Int8: AtomicValue {
+  public typealias AtomicRepresentation = AtomicInt8Storage
+}
+
+...
+
+extension UInt64: AtomicValue {
+  public typealias AtomicRepresentation = AtomicInt64Storage
+}
+
+...
+```
+
 ### `DoubleWord`
 
 In their current single-word form, atomic pointer and reference types are susceptible to a class of race condition called the *ABA problem*. A freshly allocated object often happens to be placed at the same memory location as a recently deallocated one. Therefore, two successive `load`s of a simple atomic pointer may return the exact same value, even though the pointer may have received an arbitrary number of updates between the two loads, and the pointee may have been completely replaced. This can be a subtle, but deadly source of race conditions in naive implementations of many concurrent data structures.
@@ -453,16 +453,21 @@ We propose a new separate type that provides an abstraction over the layout of w
 
 ```swift
 public struct DoubleWord {
-  public var first: UInt { get }
-  public var second: UInt { get }
+  public var highWord: UInt { get }
+  public var lowWord: UInt { get }
 
-  public init(first: UInt, second: UInt)
+  public init(highWord: UInt, lowWord: UInt)
 }
 
 extension DoubleWord: AtomicValue {
-  public struct AtomicRepresentation: AtomicStorage {
-    ...
-  }
+// Not a real compilation conditional
+#if 64 bit
+  public typealias AtomicRepresentaton = AtomicInt128Storage
+#elseif 32 bit
+  public typealias AtomicRepresentation = AtomicInt64Storage
+#else
+#error("Not a supported platform")
+#endif
 
   ...
 }
@@ -489,10 +494,10 @@ Now that we know how to create an atomic value, it's time to introduce some actu
 
 ### Basic Atomic Operations
 
-`Atomic` provides seven basic atomic operations for all supported types:
+`Atomic` provides seven basic atomic operations when `Value.AtomicRepresenation` is one of the fundamental atomic storage types:
 
 ```swift
-extension Atomic {
+extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   /// Atomically loads and returns the current value, applying the specified
   /// memory ordering.
   ///
@@ -661,6 +666,8 @@ extension Atomic {
 }
 ```
 
+Because these are only available when `Value.AtomicRepresentation == AtomicIntNNStorage`, some atomic specializations may not support atomic operations at all.
+
 The first three operations are relatively simple:
 
 - `load` returns the current value.
@@ -712,18 +719,22 @@ These specialized integer operations generally come in two variants, based on wh
 
 | Method Name | Returns | Implements |
 | --- | --- | --- |
-| `loadThenWrappingIncrement(by:ordering:)`  | original value | `a &+= b`  |
-| `loadThenWrappingDecrement(by:ordering:)`  | original value | `a &-= b`  |
-| `loadThenBitwiseAnd(with:ordering)`        | original value | `a &= b`  |
-| `loadThenBitwiseOr(with:ordering)`         | original value | `a \|= b`  |
-| `loadThenBitwiseXor(with:ordering)`        | original value | `a ^= b`   |
-| `wrappingIncrementThenLoad(by:ordering:)`  | new value  | `a &+= b`  |
-| `wrappingDecrementThenLoad(by:ordering:)`  | new value  |`a &-= b`   |
-| `bitwiseAndThenLoad(with:ordering)`        | new value  |`a &= b`    |
-| `bitwiseOrThenLoad(with:ordering)`         | new value  |`a \|= b`   |
-| `bitwiseXorThenLoad(with:ordering)`        | new value  |`a ^= b`    |
-| `wrappingIncrement(by:ordering:)`          | none   | `a &+= b` |
-| `wrappingDecrement(by:ordering:)`          | none   | `a &-= b` |
+| `loadThenWrappingIncrement(by:ordering:)`   | original value | `a &+= b`  |
+| `loadThenWrappingDecrement(by:ordering:)`   | original value | `a &-= b`  |
+| `loadThenBitwiseAnd(with:ordering:)`        | original value | `a &= b`  |
+| `loadThenBitwiseOr(with:ordering:)`         | original value | `a \|= b`  |
+| `loadThenBitwiseXor(with:ordering:)`        | original value | `a ^= b`   |
+| `loadThenMin(with:ordering:)`               | original value | `a = Swift.min(a, b)` |
+| `loadThenMax(with:ordering:`                | original value | `a = Swift.max(a, b)` |
+| `wrappingIncrementThenLoad(by:ordering:)`   | new value  | `a &+= b`  |
+| `wrappingDecrementThenLoad(by:ordering:)`   | new value  |`a &-= b`   |
+| `bitwiseAndThenLoad(with:ordering:)`        | new value  |`a &= b`    |
+| `bitwiseOrThenLoad(with:ordering:)`         | new value  |`a \|= b`   |
+| `bitwiseXorThenLoad(with:ordering:)`        | new value  |`a ^= b`    |
+| `minThenLoad(with:ordering:)`               | new value  | `a = Swift.min(a, b)` |
+| `maxThenLoad(with:ordering:`                | new value  | `a = Swift.max(a, b)` |
+| `wrappingIncrement(by:ordering:)`           | none   | `a &+= b` |
+| `wrappingDecrement(by:ordering:)`           | none   | `a &-= b` |
 
 The `wrappingIncrement` and `wrappingDecrement` operations are provided as a convenience for incrementing/decrementing values in the common case when a return value is not required.
 
@@ -868,40 +879,39 @@ Note that unlike the rest of the atomic types, `load` and `storeIfNilThenLoad(_:
 Modeling orderings as regular function parameters allows us to specify them using syntax that's familiar to all Swift programmers. Unfortunately, it means that in the implementation of atomic operations we're forced to switch over the ordering argument:
 
 ```swift
-extension Int: AtomicStorage {
-  public func atomicCompareExchange(
-    expected: Int,
-    desired: Int,
-    at address: UnsafeMutablePointer<Int>,
+extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
+  public borrowing func compareExchange(
+    expected: consuming Value,
+    desired: consuming Value,
     ordering: AtomicUpdateOrdering
   ) -> (exchanged: Bool, original: Int) {
     // Note: This is a simplified version of the actual implementation
     let won: Bool
-    let oldValue: Int
+    let oldValue: Value
 
     switch ordering {
     case .relaxed:
-      (oldValue, won) = Builtin.cmpxchg_monotonic_monotonic_Word(
+      (oldValue, won) = Builtin.cmpxchg_monotonic_monotonic_IntNN(
         address, expected, desired
       )
 
     case .acquiring:
-      (oldValue, won) = Builtin.cmpxchg_acquire_acquire_Word(
+      (oldValue, won) = Builtin.cmpxchg_acquire_acquire_IntNN(
         address, expected, desired
       )
 
     case .releasing:
-      (oldValue, won) = Builtin.cmpxchg_release_monotonic_Word(
+      (oldValue, won) = Builtin.cmpxchg_release_monotonic_IntNN(
         address, expected, desired
       )
 
     case .acquiringAndReleasing:
-      (oldValue, won) = Builtin.cmpxchg_acqrel_acquire_Word(
+      (oldValue, won) = Builtin.cmpxchg_acqrel_acquire_IntNN(
         address, expected, desired
       )
 
     case .sequentiallyConsistent:
-      (oldValue, won) = Builtin.cmpxchg_seqcst_seqcst_Word(
+      (oldValue, won) = Builtin.cmpxchg_seqcst_seqcst_IntNN(
         address, expected, desired
       )
 
@@ -1081,38 +1091,11 @@ public func atomicMemoryFence(ordering: AtomicUpdateOrdering)
 
 ### Atomic Protocols
 
-#### `AtomicStorage`
-
-```swift
-public protocol AtomicStorage {
-  // Requirements aren't public API
-}
-```
-
-This protocol supplies the actual primitive atomic operations for conformers. The exact requirements are a private implementation detail of the Standard Library. They are outside the scope of the Swift Evolution process and they may arbitrarily change between library releases. User code must not directly use them or manually implement them.
-
-Conforming types:
-
-```swift
-extension Int.AtomicRepresentation: AtomicStorage {...}
-extension Int64.AtomicRepresentation: AtomicStorage {...}
-extension Int32.AtomicRepresentation: AtomicStorage {...}
-extension Int16.AtomicRepresentation: AtomicStorage {...}
-extension Int8.AtomicRepresentation: AtomicStorage {...}
-extension UInt.AtomicRepresentation: AtomicStorage {...}
-extension UInt64.AtomicRepresentation: AtomicStorage {...}
-extension UInt32.AtomicRepresentation: AtomicStorage {...}
-extension UInt16.AtomicRepresentation: AtomicStorage {...}
-extension UInt8.AtomicRepresentation: AtomicStorage {...}
-
-extension DoubleWord.AtomicRepresentation: AtomicStorage {...}
-```
-
 #### `AtomicValue`
 
 ```swift
 public protocol AtomicValue {
-  associatedtype AtomicRepresentation: AtomicStorage
+  associatedtype AtomicRepresentation
 
   static func encodeAtomicRepresentation(
     _ value: consuming Self
@@ -1150,22 +1133,8 @@ extension UnsafePointer: AtomicValue {...}
 extension UnsafeMutablePointer: AtomicValue {...}
 extension Unmanaged: AtomicValue {...}
 
-extension Optional: AtomicValue where Wrapped: AtomicValue, ... {...}
+extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {...}
 ```
-
-The exact constraints on `Optional`'s conditional conformance are a private implementation detail. (They specify that the underlying (private) storage representation must be able to represent an extra `nil` value.)
-
-Atomic `Optional` operations are currently enabled for the following `Wrapped` types:
-
-```swift
-UnsafeRawPointer
-UnsafeMutableRawPointer
-UnsafePointer<Pointee>
-UnsafeMutablePointer<Pointee>
-Unmanaged<Instance>
-```
-
-User code is not allowed to extend this list with additional types; this capability is reserved for potential future proposals.
 
 To support custom "atomic-representable" types, `AtomicValue` also comes with default implementations for all its requirements for `RawRepresentable` types whose `RawValue` is also atomic:
 
@@ -1177,6 +1146,44 @@ extension RawRepresentable where Self: AtomicValue, RawValue: AtomicValue, ... {
 
 The omitted constraint sets up the (private) atomic storage type to match that of the `RawValue`. The default implementations work by converting values to their `rawValue` form, and forwarding all atomic operations to it.
 
+#### `AtomicOptionalWrappable`
+
+```swift
+public protocol AtomicOptionalWrappable: AtomicValue {
+  associatedtype AtomicOptionalRepresentation
+
+  static func encodeAtomicOptionalRepresentation(
+    _ value: consuming Self?
+  ) -> AtomicOptionalRepresentation
+
+  static func decodeAtomicOptionalRepresentation(
+    _ representation: consuming AtomicOptionalRepresentation
+  ) -> Self?
+}
+```
+
+Atomic `Optional` operations are currently enabled for the following `Wrapped` types:
+
+```swift
+extension UnsafeRawPointer: AtomicOptionalWrappable {}
+extension UnsafeMutableRawPointer: AtomicOptionalWrappable {}
+extension UnsafePointer: AtomicOptionalWrappable {}
+extension UnsafeMutablePointer: AtomicOptionalWrappable {}
+extension Unmanaged: AtomicOptionalWrappable {}
+```
+
+User code is not allowed to extend this list with additional types; this capability is reserved for potential future proposals.
+
+### Atomic Storage Types
+
+```swift
+public struct AtomicInt8Storage {...}
+public struct AtomicInt16Storage {...}
+public struct AtomicInt32Storage {...}
+public struct AtomicInt64Storage {...}
+public struct AtomicInt128Storage {...}
+```
+
 ### `DoubleWord`
 
 ```swift
@@ -1186,6 +1193,8 @@ public struct DoubleWord {
 
   public init(first: UInt, second: UInt)
 }
+
+extension DoubleWord: AtomicValue {...}
 ```
 
 ### Atomic Types
@@ -1195,7 +1204,9 @@ public struct DoubleWord {
 ```swift
 public struct Atomic<Value: AtomicValue>: ~Copyable {
   public init(_ initialValue: consuming Value)
+}
 
+extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   // Atomic operations:
 
   public borrowing func load(ordering: AtomicLoadOrdering) -> Value
@@ -1273,32 +1284,52 @@ extension Atomic where Value == Int {
   )
 
   public borrowing func loadThenBitwiseAnd(
-    _ operand: Value,
+    with operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func bitwiseAndThenLoad(
-    _ operand: Value,
+    with operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func loadThenBitwiseOr(
-    _ operand: Value,
+    with operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func bitwiseOrThenLoad(
-    _ operand: Value,
+    with operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func loadThenBitwiseXor(
-    _ operand: Value,
+    with operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func bitwiseXorThenLoad(
-    _ operand: Value,
+    with operand: Value,
+    ordering: AtomicUpdateOrdering
+  ) -> Value
+
+  public borrowing func loadThenMin(
+    with operand: Value,
+    ordering: AtomicUpdateOrdering
+  ) -> Value
+
+  public borrowing func minThenLoad(
+    with operand: Value,
+    ordering: AtomicUpdateOrdering
+  ) -> Value
+
+  public borrowing func loadThenMax(
+    with operand: Value,
+    ordering: AtomicUpdateOrdering
+  ) -> Value
+
+  public borrowing func maxThenLoad(
+    with operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> Value
 }
