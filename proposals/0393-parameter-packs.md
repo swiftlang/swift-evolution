@@ -4,7 +4,6 @@
 * Authors: [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Implemented (Swift 5.9)**
-* Implementation: On `main` gated behind the frontend flag `-enable-experimental-feature VariadicGenerics`
 * Review: ([pitch 1](https://forums.swift.org/t/pitch-parameter-packs/60543)) ([pitch 2](https://forums.swift.org/t/pitch-2-value-and-type-parameter-packs/60830)) ([review](https://forums.swift.org/t/se-0393-value-and-type-parameter-packs/63859)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0393-value-and-type-parameter-packs/64382))
 
 ## Introduction
