@@ -3,7 +3,7 @@
 * Proposal: [SE-0409](0409-access-level-on-imports.md)
 * Author: [Alexis Laferrière](https://github.com/xymus)
 * Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
-* Status: Status: **Active Review (September 14...26, 2023)**
+* Status: **Active Review (September 14...26, 2023)**
 * Implementation: On main and release/5.9 gated behind the frontend flag `-enable-experimental-feature AccessLevelOnImport`
 * Upcoming Feature Flag: `InternalImports` (Enables Swift 6 behavior with imports defaulting to internal. Soon on main only.)
 * Review: ([pitch](https://forums.swift.org/t/pitch-access-level-on-import-statements/66657)) ([review](https://forums.swift.org/t/se-0409-access-level-modifiers-on-import-declarations/67290))
@@ -22,7 +22,7 @@ Swift already offers access levels with their respective modifiers to declaratio
 but there is currently no equivalent official feature for dependencies.
 
 The author of a library may have a different intent for each of the library dependencies;
-some are expected to be known to the library clients while other are for implementation details internal to the package, module, or source file.
+some are expected to be known to the library clients while others are for implementation details internal to the package, module, or source file.
 Without a way to enforce the intended access level of dependencies
 it is easy to make a mistake and expose a dependency of the library to the library clients by referencing it from a public declaration even if it's intended to remain an implementation detail.
 
@@ -261,7 +261,7 @@ it can break source compatibility in code relying of those behaviors.
 ### Hiding dependency for non-resilient modules
 
 Hiding dependencies on non-resilient modules would be possible in theory but requires rethinking a few restrictions in the compilation process.
-The main restriction is the need of the compiler to know the memory layout of imported types, which can depend on a transitive dependencies.
+The main restriction is the need of the compiler to know the memory layout of imported types, which can depend on transitive dependencies.
 Resilient modules can provide this information at run time so the transitive module isn't required at build time.
 Non-resilient modules do not provide this information at run time, so the compiler must load the transitive dependencies at build time to access it.
 Solutions could involve copying the required information in each modules,
