@@ -6,7 +6,7 @@
 * Status: **Accepted with modifications**
 * Implementation: On main and release/5.9 gated behind the frontend flag `-enable-experimental-feature AccessLevelOnImport`
 * Upcoming Feature Flag: `InternalImports` (Enables Swift 6 behavior with imports defaulting to internal. Soon on main only.)
-* Review: ([pitch](https://forums.swift.org/t/pitch-access-level-on-import-statements/66657)) ([review](https://forums.swift.org/t/se-0409-access-level-modifiers-on-import-declarations/67290)) ((acceptance)[https://forums.swift.org/t/accepted-with-modifications-se-0409-access-level-modifiers-on-import-declarations/67666])
+* Review: ([pitch](https://forums.swift.org/t/pitch-access-level-on-import-statements/66657)) ([review](https://forums.swift.org/t/se-0409-access-level-modifiers-on-import-declarations/67290)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0409-access-level-modifiers-on-import-declarations/67666))
 
 ## Introduction
 
