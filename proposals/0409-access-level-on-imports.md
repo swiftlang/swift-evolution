@@ -232,8 +232,8 @@ In all cases, updating modules relying on `@_implementationOnly` to instead use 
 
 The scoped imports feature remains independent from the access level declared on the same import.
 Given the example below, the module `Foo` is a public dependency at the module-level and can be referenced from public declaration signatures in the local source file.
-The scoped part, `struct Foo.Bar`, is a hint to the name lookup logic to prioritize resolving references to `Bar` as this one compared to other `Bar` from other imports.
-Since there's no interactions between the two features,
+The scoped part, `struct Foo.Bar`, limits lookup so only `Bar` can be referenced from this file, it also prioritizes resolving references to this `Bar` if there are other `Bar` declarations in other imports.
+Since there's no direct interaction between the two features,
 scoped imports cannot be used to restrict the access level of a single declaration.
 ```
 public import struct Foo.Bar
