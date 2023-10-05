@@ -5,7 +5,7 @@
 * Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
 * Status: **Accepted with modifications**
 * Implementation: On main and release/5.9 gated behind the frontend flag `-enable-experimental-feature AccessLevelOnImport`
-* Upcoming Feature Flag: `InternalImports` (Enables Swift 6 behavior with imports defaulting to internal. Soon on main only.)
+* Upcoming Feature Flag: `InternalImportsByDefault` (Enables Swift 6 behavior with imports defaulting to internal. Soon on main only.)
 * Review: ([pitch](https://forums.swift.org/t/pitch-access-level-on-import-statements/66657)) ([review](https://forums.swift.org/t/se-0409-access-level-modifiers-on-import-declarations/67290)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0409-access-level-modifiers-on-import-declarations/67666))
 
 ## Introduction
@@ -221,7 +221,7 @@ The Swift 6 change will likely break source compatibility for libraries.
 A migration tool could automatically insert the `public` modifier where required.
 Where the tool is unavailable, a simple script can insert a `public` modifier in front of all imports to preserve the Swift 5 behavior.
 
-The upcoming feature flag `InternalImports` will enable the Swift 6 behavior even when using Swift 5.
+The upcoming feature flag `InternalImportsByDefault` will enable the Swift 6 behavior even when using Swift 5.
 
 ### Relation with other attributes on imports
 
