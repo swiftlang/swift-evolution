@@ -73,34 +73,34 @@ let f: (User) -> String? = { kp in { root in root[keyPath: kp] } }(\User.email)
 While this proposal _mostly_ only makes previously invalid code valid, [@jrose](https://forums.swift.org/u/jrose) pointed out some corner cases where this proposal could potentially change the meaning of existing code:
 
 ```
-func evil3<T, U>(_: (T) -> U) {}
-func evil3(_ x: (String) -> Bool?) { print("aha") }
+func evil<T, U>(_: (T) -> U) { print("generic") }
+func evil(_ x: (String) -> Bool?) { print("concrete") }
 
-evil3(\String.isEmpty)
+evil(\String.isEmpty)
 ```
 
-Previously, the `evil3` call would select the first overload of `evil3` (since the `KeyPath<String, Bool>` to `(String) -> Bool?` conversion was considered invalid), but this proposal would select the second overload of `evil3` (printing "aha").
+Previously, the `evil` call would select the first overload of `evil` (printing "generic", since the `KeyPath<String, Bool>` to `(String) -> Bool?` conversion was considered invalid), but this proposal would select the second overload of `evil` (printing "concrete").
 
 This proposal opts to treat such differences as a bug in the implementation of SE-0249, which promises that the keypath-to-function conversion will have "semantics equivalent to capturing the key path and applying it to the Root argument":
 
 ```swift
-evil3({ kp in { $0[keyPath: kp] } }(\String.isEmpty)) // Prints 'aha'
+evil({ kp in { $0[keyPath: kp] } }(\String.isEmpty)) // Prints 'concrete'
 ```
 
 The author expects such situations to be quite rare, and, moreover, already plagued by unreliable overload resolution in the face of calls that _should_ be semantically equivalent:
 
 ```swift
-// Doesn't print 'aha'
-evil3({ kp in { (string: String) -> Bool in string[keyPath: kp] } }(\String.isEmpty))
+// 'generic'
+evil({ kp in { (string: String) -> Bool in string[keyPath: kp] } }(\String.isEmpty))
 
-// Prints 'aha'
-evil3({ kp in { string -> Bool in string[keyPath: kp] } }(\String.isEmpty))
+// 'concrete'
+evil({ kp in { string -> Bool in string[keyPath: kp] } }(\String.isEmpty))
 
-// Doesn't print 'aha'
-evil3({ kp in { (string: String) in string[keyPath: kp] } }(\String.isEmpty))
+// 'generic'
+evil({ kp in { (string: String) in string[keyPath: kp] } }(\String.isEmpty))
 
-// Prints 'aha'
-evil3({ kp in { $0[keyPath: kp] } }(\String.isEmpty))
+// 'concrete'
+evil({ kp in { $0[keyPath: kp] } }(\String.isEmpty))
 ```
 
 Thus, the author opts for a model which maintains the simple "keypath version has the same semantics as the explicit closure version" rule.
