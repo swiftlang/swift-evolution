@@ -47,6 +47,7 @@ public func publicFunc() -> DatabaseAdapter.Entry {...} // error: function canno
 
 Additionally, this proposal uses the access level declared on each import declaration in all source files composing a module to determine when clients of a library need to load the library's dependencies or when they can be skipped.
 To balance source compatibility and best practices, the proposed default import has an implicit access level of public in Swift 5 and of internal in Swift 6 mode.
+The attribute `@usableFromInline` on an import allows references from inlinable code.
 
 ## Detailed design
 
@@ -95,6 +96,15 @@ private import OtherDependencyPrivateToThisFile
 
 The `open` access-level modifier is rejected on import declarations.
 
+The `@usableFromInline` attribute can be applied to an import declaration to allow referencing a dependency from inlinable code
+while limiting which declarations signatures can reference it.
+The attribute `@usableFromInline` can be used only on `package` and `internal` imports.
+It marks the dependency as visible to clients.
+```swift
+@usableFromInline package import UsableFromInlinePackageDependency
+@usableFromInline internal import UsableFromInlineInternalDependency
+```
+
 ### Type-checking references to imported modules
 
 Current type-checking enforces that declaration respect their respective access levels.
@@ -111,6 +121,11 @@ This will be reported by the familiar diagnostics currently applied to access-le
 We apply the same logic for `package`, `fileprivate` and `private` import declarations.
 In the case of a `public` import, there is no restriction on how the imported declarations can be referenced
 beyond the existing restrictions on imported `package` declarations which cannot be referenced from public declaration signatures.
+
+The attribute `@usableFromInline` on an import takes effect for inlinable code:
+`@inlinable` and `@backDeployed` function bodies, default initializers of arguments, and properties of `@frozen` structs.
+The `@usableFromInline` imported dependency can be referenced from inliable code
+but doesn't affect type-checking of declaration signatures where only the access level is taken into account.
 
 Here is an example of the approximate diagnostics produced from type-checking in a typical case with a `fileprivate` import.
 ```swift
@@ -164,7 +179,7 @@ the transitive client may need to load it at compile time or not.
 There are four factors requiring a transitive dependency to be loaded,
 if none of these apply the dependency can be hidden.
 
-1. Public dependencies must always be loaded by transitive clients.
+1. Public or `@usableFromInline` dependencies must always be loaded by transitive clients.
 
 2. All dependencies of a non-resilient module must be loaded by transitive clients.
 
