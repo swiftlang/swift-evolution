@@ -48,6 +48,7 @@ New Swift-evolution thread: [Atomics](https://forums.swift.org/t/atomics/67350)
     * [Specialized Integer Operations](#specialized-integer-operations)
     * [Specialized Boolean Operations](#specialized-boolean-operations)
     * [Atomic Lazy References](#atomic-lazy-references)
+    * [Restricting Ordering Arguments to Compile\-Time Constants](#restricting-ordering-arguments-to-compile-time-constants)
   * [Interaction with Existing Language Features](#interaction-with-existing-language-features)
     * [Interaction with Swift Concurrency](#interaction-with-swift-concurrency)
   * [Detailed Design](#detailed-design)
@@ -146,46 +147,37 @@ These align with select members of the standard `std::memory_order` enumeration 
 | `std::memory_order_acq_rel` |  `.acquiringAndReleasing`   |
 | `std::memory_order_seq_cst` |  `.sequentiallyConsistent`  |
 
-Atomic orderings are nested in a memory ordering "namespace". Each ordering has its own type and a static getter to retrieve a value of the ordering type. We've modeled it this way to present ordering overloads for atomic operations as you'll see later in the proposal.
+Atomic orderings are grouped into three frozen structs based on the kind of operation to which they are attached, as listed below. By modeling these as separate types, we can ensure that unsupported operation/ordering combinations (such as an atomic "releasing load") will lead to clear compile-time errors:
 
 ```swift
-// Specifies the memory ordering to be applied to any atomic operation.
-public enum AtomicMemoryOrdering {
-  public struct Relaxed {
-    public static var relaxed: Self { get }
-  }
-  
-  public struct Acquiring {
-    public static var acquiring: Self { get }
-  }
-  
-  public struct Releasing {
-    public static var releasing: Self { get }
-  }
-  
-  public struct AcquiringAndReleasing {
-    public static var acquiringAndReleasing: Self { get }
-  }
-  
-  public struct SequentiallyConsistent {
-    public static var sequentiallyConsistent: Self { get }
-  }
+/// Specifies the memory ordering semantics of an atomic load operation.
+public struct AtomicLoadOrdering {
+  public static var relaxed: Self { get }
+  public static var acquiring: Self { get }
+  public static var sequentiallyConsistent: Self { get }
+}
+
+/// Specifies the memory ordering semantics of an atomic store operation.
+public struct AtomicStoreOrdering {
+  public static var relaxed: Self { get }
+  public static var releasing: Self { get }
+  public static var sequentiallyConsistent: Self { get }
+}
+
+/// Specifies the memory ordering semantics of an atomic read-modify-write
+/// operation.
+public struct AtomicUpdateOrdering {
+  public static var relaxed: Self { get }
+  public static var acquiring: Self { get }
+  public static var releasing: Self { get }
+  public static var acquiringAndReleasing: Self { get }
+  public static var sequentiallyConsistent: Self { get }
 }
 ```
 
-Every atomic operation introduced later in this proposal requires an ordering argument. We consider these ordering arguments to be an essential part of these low-level atomic APIs, and we require an explicit `ordering` argument on all atomic operations. The intention here is to force developers to carefully think about what ordering they need to use, each time they use one of these primitives. (Perhaps more importantly, this also makes it obvious to readers of the code what ordering is used -- making it far less likely that an unintended default `.sequentiallyConsistent` ordering slips through code review.)
+These structs behave like non-frozen enums with a known (non-public) raw representation. This allows us to define additional memory orderings in the future (if and when they become necessary, specifically `std::memory_order_consume`) while making use of the known representation to optimize existing cases. (These cannot be frozen enums because that would prevent us from adding more orderings, but regular resilient enums can't freeze their representation, and the layout indirection interferes with guaranteed optimizations, especially in -Onone.)
 
-In addition to every atomic operation requiring an explicit ordering, each operation will have overloads for each accepted memory ordering. This has the benefit of every application of an atomic operation to have a single representation that will always produce the best result as opposed to switching over the ordering in the implementation at runtime potentially. We go more into detail about the though process for this design in [Alternative Designs for Memory Orderings](#alternative-designs-for-memory-orderings).
-
-All atomic operations later proposed in this document will be simplified because there are lots of overloads for each memory ordering argument. To make this simpler, we're going to define the following:
-
-```swift
-typealias LoadOrdering = Relaxed | Acquiring | SequentiallyConsistent
-typealias StoreOrdering = Relaxed | Releasing | SequentiallyConsistent
-typealias UpdateOrdering = Relaxed | Acquiring | Releasing | AcquiringAndReleasing | SequentiallyConsistent
-```
-
-NOTE: This syntax is not real and is not something being proposed. This is just for the simplification of proposing these API overloads.
+Every atomic operation introduced later in this proposal requires an ordering argument. We consider these ordering arguments to be an essential part of these low-level atomic APIs, and we require an explicit `ordering` argument on all atomic operations. The intention here is to force developers to carefully think about what ordering they need to use, each time they use one of these primitives. (Perhaps more importantly, this also makes it obvious to readers of the code what ordering is used -- making it far less likely that an unintended default `.sequentiallyConsistent` ordering slips through code review.) 
 
 Projects that prefer to default to sequentially consistent ordering are welcome to add non-public `Atomic` extensions that implement that. However, we expect that providing an implicit default ordering would be highly undesirable in most production uses of atomics.
 
@@ -195,6 +187,7 @@ We also provide a top-level function called `atomicMemoryFence` that allows issu
 /// Establishes a memory ordering without associating it with a
 /// particular atomic operation.
 ///
+/// - A relaxed fence has no effect.
 /// - An acquiring fence ties to any preceding atomic operation that
 ///   reads a value, and synchronizes with any releasing operation whose
 ///   value was read.
@@ -212,10 +205,8 @@ We also provide a top-level function called `atomicMemoryFence` that allows issu
 ///
 /// Be aware that Thread Sanitizer does not support fences and may report
 /// false-positive races for data protected by a fence.
-public func atomicMemoryFence(ordering: UpdateOrdering)
+public func atomicMemoryFence(ordering: AtomicUpdateOrdering)
 ```
-
-Where there are 4 overloads of this function taking either an `.acquiring`, `.releasing`, `.acquiringAndReleasing`, or `.sequentiallyConsistent` ordering.
 
 Fences are slightly more powerful (but even more difficult to use) than orderings tied to specific atomic operations [[N2153]]; we expect their use will be limited to the most performance-sensitive synchronization constructs.
 
@@ -495,7 +486,7 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   ///
   /// - Parameter ordering: The memory ordering to apply on this operation.
   /// - Returns: The current value.
-  public borrowing func load(ordering: LoadOrdering) -> Value
+  public borrowing func load(ordering: AtomicLoadOrdering) -> Value
   
   /// Atomically sets the current value to `desired`, applying the specified
   /// memory ordering.
@@ -504,7 +495,7 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   /// - Parameter ordering: The memory ordering to apply on this operation.
   public borrowing func store(
     _ desired: consuming Value,
-    ordering: StoreOrdering
+    ordering: AtomicStoreOrdering
   )
 
   /// Atomically sets the current value to `desired` and returns the original
@@ -515,7 +506,7 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   /// - Returns: The original value.
   public borrowing func exchange(
     _ desired: consuming Value, 
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   /// Perform an atomic compare and exchange operation on the current value,
@@ -544,7 +535,7 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   public borrowing func compareExchange(
     expected: consuming Value,
     desired: consuming Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> (exchanged: Bool, original: Value)
 
   /// Perform an atomic compare and exchange operation on the current value,
@@ -580,8 +571,8 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   public borrowing func compareExchange(
     expected: consuming Value,
     desired: consuming Value,
-    successOrdering: UpdateOrdering,
-    failureOrdering: LoadOrdering
+    successOrdering: AtomicUpdateOrdering,
+    failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 
   /// Perform an atomic weak compare and exchange operation on the current
@@ -613,7 +604,7 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   public borrowing func weakCompareExchange(
     expected: consuming Value,
     desired: consuming Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> (exchanged: Bool, original: Value)
 
   /// Perform an atomic weak compare and exchange operation on the current
@@ -652,8 +643,8 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   public borrowing func weakCompareExchange(
     expected: consuming Value,
     desired: consuming Value,
-    successOrdering: UpdateOrdering,
-    failureOrdering: LoadOrdering
+    successOrdering: AtomicUpdateOrdering,
+    failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 }
 ```
@@ -688,7 +679,7 @@ The compare-exchange primitive is special: it is a universal operation that can 
 extension Atomic where Value == Int {
   func wrappingIncrement(
     by operand: Int,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) {
     var done = false
     var current = load(ordering: .relaxed)
@@ -840,7 +831,7 @@ extension AtomicLazyReference {
   /// Atomically loads and returns the current value of this reference.
   ///
   /// The load operation is performed with the memory ordering
-  /// `AtomicMemoryOrdering.Acquiring`.
+  /// `AtomicLoadOrdering.acquiring`.
   public borrowing func load() -> Instance?
 }
 ```
@@ -865,6 +856,91 @@ var atomicLazyFoo: Foo {
 The Standard Library has been internally using such a pattern to implement deferred bridging for `Array`, `Dictionary` and `Set`.
 
 Note that unlike the rest of the atomic types, `load` and `storeIfNilThenLoad(_:)` do not expose `ordering` parameters. (Internally, they map to acquiring/releasing operations to guarantee correct synchronization.)
+
+### Restricting Ordering Arguments to Compile-Time Constants
+
+Modeling orderings as regular function parameters allows us to specify them using syntax that's familiar to all Swift programmers. Unfortunately, it means that in the implementation of atomic operations we're forced to switch over the ordering argument:
+
+```swift
+extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
+  public borrowing func compareExchange(
+    expected: consuming Value,
+    desired: consuming Value,
+    ordering: AtomicUpdateOrdering
+  ) -> (exchanged: Bool, original: Int) {
+    // Note: This is a simplified version of the actual implementation
+    let won: Bool
+    let oldValue: Value
+
+    switch ordering {
+    case .relaxed:
+      (oldValue, won) = Builtin.cmpxchg_monotonic_monotonic_IntNN(
+        address, expected, desired
+      )
+
+    case .acquiring:
+      (oldValue, won) = Builtin.cmpxchg_acquire_acquire_IntNN(
+        address, expected, desired
+      )
+
+    case .releasing:
+      (oldValue, won) = Builtin.cmpxchg_release_monotonic_IntNN(
+        address, expected, desired
+      )
+
+    case .acquiringAndReleasing:
+      (oldValue, won) = Builtin.cmpxchg_acqrel_acquire_IntNN(
+        address, expected, desired
+      )
+
+    case .sequentiallyConsistent:
+      (oldValue, won) = Builtin.cmpxchg_seqcst_seqcst_IntNN(
+        address, expected, desired
+      )
+
+    default:
+      fatalError("Unknown atomic memory ordering")
+    }
+
+    return (exchanged: won, original: oldValue)
+  }
+}
+```
+
+Given our requirement that primitive atomics must always compile down to the actual atomic instructions with minimal additional overhead, we must guarantee that these switch statements always get optimized away into the single case we need; they must never actually be evaluated at runtime.
+
+Luckily, configuring these special functions to always get force-inlined into all callers guarantees that constant folding will get rid of the switch statement *as long as the supplied ordering is a compile-time constant*. Unfortunately, it's all too easy to accidentally violate this latter requirement, with dire consequences to the expected performance of the atomic operation.
+
+Consider the following well-meaning attempt at using `compareExchange` to define an atomic integer addition operation that traps on overflow rather than allowing the result to wrap around:
+
+```swift
+extension Atomic where Value == Int {
+  // Non-inlinable
+  public func checkedIncrement(by delta: Int, ordering: AtomicUpdateOrdering) {
+    var done = false
+    var current = load(ordering: .relaxed)
+
+    while !done {
+      (done, current) = compareExchange(
+        expected: current,
+        desired: current + operand, // Traps on overflow
+        ordering: ordering
+      )
+    }
+  }
+}
+
+// Elsewhere:
+counter.checkedIncrement(by: 1, ordering: .relaxed)
+```
+
+If for whatever reason the Swift compiler isn't able (or willing) to inline the `checkedIncrement` call, then the value of `ordering` won't be known at compile time to the body of the function, so even though `compareExchange` will still get inlined, its switch statement won't be eliminated. This leads to a potentially significant performance regression that could interfere with the scalability of the operation.
+
+The big issue here is that if `checkedIncrement` is in another module, then callers of this function have no visibility inside this function's body. If callers can't see this function's implementation, then the switch statement will be executed at runtime regardless of the compiler optimization mode. However, another issue is that the ordering argument may still be dynamic in which case the compiler still can't eliminate the switch statement even though the caller may be able to see the entire implementation.
+
+To help prevent the last issue, we are constraining the memory ordering arguments of all atomic operations to be compile-time constants. Any attempt to pass a dynamic ordering value (such as in the `compareExchange` call above) will result in a compile-time error.
+
+An ordering expression will be considered constant-evaluable if it's either (1) a direct call to one of the `Atomic*Ordering` factory methods (`.relaxed`, `.acquiring`, etc.), or (2) it is a direct reference to a variable that is in turn constrained to be constant-evaluable.
 
 ## Interaction with Existing Language Features
 
@@ -963,30 +1039,39 @@ For the full API definition, please refer to the [implementation][implementation
 ### Atomic Memory Orderings
 
 ```swift
-// Specifies the memory ordering to be applied to any atomic operation.
-public enum AtomicMemoryOrdering {
-  public struct Relaxed {
-    public static var relaxed: Self { get }
-  }
-  
-  public struct Acquiring {
-    public static var acquiring: Self { get }
-  }
-  
-  public struct Releasing {
-    public static var releasing: Self { get }
-  }
-  
-  public struct AcquiringAndReleasing {
-    public static var acquiringAndReleasing: Self { get }
-  }
-  
-  public struct SequentiallyConsistent {
-    public static var sequentiallyConsistent: Self { get }
-  }
+public struct AtomicLoadOrdering: Equatable, Hashable, CustomStringConvertible {
+  public static var relaxed: Self { get }
+  public static var acquiring: Self { get }
+  public static var sequentiallyConsistent: Self { get }
+
+  public static func ==(left: Self, right: Self) -> Bool
+  public func hash(into hasher: inout Hasher)
+  public var description: String { get }
 }
 
-public func atomicMemoryFence(ordering: UpdateOrdering)
+public struct AtomicStoreOrdering: Equatable, Hashable, CustomStringConvertible {
+  public static var relaxed: Self { get }
+  public static var releasing: Self { get }
+  public static var sequentiallyConsistent: Self { get }
+
+  public static func ==(left: Self, right: Self) -> Bool
+  public func hash(into hasher: inout Hasher)
+  public var description: String { get }
+}
+
+public struct AtomicUpdateOrdering: Equatable, Hashable, CustomStringConvertible {
+  public static var relaxed: Self { get }
+  public static var acquiring: Self { get }
+  public static var releasing: Self { get }
+  public static var acquiringAndReleasing: Self { get }
+  public static var sequentiallyConsistent: Self { get }
+
+  public static func ==(left: Self, right: Self) -> Bool
+  public func hash(into hasher: inout Hasher)
+  public var description: String { get }
+}
+
+public func atomicMemoryFence(ordering: AtomicUpdateOrdering)
 ```
 
 ### Atomic Protocols
@@ -1110,43 +1195,43 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
   // Atomic operations:
 
   public borrowing func load(
-    ordering: LoadOrdering
+    ordering: AtomicLoadOrdering
   ) -> Value
 
   public borrowing func store(
     _ desired: consuming Value,
-    ordering: StoreOrdering
+    ordering: AtomicStoreOrdering
   )
 
   public borrowing func exchange(
     _ desired: consuming Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func compareExchange(
     expected: consuming Value,
     desired: consuming Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> (exchanged: Bool, original: Value)
 
   public borrowing func compareExchange(
     expected: consuming Value,
     desired: consuming Value,
-    successOrdering: UpdateOrdering,
-    failureOrdering: LoadOrdering
+    successOrdering: AtomicUpdateOrdering,
+    failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 
   public borrowing func weakCompareExchange(
     expected: consuming Value,
     desired: consuming Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> (exchanged: Bool, original: Value)
 
   public borrowing func weakCompareExchange(
     expected: consuming Value,
     desired: consuming Value,
-    successOrdering: UpdateOrdering,
-    failureOrdering: LoadOrdering
+    successOrdering: AtomicUpdateOrdering,
+    failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 }
 ```
@@ -1157,82 +1242,82 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
 extension Atomic where Value == Int {
   public borrowing func loadThenWrappingIncrement(
     by operand: Value = 1,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func wrappingIncrementThenLoad(
     by operand: Value = 1,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func wrappingIncrement(
     by operand: Value = 1,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   )
 
   public borrowing func loadThenWrappingDecrement(
     by operand: Value = 1,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func wrappingDecrementThenLoad(
     by operand: Value = 1,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func wrappingDecrement(
     by operand: Value = 1,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   )
 
   public borrowing func loadThenBitwiseAnd(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func bitwiseAndThenLoad(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func loadThenBitwiseOr(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func bitwiseOrThenLoad(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func loadThenBitwiseXor(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func bitwiseXorThenLoad(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func loadThenMin(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func minThenLoad(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func loadThenMax(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func maxThenLoad(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 }
 
@@ -1246,32 +1331,32 @@ as well as providing convenience functions for boolean operations:
 extension Atomic where Value == Bool {
   public borrowing func loadThenLogicalAnd(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func loadThenLogicalOr(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func loadThenLogicalXor(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func logicalAndThenLoad(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func logicalOrThenLoad(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 
   public borrowing func logicalXorThenLoad(
     with operand: Value,
-    ordering: UpdateOrdering
+    ordering: AtomicUpdateOrdering
   ) -> Value
 }
 ```
@@ -1314,11 +1399,11 @@ For the new constructs introduced here, the proposed design allows us to make th
 
 - Addition of new memory orderings. Because all atomic operations compile directly into user code, new memory orderings that we decide to introduce later could potentially back-deploy to any OS release that includes this proposal.
 
-- Addition of new atomic operations on the types introduced here. Back deployable.
+- Addition of new atomic operations on the types introduced here. These would be also be back deployable.
 
 - Introducing a default memory ordering for atomic operations (either by adding a default value to `ordering`, or by adding new overloads that lack that parameter). This too would be a back-deployable change.
 
-- Change the memory ordering model to not require tons of overloads as long as it's not source breaking. This would also be back-deployable.
+- Change the memory ordering model as long as the changes preserve source compatibility.
 
 (We don't necessarily plan to actually perform any of these changes; we merely leave the door open to doing them.)
 
@@ -1461,118 +1546,7 @@ To prevent this gotcha, none of the proposed atomic types provide a property for
 
 ### Alternative Designs for Memory Orderings
 
-Modeling memory orderings with enumeration(-like) values fits well into the Standard Library's existing API design practice, but `ordering` arguments aren't without problems. Most importantly, the quality of code generation will always be its best because each application of an atomic operation gets resolved to a single canonical atomic intrinsic. We think memory ordering argument overloads side steps a bunch of issues that occur by modeling memory orderings by anything else, but it's instructive to look at some of the approaches we considered before settling on this choice.
-
-#### Group Orderings in Memory Ordering Structs
-
-An earlier revision of this pitch proposed something like the following:
-
-```swift
-/// Specifies the memory ordering semantics of an atomic load operation.
-public struct AtomicLoadOrdering {
-  public static var relaxed: Self { get }
-  public static var acquiring: Self { get }
-  public static var sequentiallyConsistent: Self { get }
-}
-
-/// Specifies the memory ordering semantics of an atomic store operation.
-public struct AtomicStoreOrdering {
-  public static var relaxed: Self { get }
-  public static var releasing: Self { get }
-  public static var sequentiallyConsistent: Self { get }
-}
-
-/// Specifies the memory ordering semantics of an atomic read-modify-write
-/// operation.
-public struct AtomicUpdateOrdering {
-  public static var relaxed: Self { get }
-  public static var acquiring: Self { get }
-  public static var releasing: Self { get }
-  public static var acquiringAndReleasing: Self { get }
-  public static var sequentiallyConsistent: Self { get }
-}
-```
-
-While a perfectly fine solution, it has the drawback that the implementation needs to switch over the orderings which can lead to the optimizer not eliminating the switch statement in unoptimized builds still:
-
-```swift
-extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
-  public borrowing func compareExchange(
-    expected: consuming Value,
-    desired: consuming Value,
-    ordering: AtomicUpdateOrdering
-  ) -> (exchanged: Bool, original: Int) {
-    // Note: This is a simplified version of the actual implementation
-    let won: Bool
-    let oldValue: Value
-
-    switch ordering {
-    case .relaxed:
-      (oldValue, won) = Builtin.cmpxchg_monotonic_monotonic_IntNN(
-        address, expected, desired
-      )
-
-    case .acquiring:
-      (oldValue, won) = Builtin.cmpxchg_acquire_acquire_IntNN(
-        address, expected, desired
-      )
-
-    case .releasing:
-      (oldValue, won) = Builtin.cmpxchg_release_monotonic_IntNN(
-        address, expected, desired
-      )
-
-    case .acquiringAndReleasing:
-      (oldValue, won) = Builtin.cmpxchg_acqrel_acquire_IntNN(
-        address, expected, desired
-      )
-
-    case .sequentiallyConsistent:
-      (oldValue, won) = Builtin.cmpxchg_seqcst_seqcst_IntNN(
-        address, expected, desired
-      )
-
-    default:
-      fatalError("Unknown atomic memory ordering")
-    }
-
-    return (exchanged: won, original: oldValue)
-  }
-}
-```
-
-Given our requirement that primitive atomics must always compile down to the actual atomic instructions with minimal additional overhead, we must guarantee that these switch statements always get optimized away into the single case we need; they must never actually be evaluated at runtime.
-
-Luckily, configuring these special functions to always get force-inlined into all callers guarantees that constant folding will get rid of the switch statement *as long as the supplied ordering is a compile-time constant*. Unfortunately, it's all too easy to accidentally violate this latter requirement, with dire consequences to the expected performance of the atomic operation.
-
-Consider the following well-meaning attempt at using `compareExchange` to define an atomic integer addition operation that traps on overflow rather than allowing the result to wrap around:
-
-```swift
-extension Atomic where Value == Int {
-  // Non-inlinable
-  public func checkedIncrement(by delta: Int, ordering: AtomicUpdateOrdering) {
-    var done = false
-    var current = load(ordering: .relaxed)
-
-    while !done {
-      (done, current) = compareExchange(
-        expected: current,
-        desired: current + operand, // Traps on overflow
-        ordering: ordering
-      )
-    }
-  }
-}
-
-// Elsewhere:
-counter.checkedIncrement(by: 1, ordering: .relaxed)
-```
-
-If for whatever reason the Swift compiler isn't able (or willing) to inline the `checkedIncrement` call, then the value of `ordering` won't be known at compile time to the body of the function, so even though `compareExchange` will still get inlined, its switch statement won't be eliminated. This leads to a potentially significant performance regression that could interfere with the scalability of the operation.
-
-Our solution to this problem was to use a special compiler attribute that forced the ordering argument for all of the atomic operations we proposed to be constant evaluable. This solves the immediate issue at hand, but it would make adding new external operations awkward because they too would need to copy the special compiler attribute to get the same behavior that the stdlib had. However, the ultimate reason why we dropped this approach was due to the fact that we were relying on the optimizer (which we can usually do!) to eliminate the switch in unoptimized builds vs. not having a switch at all in the first place. It also feels good to not rely on special compiler support and instead use language features to get us the API design, code gen, and performance that we desire.
-
-While the overload approach we've gone with does put slightly more pressure on the type checker to resolve, it would still resolve to either the correct answer or no answer at all. Compared to the type checker, the optimizer has the freedom to decide not to optimize the switch statement out in debug builds which would still technically be a correct answer, but would severely reduce performance for these atomic operations.
+Modeling memory orderings with enumeration(-like) values fits well into the Standard Library's existing API design practice, but `ordering` arguments aren't without problems. Most importantly, the quality of code generation depends greatly on the compiler's ability to constant-fold switch statements over these ordering values into a single instruction. This can be fragile -- especially in unoptimized builds. We think [constraining these arguments to compile-time constants](#restricting-ordering-arguments-to-compile-time-constants) strikes a good balance between readability and performance, but it's instructive to look at some of the approaches we considered before settling on this choice.
 
 #### Encode Orderings in Method Names
 
@@ -1640,6 +1614,43 @@ However, we ultimately decided against going down this route, for the following 
   - **Unintuitive syntax.** While the syntax is indeed superficially attractive, it feels backward to put the memory ordering *before* the actual operation. While memory orderings are important, I suspect most people would consider them secondary to the operations themselves.
 
   - **Limited Reuse.** Implementing ordering views takes a rather large amount of (error-prone) boilerplate-heavy code that is not directly reusable. Every new atomic type would need to implement a new set of ordering views, tailor-fit to its own use-case.
+
+#### Memory Orderings as Overloads
+
+Another promising alternative was the idea to model each ordering as a separate type and have overloads for the various atomic operations.
+
+```swift
+struct AtomicMemoryOrdering {
+  struct Relaxed {
+    static var relaxed: Self { get }
+  }
+  
+  struct Acquiring {
+    static var acquiring: Self { get }
+  }
+  
+  ...
+}
+
+extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
+  func load(ordering: AtomicMemoryOrdering.Relaxed) -> Value {...}
+  func load(ordering: AtomicMemoryOrdering.Acquiring) -> Value {...}
+  ...
+}
+```
+
+This approach shares a lot of the same benefits of views, but the biggest reason for this alternative was the fact that the switch statement problem we described earlier just doesn't exist anymore. There is no switch statement! The overload always gets resolved to a single atomic operation + ordering + storage meaning there's no question about what to compile the operation down to. However, this is just another type of flavor of views in that the API surface explodes especially with double ordering operations. 
+
+There are 5 storage types and we define the primitive atomic operations on extensions of all of these. For the constant expression case for single ordering operations that's `5 (storage) * 1 (ordering) = 5` number of overloads and `5 (storage) * 1 (update ordering) * 1 (load ordering) = 5` for the double ordering case. The overload solution is now dependent on the number of orderings supported for a specific operation. So for single ordering loads it's `5 (storage) * 3 (orderings) = 15` different load orderings and for the double ordering compare and exchange it's `5 (storage) * 5 (update orderings) * 3 (load orderings) = 75` overloads.
+
+|                               | Overloads                                                    | Constant Expressions                                         |
+| ----------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| Overload Resolution           | Very bad                                                     | Not so bad                                                   |
+| API Documentation             | Very bad (but can be fixed!)                                 | Not so bad (but can be fixed!)                               |
+| Custom Atomic Operations      | Requires users to define multiple overloads for their operations. | Allows users to define a single entrypoint that takes a constant ordering and passes that to the primitive atomic operations. |
+| Back Deployable New Orderings | Almost impossible unless we defined the ordering types in C because types in Swift must come with availability. | Can easily be done because the orderings are static property getters that we can back deploy. |
+
+The same argument for views creating a very vast API surface can be said about the overloads which helped us determine that the constant expression approach is still superior.
 
 ### Directly bring over `swift-atomics`'s API
 
