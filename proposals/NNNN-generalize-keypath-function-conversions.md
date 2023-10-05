@@ -70,7 +70,7 @@ let f: (User) -> String? = { kp in { root in root[keyPath: kp] } }(\User.email)
 
 ## Source compatibility
 
-While this proposal _mostly_ only makes previously invalid code valid, [@jrose](https://forums.swift.org/u/jrose) pointed out some corner cases where this proposal could potentially change the meaning of existing code:
+While this proposal _mostly_ only makes previously invalid code valid, [@jrose](https://forums.swift.org/u/jrose) pointed out a case where this proposal could potentially change the meaning of existing code:
 
 ```
 func evil<T, U>(_: (T) -> U) { print("generic") }
@@ -87,23 +87,36 @@ This proposal opts to treat such differences as a bug in the implementation of S
 evil({ kp in { $0[keyPath: kp] } }(\String.isEmpty)) // Prints 'concrete'
 ```
 
-The author expects such situations to be quite rare, and, moreover, already plagued by unreliable overload resolution in the face of calls that _should_ be semantically equivalent:
+The circumstances necessary are exceedingly narrow to reproduce the above behavior. It is not enough merely to declare the `evil` overloads. The following naive reproduction attempt fails to compile, thus posing no source compatibility error:
 
-```swift
-// 'generic'
-evil({ kp in { (string: String) -> Bool in string[keyPath: kp] } }(\String.isEmpty))
+```
+struct S {
+    let x: Bool
+}
 
-// 'concrete'
-evil({ kp in { string -> Bool in string[keyPath: kp] } }(\String.isEmpty))
-
-// 'generic'
-evil({ kp in { (string: String) in string[keyPath: kp] } }(\String.isEmpty))
-
-// 'concrete'
-evil({ kp in { $0[keyPath: kp] } }(\String.isEmpty))
+func evil<T, U>(_: (T) -> U) {  }
+func evil(_: (S) -> Bool?) {  }
+evil(\S.x) // 
 ```
 
-Thus, the author opts for a model which maintains the simple "keypath version has the same semantics as the explicit closure version" rule.
+That this compilation fails seems to be a bug of its own. The additional ingredient appears to be overloading `x`—with the following additions, the snipped above compiles without error:
+
+```
+protocol P {}
+extension P {
+    var x: Bool { true }
+}
+extension S: P {}
+```
+
+So, to summarize, in order to cause a source compatibility issue, one must have:
+1. Function overloads A and B accepting function arguments
+2. A call to the overloaded function name, passed a keypath literal using an overloaded property
+3. The keypath is viable for conversion to exactly one of A or B's parameter types under currently-implemented rules, but viable for conversion to _both_ A and B's parameter types under the rules in this proposal
+4. The overload which is *not* currently viable would outrank the currently-viable overload once both are made viable under this proposal
+5. A and B are not semantically interchangable such that calling one instead of the other results in a substantive change in behavior
+
+In the author's judgement, the liklihood of any significant compatibility issue is negligible.
 
 ## Effect on ABI stability
 
