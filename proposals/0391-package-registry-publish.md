@@ -24,7 +24,7 @@
 
 A package registry makes packages available to consumers. Starting with Swift 5.7,
 SwiftPM supports dependency resolution and package download using any registry that 
-implements the [service specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md) proposed alongside with [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md).
+implements the [service specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md) proposed alongside with [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md).
 SwiftPM does not yet provide any tooling for publishing packages, so package authors 
 must manually prepare the contents (e.g., source archive) and interact 
 with the registry on their own to publish a package release. This proposal 
@@ -38,7 +38,7 @@ Publishing package release to a Swift package registry generally involves these 
   1. Prepare package source archive by using the [`swift package archive-source` subcommand](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md#archive-source-subcommand).
   1. Sign the metadata and archive (if needed).
   1. [Authenticate](https://github.com/apple/swift-evolution/blob/main/proposals/0378-package-registry-auth.md) (if required by the registry).
-  1. Send the archive and metadata (and their signatures if any) by calling the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6).
+  1. Send the archive and metadata (and their signatures if any) by calling the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6).
   1. Check registry server response to determine if publication has succeeded or failed (if the registry processes request synchronously), or is pending (if the registry processes request asynchronously).
 
 SwiftPM can streamline the workflow by combining all of these steps into a single 
@@ -58,8 +58,8 @@ Typically a package release has metadata associated with it, such as URL of the 
 code repository, license, etc. In general, metadata gets set when a package release is
 being published, but a registry service may allow modifications of the metadata afterwards.
 
-The current [registry service specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md) states that:
-  - A client (e.g., package author, publishing tool) may provide metadata for a package release by including it in the ["create a package release" request](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#462-package-release-metadata). The registry server will store the metadata and include it in the ["fetch information about a package release" response](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-2).
+The current [registry service specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md) states that:
+  - A client (e.g., package author, publishing tool) may provide metadata for a package release by including it in the ["create a package release" request](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#462-package-release-metadata). The registry server will store the metadata and include it in the ["fetch information about a package release" response](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-2).
   - If a client does not include metadata, the registry server may populate it unless the client specifies otherwise (i.e., by sending an empty JSON object `{}` in the "create a package release" request).
 
 It does not, however, define any requirements or server-client API contract on the 
@@ -84,7 +84,7 @@ Package release metadata submitted to a registry must be a JSON object of type
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md",
+  "$id": "https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md",
   "title": "Package Release Metadata",
   "description": "Metadata of a package release.",
   "type": "object",
@@ -167,7 +167,7 @@ Package release metadata submitted to a registry must be a JSON object of type
 | `description`     | String | A description of the package release. | |
 | `licenseURL`      | String | URL of the package release's license document. | |
 | `readmeURL`       | String | URL of the README specifically for the package release or broadly for the package. | |
-| `repositoryURLs`  | Array | Code repository URL(s) of the package. It is recommended to include all URL variations (e.g., SSH, HTTPS) for the same repository. This can be an empty array if the package does not have source control representation.<br/>Setting this property is one way through which a registry can obtain repository URL to package identifier mappings for the ["lookup package identifiers registered for a URL" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#45-lookup-package-identifiers-registered-for-a-url). A registry may choose other mechanism(s) for package authors to specify such mappings. | |
+| `repositoryURLs`  | Array | Code repository URL(s) of the package. It is recommended to include all URL variations (e.g., SSH, HTTPS) for the same repository. This can be an empty array if the package does not have source control representation.<br/>Setting this property is one way through which a registry can obtain repository URL to package identifier mappings for the ["lookup package identifiers registered for a URL" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#45-lookup-package-identifiers-registered-for-a-url). A registry may choose other mechanism(s) for package authors to specify such mappings. | |
 
 ##### `Author` type
 
@@ -370,7 +370,7 @@ or `signing.trustedRootCertificatesPath` for package `mona.LinkedList`:
 ##### Local TOFU
 
 When SwiftPM downloads a package release from registry via the 
-["download source archive" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-4), it will:
+["download source archive" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-4), it will:
   1. Search local fingerprints storage, which by default is located at `~/.swiftpm/security/fingerprints/`, to see if the package release has been downloaded before and its recorded checksum. The checksum of the downloaded source archive must match the previous value or else [trust on first use (TOFU)](https://en.wikipedia.org/wiki/Trust_on_first_use) check would fail.
   1. Fetch package release metadata from the registry to get:
     <ul>
@@ -445,13 +445,13 @@ Using these inputs, SwiftPM will:
 
 Prerequisites:
 - Run [`swift package-registry login`](https://github.com/apple/swift-evolution/blob/main/proposals/0378-package-registry-auth.md#new-login-subcommand) to authenticate registry user if needed. 
-- The user has the necessary permissions to call the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6) for the package identifier.
+- The user has the necessary permissions to call the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6) for the package identifier.
 
 ### Changes to the registry service specification
 
 #### Create package release API
 
-A registry must update [this existing endpoint](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-6) to handle package release 
+A registry must update [this existing endpoint](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6) to handle package release 
 metadata as described in a [previous section](#package-release-metadata) of this document.
   
 If the package being published is signed, the client must identify the signature format
@@ -505,7 +505,7 @@ M6TdTeIuGdNsO1FQ0ptD64F5nSSOsQ5WzhM6/7KsHRuLHfTsggnyIWr0DxMcBj5F40zfplwntXAgS0yn
 
 #### Fetch package release metadata API
 
-A registry may update [this existing endpoint](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-2) for the [metadata changes](#package-release-metadata)
+A registry may update [this existing endpoint](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-2) for the [metadata changes](#package-release-metadata)
 described in this document.
 
 If the package release is signed, the registry must include a `signing` JSON 
@@ -532,7 +532,7 @@ object in the response:
 
 #### Download package source archive API
 
-If a registry supports signing, it must update [this existing endpoint](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#endpoint-4) 
+If a registry supports signing, it must update [this existing endpoint](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-4) 
 to include the `X-Swift-Package-Signature-Format` and `X-Swift-Package-Signature` headers in
 the HTTP response for a signed package source archive.
 
