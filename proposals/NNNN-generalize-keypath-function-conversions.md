@@ -72,7 +72,7 @@ let f: (User) -> String? = { kp in { root in root[keyPath: kp] } }(\User.email)
 
 While this proposal _mostly_ only makes previously invalid code valid, [@jrose](https://forums.swift.org/u/jrose) pointed out a case where this proposal could potentially change the meaning of existing code:
 
-```
+```swift
 func evil<T, U>(_: (T) -> U) { print("generic") }
 func evil(_ x: (String) -> Bool?) { print("concrete") }
 
@@ -89,19 +89,19 @@ evil({ kp in { $0[keyPath: kp] } }(\String.isEmpty)) // Prints 'concrete'
 
 The circumstances necessary are exceedingly narrow to reproduce the above behavior. It is not enough merely to declare the `evil` overloads. The following naive reproduction attempt fails to compile, thus posing no source compatibility error:
 
-```
+```swift
 struct S {
     let x: Bool
 }
 
 func evil<T, U>(_: (T) -> U) {  }
 func evil(_: (S) -> Bool?) {  }
-evil(\S.x) // 
+evil(\S.x) 
 ```
 
-That this compilation fails seems to be a bug of its own. The additional ingredient appears to be overloading `x`—with the following additions, the snipped above compiles without error:
+That this compilation fails seems to be a bug of its own. The additional necessary ingredient appears to be overloading `x`—with the following additions, the snipped above compiles without error:
 
-```
+```swift
 protocol P {}
 extension P {
     var x: Bool { true }
