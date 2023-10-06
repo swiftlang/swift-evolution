@@ -8,7 +8,7 @@
 * Implementation: [apple/swift#68794](https://github.com/apple/swift/pull/68794)
 * Upcoming Feature Flag: `-enable-upcoming-feature IsolatedDefaultValues`
 * Previous Proposal: *if applicable* [SE-XXXX](XXXX-filename.md)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-isolated-default-value-expressions/67714))
 
 ## Introduction
 
