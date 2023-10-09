@@ -70,7 +70,7 @@ let f: (User) -> String? = { kp in { root in root[keyPath: kp] } }(\User.email)
 
 ## Source compatibility
 
-While this proposal _mostly_ only makes previously invalid code valid, [@jrose](https://forums.swift.org/u/jrose) pointed out a case where this proposal could potentially change the meaning of existing code:
+This proposal makes previously invalid conversions valid, and should not affect source compatibility. In situations such as:
 
 ```swift
 func evil<T, U>(_: (T) -> U) { print("generic") }
@@ -79,44 +79,7 @@ func evil(_ x: (String) -> Bool?) { print("concrete") }
 evil(\String.isEmpty)
 ```
 
-Previously, the `evil` call would select the first overload of `evil` (printing "generic", since the `KeyPath<String, Bool>` to `(String) -> Bool?` conversion was considered invalid), but this proposal would select the second overload of `evil` (printing "concrete").
-
-This proposal opts to treat such differences as a bug in the implementation of SE-0249, which promises that the keypath-to-function conversion will have "semantics equivalent to capturing the key path and applying it to the Root argument":
-
-```swift
-evil({ kp in { $0[keyPath: kp] } }(\String.isEmpty)) // Prints 'concrete'
-```
-
-The circumstances necessary are exceedingly narrow to reproduce the above behavior. It is not enough merely to declare the `evil` overloads. The following naive reproduction attempt fails to compile, thus posing no source compatibility error:
-
-```swift
-struct S {
-    let x: Bool
-}
-
-func evil<T, U>(_: (T) -> U) {  }
-func evil(_: (S) -> Bool?) {  }
-evil(\S.x) 
-```
-
-That this compilation fails seems to be a bug of its own. The additional necessary ingredient appears to be overloading `x`—with the following additions, the snipped above compiles without error:
-
-```swift
-protocol P {}
-extension P {
-    var x: Bool { true }
-}
-extension S: P {}
-```
-
-So, to summarize, in order to cause a source compatibility issue, one must have:
-1. Function overloads A and B accepting function arguments
-2. A call to the overloaded function name, passed a keypath literal using an overloaded property
-3. The keypath is viable for conversion to exactly one of A or B's parameter types under currently-implemented rules, but viable for conversion to _both_ A and B's parameter types under the rules in this proposal
-4. The overload which is *not* currently viable would outrank the currently-viable overload once both are made viable under this proposal
-5. A and B are not semantically interchangable such that calling one instead of the other results in a substantive change in behavior
-
-In the author's judgement, the liklihood of any significant compatibility issue is negligible.
+we today resolve the `evil` call as referring to the generic function, since the conversion necessary for the concrete function is invalid. This proposal would make both overloads viable, but the concrete version is still considered a worse solution since it requires more conversions to reach a solution (not only does the keypath need to be converted to a function, but the 'natural' type of the keypath function is `(String) -> Bool`, which requires an additional conversion from the type system's perspective).
 
 ## Effect on ABI stability
 
