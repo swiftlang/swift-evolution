@@ -702,24 +702,15 @@ These specialized integer operations generally come in two variants, based on wh
 
 | Method Name | Returns | Implements |
 | --- | --- | --- |
-| `loadThenWrappingIncrement(by:ordering:)`   | original value | `a &+= b`  |
-| `loadThenWrappingDecrement(by:ordering:)`   | original value | `a &-= b`  |
-| `loadThenBitwiseAnd(with:ordering:)`        | original value | `a &= b`  |
-| `loadThenBitwiseOr(with:ordering:)`         | original value | `a \|= b`  |
-| `loadThenBitwiseXor(with:ordering:)`        | original value | `a ^= b`   |
-| `loadThenMin(with:ordering:)`               | original value | `a = Swift.min(a, b)` |
-| `loadThenMax(with:ordering:`                | original value | `a = Swift.max(a, b)` |
-| `wrappingIncrementThenLoad(by:ordering:)`   | new value  | `a &+= b`  |
-| `wrappingDecrementThenLoad(by:ordering:)`   | new value  |`a &-= b`   |
-| `bitwiseAndThenLoad(with:ordering:)`        | new value  |`a &= b`    |
-| `bitwiseOrThenLoad(with:ordering:)`         | new value  |`a \|= b`   |
-| `bitwiseXorThenLoad(with:ordering:)`        | new value  |`a ^= b`    |
-| `minThenLoad(with:ordering:)`               | new value  | `a = Swift.min(a, b)` |
-| `maxThenLoad(with:ordering:`                | new value  | `a = Swift.max(a, b)` |
-| `wrappingIncrement(by:ordering:)`           | none   | `a &+= b` |
-| `wrappingDecrement(by:ordering:)`           | none   | `a &-= b` |
+| `wrappingIncrement(by:ordering:)`  | `(oldValue:newValue:)` | `a &+= b`  |
+| `wrappingDecrement(by:ordering:)`   | `(oldValue:newValue)` | `a &-= b`  |
+| `bitwiseAnd(with:ordering:)`       | `(oldValue:newValue)` | `a &= b`  |
+| `bitwiseOr(with:ordering:)`         | `(oldValue:newValue)` | `a |= b`  |
+| `bitwiseXor(with:ordering:)`        | `(oldValue:newValue)` | `a ^= b`   |
+| `min(with:ordering:)`              | `(oldValue:newValue)` | `a = Swift.min(a, b)` |
+| `max(with:ordering:`                | `(oldValue:newValue)` | `a = Swift.max(a, b)` |
 
-The `wrappingIncrement` and `wrappingDecrement` operations are provided as a convenience for incrementing/decrementing values in the common case when a return value is not required.
+All operations are also marked as `@discardableResult` in the case where one doesn't care about the old value or new value. The compiler can't optimize the atomic operation away if the return value isn't used.
 
 While we require all atomic operations to be free of locks, we don't require wait-freedom. Therefore, on architectures that don't provide direct hardware support for some or all of these operations, we still require them to be implemented using `compareExchange` loops like the one for `wrappingIncrement` above.
 
@@ -732,20 +723,21 @@ extension Atomic where Value == UInt8 {...}
 
 let counter = Atomic<Int>(0)
 counter.wrappingIncrement(by: 42, ordering: .relaxed)
+
+let oldMax = counter.max(with: 82, ordering: .relaxed).oldValue
 ```
 
 ### Specialized Boolean Operations
 
 Similar to the specialized integer operations, we can provide similar ones for booleans with the same two variants:
 
-| Method Name                          | Returns        | Implements     |
-|--------------------------------------|----------------|----------------|
-| `loadThenLogicalAnd(with:ordering:)` | original value | `a = a && b`   |
-| `loadThenLogicalOr(with:ordering:)`  | original value | `a = a \|\| b` |
-| `loadThenLogicalXor(with:ordering:)` | original value | `a = a ^ b`    |
-| `logicalAndThenLoad(with:ordering:)` | new value      | `a = a && b`   |
-| `logicalOrThenLoad(with:ordering:)`  | new value      | `a = a \|\| b` |
-| `logicalXorThenLoad(with:ordering:)` | new value      | `a = a ^ b`    |
+| Method Name                  | Returns               | Implements   |
+| ---------------------------- | --------------------- | ------------ |
+| `logicalAnd(with:ordering:)` | `(oldValue:newValue)` | `a = a && b` |
+| `logicalOr(with:ordering:)`  | `(oldValue:newValue)` | `a = a || b` |
+| `logicalXor(with:ordering:)` | `(oldValue:newValue)` | `a = a != b` |
+
+Like the integer operations, all of these boolean operations are marked as `@discardableResult`.
 
 `Atomic<Value>` exposes these operations when `Value` is `Bool`.
 
@@ -753,7 +745,7 @@ Similar to the specialized integer operations, we can provide similar ones for b
 extension Atomic where Value == Bool {...}
 
 let tracker = Atomic<Bool>(false)
-let new = tracker.logicalOrThenLoad(with: true, ordering: .relaxed)
+let newOr = tracker.logicalOr(with: true, ordering: .relaxed).newValue
 ```
 
 ### Atomic Lazy References
@@ -1240,85 +1232,47 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
 
 ```swift
 extension Atomic where Value == Int {
-  public borrowing func loadThenWrappingIncrement(
-    by operand: Value = 1,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func wrappingIncrementThenLoad(
-    by operand: Value = 1,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
+  @discardableResult
   public borrowing func wrappingIncrement(
     by operand: Value = 1,
     ordering: AtomicUpdateOrdering
-  )
+  ) -> (oldValue: Value, newValue: Value)
 
-  public borrowing func loadThenWrappingDecrement(
-    by operand: Value = 1,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func wrappingDecrementThenLoad(
-    by operand: Value = 1,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
+  @discardableResult
   public borrowing func wrappingDecrement(
     by operand: Value = 1,
     ordering: AtomicUpdateOrdering
-  )
+  ) -> (oldValue: Value, newValue: Value)
 
-  public borrowing func loadThenBitwiseAnd(
+  @discardableResult
+  public borrowing func bitwiseAnd(
     with operand: Value,
     ordering: AtomicUpdateOrdering
-  ) -> Value
+  ) -> (oldValue: Value, newValue: Value)
 
-  public borrowing func bitwiseAndThenLoad(
+  @discardableResult
+  public borrowing func bitwiseOr(
     with operand: Value,
     ordering: AtomicUpdateOrdering
-  ) -> Value
+  ) -> (oldValue: Value, newValue: Value)
 
-  public borrowing func loadThenBitwiseOr(
+  @discardableResult
+  public borrowing func bitwiseXor(
     with operand: Value,
     ordering: AtomicUpdateOrdering
-  ) -> Value
+  ) -> (oldValue: Value, newValue: Value)
 
-  public borrowing func bitwiseOrThenLoad(
+  @discardableResult
+  public borrowing func min(
     with operand: Value,
     ordering: AtomicUpdateOrdering
-  ) -> Value
+  ) -> (oldValue: Value, newValue: Value)
 
-  public borrowing func loadThenBitwiseXor(
+  @discardableResult
+  public borrowing func max(
     with operand: Value,
     ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func bitwiseXorThenLoad(
-    with operand: Value,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func loadThenMin(
-    with operand: Value,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func minThenLoad(
-    with operand: Value,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func loadThenMax(
-    with operand: Value,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func maxThenLoad(
-    with operand: Value,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
+  ) -> (oldValue: Value, newValue: Value)
 }
 
 extension Atomic where Value == Int8 {...}
@@ -1329,35 +1283,23 @@ as well as providing convenience functions for boolean operations:
 
 ```swift
 extension Atomic where Value == Bool {
-  public borrowing func loadThenLogicalAnd(
+  @discardableResult
+  public borrowing func logicalAnd(
     with operand: Value,
     ordering: AtomicUpdateOrdering
-  ) -> Value
+  ) -> (oldValue: Value, newValue: Value)
 
-  public borrowing func loadThenLogicalOr(
+  @discardableResult
+  public borrowing func logicalOr(
     with operand: Value,
     ordering: AtomicUpdateOrdering
-  ) -> Value
+  ) -> (oldValue: Value, newValue: Value)
 
-  public borrowing func loadThenLogicalXor(
+  @discardableResult
+  public borrowing func logicalXor(
     with operand: Value,
     ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func logicalAndThenLoad(
-    with operand: Value,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func logicalOrThenLoad(
-    with operand: Value,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
-
-  public borrowing func logicalXorThenLoad(
-    with operand: Value,
-    ordering: AtomicUpdateOrdering
-  ) -> Value
+  ) -> (oldValue: Value, newValue: Value)
 }
 ```
 
