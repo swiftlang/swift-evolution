@@ -1,9 +1,10 @@
-# [Pitch] Inferring `@Sendable` for methods
+# Inferring `@Sendable` for methods
 
 * Proposal: [SE-NNNN](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/NNNN-filename.md)
 * Authors: [Angela Laar](https://github.com/angela-laar), [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: TBD
 * Status: Awaiting Implementation
+* Review: ([pitch](https://forums.swift.org/t/pitch-inferring-sendable-for-methods/66565))
 
 ## Introduction
 
@@ -28,11 +29,11 @@ When referencing a method *without* partially applying it  to the object instanc
 
 
 ```
-let unapplied:(T) -> (() -> Void) = S.f 
+let unapplied: (T) -> (() -> Void) = S.f
 ```
 
 
-Suppose we want to create a generic method that expects an unapplied function method conforming to Senable as a parameter. We can create a protocol ``P`` that conforms to the `Sendable` protocol and tell our generic function to expect some generic type that conforms to ``P``. We can also use the `@Sendable` attribute, introduced for closures and functions in [SE-302](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/0302-concurrent-value-and-concurrent-closures.md), to annotate the closure parameter. 
+Suppose we want to create a generic method that expects an unapplied function method conforming to Sendable as a parameter. We can create a protocol ``P`` that conforms to the `Sendable` protocol and tell our generic function to expect some generic type that conforms to ``P``. We can also use the `@Sendable` attribute, introduced for closures and functions in [SE-302](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/0302-concurrent-value-and-concurrent-closures.md), to annotate the closure parameter. 
 
 
 ```
@@ -74,6 +75,8 @@ This is a lot of churn to get the expected behavior. The compiler should preserv
 
 ## Proposed solution
 
+We propose the compiler should automatically employ `@Sendable`  to functions that cannot capture non-Sendable states. This includes partially-applied and unapplied instance methods of `Sendable` types, as well as non-local functions. Additionally, it should be disallowed to utilize `@Sendable` on instance methods of non-`Sendable` types.
+
 For a function, the `@Sendable` attribute primarily influences the kinds of values that can be captured by the function. But methods of a nominal type do not capture anything but the object instance itself. Semantically, a method can be thought of as being represented by the following functions:
 
 
@@ -90,8 +93,9 @@ func NominalType_method_partiallyAppliedTo(_ obj: NominalType) -> ((ArgType) -> 
   }
   return inner
 }
+// The actual method call
 func NominalType_method(_ self: NominalType, _ arg1: ArgType) -> ReturnType {
-  return self.method(arg1)
+  /* body of method */
 }
 ```
 
@@ -104,25 +108,27 @@ type NominalType : Sendable {
 }
 ```
 
-For example, by declaring the following type `Sendable`, the partial and unapplied function values of the type would have implied Sendabilty and the following code would compile with no errors. 
-
+For example, by declaring the following type `Sendable`, the partial and unapplied function values of the type would have implied Sendability and the following code would compile with no errors.
 ```
 struct User : Sendable {
-  func updatePassword (new: String, old:String) -> Bool { /* update password*/ return true}
+  func updatePassword (new: String, old:String) -> Bool {
+    /* update password*/ 
+    return true
+  }
 }
 
-**let** unapplied: **@Sendable** (User) → ((String, String) → Bool) = User.updatePassword // no error
+let unapplied: @Sendable (User) -> ((String, String) → Bool) = User.updatePassword // no error
 
-**let** partial: **@Sendable** (String, String) → Bool = User().updatePassword // no error
+let partial: @Sendable (String, String) -> Bool = User().updatePassword // no error
 ```
 
 
 
 ## Detailed design
 
-This proposal includes five changes to `Sendable` behavior. 
+This proposal includes four changes to `Sendable` behavior.
 
-The first two are what we just discussed regarding partial and unapplied function values.
+The first two are what we just discussed regarding partial and unapplied methods.
 
 ```
 struct User : Sendable {
@@ -136,24 +142,26 @@ struct User : Sendable {
 1. The inference of `@Sendable` for unapplied references to methods of a Sendable type. 
 
 ```
-**let** unapplied: **@Sendable** (User) → ((String, String) → Void) = User.changeAddress // no error
+let unapplied : @Sendable (User) → ((String, String) → Void) = User.changeAddress // no error
 ```
 
-1. The inference of `@Sendable` for partially-applied methods of a Sendable type.
+2. The inference of `@Sendable` for partially-applied methods of a Sendable type.
 
 ```
-**let** partial: **@Sendable** (String, String) → Void = User().changeAddress // no error
+let partial : @Sendable (String, String) → Void = User().changeAddress // no error
 ```
 
-The next few are: 
+These two rules include partially applied and unapplied static methods but do not include partially applied or unapplied mutable methods. Unapplied references to mutable methods are not allowed in the language because they can lead to undefined behavior.  More details about this can be found in [SE-0042](https://github.com/apple/swift-evolution/blob/main/proposals/0042-flatten-method-types.md).
 
-1. The inference of `@Sendable`  when referencing non-local functions.
+Next is:
 
-Unlike closures, which retain the captured value, global functions can't capture any variables - because global variables are just referenced by the function without any ownership. With this in mind there is no reason not to make these, Sendable by default.
+3. The inference of `@Sendable`  when referencing non-local functions.
+
+Unlike closures, which retain the captured value, global functions can't capture any variables - because global variables are just referenced by the function without any ownership. With this in mind there is no reason not to make these `Sendable` by default. This change will also include static global functions.
 
 ```
 func doWork() -> Int {
-  `Int.random(in: 1..<42)`
+`  Int.random(in: 1..<42)`
 }
 
 Task<Int, Never>.detached(priority: **nil**, operation: doWork) // Converting non-sendable function value to '@Sendable () async -> Void' may introduce data races
@@ -161,24 +169,29 @@ Task<Int, Never>.detached(priority: **nil**, operation: doWork) // Converting no
 
 Currently, trying to start a `Task` with the global function `doWork` will cause an error complaining that the function is not `Sendable`. This should compile with no issue.  
 
-1. Prohibition of marking methods `@Sendable` when the type they belong to is not `@Sendable`.
-    1. class C {
-            var random: Int = 0 // random is mutable so `C` can't be checked sendable
-            
-            @Sendable func generateN() async -> Int { //error: adding @Sendable to function of non-Senable type prohibited
-                 random = Int.random(in: 1..<100)
-                 return random 
-            }
-        }
+4. Prohibition of marking methods `@Sendable` when the type they belong to is not `@Sendable`.
+```
+    class C {
+        var random: Int = 0 // random is mutable so `C` can't be checked sendable
         
-        Task.detached {
-           let num = C()
-           let n = await num.generateN()
-           num.random = 42 // accessing the `random` var while generateN is mutating it
+        @Sendable func generateN() async -> Int { //error: adding @Sendable to function of non-Senable type prohibited
+             random = Int.random(in: 1..<100)
+             return random
         }
-    2. If we move the previous work we wanted to do into a class that stores the random number we generate as a mutable value, we could be introducing a data race by marking the function responsible for this work `@Sendable` . Doing this should be prohibited by the compiler. 
+    }
 
-Since `@Sendable` attribute will be automatically determined with this proposal, you don’t have to explicitly write it on function declarations.
+    func test(c: C) { c.generateN() }
+
+    let num = C()
+    Task.detached {
+       test(num)
+    }
+    test(num) // data-race
+```
+
+If we move the previous work we wanted to do into a class that stores the random number we generate as a mutable value, we could be introducing a data race by marking the function responsible for this work `@Sendable` . Doing this should be prohibited by the compiler.
+
+Since `@Sendable` attribute will be automatically determined with this proposal, you will no longer have to explicitly write it on function and method declarations.
 
 ## Source compatibility
 
@@ -186,7 +199,7 @@ No impact.
 
 ## Effect on ABI stability
 
-This would impact the mangling of function names. 
+When you remove an explicit `@Sendable` from a method, the mangling of that method will change. Since `@Sendable` will now be inferred, if you choose to remove the explicit annotation to "adopt" the inference, you may need to consider the mangling change.
 
 ## Effect on API resilience
 
@@ -201,12 +214,8 @@ Accessors are not currently allowed to participate with the `@Sendable` system i
 Swift could forbid explicitly marking function declarations with the` @Sendable` attribute, since under this proposal there’s no longer any reason to do this.
 
 ```
-/***@Sendable*/** func alwaysSendable() {}
+/*@Sendable*/ func alwaysSendable() {}
 ```
 
 However, since these attributes are allowed today, this would be a source breaking change. Swift 6 could potentially include fix-its to remove `@Sendable` attributes to ease migration, but it’d still be disruptive. The attributes are harmless under this proposal, and they’re still sometimes useful for code that needs to compile with older tools, so we have chosen not to make this change in this proposal. We can consider deprecation at a later time if we find a good reason to do so.
-
-
-
-
 
