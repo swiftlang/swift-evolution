@@ -1,14 +1,14 @@
 # Swift SDKs for Cross-Compilation
 
-- Proposal: [SE-0387](0387-cross-compilation-destinations.md)
-- Authors: [Max Desiatov](https://github.com/MaxDesiatov), [Saleem Abdulrasool](https://github.com/compnerd), [Evan Wilde](https://github.com/etcwilde)
-- Review Manager: [Mishal Shah](https://github.com/shahmishal)
-- Status: **Accepted**
-- Implementation: [apple/swift-package-manager#5911](https://github.com/apple/swift-package-manager/pull/5911),
+* Proposal: [SE-0387](0387-cross-compilation-destinations.md)
+* Authors: [Max Desiatov](https://github.com/MaxDesiatov), [Saleem Abdulrasool](https://github.com/compnerd), [Evan Wilde](https://github.com/etcwilde)
+* Review Manager: [Mishal Shah](https://github.com/shahmishal)
+* Status: **Accepted**
+* Implementation: [apple/swift-package-manager#5911](https://github.com/apple/swift-package-manager/pull/5911),
   [apple/swift-package-manager#5922](https://github.com/apple/swift-package-manager/pull/5922),
   [apple/swift-package-manager#6023](https://github.com/apple/swift-package-manager/pull/6023), 
   [apple/swift-package-manager#6186](https://github.com/apple/swift-package-manager/pull/6186)
-- Review: ([pitch](https://forums.swift.org/t/pitch-cross-compilation-destination-bundles/61777))
+* Review: ([pitch](https://forums.swift.org/t/pitch-cross-compilation-destination-bundles/61777))
   ([first review](https://forums.swift.org/t/se-0387-cross-compilation-destination-bundles/62875))
   ([second review](https://forums.swift.org/t/second-review-se-0387-cross-compilation-destination-bundles/64660))
 
