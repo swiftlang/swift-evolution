@@ -437,15 +437,17 @@ With the use of task executor preference, we are able to circumvent the hops to 
 ```swift
 actor Looper { 
   func consumeSequence() async {
-    for await value in getAsyncSequence() {
-      // 1.a. 'next()' can execute on Looper's executor
-      // 1.b. if next() needs to call some other isolated code, we would hop there
-      //      but only when necessary.
-      // 2.a. Following the fast path where next() executed directly on Looper.executor,
-      //      the "hop back to actor" is efficient because it is a hop to the same executor which is a no-op.
-      // 2.b. Following the slow path where next() had to call some `isolated` code,
-      //      the hop back to the Looper is the same as it would be normally.
-      print("got: \(value)")
+    withTaskExecutor(self) {
+      for await value in getAsyncSequence() {
+        // 1.a. 'next()' can execute on Looper's executor
+        // 1.b. if next() needs to call some other isolated code, we would hop there
+        //      but only when necessary.
+        // 2.a. Following the fast path where next() executed directly on Looper.executor,
+        //      the "hop back to actor" is efficient because it is a hop to the same executor which is a no-op.
+        // 2.b. Following the slow path where next() had to call some `isolated` code,
+        //      the hop back to the Looper is the same as it would be normally.
+        print("got: \(value)")
+      }
     }
   }
 }
