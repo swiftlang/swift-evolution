@@ -635,7 +635,7 @@ do {
 }
 ```
 
-> **Swift 6**: To prevent this source compatibility issue, we can refine the rule slightly for Swift 5 code bases to specify that the caught error type must be `any Error` if there are no `try` expressions in the `do` statement. That way, one can only get a caught error type more specific than `any Error` by calling a function that is already making use of typed throws.
+> **Swift 6**: To prevent this source compatibility issue, we can refine the rule slightly for Swift 5 code bases to specify that any `throw` statement always throws a value of type `any Error`. That way, one can only get a caught error type more specific than `any Error` when the both of the `do..catch` contains no `throw` statements and all of the `try` operations are using functions that make use of typed throws.
 
 Note that the only way to write an exhaustive `do...catch` statement is to have an unconditional `catch` block. The dynamic checking provided 
 
@@ -902,21 +902,21 @@ With typed throws, the closure type could be inferred to have a typed error by c
 >
 > ```swift
 > { 
->   if Int.random(in: 0..<24) < 20 {
->     throw CatError.asleep
->   }
+>     if Int.random(in: 0..<24) < 20 {
+>         throw CatError.asleep
+>     }
 > }
 > ```
 >
-> will currently be inferred as `throws`. With the rule specified here, it will be inferred as `throws(CatError)`. This could break some code that depends on the precisely inferred type. To prevent this from becoming a source compatibility problem, we apply a rule similar to the one for `do...catch` statements to limit inference: this new closure inference rule only applies in Swift 5 code when there is at least one `try` within the closure body. This way, one can only infer a more specific thrown error type in a closure when one of the called functions has specified a thrown error type.
+> will currently be inferred as `throws`. With the rule specified here, it will be inferred as `throws(CatError)`. This could break some code that depends on the precisely inferred type. To prevent this from becoming a source compatibility problem, we apply the same rule as for `do...catch` statements to limit inference: `throw` statements within the closure body are treated as having the type `any Error` in Swift 5. This way, one can only infer a more specific thrown error type in a closure when the `try` operations are calling functions that make use of typed errors.
 >
 > Note that one can explicitly specify the thrown error type of a closure to disable this type inference, which has the nice effect of also providing a contextual type for throw statements:
 >
 > ```swift
 > { () throws(CatError) in
->   if Int.random(in: 0..<24) < 20 {
->     throw .asleep
->   }
+>     if Int.random(in: 0..<24) < 20 {
+>        throw .asleep
+>     }
 > }
 > ```
 
@@ -988,12 +988,9 @@ func get() throws(Failure) -> Success
 
 ## Source compatibility
 
-This proposal has called out two specific places where the introduction of typed throws into the language will affect source compatibility. In each place, a minimal source-breaking aspect of the change has been separated out so that it will be enabled only in the next major language version (Swift 6), and Swift 5 has these additional limitations:
+This proposal has called out two specific places where the introduction of typed throws into the language will affect source compatibility. In both cases, the type inference behavior of the language will differ when there are `throw` statements that throw a specific concrete type.
 
-* For `do...catch`, the caught error type will be `any Error` if there are no `try` expressions.
-* For closure thrown error type inference, the thrown error type will be `any Error` if there are no `try` expressions.
-
-To make use of the full typed throws semantics in Swift 5, developers can enable the [upcoming feature flag](https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md) named `FullTypedThrows`. 
+To mitigate this source compatibility problem in Swift 5, `throw` statements will be treated as always throwing `any Error`. In Swift 6, they will be treated as throwing the type of their thrown expression. One can enable the Swift 6 behavior with the [upcoming feature flag](https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md) named `FullTypedThrows`.
 
 Note that the source compatibility arguments in this proposal are there to ensure that Swift code that does not use typed throws will continue to work in the same way it always has. Once a function adopts typed throws, the effect of typed throws can then ripple to its callers.
 
