@@ -91,7 +91,7 @@ Evaluating a closure literal itself can happen in any isolation domain; the acto
 
 The above `useDefaultClosure` function has a default argument value that is a closure literal. The closure body calls a `@MainActor`-isolated function synchronously, therefore the closure itself must be `@MainActor` isolated.
 
-Note that the inferred actor isolation of a closure literal can never be an actor instance based on the following two properties:
+Note that the only way for a closure literal in a default argument to be isolated to an actor instance is for the isolation be written explicitly with an isolated parameter. The inference algorithm will never determine the isolation to be an actor instance based on the following two properties:
 
 1. To be isolated to an actor instance, a closure must either have its own (explicit) isolated parameter or capture an isolated parameter from its enclosing context.
 2. Closure literals in default arguments cannot capture values.
@@ -112,9 +112,9 @@ Isolation requirements for default argument expressions are enforced at the call
 }
 
 func nonisolatedCaller() async {
-  useDefault() // error
+  await useDefault() // error
 
-  useDefault(value: await requiresMainActor()) // okay
+  await useDefault(value: requiresMainActor()) // okay
 }
 ```
 
