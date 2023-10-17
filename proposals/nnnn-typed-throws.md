@@ -4,16 +4,27 @@
 * Authors: [Jorge Revuelta (@minuscorp)](https://github.com/minuscorp), [Torsten Lehmann](https://github.com/torstenlehmann), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status: **Proposed**
+* Implementation: on `main` behind the experimental feature flag `TypedThrows`.
+* Upcoming Feature Flag: `FullTypedThrows` (enables source-incompatible changes that improve inference of thrown types)
+* Review: [latest pitch](https://forums.swift.org/t/pitch-n-1-typed-throws/67496)
 
 ## Introduction
 
 Swift's error handling model allows functions and closures marked `throws` to note that they can exit by throwing an error. The error values themselve are always type-erased to `any Error`. This approach encourages errors to be handled generically, but makes it impossible to provide more precisely-typed errors without resorting to something like [`Result`](https://developer.apple.com/documentation/swift/result). This proposal introduces the ability to specify that functions and closures only throw errors of a particular concrete type.
 
-Swift-evolution threads:
+There have been many discussions of typed throws over the years. Here are a few swift-evolution threads, the first of which is this specific proposal:
 
 * [[Pitch N+1] Typed throws](https://forums.swift.org/t/pitch-n-1-typed-throws/67496)
 * [Typed throw functions - Evolution / Discussion - Swift Forums](https://forums.swift.org/t/typed-throw-functions/38860)
 * [Status check: typed throws](https://forums.swift.org/t/status-check-typed-throws/66637)
+* [Precise error typing in Swift](https://forums.swift.org/t/precise-error-typing-in-swift/52045)
+* [Typed throws](https://forums.swift.org/t/typed-throws/6501)
+* [[Pitch\] Typed throws](https://forums.swift.org/t/pitch-typed-throws/5233)
+* [Type-annotated throws](https://forums.swift.org/t/type-annotated-throws/3875)
+* [Proposal: Allow Type Annotations on Throws](https://forums.swift.org/t/proposal-allow-type-annotations-on-throws/1149)
+* [Proposal: Allow Type Annotations on Throws](https://forums.swift.org/t/proposal-allow-type-annotations-on-throws/623)
+* [Proposal: Typed throws](https://forums.swift.org/t/proposal-typed-throws/268)
+* [Type Inferencing For Error Handling (try catch blocks)](https://forums.swift.org/t/type-inferencing-for-error-handling-try-catch-blocks/117)
 
 ## Table of Contents
 
