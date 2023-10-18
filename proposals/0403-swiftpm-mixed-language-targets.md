@@ -5,7 +5,8 @@
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Status: **Returned for Revision**
 * Implementation: [apple/swift-package-manager#5919](https://github.com/apple/swift-package-manager/pull/5919)
-* Decision Notes: [Pitch](https://forums.swift.org/t/61564)
+* Review: ([pitch](https://forums.swift.org/t/61564)) ([review](https://forums.swift.org/t/66202)) ([returned for revision](https://forums.swift.org/t/66975))
+
 
 ## Introduction
 
