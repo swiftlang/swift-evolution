@@ -298,7 +298,7 @@ actor Worker {
   func hi() {}
 }
 
-Task(on: actor) { isolated actor in // FIXME: preferably no need to capture like this
+Task(on: actor) { actor in
   actor.hi()
 }
 ```
