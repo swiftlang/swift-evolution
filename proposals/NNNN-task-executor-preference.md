@@ -21,7 +21,7 @@ Custom actor executors allow developers to customize where execution of a task �
 
 Notably, since Swift 5.7’s [SE-0338: Clarify the Execution of Non-Actor-Isolated Async Functions](https://github.com/apple/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md), functions which are not isolated to an actor will always hop to the default global concurrent executor, which is great for correctness and understanding the code and avoids “hanging onto” actors  longer than necessary. This is also a desirable semantic for code running on the `MainActor` calling into `nonisolated` functions, since it allows the main actor to be quickly freed up to proceed with other work, however it has a decremental effect on applications which want to *avoid* hops in order to maximize request processing throughput. This is especially common with event-loop based systems, such as network servers or other kinds of tight request handling loops.
 
-As Swift concurrency is getting adopted in a wider variety of performance sensitive codebases, it has become clear that the lack of control over where nonisolated functions execute is a noticable problem. 
+As Swift concurrency is getting adopted in a wider variety of performance sensitive codebases, it has become clear that the lack of control over where nonisolated functions execute is a noticeable problem. 
 At the same time, the defensive "hop-off" semantics introduced by [SE-0338](https://github.com/apple/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md) are still valuable, but sometimes too restrictive and some use-cases might even say that the exact opposite behavior might be desirable instead.
 
 This proposal acknowledges the different needs of various use-cases, and provides a new flexible mechanism for developers to tune their their applications and avoid potentially un-necessary context switching when possible.
@@ -338,45 +338,6 @@ extension Task where Failure == Error {
   ) where TargetActor: Actor
 }
 ```
-
-This API also enables stronger guarantees about task enqueue order on actors. Previously, a snippet of two unstructured tasks, following one another without awaiting on the `first` before starting the `second` would have un-specified enqueue order of the `wantsToBeFirst()` and `wantsToBeSecond()` calls on the actor:
-
-```swift
-actor Worker { 
-  func wantsToBeFirst() {} 
-  func wantsToBeSecond() {} 
-}
-let worker = Worker()
-
-// No enqueue order guarantee:
-let first = Task { 
-  // 1. starts on global concurrent executor
-  // 2. hops-to 'worker' executor
-  await worker.wantsToBeFirst() 
-} 
-let second = Task { 
-  // 1. starts on global concurrent executor
-  // 2. hops-to 'worker' executor
-  await worker.wantsToBeSecond()   
-} 
-```
-
-Because of the `Task` always “starting on” the global concurrent executor, the code above exhibits a race between the two tasks and it is not defined which task would be first enqueued on the actor; Instead, if one were to use the following pattern using the  Task(on: actor) initializer:
-
-```swift
-_ = Task(on: worker) { worker in
-  // 0. Task enqueued directly onto 'worker' executor
-  worker.wantsToBeFirst()
-}
-_ = Task(on: worker) { worker in
-  // 0. Task enqueued directly onto 'worker' executor
-  worker.wantsToBeSecond()
-}
-```
-
-This can be useful in limited situations to provide stronger ordering guarantees than possible before; however it **does not** provide strict FIFO in-order processing guaranteesbecause if `second` would be awaited on from a high-priority task, its priority would be escalated and it may still execute before the wantsToBeFirst call happens. Swift’s default actors handle priority escalation by default and allow for such reordering.
-
-If one were to guarantee that neither `first` and `second` will not be awaited on, the order of the calls would be as expected. This is a rather brittle mechanism though and we do not recommend it as a way to enforce strict FIFO ordering for actors.
 
 The same kind of APIs are offered for creating structured tasks using TaskGroups:
 
