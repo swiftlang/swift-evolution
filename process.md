@@ -1,6 +1,6 @@
 # Swift Evolution Process
 
-Swift is a powerful and intuitive programming language that is designed to make writing and maintaining correct programs easier. Swift is growing and evolving, guided by a community-driven process referred to as the Swift evolution process. This document outlines the Swift evolution process and how a feature grows from a rough idea into something that can improve the Swift development experience for millions of programmers.
+Swift is a powerful and intuitive programming language that is designed to make writing and maintaining correct programs easier. Swift is growing and evolving, guided by a community-driven process referred to as the Swift evolution process, maintained by the [Language Steering Group][language-steering-group]. This document outlines the Swift evolution process and how a feature grows from a rough idea into something that can improve the Swift development experience for millions of programmers.
 
 ## Scope
 
@@ -33,7 +33,7 @@ The [Core Team](https://www.swift.org/community/#core-team) is responsible for t
 
 Currently, there is only one evolution workgroup:
 
-* The [Language Workgroup](https://www.swift.org/language-workgroup/#evolution-process) has authority over the evolution of the Swift language and its standard library.
+* The [Language Steering Group][language-steering-group] has authority over the evolution of the Swift language and its standard library.
 
 The Core Team manages (or delegates) the evolution process for proposals outside these areas.  The Core Team also retains the power to override the evolution decisions of workgroups when necessary.
 
@@ -84,7 +84,7 @@ of the upcoming Swift release. Proposals that are clearly out of scope
 for the upcoming Swift release will not be brought up for review. If you can't resist discussing a proposal that you know is out of scope, please include the tag `[Out of scope]` in the subject.
 * **Socialize the idea**: propose a rough sketch of the idea in the ["pitches" section of the Swift forums](https://forums.swift.org/c/evolution/pitches), the problems it solves, what the solution looks like, etc., to gauge interest from the community.
 * **Develop the proposal**: expand the rough sketch into a complete proposal, using the [proposal template](proposal-templates/0000-swift-template.md), and continue to refine the proposal on the forums. Prototyping an implementation and its uses along with the proposal is *required* because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
-* **Request a review**: initiate a pull request to the [swift-evolution repository][swift-evolution-repo] to indicate to the Language Workgroup that you would like the proposal to be reviewed. When the proposal is sufficiently detailed and clear, and addresses feedback from earlier discussions of the idea, the pull request will be accepted. The proposal will be assigned a proposal number as well as a Language Workgroup member to manage the review.
+* **Request a review**: initiate a pull request to the [swift-evolution repository][swift-evolution-repo] to indicate to the appropriate evolution workgroup that you would like the proposal to be reviewed. When the proposal is sufficiently detailed and clear, and addresses feedback from earlier discussions of the idea, the pull request will be accepted. The proposal will be assigned a proposal number as well as a member of the said evolution workgroup to manage the review.
 * **Address feedback**: in general, and especially [during the review period][proposal-status], be responsive to questions and feedback about the proposal.
 
 ## Preparing an implementation
@@ -96,8 +96,8 @@ The preview package can accept new types, new protocols, and extensions to exist
 ## Review process
 
 The review process for a particular proposal begins when a member of
-the Language Workgroup accepts a pull request of a new or updated proposal into
-the [swift-evolution repository][swift-evolution-repo]. That Language Workgroup
+the appropriate evolution workgroup accepts a pull request of a new or updated proposal into
+the [swift-evolution repository][swift-evolution-repo]. That
 member becomes the *review manager* for the proposal. The proposal
 is assigned a proposal number (if it is a new proposal), and then enters
 the review queue. If your proposal's accompanying implementation takes the form of a package, the review manager will merge your pull request into a new branch in the [swift-evolution-staging repository][swift-evolution-staging].
@@ -113,9 +113,9 @@ reviews. To avoid delays, it is important that the proposal authors be
 available to answer questions, address feedback, and clarify their
 intent during the review period.
 
-After the review has completed, the Language Workgroup will make a decision on
+After the review has completed, the managing evolution workgroup will make a decision on
 the proposal. The review manager is responsible for determining
-consensus among the Language Workgroup members, then reporting their decision
+consensus among the workgroup members, then reporting their decision
 to the proposal authors and forums. The review manager will
 update the proposal's state in the [swift-evolution
 repository][swift-evolution-repo] to reflect that decision.
@@ -175,6 +175,7 @@ A given proposal can be in one of several states:
 [proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
 [proposal-status]: https://apple.github.io/swift-evolution/
 [preview-package]: https://github.com/apple/swift-standard-library-preview/
+[language-steering-group]: https://www.swift.org/language-steering-group
 
 ## Review announcement
 
