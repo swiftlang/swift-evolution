@@ -1,12 +1,12 @@
 # Low-Level Atomic Operations ⚛︎
 
-* Proposal: [SE-NNNN](NNNN-atomics.md)
+* Proposal: [SE-0410](0410-atomics.md)
 * Author: [Karoy Lorentey](https://github.com/lorentey), [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
+* Review Manager: [Joe Groff](https://github.com/jckarter)
 * Bug: [SR-9144](https://github.com/apple/swift/issues/51640)
 * Implementation: https://github.com/apple/swift/pull/68857
 * Version: 2023-09-18
-* Status: **Awaiting review**
+* Status: **Active Review (October 23...November 6, 2023)**
 
 <!--
 *During the review process, add the following fields as needed:*
