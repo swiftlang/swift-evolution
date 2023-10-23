@@ -56,7 +56,6 @@ New Swift-evolution thread: [Atomics](https://forums.swift.org/t/atomics/67350)
     * [Atomic Protocols](#atomic-protocols)
       * [AtomicValue](#atomicvalue)
       * [AtomicOptionalWrappable](#atomicoptionalwrappable)
-    * [Atomic Storage Types](#atomic-storage-types-1)
     * [WordPair](#wordpair-1)
     * [Atomic Types](#atomic-types)
       * [Atomic&lt;Value&gt;](#atomicvalue-1)
@@ -486,9 +485,9 @@ public struct WordPair {
 extension WordPair: AtomicValue {
 // Not a real compilation conditional
 #if 64 bit
-  public typealias AtomicRepresentaton = AtomicInt128Storage
+  public typealias AtomicRepresentaton = ... 128 bit 16 aligned storage
 #elseif 32 bit
-  public typealias AtomicRepresentation = AtomicInt64Storage
+  public typealias AtomicRepresentation = ... 64 bit 8 aligned storage
 #else
 #error("Not a supported platform")
 #endif
@@ -519,10 +518,10 @@ Now that we know how to create an atomic value, it's time to introduce some actu
 
 ### Basic Atomic Operations
 
-`Atomic` provides seven basic atomic operations when `Value.AtomicRepresenation` is one of the fundamental atomic storage types:
+`Atomic` provides seven basic atomic operations when `Value.AtomicRepresenation` is one of the fundamental atomic storage types on the standard integer types:
 
 ```swift
-extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
+extension Atomic where Value.AtomicRepresentation == {U}IntNN.AtomicRepresentation {
   /// Atomically loads and returns the current value, applying the specified
   /// memory ordering.
   ///
@@ -691,7 +690,7 @@ extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
 }
 ```
 
-Because these are only available when `Value.AtomicRepresentation == AtomicIntNNStorage`, some atomic specializations may not support atomic operations at all.
+Because these are only available when `Value.AtomicRepresentation == {U}IntNN.AtomicRepresentation`, some atomic specializations may not support atomic operations at all.
 
 The first three operations are relatively simple:
 
@@ -898,7 +897,7 @@ Note that unlike the rest of the atomic types, `load` and `storeIfNil(_:)` do no
 Modeling orderings as regular function parameters allows us to specify them using syntax that's familiar to all Swift programmers. Unfortunately, it means that in the implementation of atomic operations we're forced to switch over the ordering argument:
 
 ```swift
-extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
+extension Atomic where Value.AtomicRepresentation == {U}IntNN.AtomicRepresentation {
   public borrowing func compareExchange(
     expected: consuming Value,
     desired: consuming Value,
@@ -1209,16 +1208,6 @@ extension OpaquePointer: AtomicOptionalWrappable {}
 extension ObjectIdentifier: AtomicOptionalWrappable {}
 ```
 
-### Atomic Storage Types
-
-```swift
-public struct AtomicInt8Storage {...}
-public struct AtomicInt16Storage {...}
-public struct AtomicInt32Storage {...}
-public struct AtomicInt64Storage {...}
-public struct AtomicInt128Storage {...}
-```
-
 ### `WordPair`
 
 ```swift
@@ -1241,7 +1230,7 @@ public struct Atomic<Value: AtomicValue>: ~Copyable {
   public init(_ initialValue: consuming Value)
 }
 
-extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
+extension Atomic where Value.AtomicRepresentation == {U}IntNN.AtomicRepresentation {
   // Atomic operations:
 
   public borrowing func load(
@@ -1644,7 +1633,7 @@ struct AtomicMemoryOrdering {
   ...
 }
 
-extension Atomic where Value.AtomicRepresentation == AtomicIntNNStorage {
+extension Atomic where Value.AtomicRepresentation == {U}IntNN.AtomicRepresentation {
   func load(ordering: AtomicMemoryOrdering.Relaxed) -> Value {...}
   func load(ordering: AtomicMemoryOrdering.Acquiring) -> Value {...}
   ...
