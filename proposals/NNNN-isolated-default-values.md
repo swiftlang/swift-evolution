@@ -32,7 +32,7 @@ class C {
 
 The above code allows any context to initialize an instance of `C()` through a synchronous, non-isolated `init` that synchronously calls both a `@MainActor`-isolated and a `@AnotherActor`-isolated function, violating actor isolation checking and enabling `requiresMainActor()` and `requiresAnotherActor()` to run concurrently with other code on those respective actors.
 
-Similarly, the current actor isolation rules for default argument values do not admit data races, but default argument values are always `nonisolated` which is overly restrictive. This rule prohibits programmers from making `@MainActor`-isolated calls in default argument values of `@MainActor`-isolated functions that are only ever called from the main actor. For example, the following code is not valid even though it is perfectly safe:
+The current actor isolation rules for default argument values do not admit data races, but default argument values are always `nonisolated` which is overly restrictive. This rule prohibits programmers from making `@MainActor`-isolated calls in default argument values of `@MainActor`-isolated functions that are only ever called from the main actor. For example, the following code is not valid even though it is perfectly safe:
 
 ```swift
 @MainActor class C { ... }
@@ -46,13 +46,29 @@ Similarly, the current actor isolation rules for default argument values do not 
 
 ## Proposed solution
 
-I propose allowing default value expressions to require the caller to meet an isolation requirement in order to use the default value. The isolation requirement is inferred from the default value expression. If the caller does not meet the isolation requirement, then a value must be written explicitly for the argument or the stored property. This rule makes the stored property example above invalid at the point of the `nonisolated` initializer, because the isolation requirement of the default values for the stored properties is not satisfied. This rule also makes the default argument example above valid, because the `@MainActor` isolation requirement for the default argument of `f` is satisfied by the caller.
+I propose allowing default value expressions to impose an isolation requirement at the call-site. The isolation requirement is inferred from the default value expression, and it must match the isolation of the enclosing function or the corresponding stored property. If the caller does not meet the isolation requirement, then the call must be made asynchronously and must be explicitly marked with `await`. For default stored property initializers that are implicitly invoked in the body of an `init`, the initialization must be written out explicitly if the default expression requires a different isolation from the `init` itself.
+
+These rule makes the stored property example above invalid at the point of the `nonisolated` initializer, because the isolation requirement of the default values for the stored properties is not satisfied. Calling `requiresMainActor` explicitly with `await` resolves the issue:
+
+```swift
+@MainActor func requiresMainActor() -> Int { ... }
+
+class C {
+  @MainActor var x1 = requiresMainActor()
+
+  nonisolated init() async {
+    self.x1 = await requiresMainActor()
+  }
+}
+```
+
+This rule also makes the default argument example above valid, because the `@MainActor` isolation requirement for the default argument of `f` is satisfied by the caller.
 
 ## Detailed design
 
 ### Inference of default value isolation requirements
 
-Default value expressions are always evaluated synchronously. All calls that are made during the evaluation of the expression must also be synchronous. If the callee is isolated, then the default value expression must already be in the same isolation domain in order to make the call synchronously. So, for a given default value expression, the inferred isolation is the required isolation of its subexpressions. For example:
+Default value expressions are always evaluated in a synchronous context, so all calls that are made during the evaluation of the expression must also be synchronous. If the callee is isolated, then the default value expression must already be in the same isolation domain in order to make the call synchronously. So, for a given default value expression, the inferred isolation is the required isolation of its subexpressions. For example:
 
 ```swift
 @MainActor func requiresMainActor() -> Int { ... }
@@ -62,22 +78,9 @@ Default value expressions are always evaluated synchronously. All calls that are
 
 In the above code, the default argument for `value` requires `@MainActor` isolation, because the default value calls `requiresMainActor()` which is isolated to `@MainActor`.
 
-A default value expression must only have one required isolation; it is an error for a default value expression to contain multiple callees with different actor isolation. For example:
-
-```swift
-@MainActor func requiresMainActor() -> Int { ... }
-@AnotherActor func requiresAnotherActor() -> Int { ... }
-
-@MainActor func useDefault(
-  value: (Int, Int) = (requiresMainActor(), requiresAnotherActor()) // error!
-) {}
-```
-
-The above example is invalid because the default argument for `value` requires both `@MainActor` and `@AnotherActor`, but the caller can never satisfy both isolation requirements simultaneously.
-
 #### Closures
 
-Evaluating a closure literal itself can happen in any isolation domain; the actor isolation of a closure only applies when calling the closure. An actor-isolated closure enables the closure body to make calls within that isolation domain synchronously. For a closure literal in a default value expression that is not explicitly annotated with actor isolation, the inferred isolation of the closure is the union of isolation contexts of all callees in the closure body for synchronous calls. For example:
+Evaluating a closure literal itself can happen in any isolation domain; the actor isolation of a closure only applies when calling the closure. An actor-isolated closure enables the closure body to make calls within that isolation domain synchronously. For a closure literal in a default value expression that is not explicitly annotated with actor isolation, the inferred isolation of the closure is the union of the isolation of all callees in the closure body for synchronous calls. For example:
 
 ```swift
 @MainActor func requiresMainActor() -> Int { ... }
@@ -96,11 +99,16 @@ Note that the only way for a closure literal in a default argument to be isolate
 1. To be isolated to an actor instance, a closure must either have its own (explicit) isolated parameter or capture an isolated parameter from its enclosing context.
 2. Closure literals in default arguments cannot capture values.
 
+#### Restrictions
+
+* If a function or type itself has actor isolation, the required isolation of its default value expressions must share the same actor isolation. For example, a `@MainActor`-isolated function cannot have a default argument that is isolated to `@AnotherActor`. Note that it's always okay to mix isolated default values with `nonisolated` default values.
+* If a function or type is `nonisolated`, then the required isolation of its default value expressions must be `nonisolated`.
+
 ### Enforcing default value isolation requirements
 
 #### Default argument values
 
-Isolation requirements for default argument expressions are enforced at the caller. If the caller is not in the required isolation domain, the default argument cannot be used and the argument must be specified explicitly. For example:
+Isolation requirements for default argument expressions are enforced at the caller. If the caller is not in the required isolation domain, the default arguments must be evaluated asynchronously and explicitly  marked with `await`. For example:
 
 ```swift
 @MainActor func requiresMainActor() -> Int { ... }
@@ -112,10 +120,75 @@ Isolation requirements for default argument expressions are enforced at the call
 }
 
 func nonisolatedCaller() async {
-  await useDefault() // error
+  await useDefault() // okay
 
-  await useDefault(value: requiresMainActor()) // okay
+  useDefault() // error: call is implicitly async and must be marked with 'await'
 }
+```
+
+In the above example, `useDefault` has default arguments that are isolated to `@MainActor`. The default arguments can be evaluated synchronously from a `@MainActor`-isolated caller, but the call must be marked with `await` from outside the `@MainActor`. Note that these rules already fall out of the semantics of calling actor isolated functions.
+
+#### Argument evaluation
+
+For a given call, argument evaluation happens in the following order:
+
+1. Left-to-right evalution of explicit r-value arguments
+2. Left-to-right evaluation of default arguments
+3. Left-to-right evaluation of formal access arguments
+
+For example:
+
+```swift
+nonisolated var defaultVal: Int { print("defaultVal"); return 0 }
+nonisolated var explicitVal: Int { print("explicitVal"); return 0 }
+nonisolated var explicitFormalVal: Int {
+  get { print("explicitFormalVal"); return 0 }
+  set {}
+}
+
+func evaluate(x: Int = defaultVal, y: Int = defaultVal, z: inout Int) {}
+
+evaluate(y: explicitVal, z: &explicitFormalVal)
+```
+
+The output of the above program is
+
+```
+explicitVal
+defaultVal
+explicitFormalVal
+```
+
+Unlike the explicit argument list, isolated default arguments must be evaluated in the isolation domain of the callee. As such, if any of the argument values require the isolation of the callee, argument evaluation happens in the following order:
+
+1. Left-to-right evalution of explicit r-value arguments
+2. Left-to-right evaluation of formal access arguments
+3. Hop to the callee's isolation domain
+4. Left-to-right evaluation of default arguments
+
+For example:
+
+```swift
+@MainActor var defaultVal: Int { print("defaultVal"); return 0 }
+nonisolated var explicitVal: Int { print("explicitVal"); return 0 }
+nonisolated var explicitFormalVal: Int {
+  get { print("explicitFormalVal"); return 0 }
+  set {}
+}
+
+@MainActor func evaluate(x: Int = defaultVal, y: Int = defaultVal, z: inout Int) {}
+
+nonisolated func nonisolatedCaller() {
+  await evaluate(y: explicitVal, z: &explicitFormalVal)
+}
+```
+
+The output of calling `nonisolatedCaller()` is:
+
+```
+explicitVal
+explicitFormalVal
+defaultVal
 ```
 
 #### Stored property initial values
@@ -130,7 +203,7 @@ class C {
   @MainActor var x1: Int = requiresMainActor()
   @AnotherActor var x2: Int = requiresAnotherActor()
 
-  nonisolated init() {} // error
+  nonisolated init() {} // error: 'self.x1' and 'self.x2' aren't initialized
 
   nonisolated init(x1: Int, x2: Int) { // okay
     self.x1 = x1
@@ -146,9 +219,64 @@ class C {
 
 In the above example, the no-parameter `nonisolated init()` is invalid, because it does not initialize `self.x1` and `self.x2`. Because the default initializer expressions require different actor isolation, those values are not used in the `nonisolated` initializer. The other two initializers are valid.
 
-### Default value isolation in memberwise initializers
+### Stored property isolation in initializers
 
-For structs, default initializer expressions for stored properties are used as default argument values to the compiler-generated memberwise initializer. In this case, the default argument value shares the same required isolation as the default initializer expression. Because the default values are always evaluated in the caller's context, all the memberwise initializer does is initialize each field, which can always be performed in a `nonisolated` context. In the interest of only applying global actor isolation when it's necessary for the code to run on the global actor, this proposal also changes the isolation of memberwise initializers to be `nonisolated`.
+#### Initializing isolated stored properties from across isolation boundaries
+
+It is invalid to initialize an isolated stored property from across isolation boundaries:
+
+```swift
+class NonSendable {}
+
+class C {
+  @MainActor var ns: NonSendable
+
+  init(ns: NonSendable) {
+    self.ns = ns // error: passing non-Sendable value 'ns' to a MainActor-isolated context.
+  }
+}
+```
+
+The above code violates `Sendable` guarantees because the initialization of the `MainActor`-isolated property `self.ns` from a `nonisolated` context is effectively passing a non-`Sendable` value across isolation boundaries. To prevent this class of data races, this proposal requires that any `init` that initializes a global actor isolated stored property must also be isolated to that global actor.
+
+Note that this rule is not specific to default values, but it's necessary to specify the behavior of default values in compiler-synthesized initializers.
+
+#### Default value isolation in synthesized initializers
+
+For structs, default initializer expressions for stored properties are used as default argument values to the compiler-generated memberwise initializer. For structs and classes that have a compiler-generated no-parameter initializer, the default initializer expressions are also used in the syntheszied `init()` body.
+
+If any of the type's stored properties are actor isolated, then the compiler-synthesized initializer(s) must also be actor isolated. For example:
+
+```swift
+@MainActor struct MyModel {
+  // @MainActor inferred from annotation on enclosing struct
+  var value = requiresMainActor()
+
+  /* compiler-synthesized memberwise init is @MainActor
+  @MainActor
+  init(value: Int = requiresMainActor()) {
+    self.value = value
+  }
+  */
+}
+```
+
+If none of the type's stored properties are actor isolated, then the compiler-synthesized initializer is `nonisolated`. For example:
+
+```swift
+@MainActor struct MyView {
+  // no stored properties
+
+  /* compiler-synthesized init is 'nonisolated'
+  nonisolated init() {}
+  */
+
+  // @MainActor inferred from the annotation on the enclosing struct
+  var body: some View { ... }
+}
+```
+
+These rules ensure that the default value expressions in compiler-synthesized initializers are always valid. A default value expression can only be isolated if the stored property is isolated. If the stored property is isolated, then the compiler-synthesized initializer must also share the same isolation.
 
 ## Source compatibility
 
@@ -170,4 +298,11 @@ SE-0327 originally proposed changing default initializer expressions for stored 
 
 ## Acknowledgments
 
-Thank you to Kavon Farvardin for implementing the default initializer expression rules originally proposed by SE-0327 and discovering the usability issues outlined in this proposal. Thank you to John McCall for the observation that memberwise initializers can and should be `nonisolated`.
+Thank you to Kavon Farvardin for implementing the default initializer expression rules originally proposed by SE-0327 and discovering the usability issues outlined in this proposal. Thank you to John McCall for the observation that memberwise initializers can and should be `nonisolated` when possible.
+
+## Revision history
+
+* Changes from the first pitch
+  * Require that isolated default arguments share the same isolation as their enclosing function or type.
+  * Specify the semantic restrictions on initializing actor isolated properties from across isolation boundaries.
+  * Enable using isolated default arguments from across isolation boundaries by changing the argument evaluation between formal access and default arguments.
