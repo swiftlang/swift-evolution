@@ -83,9 +83,17 @@ Swift, please consider how your proposal fits in with the larger goals
 of the upcoming Swift release. Proposals that are clearly out of scope
 for the upcoming Swift release will not be brought up for review. If you can't resist discussing a proposal that you know is out of scope, please include the tag `[Out of scope]` in the subject.
 * **Socialize the idea**: propose a rough sketch of the idea in the ["pitches" section of the Swift forums](https://forums.swift.org/c/evolution/pitches), the problems it solves, what the solution looks like, etc., to gauge interest from the community.
-* **Develop the proposal**: expand the rough sketch into a complete proposal, using the [proposal template](proposal-templates/0000-swift-template.md), and continue to refine the proposal on the forums. Prototyping an implementation and its uses along with the proposal is *required* because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
-* **Request a review**: initiate a pull request to the [swift-evolution repository][swift-evolution-repo] to indicate to the appropriate evolution workgroup that you would like the proposal to be reviewed. When the proposal is sufficiently detailed and clear, and addresses feedback from earlier discussions of the idea, the pull request will be accepted. The proposal will be assigned a proposal number as well as a member of the said evolution workgroup to manage the review.
+* **Develop the proposal**:
+  1. Expand the rough sketch into a formal proposal using the [proposal template](proposal-templates/0000-swift-template.md).
+  1. In the [swift-evolution repository][swift-evolution-repo], open a [draft pull request][draft-pr] that adds your proposal to the [proposals directory](/proposals).
+  1. Anounce the pull request on the forums and edit the root post to link out to the pull request.
+  1. Continue refining the formal proposal in the open as you receive feedback on the forums or the pull request.
+
+  Prototyping an implementation and its uses along with the formal proposal is *required* because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
+* **Request a review**: once you believe the proposal is sufficiently detailed and clear, and addresses feedback from present and past discussions of the idea, mark the draft pull request as ready for review to indicate to the appropriate evolution workgroup you would like the proposal to be reviewed. After the pull request is approved, the proposal will be assigned a number as well as a member of the said evolution workgroup to manage the review.
 * **Address feedback**: in general, and especially [during the review period][proposal-status], be responsive to questions and feedback about the proposal.
+
+[draft-pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests
 
 ## Preparing an implementation
 
