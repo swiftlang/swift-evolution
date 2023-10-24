@@ -252,7 +252,7 @@ class NonSendable {}
 
 @MainActor struct MyModel {
   // @MainActor inferred from annotation on enclosing struct
-  var value = .init()
+  var value: NonSendable = .init()
 
   /* compiler-synthesized memberwise init is @MainActor
   @MainActor
