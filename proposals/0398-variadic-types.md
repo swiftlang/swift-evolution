@@ -28,7 +28,7 @@ This lets us define the return type of the variadic `zip` function as follows:
 
 ```swift
 struct ZipSequence<each S: Sequence>: Sequence {
-  typealias Element = (repeat each S.Element)
+  typealias Element = (repeat (each S).Element)
 
   let seq: (repeat each S)
 
@@ -37,9 +37,9 @@ struct ZipSequence<each S: Sequence>: Sequence {
   }
 
   struct Iterator: IteratorProtocol {
-    typealias Element = (repeat each S.Element)
+    typealias Element = (repeat (each S).Element)
 
-    var iter: (repeat each S.Iterator)
+    var iter: (repeat (each S).Iterator)
 
     mutating func next() -> Element? {
       return ...
@@ -183,7 +183,7 @@ As with the other variadic types, a variadic type alias either has a generic par
 The underlying type of a variadic type alias can reference pack expansion types in the same manner as the type of a stored property. That is, the pack expansions must appear in nested positions, but not at the top level.
 
 ```swift
-typealias Element = (repeat each S.Element)
+typealias Element = (repeat (each S).Element)
 typealias Callback = (repeat each S) -> ()
 typealias Factory = Other<repeat each S>
 ```
