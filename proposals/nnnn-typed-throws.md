@@ -637,7 +637,7 @@ do {
 
 > **Swift 6**: To prevent this source compatibility issue, we can refine the rule slightly for Swift 5 code bases to specify that any `throw` statement always throws a value of type `any Error`. That way, one can only get a caught error type more specific than `any Error` when the both of the `do..catch` contains no `throw` statements and all of the `try` operations are using functions that make use of typed throws.
 
-Note that the only way to write an exhaustive `do...catch` statement is to have an unconditional `catch` block. The dynamic checking provided 
+Note that the only way to write an exhaustive `do...catch` statement is to have an unconditional `catch` block. The dynamic checking provided by `is` or `as` patterns in the `catch` block cannot be used to make a catch exhaustive, even if the type specified is the same as the type thrown from the body of the `do`:
 
 ```swift
 func f() {
@@ -1069,10 +1069,30 @@ to
 ```swift
 public func map<U, E>(
   _ transform: (Wrapped) throws(E) -> U
-) rethrows(E) -> U?
+) throws(E) -> U?
 ```
 
-With some work, this change can be performed in a backward-compatible manner. However, there are a large number of `rethrows` operations in the standard library, so we leave the full update to a separate proposal.
+This can be done in a backward-compatible manner that maintains both ABI and source compatibility. Each existing `rethrows` function will be made `@usableFromInline internal`, which retains the ABI while making the function invisible to clients of the standard library:
+
+```swift
+@usableFromInline 
+internal func map<U>(
+  _ transform: (Wrapped) throws -> U
+) rethrows -> U?
+```
+
+Then, the new typed-throws version will be introduced with back-deployment support:
+
+```swift
+@backDeploy(...)
+public func map<U, E>(
+  _ transform: (Wrapped) throws(E) -> U
+) throws(E) -> U?
+```
+
+This way, clients of the updated standard library will always use the typed-throws version.
+
+Since there are a large number of `rethrows` operations in the standard library, we will leave the full update to a separate proposal.
 
 ### Concurrency library adoption
 
