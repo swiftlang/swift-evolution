@@ -245,30 +245,40 @@ Note that this rule is not specific to default values, but it's necessary to spe
 
 For structs, default initializer expressions for stored properties are used as default argument values to the compiler-generated memberwise initializer. For structs and classes that have a compiler-generated no-parameter initializer, the default initializer expressions are also used in the syntheszied `init()` body.
 
-If any of the type's stored properties are actor isolated, then the compiler-synthesized initializer(s) must also be actor isolated. For example:
+If any of the type's stored properties with non-`Sendable` type are actor isolated, or if any of the isolated default initializer expressions are actor isolated, then the compiler-synthesized initializer(s) must also be actor isolated. For example:
 
 ```swift
+class NonSendable {}
+
 @MainActor struct MyModel {
   // @MainActor inferred from annotation on enclosing struct
-  var value = requiresMainActor()
+  var value = .init()
 
   /* compiler-synthesized memberwise init is @MainActor
   @MainActor
-  init(value: Int = requiresMainActor()) {
+  init(value: NonSendable = .init()) {
     self.value = value
   }
   */
 }
 ```
 
-If none of the type's stored properties are actor isolated, then the compiler-synthesized initializer is `nonisolated`. For example:
+If none of the type's stored properties are non-`Sendable` and actor isolated, and none of the default initializer expressions require actor isolation, then the compiler-synthesized initializer is `nonisolated`. For example:
 
 ```swift
 @MainActor struct MyView {
-  // no stored properties
+  // @MainActor inferred from annotation on enclosing struct
+  var value: Int = 0
 
-  /* compiler-synthesized init is 'nonisolated'
-  nonisolated init() {}
+  /* compiler-synthesized 'init's are 'nonisolated'
+
+  nonisolated init() {
+    self.value = 0
+  }
+
+  nonisolated init(value: Int = 0) {
+    self.value = value
+  }
   */
 
   // @MainActor inferred from the annotation on the enclosing struct
@@ -276,7 +286,7 @@ If none of the type's stored properties are actor isolated, then the compiler-sy
 }
 ```
 
-These rules ensure that the default value expressions in compiler-synthesized initializers are always valid. A default value expression can only be isolated if the stored property is isolated. If the stored property is isolated, then the compiler-synthesized initializer must also share the same isolation.
+These rules ensure that the default value expressions in compiler-synthesized initializers are always valid. If a default value expression requires actor isolation, then the enclosing initializer always shares the same actor isolation. It is an error for two different default values to require different actor isolation, because it's not possible to ever use those default values. Initializing an instance of a type using two different initial value expressions with different actor isolation must be done in an `async` initializer, with suspension points explicitly marked with `await`.
 
 ## Source compatibility
 
