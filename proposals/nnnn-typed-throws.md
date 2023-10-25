@@ -10,9 +10,9 @@
 
 ## Introduction
 
-Swift's error handling model allows functions and closures marked `throws` to note that they can exit by throwing an error. The error values themselve are always type-erased to `any Error`. This approach encourages errors to be handled generically, but makes it impossible to provide more precisely-typed errors without resorting to something like [`Result`](https://developer.apple.com/documentation/swift/result). This proposal introduces the ability to specify that functions and closures only throw errors of a particular concrete type.
+Swift's error handling model allows functions and closures marked `throws` to note that they can exit by throwing an error. The error values themselve are always type-erased to `any Error`. This approach encourages errors to be handled generically, and remains a good default for most code that is passing through or record errors. However, there are some places where the type erasure is unfortunate, because it doesn't allow for more precise error typing in narrow places where it is possible and desirable to handle all errors, such as within a single module or with narrowly-scoped APIs. Additionally, type-erasing to the existential type `any Error` requires memory allocation, which have an effect on performance and are not available in the [Embedded Swift](https://forums.swift.org/t/embedded-swift/67057) subset.
 
-There have been many discussions of typed throws over the years. Here are a few swift-evolution threads, the first of which is this specific proposal:
+This proposal introduces the ability to specify that functions and closures only throw errors of a particular concrete type. There have been many discussions of typed throws over the years. Here are a few swift-evolution threads, the first of which is this specific proposal:
 
 * [[Pitch N+1] Typed throws](https://forums.swift.org/t/pitch-n-1-typed-throws/67496)
 * [Typed throw functions - Evolution / Discussion - Swift Forums](https://forums.swift.org/t/typed-throw-functions/38860)
