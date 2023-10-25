@@ -1,4 +1,4 @@
-# Prospective Embedded Swift Vision
+# A Vision for Embedded Swift
 
 ## Introduction
 
