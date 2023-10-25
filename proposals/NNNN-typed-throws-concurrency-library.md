@@ -212,19 +212,46 @@ public protocol AsyncIteratorProtocol {
 }
 ```
 
-Introduce a new associated type `Failure` into this protocol to use as the
-thrown error type of `next()`, i.e.,
+We propose to add a new associated type `Failure` into the protocol.
 
 ```swift
-associatedtype Failure: Error = any Error
-mutating func next() async throws(Failure) -> Element?
+public protocol AsyncIteratorProtocol {
+  associatedtype Element
+  associatedtype Failure: Error = any Error
+  mutating func next() async throws -> Element?
+}
 ```
 
-Then introduce an associated type `Failure` into `AsyncSequence` that provides a
-more convenient name for this type, i.e.,
+Next, we propose adding a new `next2` (TODO: Revisit naming) method to the
+protocol which adopts typed throws. Furthermore, we propose to add default
+implementations for both `next` and `next2`. The latter enables us to adopt
+typed throws without breaking API or ABI.
 
 ```swift
-associatedtype Failure where AsyncIterator.Failure == Failure
+public protocol AsyncIteratorProtocol {
+  associatedtype Element
+  associatedtype Failure: Error = any Error
+  mutating func next() async throws -> Element?
+  mutating func next2() async throws(Failure) -> Element?
+}
+
+extension AsyncIteratorProtocol {
+    func next() async rethrows -> Element? {
+      do {
+        return try next2()
+      } catch {
+        throw error
+      }
+    }
+
+    func next2() async throws(Failure) -> Element? {
+      do {
+        return try next()
+      } catch {
+        throw error as! Failure
+      }
+    }
+}
 ```
 
 With the new `Failure` associated type, async sequences can be composed without
@@ -239,6 +266,7 @@ public protocol AsyncIteratorProtocol<Element, Failure> {
   associatedtype Element
   associatedtype Failure: Error = any Error
   mutating func next() async throws(Failure) -> Element?
+  mutating func next2() async throws(Failure) -> Element?
 }
 
 public protocol AsyncSequence<Element, Failure> {
@@ -311,65 +339,71 @@ The `Concurrency` module contains a few algorithms for `AsyncSequence`. Those
 algorithms are backed by concrete types and have both a throwing and
 non-throwing variant. The throwing types do not contain a generic `Failure`
 parameter so we cannot adopt typed throws on them. However, we propose to add
-new underlying types with a generic `Failure` parameter and use opaque result
+new underlying types with a generic `Failure` parameter and use opaque return
 types. Importantly though those new methods cannot be back-deployed since they
 introduce new types. Those are the new typed throw APIs that we propose to add:
 
 ```swift
 extension AsyncSequence {
-  public func map<Transformed, Failure: Error>(
-    _ transform: @Sendable @escaping (Element) async throws -> Transformed
+  public func map<Transformed>(
+    _ transform: @Sendable @escaping (Element) async throws(Failure) -> Transformed
   ) -> some AsyncSequence<ElementOfResult, Failure>
 
-  public func compactMap<ElementOfResult, Failure: Error>(
+  public func map<Transformed>(
+    _ transform: @Sendable @escaping (Element) async throws(Failure) -> Transformed
+  ) -> some (AsyncSequence<ElementOfResult, Failure> & Sendable) where Element: Sendable, Transformed: Sendable
+
+  public func compactMap<ElementOfResult>(
     _ transform: @Sendable @escaping (Element) async throws(Failure) -> ElementOfResult?
   ) -> some AsyncSequence<ElementOfResult, Failure>
+
+  public func compactMap<ElementOfResult>(
+    _ transform: @Sendable @escaping (Element) async throws(Failure) -> ElementOfResult?
+  ) -> some (AsyncSequence<ElementOfResult, Failure> & Sendable) where Element: Sendable, ElementOfResult: Sendable
   
   public func drop(
     while predicate: @Sendable @escaping (Element) async throws(Failure) -> Bool
-  ) -> some AsyncSequence<ElementOfResult, Failure>
+  ) -> some AsyncSequence<Element, Failure>
+  
+  public func drop(
+    while predicate: @Sendable @escaping (Element) async throws(Failure) -> Bool
+  ) -> some (AsyncSequence<Element, Failure> & Sendable) where Element: Sendable
 
   public func filter(
     _ isIncluded: @Sendable @escaping (Element) async throws(Failure) -> Bool
-  ) -> some AsyncSequence<ElementOfResult, Failure>
+  ) -> some AsyncSequence<Element, Failure>
+
+  public func filter(
+    _ isIncluded: @Sendable @escaping (Element) async throws(Failure) -> Bool
+  ) -> some (AsyncSequence<Element, Failure> & Sendable) where Element: Sendable
 
   public func flatMap<SegmentOfResult: AsyncSequence>(
     _ transform: @Sendable @escaping (Element) async throws(Failure) -> SegmentOfResult
-  ) -> some AsyncSequence<ElementOfResult, Failure>
+  ) -> some AsyncSequence<ElementOfResult, Failure> where SegmentOfResult.Failure = Failure
+
+  public func flatMap<SegmentOfResult: AsyncSequence>(
+    _ transform: @Sendable @escaping (Element) async throws(Failure) -> SegmentOfResult
+  ) -> some (AsyncSequence<ElementOfResult, Failure> & Sendable) where SegmentOfResult.Failure = Failure, Element: Sendable, SegmentOfResult: Sendable
 
   public func prefix(
     while predicate: @Sendable @escaping (Element) async throws(Failure) -> Bool
-  ) -> some AsyncSequence<ElementOfResult, Failure> // This is currently rethrows for no reason: https://github.com/apple/swift/issues/66922
+  ) -> some AsyncSequence<Element, Failure> // This is currently rethrows for no reason: https://github.com/apple/swift/issues/66922
+
+  public func prefix(
+    while predicate: @Sendable @escaping (Element) async throws(Failure) -> Bool
+  ) -> some (AsyncSequence<Element, Failure> & Sendable) where Element: Sendable
 }
 ```
 
-Open question:
-- I am unsure if we can actually adopt opaque return types here due to the `Sendable` constraints. By default
-those do not propagate through opaque return types. We could overload those methods to conditionally return `some (AsyncSequence<ElementOfResult, Failure> & Sendable)`. 
-- The `@Sendable` on the various closures feels overly restrictive and once we solve the hopping of `next` it shouldn't be required. In line with the previous
-open question we probably want to make the sendability of the return type be conditional on if the closure is `Sendable`
-
 ## Source compatibility
 
-TODO
+The proposed changes are additive and does not affect source compatibility.
 
 ## Effect on ABI stability
 
-The ABI between an function with an untyped throws and one that uses typed
-throws will be different, so that typed throws can benefit from knowing the
-precise type. For most of the proposed changes, an actual ABI break can
-be avoided because the implementations can make use of
-[`@backDeploy`](https://github.com/apple/swift-evolution/blob/main/proposals/0376-function-back-deployment.md).
-However, the suggested change to `AsyncIteratorProtocol` might not be able to be
-made in a manner that does not break ABI stability.
-
-## Effect on API resilience
-
-TODO
-
-## Future directions
-
-TODO
+The proposed changes are purely additive. Newly compiled code using `for await`
+will use the new `next2` method instead of the `next` method of the
+`AsyncIteratorProtocol`.
 
 ## Alternatives considered
 
@@ -378,4 +412,11 @@ TODO
 Most of the clock implementation only throw a `CancellationError` from their
 `sleep` method; however, nothing enforces this right now and there might be
 implementations out there that throw a different error. Restricting the protocol
-to only throw `CancellationError`s would be a breaking change
+to only throw `CancellationError`s would be a breaking change.
+
+### Transformation sequence with diverging typed throws
+
+The newly proposed transformational `AsyncSequence` methods restrict the thrown
+typed of the closures to the `Failure` type of the base `AsyncSequence`. The
+closures could throw different error types; however, that would require error a
+union like type for the error. 
