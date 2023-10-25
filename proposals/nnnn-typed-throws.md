@@ -48,10 +48,12 @@ This proposal introduces the ability to specify that functions and closures only
     * [Type inference](#type-inference)
        * [Closure thrown type inference](#closure-thrown-type-inference)
        * [Associated type inference](#associated-type-inference)
-    * [Converting between throws and Result](#converting-between-throws-and-result)
+    * [Standard library adoption](#standard-library-adoption)
+       * [Converting between throws and Result](#converting-between-throws-and-result)
+       * [Standard library operations that rethrow](#standard-library-operations-that-rethrow)
  * [Source compatibility](#source-compatibility)
- * [Effect on ABI stability](#effect-on-abi-stability)
  * [Effect on API resilience](#effect-on-api-resilience)
+ * [Effect on ABI stability](#effect-on-abi-stability)
  * [Future directions](#future-directions)
     * [Standard library operations that rethrow](#standard-library-operations-that-rethrow)
     * [Concurrency library adoption](#concurrency-library-adoption)
@@ -966,7 +968,9 @@ func map<T, E>(body: (Element) throws(E) -> T) throws(E) { ... }
 
 the function has an inferred requirement `E: Error`. 
 
-### Converting between `throws` and `Result`
+### Standard library adoption
+
+#### Converting between `throws` and `Result`
 
 `Result`'s [init(catching:)](https://developer.apple.com/documentation/swift/result/3139399-init) operation translates a throwing closure into a `Result` instance. It's currently defined only when the `Failure` type is `any Error`, i.e.,
 
@@ -994,6 +998,26 @@ should use `Failure` as the thrown error type:
 func get() throws(Failure) -> Success
 ```
 
+#### Standard library operations that `rethrow`
+
+The standard library contains a large number of operations that `rethrow`. In all cases, the standard library will only throw from a call to one of the closure arguments: it will never substitute a different thrown error. Therefore, each `rethrows` operation in the standard library should be replaced with one that uses typed throws to propagate the same error type. For example, the `Optional.map` operation would change from:
+
+```swift 
+public func map<U>(
+  _ transform: (Wrapped) throws -> U
+) rethrows -> U?
+```
+
+to
+
+```swift
+public func map<U, E>(
+  _ transform: (Wrapped) throws(E) -> U
+) throws(E) -> U?
+```
+
+This is a mechanical transformation that is applied throughout the standard library.
+
 ## Source compatibility
 
 This proposal has called out two specific places where the introduction of typed throws into the language will affect source compatibility. In both cases, the type inference behavior of the language will differ when there are `throw` statements that throw a specific concrete type.
@@ -1001,10 +1025,6 @@ This proposal has called out two specific places where the introduction of typed
 To mitigate this source compatibility problem in Swift 5, `throw` statements will be treated as always throwing `any Error`. In Swift 6, they will be treated as throwing the type of their thrown expression. One can enable the Swift 6 behavior with the [upcoming feature flag](https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md) named `FullTypedThrows`.
 
 Note that the source compatibility arguments in this proposal are there to ensure that Swift code that does not use typed throws will continue to work in the same way it always has. Once a function adopts typed throws, the effect of typed throws can then ripple to its callers.
-
-## Effect on ABI stability
-
-The ABI between an function with an untyped throws and one that uses typed throws will be different, so that typed throws can benefit from knowing the precise type.
 
 ## Effect on API resilience
 
@@ -1060,36 +1080,54 @@ func load(from dataLoader: dataLoader) {
 
 Here, the `DataLoader.load()` function could be updated to throw `DataLoaderError` and this particular client code would still work, because `DataLoaderError` is convertible to `any Error`. Note that clients could still be broken by this kind of change, for example overrides of an `open` function, declarations that satisfy a protocol requirement, or code that relies on the precide error type (say, by overloading). However, such a change is far less likely to break clients of an API than loosening thrown type informance.
 
-## Future directions
-
-### Standard library operations that `rethrow`
-
-The standard library contains a large number of operations that `rethrow`. In all cases, the standard library will only throw from a call to one of the closure arguments: it will never substitute a different thrown error type. Therefore, we should considering updating every `rethrows` function in the standard library to carry the thrown error type from the closure parameter to the result, i.e., the optional `map` operation will be change from:
-
-```swift 
-public func map<U>(
-  _ transform: (Wrapped) throws -> U
-) rethrows -> U?
-```
-
-to
+A `rethrows` function can generally be replaced with a function that is generic over the thrown error type of its closure argument and propagates that thrown error. For example, one can replace this API:
 
 ```swift
-public func map<U, E>(
-  _ transform: (Wrapped) throws(E) -> U
-) throws(E) -> U?
+public func last(
+    where predicate: (Element) throws -> Bool
+) rethrows -> Element?
 ```
 
-This can be done in a backward-compatible manner that maintains both ABI and source compatibility. Each existing `rethrows` function will be made `@usableFromInline internal`, which retains the ABI while making the function invisible to clients of the standard library:
+with
+
+```swift
+public func last<E>(
+    where predicate: (Element) throws(E) -> Bool
+) throws(E) -> Element?
+```
+
+When calling this function, the closure argument supplies the thrown error type (`E`), which can also be inferred to `any Error` (for untyped `throws`) or `Never` (for non-throwing functions). Existing clients of this new function therefore see the same behavior as with the `rethrows` version.
+
+There is one difference between the two functions that could break client code that is referring to such functions without calling them. For example, consider the following code:
+
+```swift 
+let primes = [2, 3, 5, 7]
+let getLast = primes.last(where:)
+```
+
+With the `rethrows` formulation of the `last(where:)` function, `getLast` will have the type `((Int) throws -> Bool) throws -> Int?`. With the typed-errors formulation, this code will result in an error because the an argument for the generic parameter `E` cannot be inferred without context. Note that this is only a problem when there is no context type for `getLast`, and can be fixed by providing it with a type:
+
+```swift
+let getLast: ((Int) -> Bool) -> Int? = primes.last(where:) // okay, E is inferred to Never
+```
+
+Note that one would have to do the same thing with the `rethrows` formulation to produce a non-throwing `getLast`, because `rethrows` is not a part of the formal type system. Given that most `rethrows` operations are already generic in other parameters (unlike `last(where:)`), and most uses of such APIs are either calls or have type context, it is expected that the actual source compatibilty impact of replacing `rethrows` with typed errors will be small.
+
+## Effect on ABI stability
+
+The ABI between an function with an untyped throws and one that uses typed throws will be different, so that typed throws can benefit from knowing the precise type.
+
+Replacing a `rethrows` function with one that uses typed throws, as proposed for the standard library, is an ABI-breaking change. However, it can be done in a manner that doesn't break ABI by retaining the `rethrows` function only for binary-compatibility purposes. The existing `rethrows` functions will be renamed at the source level (so they don't conflict with the new ones) and made  `@usableFromInline internal`, which retains the ABI while making the function invisible to clients of the standard library:
 
 ```swift
 @usableFromInline 
-internal func map<U>(
+@_silgen_name(<mangled name of the existing function>)
+internal func _oldRethrowingMap<U>(
   _ transform: (Wrapped) throws -> U
 ) rethrows -> U?
 ```
 
-Then, the new typed-throws version will be introduced with back-deployment support:
+Then, the new typed-throws version will be introduced with [back-deployment support](https://github.com/apple/swift-evolution/blob/main/proposals/0376-function-back-deployment.md):
 
 ```swift
 @backDeploy(...)
@@ -1098,9 +1136,9 @@ public func map<U, E>(
 ) throws(E) -> U?
 ```
 
-This way, clients of the updated standard library will always use the typed-throws version.
+This way, clients compiled against the updated standard library will always use the typed-throws version.
 
-Since there are a large number of `rethrows` operations in the standard library, we will leave the full update to a separate proposal.
+## Future directions
 
 ### Concurrency library adoption
 
@@ -1292,6 +1330,10 @@ Removing or changing the semantics of `rethrows` would be a source-incompatible 
 
 ## Revision history
 
+* Revision 4:
+  * Update the introduction, motivation, and "when to use typed throws" to be more direct.
+  * Re-incorporate the replacement of `rethrows` functions in the standard library with generic typed throws into the actual proposal. It's so mechanical and straightforward that it doesn't need a separate proposal.
+  * Extend the discussion on API resilience to talk through the source compatibility impacts of replacing a `rethrows` function with one that uses typed throws, since it is quite relevant to this proposal.
 * Revision 3:
   * Move the the typed `rethrows` feature out of this proposal, and into Alternatives Considered. Once we gain more experience with typed throws, we can decide what to do with `rethrows`.
   * Expand the discussion on allowing all uninhabited error types to mean "non-throwing".
