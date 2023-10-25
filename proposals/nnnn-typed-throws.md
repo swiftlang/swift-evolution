@@ -550,7 +550,7 @@ var value: Success {
 
 #### Throwing within a function that declares a typed error
 
-Any function, closure or function type that is marked as `throws` can declare which type the function throws. That type, which is called the *thrown error type*, must conform to the `Error` protocol.
+Any function, closure or function type that is marked as `throws` can declare which type the function throws. That type, which is called the *thrown error type*, must be convertible to a value of type `any Error` protocol. For most types, this means conformance to the `Error` protocol. However, the "convertible to" formulation also allows existential types such as `any Error & Codable` that do *not* conform to the `Error` protocol, but are convertible to `any Error`.
 
 Every uncaught error that can be thrown from the body of the function must be convertible to the thrown error type. This applies to both explicit `throw` statements and any errors thrown by other calls (as indicated by a `try`). For example:
 
