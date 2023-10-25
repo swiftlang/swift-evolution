@@ -1,13 +1,12 @@
 # Isolated default value expressions
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0411](0411-isolated-default-values.md)
 * Authors: [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Awaiting implementation** or **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (October 25...November 7, 2023)**
 * Bug: *if applicable* [apple/swift#58177](https://github.com/apple/swift/issues/58177)
 * Implementation: [apple/swift#68794](https://github.com/apple/swift/pull/68794)
 * Upcoming Feature Flag: `-enable-upcoming-feature IsolatedDefaultValues`
-* Previous Proposal: *if applicable* [SE-XXXX](XXXX-filename.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-isolated-default-value-expressions/67714))
 
 ## Introduction
