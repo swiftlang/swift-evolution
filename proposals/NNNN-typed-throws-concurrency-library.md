@@ -7,8 +7,9 @@
 
 ## Introduction
 
-SE-NNNN introduced typed error throws to Swift which allows developers to explicitly
-state the thrown errors.
+SE-NNNN introduced typed error throws to Swift which allows developers to
+explicitly state the thrown errors. However, it deferred the adoption of typed
+throws in the `Concurrency` module of the standard library.
 
 Swift-evolution threads:
 
@@ -18,9 +19,11 @@ Swift-evolution threads:
 
 ## Motivation
 
-There are a number of places in the `Concurrency` library where the adoption of typed
-throws will help maintain thrown types through user code.
-
+There are a number of places in the `Concurrency` library where the adoption of
+typed throws will help maintain thrown types through user code. Furthermore, the
+adoption of typed throws in the `Concurrency` module will allow us to unify some
+of the current method and types where we previously required two separate
+implementations.
 
 ## Proposed solution
 
@@ -173,9 +176,9 @@ struct ThrowingTaskGroup<ChildTaskResult: Sendable, Failure: Error> {
 }
 ```
 
-### Task locals
+### Task locals
 
-The `withValue` method can also adopt typed throws.
+The `withValue` method will also adopt typed throws.
 
 ```swift
 public final class TaskLocal<Value: Sendable> {
@@ -188,9 +191,9 @@ public final class TaskLocal<Value: Sendable> {
 }
 ```
 
-### MainActor
+### MainActor
 
-The `MainActor` provides a static rethrowing `run` method. This method can also
+The `MainActor` provides a static rethrowing `run` method. This method will also
 adopt typed throws:
 
 ```swift
@@ -281,7 +284,7 @@ This allows the use of `AsyncSequence` with both opaque types (`some
 AsyncSequence<String, any Error>`) and existential types (`any
 AsyncSequence<Image, NetworkError>`). 
 
-### AsyncThrowingStream
+### AsyncThrowingStream
 
 The non-throwing variant `AsyncStream` cannot adopt typed throws
 since it does not have a generic `Failure` parameter; however,
