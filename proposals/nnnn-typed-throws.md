@@ -10,21 +10,9 @@
 
 ## Introduction
 
-Swift's error handling model allows functions and closures marked `throws` to note that they can exit by throwing an error. The error values themselve are always type-erased to `any Error`. This approach encourages errors to be handled generically, and remains a good default for most code that is passing through or record errors. However, there are some places where the type erasure is unfortunate, because it doesn't allow for more precise error typing in narrow places where it is possible and desirable to handle all errors, such as within a single module or with narrowly-scoped APIs. Additionally, type-erasing to the existential type `any Error` requires memory allocation, which have an effect on performance and are not available in the [Embedded Swift](https://forums.swift.org/t/embedded-swift/67057) subset.
+Swift's error handling model allows functions and closures marked `throws` to note that they can exit by throwing an error. The error values themselve are always type-erased to `any Error`. This approach encourages errors to be handled generically, and remains a good default for most code. However, there are some places where the type erasure is unfortunate, because it doesn't allow for more precise error typing in narrow places where it is possible and desirable to handle all errors, or where the costs of type erasure are prohibitive.
 
-This proposal introduces the ability to specify that functions and closures only throw errors of a particular concrete type. There have been many discussions of typed throws over the years. Here are a few swift-evolution threads, the first of which is this specific proposal:
-
-* [[Pitch N+1] Typed throws](https://forums.swift.org/t/pitch-n-1-typed-throws/67496)
-* [Typed throw functions - Evolution / Discussion - Swift Forums](https://forums.swift.org/t/typed-throw-functions/38860)
-* [Status check: typed throws](https://forums.swift.org/t/status-check-typed-throws/66637)
-* [Precise error typing in Swift](https://forums.swift.org/t/precise-error-typing-in-swift/52045)
-* [Typed throws](https://forums.swift.org/t/typed-throws/6501)
-* [[Pitch\] Typed throws](https://forums.swift.org/t/pitch-typed-throws/5233)
-* [Type-annotated throws](https://forums.swift.org/t/type-annotated-throws/3875)
-* [Proposal: Allow Type Annotations on Throws](https://forums.swift.org/t/proposal-allow-type-annotations-on-throws/1149)
-* [Proposal: Allow Type Annotations on Throws](https://forums.swift.org/t/proposal-allow-type-annotations-on-throws/623)
-* [Proposal: Typed throws](https://forums.swift.org/t/proposal-typed-throws/268)
-* [Type Inferencing For Error Handling (try catch blocks)](https://forums.swift.org/t/type-inferencing-for-error-handling-try-catch-blocks/117)
+This proposal introduces the ability to specify that functions and closures only throw errors of a particular concrete type.
 
 ## Table of Contents
 
@@ -77,7 +65,27 @@ This proposal introduces the ability to specify that functions and closures only
 
 ## Motivation
 
-Swift is known for being explicit about semantics and using types to communicate constraints that apply to specific structures and APIs. Some developers are not satisfied with the current state of `throws` as it is not explicit about errors that are thrown. These leads to the following issues with `throws` current behaviour.
+Swift is known for being explicit about semantics and using types to communicate constraints that apply to specific APIs. From that perspective, the fact that all thrown errors are of type `any Error` feels like an outlier. However, it reflects the view laid out in the original [error handling rationale](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md) that errors are generally propagated and rendered, but rarely handled exhaustively, and are prone to changing over time in a way that types are not.
+
+The desire to provide specific thrown error types has come up repeatedly on the Swift forums. Here are just a few of the forum threads calling for some form of typed throws:
+
+* [[Pitch N+1] Typed throws](https://forums.swift.org/t/pitch-n-1-typed-throws/67496)
+* [Typed throw functions](https://forums.swift.org/t/typed-throw-functions/38860)
+* [Status check: typed throws](https://forums.swift.org/t/status-check-typed-throws/66637)
+* [Precise error typing in Swift](https://forums.swift.org/t/precise-error-typing-in-swift/52045)
+* [Typed throws](https://forums.swift.org/t/typed-throws/6501)
+* [[Pitch\] Typed throws](https://forums.swift.org/t/pitch-typed-throws/5233)
+* [Type-annotated throws](https://forums.swift.org/t/type-annotated-throws/3875)
+* [Proposal: Allow Type Annotations on Throws](https://forums.swift.org/t/proposal-allow-type-annotations-on-throws/1149)
+* [Proposal: Allow Type Annotations on Throws](https://forums.swift.org/t/proposal-allow-type-annotations-on-throws/623)
+* [Proposal: Typed throws](https://forums.swift.org/t/proposal-typed-throws/268)
+* [Type Inferencing For Error Handling (try catch blocks)](https://forums.swift.org/t/type-inferencing-for-error-handling-try-catch-blocks/117)
+
+In a sense, Swift started down the path toward typed throws with the introduction of the [`Result`](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md) type in the standard library, which captured a specific thrown error type in its `Failure` parameter. That pattern was replicated in the [`Task` type](https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md) and other concurrency APIs. The loss of information between types like `Result` and `Task` and the language's error-handling system provides partial motivation for the introduction of typed throws, and is discussed further below.
+
+Typed throws also provides benefits in places where clients need to exhaustively handle errors. For this to make sense, the set of potential failure conditions must be relatively fixed, either because they come from the same module or package as the clients, or because they come from a library that is effectively standalone and unlikely to evolve to (e.g.) pass through an error from another lower-level library. Typed throws also provides benefits in generic code that will propagate errors from its arguments, but never generate errors itself, as a more flexible alternative to the existing `rethrows`. Finally, typed throws also open up the potential for more efficient code, because they avoid the overhead associated with existential types (`any Error`).
+
+Even with the introduction of typed throws into Swift, the existing (untyped) `throws` remains the better default error-handling mechanism for most Swift code. The section ["When to use typed throws"](#when-to-use-typed-throws) describes the circumstances in which typed throws should be used.
 
 ### Communicates less error information than `Result` or `Task`
 
