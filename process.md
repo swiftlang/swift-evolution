@@ -91,7 +91,7 @@ for the upcoming Swift release will not be brought up for review. If you can't r
 
   Prototyping an implementation and its uses along with the formal proposal is *required* because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
 * **Request a review**: once you believe the proposal is sufficiently detailed and clear, and addresses feedback from present and past discussions of the idea, mark the draft pull request as ready for review to indicate to the appropriate evolution workgroup you would like the proposal to be reviewed. After the pull request is approved, the proposal will be assigned a number as well as a member of the said evolution workgroup to manage the review.
-* **Address feedback**: in general, and especially [during the review period][proposal-status], be responsive to questions and feedback about the proposal.
+* **Address feedback**: in general, and especially [during the review period](#review-process), be responsive to questions and feedback about the proposal.
 
 [draft-pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests
 
@@ -181,7 +181,7 @@ A given proposal can be in one of several states:
 [swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
 [swift-evolution-staging]: https://github.com/apple/swift-evolution-staging  "Swift evolution staging repository"
 [proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
-[proposal-status]: https://apple.github.io/swift-evolution/
+[status-page]: https://apple.github.io/swift-evolution/
 [preview-package]: https://github.com/apple/swift-standard-library-preview/
 [language-steering-group]: https://www.swift.org/language-steering-group
 
