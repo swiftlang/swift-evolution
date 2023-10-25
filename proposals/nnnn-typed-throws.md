@@ -1136,7 +1136,7 @@ public func map<U, E>(
 ) throws(E) -> U?
 ```
 
-This way, clients compiled against the updated standard library will always use the typed-throws version.
+This way, clients compiled against the updated standard library will always use the typed-throws version. Note that many of these functions are quite small and will be generic, so implementers may opt to use `@_alwaysEmitIntoClient` rather than `@backDeploy`.
 
 ## Future directions
 
@@ -1163,7 +1163,7 @@ public protocol AsyncSequence<Element, Failure> {
 }
 ```
 
-As with the standard library, the scope of potential changes to the concurrency library to make full use of typed throws is large, and there are likely to be some interesting design questions. Therefore, we leave it to a follow-on proposal, noting only that whatever form `AsyncSequence` takes with typed throws, the language support for asynchronous `for..in` will need to adjust.
+The scope of potential changes to the concurrency library to make full use of typed throws is large. Unlike with the standard library, the adoption of typed throws in the concurrency library requires some interestinh design. Therefore, we leave it to a follow-on proposal, noting only that whatever form `AsyncSequence` takes with typed throws, the language support for asynchronous `for..in` will need to adjust.
 
 ### Specific thrown error types for distributed actors
 
