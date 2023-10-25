@@ -429,19 +429,19 @@ Note that typed throws has elegantly solved our problem, because any throwing si
 
 ### When to use typed throws
 
-Typed throws makes it possible to strictly specify the thrown error type of a function, but doing so constrains the evolution of that function's implementation. For example, consider an operation and loads bytes from a specified file:
+Typed throws makes it possible to strictly specify the thrown error type of a function, but doing so constrains the evolution of that function's implementation. Additionally, errors are usually propagated or rendered, but not exhaustively handled, so even with the addition of typed throws to Swift, untyped `throws` is better for most scenarious. Consider typed throws only in the following circumstances:
+
+1. In code that stays within a module or package where you always want to handle the error, so it's a purely an implementation detail and it is plausible to handle the error.
+2. In generic code that never produces its own errors, but only passes through errors that come from user components. The standard library contains a number of constructs like this, whether they are `rethrows` functions like `map` or are capturing a `Failure` type like in `Task` or `Result`.
+3. In dependency-free code that is meant to be used in a constrained environment (e.g., Embedded Swift) or cannot allocate memory, and will only ever produce its own errors.
+
+Resist the temptation to use typed throws because there is only a single kind of error that the implementation can throw code. For example, consider an operation that loads bytes from a specified file:
 
 ```swift
-func loadBytes(from fileName: String) async throws(FileSystemError) -> [UInt8]
+public func loadBytes(from file: String) async throws(FileSystemError) -> [UInt8]  // should use untyped throws
 ```
 
-Internally, it is using some file system library that throws a `FileSystemError`, which it then republishes directly. However, the fact that the error was specified to always be a `FileSystemError` may hamper further evolution of this API: for example, it might be reasonable for this API to start supporting loading bytes from other sources (say, a network connection or database) when the file name matches some other schema. However, errors from those other libraries will not be `FileSystemError` instances, which poses a problem for `loadBytes(from:)`: it either needs to translate the errors from other libraries into `FileSystemError` (if that's even possible), or it needs to break its API contract by adopting a more general error type (or untyped `throws`).
-
-The `loadBytes(from:)` function is probably not a good candidate for typed throws. Indeed, even with the addition of typed throws to Swift, untyped `throws` is the better default for most Swift code, which is passing through errors from lower-level libraries for presentation rather than trying to exhaustively handle them. Typed throws is potentially applicable in the following circumstances:
-
-1. In dependency-free code that will only ever produce errors itself.
-2. In code that stays within a module or package where you always want to handle the error, so it's a purely an implementation detail.
-3. In generic code that never produces its own errors, but only passes through errors that come from user components. The standard library contains a number of constructs like this, whether they are `rethrows` functions or are capturing a `Failure` type like in `Task` or `Result`.
+Internally, it is using some file system library that throws a `FileSystemError`, which it then republishes directly. However, the fact that the error was specified to always be a `FileSystemError` may hamper further evolution of this API: for example, it might be reasonable for this API to start supporting loading bytes from other sources (say, a network connection or database) when the file name matches some other schema. However, errors from those other libraries will not be `FileSystemError` instances, which poses a problem for `loadBytes(from:)`: it either needs to translate the errors from other libraries into `FileSystemError` (if that's even possible), or it needs to break its API contract by adopting a more general error type (or untyped `throws`). 
 
 ## Detailed design
 
