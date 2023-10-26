@@ -206,7 +206,7 @@ let helloWorld = "hello ".plus("cruel ").plus("world")
 `borrowing` and `consuming` parameter values are also **not implicitly copyable**
 inside of the function or closure body:
 
-```
+```swift
 func foo(x: borrowing String) -> (String, String) {
     return (x, x) // ERROR: needs to copy `x`
 }
@@ -218,13 +218,13 @@ func bar(x: consuming String) -> (String, String) {
 And so is the `self` parameter within a method that has the method-level
 `borrowing` or `consuming` modifier:
 
-```
+```swift
 extension String {
     borrowing func foo() -> (String, String) {
         return (self, self) // ERROR: needs to copy `self`
     }
     consuming func bar() -> (String, String) {
-        return (self, self) // ERROR: needs to copy `x`
+        return (self, self) // ERROR: needs to copy `self`
     }
 }
 ```
@@ -244,7 +244,7 @@ as if it were of some noncopyable type.
 
 To allow a copy to occur, the `copy x` operator may be used:
 
-```
+```swift
 func dup(_ x: borrowing String) -> (String, String) {
     return (copy x, copy x) // OK, copies explicitly allowed here
 }
@@ -267,7 +267,7 @@ The value of the parameter may be passed to other functions, or assigned to
 other variables (if the convention allows), at which point the value may 
 be implicitly copied through those other parameter or variable bindings.
 
-```
+```swift
 func foo(x: borrowing String) {
     let y = x // ERROR: attempt to copy `x`
     bar(z: x) // OK, invoking `bar(z:)` does not require copying `x`
@@ -291,7 +291,7 @@ the caller, so if forming the call requires copying, that will raise an error,
 even if the parameter would be implicitly copyable in the callee. The function
 body serves as the boundary for the no-implicit-copy constraint:
 
-```
+```swift
 struct Bar {
     var a: String
     var b: String
@@ -418,7 +418,7 @@ Instead of having no-implicit-copy behavior be tied to the ownership-related
 binding forms and parameter modifiers, we could have an attribute that can
 be applied to any binding to say that it should not be implicitly copyable:
 
-```
+```swift
 @noImplicitCopy(self)
 func foo(x: @noImplicitCopy String) {
     @noImplicitCopy let y = copy x
@@ -439,7 +439,7 @@ Unlike the `consume x` or `borrow x` operator, copying doesn't have any specific
 semantic needs that couldn't be done by a regular function. Instead of an
 operator, `copy` could be defined as a regular standard library function:
 
-```
+```swift
 func copy<T>(_ value: T) -> T {
     return value
 }

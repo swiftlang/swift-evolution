@@ -4,7 +4,6 @@
 * Authors: [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Implemented (Swift 5.9)**
-* Implementation: On `main` gated behind the frontend flag `-enable-experimental-feature VariadicGenerics`
 * Review: ([pitch 1](https://forums.swift.org/t/pitch-parameter-packs/60543)) ([pitch 2](https://forums.swift.org/t/pitch-2-value-and-type-parameter-packs/60830)) ([review](https://forums.swift.org/t/se-0393-value-and-type-parameter-packs/63859)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0393-value-and-type-parameter-packs/64382))
 
 ## Introduction
@@ -146,7 +145,7 @@ The substituted return type is the tuple type with two elements `(Pair<Int, Bool
 
 ### Type parameter packs
 
-The generic parameter list of a generic function can contain one or more _type parameter pack declarations_, written as an identifier preceeded by `each`:
+The generic parameter list of a generic function can contain one or more _type parameter pack declarations_, written as an identifier preceded by `each`:
 
 ```swift
 func variadic<each T, each U>() {}
@@ -279,7 +278,7 @@ For example, the following substitutions both produce the element type `Int`:
 - Substituting `each T := {Int}` into `(repeat each T)`.
 - Substituting `each T := {}` into `(Int, repeat each T)`.
 
-Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would increase the surface area of the language. One-element tuples would need to be manually unrwapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
+Though unwrapping single-element tuples complicates type matching, surfacing single-element tuples in the programming model would increase the surface area of the language. One-element tuples would need to be manually unwrapped with `.0` or pattern matching in order to make use of their contents. This unwrapping would clutter up code.
 
 
 ### Type matching
@@ -623,7 +622,7 @@ The pack parameter design where packs are distinct from tuples also does not pre
 
 ### Syntax alternatives to `repeat each`
 
-The `repeat each` syntax produces fairly verbose variadic generic code. However, the `repeat` keyword is explicit signal that the pattern is repeated under substitution, and requiring the `each` keyword for pack references indicates which types or values will be subsituted in the expansion. This syntax design helps enforce the mental model that pack expansions result in iteration over each element in the parameter pack at runtime.
+The `repeat each` syntax produces fairly verbose variadic generic code. However, the `repeat` keyword is explicit signal that the pattern is repeated under substitution, and requiring the `each` keyword for pack references indicates which types or values will be substituted in the expansion. This syntax design helps enforce the mental model that pack expansions result in iteration over each element in the parameter pack at runtime.
 
 The following syntax alternatives were also considered.
 
@@ -691,7 +690,7 @@ The downsides to postfix `*` include:
 
 #### Magic builtin `map` method
 
-The prevlence of `map` and `zip` in Swift makes this syntax an attractive option for variadic generics:
+The prevalence of `map` and `zip` in Swift makes this syntax an attractive option for variadic generics:
 
 ```swift
 func wrap<each T>(_ values: repeat each T) -> (repeat Wrapped<each T>) {
@@ -871,7 +870,7 @@ extension<each T: Equatable> (repeat each T): Equatable {
 Changes to the [first reviewed revision](https://github.com/apple/swift-evolution/blob/b6ca38b9eee79650dce925e7aa8443a6a9e5e6ea/proposals/0393-parameter-packs.md):
 
 * The `repeat` keyword is required for generic requirement expansions to distinguish requirement expansions from single requirements on an individual pack element nested inside of a pack expansion expression.
-* Overload resolution prefers scalar overloads when the scalar overload is considered a subtype of a parmeter pack overload.
+* Overload resolution prefers scalar overloads when the scalar overload is considered a subtype of a parameter pack overload.
 
 
 ## Acknowledgments

@@ -3,9 +3,9 @@
 * Proposal: [SE-0406](0406-async-stream-backpressure.md)
 * Author: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active review (August 15...28, 2023)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#66488](https://github.com/apple/swift/pull/66488)
-* Review: ([pitch](https://forums.swift.org/t/pitch-new-apis-for-async-throwing-stream-with-backpressure-support/65449)) ([review](https://forums.swift.org/t/se-0406-backpressure-support-for-asyncstream/66771))
+* Review: ([pitch](https://forums.swift.org/t/pitch-new-apis-for-async-throwing-stream-with-backpressure-support/65449)) ([review](https://forums.swift.org/t/se-0406-backpressure-support-for-asyncstream/66771)) ([return for revision](https://forums.swift.org/t/returned-for-revision-se-0406-backpressure-support-for-asyncstream/67248))
 
 ## Introduction
 
@@ -71,7 +71,7 @@ creating multiple iterators and iterating over them separately, may produce an
 unexpected series of values.
 
 While that statement leaves room for any behavior we learned that a clear distinction
-of behavior for root asynchronous sequences is benficial; especially, when it comes to
+of behavior for root asynchronous sequences is beneficial; especially, when it comes to
 how transformation algorithms are applied on top.
 
 ### Downstream consumer termination
@@ -386,7 +386,7 @@ extension AsyncStream {
         ///
         /// Call this method to cancel a callback enqueued by the ``enqueueCallback(callbackToken:onProduceMore:)`` method.
         ///
-        /// - Note: This methods supports being called before ``enqueueCallback(callbackToken:onProduceMore:)`` is called and
+        /// - Note: This method supports being called before ``enqueueCallback(callbackToken:onProduceMore:)`` is called and
         /// will mark the passed `token` as cancelled.
         ///
         /// - Parameter token: The callback token.
@@ -442,7 +442,7 @@ extension AsyncStream {
 
         /// Write the elements of the asynchronous sequence to the asynchronous stream.
         ///
-        /// This method returns once the provided asynchronous sequence or the  the asynchronous stream finished.
+        /// This method returns once the provided asynchronous sequence or the asynchronous stream finished.
         ///
         /// - Important: This method does not finish the source if consuming the upstream sequence terminated.
         ///
@@ -477,11 +477,11 @@ extension AsyncThrowingStream {
     ///
     /// Use this source to provide elements to the stream by calling one of the `write` methods, then terminate the stream normally
     /// by calling the `finish()` method. You can also use the source's `finish(throwing:)` method to terminate the stream by
-    /// throwing an error
+    /// throwing an error.
     public struct Source: Sendable {
         /// A strategy that handles the backpressure of the asynchronous stream.
         public struct BackpressureStrategy: Sendable {
-            /// When the high watermark is reached producers will be suspended. All producers will be resumed again once
+            /// When the high watermark is reached, producers will be suspended. All producers will be resumed again once
             /// the low watermark is reached.
             public static func watermark(low: Int, high: Int) -> BackpressureStrategy {}
         }
@@ -546,7 +546,7 @@ extension AsyncThrowingStream {
         ///
         /// Call this method to cancel a callback enqueued by the ``enqueueCallback(callbackToken:onProduceMore:)`` method.
         ///
-        /// - Note: This methods supports being called before ``enqueueCallback(callbackToken:onProduceMore:)`` is called and
+        /// - Note: This method supports being called before ``enqueueCallback(callbackToken:onProduceMore:)`` is called and
         /// will mark the passed `token` as cancelled.
         ///
         /// - Parameter token: The callback token.
@@ -695,7 +695,7 @@ consuming the stream at the same time. This can be solved via additional
 algorithms such as `broadcast` in the `swift-async-algorithms` package.
 
 To give developers more time to adopt the new APIs the deprecation of the
-current APIs should deferred to a future version. Especially since those new
+current APIs should be deferred to a future version. Especially since those new
 APIs are not backdeployed like the current Concurrency runtime.
 
 ### Introduce a `Writer` and an `AsyncWriter` protocol
@@ -765,7 +765,7 @@ the current pattern of setting the `onTermination` closure on the source.
 
 ### Provide a `onConsumerCancellation` callback
 
-During the pitch phase it was raised that we should provide a
+During the pitch phase, it was raised that we should provide a
 `onConsumerCancellation` callback which gets invoked once the asynchronous
 stream notices that the consuming task got cancelled. This callback could be
 used to customize how cancellation is handled by the stream e.g. one could

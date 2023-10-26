@@ -470,7 +470,7 @@ header, and that header is emitted alongside the Swift module when the Swift
 part of the target is built. This relationship is enforced in that the
 generated interop header is listed as an input to the compilation commands for
 the target’s C language sources. This is specified in the llbuild manifest
-(`debug.yaml` in the packag's `.build` directory).
+(`debug.yaml` in the package's `.build` directory).
 
 ##### Build flags for the Swift part of the target
 

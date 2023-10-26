@@ -313,7 +313,7 @@ like [Trillian] or [sigstore].
 [autobuilds]: https://docs.docker.com/docker-hub/builds/ "Docker Hub: Set up Automated Builds"
 [Damerau–Levenshtein distance]: https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance "Damerau–Levenshtein distance"
 [Docker Hub]: https://hub.docker.com
-[Registry.md]: https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md "Swift Package Registry Service Specification"
+[Registry.md]: https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md "Swift Package Registry Service Specification"
 [rss]: https://validator.w3.org/feed/docs/rss2.html "RSS 2.0 specification"
 [RubyGems.org]: https://rubygems.org/
 [SE-0292]: https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md "Package Registry Service"
