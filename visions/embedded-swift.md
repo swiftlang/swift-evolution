@@ -66,7 +66,7 @@ In order to achieve the goals listed above, Embedded **Swift** will impose limit
     ```
 * Existentials and dynamic downcasting of existentials will be disallowed. For example:
     ```swift
-    func foo(t: Any.Type) // not OK
+    func foo(t: Any.Type) {} // not OK
     var e: any Comparable = 42 // not OK
     var a: [Any] = [1, "string", 3.5] // not OK
     ```
