@@ -9,6 +9,10 @@
 
 ## Introduction
 
+This proposal introduces a `@backDeployed` attribute to allow ABI-stable libraries to extend the effective availability of their own public APIs to older OSes, where the API isn't actually present in the library that shipped with those OSes. While this resembles a polyfill mechanically, it does not help a module to overlay a polyfill on top of an API from another module.
+
+## Motivation
+
 Resilient Swift libraries, such as the ones present in the SDKs for Apple's platforms, are distributed as dynamic libraries. Authors of these libraries use `@available` annotations to indicate the operating system version that a declaration was introduced in. For example, suppose this were the interface of ToastKit, a library that is part of the toasterOS SDK:
 
 ```swift
@@ -125,8 +129,6 @@ extension Toaster {
   }
 }
 ```
-
-Developers familiar with JavaScript may recognize these generated compatibility functions as [polyfills](https://remysharp.com/2010/10/08/what-is-a-polyfill).
 
 When the deployment target of the client app is at least toasterOS 2.0, the compiler can eliminate the branch in `makeBatchOfToast_thunk(_:)` and therefore make `makeBatchOfToast_fallback(_:)` an unused function, which reduces the unnecessary bloat that could otherwise result from referencing a back deployed API.
 
