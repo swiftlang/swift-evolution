@@ -213,7 +213,7 @@ func userResultFromStrings(strings: [String]) -> Result<User, GenericError>  {
 }
 ```
 
-This is even more awful then the first approach, because now we are writing the implementation of the `flatMap` operator over an over again.
+This is even more boilerplate than the first approach, because now we are writing the implementation of the `flatMap` operator over an over again.
 
 ### Existential error types incur overhead
 
