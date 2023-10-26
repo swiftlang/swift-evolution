@@ -121,7 +121,7 @@ Please state explicitly whether you believe that the proposal should be accepted
 
 1. **Request a review**
 
-   Once you have a working implementation and believe the proposal is sufficiently detailed and clear, mark the draft pull request in the [swift-evolution repository][swift-evolution-repo] as ready for review to indicate to the appropriate evolution workgroup that you would like the proposal to be reviewed. After the pull request is approved, the proposal will be assigned a number as well as a member of the said evolution workgroup to manage the review.
+   Once you have a working implementation and believe the proposal is sufficiently detailed and clear, mark the draft pull request in the [swift-evolution repository][swift-evolution-repo] as ready for review to indicate to the appropriate evolution workgroup that you would like the proposal to be reviewed.
 
 > [!IMPORTANT]
 > In general, and especially [during the review period](#review-process), be responsive to questions and feedback about the proposal.
