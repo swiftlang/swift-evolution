@@ -57,7 +57,7 @@ In order to achieve the goals listed above, Embedded **Swift** will impose limit
 * The standard library’s print() function in its current form will not be available, and an alternative will be provided instead.
 * Metatypes will be restricted in some way, and code patterns where a metatype value is actually needed at runtime will be disallowed (but at a minimum using a metatype function argument as a type hint will be allowed, as well as calling class methods and initializers on concrete types).
     Examples:
-    ```
+    ```swift
     func foo<T>(t: T.Type) { ... `t` used in a downcast ... } // not OK
     extension UnsafeRawPointer {
       func load<T>(as type: T.Type) -> T { ... `type` unused ... } // OK
@@ -65,14 +65,14 @@ In order to achieve the goals listed above, Embedded **Swift** will impose limit
     MyGenericClass<Int>.classFunc() // OK
     ```
 * Existentials and dynamic downcasting of existentials will be disallowed. For example:
-    ```
+    ```swift
     func foo(t: Any.Type) // not OK
     var e: any Comparable = 42 // not OK
     var a: [Any] = [1, "string", 3.5] // not OK
     ```
 * The types of thrown errors will be restricted in some manner, because thrown errors are of existential type `any Error` (which is disallowed by the prior item).
 * Classes will have restrictions, for example they cannot have non-final generic functions. For example:
-    ```
+    ```swift
     class MyClass<T> {
       func member() { } // OK
       func genericMember<U> { } // not OK
@@ -118,7 +118,7 @@ Building firmware using `-target arm64-apple-none` would highlight that we’re 
 
 To support writing code that’s compiled under both regular Swift and also Embedded Swift, we should provide facilities to manage availability of APIs and conditional compilation of code. The concrete syntax for that is subject to discussion, the following snippet is presented only as a straw-man proposal:
 
-```
+```swift
 @available(embedded, unavailable, "not available in Embedded Swift mode")
 public func notAvailableOnEmbedded()
 
