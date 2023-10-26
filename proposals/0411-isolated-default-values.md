@@ -146,8 +146,7 @@ In the above example, `useDefault` has default arguments that are isolated to `@
 For a given call, argument evaluation happens in the following order:
 
 1. Left-to-right evalution of explicit r-value arguments
-2. Left-to-right evaluation of default arguments
-3. Left-to-right evaluation of formal access arguments
+2. Left-to-right evaluation of default arguments and formal access arguments
 
 For example:
 
