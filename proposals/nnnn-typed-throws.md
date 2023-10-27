@@ -307,12 +307,6 @@ func userResultFromStrings(strings: [String]) throws(GenericError) -> User  {
 }
 ```
 
-The thrown error type does not need to be a concrete type; it could also be an existential type that might carry more information that `any Error`. For example, we could always throw errors that can be encoded and decoded:
-
-```swift
-func remoteCall(function: String) async throws(any Error & Codable) -> String { ... }
-```
-
 ### Throwing `any Error` or `Never`
 
 Typed throws generalizes over both untyped throws and non-throwing functions. A function specified with `any Error` as its thrown type:
@@ -561,7 +555,7 @@ func throwingTypedErrors() throws(CatError) {
   throw KidError() // error: KidError is not convertible to CatError
   
   try callCat() // okay
-	try callKids() // error: implicitly throws KidError, which is not convertible to CatError
+	try callKids() // error: throws KidError, which is not convertible to CatError
   
   do {
     try callKids() // okay, because this error is caught and suppressed below
@@ -583,6 +577,18 @@ func untypedThrows() throws {
 ```
 
 Therefore, these rules subsume those of untyped throws, and no existing code will change behavior.
+
+Note that the constraint that the thrown error type must conform to `Error` means that one cannot use an existential type such as `any Error & Codable` as the thrown error type:
+
+````swift
+```swift
+// error: any Error & Codable does not conform to Error
+func remoteCall(function: String) async throws(any Error & Codable) -> String { ... }
+```
+
+````
+
+The `any Error` existential has [special semantics](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#adding-swifterror-self-conformance) that allow it to conform to the `Error` protocol, introduced along with `Result`. A separate language change would be required to allow other existential types to conform to the `Error` protocol.
 
 #### Catching typed thrown errors 
 
@@ -1173,7 +1179,7 @@ The transport mechanism for [distributed actors](https://github.com/apple/swift-
 
 ### Thrown error type syntax
 
-There have been several alternatives to the `throws(E)` syntax proposed here. The `throws(E)` syntax was chosen because it is syntactically unambiguous, allows arbitrary types for `E` such as `any Error & Codable`,  and is consistent with the way in which attributes (like property wrappers or macros with arguments) and modifiers (like `unowned(unsafe)`) are written.
+There have been several alternatives to the `throws(E)` syntax proposed here. The `throws(E)` syntax was chosen because it is syntactically unambiguous, allows arbitrary types for `E`,  and is consistent with the way in which attributes (like property wrappers or macros with arguments) and modifiers (like `unowned(unsafe)`) are written.
 
 The most commonly proposed syntax omits the parentheses, i.e., `throws E`. However, this syntax introduces some syntactic ambiguities that would need to be addressed and might cause problems for future evolution of the language:
 
@@ -1334,6 +1340,7 @@ Removing or changing the semantics of `rethrows` would be a source-incompatible 
   * Update the introduction, motivation, and "when to use typed throws" to be more direct.
   * Re-incorporate the replacement of `rethrows` functions in the standard library with generic typed throws into the actual proposal. It's so mechanical and straightforward that it doesn't need a separate proposal.
   * Extend the discussion on API resilience to talk through the source compatibility impacts of replacing a `rethrows` function with one that uses typed throws, since it is quite relevant to this proposal.
+  * Explain that one cannot currently have a thrown error type of `any Error & Codable` or similar because it doesn't conform to `Error`.
 * Revision 3:
   * Move the the typed `rethrows` feature out of this proposal, and into Alternatives Considered. Once we gain more experience with typed throws, we can decide what to do with `rethrows`.
   * Expand the discussion on allowing all uninhabited error types to mean "non-throwing".
