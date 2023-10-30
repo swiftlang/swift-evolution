@@ -474,10 +474,10 @@ We propose a new separate type that provides an abstraction over the layout of w
 
 ```swift
 public struct WordPair {
-  public var highWord: UInt { get }
-  public var lowWord: UInt { get }
+  public var first: UInt { get }
+  public var second: UInt { get }
 
-  public init(highWord: UInt, lowWord: UInt)
+  public init(first: UInt, second: UInt)
 }
 
 // Not a real compilation conditional
@@ -743,15 +743,15 @@ These specialized integer operations generally come in two variants, based on wh
 
 | Method Name | Returns | Implements |
 | --- | --- | --- |
-| `wrappingAdd(_:ordering:)` | `(oldValue:newValue:)` | `a &+= b`  |
-| `wrappingSubtract(_:ordering:)` | `(oldValue:newValue)` | `a &-= b`  |
-| `add(_:ordering:)` | `(oldValue:newValue)` | `a += b` (checks for overflow) |
-| `subtract(_:ordering:)` | `(oldValue:newValue)` | `a -= b` (checks for overflow) |
-| `bitwiseAnd(with:ordering:)` | `(oldValue:newValue)` | `a &= b` |
-| `bitwiseOr(with:ordering:)` | `(oldValue:newValue)` | `a \|= b` |
-| `bitwiseXor(with:ordering:)` | `(oldValue:newValue)` | `a ^= b` |
-| `min(with:ordering:)` | `(oldValue:newValue)` | `a = Swift.min(a, b)` |
-| `max(with:ordering:)` | `(oldValue:newValue)` | `a = Swift.max(a, b)` |
+| `wrappingAdd(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &+= b`  |
+| `wrappingSubtract(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &-= b`  |
+| `add(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a += b` (checks for overflow) |
+| `subtract(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a -= b` (checks for overflow) |
+| `bitwiseAnd(with: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &= b` |
+| `bitwiseOr(with: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a \|= b` |
+| `bitwiseXor(with: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a ^= b` |
+| `min(with: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a = Swift.min(a, b)` |
+| `max(with:Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a = Swift.max(a, b)` |
 
 All operations are also marked as `@discardableResult` in the case where one doesn't care about the old value or new value. The compiler can't optimize the atomic operation away if the return value isn't used. The `add` and `subtract` operations explicitly check for overflow and will trap at runtime if one occurs. This is unchecked in `-Ounchecked` builds. 
 
@@ -776,9 +776,9 @@ Similar to the specialized integer operations, we can provide similar ones for b
 
 | Method Name                  | Returns               | Implements   |
 | ---------------------------- | --------------------- | ------------ |
-| `logicalAnd(with:ordering:)` | `(oldValue:newValue)` | `a = a && b` |
-| `logicalOr(with:ordering:)`  | `(oldValue:newValue)` | `a = a \|\| b` |
-| `logicalXor(with:ordering:)` | `(oldValue:newValue)` | `a = a != b` |
+| `logicalAnd(with: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a && b` |
+| `logicalOr(with: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a \|\| b` |
+| `logicalXor(with: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a != b` |
 
 Like the integer operations, all of these boolean operations are marked as `@discardableResult`.
 
@@ -1069,7 +1069,7 @@ In the interest of keeping this document (relatively) short, the following API s
 
 To allow atomic operations to compile down to their corresponding CPU instructions, most entry points listed here will be defined `@inlinable`.
 
-For the full API definition, please refer to the [implementation][implementation].
+For the full API definition, please refer to the [implementation][https://github.com/apple/swift/pull/68857].
 
 ### Atomic Memory Orderings
 
@@ -1219,6 +1219,17 @@ public struct WordPair {
 }
 
 extension WordPair: AtomicValue {...}
+extension WordPair: Equatable {...}
+extension WordPair: Hashable {...}
+
+// NOTE: WordPair is semantically a (UInt, UInt). Tuple comparability
+// works based of lexicographical ordering, so WordPair will do
+// the same. It will compare 'first' first, and 'second' second.
+extension WordPair: Comparable {...}
+
+extension WordPair: CustomStringConvertible {...}
+extension WordPair: CustomDebugStringConvertible {...}
+extension WordPair: Sendable {}
 ```
 
 ### Atomic Types
@@ -1425,9 +1436,7 @@ If an intervening store operation were allowed to release the reference between 
 
 Without an efficient way to implement these two steps as a single atomic transaction, the implementation of `store` needs to delay releasing the overwritten value until it can guarantee that every outstanding load operation is completed. Exactly how to implement this is the problem of *memory reclamation* in concurrent data structures.
 
-There are a variety of approaches to tackle this problem, some of which may be general enough to consider in future proposals. (One potential solution can be built on top of double-wide atomic operations, by offloading some of the reference counting operations into the second word of a double-wide atomic reference.)
-
-(It'd be straightforward to use locks to build an atomic strong reference; while such a construct obviously wouldn't be lock-free, it is still a useful abstraction, so it may be a worthy addition to the Standard Library. However, locking constructs are outside the scope of this proposal.)
+There are a variety of approaches to tackle this problem, but the one we think would be the best fit is the implementation of [`AtomicReference`][https://swiftpackageindex.com/apple/swift-atomics/1.2.0/documentation/atomics/atomicreference] in the [swift-atomics package](https://github.com/apple/swift-atomics).
 
 ### Additional Low-Level Atomic Features
 
@@ -1449,7 +1458,7 @@ We considered defaulting all atomic operations to sequentially consistent orderi
 Users who wish for default orderings are welcome to define their own overloads for atomic operations:
 
 ```swift
-extension Atomic {
+extension Atomic where Value.AtomicRepresentation == UInt8.AtomicRepresentation {
   func load() -> Value { 
     load(ordering: .sequentiallyConsistent)
   }
@@ -1486,6 +1495,8 @@ extension Atomic {
   }
 }
 
+...
+
 extension Atomic where Value == Int {
   func wrappingAdd(_ operand: Value) {
     wrappingAdd(operand, ordering: .sequentiallyConsistent)
@@ -1493,6 +1504,8 @@ extension Atomic where Value == Int {
 
   etc.
 }
+
+...
 ```
 
 ### A Truly Universal Generic Atomic Type
