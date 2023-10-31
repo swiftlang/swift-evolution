@@ -739,8 +739,6 @@ extension Atomic where Value == Int {
 
 Most CPU architectures provide dedicated atomic instructions for certain integer operations, and these are generally more efficient than implementations using `compareExchange`. Therefore, it makes sense to expose a set of dedicated methods for common integer operations so that these will always get compiled into the most efficient implementation available.
 
-These specialized integer operations generally come in two variants, based on whether they're returning the value before or after the operation:
-
 | Method Name | Returns | Implements |
 | --- | --- | --- |
 | `wrappingAdd(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &+= b`  |
@@ -772,7 +770,7 @@ let oldMax = counter.max(with: 82, ordering: .relaxed).oldValue
 
 ### Specialized Boolean Operations
 
-Similar to the specialized integer operations, we can provide similar ones for booleans with the same two variants:
+Similar to the specialized integer operations, we can provide similar ones for booleans:
 
 | Method Name                  | Returns               | Implements   |
 | ---------------------------- | --------------------- | ------------ |
