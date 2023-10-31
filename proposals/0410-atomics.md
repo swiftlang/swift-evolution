@@ -499,7 +499,7 @@ extension WordPair: AtomicValue {
 
 For example, the second word can be used to augment atomic values with a version counter (sometimes called a "stamp" or a "tag"), which can help resolve the ABA problem by allowing code to reliably verify if a value remained unchanged between two successive loads.
 
-Note that not all CPUs support double-wide atomic operations and for that reason this type is not always available. Platforms that do not have this support must not make this type available for use. Perhaps a future direction for this is something akin to `#if canImport(struct WordPair)` to conditionally compile against this type if it's available.
+Note that not all CPUs support double-wide atomic operations and for that reason this type is not always available. Platforms that do not have this support must not make the conformance to `AtomicValue` available on `WordPair` for use. Perhaps a future direction for this is something akin to `#if hasDoubleWideAtomics` to conditionally compile against whether this conformance type is available (or perhaps some `#if hasConformance(WordPair: AtomicValue)`).
 
 ### The Atomic type
 
