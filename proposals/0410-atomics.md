@@ -911,7 +911,7 @@ This construct allows library authors to implement a thread-safe lazy initializa
 let _foo: AtomicLazyReference<Foo> = ...
 
 // This is safe to call concurrently from multiple threads.
-var atomicLazyFoo: Foo {
+nonisolated var atomicLazyFoo: Foo {
   if let foo = _foo.load() { return foo }
   // Note: the code here may run concurrently on multiple threads.
   // All but one of the resulting values will be discarded.
