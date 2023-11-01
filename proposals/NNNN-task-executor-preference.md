@@ -1,4 +1,4 @@
-# Task Executor Preference for Nonisolated Async Functions
+# Task Executor Preference
 
 * Proposal: SE-NNNN
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall), [Franz Busch](https://github.com/FranzBusch)
