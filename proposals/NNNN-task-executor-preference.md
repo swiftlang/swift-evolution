@@ -71,7 +71,7 @@ This proposal introduces a way to control hopping off to the global concurrent p
            v                                   +==============================+
 /* task executor preference? */ ---- yes ----> | on Task's preferred executor |
            |                                   +==============================+
-          yes
+           no
            |
            v
   +===============================+
@@ -79,7 +79,8 @@ This proposal introduces a way to control hopping off to the global concurrent p
   +===============================+
 ```
 
-In other words, this proposal introduces the ability to control code may execute from a Task, and not just by using a custom actor executor.
+In other words, this proposal introduces the ability to where code may execute from a Task, and not just by using a custom actor executor,
+and even influence the thread use of default actors.
 
 With this proposal a **`nonisolated` function** will execute, as follows:
 
@@ -119,7 +120,6 @@ await withDiscardingTaskGroup { group in
 func nonisolatedAsyncFunc() async -> Int {
   // if the Task has a specific executor preference,
   // runs on that 'executor' rather than on the default global concurrent executor
-  executor.assertIsolated()
   return 42
 } 
 ```
@@ -180,14 +180,37 @@ nonisolated func tryMe() async {
  // ...
 }
 
-let preferredExecutor: SomeConcreteExecutor = ...
-Task(on: preferredExecutor) { 
-  preferredExecutor.assertIsolated()
+let preferredExecutor: SomeConcreteTaskExecutor = ...
+Task(on: preferredExecutor) {
+  // executes on 'preferredExecutor'
   await tryMe() // tryMe body would execute on 'preferredExecutor'
 }
 
  await tryMe() // tryMe body would execute on 'default global concurrent executor'
 ```
+
+### The `TaskExecutor` protocol
+
+In order to fulfil the requirement that we'd like default actors to run on a task executor, if it was set, we need to introduce a new kind of executor.
+
+This stems from the fact that `SerialExecutor` and how a default actor effectively acts as an executor "for itself" function in Swift.
+A default actor (so an actor which does not use a custom executor), has a "default" executor that is created by the Swift runtime and uses the actor is the executor's identity.
+This means that the runtime executor tracking necessarily needs to track that some code is executing on a specific serial executor in order for things like `assumeIsolated` or the built-in runtime thread-safety checks can utilize them.
+
+The new protocol mirrors `Executor` and `SerialExecutor` in API, however it provides different semantics, and is tracked using a different mechanism at runtime -- by obtaining it from a task's executor preference record.
+
+The `TaskExecutor` is defined as:
+
+```swift
+public protocol TaskExecutor: Executor {
+  func enqueue(_ job: consuming ExecutorJob)
+
+  func asUnownedTaskExecutor() -> UnownedTaskExecutor
+}
+```
+
+As an intuitive way to think about `TaskExecutor` and `SerialExecutor`, one can think of the prior as being a "source of threads" to execute work on,
+and the latter being something that "provides serial isolation" and is a crucial part of Swift actors. The two share similarities, however the task executor has a more varied application space.
 
 ### Task executor preference inheritance in Structured Concurrency
 
@@ -198,10 +221,10 @@ Specifically:
 * **Do** inherit task executor preference
     * TaskGroup’s `addTask()`, unless overridden with explicit parameter
     * `async let`
-    * methods on actors which which do not declare an explicit `unownedExecutor` requirement
+    * methods on default actors (actors which do not use a custom executor)
 * **Do not** inherit task executor preference
     * Unstructured tasks: `Task {}` and `Task.detached {}`
-    * methods on actors which **do** declare an explicit `unownedExecutor` (including e.g. the `MainActor`)
+    * methods on actors which **do** use a custom executor (including e.g. the `MainActor`)
 
 This also means that an entire tree can be made to execute their nonisolated work on a specific executor, just by means of setting the preference on the top-level task.
 
@@ -212,13 +235,12 @@ Since `async let` are the simplest form of structured concurrency, they dot not 
 An async currently always executes on the global concurrent executor, and with the inclusion of this proposal, it does take into account task executor preference. In other words, if an executor preference is set, it will be used by async let to enqueue its underlying task:
 
 ```swift
-func test(_ someExecutor: any Executor) -> Int {
-  someExecutor.assertIsolated()
+func test() async -> Int {
   return 42
 }
 
 await withTaskExecutor(someExecutor) { 
-  async let value = test(someExecutor) // executes on 'someExecutor'
+  async let value = test(someExecutor) // async let's "body" and target function execute on 'someExecutor'
   // ... 
   await value
 }
@@ -233,16 +255,10 @@ This proposal adds overloads to the `addTask` method, which changes the executor
 ```swift
 extension (Discarding)(Throwing)TaskGroup { 
   mutating func addTask(
-    on executor:  (any Executor)?,  // 'nil' means the global pool
+    on executor:  (any TaskExecutor)?,  // 'nil' means the global pool
     priority:  TaskPriority? = nil,
-  operation:  @Sendable @escaping () async (throws) -> Void
+    operation:  @Sendable @escaping () async (throws) -> Void
   )
-  
-  mutating func addTask<TargetActor>(
- on actor: TargetActor,
-    priority: TaskPriority? = nil,
-    operation: @Sendable @escaping (isolated TargetActor) async (throws) -> Void
-  ) where TargetActor: Actor
 }
 ```
 
@@ -280,14 +296,14 @@ We propose adding new APIs and necessary runtime changes to allow a Task to be e
 extension Task where Failure == Never {
   @discardableResult
   public init(
-    on executor:  (any Executor)?,
+    on executor:  (any TaskExecutor)?,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> Success
   )
   
   @discardableResult
   static func detached(
-    on executor:  (any Executor)?,
+    on executor:  (any TaskExecutor)?,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> Success
   )
@@ -296,14 +312,14 @@ extension Task where Failure == Never {
 extension Task where Failure == Error { 
   @discardableResult
   public init(
-    on executor: any Executor,
+    on executor: any TaskExecutor,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> Success
   )
   
   @discardableResult
   static func detached(
-    on executor: (any Executor)?,
+    on executor: (any TaskExecutor)?,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> Success
   )
@@ -314,69 +330,9 @@ Tasks created this way are **immediately enqueued** on given executor.
 
 Since serial executors are executors, they can also be used with this API. However since serial executors are predominantly used by actors, in tandem with actor isolation — there is a better way to run tasks on a specific actor, and therefore its serial executor.
 
-### Task executor preference and Actors
-
-The most common way to use executors in Swift is by far using an actor’s default serial executor. Every actor (and distributed actor), by default receives a synthesized default serial executor which is used to guarantee the actor’s exclusive execution semantics. It is also possible to provide a custom SerialExecutor to an actor, as introduced in [SE-0392: Custom Actor Executors](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md), and while it is possible to pass an `SerialExecutor` used by an actor to the new APIs introduced, it is preferable to pass *the actor itself*, because this way the task’s body can statically be isolated to the actor and we can avoid having to write un-necessary awaits, like this:
-
-```swift
-actor Worker {
-  func hi() {}
-}
-
-Task(on: actor) { actor in
-  actor.hi()
-}
-```
-
-The APIs added to Task are similar to the ones discussed above using executors as parameters, but specialized for Actor types:
-
-```swift
-extension Task where Failure == Never {
-  @discardableResult
-  init<TargetActor>(
-    on actor: TargetActor,
-    priority: TaskPriority? = nil,
-    operation: @Sendable @escaping (isolated TargetActor) async -> Success
-  ) where TargetActor: Actor
-
-  @discardableResult
-  static func detached<TargetActor>(
-    on actor: TargetActor,
-    priority: TaskPriority? = nil,
-    operation: @Sendable @escaping (isolated TargetActor) async -> Success
-  ) where TargetActor: Actor
-}
-
-extension Task where Failure == Error { 
-  @discardableResult
-  public init<TargetActor>(
-    on actor: TargetActor,
-    priority: TaskPriority? = nil,
-    operation: @Sendable @escaping (isolated TargetActor) async throws -> Success
-  ) where TargetActor: Actor
-  
-  @discardableResult 
-  static func detached<TargetActor>(
-    on actor: TargetActor,
-    priority: TaskPriority? = nil,
-    operation: @Sendable @escaping (isolated TargetActor) async throws -> Success
-  ) where TargetActor: Actor
-}
-```
-
-The same kind of APIs are offered for creating structured tasks using TaskGroups:
-
-```swift
-extension (Discarding)(Throwing)TaskGroup { 
-  func addTask<TargetActor: Actor>(
-    on: TargetActor, 
-    operation: (isolated TargetActor) async (throws) -> Success)
-}
-```
-
 #### Task executor preference and default actor isolated methods
 
-It is also worth explaining the interaction with actors which do not declare any executor requirement, like most actors.
+It is also worth explaining the interaction with actors which do not use a custom executor -- which is the majority of actors usually defined in a typical codebase.
 Such actors are referred to as "default actors" and are the default way of how actors are declared:
 
 ```swift
@@ -399,6 +355,8 @@ Task(on: myExecutor) { await anywhere.hello() } // runs on preferred executor, u
 ```
 
 Methods which assert isolation, such as `Actor/assumeIsolated` and similar still function as expected.
+
+The task executor can be seen as a "source of threads" for the execution, while the actor's serial executor is used to ensure the serial and isolated execution of the code.
 
 ## Execution semantics discussion
 
@@ -476,8 +434,6 @@ func function() async {
 }
 ```
 
-
-
 #### What about the Main Actor?
 
 While the `MainActor` is not really special under this model, and behaves just as any other actor _with_ an specific executor requirement. 
@@ -532,9 +488,10 @@ actor Looper {
 }
 ```
 
+Async sequences are expected to undergo further evolution in order to express isolation more efficiently in the actor case.
+Task executors are expected to fit well into this model, and offer an additional layer of "fine tuning" of developers encounter the need to do so.
 
-
-## Prior Art
+## Prior-Art
 
 It is worth comparing with other concurrency runtimes with similar concepts to make sure if there are some common ideas or something different other projects have researched.
 
@@ -580,20 +537,7 @@ It is more efficient to write `Task(on: MainActor.shared) {}` than it is to `Tas
 
 ### Static closure isolation 
 
-When starting tasks on an actor's serial executor this proposal has to utilize the pattern of passing an isolated parameter to a task's operation closure in order to carry the isolation information to the closure, like this:
-
-
-```swift
-actor Worker { func work() {} }
-let worker: Worker = Worker()
-
-Task(on: worker) { worker in // noisy parameter; though required for isolation purposes
-  worker.work() 
-}
-```
-
-This is because, currently, there is no other way to inform the type system about the isolation of this closure. 
-
+It would be interesting to allow starting a task on a specific actor's executor, and have this infer the specific isolation.
 The upcoming [SE-NNNN: Improved control over closure actor isolation](https://github.com/apple/swift-evolution/pull/2174) proposal includes a future direction which would allow isolating a closure to a known other value.
 
 This could be utilized to spell the `Task` initializer like this:
@@ -608,7 +552,7 @@ extension Task where ... {
 }
 ```
 
-This would allow us allow us to cut down on the noise of passing the isolated-on parameter explicitly, and we could rely on capturing the worker and propagating isolation semantics -- similar to how a `Task {}` initializer captures the "self" implicitly, but generalized to parameters of functions, and not just lexical scope:
+This would allow us to cut down on the noise of passing the isolated-on parameter explicitly, and we could rely on capturing the worker and propagating isolation semantics -- similar to how a `Task {}` initializer captures the "self" implicitly, but generalized to parameters of functions, and not just lexical scope:
 
 ```swift
 actor Worker { func work() {} }
@@ -619,7 +563,7 @@ Task(on: worker) { worker in // noisy parameter; though required for isolation p
 }
 ```
 
-### Task executor preference and distributed actors
+### Starting tasks on distributed actor executors
 
 Expressing the “run isolated to this distributed actor” APIs is tricky until distributed actors gain the ability to express the `local`-ness of a specific instance. For that reason we currently do not introduce the above APIs for distributed actors.
 
@@ -656,7 +600,10 @@ We considered if not introducing this feature could be beneficial and forcing de
 
 
 ## Revisions
-
+- 1.3
+  - introduce TaskExecutor in order to be able to implement actor isolation properly and still use a different thread for running default actors
+  - wording cleanups
+  - removal of the `Task(on: Actor)` APIs; we could perhaps revisit this if we made default actors' executors somehow aware of being a thread source as well etc. 
 - 1.2
   - preference also has effect on default actors
 - 1.1
