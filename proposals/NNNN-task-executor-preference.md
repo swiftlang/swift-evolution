@@ -54,7 +54,7 @@ This proposal introduces a way to control hopping off to the global concurrent p
 [ func / closure ] - /* where should it execute? */
                                |
                      +--------------+          +===========================+
-           +--- no - | is isolated? | - yes -> | actor has unownedExecutor |
+           +-------- | is isolated? | - yes -> | actor has unownedExecutor |
            |         +--------------+          +===========================+
            |                                       |                |      
            |                                      yes               no
