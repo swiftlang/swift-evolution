@@ -418,6 +418,40 @@ if currentState.compareExchange(
 currentState.store(.stopped, ordering: .sequentiallyConsistent)
 ```
 
+We also support the `AtomicOptionalWrappable` defaults for `RawRepresentable` as well:
+
+```swift
+extension RawRepresentable where Self: AtomicOptionalWrappable, RawValue: AtomicOptionalWrappable {
+  ...
+}
+```
+
+Similar to the enum example, we can model types whose raw value type is a pointer for example and use their optional value in atomic operations:
+
+```swift
+struct MyPointer: RawRepresentable, AtomicOptionalWrappable {
+	var rawValue: UnsafeRawPointer
+  
+  init(rawValue: UnsafeRawPointer) {
+    self.rawValue = rawValue
+  }
+}
+
+let myAtomicPointer = Atomic<MyPointer?>(nil)
+...
+myAtomicPointer.compareExchange(
+	expected: nil,
+  desired: MyPointer(rawValue: somePointer),
+  ordering: .relaxed
+).exchanged {
+  ...
+}
+...
+myAtomicPointer.store(nil, ordering: .releasing)
+```
+
+(This get you an `AtomicValue` conformance for free as well because `AtomicOptionalWrappable: AtomicValue` , so non-optional `Atomic<MyPointer>` will work just as fine as well)
+
 ### Atomic Storage Types
 
 Fundamental to working with atomics is knowing that CPUs can only do atomic operations on integers. While we could theoretically do atomic operations with our current list of standard library integer types (`Int8`, `Int16`, ...), some platforms don't ensure that these types have the same alignment as their size. For example, `Int64` and `UInt64` have 4 byte alignment on i386. Atomic operations must occur on correctly aligned types. To ensure this, we need to introduce helper types that all atomic operations will be traffiked through. These types will serve as the `AtomicRepresentation` for all of the standard integer types:
@@ -874,7 +908,7 @@ This is the only atomic type in this proposal that doesn't provide the usual `lo
 This construct allows library authors to implement a thread-safe lazy initialization pattern:
 
 ```swift
-var _foo: AtomicLazyReference<Foo> = ...
+let _foo: AtomicLazyReference<Foo> = ...
 
 // This is safe to call concurrently from multiple threads.
 var atomicLazyFoo: Foo {
@@ -1060,6 +1094,8 @@ func version3() async {
 ```
 
 Considering these factors, we can safely say that `extension Atomic: Sendable where Value: Sendable {}`. All of the places where one can store a value an `Atomic`, is either as a global, as a class ivar, or as a local. For globals and class ivars, everyone agrees that they exist at a single location and will never try to perform atomic operations by moving the value to some local. As explained above, we can safely reason about local atomic values in async contexts and all of the places where we care about preserving atomicity will do the right thing for us, either by just using the thread's stack frame for allocation or by promoting it to some async coroutine's stack frame on the heap.
+
+In addition to `Atomic` being `Sendable where Value: Sendable`, we can also make the same conformance for `AtomicLazyReference: Sendable where Instance: Sendable`.
 
 ## Detailed Design
 
@@ -1282,6 +1318,8 @@ extension Atomic where Value.AtomicRepresentation == {U}IntNN.AtomicRepresentati
     failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 }
+
+extension Atomic: @unchecked Sendable where Value: Sendable {}
 ```
 
 `Atomic` also provides a handful of integer operations for the standard fixed-width integer types. This is implemented via same type requirements:
@@ -1387,6 +1425,8 @@ public struct AtomicLazyReference<Instance: AnyObject>: ~Copyable {
 
   public borrowing func load() -> Instance?
 }
+
+extension AtomicLazyReference: @unchecked Sendable where Instance: Sendable {}
 ```
 
 ## Source Compatibility
