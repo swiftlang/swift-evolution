@@ -416,7 +416,7 @@ We can call `callRead` from inside `callBulk` and avoid un-necessary context swi
 
 For end-users of this library the API they don't need to worry about any of this, but the author of such library is in full control over where execution will happen -- be it using task executor preference, or custom actor executors.
 
-This works also the other way around: when we're using a library and notice that it is doing blocking things and we'd rather separate it out onto a different executor. It may even have declared asynchronous methods -- but still is taking too slow to yield the thread for some reason, causing issues to the shared pool.
+This works also the other way around: when we're using a library and notice that it is doing blocking things and we'd rather separate it out onto a different executor. It may even have declared asynchronous methods -- but still is taking too long to yield the thread for some reason, causing issues to the shared pool.
 
 ```swift
 // SomeLibrary
