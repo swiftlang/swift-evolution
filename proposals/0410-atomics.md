@@ -779,11 +779,11 @@ Most CPU architectures provide dedicated atomic instructions for certain integer
 | `wrappingSubtract(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &-= b`  |
 | `add(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a += b` (checks for overflow) |
 | `subtract(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a -= b` (checks for overflow) |
-| `bitwiseAnd(with: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &= b` |
-| `bitwiseOr(with: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a \|= b` |
-| `bitwiseXor(with: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a ^= b` |
-| `min(with: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a = Swift.min(a, b)` |
-| `max(with:Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a = Swift.max(a, b)` |
+| `bitwiseAnd(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &= b` |
+| `bitwiseOr(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a \|= b` |
+| `bitwiseXor(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a ^= b` |
+| `min(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a = Swift.min(a, b)` |
+| `max(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a = Swift.max(a, b)` |
 
 All operations are also marked as `@discardableResult` in the case where one doesn't care about the old value or new value. The compiler can't optimize the atomic operation away if the return value isn't used. The `add` and `subtract` operations explicitly check for overflow and will trap at runtime if one occurs. This is unchecked in `-Ounchecked` builds. 
 
@@ -799,7 +799,7 @@ extension Atomic where Value == UInt8 {...}
 let counter = Atomic<Int>(0)
 counter.wrappingAdd(42, ordering: .relaxed)
 
-let oldMax = counter.max(with: 82, ordering: .relaxed).oldValue
+let oldMax = counter.max(82, ordering: .relaxed).oldValue
 ```
 
 ### Specialized Boolean Operations
@@ -808,9 +808,9 @@ Similar to the specialized integer operations, we can provide similar ones for b
 
 | Method Name                  | Returns               | Implements   |
 | ---------------------------- | --------------------- | ------------ |
-| `logicalAnd(with: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a && b` |
-| `logicalOr(with: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a \|\| b` |
-| `logicalXor(with: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a != b` |
+| `logicalAnd(_: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a && b` |
+| `logicalOr(_: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a \|\| b` |
+| `logicalXor(_: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a != b` |
 
 Like the integer operations, all of these boolean operations are marked as `@discardableResult`.
 
@@ -820,7 +820,7 @@ Like the integer operations, all of these boolean operations are marked as `@dis
 extension Atomic where Value == Bool {...}
 
 let tracker = Atomic<Bool>(false)
-let newOr = tracker.logicalOr(with: true, ordering: .relaxed).newValue
+let newOr = tracker.logicalOr(true, ordering: .relaxed).newValue
 ```
 
 ### Atomic Lazy References
@@ -1352,31 +1352,31 @@ extension Atomic where Value == Int {
   
   @discardableResult
   public borrowing func bitwiseAnd(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func bitwiseOr(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func bitwiseXor(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func min(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func max(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 }
@@ -1391,19 +1391,19 @@ as well as providing convenience functions for boolean operations:
 extension Atomic where Value == Bool {
   @discardableResult
   public borrowing func logicalAnd(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func logicalOr(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func logicalXor(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 }
