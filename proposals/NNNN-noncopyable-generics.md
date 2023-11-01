@@ -153,7 +153,7 @@ genericFn(FileDescriptor())  // ERROR: FileDescriptor is not Copyable
 genericFn([1, 2]) // OK: Array<Int> is Copyable
 ```
 
-In [SE-0390](0390-noncopyable-structs-and-enums.md) the prefix `~` syntax was introduced only in the inheritance clause of a nominal type to "suppress" its default `Copyable` conformance. This proposal completes the picture by defining the semantics of `~Copyable` as the inverse of a constraint that _cancels out the default requirements_ for `Copyable` conformance. The definition of inverses for types other than `Copyable` is outside the scope of this proposal.
+In [SE-0390](0390-noncopyable-structs-and-enums.md) the prefix `~` syntax was introduced only in the inheritance clause of a nominal type to "suppress" its default `Copyable` conformance. This proposal completes the picture by defining the semantics of `~Copyable` as an inverse constraint that _cancels out the default requirements_ for `Copyable` conformance. The definition of inverses for types other than `Copyable` is outside the scope of this proposal.
 
 A generic parameter can have its default `Copyable` requirement removed by applying its inverse `~Copyable` to the parameter as a constraint:
 
@@ -670,7 +670,21 @@ func h<T>(_ t: T)
   // error: 'T' is required to conform to 'Copyable' but is marked with '~Copyable'
 ```
 
-Same-type constraints only propagate positive requirements, not the nullification of defaults via inverses:
+If `Copyable` is an explicit requirement or implied by a same-type constraint, then then it is an error to apply an inverse. Same-type constraints only propagate positive requirements, not the nullification of defaults via inverses:
+
+```swift
+let x: any Copyable & ~Copyable = // ...
+// error: existential `any Copyable & Copyable` is required to conform to 'Copyable' but is marked with '~Copyable'
+```
+
+This can also happen in other contexts, such as a `Copyable` requirement coming from protocol inheritance:
+
+```swift
+protocol Foo {}
+
+protocol MyProto: Foo, ~Copyable {}
+// error: protocol 'MyProto' is required to conform to 'Copyable' but is marked with '~Copyable'
+```
 
 ```swift
 func i<T, U>(_ t: T, _ u: U)
@@ -706,6 +720,9 @@ Like type parameters, existentials have a `Copyable` constraint by default. An e
 protocol Pizza: ~Copyable {
   associatedtype Topping: ~Copyable
   func peelOneTopping() -> Topping
+
+  default extension where Self: Copyable, 
+                          Self.Topping: Copyable
 }
 
 let t: any Pizza = ... // signature <Self where Self: Copyable, Self: Pizza, Self.Topping: Copyable>
@@ -714,7 +731,7 @@ let _: any Copyable = t.peelOneTopping() // signature <Self: Copyable>
 let u: any Pizza & ~Copyable = ... // signature <Self: Pizza>
 let _: any ~Copyable = u.peelOneTopping() // signature <Self>
 ```
-For associated types within a protocol erased to an existential preserve conformances to a marker protocol like `Copyable`. So when calling `peelOneTopping` on an `any Pizza`, an `any ~Copyable` value is returned instead of `Any`.
+For associated types within a protocol erased to an existential preserve conformances to a marker protocol like `Copyable`. So when calling `peelOneTopping` on an `any Pizza`, an `any ~Copyable` value is returned instead of `any Copyable`, which is equivalent to `Any`.
 
 ### Scoping rule
 
@@ -727,7 +744,7 @@ struct S<T> { // signature: <T: Copyable>
 }
 ```
 
-The rationale is that an outer generic context, like `S<T>`, already requires that `T` is `Copyable`. Removing that `Copyable`` requirement for the nested generic context `S<T>.f` is useless, as there will never be a noncopyable value substituted for `S<T>`. The same logic applies to mututally-scoped contexts:
+The rationale is that an outer generic context, like `S<T>`, already requires that `T` is `Copyable`. Removing that `Copyable` requirement for the nested generic context `S<T>.f` is useless, as there will never be a noncopyable value substituted for `S<T>`. The same logic applies to mututally-scoped contexts:
 
 ```swift
 protocol P {
