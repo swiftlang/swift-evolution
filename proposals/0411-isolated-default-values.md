@@ -29,14 +29,14 @@ class C {
 }
 ```
 
-The above code allows any context to initialize an instance of `C()` through a synchronous, non-isolated `init` that synchronously calls both a `@MainActor`-isolated and a `@AnotherActor`-isolated function, violating actor isolation checking and enabling `requiresMainActor()` and `requiresAnotherActor()` to run concurrently with other code on those respective actors.
+The above code allows any context to initialize an instance of `C()` through a synchronous, nonisolated `init`. The initializer synchronously calls both `requiresMainActor()` and `requiresAnotherActor()`, which are `@MainActor`-isolated and `@AnotherActor`-isolated, respectively. This violates actor isolation checking because `requiresMainActor()` and `requiresAnotherActor()` may run concurrently with other code on their respective global actors.
 
-The current actor isolation rules for default argument values do not admit data races, but default argument values are always `nonisolated` which is overly restrictive. This rule prohibits programmers from making `@MainActor`-isolated calls in default argument values of `@MainActor`-isolated functions that are only ever called from the main actor. For example, the following code is not valid even though it is perfectly safe:
+The current actor isolation rules for default argument values do not admit data races, but default argument values are always `nonisolated` which is overly restrictive. This rule prohibits programmers from making `@MainActor`-isolated calls in default argument values of `@MainActor`-isolated functions. For example, the following code is not valid even though it is perfectly safe:
 
 ```swift
-@MainActor class C { ... }
+@MainActor class C {}
 
-@MainActor func f(c: C = C()) { ... } // error
+@MainActor func f(c: C = C()) {} // error: Call to main actor-isolated initializer 'init()' in a synchronous nonisolated context
 
 @MainActor func useFromMainActor() {
   f()
@@ -45,23 +45,37 @@ The current actor isolation rules for default argument values do not admit data 
 
 ## Proposed solution
 
-I propose allowing default value expressions to impose an isolation requirement at the call-site. The isolation requirement is inferred from the default value expression, and it must match the isolation of the enclosing function or the corresponding stored property. If the caller does not meet the isolation requirement, then the call must be made asynchronously and must be explicitly marked with `await`. For default stored property initializers that are implicitly invoked in the body of an `init`, the initialization must be written out explicitly if the default expression requires a different isolation from the `init` itself.
+I propose allowing default value expressions to have the same isolation as the enclosing function or the corresponding stored property. As usual, if the caller is not already in the isolation domain of the callee, then the call must be made asynchronously and must be explicitly marked with `await`. For isolated default values of stored properties, the implicit initialization only happens in the body of an `init` with the same isolation.
 
-These rule makes the stored property example above invalid at the point of the `nonisolated` initializer, because the isolation requirement of the default values for the stored properties is not satisfied. Calling `requiresMainActor` explicitly with `await` resolves the issue:
+These rule makes the stored property example above invalid at the `nonisolated` initializer:
 
 ```swift
 @MainActor func requiresMainActor() -> Int { ... }
+@AnotherActor func requiresAnotherActor() -> Int { ... }
 
 class C {
   @MainActor var x1 = requiresMainActor()
+  @AnotherActor var x2 = requiresAnotherActor()
+
+  nonisolated init() {} // error: 'self.x2' and 'self.x2' are not initialized
+}
+```
+
+Calling `requiresMainActor()` and `requiresAnotherActor()` explicitly with `await` resolves the issue:
+
+```swift
+class C {
+  @MainActor var x1 = requiresMainActor()
+  @AnotherActor var x2 = requiresAnotherActor()
 
   nonisolated init() async {
     self.x1 = await requiresMainActor()
+    self.x2 = await requiresAnotherActor()
   }
 }
 ```
 
-This rule also makes the default argument example above valid, because the `@MainActor` isolation requirement for the default argument of `f` is satisfied by the caller.
+This rule also makes the default argument example above valid, because the default argument and the enclosing function are both `@MainActor`-isolated.
 
 ## Detailed design
 
@@ -132,8 +146,7 @@ In the above example, `useDefault` has default arguments that are isolated to `@
 For a given call, argument evaluation happens in the following order:
 
 1. Left-to-right evalution of explicit r-value arguments
-2. Left-to-right evaluation of default arguments
-3. Left-to-right evaluation of formal access arguments
+2. Left-to-right evaluation of default arguments and formal access arguments
 
 For example:
 

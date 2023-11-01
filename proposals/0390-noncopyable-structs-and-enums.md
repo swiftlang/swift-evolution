@@ -1325,7 +1325,7 @@ effectively an implicit "Copyable" requirement, and what this feature does is
 allow types not to fulfill that requirement. When generics grow support for
 move-only types, then generic functions and types that accept noncopyable
 type parameters will also work with copyable types, since copyable types
-are strictly more capable.This proposal prefers the term "noncopyable" to make
+are strictly more capable. This proposal prefers the term "noncopyable" to make
 the relationship to an eventual `Copyable` constraint, and the fact that annotated
 types lack the ability to satisfy this constraint, more explicit.
 
