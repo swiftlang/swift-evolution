@@ -360,6 +360,21 @@ The task executor can be seen as a "source of threads" for the execution, while 
 
 ## Execution semantics discussion
 
+### Not a Golden Hammer
+
+As with many new capabilities in libraries and languages, one may be tempted to use task executors to solve various problems.
+
+We advice to take care when doing so with task executors, because while they do minimize the "hopping off" from executors and the associated context switching,
+this is also a behavior that may be entirely _undesirable_ in some situations. For example, over-hanging on the MainActor's executor is one fo the main reasons
+earlier Swift versions moved to make `nonisolated` asynchronous functions always hop off their calling execution context; and this proposal brings back this behavior 
+for specific executors. 
+
+Applying task executors to solve a performance problem should be done after thoroughly understanding the problem an application is facing,
+and only then determining the right "sticky"-ness behavior and specific pieces of code which might benefit from it.
+
+Examples of good candidates for task executor usage would be systems which utilize some form of "specific thread" to minimize synchronization overhead, 
+like for example event-loop based systems (often, network applications), or IO systems which willingly perform blocking operations and need to perform them off the global concurrency pool. 
+
 ### Analysis of use-cases and the "sticky" preference semantics
 
 The semantics explained in this proposal may at first seem tricky, however in reality the rule is quite strightfoward:
