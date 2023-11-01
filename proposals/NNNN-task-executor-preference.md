@@ -193,8 +193,8 @@ Task(on: preferredExecutor) {
 
 In order to fulfil the requirement that we'd like default actors to run on a task executor, if it was set, we need to introduce a new kind of executor.
 
-This stems from the fact that `SerialExecutor` and how a default actor effectively acts as an executor "for itself" function in Swift.
-A default actor (so an actor which does not use a custom executor), has a "default" executor that is created by the Swift runtime and uses the actor is the executor's identity.
+This stems from the fact that `SerialExecutor` and how a default actor effectively acts as an executor "for itself" in Swift.
+A default actor (so an actor which does not use a custom executor), has a "default" serial executor that is created by the Swift runtime and uses the actor is the executor's identity.
 This means that the runtime executor tracking necessarily needs to track that some code is executing on a specific serial executor in order for things like `assumeIsolated` or the built-in runtime thread-safety checks can utilize them.
 
 The new protocol mirrors `Executor` and `SerialExecutor` in API, however it provides different semantics, and is tracked using a different mechanism at runtime -- by obtaining it from a task's executor preference record.
@@ -328,7 +328,12 @@ extension Task where Failure == Error {
 
 Tasks created this way are **immediately enqueued** on given executor.
 
-Since serial executors are executors, they can also be used with this API. However since serial executors are predominantly used by actors, in tandem with actor isolation — there is a better way to run tasks on a specific actor, and therefore its serial executor.
+By default, serial executors are not task executors, and therefore cannot be directly used with these APIs. 
+This is because it would cause confusion in the runtime about having two "mutual exclusion" contexts at the same time, which could result in difficult to understand behaviors.
+
+It is possible however to write a custom `SerialExecutor` and conform ot to the `TaskExecutor` protocol at the same time, if indeed one intended to use it for both purposes.
+The serial executor conformance can be used for purposes of isolation (including the asserting and "assuming" of isolation), and the task executor conformance allows
+using a type to provide a hint where tasks should execute although cannot be used to fulfil isolation requirements.
 
 #### Task executor preference and default actor isolated methods
 
