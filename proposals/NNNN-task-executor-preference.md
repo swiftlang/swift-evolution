@@ -558,6 +558,10 @@ It is more efficient to write `Task(on: MainActor.shared) {}` than it is to `Tas
 ### Static closure isolation 
 
 It would be interesting to allow starting a task on a specific actor's executor, and have this infer the specific isolation.
+
+Today the proposal does not allow using serial executors, which are strictly associated with actors to start a Task "on" such executor.
+We could consider adding some form of such ability, and then be able to infer that the closure of a Task is isolated to the actor passed to `Task(on: some Actor)`.
+
 The upcoming [SE-NNNN: Improved control over closure actor isolation](https://github.com/apple/swift-evolution/pull/2174) proposal includes a future direction which would allow isolating a closure to a known other value.
 
 This could be utilized to spell the `Task` initializer like this:
@@ -572,7 +576,8 @@ extension Task where ... {
 }
 ```
 
-This would allow us to cut down on the noise of passing the isolated-on parameter explicitly, and we could rely on capturing the worker and propagating isolation semantics -- similar to how a `Task {}` initializer captures the "self" implicitly, but generalized to parameters of functions, and not just lexical scope:
+This would allow us to cut down on the noise of passing the isolated-on parameter explicitly and avoid a hop to the global executor before the task eventually hops back to the intended actor.
+Today, if we were to allow a default actor's executor to be used as `TaskExecutor`, a similar API could be made that would look like this: 
 
 ```swift
 actor Worker { func work() {} }
@@ -582,6 +587,8 @@ Task(on: worker) { worker in // noisy parameter; though required for isolation p
   worker.work()
 }
 ```
+
+However it would be noisy in the sense of having to repeat the `worker` parameter for purposes of isolation.
 
 ### Starting tasks on distributed actor executors
 
