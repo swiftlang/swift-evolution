@@ -3,7 +3,9 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: TBD
-* Status: **Proposed**
+* Status: Pitched
+* Implementation: TBD
+* Review: TBD
 
 ## Introduction
 
