@@ -227,7 +227,7 @@ public protocol AsyncIteratorProtocol {
 }
 ```
 
-Next, we propose adding a new `next2` (TODO: Revisit naming) method to the
+Next, we propose adding a new `next2` (TODO: Bikeshed the naming) method to the
 protocol which adopts typed throws. Furthermore, we propose to add default
 implementations for both `next` and `next2`. The latter enables us to adopt
 typed throws without breaking API or ABI.
