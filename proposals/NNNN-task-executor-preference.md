@@ -240,7 +240,7 @@ func test() async -> Int {
 }
 
 await withTaskExecutor(someExecutor) { 
-  async let value = test(someExecutor) // async let's "body" and target function execute on 'someExecutor'
+  async let value = test() // async let's "body" and target function execute on 'someExecutor'
   // ... 
   await value
 }
