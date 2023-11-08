@@ -6,7 +6,7 @@
 * Status: **Active Review (November 8 - November 22)**
 * Implementation: On `main` gated behind `-enable-experimental-feature GlobalConcurrency`
 * Previous Proposals: [SE-0302](0302-concurrent-value-and-concurrent-closures.md), [SE-0306](0306-actors.md), [SE-0316](0316-global-actors.md), [SE-0337](0337-support-incremental-migration-to-concurrency-checking.md), [SE-0343](0343-top-level-concurrency.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-strict-concurrency-for-global-variables/66908))
+* Review: ([pitch](https://forums.swift.org/t/pitch-strict-concurrency-for-global-variables/66908)), ([review](https://forums.swift.org/t/se-0412-strict-concurrency-for-global-variables/68352))
 
 ## Introduction
 
