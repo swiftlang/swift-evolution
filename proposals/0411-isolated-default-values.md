@@ -6,7 +6,7 @@
 * Status: **Active review (October 25...November 7, 2023)**
 * Bug: *if applicable* [apple/swift#58177](https://github.com/apple/swift/issues/58177)
 * Implementation: [apple/swift#68794](https://github.com/apple/swift/pull/68794)
-* Upcoming Feature Flag: `-enable-upcoming-feature IsolatedDefaultValues`
+* Upcoming Feature Flag: `IsolatedDefaultValues`
 * Review: ([review](https://forums.swift.org/t/se-0411/68065)) ([pitch](https://forums.swift.org/t/pitch-isolated-default-value-expressions/67714))
 
 ## Introduction
