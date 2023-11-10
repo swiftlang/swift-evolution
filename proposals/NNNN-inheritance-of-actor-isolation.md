@@ -343,7 +343,7 @@ extension Counter {
   /// forbidden because it requires sharing a non-Sendable value
   /// between concurrency domains.  Inheriting isolation makes it
   /// okay.  This is a contrived example chosen for its simplicity.
-  func incrementAndSleep(isolation: (any Actor)?) async {
+  func incrementAndSleep(isolation: isolated (any Actor)?) async {
     count += 1
     await Task.sleep(nanoseconds: 1_000_000)
   }
