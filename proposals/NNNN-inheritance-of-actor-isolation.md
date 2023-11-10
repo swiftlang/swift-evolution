@@ -353,7 +353,7 @@ actor MyActor {
   var counter = Counter()
 }
 
-extenstion MyActor {
+extension MyActor {
   func testActor(other: MyActor) {
     // allowed
     await counter.incrementAndSleep(isolation: self)
