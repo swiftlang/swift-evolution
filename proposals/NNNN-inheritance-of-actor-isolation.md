@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: TBD
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-inheriting-the-callers-actor-isolation/68391))  
 
 **This is a draft design which has not been implemented.  It's very
 possible that some of the ideas in it simply do not work.**
