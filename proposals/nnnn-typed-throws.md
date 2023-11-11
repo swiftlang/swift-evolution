@@ -727,7 +727,31 @@ Typed throws, as presented here, is not able to express the contract of this fun
 
 The Swift standard library does not perform error substitution of this form, and its contract for operations like `map` is best expressed by typed throws as shown above. It is likely that many existing `rethrows` functions are better expressed with typed throws. However, not *all* `rethrows` functions can be expressed by typed throws, if they are performing error substitution like this last `map`. 
 
-Therefore, this proposal does not change the semantics of `rethrows` at all: it remains untyped, and it is ill-formed to attempt to provide a thrown error type to a `rethrows` function. The Alternatives Considered section provides several options for `rethrows`, which can become the subject of a future proposal.
+Therefore, this proposal does not change the primary semantics of `rethrows`: it remains untyped, and it is ill-formed to attempt to provide a thrown error type to a `rethrows` function. The Alternatives Considered section provides several options for `rethrows`, which can become the subject of a future proposal.
+
+However, there is a small change in the type checking behavior of a `rethrows` function to improve source compatibility in certain cases. Specifically, consider a `rethrows` function that calls into a function with typed throws:
+
+```swift
+extension Collection {
+  func filter<E: Error>(_ isIncluded: (Element) throws(E) -> Bool) throws(E) -> [Element] { ... }
+
+  func filterOdds<E: Error>(_ isIncluded: (Element) throws -> Bool) rethrows -> [Element {
+    var onOdd = true
+    return try filter { element in
+      defer { onOdd = !onOdd }
+      return onOdd && isIncluded(element)
+    } // error: call to filter isn't "rethrows"
+  }
+}
+```
+
+The standard `rethrows` checking rejects the call to `filter` because, technically, it could throw `any Error` under any circumstances. Unfortunately, this behavior is a source compatibility problem for the standard library's adoption of typed throws, because an existing `rethrows` function calling into something like `map` or `filter` would be rejected once those introduce typed throws. This proposal introduces a small compatibility feature that considers a function that
+
+1. Has a thrown error type that is a generic parameter (call it `E`) of the function itself,
+2. Has parameters of function type whose thrown error types are also `E`, and
+3. Has no protocol requirements on `E` other than that it conform to the `Error` protocol
+
+to be a rethrowing function for the purposes of `rethrows` checking in its caller. This compatibility feature introduces a small soundness hole in `rethrows` functions, so it is temporary: it is only available in Swift 5, and is removed when the `FullTypedThrows` upcoming feature is enabled.
 
 #### Opaque thrown error types
 
@@ -1341,6 +1365,7 @@ Removing or changing the semantics of `rethrows` would be a source-incompatible 
   * Re-incorporate the replacement of `rethrows` functions in the standard library with generic typed throws into the actual proposal. It's so mechanical and straightforward that it doesn't need a separate proposal.
   * Extend the discussion on API resilience to talk through the source compatibility impacts of replacing a `rethrows` function with one that uses typed throws, since it is quite relevant to this proposal.
   * Explain that one cannot currently have a thrown error type of `any Error & Codable` or similar because it doesn't conform to `Error`.
+  * Introduce a compatibility feature to `rethrows` functions to cope with their callees moving to typed throws.
 * Revision 3:
   * Move the the typed `rethrows` feature out of this proposal, and into Alternatives Considered. Once we gain more experience with typed throws, we can decide what to do with `rethrows`.
   * Expand the discussion on allowing all uninhabited error types to mean "non-throwing".
