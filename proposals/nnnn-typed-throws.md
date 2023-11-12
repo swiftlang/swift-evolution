@@ -161,7 +161,7 @@ If you use `Result` in a functional (i.e. monadic) way, you need extensive use o
 Example is taken from [Question/Idea: Improving explicit error handling in Swift (with enum operations) - Using Swift - Swift Forums](https://forums.swift.org/t/question-idea-improving-explicit-error-handling-in-swift-with-enum-operations/35335).
 
 ```swift
-struct GenericError: Error {
+struct SimpleError: Error {
     let message: String
 }
 
@@ -170,12 +170,12 @@ struct User {
     let lastName: String
 }
 
-func stringResultFromArray(_ array: [String], at index: Int, errorMessage: String) -> Result<String, GenericError> {
-    guard array.indices.contains(index) else { return Result.failure(GenericError(message: errorMessage)) }
+func stringResultFromArray(_ array: [String], at index: Int, errorMessage: String) -> Result<String, SimpleError> {
+    guard array.indices.contains(index) else { return Result.failure(SimpleError(message: errorMessage)) }
     return Result.success(array[index])
 }
 
-func userResultFromStrings(strings: [String]) -> Result<User, GenericError>  {
+func userResultFromStrings(strings: [String]) -> Result<User, SimpleError>  {
     return stringResultFromArray(strings, at: 0, errorMessage: "Missing first name")
         .flatMap { firstName in
             stringResultFromArray(strings, at: 1, errorMessage: "Missing last name")
@@ -193,7 +193,7 @@ That's the functional way of writing exceptions, but Swift does not provide enou
 We can also just unwrap every result by switching over it and wrapping the value or error into a result again.
 
 ```swift
-func userResultFromStrings(strings: [String]) -> Result<User, GenericError>  {
+func userResultFromStrings(strings: [String]) -> Result<User, SimpleError>  {
     let firstNameResult = stringResultFromArray(strings, at: 0, errorMessage: "Missing first name")
     
     switch firstNameResult {
@@ -203,12 +203,12 @@ func userResultFromStrings(strings: [String]) -> Result<User, GenericError>  {
         switch lastNameResult {
         case .success(let lastName):
             return Result.success(User(firstName: firstName, lastName: lastName))
-        case .failure(let genericError):
-            return Result.failure(genericError)
+        case .failure(let simpleError):
+            return Result.failure(simpleError)
         }
         
-    case .failure(let genericError):
-        return Result.failure(genericError)
+    case .failure(let simpleError):
+        return Result.failure(simpleError)
     }
 }
 ```
@@ -237,19 +237,19 @@ The function can only throw instances of `CatError`. This provides contextual ty
 
 ```swift
 func callCatBadly() throws(CatError) -> Cat {
-  throw GenericError(message: "sleeping")  // error: GenericError cannot be converted to CatError
+  throw SimpleError(message: "sleeping")  // error: SimpleError cannot be converted to CatError
 }
 ```
 
 Maintaining specific error types throughout a function is much easier than when using `Result`, because one can use `try` consistently:
 
 ```swift
-func stringFromArray(_ array: [String], at index: Int, errorMessage: String) throws(GenericError) -> String {
-    guard array.indices.contains(index) else { throw GenericError(message: errorMessage) }
+func stringFromArray(_ array: [String], at index: Int, errorMessage: String) throws(SimpleError) -> String {
+    guard array.indices.contains(index) else { throw SimpleError(message: errorMessage) }
     return array[index]
 }
 
-func userResultFromStrings(strings: [String]) throws(GenericError) -> User  {
+func userResultFromStrings(strings: [String]) throws(SimpleError) -> User  {
     let firstName = try stringFromArray(strings, at: 0, errorMessage: "Missing first name")
     let lastName = try stringFromArray(strings, at: 1, errorMessage: "Missing last name")
     return User(firstName: firstName, lastName: lastName)
@@ -296,13 +296,13 @@ func firstNameResultFromArray(_ array: [String]) throws(FirstNameError) -> Strin
     return array[0]
 }
 
-func userResultFromStrings(strings: [String]) throws(GenericError) -> User  {
+func userResultFromStrings(strings: [String]) throws(SimpleError) -> User  {
     do {
         let firstName = try stringFromArray(strings, at: 0, errorMessage: "Missing first name")
         return User(firstName: firstName, lastName: "")        
     } catch {
-        // error is a `FirstNameError`, map it to a `GenericError`.
-        throw GenericError(message: "First name is missing")
+        // error is a `FirstNameError`, map it to a `SimpleError`.
+        throw SimpleError(message: "First name is missing")
     }
 }
 ```
@@ -1305,23 +1305,23 @@ func translateErrors<E1: Error, E2: Error>(
   do {
     try f()
   } catch {
-    throw GenericError(message: "E1: \(error)")
+    throw SimpleError(message: "E1: \(error)")
   }
   
   do {
     try g()
   } catch {
-    throw GenericError(message: "E2: \(error)")
+    throw SimpleError(message: "E2: \(error)")
   }
 }
 ```
 
-This function will only throw when `f` or `g` throw, and in both cases will translate the errors into `GenericError`. With this proposal, there are two options for specifying the error-handling behavior of `translateErrors`, neither of which is precise:
+This function will only throw when `f` or `g` throw, and in both cases will translate the errors into `SimpleError`. With this proposal, there are two options for specifying the error-handling behavior of `translateErrors`, neither of which is precise:
 
 * `rethrows` correctly communicates that this function throws only when the arguments for `f` or `g` do, but the thrown error type is treated as `any Error`.
-* `throws(GenericError)` correctly communicates that this function throws errors of type `GenericError`, but not that it throws when the argument for `f` or `g` do.
+* `throws(SimpleError)` correctly communicates that this function throws errors of type `SimpleError`, but not that it throws when the argument for `f` or `g` do.
 
-One way to address this would be to allow `rethrows` to specify the thrown error type, e.g., `rethrows(GenericError)`, which captures both of the aspects of how this function behavies---when it throws, and what specific error type it `throws`.  
+One way to address this would be to allow `rethrows` to specify the thrown error type, e.g., `rethrows(SimpleError)`, which captures both of the aspects of how this function behavies---when it throws, and what specific error type it `throws`.  
 
 With typed `rethrows`, a bare `rethrows` could be treated as syntactic sugar for `rethrows(any Error)`, similarly to how `throws` is syntactic sugar for `throws(any Error)`. This extension is source-compatible and allows one to express more specific error types with throwing behavior.
 
