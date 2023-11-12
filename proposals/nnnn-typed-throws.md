@@ -748,8 +748,8 @@ extension Collection {
 The standard `rethrows` checking rejects the call to `filter` because, technically, it could throw `any Error` under any circumstances. Unfortunately, this behavior is a source compatibility problem for the standard library's adoption of typed throws, because an existing `rethrows` function calling into something like `map` or `filter` would be rejected once those introduce typed throws. This proposal introduces a small compatibility feature that considers a function that
 
 1. Has a thrown error type that is a generic parameter (call it `E`) of the function itself,
-2. Has parameters of function type whose thrown error types are also `E`, and
-3. Has no protocol requirements on `E` other than that it conform to the `Error` protocol
+2. Has no protocol requirements on `E` other than that it conform to the `Error` protocol, and
+3. Any parameters of throwing function type throw the specific error type `E`.
 
 to be a rethrowing function for the purposes of `rethrows` checking in its caller. This compatibility feature introduces a small soundness hole in `rethrows` functions, so it is temporary: it is only available in Swift 5, and is removed when the `FullTypedThrows` upcoming feature is enabled.
 
