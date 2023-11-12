@@ -9,7 +9,9 @@
 
 ## Introduction
 
-This proposal introduces a `@backDeployed` attribute to allow ABI-stable libraries to extend the effective availability of their own public APIs to older OSes, where the API isn't actually present in the library that shipped with those OSes. While this resembles a polyfill mechanically, it does not help a module to overlay a polyfill on top of an API from another module.
+This proposal introduces a `@backDeployed` attribute to allow ABI-stable libraries to make their own public APIs available on older OSes. When a `@backDeployed` API isn't present in the library that ships with an older OS, a client running on that OS can still use the API because a fallback copy of its implementation has been emitted into the client.
+
+With `@backDeployed`, a function may be emitted into clients as a fallback copy of _itself_. Note that the attribute doesn't mark a function as a fallback implementation of some _other_ function, and therefore it doesn't help one module to extend the availability of APIs declared in some _other_ module.
 
 ## Motivation
 
