@@ -43,7 +43,7 @@ This proposal introduces the ability to specify that functions and closures only
        * [async let](#async-let)
     * [Subtyping rules](#subtyping-rules)
        * [Function conversions](#function-conversions)
-       * [Protocol conformance and refinements](#protocol-conformance-and-refinements)
+       * [Protocol conformance](#protocol-conformance)
        * [Override checking](#override-checking)
     * [Type inference](#type-inference)
        * [Closure thrown type inference](#closure-thrown-type-inference)
@@ -840,7 +840,7 @@ Erasing the specific error type is possible
 let f4: () throws -> Void = f3
 ```
 
-#### Protocol conformance and refinements
+#### Protocol conformance
 
 Protocols should have the possibility to conform and refine other protocols containing throwing functions based on the subtype relationship of their functions. This way it would be possible to throw a more specialised error or don't throw an error at all.
 
@@ -853,35 +853,10 @@ struct ConcreteNotThrowing: Throwing {
     func f() { } // okay, doesn't have to throw  
 }
 
-protocol NotThrowing: Throwing {
-    // A non-throwing refinement of the method
-    // declared by the parent protocol.
-    func f()
-}
-```
+enum SpecificError: Error { ... }
 
-```swift
-protocol ColoredError: Error { }
-class BlueError: ColoredError { }
-class DeepBlueError: BlueError { }
-
-protocol ThrowingColoredError: Throwing {
-    // Refinement
-    func f() throws(ColoredError)
-}
-
-struct ConcreteThrowingBlueError: ThrowingColoredError {
-    func f() throws(BlueError) { ... } // okay, subtype
-}
-
-protocol ThrowingBlueError: ThrowingColoredError {
-    // Refinement
-    func f() throws(BlueError)
-}
-
-protocol ThrowingDeepBlueErrorError: ThrowingBlueError {
-    // Refinement
-    func f() throws(DeepBlueError)
+struct ConcreteThrowingSpecific: Throwing {
+    func f() throws(SpecificError) { } // okay, throws a specific error
 }
 ```
 
@@ -890,19 +865,22 @@ protocol ThrowingDeepBlueErrorError: ThrowingBlueError {
 A declaration in a subclass that overrides a superclass declaration can be a subtype of the superclass declaration, for example:
 
 ```swift
+class BlueError: Error { ... }
+class DeepBlueError: BlueError { ... }
+
 class Superclass {
   func f() throws { }
-  func g() throws(ColoredError) { }
+  func g() throws(BlueError) { }
 }
 
 class Subclass: Superclass {
-  override func f() throws(ColoredError) { } // okay
-  override func g() throws(BlueError) { }   // okay
+  override func f() throws(BlueError) { }       // okay
+  override func g() throws(DeepBlueError) { }   // okay
 }
 
 class Subsubclass: Subclass {
   override func f() { } // okay
-  override func g() throws(DeepBlueError) { }  // okay
+  override func g() { }  // okay
 }
 ```
 
