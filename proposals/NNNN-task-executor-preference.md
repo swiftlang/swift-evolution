@@ -466,7 +466,7 @@ func computation(_ int: Int) -> Int {
 
 As with many new capabilities in libraries and languages, one may be tempted to use task executors to solve various problems.
 
-We advice to take care when doing so with task executors, because while they do minimize the "hopping off" from executors and the associated context switching,
+We advise care when doing so with task executors, because while they do minimize the "hopping off" from executors and the associated context switching,
 this is also a behavior that may be entirely _undesirable_ in some situations. For example, over-hanging on the MainActor's executor is one of the main reasons
 earlier Swift versions moved to make `nonisolated` asynchronous functions always hop off their calling execution context; and this proposal brings back this behavior 
 for specific executors. 
