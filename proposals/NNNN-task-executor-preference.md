@@ -363,6 +363,103 @@ Methods which assert isolation, such as `Actor/assumeIsolated` and similar still
 
 The task executor can be seen as a "source of threads" for the execution, while the actor's serial executor is used to ensure the serial and isolated execution of the code.
 
+## Inspecting task executor preference
+
+It is possible to inspect the current preferred task executor of a task, however because doing so is inherently unsafe -- due to lack of guarantees surrounding the lifetime of an executor referred to using an `UnownedTaskExecutor`,
+this operation is only exposed on the `UnsafeCurrentTask`. 
+
+Furthermore, the API purposefully does not expose an `any TaskExecutor` because this would risk incurring atomic ref-counting on an executor object that may have been already deallocated.
+
+This API is intended only for fine-tuning and checking if we are executing on the "expected" task executor, and therefore the `UnownedTaskExecutor` also implements the `Equabable` protocol,
+and implements it using pointer equality. This comparison is not strictly safe, in case if an executor was deallocated, and a new executor was allocated in the same memory location,
+however for purposes of executors -- especially long-lived ones, we believe this is not going to prove to be a problem in practical uses of task executors.
+
+An example use of this API might be something like this:
+
+```
+struct MyEventLoopTaskExecutor: TaskExecutor {}
+
+func test(expected eventLoop: MyEventLoopTaskExecutor) { // synchronous function that  to require 
+  withUnsafeCurrentTask { task in
+    guard let task else {
+      fatalError("Missing task?")
+    }
+    guard let currentTaskExecutor = task.unownedTaskExecutor else {
+      fatalError("Expected to have task executor")
+    }
+    
+    precondition(currentTaskExecutor == eventLoop.asUnownedTaskExecutor())
+    
+    // perform action that is required to run on the expected executor
+  }
+}
+```
+
+This may be useful in synchronous functions; however should be used sparingly, and with caution.
+
+Instead, functions which have strict execution requirements may be better served as declaring them inside of an actor
+that has the required specific executor specified (by using custom actor executors), or by using an asynchronous function
+and wrapping the code that is required to run on a specific executor in an `withTaskExecutor(eventLoop) { ... }` block.
+
+Nevertheless, because we understand there may be situations where synchronous code may want to compare task executors, this capability is exposed for advanced use cases.
+
+Another use case may be carrying the same task executor into an un-strucutred Task -- although this should only be done with **extreme caution**,
+because it breaks structured concurrency lifetime expectations of executors. For example, the following code is correct under structured concurrency's
+default and automatic behavior surrounding task executors:
+
+```swift
+func computeThings() async {
+  let eventLoop: any TaskExecutor = MyCoolEventLoop()
+  defer { eventLoop.shutdown() }
+
+  let computed = withTaskExecutor(eventLoop) {
+    async let first = computation(1)
+    async let second = computation(2)
+    return await first + second
+  }
+
+  return computed // event loop will be shutdown and the executor destroyed(!)
+}
+
+func computation(_ int: Int) -> Int { return int * 2 }
+```
+
+The above code is structurally correct and we guarantee the lifetime of `MyCoolEventLoop` throughout all of its uses 
+by structured concurrency tasks in this snippet.
+
+The following snippet is **not safe**, which is why task executors are not inherited to un-structured tasks:
+
+```swift 
+// !!! POTENTIALLY UNSAFE !!! 
+// Do not do this, unless you can guarantee the lifetime of TaskExecutor 
+// exceeds all potential for any task to be running on it (!)
+
+func computeThings() async {
+  let eventLoop: any TaskExecutor = MyCoolEventLoop()
+  defer { eventLoop.shutdown() }
+
+  let computed = withTaskExecutor(eventLoop) {
+    async let first = computation(1)
+    async let second = computation(2)
+    return await first + second
+  }
+
+  return computed // event loop will be shutdown and the executor destroyed(!)
+}
+
+// DANGEROUS; MUST ENSURE THE EXECUTOR REMAINS ALIVE FOR AS LONG AS ANY TASK MAY BE RUNNING ON IT
+func computation(_ int: Int) -> Int {
+  withUnsafeCurrentTask { task in
+    let unownedExecutor: UnownedTaskExecutor? = task?.unownedTaskExecutor
+    let eventLoop: MyCoolEventLoop? = EventLoops.find(unownedExecutor)
+    
+    // Dangerous because there is no structured guarantee that eventLoop will be kept alive
+    // long for as long as there is  any of its child tasks and functions running on it
+    Task(on: eventLoop) { ... }
+  }
+}
+```
+
 ## Execution semantics discussion
 
 ### Not a Golden Hammer
@@ -627,6 +724,8 @@ We considered if not introducing this feature could be beneficial and forcing de
 
 
 ## Revisions
+- 1.4
+  - added `unownedTaskExecutor` to UnsafeCurrentTask
 - 1.3
   - introduce TaskExecutor in order to be able to implement actor isolation properly and still use a different thread for running default actors
   - wording cleanups
