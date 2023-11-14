@@ -4,7 +4,7 @@
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Hamish Knight](https://github.com/hamishknight)
 * Review Manager: TBD
 * Status: **Awaiting Implementation**
-* Implementation: `if` and `switch` available on `main` via `-enable-experimental-feature ThenStatements`. PR for `do`: [apple/swift#68344](https://github.com/apple/swift/pull/68344)
+* Implementation: available on `main` via `-enable-experimental-feature ThenStatements` and `-enable-experimental-feature DoExpressions`
 
 ## Introduction
 
@@ -212,16 +212,44 @@ This is a potential (albeit unlikely) source break, but the back tick fix can be
 
 With these rules in place, the full source compatibility suite passes with this feature enabled.
 
-## Future Directions
-
 
 ## Alternatives Considered
 
+Many of the alternatives considered and future directions in [SE-0380](https://github.com/apple/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md) remain applicable to this proposal.
+
 The choice of the keyword `then` invites bikeshedding. Java uses `yield` – however this is already used for a different purpose in Swift.
 
-Many languages (such as Rust or Ruby) use a convention that the last expression in a block is the value of the outer expression, without any keyword. However, this lack of a keyword to mark the expression value explicitly in multi-statement expressions is subtle and can make code harder to read, as a user must examine branches closely to understand the exact location type of the expression value. Note that if bare last expression became the rule for `if` and `do`, it would probably also need to be applied to closure returns also, and perhaps even function returns, which would be a major and pervasive change to Swift (though opinions would likely be split on whether this was an improvement or a regression).
+Many languages (such Ruby) use a convention that the last expression in a block is the value of the outer expression, without any keyword. For example:
 
-Many of the alternatives considered and future directions in [SE-0380](https://github.com/apple/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md) are also applicable to this proposal.
+```swift
+let width = switch scalar.value {
+    case 0..<0x80: 1
+    case 0x80..<0x0800: 2
+    case 0x0800..<0x1_0000: 3
+    default: 
+      log("this is unexpected, investigate this")
+      4  // would now be allowed, with no `then` keyword.
+}
+```
+
+ This has the benefit of not requiring the a whole new contextual keyword. It can be argued that the last expression without any indicator to mark the expression value explicitly in multi-statement expressions is subtle and can make code harder to read, as a user must examine branches closely to understand the exact location type of the expression value. On the other hand, this is lessened by the requirement that the `if` expression be used to either assign or return a value, and not found in arbitrary positions.
+
+Note that if bare last expression became the rule for `if` and `do`, it raises the question of whether this also be applied to closure returns also, and perhaps even function returns, which would be a major and pervasive change to Swift (though opinions would likely be split on whether this was an improvement or a regression).
+
+A variant of the bare last expression rule can be found in Rust, where semicolons are required, _except_ for the last expression in an `if` or similar expression. This rule could also be applied to Swift:
+
+```swift
+let width = switch scalar.value {
+    case 0..<0x80: 1
+    case 0x80..<0x0800: 2
+    case 0x0800..<0x1_0000: 3
+    default: 
+      log("this is unexpected, investigate this"); // load-bearing semicolon
+      4  // allowed as the preceding statement ends with a semicolon
+}
+```
+
+This option likely works better in Rust, where semicolons are otherwise required. In Swift, they are only optional for uses such as placing multiple statements on one line, making this solution less appealing.
 
 ## Source compatibility
 
