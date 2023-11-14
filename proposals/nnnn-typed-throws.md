@@ -447,6 +447,8 @@ public func loadBytes(from file: String) async throws(FileSystemError) -> [UInt8
 
 Internally, it is using some file system library that throws a `FileSystemError`, which it then republishes directly. However, the fact that the error was specified to always be a `FileSystemError` may hamper further evolution of this API: for example, it might be reasonable for this API to start supporting loading bytes from other sources (say, a network connection or database) when the file name matches some other schema. However, errors from those other libraries will not be `FileSystemError` instances, which poses a problem for `loadBytes(from:)`: it either needs to translate the errors from other libraries into `FileSystemError` (if that's even possible), or it needs to break its API contract by adopting a more general error type (or untyped `throws`). 
 
+This section will be added to the [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/).
+
 ## Detailed design
 
 ### Syntax adjustments
