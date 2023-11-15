@@ -47,7 +47,7 @@ The current actor isolation rules for default argument values do not admit data 
 
 I propose allowing default value expressions to have the same isolation as the enclosing function or the corresponding stored property. As usual, if the caller is not already in the isolation domain of the callee, then the call must be made asynchronously and must be explicitly marked with `await`. For isolated default values of stored properties, the implicit initialization only happens in the body of an `init` with the same isolation.
 
-These rule makes the stored property example above invalid at the `nonisolated` initializer:
+These rules make the stored property example above invalid at the `nonisolated` initializer:
 
 ```swift
 @MainActor func requiresMainActor() -> Int { ... }
@@ -107,7 +107,7 @@ Evaluating a closure literal itself can happen in any isolation domain; the acto
 
 The above `useDefaultClosure` function has a default argument value that is a closure literal. The closure body calls a `@MainActor`-isolated function synchronously, therefore the closure itself must be `@MainActor` isolated.
 
-Note that the only way for a closure literal in a default argument to be isolated to an actor instance is for the isolation be written explicitly with an isolated parameter. The inference algorithm will never determine the isolation to be an actor instance based on the following two properties:
+Note that the only way for a closure literal in a default argument to be isolated to an actor instance is for the isolation to be written explicitly with an isolated parameter. The inference algorithm will never determine the isolation to be an actor instance based on the following two properties:
 
 1. To be isolated to an actor instance, a closure must either have its own (explicit) isolated parameter or capture an isolated parameter from its enclosing context.
 2. Closure literals in default arguments cannot capture values.
@@ -145,7 +145,7 @@ In the above example, `useDefault` has default arguments that are isolated to `@
 
 For a given call, argument evaluation happens in the following order:
 
-1. Left-to-right evalution of explicit r-value arguments
+1. Left-to-right evaluation of explicit r-value arguments
 2. Left-to-right evaluation of default arguments and formal access arguments
 
 For example:
@@ -173,7 +173,7 @@ explicitFormalVal
 
 Unlike the explicit argument list, isolated default arguments must be evaluated in the isolation domain of the callee. As such, if any of the argument values require the isolation of the callee, argument evaluation happens in the following order:
 
-1. Left-to-right evalution of explicit r-value arguments
+1. Left-to-right evaluation of explicit r-value arguments
 2. Left-to-right evaluation of formal access arguments
 3. Hop to the callee's isolation domain
 4. Left-to-right evaluation of default arguments
@@ -255,7 +255,7 @@ Note that this rule is not specific to default values, but it's necessary to spe
 
 #### Default value isolation in synthesized initializers
 
-For structs, default initializer expressions for stored properties are used as default argument values to the compiler-generated memberwise initializer. For structs and classes that have a compiler-generated no-parameter initializer, the default initializer expressions are also used in the syntheszied `init()` body.
+For structs, default initializer expressions for stored properties are used as default argument values to the compiler-generated memberwise initializer. For structs and classes that have a compiler-generated no-parameter initializer, the default initializer expressions are also used in the synthesized `init()` body.
 
 If any of the type's stored properties with non-`Sendable` type are actor isolated, or if any of the isolated default initializer expressions are actor isolated, then the compiler-synthesized initializer(s) must also be actor isolated. For example:
 
