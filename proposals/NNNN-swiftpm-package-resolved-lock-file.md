@@ -74,23 +74,23 @@ Produces quiet output that does only produce warning or higher level
 output.
 
 ##### **--package-path**
-The path to the `Package.swift`. By default, Swift PM searches for
+The path to the `Package.swift`. By default, SwiftPM searches for
 the `Package.swift` file in the current directory.
 
 ##### **--require-resolved-file**
 Requires the `Package.resolved` file to be present. If the
-lock resolved file is missing, Swift PM will exit with an error. This is useful
+lock resolved file is missing, SwiftPM will exit with an error. This is useful
 for CI systems to make sure only packages with `Package.resolved` files are being
 built.
 
 ##### **--offline**
-Prevents Swift PM to make any network requests. This is useful when
+Prevents SwiftPM to make any network requests. This is useful when
 the dependencies have already been fetched into a system level cache and
 validating that fetch is not making any network requests to grab dependencies
 that are not available in the cache.
 
 ##### **--automatically-resolve-when-outdated**
-Tells Swift PM to resolve the dependency
+Tells SwiftPM to resolve the dependency
 graph again when the `Package.resolved` file is out-of-date with the `Package.swift`
 file. This will skip the prompt that normally happens. Important: This should be
 avoided when building applications on CI systems since it might result in
@@ -113,7 +113,7 @@ If there is no `Package.resolved` file, then this command will generate a new on
 with the latest versions.
 
 Updating the dependencies includes updating all of the git based dependencies
-and pulling the latest state from the repositories. Afterwards, Swift PM will
+and pulling the latest state from the repositories. Afterwards, SwiftPM will
 resolve the dependency graph again and tries to update to the highest version
 possible.
 
@@ -128,11 +128,11 @@ Produces quiet output that does only produce warning or higher level
 output.
 
 ##### **--package-path**
-The path to the `Package.swift`. By default, Swift PM searches for
+The path to the `Package.swift`. By default, SwiftPM searches for
 the `Package.swift` file in the current directory.
 
 ##### **--offline**
-Prevents Swift PM to make any network requests. 
+Prevents SwiftPM to make any network requests. 
 
 ##### **--ensure-mirrored**
 Requires that every dependency has a configured mirror.
@@ -177,21 +177,21 @@ doing to increase the security.
 Scripts and workflows have to migrated when adopting the new Swift version that
 includes the updated commands. The biggest change is the removal of swift
 package resolve . Any script that was currently using swift package resolve
-needs to evaluate why it was using it and either migrate to swift package fetch
-or swift package update.
+needs to evaluate why it was using it and either migrate to `swift package fetch`
+or `swift package update`.
 
-The build/run/test commands are staying mostly the same and we expect very few
+The `build`/`run`/`test` commands are staying mostly the same and we expect very few
 people have to adapt their scripts. The biggest difference is the check that the
-`Package.resolved` file is up-to-date which might requires users to add a
-`--automatically-resolve-when-outdated`.
+`Package.resolved` file is up-to-date which might require users to add a
+`--automatically-resolve-when-outdated` flag.
 
 ## Future directions
 
 ### Target/Host specific dependency resolution
 
-In the future, we can extend the the fetch command to be able to fetch
-dependencies for specific target/host triplets. This however, is something that
-requires changes to the Package manifest and is outside the scope of this
+In the future, we can extend the the `fetch` command to be able to fetch
+dependencies for specific target/host triples. This however, is something that
+requires changes to the `Package.swift` manifest and is outside the scope of this
 proposal. 
 
 ### Vendor command
@@ -202,7 +202,7 @@ since it also has to take into account how vendors dependencies are built.
 
 ### Minimum version resolution
 
-Packages are declaring their dependencies using minim version in SemVer format;
+Packages are declaring their dependencies using minimum version in SemVer format;
 however, during resolution the latest possible version that still satisfies all
 constraints is chosen. In practice, this leads to most developers using the
 latest version of packages. Hence, almost nobody is building packages with
@@ -214,7 +214,7 @@ declared dependency versions.
 
 ### `--precise` and `--aggressive` options for swift package update
 
-In the future, we can add two more options to swift package update to fine tune
+In the future, we can add two more options to `swift package update` to fine tune
 to which version a package is updated and how transitive dependencies are
 updated. However, adding those options can be done additively once we changed
 the semantics.
@@ -232,7 +232,7 @@ flags.
 ### Conditionally enable new behaviour on swift-tools-version
 
 We could make the new behaviour only apply when a certain swift-tools-version
-has been set; however, this would bring enormous complexity to Swift PM since we
+has been set; however, this would bring enormous complexity to SwiftPM since we
 allow to pass a package-path to the various commands and we would need to do a
 two step argument parsing depending on what tools version is in the
 `Package.swift`.
