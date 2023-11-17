@@ -213,7 +213,7 @@ func userResultFromStrings(strings: [String]) -> Result<User, SimpleError>  {
 }
 ```
 
-This is even more boilerplate than the first approach, because now we are writing the implementation of the `flatMap` operator over an over again.
+This is even more boilerplate than the first approach, because now we are writing the implementation of the `flatMap` operator over and over again.
 
 ### Existential error types incur overhead
 
@@ -222,7 +222,7 @@ Untyped errors have the existential type `any Error`, which incurs some [necessa
 
 ## Proposed solution
 
-In general we want to add the possibility to use `throws` with a single, specific error.
+In general we want to add the possibility to use `throws` with a single, specific error type.
 
 ```swift
 func callCat() throws(CatError) -> Cat {
@@ -376,7 +376,7 @@ func countNodes(in tree: Node, matching predicate: (Node) throws -> Bool) rethro
 
 Walking through the code, we can convince ourselves that `MyNodeVisitor.error` will only ever be set as a result of the predicate throwing an error, so this code semantically fulfills the contract of `rethrows`. However, the Swift compiler's rethrows checking cannot perform such an analysis, so it will reject this function. The limitation on `rethrows` has prompted at least [two](https://forums.swift.org/t/pitch-rethrows-unchecked/10078) [pitches](https://forums.swift.org/t/pitch-fix-rethrows-checking-and-add-rethrows-unsafe/44863) to add an "unsafe" or "unchecked" rethrows variant, turning this into a runtime-checked contract. 
 
-Typed throws offer a compelling alternative: one can capture the error type of the closure argument in a generic parameter, and use that consistently throughout. This is immediately useful for maintaining precise typed error information in generic code that  only rethrows the error from its closure arguments, like `map:
+Typed throws offer a compelling alternative: one can capture the error type of the closure argument in a generic parameter, and use that consistently throughout. This is immediately useful for maintaining precise typed error information in generic code that  only rethrows the error from its closure arguments, like `map`:
 
 ```swift
 extension Collection {
@@ -439,7 +439,7 @@ Typed throws makes it possible to strictly specify the thrown error type of a fu
 2. In generic code that never produces its own errors, but only passes through errors that come from user components. The standard library contains a number of constructs like this, whether they are `rethrows` functions like `map` or are capturing a `Failure` type like in `Task` or `Result`.
 3. In dependency-free code that is meant to be used in a constrained environment (e.g., Embedded Swift) or cannot allocate memory, and will only ever produce its own errors.
 
-Resist the temptation to use typed throws because there is only a single kind of error that the implementation can throw code. For example, consider an operation that loads bytes from a specified file:
+Resist the temptation to use typed throws because there is only a single kind of error that the implementation can throw. For example, consider an operation that loads bytes from a specified file:
 
 ```swift
 public func loadBytes(from file: String) async throws(FileSystemError) -> [UInt8]  // should use untyped throws
@@ -557,7 +557,7 @@ func throwingTypedErrors() throws(CatError) {
   throw KidError() // error: KidError is not convertible to CatError
   
   try callCat() // okay
-	try callKids() // error: throws KidError, which is not convertible to CatError
+  try callKids() // error: throws KidError, which is not convertible to CatError
   
   do {
     try callKids() // okay, because this error is caught and suppressed below
@@ -574,7 +574,7 @@ func untypedThrows() throws {
   throw CatError.asleep // okay, CatError converts to any Error
   throw KidError() // okay, KidError converts to any Error
   try callCat() // okay, thrown CatError converts to any Error
-	try callKids() // okay, thrown KidError converts to any Error
+  try callKids() // okay, thrown KidError converts to any Error
 }
 ```
 
@@ -1173,7 +1173,7 @@ public protocol AsyncSequence<Element, Failure> {
 }
 ```
 
-The scope of potential changes to the concurrency library to make full use of typed throws is large. Unlike with the standard library, the adoption of typed throws in the concurrency library requires some interestinh design. Therefore, we leave it to a follow-on proposal, noting only that whatever form `AsyncSequence` takes with typed throws, the language support for asynchronous `for..in` will need to adjust.
+The scope of potential changes to the concurrency library to make full use of typed throws is large. Unlike with the standard library, the adoption of typed throws in the concurrency library requires some interestish design. Therefore, we leave it to a follow-on proposal, noting only that whatever form `AsyncSequence` takes with typed throws, the language support for asynchronous `for..in` will need to adjust.
 
 ### Specific thrown error types for distributed actors
 
@@ -1273,7 +1273,7 @@ struct WrappedError<E: Error>: Error {
 extension WrappedError: Uninhabited where E: Uninhabited { }
 ```
 
-With this, one can express "rethrowing" behavior that wrappers the underlying error via typed throws:
+With this, one can express "rethrowing" behavior that wraps the underlying error via typed throws:
 
 ```swift
 func translatesError<E: Error>(f: () throws(E) -> Void) throws(WrappedError<E>) { ... }
