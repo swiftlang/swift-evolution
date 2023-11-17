@@ -1173,7 +1173,7 @@ public protocol AsyncSequence<Element, Failure> {
 }
 ```
 
-The scope of potential changes to the concurrency library to make full use of typed throws is large. Unlike with the standard library, the adoption of typed throws in the concurrency library requires some interestish design. Therefore, we leave it to a follow-on proposal, noting only that whatever form `AsyncSequence` takes with typed throws, the language support for asynchronous `for..in` will need to adjust.
+The scope of potential changes to the concurrency library to make full use of typed throws is large. Unlike with the standard library, the adoption of typed throws in the concurrency library requires some interesting design. Therefore, we leave it to a follow-on proposal, noting only that whatever form `AsyncSequence` takes with typed throws, the language support for asynchronous `for..in` will need to adjust.
 
 ### Specific thrown error types for distributed actors
 
