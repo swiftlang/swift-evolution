@@ -1,9 +1,9 @@
 # Typed throws
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0413](0413-typed-throws.md)
 * Authors: [Jorge Revuelta (@minuscorp)](https://github.com/minuscorp), [Torsten Lehmann](https://github.com/torstenlehmann), [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Proposed**
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (November 16 - November 30)**
 * Implementation: on `main` behind the experimental feature flag `TypedThrows`.
 * Upcoming Feature Flag: `FullTypedThrows` (enables source-incompatible changes that improve inference of thrown types)
 * Review: [latest pitch](https://forums.swift.org/t/pitch-n-1-typed-throws/67496)
