@@ -5,7 +5,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (November 16 - November 30)**
 * Implementation: on `main` behind the experimental feature flag `TypedThrows`.
-* Upcoming Feature Flag: `FullTypedThrows` (enables source-incompatible changes that improve inference of thrown types)
+* Upcoming Feature Flag: `FullTypedThrows`
 * Review: [latest pitch](https://forums.swift.org/t/pitch-n-1-typed-throws/67496), [review](https://forums.swift.org/t/se-0413-typed-throws/68507)
 
 ## Introduction
