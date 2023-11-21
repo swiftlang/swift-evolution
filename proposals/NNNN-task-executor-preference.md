@@ -463,10 +463,13 @@ func computation(_ int: Int) -> Int {
 ## Combining `SerialExecutor` and `TaskExecutor`
 
 It is possible to declare a single executor type and have it conform to *both* the `SerialExecutor` (introduced in the custom actor executors proposal),
-as well as the `TaskExecutor` (introduce in this proposal). The two have 
+as well as the `TaskExecutor` (introduce in this proposal).
 
-// naive executor for illustration purposes; we'll assert on the dispatch queue and isolation.
+If declaring an executor that adheres to both protocols like that, it truly **must** adhere to the `SerialExecutor` 
+semantics of not running work concurrently, as it may be used as an *isolation context* by an actor. 
+
 ```swift
+// naive executor for illustration purposes; we'll assert on the dispatch queue and isolation.
 final class NaiveQueueExecutor: TaskExecutor, SerialExecutor {
   let queue: DispatchQueue
 
@@ -768,7 +771,7 @@ Task(on: worker) { worker in // noisy parameter; though required for isolation p
 }
 ```
 
-However it would be noisy in the sense of having to repeat the `worker` parameter for purposes of isolation.
+However, it would be noisy in the sense of having to repeat the `worker` parameter for purposes of isolation.
 
 ### Starting tasks on distributed actor executors
 
