@@ -460,6 +460,89 @@ func computation(_ int: Int) -> Int {
 }
 ```
 
+## Combining `SerialExecutor` and `TaskExecutor`
+
+It is possible to declare a single executor type and have it conform to *both* the `SerialExecutor` (introduced in the custom actor executors proposal),
+as well as the `TaskExecutor` (introduce in this proposal). The two have 
+
+// naive executor for illustration purposes; we'll assert on the dispatch queue and isolation.
+```swift
+final class NaiveQueueExecutor: TaskExecutor, SerialExecutor {
+  let queue: DispatchQueue
+
+  init(_ queue: DispatchQueue) {
+    self.queue = queue
+  }
+
+  public func enqueue(_ _job: consuming ExecutorJob) {
+  let job = UnownedJob(_job)
+  queue.async {
+        isolatedOn: self.asUnownedSerialExecutor(),
+        taskExecutor: self.asUnownedTaskExecutor())
+    }
+  }
+
+  @inlinable
+  public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(ordinary: self)
+  }
+
+  @inlinable
+  public func asUnownedTaskExecutor() -> UnownedTaskExecutor {
+    UnownedTaskExecutor(ordinary: self)
+  }
+}
+```
+
+Since the enqueue method shares the same signature between the two protocols it is possible to just implement it once.
+It is of crucial importance to run the job using the new `runSynchronously(isolatedOn:taskExecutor:)` overload
+of the `runSynchronously` method. because it will set up all the required thread-local state for both isolation assertions
+and task-executor preference semantics to be handled properly.
+
+Given such executor, we are able to have it both be used by an actor (thanks to being a `SerialExecutor`), as well as have 
+any structured tasks or nonisolated async functions keep executing on this executor (thanks to it being a `TaskExecutor`):
+
+```swift
+nonisolated func nonisolatedFunc(expectedExecutor: NaiveQueueExecutor) async {
+  dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
+  expectedExecutor.assertIsolated()
+}
+
+actor Worker {
+  let executor: NaiveQueueExecutor
+
+  init(on executor: NaiveQueueExecutor) {
+    self.executor = executor
+  }
+
+  func test(_ expectedExecutor: NaiveQueueExecutor) async {
+    // we are isolated to the serial-executor (!)
+    dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
+    expectedExecutor.preconditionIsolated()
+
+    // the nonisolated async func properly executes on the task-executor
+    await nonisolatedFunc(expectedExecutor: expectedExecutor)
+
+    /// the task-executor preference is inherited properly:
+    async let val = {
+      dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
+      expectedExecutor.preconditionIsolated()
+      return 12
+    }()
+    _ = await val
+
+    // as expected not-inheriting
+    _ = await Task.detached {
+      dispatchPrecondition(condition: .notOnQueue(expectedExecutor.queue))
+    }.value
+
+    // we properly came back to the serial executor, just to make sure
+    dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
+    expectedExecutor.preconditionIsolated()
+  }
+}
+```
+
 ## Execution semantics discussion
 
 ### Not a Golden Hammer
@@ -724,6 +807,8 @@ We considered if not introducing this feature could be beneficial and forcing de
 
 
 ## Revisions
+- 1.5
+  - document that an executor may be both SerialExecutor and TaskExecutor at th same time 
 - 1.4
   - added `unownedTaskExecutor` to UnsafeCurrentTask
 - 1.3
