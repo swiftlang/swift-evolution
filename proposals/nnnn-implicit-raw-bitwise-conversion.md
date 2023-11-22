@@ -294,6 +294,15 @@ class Container {
 
 Note that `Container.key` must be passed `inout` by using the `&` sigil. Simply calling `withUnsafePointer(to: Container.key)` would create a temporary copy of the key.
 
+If you don't need the key to be a String, then you can simply use any bitwise-copyable type instead to avoid the conversion warning:
+
+    private struct Container {
+        static var key: Void? // "key"
+    }
+     
+    // no warning here
+    objc_setAssociatedObject(self, &Container.key, value)
+
 Alternatively, you can use the key's object identity rather the address of the property. But this only works with objects that require separate allocation at instantiation. Neither NSString, nor NSNumber can be safely used. NSObject is a safe bet:
 
 ```swift
@@ -309,29 +318,21 @@ class Container {
 }
 ```
 
-A safer and more principled approach would be to use a general purpose property wrapper to define unique, pointer-sized keys:
+The object identity workaround above can be packaged in a property wrapper to avoid redefining `getID` for every key:
 
 ```swift
 @propertyWrapper
-struct UniqueAddress {
-  var _placeholder: Int8 = 0
- 
-  var wrappedValue: UnsafeRawPointer {
-    mutating get {
-      // This is "ok" only as long as the wrapped property appears
-      // inside of something with a stable address (a global/static
-      // variable or class property) and the pointer is never read or
-      // written through, only used for its unique value
-      return withUnsafeBytes(of: &self) {
-        return $0.baseAddress.unsafelyUnwrapped
-      }
-    }
+public class UniqueAddress {
+  public var wrappedValue: UnsafeRawPointer {
+    return UnsafeRawPointer(Unmanaged.passUnretained(self).toOpaque())
   }
+
+  public init() { }
 }
 
 class Container {
   @UniqueAddress static var key
-  
+
   func getObject() -> Any? {
     return objc_getAssociatedObject(self, Container.key)
   }
