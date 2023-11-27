@@ -37,6 +37,7 @@ New Swift-evolution thread: [Atomics](https://forums.swift.org/t/atomics/67350)
 
   * [Motivation](#motivation)
   * [Proposed Solution](#proposed-solution)
+    * [The Synchronization Module](#the-synchronization-module)
     * [Atomic Memory Orderings](#atomic-memory-orderings)
     * [The Atomic Protocol Hierarchy](#the-atomic-protocol-hierarchy)
       * [Optional Atomics](#optional-atomics)
@@ -103,11 +104,12 @@ Following the acceptance of [Clarify the Swift memory consistency model (SE-0282
 
 ## Proposed Solution
 
-We propose to introduce new low-level atomic APIs to the standard library. These atomic APIs will serve as the foundation for building higher-level concurrent code directly in Swift.
+We propose to introduce new low-level atomic APIs to the standard library via a new module. These atomic APIs will serve as the foundation for building higher-level concurrent code directly in Swift.
 
 As a quick taste, this is how atomics will work:
 
 ```swift
+import Synchronization
 import Dispatch
 
 let counter = Atomic<Int>(0)
@@ -120,6 +122,18 @@ DispatchQueue.concurrentPerform(iterations: 10) { _ in
 
 print(counter.load(ordering: .relaxed))
 ```
+
+### The Synchronization Module
+
+While most Swift programs won't directly use the new atomic primitives, we still consider the new constructs to be an integral part of the core Standard Library.
+
+That said, it seems highly undesirable to add low-level atomics to the default namespace of every Swift program, so we propose to place the atomic constructs in a new Standard Library module called `Synchronization`. Code that needs to use low-level atomics will need to explicitly import the new module:
+
+```swift
+import Synchronization
+```
+
+We expect that most Swift projects will use atomic operations only indirectly, through higher-level synchronization constructs. Therefore, importing the `Synchronization` module will be a relatively rare occurrance, mostly limited to projects that implement such tools.
 
 ### Atomic Memory Orderings
 
@@ -277,7 +291,22 @@ extension UnsafeMutableRawBufferPointer: AtomicValue {...}
 extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {...}
 ```
 
-Note that on 32 bit platforms that do not support double wide atomics, the `UInt64` , `Int64`, and `Double` conformances are not available. On all platforms that do not support double wide atomics, the `UnsafeBufferPointer`, `UnsafeMutableBufferPointer`, `UnsafeRawBufferPointer`, and `UnsafeMutableRawBufferPointer` conformances are not available. `Duration` only conforms to `AtomicValue` on 64 bit platforms that support double wide atomics.
+* On 32 bit platforms that do not support double-word atomics, the following conformances are not available:
+  * `UInt64`
+  * `Int64`
+  * `Double`
+  * `UnsafeBufferPointer`
+  * `UnsafeMutableBufferPointer`
+  * `UnsafeRawBufferPointer`
+  * `UnsafeMutableRawBufferPointer`
+* On 64 bit plaforms that do not support double-word atomics, the following conformances are not available:
+  * `Duration`
+  * `UnsafeBufferPointer`
+  * `UnsafeMutableBufferPointer`
+  * `UnsafeRawBufferPointer`
+  * `UnsafeMutableRawBufferPointer`
+
+`Duration` does not conform to `AtomicValue` whatsoever on 32 bit platforms.
 
 #### Optional Atomics
 
@@ -454,7 +483,7 @@ myAtomicPointer.store(nil, ordering: .releasing)
 
 ### Atomic Storage Types
 
-Fundamental to working with atomics is knowing that CPUs can only do atomic operations on integers. While we could theoretically do atomic operations with our current list of standard library integer types (`Int8`, `Int16`, ...), some platforms don't ensure that these types have the same alignment as their size. For example, `Int64` and `UInt64` have 4 byte alignment on i386. Atomic operations must occur on correctly aligned types. To ensure this, we need to introduce helper types that all atomic operations will be traffiked through. These types will serve as the `AtomicRepresentation` for all of the standard integer types:
+Fundamental to working with atomics is knowing that CPUs can only do atomic operations on integers. While we could theoretically do atomic operations with our current list of standard library integer types (`Int8`, `Int16`, ...), some platforms don't ensure that these types have the same alignment as their size. For example, `Int64` and `UInt64` have 4 byte alignment on i386. Atomic operations must occur on correctly aligned types. To ensure this, we need to introduce helper types that all atomic operations will be trafficked through. These types will serve as the `AtomicRepresentation` for all of the standard integer types:
 
 ```swift
 extension Int8: AtomicValue {
@@ -496,15 +525,15 @@ extension MyCoolInt: AtomicValue {
 }
 ```
 
-This works by going `Int`'s `AtomicValue` conformance and converting our `MyCoolInt` -> `Int` -> `Int.AtomicRepresentation` .
+This works by going through `Int`'s `AtomicValue` conformance and converting our `MyCoolInt` -> `Int` -> `Int.AtomicRepresentation` .
 
 ### `WordPair`
 
 In their current single-word form, atomic pointer and reference types are susceptible to a class of race condition called the *ABA problem*. A freshly allocated object often happens to be placed at the same memory location as a recently deallocated one. Therefore, two successive `load`s of a simple atomic pointer may return the exact same value, even though the pointer may have received an arbitrary number of updates between the two loads, and the pointee may have been completely replaced. This can be a subtle, but deadly source of race conditions in naive implementations of many concurrent data structures.
 
-While the single-word atomic primitives introduced in this document are already useful for some applications, it would be helpful to also provide a set of additional atomic operations that operate on two consecutive `Int`-sized values in the same transaction. All supported architectures provide direct hardware support for such "double-wide" atomic operations.
+While the single-word atomic primitives introduced in this document are already useful for some applications, it would be helpful to also provide a set of additional atomic operations that operate on two consecutive `Int`-sized values in the same transaction. All currently supported architectures provide direct hardware support for such "double-word" atomic operations.
 
-We propose a new separate type that provides an abstraction over the layout of what a double word is for a platform.
+We propose a new separate type that provides an abstraction over the layout of what a double-word is for a platform.
 
 ```swift
 public struct WordPair {
@@ -533,11 +562,11 @@ extension WordPair: AtomicValue {
 
 For example, the second word can be used to augment atomic values with a version counter (sometimes called a "stamp" or a "tag"), which can help resolve the ABA problem by allowing code to reliably verify if a value remained unchanged between two successive loads.
 
-Note that not all CPUs support double-wide atomic operations and for that reason this type is not always available. Platforms that do not have this support must not make the conformance to `AtomicValue` available on `WordPair` for use. Perhaps a future direction for this is something akin to `#if hasDoubleWideAtomics` to conditionally compile against whether this conformance type is available (or perhaps some `#if hasConformance(WordPair: AtomicValue)`).
+Note that not all CPUs support double-word atomic operations and for that reason this type's conformance to `AtomicValue` is not always available. Platforms that do not have this support must not make the conformance to `AtomicValue` available on `WordPair` for use. Perhaps a future direction for this is something akin to `#if hasDoubleWideAtomics` to conditionally compile against whether this conformance type is available (or perhaps some `#if hasConformance(WordPair: AtomicValue)`).
 
 ### The Atomic type
 
-So far, we've introduced memory orderings, giving us control of memory access around atomic operations; the atomic protocol hierarchy, which give us the initial list of standard types that can be as atomic values; and the `WordPair` type, providing an abstraction over a platform's double word type. However, we haven't yet introduced a way to actually _use_ atomics. Here we introduce the single Atomic type that exposes atomic operations for us:
+So far, we've introduced memory orderings, giving us control of memory access around atomic operations; the atomic protocol hierarchy, which give us the initial list of standard types that can be as atomic values; and the `WordPair` type, providing an abstraction over a platform's double-word type. However, we haven't yet introduced a way to actually _use_ atomics. Here we introduce the single Atomic type that exposes atomic operations for us:
 
 ```swift
 /// An atomic value.
@@ -1005,7 +1034,7 @@ If for whatever reason the Swift compiler isn't able (or willing) to inline the 
 
 The big issue here is that if `add` is in another module, then callers of this function have no visibility inside this function's body. If callers can't see this function's implementation, then the switch statement will be executed at runtime regardless of the compiler optimization mode. However, another issue is that the ordering argument may still be dynamic in which case the compiler still can't eliminate the switch statement even though the caller may be able to see the entire implementation.
 
-To help prevent the last issue, we are constraining the memory ordering arguments of all atomic operations to be compile-time constants. Any attempt to pass a dynamic ordering value (such as in the `compareExchange` call above) will result in a compile-time error.
+To prevent the last issue, the memory ordering arguments of all atomic operations must be compile-time constants. Any attempt to pass a dynamic ordering value (such as in the `compareExchange` call above) will result in a compile-time error.
 
 An ordering expression will be considered constant-evaluable if it's either (1) a direct call to one of the `Atomic*Ordering` factory methods (`.relaxed`, `.acquiring`, etc.), or (2) it is a direct reference to a variable that is in turn constrained to be constant-evaluable.
 
@@ -1021,9 +1050,44 @@ class Counter {
 }
 ```
 
-By declaring this atomic value as a `var`, we've opted into Swift's dynamic exclusivity checking for this property, so all reads are checking whether or not it's currently being written to. This inherently means the atomic value is no longer, atomic. In general, if one is unsure if a `var` atomic value will incur the dynamic exclusivity checking, use a `let`. We can achieve store operations with these atomic types while only needing a borrow of the value, so there's no need to have a mutable reference to the value.
+By declaring this atomic value as a `var`, we've opted into Swift's dynamic exclusivity checking for this property, so all reads are checking whether or not it's currently being written to. This inherently means the atomic value is no longer, atomic.
 
-It is very important, however, that one must never pass an `Atomic` as `inout` or `consuming` because then you declare the parameter to have exclusive access of the atomic value which as we said, makes the value no longer atomic.
+To prevent users from accidently falling into this trap, `Atomic` (and `AtomicLazyReference`) will be special types who cannot be put into `var`s whatsoever. If a `var` has an explicit or inferred type of `Atomic` the compiler will present the user with an **error**.
+
+```swift
+// error: variable of type 'Atomic<Int>' must be declared with a 'let'
+var myAtomic = Atomic<Int>(123)
+```
+
+By making this a compiler error users will not have an unexpected dynamic exclusivity check inserted on atomic accesses. This means global variables, local variables, and stored properties cannot have a `var _: Atomic`. Similarly, you cannot declare a computed property that returns an `Atomic`. If one truly needs a computed property somehow, you can workaround this by declaring the initial value as the return value for the computed property and use that to initialize an atomic:
+
+```swift
+var computedInt: Int {
+  123
+}
+
+let myAtomic = Atomic<Int>(computedInt)
+```
+
+Along the same vein, these types must never be passed as `inout` as that declares that the callee has exclusive access to the atomic which as we said, makes the value no longer atomic. We will also be making this an **error**. One must pass `Atomic` as either `borrowing` or `consuming` (passing as consuming means you also have exclusive access to the atomic, but at the time you're consuming the value you don't care for the atomicity of the value anymore).
+
+```swift
+// error: parameter of type 'Atomic<Int>' must be declared as either 'borrowing' or 'consuming'
+func passAtomic(_: inout Atomic<Int>)
+```
+
+Those rules are the ones most likely to surface when working with `Atomic`, but there is another caveat that you cannot declare `mutating` methods on this type for all the same reasons we've talked about above. If one were to extend `Atomic` with their own method:
+
+```swift
+extension Atomic {
+  // error: type `Atomic` cannot have mutating function 'greet()'
+  mutating func greet() {
+    print("Hello! From: Atomic")
+  }
+}
+```
+
+These conditions for `Atomic` and `AtomicLazyReference` are important to prevent users from accidently introducing dynamic exclusivity for these low-level performance sensitive concurrency primitives.
 
 ### Interaction with Swift Concurrency
 
@@ -1103,7 +1167,7 @@ In the interest of keeping this document (relatively) short, the following API s
 
 To allow atomic operations to compile down to their corresponding CPU instructions, most entry points listed here will be defined `@inlinable`.
 
-For the full API definition, please refer to the [implementation][https://github.com/apple/swift/pull/68857].
+For the full API definition, please refer to the [implementation](https://github.com/apple/swift/pull/68857).
 
 ### Atomic Memory Orderings
 
@@ -1435,6 +1499,8 @@ This is a purely additive change with no source compatibility impact.
 
 ## Effect on ABI Stability
 
+This proposal introduces new entry points to the Standard Library ABI in a standalone `Synchronization` module, but otherwise it has no effect on ABI stability.
+
 On ABI-stable platforms, the struct types and protocols introduced here will become part of the stdlib's ABI with availability matching the first OS releases that include them.
 
 Most of the atomic methods introduced in this document will be force-inlined directly into client code at every call site. As such, there is no reason to bake them into the stdlib's ABI -- the stdlib binary will not export symbols for them.
@@ -1715,7 +1781,7 @@ While there are some API differences between this proposal and the package, most
 Previous revisions of this proposal named this type `DoubleWord`. This is a good name and is in fact the name used in the `swift-atomics` package. We felt the prefix `Double*` could cause confusion with the pre-existing type in the standard library `Double`. The name `WordPair` has a couple of advantages:
 
 1. Code completion. Because this name starts with an less common letter in the English alphabet, the likelyhood of seeing this type at the top level in code completion is very unlikely and not generally a type used for newer programmers of Swift.
-2. Directly conveys the semantic meaning of the type. This type is not semantically equivalent to something like `{U}Int128` (on 64 bit platforms). While although its layout shares the same size, the meaning we want to drive home with this type is quite simply that it's a pair of `UInt` words. If and when the standard library proposes a `{U}Int128` type, that will add a conformance to `AtomicValue` on 64 bit platforms who support double words as well. That itself wouldn't deprecate uses of `WordPair` however, because it's much easier to grab both words independently with `WordPair` as well as being a portable name for such semantics on both 32 bit and 64 bit platforms.
+2. Directly conveys the semantic meaning of the type. This type is not semantically equivalent to something like `{U}Int128` (on 64 bit platforms). While although its layout shares the same size, the meaning we want to drive home with this type is quite simply that it's a pair of `UInt` words. If and when the standard library proposes a `{U}Int128` type, that will add a conformance to `AtomicValue` on 64 bit platforms who support double-words as well. That itself wouldn't deprecate uses of `WordPair` however, because it's much easier to grab both words independently with `WordPair` as well as being a portable name for such semantics on both 32 bit and 64 bit platforms.
 
 ## References
 
