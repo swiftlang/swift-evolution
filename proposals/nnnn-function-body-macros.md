@@ -76,6 +76,16 @@ func h(a: Int, b: Int) -> Int {
 }
 ```
 
+Function body macros can be applied to accessors as well, in which case they go on the accessor itself, e.g.,
+
+```swift
+var area: Double {
+  @Traced("Very complicated math") get {
+    return length * width
+  }
+}
+```
+
 ## Detailed design
 
 ### Declaring function body macros
