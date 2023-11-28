@@ -1059,7 +1059,7 @@ To prevent users from accidently falling into this trap, `Atomic` (and `AtomicLa
 var myAtomic = Atomic<Int>(123)
 ```
 
-By making this a compiler error users will not have an unexpected dynamic exclusivity check inserted on atomic accesses. This means global variables, local variables, and stored properties cannot have a `var _: Atomic`. Similarly, you cannot declare a computed property that returns an `Atomic`. If one truly needs a computed property somehow, you can workaround this by declaring the initial value as the return value for the computed property and use that to initialize an atomic:
+By making this a compiler error users will not have an unexpected dynamic exclusivity check inserted on atomic accesses. This means global variables, local variables, and stored properties cannot have a `var _: Atomic`. Similarly, you cannot declare a computed property that returns an `Atomic`. If one truly needs a computed property for whatever reason, you can workaround this by declaring the initial value as the return value for the computed property and use that to initialize an atomic:
 
 ```swift
 var computedInt: Int {
@@ -1782,6 +1782,14 @@ Previous revisions of this proposal named this type `DoubleWord`. This is a good
 
 1. Code completion. Because this name starts with an less common letter in the English alphabet, the likelyhood of seeing this type at the top level in code completion is very unlikely and not generally a type used for newer programmers of Swift.
 2. Directly conveys the semantic meaning of the type. This type is not semantically equivalent to something like `{U}Int128` (on 64 bit platforms). While although its layout shares the same size, the meaning we want to drive home with this type is quite simply that it's a pair of `UInt` words. If and when the standard library proposes a `{U}Int128` type, that will add a conformance to `AtomicValue` on 64 bit platforms who support double-words as well. That itself wouldn't deprecate uses of `WordPair` however, because it's much easier to grab both words independently with `WordPair` as well as being a portable name for such semantics on both 32 bit and 64 bit platforms.
+
+### A different name for the `Synchronization` module
+
+In the initial [return for revision notes](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522), the language steering group suggested the name of this module to be `Atomics` as a strawman. I think this name is far too restrictive because it prevents other similar low-level concurrency primitives or somewhat related features like volatile loads/stores from sharing a module. It would also be extremely source breaking for folks that upgrade their Swift SDK to a version that may include this proposed new module while depending on the existing [swift-atomics](https://github.com/apple/swift-atomics) whose module is also named `Atomics`. We shouldn't be afraid of source breaks with potential conflicting module names when introducing a new module to the standard libraries. However, we have a known package using this name who is widely used and would be very source breaking for those using the atomics package.
+
+### Rename `AtomicValue` to `AtomicWrappable`
+
+Another review note from the [revision notes](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522) was the naming of the `AtomicValue` protocol. By API design guidelines it probably makes more sense to name this `AtomicWrappable` with our current design, however this proposal proposes `AtomicValue` because we feel the precedent set by the [swift-atomics](https://github.com/apple/swift-atomics) package might make it easier for folks to migrate their existing atomic code to the standard library's new atomic facilties as well as be more familiar with the API in general.
 
 ## References
 
