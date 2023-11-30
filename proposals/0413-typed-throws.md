@@ -620,6 +620,18 @@ The `any Error` existential has [special semantics](https://github.com/apple/swi
 
 A `do...catch` block is used to catch and process thrown errors. With only untyped errors, the type of the error thrown from inside the `do` block is always `any Error`. In the presence of typed throws, the type of the error thrown from inside the `do` block can either be explicitly specified with a `throws` clause following the `do`, or inferred from the specific throwing sites.
 
+When the `do` block specifies a thrown error type, that error type can be used for inferring the contextual type of `throw` statements. For example:
+
+```swift
+do throws(CatError) {
+  if isDaytime && foodBowl.isEmpty {
+    throw .sleep
+  }
+} catch {
+  // implicit 'error' value has type CatError
+}
+```
+
 When all throwing sites within a `do` block produce the same error type (ignoring any that throw `Never`), that error type is used as the type of the thrown error. For example:
 
 ```swift
