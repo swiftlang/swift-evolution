@@ -542,7 +542,7 @@ Note that the current grammar does not account for throwing accessors, although 
 
 #### `do..catch` blocks
 
-The syntax of a `do..catch` block is extended with an optional throw specifier:
+The syntax of a `do..catch` block is extended with an optional throw clause:
 
 ```
 do-statement → do throws-clause(opt) code-block catch-clauses?
@@ -632,10 +632,12 @@ do throws(CatError) {
 }
 ```
 
-When all throwing sites within a `do` block produce the same error type (ignoring any that throw `Never`), that error type is used as the type of the thrown error. For example:
+As with other uses of untyped throws, `do throws` is equivalent to `do throws(any Error)`.
+
+When there is no throws clause, the thrown error type is inferred from the body of the `do` block. When all throwing sites within a `do` block produce the same error type (ignoring any that throw `Never`), that error type is used as the type of the thrown error. For example:
 
 ```swift
-do {
+do /*infers throws(CatError)*/ {
   try callCat() // throws CatError
   if something {
     throw CatError.asleep // throws CatError
@@ -651,7 +653,7 @@ do {
 This also implies that one can use the thrown type context to perform type-specific checks in the catch clauses, e.g.,
 
 ```swift
-do {
+do /*infers throws(CatError)*/ {
   try callCat() // throws CatError
   if something {
     throw CatError.asleep // throws CatError
@@ -663,10 +665,10 @@ do {
 
 > **Rationale**: By inferring a concrete result type for the thrown error type, we can entirely avoid having to reason about existential error types within `catch` blocks, leading to a simpler syntax. Additionally, it preserves the notion that a `do...catch` block that has a `catch` site accepting anything (i.e., one with no conditions) can exhaustively suppress all errors. 
 
-When throw sites within the `do` block throw different (non-`Never`) error types, the resulting error type is `any Error`. For example:
+When throw sites within the `do` block throw different (non-`Never`) error types, the inferred error type is `any Error`. For example:
 
 ```swift
-do {
+do /*infers throws(any Error)*/ {
   try callCat() // throws CatError
   try callKids() // throw KidError
 } catch {
@@ -681,7 +683,7 @@ In essence, when there are multiple possible thrown error types, we immediately 
 The semantics specified here are not fully source compatible with existing Swift code. A `do...catch` block that contains `throw` statements of a single concrete type (and no other throwing sites) might depend on the error being caught as `any Error`. Here is a contrived example:
 
 ```swift
-do {
+do /*infers throws(CatError) in Swift 6 */ {
   throw CatError.asleep
 } catch {
   var e = error   // currently has type any Error, will have type CatError
@@ -695,7 +697,7 @@ Note that the only way to write an exhaustive `do...catch` statement is to have 
 
 ```swift
 func f() {
-  do {
+  do /*infers throws(CatError)*/ {
     try callCat()
   } catch let ce as CatError {
     
