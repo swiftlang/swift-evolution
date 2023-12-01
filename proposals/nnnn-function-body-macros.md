@@ -12,12 +12,13 @@
 
 ## Introduction
 
-Macros augment Swift programs with additional code, which can include new declarations, expressions, and statements. One of the key ways in which one might want to augment code---synthesizing or updating the body of a function---is not currently supported by the macro system. One can create new functions that have their own function bodies, but not provide function bodies for a function declared by the user.
+Macros augment Swift programs with additional code, which can include new declarations, expressions, and statements. One of the key ways in which one might want to augment code---synthesizing or updating the body of a function---is not currently supported by the macro system. One can create new functions that have their own function bodies, but not provide, augment, or replace function bodies for a function declared by the user.
 
 This proposal introduces *function body macros*, which do exactly that: allow the wholesale synthesis of function bodies given a declaration, as well as augmenting an existing function body with more functionality. This opens up a number of new use cases for macros, including:
 
 * Synthesizing function bodies given the function declaration and some metadata, such as automatically synthesizing remote procedure calls that pass along the provided arguments.
 * Augmenting function bodies to perform logging/tracing, check preconditions, or establish invariants.
+* Replacing function bodies with a new implementation based on the one provided. For example, moving the body into a closure that is executed somewhere else, or treating the body as written as a domain specific language that the macro "lowers" to executable code.
 
 ## Proposed solution
 
@@ -57,21 +58,25 @@ func g(a: Int, b: Int) -> Int {
 }
 ```
 
-Or tie directly into an existing tracing library such as [swift-distributed-tracing](https://swiftpackageindex.com/apple/swift-distributed-tracing):
+Or one could provide a macro that makes it easier to assume that a function that cannot be marked as `@MainActor` using [`assumeIsolated`](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md):
 
 ```swift
-@Traced("Doing complicated math")
-func h(a: Int, b: Int) -> Int {
-  return a + b
+extension MyView: SomeDelegate {
+  @AssumeMainActor
+  nonisolated func onSomethingHappened(event: Event) {
+    myView.title = newTitle(processing: event)
+  }
 }
 ```
 
 which could expand to:
 
 ```swift
-func h(a: Int, b: Int) -> Int {
-  withSpan("Doing complicated math") { span in
-    return a + b
+extension MyView: SomeDelegate {
+  nonisolated func onSomethingHappened(event: Event) {
+    MainActor.assumeIsolated {
+      myView.title = newTitle(processing: event)
+    }
   }
 }
 ```
@@ -80,9 +85,17 @@ Function body macros can be applied to accessors as well, in which case they go 
 
 ```swift
 var area: Double {
-  @Traced("Very complicated math") get {
+  @Logged get {
     return length * width
   }
+}
+```
+
+When using the shorthand syntax for get-only properties, a function body macro can be applied to the property itself:
+
+```swift
+@Logged var area: Double {
+  return length * width
 }
 ```
 
@@ -97,10 +110,10 @@ Function body macros are declared with the `body` or `preamble` role, which indi
 
 @attached(preamble) macro Logged() = #externalMacro(...)
 
-@attached(body) macro Traced(_ name: String? = nil) = #externalMacro(...)
+@attached(body) macro AssumeMainActor() = #externalMacro(...)
 ```
 
-Like other attached macros, function body macros have no return type.  A `preamble` macro cannot produce any non-unique names; for rationale, see the detailed section on type checking of the function bodies later.
+Like other attached macros, function body macros have no return type. 
 
 ### Implementing function body macros
 
@@ -170,17 +183,43 @@ Where `A` and `B` are preamble macros and `C` is a function body macro, each mac
 }
 ```
 
-### Type checking of functions involving function body macros
-
-When a function body macro is applied, the macro-expanded function body will need to be type checked when it is incorporated into the program. However, the function might already have a body that was written by the developer, which can be inspected by the macro implementation. The function body as written must be syntactically well-formed (i.e., it must conform to the [Swift grammar](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/summaryofthegrammar/)) but will *not* be type-checked, so it need not be semantically well-formed. For example, it could include references to entities that are introduced by the macro, such as the `span` variable introduced by the `@Traced` macro:
+Preamble macros may introduce new local declarations, which will be visible to later preamble macros (e.g., names introduced by `@A` will be visible in `@B` and `@C` as well) and the remainder of the function body. As with all macros that introduce new names into existing code, those names must be documented with a [`names` clause](https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md#specifying-newly-introduced-names). For example, a tracing macro for [swift-distributed-tracing](https://swiftpackageindex.com/apple/swift-distributed-tracing) might want to introduce a local variable `span` that can be used by the rest of the function body to add more information to the trace. Such a macro could be declared as a preamble macro as follows:
 
 ```swift
-@Traced("Doing complicated math")
-func myMath(a: Int, b: Int) -> Int {
-  span.attributes["operation"] = "addition" // note: would not type-check by itself due to missing "span"
-  return a + b
+@attached(preamble, names: named(span))
+macro Traced(_ name: String? = nil) = #externalMacro(...)
+```
+
+The `Traced` macro could introduce a `span` local variable that can be used by the function body. For example:
+
+```swift
+@Traced("Prepare dinner")
+func prepareDinner(guests: Int) async throws -> Meal {
+  span.attributes["operation"] = "Making dinner"
+  // ...
 }
 ```
+
+The `@Traced` preamble macro could expand this into:
+
+```swift
+func prepareDinner(guests: Int) async throws -> Meal {
+  // from "Traced" macro
+  let span = DistributedTracing._getCurrentSpan()
+  DistributedTracing._pushSpan()
+  defer {
+    DistributedTracing._popSpan()
+  }
+  
+  // Existing code
+  span.attributes["operation"] = "Making dinner"
+  // ...
+}
+```
+
+### Type checking of functions involving function body macros
+
+When a function body macro is applied, the macro-expanded function body will need to be type checked when it is incorporated into the program. However, the function might already have a body that was written by the developer, which can be inspected by the macro implementation. The function body as written must be syntactically well-formed (i.e., it must conform to the [Swift grammar](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/summaryofthegrammar/)) but will *not* be type-checked, so it need not be semantically well-formed.
 
 This approach follows what other attached macros do: they operate on the syntax of the declaration to which they are attached, and the declaration itself need not have been type-checked before the macro is expanded. However,  this approach does lend itself to potential abuse. For example, one could create a ` SQL` macro that expects the function body to be a SQL statement, then rewrites that into code that executes the query. For example, the input could be:
 
@@ -231,7 +270,26 @@ Preamble macros aren't technically necessary, because one could always write a f
 
 ### Capturing the `withSpan` pattern in another macro role
 
-The `withSpan` function used in the `Traced` macro example is one instance of a fairly general pattern in Swift, where a `with<something>` function accepts a closure argument and runs it with some extra contextual parameters. As we did with the `preamble` macro role, we could introduce a special macro role that describes this pattern: the macro would not see the function body that was written by the developer at all, but would instead have a function value representing the body that it could call opaquely. For example, the `Traced` example function `h` would expand to:
+An alternative formulation of the `Traced` macro (call it `@TracedBody`) makes use of its existing [`withSpan` API](https://swiftpackageindex.com/apple/swift-distributed-tracing/1.0.1/documentation/tracing) in a `body` macro, such that a function such as:
+
+```swift
+@TracedBody("Doing complicated math")
+func h(a: Int, b: Int) -> Int {
+  return a + b
+}
+```
+
+will expand to:
+
+```swift
+func h(a: Int, b: Int) -> Int {
+  withSpan("Doing complicated math") {
+    return a + b
+  }
+}
+```
+
+The `withSpan` function used here is one instance of a fairly general pattern in Swift, where a `with<something>` function accepts a closure argument and runs it with some extra contextual parameters. As we did with the `preamble` macro role, we could introduce a special macro role that describes this pattern: the macro would not see the function body that was written by the developer at all, but would instead have a function value representing the body that it could call opaquely. For example, the `TracedBody` example function `h` would expand to:
 
 ```swift
 func h(a: Int, b: Int) -> Int {
@@ -242,9 +300,9 @@ func h(a: Int, b: Int) -> Int {
 With this approach, the original function body for `h` would be type-checked prior to macro expansion, and then would be handed off to the macro as an opaque value `h-impl` to be called by `withSpan`. The macro could introduce its own closure wrapping that body as needed, e.g.,
 
 ```swift
-@Traced("Doing complicated math") { span in 
+@TracedBody("Doing complicated math", { span in
   span.attributes["operation"] = "addition"
-}
+})
 func myMath(a: Int, b: Int) -> Int {
   return a + b
 }
@@ -254,7 +312,7 @@ could expand to:
 
 ```swift
 func myMath(a: Int, b: Int) -> Int {
-  return withSpan("Doing complicated math") { span in 
+  return withSpan("Doing complicated math") { span in
     span.attributes["operation"] = "addition"
     return myMath-impl()
   }
@@ -263,7 +321,7 @@ func myMath(a: Int, b: Int) -> Int {
 
 The advantage of this approach over allowing a `body` macro to replace a body is that we can type-check the  function body as it was written, and only need to do so once---then it becomes a value of function type that's passed along to the underying macro. Also like preamble macros, this approach can compose, because the result of one macro could produce another value of function type that can be passed along to another macro.
 
-On the other hand, having a third kind of macro role for function body macros adds yet more language complexity, and introducing this role in lieu of allowing function body macros to replace an existing function body might be overfitting to today's use cases.
+On the other hand, having a third kind of macro role for function body macros adds yet more language complexity, and introducing this role in lieu of allowing function body macros to replace an existing function body might be overfitting to today's use cases. Moreover, this only works for very specific examples. The `@AssumeMainActor` macro would not be able to use this feature, because the intent is that the code as written (in a `nonisolated` function) is processed in a different actor isolation context (the `@MainActor` closure).
 
 ### Type-checking bodies as they were written
 
@@ -271,13 +329,10 @@ As noted previously, not checking the body of functions that was written by the 
 
 On the other hand, type-checking the function bodies before macro expansion has other issues. Type checking is a significant part of compilation time, and having to type-check the body of a function twice---once before macro expansion, once after---could be prohibitively expensive. Type-checking the function body before macro expansion also limits what can be expressed by body macros, including making some use cases (like the `@Traced` macro described earlier) impossible to express without more extensions to the model.
 
-### Introducing names in body macros
+## Revision history
 
-It's possible that one could extend macro declarations to provide more information about names introduced by the macro along with their types. for example, `@Traced` could introduce `span` with type `Span`:
-
-```swift
-@attached(body, names: named(span: Span)) 
-macro Traced(_ name: String? = nil) = #externalMacro(...)
-```
-
-This would allow code completion and other tools to reason about the existence and type of `span` without expanding the macro. This could be viewed as an extension of the current proposal, which could be introduced later to aid tools. We do not propose this extension now because it isn't clear whether it is necessary (the problems envisioned might be too small to matter) or sufficient (we might need a more expressive mechanism to address the problems we find in practice with body macros).
+* Revision 1:
+  * Allow preamble macros to introduce names.
+  * Introduce `@AssumeMainActor `example macro for body macros that perform replacement.
+  * Switch `@Traced` example over to be a preamble macro with push/pop operations, so it can nicely introduce `span`.
+  * Allow function body macros to be applied to properties that use the shorthand getter syntax.
