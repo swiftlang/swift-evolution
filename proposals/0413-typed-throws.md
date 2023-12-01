@@ -17,6 +17,7 @@ This proposal introduces the ability to specify that functions and closures only
 ## Table of Contents
 
 [Typed throws](#typed-throws)
+
  * [Introduction](#introduction)
  * [Motivation](#motivation)
     * [Communicates less error information than Result or Task](#communicates-less-error-information-than-result-or-task)
@@ -273,9 +274,9 @@ func callAndFeedCat1() -> Result<Cat, CatError> {
 }
 ```
 
-Note that the implicit `error` variable within the catch block has the concrete type `CatError`; there is no need for the existential `any Error`. 
+Note that the implicit `error` variable within the catch block is inferred to the concrete type `CatError`; there is no need for the existential `any Error`.
 
-When a `do` statement can throw errors with different concrete types, or involves any calls to functions using untyped throws, the `catch` block will receive an `any Error` type:
+When a `do` statement can throw errors with different concrete types, or involves any calls to functions using untyped throws, the `catch` block will receive a thrown error type of an `any Error` type:
 
 ```swift
 func callKids() throws(KidError) -> [Kid] { ... }
@@ -285,6 +286,19 @@ do {
   try callKids()
 } catch {
   // error has type 'any Error', as it does today
+}
+```
+
+The caught error type for a `do..catch` statement will be inferred from the various throwing sites within the body of the `do` block. One can explicitly specify this type with a `throws` clause on ` do` block itself, i.e.,
+
+```swift
+do throws(CatError) {
+  if isDaylight && foodBowl.isEmpty {
+    throw .sleeps   // equivalent to CatError.sleeps
+  }
+  try callCat()
+} catch let myError {
+   // myError is of type CatError
 }
 ```
 
@@ -526,6 +540,16 @@ initializer-declaration → initializer-head generic-parameter-clause(opt) param
 
 Note that the current grammar does not account for throwing accessors, although they should receive the same transformation.
 
+#### `do..catch` blocks
+
+The syntax of a `do..catch` block is extended with an optional throw clause:
+
+```
+do-statement → do throws-clause(opt) code-block catch-clauses?
+```
+
+If a `throws-clause` is present, then there must be at least one `catch-clause`.
+
 #### Examples
 
 ```swift
@@ -594,12 +618,26 @@ The `any Error` existential has [special semantics](https://github.com/apple/swi
 
 #### Catching typed thrown errors 
 
-A `do...catch` block is used to catch and process thrown errors. With only untyped errors, the type of the error thrown from inside the `do` block is always `any Error`. In the presence of typed throws, the type of the error thrown from inside the `do` block depends on the specific throwing sites. 
+A `do...catch` block is used to catch and process thrown errors. With only untyped errors, the type of the error thrown from inside the `do` block is always `any Error`. In the presence of typed throws, the type of the error thrown from inside the `do` block can either be explicitly specified with a `throws` clause following the `do`, or inferred from the specific throwing sites.
 
-When all throwing sites within a `do` block produce the same error type (ignoring any that throw `Never`), that error type is used as the type of the thrown error. For example:
+When the `do` block specifies a thrown error type, that error type can be used for inferring the contextual type of `throw` statements. For example:
 
 ```swift
-do {
+do throws(CatError) {
+  if isDaytime && foodBowl.isEmpty {
+    throw .sleep
+  }
+} catch {
+  // implicit 'error' value has type CatError
+}
+```
+
+As with other uses of untyped throws, `do throws` is equivalent to `do throws(any Error)`.
+
+When there is no throws clause, the thrown error type is inferred from the body of the `do` block. When all throwing sites within a `do` block produce the same error type (ignoring any that throw `Never`), that error type is used as the type of the thrown error. For example:
+
+```swift
+do /*infers throws(CatError)*/ {
   try callCat() // throws CatError
   if something {
     throw CatError.asleep // throws CatError
@@ -615,7 +653,7 @@ do {
 This also implies that one can use the thrown type context to perform type-specific checks in the catch clauses, e.g.,
 
 ```swift
-do {
+do /*infers throws(CatError)*/ {
   try callCat() // throws CatError
   if something {
     throw CatError.asleep // throws CatError
@@ -627,10 +665,10 @@ do {
 
 > **Rationale**: By inferring a concrete result type for the thrown error type, we can entirely avoid having to reason about existential error types within `catch` blocks, leading to a simpler syntax. Additionally, it preserves the notion that a `do...catch` block that has a `catch` site accepting anything (i.e., one with no conditions) can exhaustively suppress all errors. 
 
-When throw sites within the `do` block throw different (non-`Never`) error types, the resulting error type is `any Error`. For example:
+When throw sites within the `do` block throw different (non-`Never`) error types, the inferred error type is `any Error`. For example:
 
 ```swift
-do {
+do /*infers throws(any Error)*/ {
   try callCat() // throws CatError
   try callKids() // throw KidError
 } catch {
@@ -645,7 +683,7 @@ In essence, when there are multiple possible thrown error types, we immediately 
 The semantics specified here are not fully source compatible with existing Swift code. A `do...catch` block that contains `throw` statements of a single concrete type (and no other throwing sites) might depend on the error being caught as `any Error`. Here is a contrived example:
 
 ```swift
-do {
+do /*infers throws(CatError) in Swift 6 */ {
   throw CatError.asleep
 } catch {
   var e = error   // currently has type any Error, will have type CatError
@@ -659,7 +697,7 @@ Note that the only way to write an exhaustive `do...catch` statement is to have 
 
 ```swift
 func f() {
-  do {
+  do /*infers throws(CatError)*/ {
     try callCat()
   } catch let ce as CatError {
     
@@ -1340,6 +1378,8 @@ Removing or changing the semantics of `rethrows` would be a source-incompatible 
 
 ## Revision history
 
+* Revision 5 (first review):
+  * Add `do throws(MyError)` { ... } syntax to allow explicit specification of the thrown error type within the body of a `do..catch` block, suppressing type inference of the thrown error type. Thank you to Becca Royal-Gordon for the idea!
 * Revision 4:
   * Update the introduction, motivation, and "when to use typed throws" to be more direct.
   * Re-incorporate the replacement of `rethrows` functions in the standard library with generic typed throws into the actual proposal. It's so mechanical and straightforward that it doesn't need a separate proposal.
