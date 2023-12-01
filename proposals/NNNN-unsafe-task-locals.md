@@ -43,7 +43,7 @@ func makeSushi() -> Sushi {
 ```
 
 This capability is used primarily to propagate additional metadata throughout a chain of calls, 
-without which the system still would work fine, but thanks to this metadata we can provide
+without which the system would still work fine, but thanks to this metadata we can provide
 enriched logging, security, or other semantics that improve the usability and understandability of the system.
 
 Notably, the `withValue` closure makes it possible for the runtime to reliably "push" and "pop" values onto the 
