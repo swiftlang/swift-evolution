@@ -16,6 +16,14 @@ This proposal defines options for the usage of global variables free of data rac
 
 Global state poses a challenge within concurrency because it is memory that can be accessed from any program context. Global variables are of particular concern in data isolation checking because they defy other attempts to enforce isolation. Variables that are local and un-captured can only be accessed from that local context, which implicitly isolates them. Stored properties of value types are already isolated by the exclusivity rules. Stored properties of reference types can be isolated by isolating their containing object with sendability enforcement or using actor restrictions. But global variables can be accessed from anywhere, so these tools do not work.
 
+```swift
+var value = 1
+
+func f() {
+  value = 2 // warning: reference to var 'value' is not concurrency-safe because it involves shared mutable state
+}
+```
+
 ## Proposed solution
 
 Under strict concurrency checking, require every global variable to either be isolated to a global actor or be both:
@@ -39,9 +47,24 @@ There may be need in some circumstances to opt out of static checking to enable 
 nonisolated(unsafe) var global: String
 ```
 
+The same annotation on a local variable can be used to suppress a static diagnostic being generated when the local variable is referenced asynchronously:
+
+```swift
+func f() async {
+  nonisolated(unsafe) var value = 1
+  let task = Task {
+    value = 2
+    return value
+  }
+  print(await task.value)
+}
+```
+
 Because `nonisolated` is a contextual keyword, there is ambiguity when using `nonisolated(unsafe)` on a separate line immediately preceding a top-level variable declaration in script mode as it could also be the invocation of a function named `nonisolated` with argument `unsafe`. This ambiguity can be resolved by favoring the interpretation of `nonisolated` as a keyword if it has a single unlabeled argument of `unsafe` and precedes a variable declaration.
 
-Imported C or C++ global variables, unless they are immutable and `Sendable`, are treated as if they have unsafely opted out of isolation checking, depending upon the developer to know how to use them safely. There remain tools for enforcing safety, such as isolating it to a global actor using for example `__attribute__((swift_attr("@MainActor")))`, or wrapping access within a safer API that declares the correct isolation or locks appropriately.
+Importing a module via `@preconcurrency import` suppresses any potential errors resulting from data isolation checking of imported global variables that lack explicit concurrency annotations. Any use of a `@preconcurrency import`ed concurrency-unsafe global variable will produce a warning at the use site.
+
+Note that imports from other languages are implicitly `@preconcurrency`. There remain tools for enforcing safety for imported global variables from other languages, such as isolating to a global actor using for example `__attribute__((swift_attr("@MainActor")))` in C or Obj-C, or wrapping access within a safer API that declares the correct isolation or locks appropriately.
 
 ## Source compatibility
 
@@ -77,3 +100,9 @@ Access control is theoretically useful here: for example, we could know that a g
 ## Future directions
 
 We do not necessarily need to require isolation to a global actor to be _explicit_; there is room for inferring the right global actor. A global mutable variable of global-actor-constrained type could be inferred to be constrained to that global actor (though unnecessary if the variable is immutable, since global-actor-constrained class types are `Sendable`).
+
+## Revision history
+
+Post-review changes:
+* removed implicit `nonisolated(unsafe)` import of C global variables in favor of `@preconcurrency import` as the mechanism to suppress static isolation checking of global variables
+* clarifed `nonisolated(unsafe)` for local variables
