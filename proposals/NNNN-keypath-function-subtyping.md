@@ -1,6 +1,6 @@
-# Generalize function conversion for key path literals
+# Subtyping for keypath literals as functions
 
-* Proposal: [SE-NNNN](NNNN-generalize-keypath-function-conversions.md)
+* Proposal: [SE-NNNN](NNNN-keypath-function-subtyping.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: TBD
 * Status: **Awaiting review**
@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Allow key path literals to partake in the full generality of function-function conversions, so that the following code compiles without error:
+Today, keypath literals can only be narrowly converted to a function which exactly matches the argument and return type. This proposal allows key path literals to partake in the full generality of the conversions we allow between arbitrary function types, so that the following code compiles without error:
 
 ```swift
 let _: (String) -> Int? = \.count
