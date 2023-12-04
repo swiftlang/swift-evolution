@@ -37,6 +37,7 @@ New Swift-evolution thread: [Atomics](https://forums.swift.org/t/atomics/67350)
 
   * [Motivation](#motivation)
   * [Proposed Solution](#proposed-solution)
+    * [The Synchronization Module](#the-synchronization-module)
     * [Atomic Memory Orderings](#atomic-memory-orderings)
     * [The Atomic Protocol Hierarchy](#the-atomic-protocol-hierarchy)
       * [Optional Atomics](#optional-atomics)
@@ -103,11 +104,12 @@ Following the acceptance of [Clarify the Swift memory consistency model (SE-0282
 
 ## Proposed Solution
 
-We propose to introduce new low-level atomic APIs to the standard library. These atomic APIs will serve as the foundation for building higher-level concurrent code directly in Swift.
+We propose to introduce new low-level atomic APIs to the standard library via a new module. These atomic APIs will serve as the foundation for building higher-level concurrent code directly in Swift.
 
 As a quick taste, this is how atomics will work:
 
 ```swift
+import Synchronization
 import Dispatch
 
 let counter = Atomic<Int>(0)
@@ -120,6 +122,18 @@ DispatchQueue.concurrentPerform(iterations: 10) { _ in
 
 print(counter.load(ordering: .relaxed))
 ```
+
+### The Synchronization Module
+
+While most Swift programs won't directly use the new atomic primitives, we still consider the new constructs to be an integral part of the core Standard Library.
+
+That said, it seems highly undesirable to add low-level atomics to the default namespace of every Swift program, so we propose to place the atomic constructs in a new Standard Library module called `Synchronization`. Code that needs to use low-level atomics will need to explicitly import the new module:
+
+```swift
+import Synchronization
+```
+
+We expect that most Swift projects will use atomic operations only indirectly, through higher-level synchronization constructs. Therefore, importing the `Synchronization` module will be a relatively rare occurrance, mostly limited to projects that implement such tools.
 
 ### Atomic Memory Orderings
 
@@ -277,7 +291,22 @@ extension UnsafeMutableRawBufferPointer: AtomicValue {...}
 extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {...}
 ```
 
-Note that on 32 bit platforms that do not support double wide atomics, the `UInt64` , `Int64`, and `Double` conformances are not available. On all platforms that do not support double wide atomics, the `UnsafeBufferPointer`, `UnsafeMutableBufferPointer`, `UnsafeRawBufferPointer`, and `UnsafeMutableRawBufferPointer` conformances are not available. `Duration` only conforms to `AtomicValue` on 64 bit platforms that support double wide atomics.
+* On 32 bit platforms that do not support double-word atomics, the following conformances are not available:
+  * `UInt64`
+  * `Int64`
+  * `Double`
+  * `UnsafeBufferPointer`
+  * `UnsafeMutableBufferPointer`
+  * `UnsafeRawBufferPointer`
+  * `UnsafeMutableRawBufferPointer`
+* On 64 bit plaforms that do not support double-word atomics, the following conformances are not available:
+  * `Duration`
+  * `UnsafeBufferPointer`
+  * `UnsafeMutableBufferPointer`
+  * `UnsafeRawBufferPointer`
+  * `UnsafeMutableRawBufferPointer`
+
+This proposal does not conform `Duration` to `AtomicValue` on any currently supported 32 bit platform. (Not even those where quad-word atomics are technically available, like arm64_32.) 
 
 #### Optional Atomics
 
@@ -418,9 +447,43 @@ if currentState.compareExchange(
 currentState.store(.stopped, ordering: .sequentiallyConsistent)
 ```
 
+We also support the `AtomicOptionalWrappable` defaults for `RawRepresentable` as well:
+
+```swift
+extension RawRepresentable where Self: AtomicOptionalWrappable, RawValue: AtomicOptionalWrappable {
+  ...
+}
+```
+
+For example, we can use this to add atomic operations over optionals of types whose raw value is a pointer:
+
+```swift
+struct MyPointer: RawRepresentable, AtomicOptionalWrappable {
+	var rawValue: UnsafeRawPointer
+  
+  init(rawValue: UnsafeRawPointer) {
+    self.rawValue = rawValue
+  }
+}
+
+let myAtomicPointer = Atomic<MyPointer?>(nil)
+...
+if myAtomicPointer.compareExchange(
+	expected: nil,
+  desired: MyPointer(rawValue: somePointer),
+  ordering: .relaxed
+).exchanged {
+  ...
+}
+...
+myAtomicPointer.store(nil, ordering: .releasing)
+```
+
+(This gets you an `AtomicValue` conformance for free as well because `AtomicOptionalWrappable` refines `AtomicValue`. So  this also allows non-optional use with `Atomic<MyPointer>`.)
+
 ### Atomic Storage Types
 
-Fundamental to working with atomics is knowing that CPUs can only do atomic operations on integers. While we could theoretically do atomic operations with our current list of standard library integer types (`Int8`, `Int16`, ...), some platforms don't ensure that these types have the same alignment as their size. For example, `Int64` and `UInt64` have 4 byte alignment on i386. Atomic operations must occur on correctly aligned types. To ensure this, we need to introduce helper types that all atomic operations will be traffiked through. These types will serve as the `AtomicRepresentation` for all of the standard integer types:
+Fundamental to working with atomics is knowing that CPUs can only do atomic operations on integers. While we could theoretically do atomic operations with our current list of standard library integer types (`Int8`, `Int16`, ...), some platforms don't ensure that these types have the same alignment as their size. For example, `Int64` and `UInt64` have 4 byte alignment on i386. Atomic operations must occur on correctly aligned types. To ensure this, we need to introduce helper types that all atomic operations will be trafficked through. These types will serve as the `AtomicRepresentation` for all of the standard integer types:
 
 ```swift
 extension Int8: AtomicValue {
@@ -462,22 +525,22 @@ extension MyCoolInt: AtomicValue {
 }
 ```
 
-This works by going `Int`'s `AtomicValue` conformance and converting our `MyCoolInt` -> `Int` -> `Int.AtomicRepresentation` .
+This works by going through `Int`'s `AtomicValue` conformance and converting our `MyCoolInt` -> `Int` -> `Int.AtomicRepresentation` .
 
 ### `WordPair`
 
 In their current single-word form, atomic pointer and reference types are susceptible to a class of race condition called the *ABA problem*. A freshly allocated object often happens to be placed at the same memory location as a recently deallocated one. Therefore, two successive `load`s of a simple atomic pointer may return the exact same value, even though the pointer may have received an arbitrary number of updates between the two loads, and the pointee may have been completely replaced. This can be a subtle, but deadly source of race conditions in naive implementations of many concurrent data structures.
 
-While the single-word atomic primitives introduced in this document are already useful for some applications, it would be helpful to also provide a set of additional atomic operations that operate on two consecutive `Int`-sized values in the same transaction. All supported architectures provide direct hardware support for such "double-wide" atomic operations.
+While the single-word atomic primitives introduced in this document are already useful for some applications, it would be helpful to also provide a set of additional atomic operations that operate on two consecutive `Int`-sized values in the same transaction. All currently supported architectures provide direct hardware support for such double-word atomic operations.
 
-We propose a new separate type that provides an abstraction over the layout of what a double word is for a platform.
+We propose a new separate type that provides an abstraction over the layout of what a double-word is for a platform.
 
 ```swift
 public struct WordPair {
-  public var highWord: UInt { get }
-  public var lowWord: UInt { get }
+  public var first: UInt { get }
+  public var second: UInt { get }
 
-  public init(highWord: UInt, lowWord: UInt)
+  public init(first: UInt, second: UInt)
 }
 
 // Not a real compilation conditional
@@ -499,11 +562,13 @@ extension WordPair: AtomicValue {
 
 For example, the second word can be used to augment atomic values with a version counter (sometimes called a "stamp" or a "tag"), which can help resolve the ABA problem by allowing code to reliably verify if a value remained unchanged between two successive loads.
 
-Note that not all CPUs support double-wide atomic operations and for that reason this type is not always available. Platforms that do not have this support must not make this type available for use. Perhaps a future direction for this is something akin to `#if canImport(struct WordPair)` to conditionally compile against this type if it's available.
+Note that not all CPUs support double-word atomic operations and so if Swift starts supporting such processors, this type's conformance to `AtomicValue` may not always be available. Platforms that cannot support double-word atomics must not make `WordPair`'s `AtomicValue` conformance available for use.
+
+(If this becomes a real concern, a future proposal could introduce something like a `#if hasDoubleWordAtomics` compile-time condition to let code adapt to more limited environments. However, this is deferred until Swift actually starts supporting such platforms.)
 
 ### The Atomic type
 
-So far, we've introduced memory orderings, giving us control of memory access around atomic operations; the atomic protocol hierarchy, which give us the initial list of standard types that can be as atomic values; and the `WordPair` type, providing an abstraction over a platform's double word type. However, we haven't yet introduced a way to actually _use_ atomics. Here we introduce the single Atomic type that exposes atomic operations for us:
+So far, we've introduced memory orderings, giving us control of memory access around atomic operations; the atomic protocol hierarchy, which give us the initial list of standard types that can be as atomic values; and the `WordPair` type, providing an abstraction over a platform's double-word type. However, we haven't yet introduced a way to actually _use_ atomics. Here we introduce the single Atomic type that exposes atomic operations for us:
 
 ```swift
 /// An atomic value.
@@ -739,21 +804,19 @@ extension Atomic where Value == Int {
 
 Most CPU architectures provide dedicated atomic instructions for certain integer operations, and these are generally more efficient than implementations using `compareExchange`. Therefore, it makes sense to expose a set of dedicated methods for common integer operations so that these will always get compiled into the most efficient implementation available.
 
-These specialized integer operations generally come in two variants, based on whether they're returning the value before or after the operation:
-
 | Method Name | Returns | Implements |
 | --- | --- | --- |
-| `wrappingAdd(_:ordering:)` | `(oldValue:newValue:)` | `a &+= b`  |
-| `wrappingSubtract(_:ordering:)` | `(oldValue:newValue)` | `a &-= b`  |
-| `add(_:ordering:)` | `(oldValue:newValue)` | `a += b` (checks for overflow) |
-| `subtract(_:ordering:)` | `(oldValue:newValue)` | `a -= b` (checks for overflow) |
-| `bitwiseAnd(with:ordering:)` | `(oldValue:newValue)` | `a &= b` |
-| `bitwiseOr(with:ordering:)` | `(oldValue:newValue)` | `a \|= b` |
-| `bitwiseXor(with:ordering:)` | `(oldValue:newValue)` | `a ^= b` |
-| `min(with:ordering:)` | `(oldValue:newValue)` | `a = Swift.min(a, b)` |
-| `max(with:ordering:)` | `(oldValue:newValue)` | `a = Swift.max(a, b)` |
+| `wrappingAdd(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &+= b`  |
+| `wrappingSubtract(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &-= b`  |
+| `add(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a += b` (checks for overflow) |
+| `subtract(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a -= b` (checks for overflow) |
+| `bitwiseAnd(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a &= b` |
+| `bitwiseOr(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a \|= b` |
+| `bitwiseXor(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a ^= b` |
+| `min(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a = Swift.min(a, b)` |
+| `max(_: Value, ordering: AtomicUpdateOrdering)` | `(oldValue: Value, newValue: Value)` | `a = Swift.max(a, b)` |
 
-All operations are also marked as `@discardableResult` in the case where one doesn't care about the old value or new value. The compiler can't optimize the atomic operation away if the return value isn't used. The `add` and `subtract` operations explicitly check for overflow and will trap at runtime if one occurs. This is unchecked in `-Ounchecked` builds. 
+All operations are also marked as `@discardableResult` in the case where one doesn't care about the old value or new value. The `add` and `subtract` operations explicitly check for overflow and will trap at runtime if one occurs, except in `-Ounchecked` builds. 
 
 While we require all atomic operations to be free of locks, we don't require wait-freedom. Therefore, on architectures that don't provide direct hardware support for some or all of these operations, we still require them to be implemented using `compareExchange` loops like the one for `wrappingAdd` above.
 
@@ -767,18 +830,18 @@ extension Atomic where Value == UInt8 {...}
 let counter = Atomic<Int>(0)
 counter.wrappingAdd(42, ordering: .relaxed)
 
-let oldMax = counter.max(with: 82, ordering: .relaxed).oldValue
+let oldMax = counter.max(82, ordering: .relaxed).oldValue
 ```
 
 ### Specialized Boolean Operations
 
-Similar to the specialized integer operations, we can provide similar ones for booleans with the same two variants:
+Similar to the specialized integer operations, we can provide similar ones for booleans:
 
 | Method Name                  | Returns               | Implements   |
 | ---------------------------- | --------------------- | ------------ |
-| `logicalAnd(with:ordering:)` | `(oldValue:newValue)` | `a = a && b` |
-| `logicalOr(with:ordering:)`  | `(oldValue:newValue)` | `a = a \|\| b` |
-| `logicalXor(with:ordering:)` | `(oldValue:newValue)` | `a = a != b` |
+| `logicalAnd(_: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a && b` |
+| `logicalOr(_: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a \|\| b` |
+| `logicalXor(_: Bool, ordering: AtomicUpdateOrdering)` | `(oldValue: Bool, newValue: Bool)` | `a = a != b` |
 
 Like the integer operations, all of these boolean operations are marked as `@discardableResult`.
 
@@ -788,7 +851,7 @@ Like the integer operations, all of these boolean operations are marked as `@dis
 extension Atomic where Value == Bool {...}
 
 let tracker = Atomic<Bool>(false)
-let newOr = tracker.logicalOr(with: true, ordering: .relaxed).newValue
+let newOr = tracker.logicalOr(true, ordering: .relaxed).newValue
 ```
 
 ### Atomic Lazy References
@@ -876,10 +939,10 @@ This is the only atomic type in this proposal that doesn't provide the usual `lo
 This construct allows library authors to implement a thread-safe lazy initialization pattern:
 
 ```swift
-var _foo: AtomicLazyReference<Foo> = ...
+let _foo: AtomicLazyReference<Foo> = ...
 
 // This is safe to call concurrently from multiple threads.
-var atomicLazyFoo: Foo {
+nonisolated var atomicLazyFoo: Foo {
   if let foo = _foo.load() { return foo }
   // Note: the code here may run concurrently on multiple threads.
   // All but one of the resulting values will be discarded.
@@ -973,7 +1036,7 @@ If for whatever reason the Swift compiler isn't able (or willing) to inline the 
 
 The big issue here is that if `add` is in another module, then callers of this function have no visibility inside this function's body. If callers can't see this function's implementation, then the switch statement will be executed at runtime regardless of the compiler optimization mode. However, another issue is that the ordering argument may still be dynamic in which case the compiler still can't eliminate the switch statement even though the caller may be able to see the entire implementation.
 
-To help prevent the last issue, we are constraining the memory ordering arguments of all atomic operations to be compile-time constants. Any attempt to pass a dynamic ordering value (such as in the `compareExchange` call above) will result in a compile-time error.
+To prevent the last issue, the memory ordering arguments of all atomic operations must be compile-time constants. Any attempt to pass a dynamic ordering value (such as in the `compareExchange` call above) will result in a compile-time error.
 
 An ordering expression will be considered constant-evaluable if it's either (1) a direct call to one of the `Atomic*Ordering` factory methods (`.relaxed`, `.acquiring`, etc.), or (2) it is a direct reference to a variable that is in turn constrained to be constant-evaluable.
 
@@ -989,9 +1052,58 @@ class Counter {
 }
 ```
 
-By declaring this atomic value as a `var`, we've opted into Swift's dynamic exclusivity checking for this property, so all reads are checking whether or not it's currently being written to. This inherently means the atomic value is no longer, atomic. In general, if one is unsure if a `var` atomic value will incur the dynamic exclusivity checking, use a `let`. We can achieve store operations with these atomic types while only needing a borrow of the value, so there's no need to have a mutable reference to the value.
+By declaring this variable as a `var`, we opt into Swift's dynamic exclusivity checking for this property, so all non-exclusive accesses incur a runtime check to see if there is an active exclusive (e.g. mutating) access. This inherently means that atomic operations through such a variable will incur undesirable runtime overhead -- they are no longer purely atomic. (Even if the check never actually triggers a trap.)
 
-It is very important, however, that one must never pass an `Atomic` as `inout` or `consuming` because then you declare the parameter to have exclusive access of the atomic value which as we said, makes the value no longer atomic.
+To prevent users from accidentally falling into this trap, `Atomic` (and `AtomicLazyReference`) will not support `var` bindings. It is a compile-time error to have a `var` that has an explicit or inferred type of `Atomic`.
+
+```swift
+// error: variable of type 'Atomic<Int>' must be declared with a 'let'
+var myAtomic = Atomic<Int>(123)
+```
+
+By making this a compiler error, we can safely assume that atomic accesses will never incur an unexpected dynamic exclusivity check. It is forbidden to create mutable variables of type `struct Atomic`.
+
+Similarly, it is an error to declare a computed property that returns an `Atomic`, as its getter would need to create and return a new instance each time it is accessed. Instead, you can return the actual value that would be the initial value for the atomic:
+
+```swift
+var computedInt: Int {
+  123
+}
+
+let myAtomic = Atomic<Int>(computedInt)
+```
+
+Alternatively, you can choose to convert the property to a function. This makes it clear that a new instance is being returned every time the function is called:
+
+```swift
+func makeAnAtomic() -> Atomic<Int> {
+  Atomic<Int>(123)
+}
+
+let myAtomic = makeAnAtomic()
+```
+
+
+
+In the same vein, these types must never be passed as `inout` parameters as that declares that the callee has exclusive access to the atomic, which would make the access no longer atomic. Attemping to create an `inout` binding for an atomic variable is also a compile-time error. Parameters that are used to pass `Atomic` values must either be `borrowing` or `consuming`. (Passing a variable as `consuming` is also an exclusive access, but it's destroying the original variable, so we no longer need to care for its atomicity.)
+
+```swift
+// error: parameter of type 'Atomic<Int>' must be declared as either 'borrowing' or 'consuming'
+func passAtomic(_: inout Atomic<Int>)
+```
+
+Mutating methods on atomic types are also forbidden, as they introduce `inout` bindings on `self`. For example, trying to extend `Atomic` with our own `mutating` method results in a compile-time error:
+
+```swift
+extension Atomic {
+  // error: type `Atomic` cannot have mutating function 'greet()'
+  mutating func greet() {
+    print("Hello! From: Atomic")
+  }
+}
+```
+
+These conditions for `Atomic` and `AtomicLazyReference` are important to prevent users from accidentally introducing dynamic exclusivity for these low-level performance sensitive concurrency primitives.
 
 ### Interaction with Swift Concurrency
 
@@ -1061,7 +1173,9 @@ func version3() async {
 }
 ```
 
-Considering these factors, we can safely say that `extension Atomic: Sendable where Value: Sendable {}`. All of the places where one can store a value an `Atomic`, is either as a global, as a class ivar, or as a local. For globals and class ivars, everyone agrees that they exist at a single location and will never try to perform atomic operations by moving the value to some local. As explained above, we can safely reason about local atomic values in async contexts and all of the places where we care about preserving atomicity will do the right thing for us, either by just using the thread's stack frame for allocation or by promoting it to some async coroutine's stack frame on the heap.
+Variables of type `struct Atomic` are always located at a single, stable memory location, no matter its nature (be that a stored property in a class type or a noncopyable struct, an associated value in a noncopyable enum, a local variable that got promoted to the heap through a closure capture, or any other kind of variable.)
+
+Considering these factors, we can safely declare that `struct Atomic` is `Sendable` whenever its value is `Sendable`. By analogue reasoning, `struct AtomicLazyReference` is declared `Sendable` whenever its instance is `Sendable`.
 
 ## Detailed Design
 
@@ -1069,7 +1183,7 @@ In the interest of keeping this document (relatively) short, the following API s
 
 To allow atomic operations to compile down to their corresponding CPU instructions, most entry points listed here will be defined `@inlinable`.
 
-For the full API definition, please refer to the [implementation][implementation].
+For the full API definition, please refer to the [implementation](https://github.com/apple/swift/pull/68857).
 
 ### Atomic Memory Orderings
 
@@ -1219,6 +1333,17 @@ public struct WordPair {
 }
 
 extension WordPair: AtomicValue {...}
+extension WordPair: Equatable {...}
+extension WordPair: Hashable {...}
+
+// NOTE: WordPair is semantically a (UInt, UInt). Tuple comparability
+// works based of lexicographical ordering, so WordPair will do
+// the same. It will compare 'first' first, and 'second' second.
+extension WordPair: Comparable {...}
+
+extension WordPair: CustomStringConvertible {...}
+extension WordPair: CustomDebugStringConvertible {...}
+extension WordPair: Sendable {}
 ```
 
 ### Atomic Types
@@ -1273,6 +1398,8 @@ extension Atomic where Value.AtomicRepresentation == {U}IntNN.AtomicRepresentati
     failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 }
+
+extension Atomic: @unchecked Sendable where Value: Sendable {}
 ```
 
 `Atomic` also provides a handful of integer operations for the standard fixed-width integer types. This is implemented via same type requirements:
@@ -1305,31 +1432,31 @@ extension Atomic where Value == Int {
   
   @discardableResult
   public borrowing func bitwiseAnd(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func bitwiseOr(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func bitwiseXor(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func min(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func max(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 }
@@ -1344,19 +1471,19 @@ as well as providing convenience functions for boolean operations:
 extension Atomic where Value == Bool {
   @discardableResult
   public borrowing func logicalAnd(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func logicalOr(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 
   @discardableResult
   public borrowing func logicalXor(
-    with operand: Value,
+    _ operand: Value,
     ordering: AtomicUpdateOrdering
   ) -> (oldValue: Value, newValue: Value)
 }
@@ -1378,6 +1505,8 @@ public struct AtomicLazyReference<Instance: AnyObject>: ~Copyable {
 
   public borrowing func load() -> Instance?
 }
+
+extension AtomicLazyReference: @unchecked Sendable where Instance: Sendable {}
 ```
 
 ## Source Compatibility
@@ -1385,6 +1514,8 @@ public struct AtomicLazyReference<Instance: AnyObject>: ~Copyable {
 This is a purely additive change with no source compatibility impact.
 
 ## Effect on ABI Stability
+
+This proposal introduces new entry points to the Standard Library ABI in a standalone `Synchronization` module, but otherwise it has no effect on ABI stability.
 
 On ABI-stable platforms, the struct types and protocols introduced here will become part of the stdlib's ABI with availability matching the first OS releases that include them.
 
@@ -1425,9 +1556,7 @@ If an intervening store operation were allowed to release the reference between 
 
 Without an efficient way to implement these two steps as a single atomic transaction, the implementation of `store` needs to delay releasing the overwritten value until it can guarantee that every outstanding load operation is completed. Exactly how to implement this is the problem of *memory reclamation* in concurrent data structures.
 
-There are a variety of approaches to tackle this problem, some of which may be general enough to consider in future proposals. (One potential solution can be built on top of double-wide atomic operations, by offloading some of the reference counting operations into the second word of a double-wide atomic reference.)
-
-(It'd be straightforward to use locks to build an atomic strong reference; while such a construct obviously wouldn't be lock-free, it is still a useful abstraction, so it may be a worthy addition to the Standard Library. However, locking constructs are outside the scope of this proposal.)
+There are a variety of approaches to tackle this problem, but the one we think would be the best fit is the implementation of [`AtomicReference`][https://swiftpackageindex.com/apple/swift-atomics/1.2.0/documentation/atomics/atomicreference] in the [swift-atomics package](https://github.com/apple/swift-atomics).
 
 ### Additional Low-Level Atomic Features
 
@@ -1449,7 +1578,7 @@ We considered defaulting all atomic operations to sequentially consistent orderi
 Users who wish for default orderings are welcome to define their own overloads for atomic operations:
 
 ```swift
-extension Atomic {
+extension Atomic where Value.AtomicRepresentation == UInt8.AtomicRepresentation {
   func load() -> Value { 
     load(ordering: .sequentiallyConsistent)
   }
@@ -1486,6 +1615,8 @@ extension Atomic {
   }
 }
 
+...
+
 extension Atomic where Value == Int {
   func wrappingAdd(_ operand: Value) {
     wrappingAdd(operand, ordering: .sequentiallyConsistent)
@@ -1493,6 +1624,8 @@ extension Atomic where Value == Int {
 
   etc.
 }
+
+...
 ```
 
 ### A Truly Universal Generic Atomic Type
@@ -1664,7 +1797,17 @@ While there are some API differences between this proposal and the package, most
 Previous revisions of this proposal named this type `DoubleWord`. This is a good name and is in fact the name used in the `swift-atomics` package. We felt the prefix `Double*` could cause confusion with the pre-existing type in the standard library `Double`. The name `WordPair` has a couple of advantages:
 
 1. Code completion. Because this name starts with an less common letter in the English alphabet, the likelyhood of seeing this type at the top level in code completion is very unlikely and not generally a type used for newer programmers of Swift.
-2. Directly conveys the semantic meaning of the type. This type is not semantically equivalent to something like `{U}Int128` (on 64 bit platforms). While although its layout shares the same size, the meaning we want to drive home with this type is quite simply that it's a pair of `UInt` words. If and when the standard library proposes a `{U}Int128` type, that will add a conformance to `AtomicValue` on 64 bit platforms who support double words as well. That itself wouldn't deprecate uses of `WordPair` however, because it's much easier to grab both words independently with `WordPair` as well as being a portable name for such semantics on both 32 bit and 64 bit platforms.
+2. Directly conveys the semantic meaning of the type. This type is not semantically equivalent to something like `{U}Int128` (on 64 bit platforms). While although its layout shares the same size, the meaning we want to drive home with this type is quite simply that it's a pair of `UInt` words. If and when the standard library proposes a `{U}Int128` type, that will add a conformance to `AtomicValue` on 64 bit platforms who support double-words as well. That itself wouldn't deprecate uses of `WordPair` however, because it's much easier to grab both words independently with `WordPair` as well as being a portable name for such semantics on both 32 bit and 64 bit platforms.
+
+### A different name for the `Synchronization` module
+
+In its [notes returning the initial version of this proposal for revision](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522), the Swift Language Steering Group suggested the strawman name `Atomics` as a for this module. I think this name is far too restrictive because it prevents other similar low-level concurrency primitives or somewhat related features like volatile loads/stores from sharing a module. It would also be extremely source breaking for folks that upgrade their Swift SDK to a version that may include this proposed new module while depending on the existing [swift-atomics](https://github.com/apple/swift-atomics) whose module is also named `Atomics`.
+
+We shouldn't be afraid of conflicting module names causing spurious source breaks when introducing a new module to the standard libraries; however, in this case, the direct precursor is prominently using this name, and reusing the same module name would cause significant breakage. We expect this package will need to remain in active use for a number of years, as it will be able to provide reimplementations of the constructs proposed here without the ABI availability constraints that come with Standard Library additions.
+
+### Rename `AtomicValue` to `AtomicWrappable`
+
+Another review note from the [revision notes](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522) was the naming of the `AtomicValue` protocol. By API design guidelines it probably makes more sense to name this `AtomicWrappable` with our current design, however this proposal proposes `AtomicValue` because we feel the precedent set by the [swift-atomics](https://github.com/apple/swift-atomics) package will make it easier for folks to migrate their existing atomic code to the standard library's new atomic facilities.
 
 ## References
 
