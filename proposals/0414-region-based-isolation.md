@@ -4,7 +4,7 @@
 * Authors: [Michael Gottesman](https://github.com/gottesmm) [Joshua Turcotti](https://github.com/jturcotti)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (December 4 - December 18, 2023)**
-* Implementation: On `main` gated behind `-enable-experimental-feature SendNonSendable`
+* Implementation: On `main` gated behind `-enable-experimental-feature RegionBasedIsolation`
 * Review: ([pitch 2](https://forums.swift.org/t/pitch-region-based-isolation/67888)), ([pitch 1](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566))
 
 ## Introduction
