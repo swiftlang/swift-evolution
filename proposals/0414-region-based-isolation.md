@@ -1,13 +1,11 @@
 # Region based Isolation
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0414](0414-region-based-isolation.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm) [Joshua Turcotti](https://github.com/jturcotti)
-* Review Manager: TBD
-* Status: **Awaiting implementation** or **Awaiting review**
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (December 4 - December 18, 2023)**
 * Implementation: On `main` gated behind `-enable-experimental-feature SendNonSendable`
-* Upcoming Feature Flag: `SendNonSendable`
-* Initial Review: ([pitch](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566))
-* Review: ([pitch](https://forums.swift.org/t/pitch-region-based-isolation/67888))
+* Review: ([pitch 2](https://forums.swift.org/t/pitch-region-based-isolation/67888)), ([pitch 1](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566))
 
 ## Introduction
 
