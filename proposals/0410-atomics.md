@@ -5,17 +5,10 @@
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Bug: [SR-9144](https://github.com/apple/swift/issues/51640)
 * Implementation: https://github.com/apple/swift/pull/68857
-* Version: 2023-09-18
-* Status: **Active Review (October 23...November 6, 2023)**
-
-<!--
-*During the review process, add the following fields as needed:*
-
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
+* Version: 2023-12-04
+* Status: **Active Review (December 4...December 18, 2023)**
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/d35d6566fe2297f4782bdfac4d5253e0ca96b353/proposals/0410-atomics.md)
+* Decision Notes: [pitch](https://forums.swift.org/t/atomics/67350), [first review](https://forums.swift.org/t/se-0410-atomics/68007), [first return for revision](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522)
 
 ## Introduction
 
@@ -32,6 +25,10 @@ New Swift-evolution thread: [Atomics](https://forums.swift.org/t/atomics/67350)
   - Removed all new APIs; the proposal is now focused solely on C interoperability.
 - 2023-09-18: Third revision.
   - Introduced new APIs to the standard library.
+- 2023-12-04: Fourth revision.
+  - Response to language steering group [review decision notes](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522).
+  - New APIs are now in a `Synchronization` module instead of the default `Swift` module.
+  - Declaring a `var` of `Atomic` type is now an error.
 
 ## Table of Contents
 
