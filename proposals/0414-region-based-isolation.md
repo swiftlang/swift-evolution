@@ -144,7 +144,7 @@ point `(2)` is diagnosed as a potential data race.
 
 NOTE: While this proposal contains rigorous details that enable the compiler to
 prove the absence of data races, programmers will not have to reason about
-regions. The compiler will allow transfers of non-`Sendable` values between
+regions at this level of detail. The compiler will allow transfers of non-`Sendable` values between
 isolation domains where it can prove they are safe and will emit diagnostics
 when it cannot at potential concurrent access points so that programmers don't
 have to reason through the data flow themselves.
