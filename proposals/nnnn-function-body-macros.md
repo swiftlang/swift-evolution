@@ -8,7 +8,24 @@
 * Feature Flag: `BodyMacros`
 * Review: [Pitch](https://forums.swift.org/t/function-body-macros/66471)
 
-[TOC]
+## Table of contents
+
+* [Introduction](#introduction)
+* [Proposed solution](#proposed-solution)
+* [Detailed design](#detailed-design)
+   * [Declaring function body macros](#declaring-function-body-macros)
+   * [Implementing function body macros](#implementing-function-body-macros)
+   * [Composing function body macros](#composing-function-body-macros)
+   * [Type checking of functions involving function body macros](#type-checking-of-functions-involving-function-body-macros)
+   * [Function body macros and implicit returns](#function-body-macros-and-implicit-returns)
+* [Source compatibility](#source-compatibility)
+* [Effect on ABI stability](#effect-on-abi-stability)
+* [Effect on API resilience](#effect-on-api-resilience)
+* [Alternatives considered](#alternatives-considered)
+   * [Eliminating preamble macros](#eliminating-preamble-macros)
+   * [Capturing the withSpan pattern in another macro role](#capturing-the-withspan-pattern-in-another-macro-role)
+   * [Type-checking bodies as they were written](#type-checking-bodies-as-they-were-written)
+* [Revision history](#revision-history)
 
 ## Introduction
 
@@ -217,6 +234,20 @@ func prepareDinner(guests: Int) async throws -> Meal {
 }
 ```
 
+It is possible that the newly-introduced `span` variable could shadow a variable from an outer scope, for example if `prepareDinner` was inside an actor with `span` property:
+
+```swift
+actor Chef {
+  var span: Int
+  
+  @Traced("Prepare dinner")
+  func prepareDinner(guests: Int) async throws -> Meal {
+    print("Arm span is \(span) meters")  // refers to 'span' from the Traced macro expansion
+    // ...
+  }
+}
+```
+
 ### Type checking of functions involving function body macros
 
 When a function body macro is applied, the macro-expanded function body will need to be type checked when it is incorporated into the program. However, the function might already have a body that was written by the developer, which can be inspected by the macro implementation. The function body as written must be syntactically well-formed (i.e., it must conform to the [Swift grammar](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/summaryofthegrammar/)) but will *not* be type-checked, so it need not be semantically well-formed.
@@ -247,6 +278,39 @@ func employees(hiredIn year: Int) -> [String] {
 
 The requirement for syntactic wellformedness should help rein in the more outlandish uses of function body macros, as well as making sure that existing tools that operate on source code will continue to work well even in the presence of body macros.
 
+### Function body macros and implicit returns
+
+Swift functions that contain only a single expression will implicitly return that expression, e.g.,
+
+```swift
+func g(a: Int, b: Int) -> Int {
+  a + b      // return is implicit
+}
+```
+
+The application of preamble macros to the function body does not affect the implicit return, so the following is well-formed
+
+```swift
+@Logged
+func g(a: Int, b: Int) -> Int {
+  a + b      // return is implicit
+}
+```
+
+and the expansion of the macro is treated like the following code:
+
+```swift
+func g(a: Int, b: Int) -> Int {
+  log("Entering g(a: \(a), b: \(b))")
+  defer {
+    log("Exiting g")
+  }
+  return a + b
+}
+```
+
+Body macros are different: because they replace the entire function body, whether the original function body as written would have had an implicit return is not considered.
+
 ## Source compatibility
 
 Function body macros introduce new macro roles into the existing attached macro syntax, and therefore do not have an impact on source compatibility.
@@ -266,7 +330,7 @@ Macros are a source-to-source transformation tool that have no effect on API res
 Preamble macros aren't technically necessary, because one could always write a function body macro that injects the preamble code into an existing body. However, preamble macros provide several end-user benefits over function body macros for the cases where they apply:
 
 * Preamble macros can be composed, whereas function body macros cannot.
-* Preamble macros are separately type-checked, so the function body as written can be type-checked independently of the macro expansion, providing a better user experience (e.g., for diagnostics, code completion, and so on).
+* Preamble macros don't change the code as written by the user, so they provide a better user experience (e.g., for diagnostics, code completion, and so on).
 
 ### Capturing the `withSpan` pattern in another macro role
 
@@ -331,6 +395,9 @@ On the other hand, type-checking the function bodies before macro expansion has 
 
 ## Revision history
 
+* Revision 2:
+  * Clarify that preamble macro-introduced local names can shadow names from outer scopes
+  * Clarify the effect of function body macros on single-expression functions and implicit returns
 * Revision 1:
   * Allow preamble macros to introduce names.
   * Introduce `@AssumeMainActor `example macro for body macros that perform replacement.
