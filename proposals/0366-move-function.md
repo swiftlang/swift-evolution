@@ -124,14 +124,14 @@ func test() {
 
 The `consume x` operator syntax deliberately mirrors the
 proposed [ownership modifier](https://forums.swift.org/t/borrow-and-take-parameter-ownership-modifiers/59581)
-parameter syntax, `(x: consume T)`, because the caller-side behavior of `consume`
-operator is analogous to a callee’s behavior receiving a `consume` parameter.
+parameter syntax, `(x: consuming T)`, because the caller-side behavior of `consume`
+operator is analogous to a callee’s behavior receiving a `consuming` parameter.
 `doStuffUniquely(with:)` can use the `consume` operator, combined with
-the `consume` parameter modifier, to preserve the uniqueness of the parameter
+the `consuming` parameter modifier, to preserve the uniqueness of the parameter
 as it moves it into its own local variable for mutation:
 
 ```swift
-func doStuffUniquely(with value: consume [Int]) {
+func doStuffUniquely(with value: consuming [Int]) {
   // If we received the last remaining reference to `value`, we'd like
   // to be able to efficiently update it without incurring more copies.
   var newValue = consume value
@@ -173,7 +173,7 @@ of `doStuffUniquely` after being consumed to initialize `newValue`, they will
 get an error:
 
 ```swift
-func doStuffUniquely(with value: consume [Int]) {
+func doStuffUniquely(with value: consuming [Int]) {
   // If we received the last remaining reference to `value`, we'd like
   // to be able to efficiently update it without incurring more copies.
   var newValue = consume value
