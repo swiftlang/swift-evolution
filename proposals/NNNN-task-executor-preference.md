@@ -7,7 +7,8 @@
 * Implementation: TBD
 * Review: TBD
 * Discussion threads:
-    * Pitch: https://forums.swift.org/t/pitch-task-executor-preference/68191
+    * Pitch: [Pitch: Task Executor Preference](https://forums.swift.org/t/pitch-task-executor-preference/68191)
+   
 ## Introduction
 
 Swift Concurrency uses tasks and actors to model concurrency and primarily relies on actor isolation to determine where a specific piece of code shall execute.
