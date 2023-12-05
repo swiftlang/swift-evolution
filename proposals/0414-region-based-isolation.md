@@ -29,7 +29,7 @@ point of transfer.
 
 ## Motivation
 
-[SE-0302](proposals/0302-concurrent-value-and-concurrent-closures.md) states
+[SE-0302](0302-concurrent-value-and-concurrent-closures.md) states
 that non-`Sendable` values cannot be passed across isolation boundaries. The
 following code demonstrates a `Sendable` violation when passing a
 newly-constructed value into an actor-isolated function:
@@ -1167,7 +1167,7 @@ actor MyActor {
 
 ### Using transferring to simplify `nonisolated` actor initializers and actor deinitializers
 
-In [SE-0327](proposals/0327-actor-initializers.md), a flow sensitive diagnostic
+In [SE-0327](0327-actor-initializers.md), a flow sensitive diagnostic
 was introduced to ensure that one can directly access stored propeties of `self`
 in `nonisolated` actor designated initializers and actor deinitializers despite
 the methods not being isolated to self. The diagnostic set out a model where
