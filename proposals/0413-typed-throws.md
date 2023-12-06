@@ -606,13 +606,10 @@ Therefore, these rules subsume those of untyped throws, and no existing code wil
 
 Note that the constraint that the thrown error type must conform to `Error` means that one cannot use an existential type such as `any Error & Codable` as the thrown error type:
 
-````swift
 ```swift
 // error: any Error & Codable does not conform to Error
 func remoteCall(function: String) async throws(any Error & Codable) -> String { ... }
 ```
-
-````
 
 The `any Error` existential has [special semantics](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#adding-swifterror-self-conformance) that allow it to conform to the `Error` protocol, introduced along with `Result`. A separate language change would be required to allow other existential types to conform to the `Error` protocol.
 
