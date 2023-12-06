@@ -1,9 +1,9 @@
 # Function Body Macros
 
-* Proposal: [SE-NNNN](nnnn-function-body-macros.md)
+* Proposal: [SE-0415](0415-function-body-macros.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: 
-* Status: **Awaiting review**
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active Review (December 6–December 20, 2023)**
 * Implementation: [Pull request](https://github.com/apple/swift/pull/70034)
 * Feature Flag: `BodyMacros`
 * Review: [Pitch](https://forums.swift.org/t/function-body-macros/66471)
