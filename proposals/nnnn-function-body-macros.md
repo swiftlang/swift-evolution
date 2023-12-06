@@ -21,6 +21,9 @@
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
 * [Effect on API resilience](#effect-on-api-resilience)
+* [Future directions](#future-directions)
+   * [Function body macros on closures](#function-body-macros-on-closures)
+
 * [Alternatives considered](#alternatives-considered)
    * [Eliminating preamble macros](#eliminating-preamble-macros)
    * [Capturing the withSpan pattern in another macro role](#capturing-the-withspan-pattern-in-another-macro-role)
@@ -322,6 +325,30 @@ Macros are a source-to-source transformation tool that have no ABI impact.
 ## Effect on API resilience
 
 Macros are a source-to-source transformation tool that have no effect on API resilience.
+
+## Future directions
+
+### Function body macros on closures
+
+Function body macros as presented in this proposal are limited to declared functions, initializers, deinitializers, and accessors. In the future, they could be expanded to apply to closures as well, e.g.,
+
+```swift
+@Traced(z) { (x, y) in
+  x + y
+}
+```
+
+This extension would involve extending the `PreambleMacro` and `BodyMacro` protocols with another `expansion` method that accepts closure syntax. The primary challenge with applying function body macros to closures is the interaction with type inference, because closures generally occur within an expression and some of the macro arguments themselves might be part of the expression. In the example above, the `z` value could come from an outer scope and be the subject of type inference:
+
+```swift
+f(0) { z in
+  @Traced(z) { (x, y) in
+    x + y
+  }
+}
+```
+
+Macros are designed to avoid [multiply instantiating the same macro](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md#macro-expansion), and have existing limitations in place to prevent the type checker from getting into a position where it is not obvious which macro to expand or the same macro needs to be expanded multiple times. To extend function body macros to closures will require a solution to this type-checking issue, and might be paired with lifting other restrictions on (e.g.) freestanding declaration macros.
 
 ## Alternatives considered
 
