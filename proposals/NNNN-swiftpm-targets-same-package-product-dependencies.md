@@ -86,7 +86,7 @@ print("isGitHubAccessToken(githubToken) == ", isGitHubAccessToken(githubToken))
 
 ## Proposed solution
 
-The proposed solution is to introduce a new method `Target.Dependency.product(name:condition:)` so that targets can depend on products in the same package. This enables dynamic linking between code within the same package fixing both code-size concerns and type-casting issues. In practice this greatly simplified the project structure of [an app which has a nested package so that its plugin system can work](https://github.com/stackotter/delta-client/blob/single_package/Package.swift) (note that when that was last tested it was with an older implementation of the proposed changes).
+The proposed solution is to introduce a new method `Target.Dependency.product(name:condition:)` so that targets can depend on products in the same package. This enables dynamic linking between code within the same package fixing both code-size concerns and type-casting issues.
 
 ## Detailed design
 
