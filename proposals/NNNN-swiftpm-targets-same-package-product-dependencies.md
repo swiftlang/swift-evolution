@@ -13,7 +13,7 @@ Swift-evolution thread: [discussion thread](https://forums.swift.org/t/pitch-swi
 
 ## Motivation
 
-Consider a package `Library` with the following package manifest. A consumer of `Library` may import both `LibAPI` and `LibAuth` leading to duplication of the `Auth` target in the final bundle of products (due to static linking between `API` and `Auth`). This increases code-size, and more importantly, breaks type casting in many scenarios (see [the example](#type-casting-example)).
+Consider a package `Library` with the following package manifest:
 
 ```swift
 // Library/Package.swift
@@ -33,6 +33,8 @@ let package = Package(
     ]
 )
 ```
+
+A consumer of `Library` may import both `LibAPI` and `LibAuth` leading to duplication of the `Auth` target in the final bundle of products (due to static linking between `API` and `Auth`). This increases code-size, and more importantly, breaks type casting in many scenarios (see [the example](#type-casting-example)).
 
 ### Existing workarounds
 
