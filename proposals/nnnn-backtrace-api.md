@@ -52,10 +52,20 @@ context.
 public struct Backtrace: CustomStringConvertible, Sendable {
   /// The type of an address.
   ///
+  /// This is used as an opaque type; if you have some Address, you
+  /// can ask if it's NULL, and you can attempt to convert it to a
+  /// FixedWidthInteger.
+  ///
   /// This is intentionally _not_ a pointer, because you shouldn't be
   /// dereferencing them; they may refer to some other process, for
   /// example.
-  public typealias Address = UInt64
+  public protocol Address: Comparable, Hashable,
+                           LosslessStringConvertible,
+                           ExpressibleByIntegerLiteral {
+    static var bitWidth: Int { get }
+
+    var isNull: Bool { get }
+  }
 
   /// The unwind algorithm to use.
   public enum UnwindAlgorithm {
@@ -81,17 +91,17 @@ public struct Backtrace: CustomStringConvertible, Sendable {
     ///
     /// This might come from a signal handler, or an exception or some
     /// other situation in which we have captured the actual program counter.
-    case programCounter(Address)
+    case programCounter(any Address)
 
     /// A return address.
     ///
     /// Corresponds to a call from a normal function.
-    case returnAddress(Address)
+    case returnAddress(any Address)
 
     /// An async resume point.
     ///
     /// Corresponds to an `await` in an async task.
-    case asyncResumePoint(Address)
+    case asyncResumePoint(any Address)
 
     /// Indicates a discontinuity in the backtrace.
     ///
@@ -132,13 +142,13 @@ public struct Backtrace: CustomStringConvertible, Sendable {
     ///
     /// The value returned from this property is undefined if the frame
     /// is a discontinuity.
-    public var originalProgramCounter: Address { get }
+    public var originalProgramCounter: any Address { get }
 
     /// The adjusted program counter to use for symbolication.
     ///
     /// The value returned from this property is undefined if the frame
     /// is a discontinuity.
-    public var adjustedProgramCounter: Address { get }
+    public var adjustedProgramCounter: any Address { get }
 
     /// A textual description of this frame.
     ///
@@ -152,22 +162,22 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   }
 
   /// Represents an image loaded in the process's address space
-  public struct Image: CustomStringConvertible, Sendable {
+  public class Image: CustomStringConvertible, Identifiable, Sendable {
     /// The name of the image (e.g. libswiftCore.dylib).
-    public var name: String
+    public var name: String { get }
 
     /// The full path to the image (e.g. /usr/lib/swift/libswiftCore.dylib).
-    public var path: String
+    public var path: String { get }
 
     /// The build ID of the image, as a byte array (note that the exact number
     /// of bytes may vary, and that some images may not have a build ID).
-    public var buildID: [UInt8]?
+    public var buildID: [UInt8]? { get }
 
     /// The base address of the image.
-    public var baseAddress: Backtrace.Address
+    public var baseAddress: some Address { get }
 
     /// The end of the text segment in this image.
-    public var endOfText: Backtrace.Address
+    public var endOfText: some Address { get }
 
     /// Provide a textual description of this Image.
     ///
@@ -183,11 +193,23 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   /// The architecture of the system that captured this backtrace.
   public var architecture: String
 
-  /// The width of an address in this backtrace, in bits.
-  public var addressWidth: Int
+  /// A `Sequence` that returns `Frame` instances
+  struct FrameSequence: Sequence {
+    typealias Element = Frame
 
-  /// A list of captured frame information.
-  public var frames: [Frame]
+    struct Iterator: IteratorProtocol {
+      mutating func next() -> Frame?
+    }
+
+    func makeIterator() -> Iterator
+  }
+
+  /// A `Sequence` of captured frame information.
+  ///
+  /// The underlying storage is intentionally not exposed, because there may
+  /// be cases where it's desirable to use a more compact form (for instance
+  /// delta compression).
+  public var frames: FrameSequence { get }
 
   /// A list of captured images.
   ///
@@ -198,12 +220,12 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   public var images: [Image]?
 
   /// Holds information about the shared cache.
-  public struct SharedCacheInfo: Sendable {
+  public struct SharedCacheInfo: Identifiable, Sendable {
     /// The UUID from the shared cache.
-    public var uuid: [UInt8]
+    public var uuid: [UInt8] { get }
 
     /// The base address of the shared cache.
-    public var baseAddress: Backtrace.Address
+    public var baseAddress: any Address { get }
 
     /// Says whether there is in fact a shared cache.
     public var noCache: Bool
@@ -215,15 +237,6 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   /// required for symbolication.  On non-Darwin platforms it will always
   /// be `nil`.
   public var sharedCacheInfo: SharedCacheInfo?
-
-  /// Format an address according to the addressWidth.
-  ///
-  /// @param address     The address to format.
-  /// @param prefix      Whether to include a "0x" prefix.
-  ///
-  /// @returns A String containing the formatted Address.
-  public func formatAddress(_ address: Address,
-                            prefix: Bool = true) -> String
 
   /// Capture a backtrace from the current program location.
   ///
@@ -287,6 +300,21 @@ public struct Backtrace: CustomStringConvertible, Sendable {
 
   /// Provide a textual version of the backtrace.
   public var description: String { get }
+}
+```
+
+We allow `Address` to be converted to a `FixedWidthInteger` by means of an
+extension on `FixedWidthInteger`:
+
+```swift
+extension FixedWidthInteger {
+  /// Convert from a Backtrace.Address.
+  ///
+  /// This initializer will return nil if the address width is larger than the
+  /// type you are attempting to convert into.
+  ///
+  /// @param address The `Address` to convert.
+  init?(_ address: some Backtrace.Address)
 }
 ```
 
@@ -357,11 +385,8 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
 
   /// Represents a symbol we've located
   public class Symbol: CustomStringConvertible {
-    /// The index of the image in which the symbol for this address is located.
-    public var imageIndex: Int
-
-    /// The name of the image in which the symbol for this address is located.
-    public var imageName: String
+    /// The image in which the symbol for this address is located.
+    public var image: Backtrace.Image
 
     /// The raw symbol name, before demangling.
     public var rawName: String
@@ -376,7 +401,7 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     public var sourceLocation: SourceLocation?
 
     /// True if this symbol represents a Swift runtime failure.
-    public var isSwiftRuntimeFailure: Bool
+    public var isSwiftRuntimeFailure: Bool { get }
 
     /// True if this symbol is a Swift thunk function.
     public var isSwiftThunk: Bool { get }
@@ -388,27 +413,35 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
     public var isSystem: Bool { get }
 
     /// Construct a new Symbol.
-    public init(imageIndex: Int, imageName: String,
-                rawName: String, offset: Int, sourceLocation: SourceLocation?)
+    public init(image: Backtrace.Image, rawName: String, offset: Int,
+                sourceLocation: SourceLocation?)
 
     /// A textual description of this symbol.
     public var description: String { get }
   }
 
-  /// The width, in bits, of an address in this backtrace.
-  public var addressWidth: Int
+  /// A `Sequence` that returns `Frame` instances
+  struct FrameSequence: Sequence {
+    typealias Element = Frame
+
+    struct Iterator: IteratorProtocol {
+      mutating func next() -> Frame?
+    }
+
+    func makeIterator() -> Iterator
+  }
 
   /// A list of captured frame information.
-  public var frames: [Frame]
+  public var frames: FrameSequence { get }
 
   /// A list of images found in the process.
   public var images: [Backtrace.Image]
 
   /// Shared cache information.
-  public var sharedCacheInfo: Backtrace.SharedCacheInfo
+  public var sharedCacheInfo: Backtrace.SharedCacheInfo?
 
   /// True if this backtrace is a Swift runtime failure.
-  public var isSwiftRuntimeFailure: Bool
+  public var isSwiftRuntimeFailure: Bool { get }
 
   /// Provide a textual version of the backtrace.
   public var description: String { get }
@@ -457,6 +490,23 @@ significant limitations, in addition to which we would like for this
 functionality to be built in to Swift---just as it is built into
 competing languages.  This is why we felt it should be built into the
 Swift runtime itself.
+
+The `Address` type could have been a fixed width integer, but that
+loses some flexibility, both in terms of backtrace storage, and in our
+ability to cope with backtraces from a platform other than the host.
+Using a protocol here means that we can choose an appropriate
+underlying implementation, without limiting ourselves in the future;
+it also avoids having the type differ on different platforms.
+
+The `frames` member variables could have been arrays, but implementing
+them instead as a sequence means that we have the flexibility to use
+a different backing store where doing so makes sense.  An example where
+we might want that is where we're capturing very large numbers of
+backtraces, in which case doing some kind of delta compression on the
+frame addresses might enable us to save significant amounts of memory.
+Additionally, using a sequence here means we can use a concrete `Address`
+type for storage, rather than having to use `any Address`; the latter
+only need appear at the interface.
 
 ## Acknowledgments
 
