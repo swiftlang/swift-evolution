@@ -381,7 +381,7 @@ An example use of this API might be something like this:
 ```
 struct MyEventLoopTaskExecutor: TaskExecutor {}
 
-func test(expected eventLoop: MyEventLoopTaskExecutor) { // synchronous function that  to require 
+func test(expected eventLoop: MyEventLoopTaskExecutor) {
   withUnsafeCurrentTask { task in
     guard let task else {
       fatalError("Missing task?")
@@ -398,6 +398,8 @@ func test(expected eventLoop: MyEventLoopTaskExecutor) { // synchronous function
 ```
 
 This may be useful in synchronous functions; however should be used sparingly, and with caution.
+Asynchronous functions, or functions on actors should instead rely on the usual ways to statically ensure to be running on an expected executor:
+by providing the right annotations or custom executors to their enclosing actors.
 
 Instead, functions which have strict execution requirements may be better served as declaring them inside of an actor
 that has the required specific executor specified (by using custom actor executors), or by using an asynchronous function
