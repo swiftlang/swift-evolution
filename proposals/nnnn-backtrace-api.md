@@ -34,7 +34,8 @@ and add additional dependencies to client packages and applications.
 
 We will add a `Backtrace` struct to the standard library, with methods
 to capture a backtrace from the current location, and support for
-symbolication and symbol demangling.
+symbolication and symbol demangling.  All of the backtracing types will
+exist in a new `Runtime` module.
 
 Note, importantly, that **the API presented here is not async-signal-safe**,
 and **it is not an appropriate tool with which to build a general purpose
@@ -451,6 +452,8 @@ public struct SymbolicatedBacktrace: CustomStringConvertible {
 Example usage:
 
 ```swift
+import Runtime
+
 var backtrace = Backtrace.capture()
 
 print(backtrace)
