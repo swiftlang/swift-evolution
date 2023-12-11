@@ -1,4 +1,4 @@
-# Inferring `@Sendable` for methods and key path literals
+# Inferring `Sendable` for methods and key path literals
 
 * Proposal: [SE-NNNN](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/NNNN-filename.md)
 * Authors: [Angela Laar](https://github.com/angela-laar), [Kavon Farvardin](https://github.com/kavon), [Pavel Yaskevich](https://github.com/xedin)
@@ -34,6 +34,7 @@ let unapplied: (T) -> (() -> Void) = S.f
 
 
 Suppose we want to create a generic method that expects an unapplied function method conforming to Sendable as a parameter. We can create a protocol ``P`` that conforms to the `Sendable` protocol and tell our generic function to expect some generic type that conforms to ``P``. We can also use the `@Sendable` attribute, introduced for closures and functions in [SE-302](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/0302-concurrent-value-and-concurrent-closures.md), to annotate the closure parameter.
+
 
 ```
 protocol P: Sendable {
@@ -104,7 +105,7 @@ Use of the key path literal is currently being diagnosed because all key path li
 
 ## Proposed solution
 
-We propose the compiler should automatically apply `Sendable`  on functions and key paths that cannot capture non-Sendable values. This includes partially-applied and unapplied instance methods of `Sendable` types, as well as non-local functions. Additionally, it should be disallowed to utilize `@Sendable` on instance methods of non-`Sendable` types.
+We propose the compiler should automatically employ `Sendable`  on functions and key paths that cannot capture non-Sendable values. This includes partially-applied and unapplied instance methods of `Sendable` types, as well as non-local functions. Additionally, it should be disallowed to utilize `@Sendable` on instance methods of non-`Sendable` types.
 
 **Functions**
 
@@ -124,7 +125,6 @@ func NominalType_method_partiallyAppliedTo(_ obj: NominalType) -> ((ArgType) -> 
   }
   return inner
 }
-
 // The actual method call
 func NominalType_method(_ self: NominalType, _ arg1: ArgType) -> ReturnType {
   /* body of method */
@@ -144,26 +144,28 @@ For example, by declaring the following type `Sendable`, the partial and unappli
 
 ```
 struct User : Sendable {
-  func updatePassword(new: String, old: String) -> Bool {
+  func updatePassword (new: String, old: String) -> Bool {
     /* update password*/ 
     return true
   }
 }
 
-let unapplied: @Sendable (User) -> ((String, String) -> Bool) = User.updatePassword // no error
+let unapplied: @Sendable (User) -> ((String, String) → Bool) = User.updatePassword // no error
 
 let partial: @Sendable (String, String) -> Bool = User().updatePassword // no error
 ```
 
 **Key paths**
 
-Key path literals are very similar to functions, their sendability could only be influenced by sendability of the values they capture in their arguments.  Instead of requiring key path literals to always be sendable and warning about cases where key path literals capture non-Sendable types, let’s flip that requirement and allow the developers to explicitly state when a key path is required to be Sendable via `& Sendable` type composition and employ type inference to infer sendability in the same fashion as functions when no contextual type is specified. [The key path hierarchy of types is non-Sendable].
+Key path literals are very similar to functions, their sendability could be influenced by sendability of the values they capture in their arguments and isolation of the referenced properties and subscripts.  Instead of requiring key path literals to always be sendable and warning about cases where key path literals capture non-Sendable types, let’s flip that requirement and allow the developers to explicitly state when a key path is required to be Sendable via `& Sendable` type composition and employ type inference to infer sendability in the same fashion as functions when no contextual type is specified. [The key path hierarchy of types is non-Sendable].
 
 Let’s extend our original example type `User` with a new property and a subscript to showcase the change in behavior:
 
 ```
 struct User {
   var name: String
+
+  @MainActor var age: Int
 
   subscript(_ info: Info) -> Entry { ... }
 }
@@ -214,6 +216,8 @@ Such `entry` declaration would be diagnosed by the sendability checker:
 warning: cannot form key path that captures non-sendable type 'Info'
 ```
 
+In the same fashion key path that references `age` (i.e. `\User.age`), which is a global actor isolated property, is non-Sendable.
+
 ## Detailed design
 
 This proposal includes five changes to `Sendable` behavior.
@@ -225,35 +229,68 @@ struct User : Sendable {
   var address: String
   var password: String
 
-  func changeAddress(new: String, old: String) { /*do work*/ }
+  func changeAddress (new: String, old: String) {/*do work*/ }
 }
 ```
 
 1. The inference of `@Sendable` for unapplied references to methods of a Sendable type.
 
 ```
-let unapplied : @Sendable (User) -> ((String, String) -> Void) = User.changeAddress // no error
+let unapplied : @Sendable (User)-> ((String, String) -> Void) = User.changeAddress // no error
 ```
 
 2. The inference of `@Sendable` for partially-applied methods of a Sendable type.
 
 ```
-let partial : @Sendable (String, String) → Void = User().changeAddress // no error
+`let partial : @Sendable (String, String) -> Void = User().changeAddress // no error`
 ```
 
 
 These two rules include partially applied and unapplied static methods but do not include partially applied or unapplied mutable methods. Unapplied references to mutable methods are not allowed in the language because they can lead to undefined behavior.  More details about this can be found in [SE-0042](https://github.com/apple/swift-evolution/blob/main/proposals/0042-flatten-method-types.md).
 
 
-3. A key path literal without non-Sendable type captures is going to be inferred as key path type with a `& Sendable` requirement or a function type with `@Sendable` attribute.
+3. A key path literal without non-Sendable type captures and references to actor-isolated properties and/or subscripts is going to be inferred as key path type with a `& Sendable` requirement or a function type with `@Sendable` attribute.
 
-Key path types respect all of the existing sub-typing rules related to Sendable protocol which means a key path that is not marked as Sendable cannot be assigned to a value that is Sendable (same applies to keypath-to-function conversions):
+```
+extension User {
+  @MainActor var age: Int { get { 0 } }
+}
+
+let ageKP = \User.age
+let infoKP = \User.[Info()]
+```
+
+The type of age`KP` is `KeyPath<User, Int>` because `age` is isolated to a global actor. Similarly `infoKP` is a non-Sendable key path because `Info()` argument to a subscript reference has a non-Sendable type.
+
+Key path types respect all of the existing sub-typing rules related to Sendable protocol which means a key path that is not marked as Sendable cannot be assigned to a value that is Sendable.
 
 ```
 let name: KeyPath<User, String> = \.name
 let otherName: KeyPath<User, String> & Sendable = \.name 🔴
-let nameFn: @Sendable (User) -> String = name 🔴
 ```
+
+The conversion between key path and a `@Sendable` function doesn’t actually require the key path itself to be `Sendable` because the it’s not captured by the closure but wrapped by it.
+
+```
+let name: @Sendable (User) -> String = \.name 🟢
+```
+
+ The example above is accepted and  is transformed by the compiler into:
+
+```
+let name: @Sendable (User) -> String = { $0[keyPath: \.name] }
+```
+
+But any subscript arguments that are non-Sendable would preclude the conversion because they’d be captured by the implicitly synthesized closure which makes the closure non-Sendable:
+
+```
+let value: NonSendable = NonSendable()
+let _: @Sendable (User) -> String = \.[value] 🔴
+```
+
+This is an error because `value` has a non-Sendable type and the compiler synthesized closure that wraps the key path - `{ $0[keyPath: \.[value]] }` is going to be inferred as non-Sendable (because it captures `value`) hence non-convertible to a `@Sendable` function type.
+
+Similarly if the conversion captures a key path that has a reference to an isolated property or subscript the implicitly generated closure is not inferred to be non-Sendable.
 
 Key path literals are allowed to infer Sendability requirements from the context i.e. when a key path literal is passed as an argument to a parameter that requires a Sendable type:
 
@@ -273,7 +310,7 @@ Next is:
 
 4. The inference of `@Sendable`  when referencing non-local functions.
 
-Unlike closures, which retain the captured value, global functions can't capture any variables - because global variables are just referenced by the function without any ownership. With this in mind there is no reason not to make these `Sendable` by default.
+Unlike closures, which retain the captured value, global functions can't capture any variables - because global variables are just referenced by the function without any ownership. With this in mind there is no reason not to make these `Sendable` by default. This change will also include static global functions.
 
 ```
 func doWork() -> Int {
@@ -291,7 +328,7 @@ Currently, trying to start a `Task` with the global function `doWork` will cause
 class C {
     var random: Int = 0 // random is mutable so `C` can't be checked sendable
 
-    @Sendable func generateN() async -> Int { //error: adding @Sendable to function of non-Sendable type prohibited
+    @Sendable func generateN() async -> Int { //error: adding @Sendable to function of non-Senable type prohibited
          random = Int.random(in: 1..<100)
          return random
     }
@@ -310,6 +347,37 @@ test(num) // data-race
 If we move the previous work we wanted to do into a class that stores the random number we generate as a mutable value, we could be introducing a data race by marking the function responsible for this work `@Sendable` . Doing this should be prohibited by the compiler.
 
 Since `@Sendable` attribute will be automatically determined with this proposal, you will no longer have to explicitly write it on function and method declarations.
+
+### Extending key path merging functionality to preserve sendability
+
+Existing Key path API provides a way to join two key paths together via using instance method `appending(...)` . Overloads of this method take key path types of varying mutability as their parameters and produce a new “joined” key path of a desired mutability (read-only, writable, or reference writable).
+
+Under the proposed semantics all overloads of this method become non-Sendable but it is possible and desirable to alleviate that and support/propagate sendability if both “base” and “appended” key paths are `Sendable`.
+
+Such could be archived by introducing new overloads to `func appending(...)` that utilize `& Sendable` for their parameter and result in an extension of `Sendable` protocol. For example:
+
+```
+extension Sendable where Self: AnyKeyPath {
+  @inlinable
+  public func appending<Root, Value, AppendedValue>(
+        path: KeyPath<Value, AppendedValue> & Sendable
+  ) -> KeyPath<Root, AppendedValue> & Sendable where Self : KeyPath<Root, Value> {
+    ...
+  }
+}
+```
+
+This overload would be selected if both “base” key path and the argument are `Sendable` and would produce a new `Sendable` key path:
+
+```
+func makeUTF8CountKeyPath<Root>(from base: KeyPath<Root, String> & Sendable) -> KeyPath<Root, Int> & Sendable {
+  // Both `base` and `\String.utf8.count` are Sendable key paths,
+  // so `appending(path:)` returns a Sendable key path too.
+  return base.appending(path: \.utf8.count) 🟢
+}
+```
+
+Standard library would have to introduce a variety of new overloads to keep `Sendable` capable  `appending(...)` on par with existing non-Sendable functionality.
 
 ## Source compatibility
 
@@ -345,18 +413,15 @@ Accessors are not currently allowed to participate with the `@Sendable` system i
 
 ## Alternatives Considered 
 
-Swift could forbid explicitly marking non-local function declarations with the `@Sendable` attribute, since under this proposal there’s no longer any reason to do this.
+Swift could forbid explicitly marking function declarations with the` @Sendable` attribute, since under this proposal there’s no longer any reason to do this.
 
 ```
 /*@Sendable*/ func alwaysSendable() {}
 ```
+
 However, since these attributes are allowed today, this would be a source breaking change. Swift 6 could potentially include fix-its to remove `@Sendable` attributes to ease migration, but it’d still be disruptive. The attributes are harmless under this proposal, and they’re still sometimes useful for code that needs to compile with older tools, so we have chosen not to make this change in this proposal. We can consider deprecation at a later time if we find a good reason to do so.
 
-If we do this, nested functions would not be impacted.
 
-```
-func outer() {
-    @Sendable func inner() {} // This would be OK
-}
-```
+
+
 
