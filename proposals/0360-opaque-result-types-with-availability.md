@@ -15,7 +15,7 @@ Under the rules described in SE-0244 - a function returning an opaque result typ
 
 The same-type `return` requirement is unnecessarily strict when it comes to availability conditions. SE-0244 states that it should be possible to change the underlying type in the future version of the library, but that would only work with pre-existing types. In other words, the same-type condition does not have to apply across executions of the same program, the same way that `Hashable` must produce the same output for the same value during program execution, but may produce a different value in the next execution. `#available` is special because it's a checkable form of that: dynamic availability will not change while the program is running, but may be different the next time the program runs.
 
-Current model and implementation limits usefulness of opaque result types as an abstraction mechanism, because it prevents frameworks from introducing new types and using them as underlying types in existing APIs. To bridge this usability gap, I propose to relax same-type restriction for `return`s inside of availability conditions.
+Current model and implementation limit usefulness of opaque result types as an abstraction mechanism, because it prevents frameworks from introducing new types and using them as underlying types in existing APIs. To bridge this usability gap, I propose to relax same-type restriction for `return`s inside of availability conditions.
 
 Swift-evolution thread: [
 [Pitch] Opaque result types with limited availability](https://forums.swift.org/t/pitch-opaque-result-types-with-limited-availability/57286)
@@ -54,7 +54,7 @@ extension Square {
 }
 ```
 
-The fact that the new method has to be declared in availability context to return `Rectangle` limits its usefulness because all uses of `asRectangle` would have be encapsulated into `if #available` blocks.
+The fact that the new method has to be declared in availability context to return `Rectangle` limits its usefulness because all uses of `asRectangle` would have to be encapsulated into `if #available` blocks.
 
 If `asRectangle` already existed in the original version of the framework, it wouldn’t be possible to use a new type at all without declaring `if #available` block in its body:
 
