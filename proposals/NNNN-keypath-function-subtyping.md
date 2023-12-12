@@ -2,9 +2,10 @@
 
 * Proposal: [SE-NNNN](NNNN-keypath-function-subtyping.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
-* Review Manager: TBD
+* Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Awaiting review**
 * Implementation: [apple/swift#39612](https://github.com/apple/swift/pull/39612)
+* Review: ([pitch](https://forums.swift.org/t/pitch-generalize-keypath-to-function-conversions/52681))
 
 ## Introduction
 
