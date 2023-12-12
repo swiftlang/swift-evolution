@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Accepted**
 * Implementation: [apple/swift#16099](https://github.com/apple/swift/pull/16099), [apple/swift#22289](https://github.com/apple/swift/pull/22289) (revert PR)
-* Review: ([first pitch](https://forums.swift.org/t/count-where-on-sequence/11186)) ([first review](https://forums.swift.org/t/se-0220-count-where/15048)) ([first acceptance](https://forums.swift.org/t/accepted-se-0220-count-where/15280)) … ([second pitch](https://forums.swift.org/t/pitch-restore-count-where-from-se-0220/65859)) ([second review](https://forums.swift.org/t/refresh-review-se-0220-count-where/66235)) ([second acceptance](https://forums.swift.org/t/accepted-again-se-0220-count-where/66659))
+* Review: ([first pitch](https://forums.swift.org/t/count-where-on-sequence/11186)) ([first review](https://forums.swift.org/t/se-0220-count-where/15048)) ([first acceptance](https://forums.swift.org/t/accepted-se-0220-count-where/15280)) ([second pitch](https://forums.swift.org/t/pitch-restore-count-where-from-se-0220/65859)) ([second review](https://forums.swift.org/t/refresh-review-se-0220-count-where/66235)) ([second acceptance](https://forums.swift.org/t/accepted-again-se-0220-count-where/66659))
 
 ## Introduction
 
