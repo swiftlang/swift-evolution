@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status:  **Active Review (December 12...26, 2023)**
 * Implementation: [PR #68793](https://github.com/apple/swift/pull/68793)
-* Review: TBD
+* Review: [Review](https://forums.swift.org/t/se-0417-task-executor-preference/68958)
 * Discussion threads:
     * Pitch: [Pitch: Task Executor Preference](https://forums.swift.org/t/pitch-task-executor-preference/68191)
 
