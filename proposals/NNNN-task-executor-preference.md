@@ -314,7 +314,7 @@ extension Task where Failure == Never {
 extension Task where Failure == Error { 
   @discardableResult
   public init(
-    on executor: any TaskExecutor,
+    on executor: (any TaskExecutor)?,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> Success
   )
