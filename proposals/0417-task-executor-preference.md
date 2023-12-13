@@ -1,14 +1,14 @@
 # Task Executor Preference
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0417](0417-task-executor-preference.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall), [Franz Busch](https://github.com/FranzBusch)
-* Review Manager: TBD
-* Status: Partially implemented [PR #68793](https://github.com/apple/swift/pull/68793)
-* Implementation: TBD
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status:  **Active Review (December 12...26, 2023)**
+* Implementation: [PR #68793](https://github.com/apple/swift/pull/68793)
 * Review: TBD
 * Discussion threads:
     * Pitch: [Pitch: Task Executor Preference](https://forums.swift.org/t/pitch-task-executor-preference/68191)
-   
+
 ## Introduction
 
 Swift Concurrency uses tasks and actors to model concurrency and primarily relies on actor isolation to determine where a specific piece of code shall execute.
@@ -178,17 +178,17 @@ await withTaskExecutor(someExecutor) {
 Once set, the effect of an executor preference is such that a nonisolated func instead of immediately hopping to the global pool, it may hop to the preferred executor, e.g.:
 
 ```swift
-nonisolated func tryMe() async { 
+nonisolated func doSomething() async { 
  // ...
 }
 
 let preferredExecutor: SomeConcreteTaskExecutor = ...
 Task(on: preferredExecutor) {
   // executes on 'preferredExecutor'
-  await tryMe() // tryMe body would execute on 'preferredExecutor'
+  await doSomething() // doSomething body would execute on 'preferredExecutor'
 }
 
- await tryMe() // tryMe body would execute on 'default global concurrent executor'
+ await doSomething() // doSomething body would execute on 'default global concurrent executor'
 ```
 
 ### The `TaskExecutor` protocol
