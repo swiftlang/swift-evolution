@@ -75,31 +75,58 @@ Please state explicitly whether you believe that the proposal should be accepted
 
 ## How to propose a change
 
-* **Check prior proposals**: many ideas come up frequently, and may either be in active discussion on the forums, or may have been discussed already and have joined the [Commonly Rejected Proposals](commonly_proposed.md) list. Please [search the forums](https://forums.swift.org/search) for context before proposing something new.
-* **Consider the goals of the upcoming Swift release**: Each major
-Swift release is focused on a [specific set of goals](README.md)
-described early in the release cycle. When proposing a change to
-Swift, please consider how your proposal fits in with the larger goals
-of the upcoming Swift release. Proposals that are clearly out of scope
-for the upcoming Swift release will not be brought up for review. If you can't resist discussing a proposal that you know is out of scope, please include the tag `[Out of scope]` in the subject.
-* **Socialize the idea**: propose a rough sketch of the idea in the ["pitches" section of the Swift forums](https://forums.swift.org/c/evolution/pitches), the problems it solves, what the solution looks like, etc., to gauge interest from the community.
-* **Develop the proposal**:
-  1. Expand the rough sketch into a formal proposal using the [proposal template](proposal-templates/0000-swift-template.md).
-  1. In the [swift-evolution repository][swift-evolution-repo], open a [draft pull request][draft-pr] that adds your proposal to the [proposals directory](/proposals).
-  1. Anounce the pull request on the forums and edit the root post to link out to the pull request.
-  1. Continue refining the formal proposal in the open as you receive feedback on the forums or the pull request.
+1. **Check prior proposals**
 
-  Prototyping an implementation and its uses along with the formal proposal is *required* because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
-* **Request a review**: once you believe the proposal is sufficiently detailed and clear, and addresses feedback from present and past discussions of the idea, mark the draft pull request as ready for review to indicate to the appropriate evolution workgroup you would like the proposal to be reviewed. After the pull request is approved, the proposal will be assigned a number as well as a member of the said evolution workgroup to manage the review.
-* **Address feedback**: in general, and especially [during the review period][proposal-status], be responsive to questions and feedback about the proposal.
+   Many ideas come up frequently, and may either be in active discussion on the forums, or may have been discussed already and have joined the [Commonly Rejected Proposals](commonly_proposed.md) list. Please [search the forums](https://forums.swift.org/search) for context before proposing something new.
+
+1. **Consider the goals of the upcoming Swift release**
+
+   Each major Swift release is focused on a [specific set of goals](README.md)
+   described early in the release cycle. When proposing a change to
+   Swift, please consider how your proposal fits in with the larger goals
+   of the upcoming Swift release. Proposals that are clearly out of scope
+   for the upcoming Swift release will not be brought up for review. If you can't resist discussing a proposal that you know is out of scope, please include the tag `[Out of scope]` in the subject.
+
+1. **Socialize the idea**
+
+   Propose a rough sketch of the idea in the ["pitches" section of the Swift forums](https://forums.swift.org/c/evolution/pitches), the problems it solves, what the solution looks like, etc., to gauge interest from the community.
+
+1. **Develop the proposal and implementation**
+
+   1. Expand the rough sketch into a formal proposal using the [proposal template](proposal-templates/0000-swift-template.md).
+   1. In the [swift-evolution repository][swift-evolution-repo], open a [draft pull request][draft-pr] that adds your proposal to the [proposals directory](/proposals).
+   1. Anounce the pull request on the forums and edit the root post to link out to the pull request.
+   1. Refine the formal proposal in the open as you receive further feedback on the forums or the pull request.
+      A ripe proposal is expected to address commentary from present and past
+      discussions of the idea.
+
+      Meanwhile, start working on an implementation.
+      Prototyping an implementation and its uses *alongside* the formal proposal
+      is important because it helps to determine an adequate scope, ensure
+      technical feasibility, and validate that the proposal lives up to
+      its motivation.
+
+      A pull request with a working implementation is *required* for the
+      proposal to be accepted for review.
+      Proposals that can ship as part of the [Standard Library Preview package][preview-package]
+      should be paired with a pull request against the [swift-evolution-staging repository][swift-evolution-staging].
+      All other proposals should be paired with an implementation pull request
+      against the [main Swift repository](https://github.com/apple/swift).
+
+      The preview package can accept new types, new protocols, and extensions to
+      existing types and protocols that can be implemented without access to
+      standard library internals or other non-public features.
+      For more information about the kinds of changes that can be implemented in
+      the preview package, see [SE-0264](https://github.com/apple/swift-evolution/blob/main/proposals/0264-stdlib-preview-package.md).
+
+1. **Request a review**
+
+   Once you have a working implementation and believe the proposal is sufficiently detailed and clear, mark the draft pull request in the [swift-evolution repository][swift-evolution-repo] as ready for review to indicate to the appropriate evolution workgroup that you would like the proposal to be reviewed.
+
+> [!IMPORTANT]
+> In general, and especially [during the review period](#review-process), be responsive to questions and feedback about the proposal.
 
 [draft-pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests
-
-## Preparing an implementation
-
-When you are ready to request a review, a pull request with an implementation is required in addition to your proposal. Proposals that can ship as part of the [Standard Library Preview package][preview-package] should be paired with a pull request against the [swift-evolution-staging repository][swift-evolution-staging]. All other proposals should be paired with an implementation pull request against the [main Swift repository](https://github.com/apple/swift).
-
-The preview package can accept new types, new protocols, and extensions to existing types and protocols that can be implemented without access to standard library internals or other non-public features. For more information about the kinds of changes that can be implemented in the preview package, see [SE-0264](https://github.com/apple/swift-evolution/blob/main/proposals/0264-stdlib-preview-package.md).
 
 ## Review process
 
@@ -181,7 +208,7 @@ A given proposal can be in one of several states:
 [swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
 [swift-evolution-staging]: https://github.com/apple/swift-evolution-staging  "Swift evolution staging repository"
 [proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
-[proposal-status]: https://apple.github.io/swift-evolution/
+[status-page]: https://apple.github.io/swift-evolution/
 [preview-package]: https://github.com/apple/swift-standard-library-preview/
 [language-steering-group]: https://www.swift.org/language-steering-group
 

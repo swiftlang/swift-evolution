@@ -256,7 +256,7 @@ Users will be able to configure how SwiftPM handles packages downloaded from a
 registry. In the user-level `registries.json` file, which by default is located at 
 `~/.swiftpm/configuration/registries.json`, we will introduce a new `security` key:
 
-```json
+```json5
 {
   "security": {
     "default": {
@@ -511,7 +511,7 @@ described in this document.
 If the package release is signed, the registry must include a `signing` JSON 
 object in the response:
 
-```json
+```json5
 {
   "id": "mona.LinkedList",
   "version": "1.1.1",
@@ -675,7 +675,7 @@ direct and transitive dependencies across the ecosystem much faster than a
 local-only TOFU without requiring a centralized database/service to vend 
 this information.
 
-```json
+```json5
 {
   "pins": [
     {
