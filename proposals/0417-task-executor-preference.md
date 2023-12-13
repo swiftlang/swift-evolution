@@ -642,63 +642,6 @@ func function() async {
 }
 ```
 
-#### What about the Main Actor?
-
-While the `MainActor` is not really special under this model, and behaves just as any other actor _with_ a specific executor requirement. 
-
-It is worth reminding that using the main actor's executor as a preferred executor would have the same effect as with any other executor. While usually using the main actor as preferred executor is not recommended. After all, this is why the original proposal was made to make nonisolated async functions hop *off* from their calling context, in order to free the main actor to interleave other work while other asynchronous work is happening.
-
-In some situations, where the called asynchronous function may be expected to actually never suspend directly but only sometimes call another actor, and otherwise just return immediately without ever suspending. This may be used as fine optimization to tune around specific well known calls.
-
-### Task executor preference and `AsyncSequence`s
-
-One use-case worth calling out is AsyncSequences, especially when used from actors. 
-
-The following snippet illustrates a common performance pitfall today:
-
-```swift
-actor Looper { 
-  func consumeSequence() async {
-    for await value in getAsyncSequence() {
-      // 1. hop-to global pool: await next()
-      // 2. hop-to actor: execute for-loop body
-      print("got: \(value)")
-    }
-  }
-}
-```
-
-Because an async sequence's iterator has a nonisolated `next()` method (declared like this `func next() async -> Element?`),
-under the current execution semantics, the execution will _always_ hop to the global concurrent executor to execute the `next()` method,
-and only then let it run, potentially produce a value without even suspending (!), and hop back to the actor to process the body of the for-loop.
-
-This is unfortunate and can cause a lot of back-and forth hopping that may not necessarily be desirable. Especially with async sequences which employ
-some form of buffering, such that e.g. the sequence has a number of elements "ready" and will return them immediately without having to suspend or synchronize with other `isolated` code.
-
-With the use of task executor preference, we are able to circumvent the hops to the global concurrent executor, by preferring the actor's own executor, like this:
-
-```swift
-actor Looper { 
-  func consumeSequence() async {
-    withTaskExecutor(self) {
-      for await value in getAsyncSequence() {
-        // 1.a. 'next()' can execute on Looper's executor
-        // 1.b. if next() needs to call some other isolated code, we would hop there
-        //      but only when necessary.
-        // 2.a. Following the fast path where next() executed directly on Looper.executor,
-        //      the "hop back to actor" is efficient because it is a hop to the same executor which is a no-op.
-        // 2.b. Following the slow path where next() had to call some `isolated` code,
-        //      the hop back to the Looper is the same as it would be normally.
-        print("got: \(value)")
-      }
-    }
-  }
-}
-```
-
-Async sequences are expected to undergo further evolution in order to express isolation more efficiently in the actor case.
-Task executors are expected to fit well into this model, and offer an additional layer of "fine tuning" of developers encounter the need to do so.
-
 ## Prior-Art
 
 It is worth comparing with other concurrency runtimes with similar concepts to make sure if there are some common ideas or something different other projects have researched.
