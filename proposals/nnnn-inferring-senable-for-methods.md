@@ -1,9 +1,11 @@
 # Inferring `Sendable` for methods and key path literals
 
-* Proposal: [SE-NNNN](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/NNNN-filename.md)
+* Proposal: [SE-NNNN](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/NNNN-inferring-sendable-for-methods.md)
 * Authors: [Angela Laar](https://github.com/angela-laar), [Kavon Farvardin](https://github.com/kavon), [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
+* Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
 * Status: Awaiting Implementation
+* Implementation: [apple/swift#67498](https://github.com/apple/swift/pull/67498), [apple/swift#70076](https://github.com/apple/swift/pull/70076); in main behind experimental feature flag `InferSendableFromCaptures`
+* Upcoming Feature Flag: `InferSendableFromCaptures`
 * Review: ([pitch](https://forums.swift.org/t/pitch-inferring-sendable-for-methods/66565))
 
 ## Introduction
