@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (December 13, 2023...January 2, 2024)**
 * Implementation: [apple/swift#39612](https://github.com/apple/swift/pull/39612)
-* Review: ([pitch](https://forums.swift.org/t/pitch-generalize-keypath-to-function-conversions/52681))
+* Review: ([pitch](https://forums.swift.org/t/pitch-generalize-keypath-to-function-conversions/52681)) ([review](https://forums.swift.org/t/se-0416-subtyping-for-keypath-literals-as-functions/68984))
 
 ## Introduction
 
