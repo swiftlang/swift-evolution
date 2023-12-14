@@ -6,7 +6,7 @@
 * Status: **Active Review (December 14, 2023...January 1, 2024)**
 * Implementation: [apple/swift#67498](https://github.com/apple/swift/pull/67498), [apple/swift#70076](https://github.com/apple/swift/pull/70076); in main behind experimental feature flag `InferSendableFromCaptures`
 * Upcoming Feature Flag: `InferSendableFromCaptures`
-* Review: ([pitch](https://forums.swift.org/t/pitch-inferring-sendable-for-methods/66565))
+* Review: ([pitch](https://forums.swift.org/t/pitch-inferring-sendable-for-methods/66565)) ([review](https://forums.swift.org/t/se-0418-inferring-sendable-for-methods-and-key-path-literals/68999))
 
 ## Introduction
 
