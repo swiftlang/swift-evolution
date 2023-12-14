@@ -111,9 +111,9 @@ If the generic parameter list of a variadic type consists of a single generic pa
 ```swift
 struct V<each T> {}
 
-V<>.self
+V< >.self
 ```
-Note that `V<>` is not the same as `V`. The former substitutes the generic parameter pack `T` with the empty pack. The latter does not constrain the pack at all and is only permitted in contexts where the generic argument can be inferred (or within the body of `V` or an extension thereof, where it is considered identical to `Self`).
+Note that `V< >` is not the same as `V`. The former substitutes the generic parameter pack `T` with the empty pack. The latter does not constrain the pack at all and is only permitted in contexts where the generic argument can be inferred (or within the body of `V` or an extension thereof, where it is considered identical to `Self`).
 
 A placeholder type in the generic argument list of a variadic generic type is always understood as a single pack element. For example:
 
