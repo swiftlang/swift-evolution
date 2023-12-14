@@ -71,7 +71,9 @@ let f: (User) -> String? = { kp in { root in root[keyPath: kp] } }(\User.email)
 
 ## Source compatibility
 
-This proposal makes previously invalid conversions valid, and should not affect source compatibility. In situations such as:
+This proposal allows conversions in some situations that were previously impossible.  This can affect source compatibility because overloaded function calls may gain new viable overload candidates.
+
+In typical scenarios, these new candidates will be strictly worse than previous candidates because the new conversion is strictly less favorable.  In situations such as:
 
 ```swift
 func evil<T, U>(_: (T) -> U) { print("generic") }
@@ -80,7 +82,9 @@ func evil(_ x: (String) -> Bool?) { print("concrete") }
 evil(\String.isEmpty)
 ```
 
-we today resolve the `evil` call as referring to the generic function, since the conversion necessary for the concrete function is invalid. This proposal would make both overloads viable, but the concrete version is still considered a worse solution since it requires more conversions to reach a solution (not only does the keypath need to be converted to a function, but the 'natural' type of the keypath function is `(String) -> Bool`, which requires an additional conversion from the type system's perspective).
+Swift will (without this proposal) prefer to call the generic function because the conversion necessary for the concrete function is invalid.  With this proposal, Swift will still prefer to call the generic function because the concrete function requires an extra conversion (not only does the keypath need to be converted to a function, but the 'natural' type of the keypath function is `(String) -> Bool`, which requires another conversion to get to `(String) -> Bool?`).
+
+However, this is not always true. A newly-viable overload candidate may be disfavored for the key path conversion but favored for other reasons. This should be uncommon, and so the author expects this proposal will have a very small impact in practice, but this will need to be demonstrated as part of landing the proposal in a Swift release.
 
 ## Effect on ABI stability
 
