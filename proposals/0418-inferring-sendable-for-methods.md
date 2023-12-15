@@ -97,7 +97,7 @@ let entry: KeyPath<User, Entry> = \.[Info()]
 
 With sendability checking enabled this example is going to produce the following warning:
 
-```swift
+```
 warning: cannot form key path that captures non-sendable type 'Info'
 let entry: KeyPath<User, Entry> = \.[Info()]
                                      ^
@@ -244,7 +244,7 @@ let unapplied : @Sendable (User)-> ((String, String) -> Void) = User.changeAddre
 2. The inference of `@Sendable` for partially-applied methods of a Sendable type.
 
 ```swift
-`let partial : @Sendable (String, String) -> Void = User().changeAddress // no error`
+let partial : @Sendable (String, String) -> Void = User().changeAddress // no error
 ```
 
 
@@ -316,7 +316,7 @@ Unlike closures, which retain the captured value, global functions can't capture
 
 ```swift
 func doWork() -> Int {
-`  Int.random(in: 1..<42)`
+  Int.random(in: 1..<42)
 }
 
 Task<Int, Never>.detached(priority: nil, operation: doWork) // Converting non-sendable function value to '@Sendable () async -> Void' may introduce data races
@@ -343,7 +343,6 @@ Task.detached {
   test(num)
 }
 test(num) // data-race
-
 ```
 
 If we move the previous work we wanted to do into a class that stores the random number we generate as a mutable value, we could be introducing a data race by marking the function responsible for this work `@Sendable` . Doing this should be prohibited by the compiler.
