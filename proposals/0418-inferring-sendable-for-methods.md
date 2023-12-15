@@ -18,7 +18,7 @@ The partial application of methods and other first-class uses of functions have 
 
 Let’s look at partial application on its own before we combine it with concurrency.  In Swift, you can create a function-value representing a method by writing an expression that only accesses (but does not call) a method using one of its instances. This access is referred to as a "partial application" of a method to one of its (curried) arguments - the object instance.
 
-```
+```swift
 struct S {
   func f() { ... }
 }
@@ -30,7 +30,7 @@ let partial: (() -> Void) = S().f
 When referencing a method *without* partially applying it  to the object instance, using the expression NominalType.method, we call it "unapplied."
 
 
-```
+```swift
 let unapplied: (T) -> (() -> Void) = S.f
 ```
 
@@ -38,7 +38,7 @@ let unapplied: (T) -> (() -> Void) = S.f
 Suppose we want to create a generic method that expects an unapplied function method conforming to Sendable as a parameter. We can create a protocol ``P`` that conforms to the `Sendable` protocol and tell our generic function to expect some generic type that conforms to ``P``. We can also use the `@Sendable` attribute, introduced for closures and functions in [SE-302](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/0302-concurrent-value-and-concurrent-closures.md), to annotate the closure parameter.
 
 
-```
+```swift
 protocol P: Sendable {
   init()
 }
@@ -56,7 +56,7 @@ Now let’s call our method and pass our struct type `S` . First we should make 
 This should make `S` and its methods Sendable as well. However, when we pass our unapplied function `S.f`  to our generic function `g`, we get a warning that `S.f` is not Sendable as `g()` is expecting.  
 
 
-```
+```swift
 struct S: P {
   func f() { ... }
 }
@@ -67,7 +67,7 @@ g(S.f) // Converting non-sendable function value to '@Sendable (S) -> (() -> Voi
 
 We can work around this by wrapping our unapplied function in a Sendable closure.  
 
-```
+```swift
 // S.f($0) == S.f()
 g({ @Sendable in S.f($0) })
 ```
@@ -79,7 +79,7 @@ However, this is a lot of churn to get the expected behavior. The compiler shoul
 
 [SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#key-path-literals) makes an explicit mention that all key path literals are treated as implicitly `Sendable` which means that they are not allowed to capture any non-`Sendable` values. This behavior is justified when key path values are passed across concurrency domains or otherwise involved in concurrently executed code but is too restrictive for non-concurrency related code.
 
-```
+```swift
 class Info : Hashable {
   // some information about the user
 }
@@ -97,7 +97,7 @@ let entry: KeyPath<User, Entry> = \.[Info()]
 
 With sendability checking enabled this example is going to produce the following warning:
 
-```
+```swift
 warning: cannot form key path that captures non-sendable type 'Info'
 let entry: KeyPath<User, Entry> = \.[Info()]
                                      ^
@@ -114,7 +114,7 @@ We propose the compiler should automatically employ `Sendable`  on functions and
 For a function, the `@Sendable` attribute primarily influences the kinds of values that can be captured by the function. But methods of a nominal type do not capture anything but the object instance itself. Semantically, a method can be thought of as being represented by the following functions:
 
 
-```
+```swift
 // Pseudo-code declaration of a Nominal Type:
 type NominalType {
   func method(ArgType) -> ReturnType { /* body of method */ }
@@ -136,7 +136,7 @@ func NominalType_method(_ self: NominalType, _ arg1: ArgType) -> ReturnType {
 Thus, the only way a partially-applied method can be `@Sendable` is if the `inner` closure were `@Sendable`, which is true if and only if the nominal type conforms to `Sendable`.
 
 
-```
+```swift
 type NominalType : Sendable {
   func method(ArgType) -> ReturnType { /* body of method */ }
 }
@@ -144,7 +144,7 @@ type NominalType : Sendable {
 
 For example, by declaring the following type `Sendable`, the partial and unapplied function values of the type would have implied Sendability and the following code would compile with no errors.
 
-```
+```swift
 struct User : Sendable {
   func updatePassword (new: String, old: String) -> Bool {
     /* update password*/ 
@@ -163,7 +163,7 @@ Key path literals are very similar to functions, their sendability could be infl
 
 Let’s extend our original example type `User` with a new property and a subscript to showcase the change in behavior:
 
-```
+```swift
 struct User {
   var name: String
 
@@ -175,20 +175,20 @@ struct User {
 
 A key path to reference a property `name` does not capture any non-Sendable types which means the type of such key path literal could either be inferred as `WritableKeyPath<User, String> & Sendable` or stated to have a sendable type via `& Sendable` composition:
 
-```
+```swift
 let name = \User.name // WritableKeyPath<User, String> **& Sendable**
 let name: KeyPath<User, String> & Sendable = \.name // 🟢
 ```
 
 It is also allowed to use `@Sendable` function type and `& Sendable` key path interchangeably:
 
-```
+```swift
 let name: @Sendable (User) -> String = \.name 🟢
 ```
 
 It is important to note that **under the proposed rule all of the declarations that do not explicitly specify a Sendable requirement alongside key path type are treated as non-Sendable** (see Source Compatibility section for further discussion):
 
-```
+```swift
 let name: KeyPath<User, String> = \.name // 🟢 but key path is **non-Sendable**
 ```
 
@@ -196,25 +196,25 @@ Since Sendable is a marker protocol is should be possible to adjust all declarat
 
 Existing APIs that use key path in their parameter types or default values can add `Sendable` requirement in a non-ABI breaking way by marking existing declarations as @preconcurrency and adding `& Sendable` at appropriate positions:
 
-```
+```swift
 public func getValue<T, U>(_: KeyPath<T, U>) { ... }
 ```
 
 becomes
 
-```
+```swift
 @preconcurrency public func getValue<T, U>(_: KeyPath<T, U> & Sendable) { ... }
 ```
 
 Explicit sendability annotation does not override sendability checking and it would still be incorrect to state that the key path literal is Sendable when it captures non-Sendable values:
 
-```
+```swift
 let entry: KeyPath<User, Entry> & Sendable = \.[Info()] 🔴 Info is a non-Sendable type
 ```
 
 Such `entry` declaration would be diagnosed by the sendability checker:
 
-```
+```swift
 warning: cannot form key path that captures non-sendable type 'Info'
 ```
 
@@ -237,13 +237,13 @@ struct User : Sendable {
 
 1. The inference of `@Sendable` for unapplied references to methods of a Sendable type.
 
-```
+```swift
 let unapplied : @Sendable (User)-> ((String, String) -> Void) = User.changeAddress // no error
 ```
 
 2. The inference of `@Sendable` for partially-applied methods of a Sendable type.
 
-```
+```swift
 `let partial : @Sendable (String, String) -> Void = User().changeAddress // no error`
 ```
 
@@ -253,7 +253,7 @@ These two rules include partially applied and unapplied static methods but do no
 
 3. A key path literal without non-Sendable type captures and references to actor-isolated properties and/or subscripts is going to be inferred as key path type with a `& Sendable` requirement or a function type with `@Sendable` attribute.
 
-```
+```swift
 extension User {
   @MainActor var age: Int { get { 0 } }
 }
@@ -266,26 +266,26 @@ The type of age`KP` is `KeyPath<User, Int>` because `age` is isolated to a globa
 
 Key path types respect all of the existing sub-typing rules related to Sendable protocol which means a key path that is not marked as Sendable cannot be assigned to a value that is Sendable.
 
-```
+```swift
 let name: KeyPath<User, String> = \.name
 let otherName: KeyPath<User, String> & Sendable = \.name 🔴
 ```
 
 The conversion between key path and a `@Sendable` function doesn’t actually require the key path itself to be `Sendable` because the it’s not captured by the closure but wrapped by it.
 
-```
+```swift
 let name: @Sendable (User) -> String = \.name 🟢
 ```
 
  The example above is accepted and  is transformed by the compiler into:
 
-```
+```swift
 let name: @Sendable (User) -> String = { $0[keyPath: \.name] }
 ```
 
 But any subscript arguments that are non-Sendable would preclude the conversion because they’d be captured by the implicitly synthesized closure which makes the closure non-Sendable:
 
-```
+```swift
 let value: NonSendable = NonSendable()
 let _: @Sendable (User) -> String = \.[value] 🔴
 ```
@@ -296,7 +296,7 @@ Similarly if the conversion captures a key path that has a reference to an isola
 
 Key path literals are allowed to infer Sendability requirements from the context i.e. when a key path literal is passed as an argument to a parameter that requires a Sendable type:
 
-```
+```swift
 func getValue<T: Sendable>(_: KeyPath<User, T> & Sendable) -> T {}
 
 getValue(name) // 🟢 both parameter & argument match on sendability requirement
@@ -314,7 +314,7 @@ Next is:
 
 Unlike closures, which retain the captured value, global functions can't capture any variables - because global variables are just referenced by the function without any ownership. With this in mind there is no reason not to make these `Sendable` by default. This change will also include static global functions.
 
-```
+```swift
 func doWork() -> Int {
 `  Int.random(in: 1..<42)`
 }
@@ -326,7 +326,7 @@ Currently, trying to start a `Task` with the global function `doWork` will cause
 
 5. Prohibition of marking methods `@Sendable` when the type they belong to is not `@Sendable`.
 
-```
+```swift
 class C {
     var random: Int = 0 // random is mutable so `C` can't be checked sendable
 
@@ -358,7 +358,7 @@ Under the proposed semantics all overloads of this method become non-Sendable bu
 
 Such could be archived by introducing new overloads to `func appending(...)` that utilize `& Sendable` for their parameter and result in an extension of `Sendable` protocol. For example:
 
-```
+```swift
 extension Sendable where Self: AnyKeyPath {
   @inlinable
   public func appending<Root, Value, AppendedValue>(
@@ -371,7 +371,7 @@ extension Sendable where Self: AnyKeyPath {
 
 This overload would be selected if both “base” key path and the argument are `Sendable` and would produce a new `Sendable` key path:
 
-```
+```swift
 func makeUTF8CountKeyPath<Root>(from base: KeyPath<Root, String> & Sendable) -> KeyPath<Root, Int> & Sendable {
   // Both `base` and `\String.utf8.count` are Sendable key paths,
   // so `appending(path:)` returns a Sendable key path too.
@@ -385,7 +385,7 @@ Standard library would have to introduce a variety of new overloads to keep `Sen
 
 As described in the Proposed Solution section, some of the existing property and variable declarations **without explicit types** could change their type but the impact of the inference change should be very limited. For example, it would only be possible to observe it when a function or key path value which is inferred as Sendable is passed to an API which is overloaded on Sendable capability:
 
-```
+```swift
 func callback(_: @Sendable () -> Void) {}
 func callback(_: () -> Void) {}
 
@@ -417,7 +417,7 @@ Accessors are not currently allowed to participate with the `@Sendable` system i
 
 Swift could forbid explicitly marking function declarations with the` @Sendable` attribute, since under this proposal there’s no longer any reason to do this.
 
-```
+```swift
 /*@Sendable*/ func alwaysSendable() {}
 ```
 
