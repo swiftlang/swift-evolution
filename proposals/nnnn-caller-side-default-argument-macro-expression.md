@@ -6,7 +6,7 @@
 * Status: **Awaiting review**
 * Implementation: https://github.com/ApolloZhu/swift/tree/macro/expression-as-default-argument
 * Upcoming Feature Flag: `ExpressionMacroDefaultArguments`
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-expression-macro-as-caller-side-default-argument/69019))
 
 ## Introduction
 
