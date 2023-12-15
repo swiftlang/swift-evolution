@@ -22,9 +22,7 @@ public struct MakeLabeledPrinterMacro: ExpressionMacro {
         of node: some FreestandingMacroExpansionSyntax,
         in context: some MacroExpansionContext
     ) throws -> ExprSyntax {
-        return #"""
-        { value in print("\(#fileID):\(#line): \(value)") }
-        """#
+        return "{ value in print(\"\\(#fileID):\\(#line): \\(value)\") }"
     }
 }
 
@@ -34,13 +32,13 @@ public macro LabeledPrinter<T>() -> (T) -> Void
 public func greet<T>(
     _ thing: T,
     print: (T) -> Void = #LabeledPrinter
-                  error: ^ `non-built-in macro cannot be used as default argument`
+//                error: ^ non-built-in macro cannot be used as default argument
 ) {
     print("Hello, \(thing)")
 }
 ```
 
-This is because built-in expression macros/magic identifiers have a special behavior: when used as default arguments, instead of been expanded at where the macros are written like all other macros, they are expanded by the caller using the source-location information of the call site:
+This is because built-in expression macros/magic identifiers have a special behavior: when used as default arguments, instead of been expanded at where the expressions are written like all other macros, they are expanded by the caller using the source-location information of the call site:
 
 ```swift
 // in MyLibrary.swift
