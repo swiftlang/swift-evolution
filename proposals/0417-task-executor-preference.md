@@ -378,7 +378,7 @@ however for purposes of executors -- especially long-lived ones, we believe this
 
 An example use of this API might be something like this:
 
-```
+``` swift
 struct MyEventLoopTaskExecutor: TaskExecutor {}
 
 func test(expected eventLoop: MyEventLoopTaskExecutor) {
