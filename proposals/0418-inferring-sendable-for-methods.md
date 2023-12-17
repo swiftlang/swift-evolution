@@ -406,7 +406,7 @@ Adding or removing `& Sendable` from type doesn’t have any ABI impact because 
 
 ## Effect on API resilience
 
-No effect on ABI stability. 
+N/A
 
 ## Future Directions 
 
