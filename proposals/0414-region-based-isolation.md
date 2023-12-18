@@ -275,7 +275,7 @@ Now lets apply these rules to some specific examples in Swift code:
     let closure = { useInOut(&x) }
     // Regions: [(x, closure)]
     let y = NonSendable()
-    // Regions: [(x, closure), y]
+    // Regions: [(x, closure), (y)]
     x = y
     // Regions: [(x, closure, y)]
   }
@@ -306,7 +306,7 @@ Now lets apply these rules to some specific examples in Swift code:
     let x = NonSendableStruct()
     // Regions: [(x)]
     let y = NonSendable()
-    // Regions: [x, y]
+    // Regions: [(x), (y)]
     x.field = y
     // Regions: [(x, y)]
   }
@@ -337,7 +337,7 @@ Now lets apply these rules to some specific examples in Swift code:
   func transfer(x: NonSendable, y: NonSendable) {
     // Regions: [(x, y)]
     let z = NonSendable()
-    // Regions: [(x, y), z]
+    // Regions: [(x, y), (z)]
     f(x, z)
     // Regions: [(x, y, z)]
   }
