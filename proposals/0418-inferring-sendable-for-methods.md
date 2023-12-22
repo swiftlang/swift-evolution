@@ -31,7 +31,7 @@ When referencing a method *without* partially applying it  to the object instanc
 
 
 ```swift
-let unapplied: (T) -> (() -> Void) = S.f
+let unapplied: (S) -> (() -> Void) = S.f
 ```
 
 
