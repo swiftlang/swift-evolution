@@ -57,7 +57,7 @@ class C {
   @MainActor var x1 = requiresMainActor()
   @AnotherActor var x2 = requiresAnotherActor()
 
-  nonisolated init() {} // error: 'self.x2' and 'self.x2' are not initialized
+  nonisolated init() {} // error: 'self.x1' and 'self.x2' are not initialized
 }
 ```
 

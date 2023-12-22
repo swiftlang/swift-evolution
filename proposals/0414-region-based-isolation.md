@@ -3,9 +3,9 @@
 * Proposal: [SE-0414](0414-region-based-isolation.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm) [Joshua Turcotti](https://github.com/jturcotti)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (December 4 - December 18, 2023)**
+* Status: **Returned for revision**
 * Implementation: On `main` gated behind `-enable-experimental-feature RegionBasedIsolation`
-* Review: ([review](https://forums.swift.org/t/se-0414-region-based-isolation/68805)), ([pitch 2](https://forums.swift.org/t/pitch-region-based-isolation/67888)), ([pitch 1](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566))
+* Review: ([decision notes](https://forums.swift.org/t/returned-for-revision-se-0414-region-based-isolation/69123)), ([review](https://forums.swift.org/t/se-0414-region-based-isolation/68805)), ([pitch 2](https://forums.swift.org/t/pitch-region-based-isolation/67888)), ([pitch 1](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566))
 
 ## Introduction
 
@@ -275,7 +275,7 @@ Now lets apply these rules to some specific examples in Swift code:
     let closure = { useInOut(&x) }
     // Regions: [(x, closure)]
     let y = NonSendable()
-    // Regions: [(x, closure), y]
+    // Regions: [(x, closure), (y)]
     x = y
     // Regions: [(x, closure, y)]
   }
@@ -306,7 +306,7 @@ Now lets apply these rules to some specific examples in Swift code:
     let x = NonSendableStruct()
     // Regions: [(x)]
     let y = NonSendable()
-    // Regions: [x, y]
+    // Regions: [(x), (y)]
     x.field = y
     // Regions: [(x, y)]
   }
@@ -337,7 +337,7 @@ Now lets apply these rules to some specific examples in Swift code:
   func transfer(x: NonSendable, y: NonSendable) {
     // Regions: [(x, y)]
     let z = NonSendable()
-    // Regions: [(x, y), z]
+    // Regions: [(x, y), (z)]
     f(x, z)
     // Regions: [(x, y, z)]
   }
