@@ -4,16 +4,16 @@
 * Authors: [Genaro-Chris](https://github.com/Genaro-Chris)
 * Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
-* Review: ([Pitch](https://forums.swift.org/...))
+* Review: ([Pitch](https://forums.swift.org/t/pitch-improved-compiler-error-messages/66839))
 
 ## Introduction
 
-Currently the Swift compiler error messages aren't really helping convene the true problem encountered during compilation. Sometimes either the message displayed by the compiler are sometimes generic or not helpful in trying to aid the programmer correct him or herself, or errors hard to recreate in a different context or situation. This often leads to quick dismay of our sweet language by some new developers coming from other languages.
+Currently the Swift compiler error messages aren't really helping convene the true problem encountered during compilation. Sometimes either the message displayed by the compiler are sometimes generic or not helpful in trying to aid the programmer correct him or herself, or errors hard to recreate in a different context or situation. This often leads to quick dismay of our sweet dear language by some new developers coming from other languages.
 
 ```
 struct Person {
-    let name: String
-    let age: UInt
+  let name: String
+  let age: UInt
 }
 
 let adam = Person(name: "Adam", age: 18)
@@ -28,7 +28,7 @@ adam.walk()
 
 ## Motivation
 
- This proposal would help categorize error messages, explain the cause of the error and possibly with code examples, ways of preventing or correcting such errors from recurring.
+This proposal would help categorize error messages, explain the cause of the error and possibly with code examples, ways of preventing or correcting such errors from recurring.
  
 ## Proposed solution
 
@@ -63,25 +63,28 @@ If the preceding code is compiled, the error message would be
 ```
 Compilation failed: 1 error(s), 0 warnings
 
-HelloWorld.cs(8,8): error CS1061: Type `Person' does not contain a definition for `walk' and no extension method `walk' of type `Person' could be found. Are you missing an assembly reference?
+HelloWorld.cs(8,8): error CS1061: Type `Person' does not contain a definition for `walk' and no extension method `walk' of type `Person' could be found. 
+Are you missing an assembly reference?
 HelloWorld.cs(13,14): (Location of the symbol related to previous error)
 ```
-The error codes is hosted online at [C# Compiler message](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/).
+The error codes is hosted online at [C# Compiler messages](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/).
 
 
 While that of Rust language
 
 ```
+struct Person {
+  name: String,
+  age: i8,
+}
+
 fn main() {
-    struct Person {
-        name: String,
-        age: i8,
-    }
-    let adam = Person {
-        name: String::from("Adam"),
-        age: 18,
-    };
-    adam.walk();
+    
+  let adam = Person {
+    name: String::from("Adam"),
+    age: 18,
+  };
+  adam.walk();
 }
 ```
 If the preceding code is compiled, the error message would be
@@ -106,14 +109,16 @@ Still using our Swift example, the error should look like this instead
 
 ```
 Found error SE0157: value of type 'Person' has no member 'walk
-		adam.walk()
-		~~~ ^ ~~~
+  adam.walk()
+	~~~~ ^ ~~~~
 		       
 For more information about this error, try swiftc --describe SE0157	
 ```
 Also using a new compiler flag 'describe', we could reference the preceding error category
 
->__$swiftc describe SE0157__
+```shell
+$swift describe SE0157
+```
 
 The following would be the output
 
@@ -124,7 +129,7 @@ Error:
 struct Example {}
 
 let x = Example()
-x.exampleMethod(); // error: no method named `chocolate` found for type `Mouth`in the current scope
+x.exampleMethod(); // error: no method named `exampleMethod` found for type `Mouth`in the current scope
 
 Fix-it: 
 In this case, you need to add the implementation of `exampleMethod` method to fix the error:
@@ -151,6 +156,12 @@ This has no effect on ABI stability since it is additive
 ## Effect on API resilience
 
 This has no effect on API resilience since it is additive 
+
+## Future directions
+
+### Hosting the error codes online
+
+While a large number of compiler error messages have been properly indexed, we could host it as a separate webpage on the the [Swift website](https://www.swift.org) for easy access from everyone
 
 ## Alternatives considered
 
