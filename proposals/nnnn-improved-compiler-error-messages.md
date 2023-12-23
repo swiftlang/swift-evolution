@@ -10,7 +10,7 @@
 
 Currently the Swift compiler error messages aren't really helping convene the true problem encountered during compilation. Sometimes either the message displayed by the compiler are sometimes generic or not helpful in trying to aid the programmer correct him or herself, or errors hard to recreate in a different context or situation. This often leads to quick dismay of our sweet dear language by some new developers coming from other languages.
 
-```
+```swift
 struct Person {
   let name: String
   let age: UInt
@@ -36,26 +36,26 @@ Taking similar routes as some other languages such as Rust or C# as such languag
 
 Example with that of C# language
 
-```
+```csharp
 using System;
 
 public class Program
 {
-	public static void Main()
-	{
-		var john = new Person("John Adam", 18);
-		john.walk();
-		Console.WriteLine("Hello World");
-	}
+    public static void Main()
+    {
+        var john = new Person("John Adam", 18);
+        john.walk();
+        Console.WriteLine("Hello World");
+    }
 }
 
 public class Person {
-	string name;
-	uint age;
-	public Person(string name, uint age) {
-		this.name = name;
-		this.age = age;
-	}
+    string name;
+    uint age;
+    public Person(string name, uint age) {
+       this.name = name;
+       this.age = age;
+     }
 }
 ```
 If the preceding code is compiled, the error message would be
@@ -63,7 +63,7 @@ If the preceding code is compiled, the error message would be
 ```
 Compilation failed: 1 error(s), 0 warnings
 
-HelloWorld.cs(8,8): error CS1061: Type `Person' does not contain a definition for `walk' and no extension method `walk' of type `Person' could be found. 
+HelloWorld.cs(8,8): error CS1061: Type `Person` does not contain a definition for `walk` and no extension method `walk` of type `Person` could be found. 
 Are you missing an assembly reference?
 HelloWorld.cs(13,14): (Location of the symbol related to previous error)
 ```
@@ -72,7 +72,7 @@ The error codes is hosted online at [C# Compiler messages](https://learn.microso
 
 While that of Rust language
 
-```
+```rust
 struct Person {
   name: String,
   age: i8,
@@ -89,7 +89,7 @@ fn main() {
 ```
 If the preceding code is compiled, the error message would be
 
-```
+```shell
 error[E0599]: no method named `walk` found for struct `Person` in the current scope
  --> src/main.rs:9:10
   |
@@ -110,14 +110,14 @@ Still using our Swift example, the error should look like this instead
 ```
 Found error SE0157: value of type 'Person' has no member 'walk
   adam.walk()
-	~~~~ ^ ~~~~
+  ~~~~^~~~~
 		       
 For more information about this error, try swiftc --describe SE0157	
 ```
 Also using a new compiler flag 'describe', we could reference the preceding error category
 
 ```shell
-$swift describe SE0157
+$ swift describe SE0157
 ```
 
 The following would be the output
