@@ -143,7 +143,6 @@ struct Example {
 let x = Example();
 x.exampleMethod(); // ok!
 ```
-Then the compiler error messages would be hosted on the [Swift language](https://www.swift.org) similar to those of Rust and C# languages.
 
 ## Source compatibility
 
