@@ -772,7 +772,7 @@ used to customize how cancellation is handled by the stream e.g. one could
 imagine writing a few more elements to the stream before finishing it. Right now
 the stream immediately returns `nil` or throws a `CancellationError` when it
 notices cancellation. This proposal decided to not provide this customization
-because it opens up the possiblity that asynchronous streams are not terminating
+because it opens up the possibility that asynchronous streams are not terminating
 when implemented incorrectly. Additionally, asynchronous sequences are not the
 only place where task cancellation leads to an immediate error being thrown i.e.
 `Task.sleep()` does the same. Hence, the value of the asynchronous not
