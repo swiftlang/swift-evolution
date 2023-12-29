@@ -653,7 +653,7 @@ consumers and resumes them in FIFO order.
 The NIO team have created their own root asynchronous sequence with the goal to
 provide a high performance sequence that can be used to bridge a NIO `Channel`
 inbound stream into Concurrency. The `NIOAsyncSequenceProducer` is a highly
-generic and fully inlinable type and quite unwiedly to use. This proposal is
+generic and fully inlinable type and quite unwieldy to use. This proposal is
 heavily inspired by the learnings from this type but tries to create a more
 flexible and easier to use API that fits into the standard library.
 
