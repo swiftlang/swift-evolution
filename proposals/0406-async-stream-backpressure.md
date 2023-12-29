@@ -748,7 +748,7 @@ both used by the `AsyncStream` but also by Swift Concurrency via
 `CheckedContinuation` and `UnsafeContinuation`. Similarly, yield was used by
 both `AsyncStream.Continuation.yield()`, `Task.yield()` and the `yield` keyword.
 Having different names for these different concepts makes it easier to explain
-their usage. The currently proposed `write` names were choosen to align with the
+their usage. The currently proposed `write` names were chosen to align with the
 future direction of adding an `AsyncWriter` protocol. `Source` is a common name
 in flow based systems such as Akka. Other names that were considered:
 
