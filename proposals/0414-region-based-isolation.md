@@ -443,7 +443,7 @@ from any `@MainActor`-isolated state, because the implementation of
 `transferToMainActor` can store `x` into any state within that isolation
 domain. So, the region containing `x` must be merged into the `@MainActor`'s
 region. Accessing `y` after that merge is an error because `x` and `y` are now
-both efectively `@MainActor` isolated, and the access occurs from outside the
+both effectively `@MainActor` isolated, and the access occurs from outside the
 `@MainActor`.
 
 Formally, when we pass a non-`Sendable` value $v$ into a function $f$ and the
@@ -812,7 +812,7 @@ not being able to use `x` directly at that point.
 
 This illustrates how the transfer convention used when passing a value over an
 isolation boundary is a *weak transfer* convention. A weak transfer convention
-implies that one can still reference a value witin the transferred region from
+implies that one can still reference a value within the transferred region from
 the original isolation domain, but one cannot access the value through the
 reference. In contrast, a *strong transfer* convention would require that the
 caller isolation domain cannot maintain even references to values in the
@@ -932,7 +932,7 @@ let closure: () async -> () = {
 
 If a closure is isolated to an actor due to capturing an actor or part of an
 actor, then these captured parameters and the closure become merged into the
-actor's region meaning that their merged region cannot be transfered:
+actor's region meaning that their merged region cannot be transferred:
 
 ```swift
 actor Actor {
@@ -1168,7 +1168,7 @@ actor MyActor {
 ### Using transferring to simplify `nonisolated` actor initializers and actor deinitializers
 
 In [SE-0327](0327-actor-initializers.md), a flow sensitive diagnostic
-was introduced to ensure that one can directly access stored propeties of `self`
+was introduced to ensure that one can directly access stored properties of `self`
 in `nonisolated` actor designated initializers and actor deinitializers despite
 the methods not being isolated to self. The diagnostic set out a model where
 initially `nonisolated` self is stated to have a weaker form of isolation that
