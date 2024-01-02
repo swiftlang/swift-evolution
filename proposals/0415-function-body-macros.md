@@ -255,7 +255,7 @@ actor Chef {
 
 When a function body macro is applied, the macro-expanded function body will need to be type checked when it is incorporated into the program. However, the function might already have a body that was written by the developer, which can be inspected by the macro implementation. The function body as written must be syntactically well-formed (i.e., it must conform to the [Swift grammar](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/summaryofthegrammar/)) but will *not* be type-checked, so it need not be semantically well-formed.
 
-This approach follows what other attached macros do: they operate on the syntax of the declaration to which they are attached, and the declaration itself need not have been type-checked before the macro is expanded. However,  this approach does lend itself to potential abuse. For example, one could create a ` SQL` macro that expects the function body to be a SQL statement, then rewrites that into code that executes the query. For example, the input could be:
+This approach follows what other attached macros do: they operate on the syntax of the declaration to which they are attached, and the declaration itself need not have been type-checked before the macro is expanded. However,  this approach does lend itself to potential abuse. For example, one could create a `SQL` macro that expects the function body to be a SQL statement, then rewrites that into code that executes the query. For example, the input could be:
 
 ```swift
 @SQL
@@ -427,6 +427,6 @@ On the other hand, type-checking the function bodies before macro expansion has 
   * Clarify the effect of function body macros on single-expression functions and implicit returns
 * Revision 1:
   * Allow preamble macros to introduce names.
-  * Introduce `@AssumeMainActor `example macro for body macros that perform replacement.
+  * Introduce `@AssumeMainActor` example macro for body macros that perform replacement.
   * Switch `@Traced` example over to be a preamble macro with push/pop operations, so it can nicely introduce `span`.
   * Allow function body macros to be applied to properties that use the shorthand getter syntax.
