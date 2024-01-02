@@ -41,7 +41,7 @@ public protocol DeclarationMacro: FreestandingMacro {
   static func expansion(
     of node: some FreestandingMacroExpansionSyntax,
     in context: some MacroExpansionContext
-  ) async throws -> [DeclSyntax]
+  ) throws -> [DeclSyntax]
 }
 ```
 
