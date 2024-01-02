@@ -653,7 +653,7 @@ consumers and resumes them in FIFO order.
 The NIO team have created their own root asynchronous sequence with the goal to
 provide a high performance sequence that can be used to bridge a NIO `Channel`
 inbound stream into Concurrency. The `NIOAsyncSequenceProducer` is a highly
-generic and fully inlinable type and quite unwiedly to use. This proposal is
+generic and fully inlinable type and quite unwieldy to use. This proposal is
 heavily inspired by the learnings from this type but tries to create a more
 flexible and easier to use API that fits into the standard library.
 
@@ -748,7 +748,7 @@ both used by the `AsyncStream` but also by Swift Concurrency via
 `CheckedContinuation` and `UnsafeContinuation`. Similarly, yield was used by
 both `AsyncStream.Continuation.yield()`, `Task.yield()` and the `yield` keyword.
 Having different names for these different concepts makes it easier to explain
-their usage. The currently proposed `write` names were choosen to align with the
+their usage. The currently proposed `write` names were chosen to align with the
 future direction of adding an `AsyncWriter` protocol. `Source` is a common name
 in flow based systems such as Akka. Other names that were considered:
 
@@ -772,7 +772,7 @@ used to customize how cancellation is handled by the stream e.g. one could
 imagine writing a few more elements to the stream before finishing it. Right now
 the stream immediately returns `nil` or throws a `CancellationError` when it
 notices cancellation. This proposal decided to not provide this customization
-because it opens up the possiblity that asynchronous streams are not terminating
+because it opens up the possibility that asynchronous streams are not terminating
 when implemented incorrectly. Additionally, asynchronous sequences are not the
 only place where task cancellation leads to an immediate error being thrown i.e.
 `Task.sleep()` does the same. Hence, the value of the asynchronous not

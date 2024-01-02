@@ -3,7 +3,7 @@
 * Proposal: [SE-0404](0404-nested-protocols.md)
 * Authors: [Karl Wagner](https://github.com/karwa)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.10)**
 * Implementation: [apple/swift#66247](https://github.com/apple/swift/pull/66247) (gated behind flag `-enable-experimental-feature NestedProtocols`)
 * Review: ([pitch](https://forums.swift.org/t/pitch-allow-protocols-to-be-nested-in-non-generic-contexts/65285)), ([review](https://forums.swift.org/t/se-0404-allow-protocols-to-be-nested-in-non-generic-contexts/66332)), ([acceptance](https://forums.swift.org/t/accepted-se-0404-allow-protocols-to-be-nested-in-non-generic-contexts/66668))
 

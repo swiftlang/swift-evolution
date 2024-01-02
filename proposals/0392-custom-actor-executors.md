@@ -1,19 +1,18 @@
 # Custom Actor Executors
 
-- Proposal: [SE-0392](0392-custom-actor-executors.md)
-- Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall), [Kavon Farvardin](https://github.com/kavon)
-- Review Manager: [Joe Groff](https://github.com/jckarter)
-- Status: **Implemented (Swift 5.9)**
-- Previous threads:
+* Proposal: [SE-0392](0392-custom-actor-executors.md)
+* Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall), [Kavon Farvardin](https://github.com/kavon)
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Implemented (Swift 5.9)**
+* Previous threads:
   - Original pitch thread from around Swift 5.5: [Support custom executors in Swift Concurrency](https://forums.swift.org/t/support-custom-executors-in-swift-concurrency/44425)
   - Original "assume..." proposal which was subsumed into this proposal, as it relates closely to asserting on executors: [Pitch: Unsafe Assume on MainActor](https://forums.swift.org/t/pitch-unsafe-assume-on-mainactor/63074/)
-- Reviews:
+* Reviews:
   - First review thread: https://forums.swift.org/t/returned-for-revision-se-0392-custom-actor-executors/64172
   - Revisions:
     - Rename `Job` to `ExecutorJob`, making it less likely to conflict with existing type names, and typealias `UnownedJob` with `UnownedExecutorJob` (however the old type remains for backwards compatibility).
     - Move assert/precondition/assume APIs to extensions on actor types, e.g. `Actor/assertIsolated`, `DistributedActor/preconditionIsolated`, `MainActor/assumeIsolated { ... }`
     - Distributed actor executor customization `unownedExecutor` invoked on a remote distributed actor, to return an executor that fatal errors only once attempts are made to enqueue work onto it, rather than crashing immediately upon attempting to obtain the executor.
-
 
 ## Table of Contents
 
