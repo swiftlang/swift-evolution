@@ -109,7 +109,7 @@ It marks the dependency as visible to clients.
 
 Current type-checking enforces that declaration respect their respective access levels.
 It reports as errors when a more visible declaration refers to a less visible declaration.
-For example, it raises an error if a public function signature uses an internal type.
+For example, it raises an error if a `public` function signature uses an `internal` type.
 
 This proposal extends the existing logic by using the access level on the import declaration as an upper bound to the visibility of imported declarations within the source file with the import.
 For example, when type-checking a source file with an `internal import SomeModule`,
@@ -154,17 +154,17 @@ if a dependency is never imported publicly and other requirements are met,
 it becomes possible to hide the dependency from clients.
 The clients can then be built without loading the transitive dependency.
 This can speed up build times and
-lift the need to distribute modules that are implementation details.
+avoid the need to distribute modules that are implementation details.
 
 The same dependency can be imported with different access levels by different files of a same module.
-At the module level we only take into account the most permissive access level.
-For example, if a dependency is imported both as `package` and `internal` from two different files,
-we consider the dependency to be of a `package` visibility at the module level.
+At the module level, we only take into account the most permissive access level.
+For example, if a dependency is imported as `package` and `internal` from two different files,
+we consider the dependency to be of `package` visibility at the module level.
 
-The module level information implies different behaviors for transitive clients of the dependency.
-Transitive clients are modules that indirectly import that dependency.
+The module level information implies different behaviors for transitive clients.
+Transitive clients are modules that have an indirect dependency on the module.
 For example, in the following scenario, `TransitiveClient` is a transitive client
-of the `IndirectDependency` via the import of `MiddleModule`.
+of `IndirectDependency` via the import of `MiddleModule`.
 
 ```
 module IndirectDependency
@@ -175,28 +175,31 @@ module TransitiveClient
 ```
 
 Depending on how the indirect dependency is imported from the middle module,
-the transitive client may need to load it at compile time or not.
-There are four factors requiring a transitive dependency to be loaded,
-if none of these apply the dependency can be hidden.
+the transitive client may or may not need to load it at compile time.
+There are four factors requiring a transitive dependency to be loaded;
+if none of these apply, the dependency can be hidden.
 
-1. Public or `@usableFromInline` dependencies must always be loaded by transitive clients.
+1. `public` or `@usableFromInline` dependencies must always be loaded by transitive clients.
 
 2. All dependencies of a non-resilient module must be loaded by transitive clients.
+   This is because types in the module can use types from those dependencies in their storage,
+   and the compiler needs complete information about the storage of non-resilient types
+   in order to emit code correctly.
+   This restriction is discussed further in the Future Directions section.
 
-3. Package dependencies must be loaded by transitive clients if the middle module and the transitive client are part of the same package.
-   This allows for the signature of package declarations to reference that dependency.
+3. `package` dependencies of a module must be loaded by its transitive clients if the module and the transitive client are part of the same package.
+   This is because `package` declarations in the module may use types from that dependency in their signatures.
    We consider two modules to be in the same package when their package name matches,
    applying the same logic used for package declarations.
 
-4. All the dependencies must be loaded when the transitive client has a `@testable` import of the middle module.
-   Testable clients can use internal declarations which may rely on all levels of import visibility.
-   Even `private` and `fileprivate` dependencies must be loaded as they can contribute to the memory layout of the non-resilient internal types.
+4. All dependencies of a module must be loaded if the transitive client has a `@testable` import of it.
+   This is because testable clients can use `internal` declarations, which may rely on dependencies with any level of import visibility.
+   Even `private` and `fileprivate` dependencies must be loaded.
 
-In all other cases not covered by these four factors,
-we consider the dependency to be hidden and it doesn't have to be loaded by transitive clients.
-Note that the same dependency may still be loaded for a different import path.
+In all other cases, the dependency is hidden, and it doesn't have to be loaded by transitive clients.
+Note that a dependency hidden on one import path may still need to be loaded because of a different import path.
 
-The module associated with a hidden dependency doesn't need to be distributed to clients.
+The module interface associated with a hidden dependency doesn't need to be distributed to clients.
 However, the binary associated to the module still needs to be distributed to execute the resulting program.
 
 ### Default import access level in Swift 5 and Swift 6
@@ -204,16 +207,16 @@ However, the binary associated to the module still needs to be distributed to ex
 The access level of a default import declaration without an explicit access-level modifier depends on the language version.
 We list here the implicit access levels and reasoning behind this choice.
 
-In Swift 5 an import is public by default.
+In Swift 5, an import is `public` by default.
 This choice preserves source compatibility.
 The only official import previously available in Swift 5 behaves like the public import proposed in this document.
 
-In Swift 6 mode an import is internal by default.
+In Swift 6 mode, an import is `internal` by default.
 This will align the behavior of imports with declarations where the implicit access level is internal.
 It should help limit unintentional dependency creep as marking a dependency public will require an explicit modifier.
 
-As a result, the following import is public in Swift 5, and internal in Swift 6 mode.
-```
+As a result, the following import is `public` in Swift 5 and `internal` in Swift 6 mode:
+```swift
 import ADependency
 ```
 
@@ -223,9 +226,9 @@ Where the tool is unavailable, a simple script can insert a `public` modifier in
 
 The upcoming feature flag `InternalImportsByDefault` will enable the Swift 6 behavior even when using Swift 5.
 
-### Relation with other attributes on imports
+### Interactions with other modifiers on imports
 
-The `@_exported` attribute is a step above a `public` import
+The `@_exported` attribute is a step above a `public` import,
 as clients see the imported module declarations is if they were part of the local module.
 With this proposal, `@_exported` is accepted only on public import declarations,
 both with the modifier or the default public visibility in Swift 5 mode.
@@ -241,6 +244,14 @@ In comparison, this new feature enables stricter type-checking and shows fewer s
 After replacing with an internal import, the transitive dependency loading requirements will remain the same for resilient modules,
 but will change for non-resilient modules where transitive dependencies must always be loaded.
 In all cases, updating modules relying on `@_implementationOnly` to instead use internal imports is strongly encouraged.
+
+The scoped imports feature is independent from the access level declared on the same import.
+In the example below, the module `Foo` is a public dependency at the module level and can be referenced from public declaration signatures in the local source file.
+The scoped part, `struct Foo.Bar`, limits lookup so only `Bar` can be referenced from this file; it also prioritizes resolving references to this `Bar` if there are other `Bar` declarations in other imports.
+Scoped imports cannot be used to restrict the access level of a single declaration.
+```swift
+public import struct Foo.Bar
+```
 
 ## Source compatibility
 
@@ -273,7 +284,7 @@ it can break source compatibility in code relying of those behaviors.
 
 ## Future directions
 
-### Hiding dependency for non-resilient modules
+### Hiding dependencies for non-resilient modules
 
 Hiding dependencies on non-resilient modules would be possible in theory but requires rethinking a few restrictions in the compilation process.
 The main restriction is the need of the compiler to know the memory layout of imported types, which can depend on transitive dependencies.
