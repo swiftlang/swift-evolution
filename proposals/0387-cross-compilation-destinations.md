@@ -58,7 +58,7 @@ When a triple of a machine on which the toolchain is built is different from the
 The cross-compilation configuration itself that involves three different triples is called
 [the Canadian Cross](https://en.wikipedia.org/wiki/Cross_compiler#Canadian_Cross).
 
-Let’s call a Swift toolchain and an SDK bundled together a **Swift SDK**.
+Let’s call a Swift toolchain and an SDK bundled together in an artifact bundle a **Swift SDK**.
 
 ## Motivation
 
