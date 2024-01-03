@@ -9,6 +9,12 @@
 
 ## Introduction
 
+This proposal introduces a `@backDeployed` attribute to allow ABI-stable libraries to make their own public APIs available on older OSes. When a `@backDeployed` API isn't present in the library that ships with an older OS, a client running on that OS can still use the API because a fallback copy of its implementation has been emitted into the client.
+
+With `@backDeployed`, a function may be emitted into clients as a fallback copy of _itself_. Note that the attribute doesn't mark a function as a fallback implementation of some _other_ function, and therefore it doesn't help one module to extend the availability of APIs declared in some _other_ module.
+
+## Motivation
+
 Resilient Swift libraries, such as the ones present in the SDKs for Apple's platforms, are distributed as dynamic libraries. Authors of these libraries use `@available` annotations to indicate the operating system version that a declaration was introduced in. For example, suppose this were the interface of ToastKit, a library that is part of the toasterOS SDK:
 
 ```swift
@@ -125,8 +131,6 @@ extension Toaster {
   }
 }
 ```
-
-Developers familiar with JavaScript may recognize these generated compatibility functions as [polyfills](https://remysharp.com/2010/10/08/what-is-a-polyfill).
 
 When the deployment target of the client app is at least toasterOS 2.0, the compiler can eliminate the branch in `makeBatchOfToast_thunk(_:)` and therefore make `makeBatchOfToast_fallback(_:)` an unused function, which reduces the unnecessary bloat that could otherwise result from referencing a back deployed API.
 
