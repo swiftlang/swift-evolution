@@ -35,7 +35,7 @@ let unapplied: (S) -> (() -> Void) = S.f
 ```
 
 
-Suppose we want to create a generic method that expects an unapplied function method conforming to Sendable as a parameter. We can create a protocol ``P`` that conforms to the `Sendable` protocol and tell our generic function to expect some generic type that conforms to ``P``. We can also use the `@Sendable` attribute, introduced for closures and functions in [SE-302](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/0302-concurrent-value-and-concurrent-closures.md), to annotate the closure parameter.
+Suppose we want to create a generic method that expects an unapplied function method conforming to Sendable as a parameter. We can create a protocol `P` that conforms to the `Sendable` protocol and tell our generic function to expect some generic type that conforms to `P`. We can also use the `@Sendable` attribute, introduced for closures and functions in [SE-302](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/0302-concurrent-value-and-concurrent-closures.md), to annotate the closure parameter.
 
 
 ```swift
@@ -192,7 +192,7 @@ It is important to note that **under the proposed rule all of the declarations t
 let name: KeyPath<User, String> = \.name // 🟢 but key path is **non-Sendable**
 ```
 
-Since Sendable is a marker protocol is should be possible to adjust all declarations where `& Sendable` is desirable without any ABI impact.
+Since Sendable is a marker protocol it should be possible to adjust all declarations where `& Sendable` is desirable without any ABI impact.
 
 Existing APIs that use key path in their parameter types or default values can add `Sendable` requirement in a non-ABI breaking way by marking existing declarations as @preconcurrency and adding `& Sendable` at appropriate positions:
 
@@ -226,7 +226,7 @@ This proposal includes five changes to `Sendable` behavior.
 
 The first two are what we just discussed regarding partial and unapplied methods.
 
-```
+```swift
 struct User : Sendable {
   var address: String
   var password: String
@@ -271,7 +271,7 @@ let name: KeyPath<User, String> = \.name
 let otherName: KeyPath<User, String> & Sendable = \.name 🔴
 ```
 
-The conversion between key path and a `@Sendable` function doesn’t actually require the key path itself to be `Sendable` because the it’s not captured by the closure but wrapped by it.
+The conversion between key path and a `@Sendable` function doesn’t actually require the key path itself to be `Sendable` because it’s not captured by the closure but wrapped by it.
 
 ```swift
 let name: @Sendable (User) -> String = \.name 🟢
@@ -306,7 +306,6 @@ getValue(\.[NonSendable()]) // 🔴 This is invalid because key path captures a 
 func filter<T: Sendable>(_: @Sendable (User) -> T) {}
 filter(name) // 🟢 use of @Sendable applies a sendable key path
 ```
-
 
 Next is:
 
@@ -410,19 +409,14 @@ N/A
 
 ## Future Directions 
 
-Accessors are not currently allowed to participate with the `@Sendable` system in this proposal. It would be straight-forward to allow getters to do so in a future proposal if there was demand for this.
+Accessors are not currently allowed to participate with the `@Sendable` system in this proposal. It would be straightforward to allow getters to do so in a future proposal if there was demand for this.
 
 ## Alternatives Considered 
 
-Swift could forbid explicitly marking function declarations with the` @Sendable` attribute, since under this proposal there’s no longer any reason to do this.
+Swift could forbid explicitly marking function declarations with the `@Sendable` attribute, since under this proposal there’s no longer any reason to do this.
 
 ```swift
 /*@Sendable*/ func alwaysSendable() {}
 ```
 
 However, since these attributes are allowed today, this would be a source breaking change. Swift 6 could potentially include fix-its to remove `@Sendable` attributes to ease migration, but it’d still be disruptive. The attributes are harmless under this proposal, and they’re still sometimes useful for code that needs to compile with older tools, so we have chosen not to make this change in this proposal. We can consider deprecation at a later time if we find a good reason to do so.
-
-
-
-
-
