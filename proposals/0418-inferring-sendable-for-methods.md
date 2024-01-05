@@ -226,7 +226,7 @@ This proposal includes five changes to `Sendable` behavior.
 
 The first two are what we just discussed regarding partial and unapplied methods.
 
-```
+```swift
 struct User : Sendable {
   var address: String
   var password: String
