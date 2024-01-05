@@ -192,7 +192,7 @@ It is important to note that **under the proposed rule all of the declarations t
 let name: KeyPath<User, String> = \.name // 🟢 but key path is **non-Sendable**
 ```
 
-Since Sendable is a marker protocol is should be possible to adjust all declarations where `& Sendable` is desirable without any ABI impact.
+Since Sendable is a marker protocol it should be possible to adjust all declarations where `& Sendable` is desirable without any ABI impact.
 
 Existing APIs that use key path in their parameter types or default values can add `Sendable` requirement in a non-ABI breaking way by marking existing declarations as @preconcurrency and adding `& Sendable` at appropriate positions:
 
@@ -271,7 +271,7 @@ let name: KeyPath<User, String> = \.name
 let otherName: KeyPath<User, String> & Sendable = \.name 🔴
 ```
 
-The conversion between key path and a `@Sendable` function doesn’t actually require the key path itself to be `Sendable` because the it’s not captured by the closure but wrapped by it.
+The conversion between key path and a `@Sendable` function doesn’t actually require the key path itself to be `Sendable` because it’s not captured by the closure but wrapped by it.
 
 ```swift
 let name: @Sendable (User) -> String = \.name 🟢
@@ -410,7 +410,7 @@ N/A
 
 ## Future Directions 
 
-Accessors are not currently allowed to participate with the `@Sendable` system in this proposal. It would be straight-forward to allow getters to do so in a future proposal if there was demand for this.
+Accessors are not currently allowed to participate with the `@Sendable` system in this proposal. It would be straightforward to allow getters to do so in a future proposal if there was demand for this.
 
 ## Alternatives Considered 
 
