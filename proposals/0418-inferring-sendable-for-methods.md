@@ -35,7 +35,7 @@ let unapplied: (S) -> (() -> Void) = S.f
 ```
 
 
-Suppose we want to create a generic method that expects an unapplied function method conforming to Sendable as a parameter. We can create a protocol ``P`` that conforms to the `Sendable` protocol and tell our generic function to expect some generic type that conforms to ``P``. We can also use the `@Sendable` attribute, introduced for closures and functions in [SE-302](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/0302-concurrent-value-and-concurrent-closures.md), to annotate the closure parameter.
+Suppose we want to create a generic method that expects an unapplied function method conforming to Sendable as a parameter. We can create a protocol `P` that conforms to the `Sendable` protocol and tell our generic function to expect some generic type that conforms to `P`. We can also use the `@Sendable` attribute, introduced for closures and functions in [SE-302](https://github.com/kavon/swift-evolution/blob/sendable-functions/proposals/0302-concurrent-value-and-concurrent-closures.md), to annotate the closure parameter.
 
 
 ```swift
@@ -307,7 +307,6 @@ func filter<T: Sendable>(_: @Sendable (User) -> T) {}
 filter(name) // 🟢 use of @Sendable applies a sendable key path
 ```
 
-
 Next is:
 
 4. The inference of `@Sendable`  when referencing non-local functions.
@@ -414,15 +413,10 @@ Accessors are not currently allowed to participate with the `@Sendable` system i
 
 ## Alternatives Considered 
 
-Swift could forbid explicitly marking function declarations with the` @Sendable` attribute, since under this proposal there’s no longer any reason to do this.
+Swift could forbid explicitly marking function declarations with the `@Sendable` attribute, since under this proposal there’s no longer any reason to do this.
 
 ```swift
 /*@Sendable*/ func alwaysSendable() {}
 ```
 
 However, since these attributes are allowed today, this would be a source breaking change. Swift 6 could potentially include fix-its to remove `@Sendable` attributes to ease migration, but it’d still be disruptive. The attributes are harmless under this proposal, and they’re still sometimes useful for code that needs to compile with older tools, so we have chosen not to make this change in this proposal. We can consider deprecation at a later time if we find a good reason to do so.
-
-
-
-
-
