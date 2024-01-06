@@ -572,7 +572,7 @@ like for example event-loop based systems (often, network applications), or IO s
 
 The semantics explained in this proposal may at first seem tricky, however in reality the rule is quite strightfoward:
 
-- when there is a strict requirement for code to run on some specific executor, *it will* (and therefore disegard the "preference"),
+- when there is a strict requirement for code to run on some specific executor, *it will* (and therefore disregard the "preference"),
 - when there is no requirement where asynchronous code should execute, this proposal allows to specify a preference and therefore avoid hopping and context switches, leading to more efficient programs.
 
 It is worth discussing how user-control is retained with this proposal. Most notably, we believe this proposal follows Swift's core principle of progressive disclosure. 
@@ -759,7 +759,7 @@ We considered if not introducing this feature could be beneficial and forcing de
 
 ## Revisions
 - 1.5
-  - document that an executor may be both SerialExecutor and TaskExecutor at th same time 
+  - document that an executor may be both SerialExecutor and TaskExecutor at the same time 
 - 1.4
   - added `unownedTaskExecutor` to UnsafeCurrentTask
 - 1.3
