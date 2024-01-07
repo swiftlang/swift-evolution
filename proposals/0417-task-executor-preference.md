@@ -570,7 +570,7 @@ like for example event-loop based systems (often, network applications), or IO s
 
 ### Analysis of use-cases and the "sticky" preference semantics
 
-The semantics explained in this proposal may at first seem tricky, however in reality the rule is quite strightfoward:
+The semantics explained in this proposal may at first seem tricky, however in reality the rule is quite straightforward:
 
 - when there is a strict requirement for code to run on some specific executor, *it will* (and therefore disregard the "preference"),
 - when there is no requirement where asynchronous code should execute, this proposal allows to specify a preference and therefore avoid hopping and context switches, leading to more efficient programs.
