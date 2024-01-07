@@ -208,8 +208,8 @@ that, separate toolset configuration files are introduced:
 ```json5
 {
   "schemaVersion": "1.0",
-  "toolsetRootPath": "optional path to a root directory containing toolchain executables",
-  // If `toolsetRootPath` is specified, all relative paths below will be resolved relative to `toolsetRootPath`.
+  "rootPath": "optional path to a root directory containing toolchain executables",
+  // If `rootPath` is specified, all relative paths below will be resolved relative to `rootPath`.
   "swiftCompiler": {
     "path": "<optional path to the Swift compiler>",
     "extraCLIOptions": ["<optional array of additional flags passed to the Swift compiler>"]
@@ -287,7 +287,7 @@ in subsequent `--toolset` options will shadow tools from previous options with t
 specified in `toolset2.json`, but `/usr/bin/clang -pedantic` from `toolset1.json` will still be used.
 
 Tools not specified in any of the supplied toolset files will be looked up in existing implied search paths that are
-used without toolsets, even when `toolsetRootPath` is present. We'd like toolsets to be explicit in this regard: if a
+used without toolsets, even when `rootPath` is present. We'd like toolsets to be explicit in this regard: if a
 tool would like to participate in toolset path lookups, it must provide either a relative or an absolute path in a
 toolset.
 
