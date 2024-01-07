@@ -323,7 +323,7 @@ and `"version": "3.0"` for backward compatibility, but for consistency with `inf
 ```json5
 {
   "schemaVersion": "4.0",
-  "targetTriples": [
+  "targetTriples": {
     "<triple1>": {
       "sdkRootPath": "<a required path relative to `swift-sdk.json` containing SDK root>",
       // all of the properties listed below are optional:
@@ -344,7 +344,7 @@ and `"version": "3.0"` for backward compatibility, but for consistency with `inf
       "toolsetPaths": ["<array of paths relative to `swift-sdk.json` containing toolset files>"]
     }
     // more triples can be supported by a single Swift SDK if needed, primarily for sharing files between them.
-  ]
+  }
 }
 ```
 
@@ -364,7 +364,7 @@ Here's `swift-sdk.json` file for the `ubuntu_jammy` artifact previously introduc
 ```json5
 {
   "schemaVersion": "4.0",
-  "targetTriples": [
+  "targetTriples": {
     "aarch64-unknown-linux-gnu": {
       "sdkRootPath": "aarch64-unknown-linux-gnu/ubuntu-jammy.sdk",
       "toolsetPaths": ["aarch64-unknown-linux-gnu/toolset.json"]
@@ -373,7 +373,7 @@ Here's `swift-sdk.json` file for the `ubuntu_jammy` artifact previously introduc
       "sdkRootPath": "x86_64-unknown-linux-gnu/ubuntu-jammy.sdk",
       "toolsetPaths": ["x86_64-unknown-linux-gnu/toolset.json"]
     }
-  ],
+  }
 }
 ```
 
