@@ -26,7 +26,7 @@ Notably, since Swift 5.7’s [SE-0338: Clarify the Execution of Non-Actor-Isolat
 As Swift concurrency is getting adopted in a wider variety of performance sensitive codebases, it has become clear that the lack of control over where nonisolated functions execute is a noticeable problem. 
 At the same time, the defensive "hop-off" semantics introduced by [SE-0338](https://github.com/apple/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md) are still valuable, but sometimes too restrictive and some use-cases might even say that the exact opposite behavior might be desirable instead.
 
-This proposal acknowledges the different needs of various use-cases, and provides a new flexible mechanism for developers to tune their their applications and avoid potentially un-necessary context switching when possible.
+This proposal acknowledges the different needs of various use-cases, and provides a new flexible mechanism for developers to tune their applications and avoid potentially un-necessary context switching when possible.
 
 ## Proposed solution
 
