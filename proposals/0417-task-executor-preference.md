@@ -257,7 +257,7 @@ This proposal adds overloads to the `addTask` method, which changes the executor
 ```swift
 extension (Discarding)(Throwing)TaskGroup { 
   mutating func addTask(
-    on executor:  (any TaskExecutor)?,  // 'nil' means the global pool
+    on executor: some TaskExecutor,
     priority:  TaskPriority? = nil,
     operation:  @Sendable @escaping () async (throws) -> Void
   )
@@ -298,14 +298,14 @@ We propose adding new APIs and necessary runtime changes to allow a Task to be e
 extension Task where Failure == Never {
   @discardableResult
   public init(
-    on executor:  (any TaskExecutor)?,
+    on taskExecutorPreference: some TaskExecutor,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> Success
   )
   
   @discardableResult
   static func detached(
-    on executor:  (any TaskExecutor)?,
+    on taskExecutorPreference: any TaskExecutor,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> Success
   )
@@ -314,14 +314,14 @@ extension Task where Failure == Never {
 extension Task where Failure == Error { 
   @discardableResult
   public init(
-    on executor: (any TaskExecutor)?,
+    on taskExecutorPreference: any TaskExecutor,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> Success
   )
   
   @discardableResult
   static func detached(
-    on executor: (any TaskExecutor)?,
+    on taskExecutorPreference: some TaskExecutor,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> Success
   )
@@ -413,10 +413,10 @@ default and automatic behavior surrounding task executors:
 
 ```swift
 func computeThings() async {
-  let eventLoop: any TaskExecutor = MyCoolEventLoop()
+  let eventLoop = MyCoolEventLoop()
   defer { eventLoop.shutdown() }
 
-  let computed = withTaskExecutor(eventLoop) {
+  let computed = await withTaskExecutor(eventLoop) {
     async let first = computation(1)
     async let second = computation(2)
     return await first + second
@@ -547,6 +547,48 @@ actor Worker {
     // we properly came back to the serial executor, just to make sure
     dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
     expectedExecutor.preconditionIsolated()
+  }
+}
+```
+
+### The `DefaultConcurrentExecutor` executor
+
+This proposal also introduces a way to obtain a reference to the default global concurrent executor which is used by default by all tasks and asynchronous functions unless they require some specific executor. 
+
+```swift
+/// A task executor which enqueues all work on the default global concurrent
+/// thread pool that is used as the default executor for Swift concurrency
+/// tasks.
+public final class DefaultConcurrentExecutor: _TaskExecutor {
+  public static let shared: DefaultConcurrentExecutor
+  
+  public func enqueue(_ job: consuming ExecutorJob)
+  public func asUnownedTaskExecutor()
+}
+
+extension _TaskExecutor where Self == DefaultConcurrentExecutor {
+
+  /// The default executor preference, setting it using ``withTaskExecutor(_:)``
+  /// is equivalent to disabling an existing task executor preference, or
+  /// stating that task now has "no task executor preference".
+  public static var `default`: DefaultConcurrentExecutor {
+    DefaultConcurrentExecutor.shared
+  }
+
+}
+```
+
+This executor does not introduce new functionality to Switft Concurrency per se, as it was always there since the beginning of the concurrency runtime, however it is the first time it is possible to obtain a reference to the global concurrent executor in pure Swift. Generally just creating tasks and calling nonisolated asynchronous functions would automatically enqueue them onto this underlying global threadpool.
+
+This proposal introduces the `DefaultConcurrentExecutor` type in order to be able to "disable" a task executor preference, because setting a task's executor preference to the default executor is equivalent to the task having the default behavior, as if no executor preference was set. This matters particularily wich child tasks, which do want, under any circumstances, to execute on the default executor:
+
+```swift
+await withTaskExecutor(specific) {
+  async let compute = computation() // child task executes on 'specific' executor
+  
+  await withTaskGroup(of: Int.self) { group in 
+		group.addTask { computation() } // child task executes on 'specific' executor 
+		group.addTask(on: .default) { computation() } // child task executes on default executor 
   }
 }
 ```
@@ -758,6 +800,9 @@ We considered if not introducing this feature could be beneficial and forcing de
 
 
 ## Revisions
+- 1.6
+  - introduce `DefaultConcurrentExecutor` which allows us to remove the optional in all TaskExecutor accepting APIs, "no preference" can now be expressed by passing `(on: .default)`
+  - change `any TaskExecutor` to `some TaskExecutor` in all task executor accepting APIs
 - 1.5
   - document that an executor may be both SerialExecutor and TaskExecutor at the same time 
 - 1.4
