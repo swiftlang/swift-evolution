@@ -561,7 +561,7 @@ Usually it doesn’t matter if the function was invoked without first binding th
 To check if the value was not bound albeit executing within a task, the following pattern can be used:
 
 ````swift
-Task.withUnsafeCurrentTask { task in 
+withUnsafeCurrentTask { task in 
   guard task != nil else { 
     return "<not executing within a task>" 
   }
