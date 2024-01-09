@@ -580,7 +580,7 @@ extension _TaskExecutor where Self == DefaultConcurrentExecutor {
 
 This executor does not introduce new functionality to Switft Concurrency per se, as it was always there since the beginning of the concurrency runtime, however it is the first time it is possible to obtain a reference to the global concurrent executor in pure Swift. Generally just creating tasks and calling nonisolated asynchronous functions would automatically enqueue them onto this underlying global threadpool.
 
-This proposal introduces the `DefaultConcurrentExecutor` type in order to be able to "disable" a task executor preference, because setting a task's executor preference to the default executor is equivalent to the task having the default behavior, as if no executor preference was set. This matters particularily wich child tasks, which do want, under any circumstances, to execute on the default executor:
+This proposal introduces the `DefaultConcurrentExecutor` type in order to be able to "disable" a task executor preference, because setting a task's executor preference to the default executor is equivalent to the task having the default behavior, as if no executor preference was set. This matters particularily with child tasks, which do want, under any circumstances, to execute on the default executor:
 
 ```swift
 await withTaskExecutor(specific) {
