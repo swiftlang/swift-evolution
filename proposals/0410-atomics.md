@@ -6,7 +6,7 @@
 * Bug: [SR-9144](https://github.com/apple/swift/issues/51640)
 * Implementation: https://github.com/apple/swift/pull/68857
 * Version: 2023-12-04
-* Status: **Active Review (December 4...December 18, 2023)**
+* Status: **Implemented**
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/d35d6566fe2297f4782bdfac4d5253e0ca96b353/proposals/0410-atomics.md)
 * Decision Notes: [pitch](https://forums.swift.org/t/atomics/67350), [first review](https://forums.swift.org/t/se-0410-atomics/68007), [first return for revision](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522)
 
