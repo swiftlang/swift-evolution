@@ -1,14 +1,11 @@
 # Inheritance of actor isolation
 
 * Proposal: [SE-NNNN](NNNN-inheritance-of-actor-isolation.md)
-* Authors: [John McCall](https://github.com/rjmccall)
+* Authors: [John McCall](https://github.com/rjmccall), [Holly Borla](https://github.com/hborla)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: TBD
+* Implementation: https://github.com/apple/swift/pull/70758, https://github.com/apple/swift/pull/70902
 * Review: ([pitch](https://forums.swift.org/t/pitch-inheriting-the-callers-actor-isolation/68391))  
-
-**This is a draft design which has not been implemented.  It's very
-possible that some of the ideas in it simply do not work.**
 
 [SE-0302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
 [SE-0304-propagation]: https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md#actor-context-propagation
@@ -161,7 +158,7 @@ avoiding unnecessary suspensions.
 
 ## Proposed solution
 
-This proposal makes three changes to the language:
+This proposal makes two changes to the language:
 
 - First, [SE-0313][]'s `isolated` parameters can now have optional
   type.  This is required in order for them to express that the
@@ -171,13 +168,6 @@ This proposal makes three changes to the language:
   `#isolation`, which will be filled in with the actor isolation of
   the caller.  If the default argument is for an `isolated` parameter,
   this allows isolation to be implicitly passed down.
-
-- Third, a function can now be declared `@inheritsIsolation` to specify
-  that it formally inherits the actor isolation of its caller.  This
-  is equivalent to receiving an `isolated` parameter with the same
-  value as would be produced by `#isolated`, but it's easier to write,
-  can be used in a few places that can't add arbitrary parameters, and
-  may be more efficiently implementable.
 
 ## Detailed design
 
@@ -214,44 +204,7 @@ callee is a little trickier.  If isolation is specified as a parameter,
 then the caller must implicitly provide an argument to it; the most
 obvious way to do that is to create a new special form for default
 arguments, like `#line`, which expands to an expression that
-evaluates to the isolation of the caller.  This is attractively
-general, but it has three downsides.
-
-The first downside is that the use pattern we expect to dominate ---
-declaring a function to inherit its caller's isolation --- is pretty
-cumbersome:
-
-```swift
-func foo(isolation: isolated (any Actor)? = #isolation)
-```
-
-The second downside is we can only do this if we can add formal
-parameters to a function.  Unfortunately, there are several places
-in the language where we really can't do that, most importantly
-accessors for computed properties:
-
-```swift
-var count: Int {
-  get { // How do we add an isolated parameter here?
-    ...
-  }
-}
-```
-
-The third downside is minor in comparison, but this pattern naturally
-turns into passing an actor reference, which isn't the most efficient
-way of passing down actor isolation because it still requires dynamic
-dispatch in order to extract the executor.  It would be better for the
-implementation if we could pass down the exact `UnownedSerialExecutor?`
-value that's needed at runtime.  While we do not currently want to
-encourage programmers to work with values of this type directly because
-of its tricky lifetime semantics, the compiler can manage it fairly
-easily.
-
-All three of these downsides are addressed by just adding an attribute
-which causes an entity (including an accessor) to inherit its caller's
-isolation.  The behavior of this can be defined in terms of the more
-general features, but its implementation can be tailored more carefully.
+evaluates to the isolation of the caller.
 
 ### Generalized `isolated` parameters
 
@@ -324,10 +277,6 @@ Note that the special `#isolation` default argument form should
 always be replaced by something matching the rule above, so calls
 using this default argument for an isolated parameter will always be
 to a context that shares isolation.
-
-Calls to `@inheritsIsolation` functions and initializers, and uses of
-`@inheritsIsolation` variables and subscripts, always share the isolation
-of the current context.
 
 For example:
 
@@ -430,84 +379,6 @@ of the calling context before resolving calls from it.
 
 The parameter does not have to be an `isolated` parameter.
 
-### `@inheritsIsolation` attribute
-
-The attribute `@inheritsIsolation` can be applied to a `func`,
-`init`, `subscript`, or computed `var`:
-
-```swift
-extension Collection {
-  @inheritsIsolation
-  func sequentialMap<R>(transform: (Element) async -> R) async -> [R] {
-    var results: [R] = []
-    for elt in self {
-      results.append(await transform(elt))
-    }
-    return results
-  }
-}
-```
-
-`@inheritsIsolation` cannot be used on a variable that requires storage.
-When it is written on a `subscript` or `var`, it applies as if written
-on every accessor of that declaration.
-
-`@inheritsIsolation` is a form of explicit isolation specification and
-cannot be combined with other isolation specifications, such as an
-`isolated` parameter or a global actor attribute.
-
-`@inheritsIsolation` can be deduced for a member declaration from a
-protocol requirement in the same situations that other forms of isolation
-can be deduced.[^6]
-
-[^6]: When a member declaration does not have an explicit isolation
-specification, and it appears in a type body or extension that also
-declares conformance to one or more protocols, and those protocols
-(or the protocols they derive from) declare requirements with the
-same name as the member, and those requirements all have the same
-actor isolation, the member will be deduced to have that isolation.
-
-An `@inheritsIsolation` declaration is isolated to an optional actor
-reference that's dynamically provided to the declaration and which
-always matches the isolation of the context which is directly accessing
-or calling the declaration.  For functions and initializers, this
-exactly matches the behavior of adding an implicit parameter
-`_: isolated (any Actor)? = #isolation`, except that it is not reflected
-in the type of the entity and the default argument is always used.
-
-`@inheritsIsolation` is not part of the type of the declaration.
-When an `@inheritsIsolation` function or initializer is referenced
-without being called, its isolation is determined from its type
-context; if there is no context, it is non-isolated.  For example:
-
-```swift
-@inheritsIsolation func inheritingFunction() async {}
-
-func runOnMainActor(operation: @MainActor () async -> ()) { ... }
-
-// `inheritingFunction` will be dynamically isolated to the main actor.
-runOnMainActor(operation: inheritingFunction)
-
-func runAnywhere(operation: () async -> ()) { ... }
-
-// `inheritingFunction` will be dynamically non-isolated.
-runAnywhere(operation: inheritingFunction)
-```
-
-Unlike most function conversions that change actor isolation, there
-are no restrictions against converting synchronous `@inheritsIsolation`
-functions because the actor isolation does not actually change.
-
-Similarly, an `@inheritsIsolation` declaration can be used to fulfill
-a protocol requirement with any isolation.  The isolation of the protocol
-requirement determines the dynamic isolation of the `@inheritsIsolation`
-function.
-
-It is likely that `@inheritsIsolation` can be implemented more efficiently
-than just passing down an actor reference, such as by passing down an
-`UnownedSerialExecutor`.  This has no semantic impact on the language,
-however, and is not a question for Swift Evolution.
-
 ## Source compatibility
 
 This proposal is largely additive and should not affect the behavior
@@ -527,10 +398,6 @@ This proposal does not change how any existing code is compiled.
 
 This proposal does not add any new types and does not require new
 runtime or library support.  It can be implemented purely in the compiler.
-
-Adding `@inheritsIsolation` to an existing declaration is an ABI-breaking
-change: the ABI of the declaration must be changed to allow the isolation
-information to be provided to it dynamically.
 
 Adding `#isolation` as a default argument to an existing parameter is not
 ABI-breaking, but this is probably an uncommon situation.  Adding a new
@@ -558,16 +425,47 @@ then leaving the slow path in a non-isolated function.
 
 ## Future directions
 
-### Composition with other isolation control features
+### Syntax sugar for inheriting actor isolation
 
-This feature composes well with features that improve control over
-formal actor isolation.  For example, if a programmer wants to make
-an `@inheritsIsolation` function run isolated to a specific actor, they
-can do that by calling it from a function that's explicitly isolated
-to that actor.  That can of course be done with an `extension` on the
-actor, but it could also be done in a more one-off way with e.g. a
-feature that allows closures to precisely state their isolation.
-This is a very interesting topic for a follow-up proposal.
+Isolated parameters have three downsides.
+
+The first downside is that the use pattern we expect to dominate ---
+declaring a function to inherit its caller's isolation --- is pretty
+cumbersome:
+
+```swift
+func foo(isolation: isolated (any Actor)? = #isolation)
+```
+
+The second downside is we can only do this if we can add formal
+parameters to a function.  Unfortunately, there are several places
+in the language where we really can't do that, most importantly
+accessors for computed properties:
+
+```swift
+var count: Int {
+  get { // How do we add an isolated parameter here?
+    ...
+  }
+}
+```
+
+The third downside is minor in comparison, but this pattern naturally
+turns into passing an actor reference, which isn't the most efficient
+way of passing down actor isolation because it still requires dynamic
+dispatch in order to extract the executor.  It would be better for the
+implementation if we could pass down the exact `UnownedSerialExecutor?`
+value that's needed at runtime.  While we do not currently want to
+encourage programmers to work with values of this type directly because
+of its tricky lifetime semantics, the compiler can manage it fairly
+easily.
+
+All of these downsides could be addressed by adding an attribute
+which causes an entity (including an accessor) to inherit its caller's
+isolation. This would be equivalent to receiving an `isolated` parameter
+with the same value as would be produced by `#isolated`, but it's easier
+to write, can be used in a few places that can't add arbitrary parameters, 
+and may be more efficiently implementable.
 
 ### Isolated function types
 
@@ -649,5 +547,5 @@ not really enabling any sort of optimization.
 
 ## Acknowledgments
 
-I'd like to especially thank Konrad Malawski, Doug Gregor, and
-Holly Borla for their help in developing the ideas in this proposal.
+I'd like to especially thank Konrad Malawski, and Doug Gregor 
+for their help in developing the ideas in this proposal.
