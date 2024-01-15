@@ -270,15 +270,15 @@ Which allows users to require child tasks be enqueued and run on specific execut
 Task(executorPreference: specialExecutor) {
   _ = await withTaskGroup(of: Int.self) { group in 
     group.addTask {
-      // using 'specialExecutor'
+      // using 'specialExecutor' (inherited preference)
       return 12 
     }
     group.addTask(executorPreference: differentExecutor) {
-      // using 'differentExecutor'
+      // using 'globalConcurrentExecutor', overriden preference
       return 42 
     }
     group.addTask(executorPreference: nil) {
-      // using 'specialExecutor'
+      // using 'specialExecutor' (inherited preference)
       //
       // explicitly documents that this task has "no task executor preference".
       // this is semantically equivalent to the addTask() call without specifying
@@ -287,7 +287,7 @@ Task(executorPreference: specialExecutor) {
       return 84
     } 
     group.addTask(executorPreference: globalConcurrentExecutor) {
-      // using 'globalConcurrentExecutor'
+      // using 'globalConcurrentExecutor', overriden preference
       // 
       // using the global concurrent executor -- effectively overriding
       // the task executor preference set by the outer scope back to the 
@@ -310,14 +310,14 @@ We propose adding new APIs and necessary runtime changes to allow a Task to be e
 extension Task where Failure == Never {
   @discardableResult
   public init(
-    on taskExecutorPreference: (any TaskExecutor)?,
+    executorPreference taskExecutor: (any TaskExecutor)?,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> Success
   )
   
   @discardableResult
   static func detached(
-    on taskExecutorPreference: any TaskExecutor,
+    executorPreference taskExecutor: (any TaskExecutor)?,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async -> Success
   )
@@ -326,14 +326,14 @@ extension Task where Failure == Never {
 extension Task where Failure == Error { 
   @discardableResult
   public init(
-    on taskExecutorPreference: any TaskExecutor,
+    executorPreference taskExecutor: (any TaskExecutor)?,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> Success
   )
   
   @discardableResult
   static func detached(
-    on taskExecutorPreference: (any TaskExecutor)?,
+    executorPreference taskExecutor: (any TaskExecutor)?,
     priority: TaskPriority? = nil,
     operation: @Sendable @escaping () async throws -> Success
   )
@@ -341,6 +341,8 @@ extension Task where Failure == Error {
 ```
 
 Tasks created this way are **immediately enqueued** on given executor.
+
+It is possible to pass `nil` to all task executor accepting APIs introduced in this proposal. Passing `nil` to an `executorPreference:` parameter means "no preference", and for structured tasks means to inherit the surrounding context's executor preference; and for unstructured tasks (`Task.init`, `Task.detached`) it serves as a way of documenting no specific executor preference was selected for this task. In both cases, passing `nil` is equivalent to calling the methods which do not accept an executor preference.
 
 By default, serial executors are not task executors, and therefore cannot be directly used with these APIs. 
 This is because it would cause confusion in the runtime about having two "mutual exclusion" contexts at the same time, which could result in difficult to understand behaviors.
@@ -370,7 +372,10 @@ however isolation is still guaranteed by the actor's semantics:
 let anywhere = RunsAnywhere()
 Task { await anywhere.hello() } // runs on "default executor", using a thread from the global pool
 
-Task(executorPreference: myExecutor) { await anywhere.hello() } // runs on preferred executor, using a thread owned by that executor
+Task(executorPreference: myExecutor) {
+  // runs on preferred executor, using a thread owned by that executor
+  await anywhere.hello()
+}
 ```
 
 Methods which assert isolation, such as `Actor/assumeIsolated` and similar still function as expected.
@@ -684,12 +689,13 @@ In other words, task executor preference gives control to developers at when and
 
 The default of hop-avoiding when a preference is set is also a good default because it optimizes for less context switching and can lead to better performance. 
 
-It is possible to disable a preference by setting the preference to `nil`. So if we want to make sure that some code would not be influenced by a caller's preference, we can defensively insert the following:
+It is possible to effectively restore the default behavior as-if no task executor preference was present, by setting the preference to the `globalConcurrentExecutor` which is the executor used by default actors, tasks, and free async functions when no task executor preference is set:
 
 ```swift
 func function() async {
-  // make sure to ignore caller's task executor preference
-  await withTaskExecutorPreference(nil) { ... }
+  // make sure to ignore caller's task executor preference, 
+  // and always use the global concurrent executor.
+  await withTaskExecutorPreference(globalConcurrentExecutor) { ... }
 }
 ```
 
