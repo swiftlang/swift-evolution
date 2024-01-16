@@ -124,7 +124,7 @@ beyond the existing restrictions on imported `package` declarations which cannot
 
 The attribute `@usableFromInline` on an import takes effect for inlinable code:
 `@inlinable` and `@backDeployed` function bodies, default initializers of arguments, and properties of `@frozen` structs.
-The `@usableFromInline` imported dependency can be referenced from inliable code
+The `@usableFromInline` imported dependency can be referenced from inlinable code
 but doesn't affect type-checking of declaration signatures where only the access level is taken into account.
 
 Here is an example of the approximate diagnostics produced from type-checking in a typical case with a `fileprivate` import.
