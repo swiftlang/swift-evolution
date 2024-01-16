@@ -126,10 +126,10 @@ func nonisolatedAsyncFunc() async -> Int {
 } 
 ```
 
-or, for a specific scope using the `withTaskExecutorPreferencePreference` method:
+or, for a specific scope using the `withTaskExecutorPreference` method:
 
 ```swift
-await withTaskExecutorPreferencePreference(executor) { 
+await withTaskExecutorPreference(executor) { 
   // if not already running on specified 'executor'
   // the withTaskExecutorPreference would hop to it, and run this closure on it.
 
@@ -741,7 +741,7 @@ Task(executorPreference: MainActor.shared) {
 }
 ```
 
-It is more efficient to write `Task(executorPreference: MainActor.shared) {}` than it is to `Task { @MainActor in }` because the latter will first launch the task on the inferred context (either enclosing actor, or global concurrent executor), and then hop to the main actor. The `on MainActor` spelling allows Swift to immediately enqueue on the actor itself.
+It is more efficient to write `Task(executorPreference: MainActor.shared) {}` than it is to `Task { @MainActor in }` because the latter will first launch the task on the inferred context (either enclosing actor, or global concurrent executor), and then hop to the main actor. The `executorPreference: MainActor.shared` spelling allows Swift to immediately enqueue on the actor itself.
 
 ### Static closure isolation 
 
@@ -757,7 +757,7 @@ This could be utilized to spell the `Task` initializer like this:
 ```swift
 extension Task where ... {
   init<TargetActor>(
-    preferredTaskExecutor target: TargetActor,
+    executorPreference target: TargetActor,
     // ..., 
     operation: @isolated(target) () async -> ()
   ) where TargetActor: Actor
