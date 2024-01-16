@@ -287,7 +287,7 @@ Task(executorPreference: specialExecutor) {
       return 84
     } 
     group.addTask(executorPreference: globalConcurrentExecutor) {
-      // using 'globalConcurrentExecutor', overriden preference
+      // using 'globalConcurrentExecutor', overridden preference
       // 
       // using the global concurrent executor -- effectively overriding
       // the task executor preference set by the outer scope back to the 
