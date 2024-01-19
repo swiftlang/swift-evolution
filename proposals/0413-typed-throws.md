@@ -365,7 +365,7 @@ func countNodes(in tree: Node, matching predicate: (Node) throws -> Bool) rethro
     }
     
     override func visit(node: Node) {
-    	do {
+      do {
         if try predicate(node) {
           count = count + 1
         }
@@ -420,7 +420,7 @@ func countNodes<E: Error>(in tree: Node, matching predicate: (Node) throws(E) ->
     }
     
     override func visit(node: Node) {
-    	do {
+      do {
         if try predicate(node) {
           count = count + 1
         }
@@ -1091,7 +1091,7 @@ func load(from dataLoader: dataLoader) {
   do {
     try dataLoader.load()
   } catch {
-  	processError(error)
+    processError(error)
   }
 }
 ```
@@ -1117,7 +1117,7 @@ func load(from dataLoader: dataLoader) {
   do {
     try dataLoader.load()
   } catch {
-  	processError(error)
+    processError(error)
   }
 }
 ```
