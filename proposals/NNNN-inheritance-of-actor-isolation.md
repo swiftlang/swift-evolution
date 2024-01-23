@@ -132,7 +132,7 @@ isolation barrier and enforce three restrictions:
   on a collection of values isolated to the actor.
 
 - Finally, the `transform` argument to the call must be `Sendable`.
-  Functions are generally `Sendable` if they don't capture any
+  Functions are can only be `Sendable` if they only capture
   `Sendable` values, so in short, this restriction prevents
   `sequentialMap` from using any other data that's isolated to
   the actor.
