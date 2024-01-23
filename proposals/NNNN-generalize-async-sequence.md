@@ -1,4 +1,4 @@
-# Generalize `AsyncSequence` and `AsyncIteratorProtocol`
+# Generalize effect polymorphism for `AsyncSequence` and `AsyncIteratorProtocol`
 
 * Proposal: [SE-NNNN](NNNN-generalize-async-sequence.md)
 * Authors: [Doug Gregor](https://github.com/douggregor), [Holly Borla](https://github.com/hborla)
@@ -10,7 +10,7 @@
 ## Introduction
 
 This proposal generalizes `AsyncSequence` in two ways:
-1. The bespoke `@rethrows` attribute is replaced with proper `throws` polymorphism via adoption of typed throws.
+1. Proper `throws` polymorphism is accomplished with adoption of typed throws.
 2. A new overload of the `next` requirement on `AsyncIteratorProtocol` includes an isolated parameter to abstract over actor isolation.
 
 ## Table of Contents
