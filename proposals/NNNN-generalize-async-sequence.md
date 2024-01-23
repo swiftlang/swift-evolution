@@ -48,7 +48,7 @@ extension AsyncSequence {
   // 'AsyncThrowingMapSequence' is an implementation detail hidden from callers.
   public func map<Transformed>(
     _ transform: @Sendable @escaping (Element) async throws -> Transformed
-  ) -> some AsyncSequence<Element, any Error> { ... }
+  ) -> some AsyncSequence<Transformed, any Error> { ... }
 }
 ```
 
