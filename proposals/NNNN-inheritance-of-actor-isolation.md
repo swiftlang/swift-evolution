@@ -141,7 +141,9 @@ In summary, these restrictions unnecessarily limit the capability of
 the API when used from an isolated context.[^4]  Furthermore, even
 if the API is usable (e.g. because all the types involved are
 `Sendable`), it may be unexpectedly inefficient if, say, the
-function argument is an isolated function.
+function argument is an isolated function because `sequentialMap`
+will hop back and forth between the generic executor and the
+function argument's isolation domain at each iteration.
 
 [^4]: To be sure, there are some reasons to be concerned about using
 this sort of API from an isolated context --- for example, because
@@ -489,7 +491,8 @@ path for Swift in the foreseeable future.
 A more promising approach would be to allow the isolation to be
 statically erased but still make it dynamically recoverable by carrying
 it along in the function value, essentially as an extra value of type
-`(any Actor)?`.  This would look something like `@isolated () -> ()`,
+`(any Actor)?`.  A function type that supports dynamically recovering
+the isolation would look something like `@isolated () -> ()`,
 and it could be used to e.g. dynamically propagate the isolation of
 a function into something like the `Task` initializer so that the task
 can immediately start on the right executor.  This would compose well
@@ -503,11 +506,9 @@ not to their *caller* but to the *function they've been passed*.
 ### Allowing isolation to `SerialExecutor` types
 
 This proposal observes that it is more efficient to pass down an
-`UnownedSerialExecutor` value instead of an actor reference and suggests
-that `@inheritsIsolation` be implemented this way.  However, if a function
-wants to use the explicit isolation-polymorphism pattern, it cannot use
-this more efficient pattern because an `isolated` parameter must be an
-actor type.  This is an intentional decision.
+`UnownedSerialExecutor` value instead of an actor reference.  However, a
+function cannot use this more efficient pattern because an `isolated`
+parameter must be an actor type.  This is an intentional decision.
 
 Philosophically, Swift programmers should be encouraged to think about
 actors in terms of isolation rather than execution policy.  There are many
