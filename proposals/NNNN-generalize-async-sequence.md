@@ -23,8 +23,6 @@ This proposal generalizes `AsyncSequence` in two ways:
         - [Error type inference from `for try await` loops](#error-type-inference-from-for-try-await-loops)
     + [Adopting primary associated types](#adopting-primary-associated-types)
     + [Adopting isolated parameters](#adopting-isolated-parameters)
-        - [Generalized `isolated` parameters](#generalized-isolated-parameters)
-        - [Calling `nextElement()` in async `for-in` loops](#calling-nextelement-in-async-for-in-loops)
     + [Default implementations of `next()` and `nextElement()`](#default-implementations-of-next-and-nextelement)
     + [Associated type inference for `AsyncIteratorProtocol` conformances](#associated-type-inference-for-asynciteratorprotocol-conformances)
     + [`rethrows` checking](#rethrows-checking)
@@ -172,39 +170,9 @@ The `Element` and `Failure` associated types are promoted to primary associated 
 
 ### Adopting isolated parameters
 
-The `nextElement()` requirement abstracts over actor isolation using [isolated parameters](/proposals/0313-actor-isolation-control.md). For callers to `nextElement()` that pass an iterator value that cannot be transferred across isolation boundaries under [SE-0414: Region based isolation](/proposals/0414-region-based-isolation.md), the call is only valid if it does not cross an isolation boundary. Whether `nextElement()` shares the isolation of the caller depends on the isolated argument value, with generalized rules for `nonisolated` and global-actor isolation described below.
+The `nextElement()` requirement abstracts over actor isolation using [isolated parameters](/proposals/0313-actor-isolation-control.md). For callers to `nextElement()` that pass an iterator value that cannot be transferred across isolation boundaries under [SE-0414: Region based isolation](/proposals/0414-region-based-isolation.md), the call is only valid if it does not cross an isolation boundary. Explicit callers can pass in a value of `#isolation` to use the isolation of the caller, or `nil` to evaluate `nextElement()` on the generic executor.
 
-#### Generalized `isolated` parameters
-
-Functions can abstract over actor isolation using `isolated` parameters. To enable representing a `nonisolated` context, `isolated` parameters can be made optional, where a `nil` argument value will cause the method to be dynamically `nonisolated`.
-
-Calling a function with an isolated parameter shares the isolation of the caller if:
-
-* the current context is non-isolated, the parameter type is optional, and the argument expression is `nil` or a reference to `Optional.none`;
-* the current context has an `isolated` parameter (including the implicitly-isolated `self` parameter of an actor function) and the argument expression is a reference to that parameter or a non-optional derivation of it (see below); or
-* the current context is isolated to a global actor type `T` and the argument expression is `T.shared`, where `shared` is `GlobalActor`'s protocol requirement or the concrete declaration which provides it in `T`'s conformance to `GlobalActor`.
-
-An expression is a non-optional derivation of an isolated parameter `param` if it is:
-
-* `param?` (the optional-chaining operator);
-* `param!` (the force-unwrapping operator); or
-* a reference to a _non-optional binding_ of `param`, i.e. a `let` constant initialized by a successful pattern-match which removes the optionality from `param`, such as `ref` in `if let ref = param`.
-
-When analyzing an argument expression in all cases above, certain non-instrumental differences in expression syntax and behavior must be ignored:
-
-* parentheses;
-* the effect-marking operators `try`, `try?`, `try!`, and `await`;
-* the type coercion operator as (in the cases where it doesn't perform a dynamic bridging conversion); and
-implicit type conversions such as promotion to `Optional` type.
-
-#### Calling `nextElement()` in async `for-in` loops
-
-Desugared async `for-in` loops will call `AsyncIteratorProtocol.nextElement()` instead of `next()` when the context has appropriate availability, and pass in an isolated argument value of type `(any Actor)?`. The argument value always represents the isolation of the caller so that the call does not cross an isolation boundary:
-
-* if the caller's context is `nonisolated`, the argument value is `nil`;
-* if the caller's context is isolated to some global actor `T`, the argument value is `T.shared`;
-* if the caller's context has an isolated parameter `param`, the argument value is `param`;
-* if the caller's context captures an isolated parameter `param`, the argument value is `param`.
+Desugared async `for-in` loops will call `AsyncIteratorProtocol.nextElement()` instead of `next()` when the context has appropriate availability, and pass in an isolated argument value of `#isolation` of type `(any Actor)?`. The `#isolation` macro always expands to the isolation of the caller so that the call does not cross an isolation boundary.
 
 ### Default implementations of `next()` and `nextElement()`
 
