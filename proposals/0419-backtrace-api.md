@@ -5,7 +5,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **In Review Jan 23, 2024 through Feb 6, 2024**
 * Implementation: Implemented on main, requires explicit `_Backtracing` import.
-* Review: ([pitch](https://forums.swift.org/t/pitch-swift-backtracing-api/62741/20))
+* Review: ([pitch](https://forums.swift.org/t/pitch-swift-backtracing-api/62741/20)) ([review](https://forums.swift.org/t/se-0419-swift-backtracing-api/69595))
 
 ## Introduction
 
