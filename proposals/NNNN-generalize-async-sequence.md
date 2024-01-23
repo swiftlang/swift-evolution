@@ -236,7 +236,7 @@ To enable conformances of `AsyncIteratorProtocol` to only implement `nextElement
 ```swift
 extension AsyncIteratorProtocol {
   @available(SwiftStdlib 5.11, *)
-  public mutating func next() async throws(Failure) -> Element? {
+  public mutating func next() async throws -> Element? {
     // Callers to `next()` will always run `nextElement()` on the generic executor.
     try await nextElement(nil)
   }
