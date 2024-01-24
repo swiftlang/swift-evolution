@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Swift's error handling model allows functions and closures marked `throws` to note that they can exit by throwing an error. The error values themselve are always type-erased to `any Error`. This approach encourages errors to be handled generically, and remains a good default for most code. However, there are some places where the type erasure is unfortunate, because it doesn't allow for more precise error typing in narrow places where it is possible and desirable to handle all errors, or where the costs of type erasure are prohibitive.
+Swift's error handling model allows functions and closures marked `throws` to note that they can exit by throwing an error. The error values themselves are always type-erased to `any Error`. This approach encourages errors to be handled generically, and remains a good default for most code. However, there are some places where the type erasure is unfortunate, because it doesn't allow for more precise error typing in narrow places where it is possible and desirable to handle all errors, or where the costs of type erasure are prohibitive.
 
 This proposal introduces the ability to specify that functions and closures only throw errors of a particular concrete type.
 
@@ -222,7 +222,7 @@ Untyped errors have the existential type `any Error`, which incurs some [necessa
 
 ## Proposed solution
 
-In general we want to add the possibility to use `throws` with a single, specific error type.
+In general, we want to add the possibility of using `throws` with a single, specific error type.
 
 ```swift
 func callCat() throws(CatError) -> Cat {
@@ -446,9 +446,9 @@ Note that typed throws has elegantly solved our problem, because any throwing si
 
 ### When to use typed throws
 
-Typed throws makes it possible to strictly specify the thrown error type of a function, but doing so constrains the evolution of that function's implementation. Additionally, errors are usually propagated or rendered, but not exhaustively handled, so even with the addition of typed throws to Swift, untyped `throws` is better for most scenarious. Consider typed throws only in the following circumstances:
+Typed throws makes it possible to strictly specify the thrown error type of a function, but doing so constrains the evolution of that function's implementation. Additionally, errors are usually propagated or rendered, but not exhaustively handled, so even with the addition of typed throws to Swift, untyped `throws` is better for most scenarios. Consider typed throws only in the following circumstances:
 
-1. In code that stays within a module or package where you always want to handle the error, so it's a purely an implementation detail and it is plausible to handle the error.
+1. In code that stays within a module or package where you always want to handle the error, so it's purely an implementation detail and it is plausible to handle the error.
 2. In generic code that never produces its own errors, but only passes through errors that come from user components. The standard library contains a number of constructs like this, whether they are `rethrows` functions like `map` or are capturing a `Failure` type like in `Task` or `Result`.
 3. In dependency-free code that is meant to be used in a constrained environment (e.g., Embedded Swift) or cannot allocate memory, and will only ever produce its own errors.
 
@@ -1159,7 +1159,7 @@ Note that one would have to do the same thing with the `rethrows` formulation to
 
 ## Effect on ABI stability
 
-The ABI between an function with an untyped throws and one that uses typed throws will be different, so that typed throws can benefit from knowing the precise type.
+The ABI between a function with an untyped throws and one that uses typed throws will be different, so that typed throws can benefit from knowing the precise type.
 
 Replacing a `rethrows` function with one that uses typed throws, as proposed for the standard library, is an ABI-breaking change. However, it can be done in a manner that doesn't break ABI by retaining the `rethrows` function only for binary-compatibility purposes. The existing `rethrows` functions will be renamed at the source level (so they don't conflict with the new ones) and made  `@usableFromInline internal`, which retains the ABI while making the function invisible to clients of the standard library:
 
