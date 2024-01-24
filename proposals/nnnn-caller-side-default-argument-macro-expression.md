@@ -152,11 +152,7 @@ This feature does not affect the ABI.
 
 This feature can be freely adopted and un-adopted in source code with no deployment constraints and without affecting source or ABI compatibility.
 
-## Alternatives considered
-
-### Expand non-built-in expression macro default arguments at the primary declaration
-
-While this allows all macro expansions to be expanded at where they are written, it creates an inconsistency for expression macros where they behave differently depending on whether they are built-in or not. Therefore, this alternative won’t be a solution for addressing the surprising behavior of built-in expression macros as caller-side default arguments, while the proposed solution unifies, and clarifies how to make expression macro default arguments expand at caller-side vs. at function declaration.
+## Future directions
 
 ### Allow arguments to default argument macro expressions to be arbitrary expressions
 
@@ -183,6 +179,12 @@ preferVariablesFromCallerSide()
 ```
 
 However, as the expanded expression is type-checked in the caller-side context, it’s rather unintuitive that one must add the public variable in the example above, yet it might not be what the macro expanded expressions use.
+
+## Alternatives considered
+
+### Expand non-built-in expression macro default arguments at the primary declaration
+
+While this allows all macro expansions to be expanded at where they are written, it creates an inconsistency for expression macros where they behave differently depending on whether they are built-in or not. Therefore, this alternative won’t be a solution for addressing the surprising behavior of built-in expression macros as caller-side default arguments, while the proposed solution unifies, and clarifies how to make expression macro default arguments expand at caller-side vs. at function declaration.
 
 ## Acknowledgments
 
