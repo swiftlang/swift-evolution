@@ -160,8 +160,8 @@ If these arguments can be arbitrary expressions, type-checking the macro express
 
 ```swift
 @freestanding(expression)
-// expands to: "Hello \(object)"
-public macro PrependHello<T>(_ object: T) -> String = ...
+// expands to: "Hello " + string
+public macro PrependHello(_ string: String) -> String = ...
 
 // this is needed so it can be referenced in the default argument
 public var shadowedVariable: String = "World"
@@ -171,14 +171,17 @@ public func preferVariablesFromCallerSide(
 ) {
     print(param)
 }
-
-// in another file ==========
-// this one will be used, and prints "Hello 42"
-var shadowedVariable: Int = 42
-preferVariablesFromCallerSide()
 ```
 
-However, as the expanded expression is type-checked in the caller-side context, it’s rather unintuitive that one must add the public variable in the example above, yet it might not be what the macro expanded expressions use.
+However, as the expanded expression is type-checked in the caller-side context, it’s rather unintuitive that one must add the public variable in the example above, yet it might not be what the macro expanded expressions use. For example, if there's a variable with the same name in scope on the caller side, that variable will be used, and the call to the function might fail to type-check:
+
+```swift
+// in another file ==========
+var shadowedVariable: Int = 42
+preferVariablesFromCallerSide()
+// #PrependHello(shadowedVariable) expands to "Hello " + 42
+// error: binary operator '+' cannot be applied to operands of type 'String' and 'Int'
+```
 
 ## Alternatives considered
 
