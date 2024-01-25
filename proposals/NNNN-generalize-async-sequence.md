@@ -23,23 +23,23 @@ This proposal generalizes `AsyncSequence` in two ways:
         - [Error type inference from `for try await` loops](#error-type-inference-from-for-try-await-loops)
     + [Adopting primary associated types](#adopting-primary-associated-types)
     + [Adopting isolated parameters](#adopting-isolated-parameters)
-    + [Default implementations of `next()` and `nextElement()`](#default-implementations-of-next-and-nextelement)
+    + [Default implementations of `next()` and `next(isolation:)`](#default-implementations-of-next-and-next-isolation)
     + [Associated type inference for `AsyncIteratorProtocol` conformances](#associated-type-inference-for-asynciteratorprotocol-conformances)
     + [`rethrows` checking](#rethrows-checking)
 * [Source compatibility](#source-compatibility)
 * [ABI compatibility](#abi-compatibility)
 * [Implications on adoption](#implications-on-adoption)
 * [Future directions](#future-directions)
-    + [Add a default argument to `nextElement()`](#add-a-default-argument-to-nextelement)
+    + [Add a default argument to `next(isolation:)`](#add-a-default-argument-to-next-isolation)
 * [Alternatives considered](#alternatives-considered)
-    + [Avoiding an existential parameter in `nextElement()`](#avoiding-an-existential-parameter-in-nextelement)
+    + [Avoiding an existential parameter in `next(isolation:)`](#avoiding-an-existential-parameter-in-next-isolation)
 * [Acknowledgments](#acknowledgments)
 
 ## Motivation
 
-`AsyncSequence` and `AsyncIteratorProtocol` were designed to be polymorphic over the `throws` effect and actor isolation. However, the current API design has serious limitations that impact expressivity in generic code, `Sendable` checking, and runtime performance.
+`AsyncSequence` and `AsyncIteratorProtocol` were intended to be polymorphic over the `throws` effect and actor isolation. However, the current API design has serious limitations that impact expressivity in generic code, `Sendable` checking, and runtime performance.
 
-Some `AsyncSequence`s can throw during iteration, and others never throw. To enable callers to only require `try` when the given sequence can throw, `AsyncSequence` and `AsyncIteratorProtocol` use a bespoke `@rethrows` attribute on the protocol. The `@rethrows` attribute does not allow generic constraints over the `throws` effect, which has also [prevented `AsyncSequence` from adopting primary associated types](https://forums.swift.org/t/se-0346-lightweight-same-type-requirements-for-primary-associated-types/55869/70). Primary associated types on `AsyncSequence` would enable hiding concrete implementation details behind constrained opaque or existential types, such as in transformation APIs on `AsyncSequence`:
+Some `AsyncSequence`s can throw during iteration, and others never throw. To enable callers to only require `try` when the given sequence can throw, `AsyncSequence` and `AsyncIteratorProtocol` used an experimental feature to try to capture the throwing behavior of a protocol. However, this approach was insufficiently general, which has also [prevented `AsyncSequence` from adopting primary associated types](https://forums.swift.org/t/se-0346-lightweight-same-type-requirements-for-primary-associated-types/55869/70). Primary associated types on `AsyncSequence` would enable hiding concrete implementation details behind constrained opaque or existential types, such as in transformation APIs on `AsyncSequence`:
 
 ```swift
 extension AsyncSequence {
@@ -50,7 +50,7 @@ extension AsyncSequence {
 }
 ```
 
-`AsyncSequence` types are designed to work with `Sendable` and non-`Sendable` element types, but it's currently impossible to use an `AsyncSequence` with non-`Sendable` elements in an actor-isolated context:
+Additionally, `AsyncSequence` types are designed to work with `Sendable` and non-`Sendable` element types, but it's currently impossible to use an `AsyncSequence` with non-`Sendable` elements in an actor-isolated context:
 
 ```swift
 class NotSendable { ... }
@@ -71,7 +71,7 @@ Finally, `next()` always running on the generic executor is the source of unnece
 
 ## Proposed solution
 
-This proposal replaces the `@rethrows` attribute on `AsyncSequence` and `AsyncIteratorProtocol` with a primary `Failure` associated type, adds a new protocol requirement to `AsyncIteratorProtocol` that generalizes the existing `next()` requirement by throwing the `Failure` type, and adds an `isolated` parameter to the new requirement to abstract over actor isolation:
+This proposal introduces a new associated type `Failure` to  `AsyncSequence` and `AsyncIteratorProtocol`, adopts both `Element` and `Failure` as primary associated types, adds a new protocol requirement to `AsyncIteratorProtocol` that generalizes the existing `next()` requirement by throwing the `Failure` type, and adds an `isolated` parameter to the new requirement to abstract over actor isolation:
 
 ```swift
 @available(SwiftStdlib 5.1, *)
@@ -84,7 +84,7 @@ protocol AsyncIteratorProtocol<Element, Failure> {
   associatedtype Failure: Error = any Error
 
   @available(SwiftStdlib 5.11, *)
-  mutating func nextElement(_ actor: isolated (any Actor)?) async throws(Failure) -> Element?
+  mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element?
 }
 
 @available(SwiftStdlib 5.1, *)
@@ -99,13 +99,13 @@ public protocol AsyncSequence<Element, Failure> {
 }
 ```
 
-The new `nextElement()` has a default implementation so that conformances will continue to behave as they do today. Code generation for `for-in` loops will switch over to calling `nextElement()` instead of `next()` when the context has appropriate availability.
+The new `next(isolation:)` has a default implementation so that conformances will continue to behave as they do today. Code generation for `for-in` loops will switch over to calling `next(isolation:)` instead of `next()` when the context has appropriate availability.
 
 ## Detailed design
 
 ### Adopting typed throws
 
-Concrete `AsyncSequence` and `AsyncIteratorProtocol` types determine whether calling `next()` can `throw`. This can be described in each protocol with a `Failure` associated type that is thrown by the `AsyncIteratorProtcol.nextElement()` requirement. Describing the thrown error with an associated type allows conformances to fulfill the requirement with a type parameter, which means that libraries do not need to expose separate throwing and non-throwing concrete types that otherwise have the same async iteration functionality.
+Concrete `AsyncSequence` and `AsyncIteratorProtocol` types determine whether calling `next()` can `throw`. This can be described in each protocol with a `Failure` associated type that is thrown by the `AsyncIteratorProtcol.next(isolation:)` requirement. Describing the thrown error with an associated type allows conformances to fulfill the requirement with a type parameter, which means that libraries do not need to expose separate throwing and non-throwing concrete types that otherwise have the same async iteration functionality.
 
 #### Error type inference from `for try await` loops
 
@@ -170,21 +170,21 @@ The `Element` and `Failure` associated types are promoted to primary associated 
 
 ### Adopting isolated parameters
 
-The `nextElement()` requirement abstracts over actor isolation using [isolated parameters](/proposals/0313-actor-isolation-control.md). For callers to `nextElement()` that pass an iterator value that cannot be transferred across isolation boundaries under [SE-0414: Region based isolation](/proposals/0414-region-based-isolation.md), the call is only valid if it does not cross an isolation boundary. Explicit callers can pass in a value of `#isolation` to use the isolation of the caller, or `nil` to evaluate `nextElement()` on the generic executor.
+The `next(isolation:)` requirement abstracts over actor isolation using [isolated parameters](/proposals/0313-actor-isolation-control.md). For callers to `next(isolation:)` that pass an iterator value that cannot be transferred across isolation boundaries under [SE-0414: Region based isolation](/proposals/0414-region-based-isolation.md), the call is only valid if it does not cross an isolation boundary. Explicit callers can pass in a value of `#isolation` to use the isolation of the caller, or `nil` to evaluate `next(isolation:)` on the generic executor.
 
-Desugared async `for-in` loops will call `AsyncIteratorProtocol.nextElement()` instead of `next()` when the context has appropriate availability, and pass in an isolated argument value of `#isolation` of type `(any Actor)?`. The `#isolation` macro always expands to the isolation of the caller so that the call does not cross an isolation boundary.
+Desugared async `for-in` loops will call `AsyncIteratorProtocol.next(isolation:)` instead of `next()` when the context has appropriate availability, and pass in an isolated argument value of `#isolation` of type `(any Actor)?`. The `#isolation` macro always expands to the isolation of the caller so that the call does not cross an isolation boundary.
 
-### Default implementations of `next()` and `nextElement()`
+### Default implementations of `next()` and `next(isolation:)`
 
-Because existing `AsyncIteratorProtocol`-conforming types only implement `next()`, the standard library provides a default implementation of `nextElement()`:
+Because existing `AsyncIteratorProtocol`-conforming types only implement `next()`, the standard library provides a default implementation of `next(isolation:)`:
 
 ```swift
 extension AsyncIteratorProtocol {
-  /// Default implementation of `nextElement()` in terms of `next()`, which is
+  /// Default implementation of `next(isolation:)` in terms of `next()`, which is
   /// required to maintain backward compatibility with existing async iterators.
   @available(SwiftStdlib 5.11, *)
-  @available(*, deprecated, message: "Provide an implementation of 'nextElement'")
-  public mutating func nextElement(_ actor: isolated (any Actor)?) async throws(Failure) -> Element? {
+  @available(*, deprecated, message: "Provide an implementation of 'next(isolation:)'")
+  public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
     nonisolated(unsafe) var unsafeIterator = self
     do {
       let element = try await unsafeIterator.next()
@@ -197,82 +197,76 @@ extension AsyncIteratorProtocol {
 }
 ```
 
-Note that the default implementation of `nextElement` necessarily violates `Sendable` checking in order to pass `self` from a possibly-isolated context to a `nonisolated` one. Though this is generally unsafe, this is how calls to `next()` behave today, so existing conformances will maintain the behavior they already have. Implementing `nextElement()` directly will eliminate the unsafety.
+Note that the default implementation of `next(isolation:)` necessarily violates `Sendable` checking in order to pass `self` from a possibly-isolated context to a `nonisolated` one. Though this is generally unsafe, this is how calls to `next()` behave today, so existing conformances will maintain the behavior they already have. Implementing `next(isolation:)` directly will eliminate the unsafety.
 
-To enable conformances of `AsyncIteratorProtocol` to only implement `nextElement()`, a default implementation is also provided for `next()`:
+To enable conformances of `AsyncIteratorProtocol` to only implement `next(isolation:)`, a default implementation is also provided for `next()`:
 
 ```swift
 extension AsyncIteratorProtocol {
   @available(SwiftStdlib 5.11, *)
   public mutating func next() async throws -> Element? {
-    // Callers to `next()` will always run `nextElement()` on the generic executor.
-    try await nextElement(nil)
+    // Callers to `next()` will always run `next(isolation:)` on the generic executor.
+    try await next(isolation: nil)
   }
 }
 ```
 
 Both function requirements of `AsyncIteratorProtocol` have default implementations that are written in terms of each other, meaning that it is a programmer error to implement neither of them. Types that are available prior to the Swift 5.11 standard library must provide an implementation of `next()`, because the default implementation is only available with the Swift 5.11 standard library.
 
-To avoid silently allowing conformances that implement neither requirement, and to facilitate the transition of conformances from `next()` to `nextElement()`, we add a new availability rule where the witness checker diagnoses a protocol conformance that uses an deprecated, obsoleted, or unavailable default witness implementation. Deprecated implementations will produce a warning, while obsoleted and unavailable implementations will produce an error.
+To avoid silently allowing conformances that implement neither requirement, and to facilitate the transition of conformances from `next()` to `next(isolation:)`, we add a new availability rule where the witness checker diagnoses a protocol conformance that uses an deprecated, obsoleted, or unavailable default witness implementation. Deprecated implementations will produce a warning, while obsoleted and unavailable implementations will produce an error.
 
-Because the default implementation of `nextElement()` is deprecated, conformances that do not provide a direct implementation will produce a warning. This is desirable because the default implementation of `nextElement()` violates `Sendable` checking, so while it's necessary for source compatibilty, it's important to aggressively suggest that conforming types implement the new method.
+Because the default implementation of `next(isolation:)` is deprecated, conformances that do not provide a direct implementation will produce a warning. This is desirable because the default implementation of `next(isolation:)` violates `Sendable` checking, so while it's necessary for source compatibilty, it's important to aggressively suggest that conforming types implement the new method.
 
 ### Associated type inference for `AsyncIteratorProtocol` conformances
 
-When an `AsyncIteratorProtocol`-conforming type provides a `nextElement` function, the `Failure` type is inferred based on whether (and what) `nextElement` throws using the rules described in [SE-0413](/proposals/0413-typed-throws.md).
+When an `AsyncIteratorProtocol`-conforming type provides a `next(isolation:)` function, the `Failure` type is inferred based on whether (and what) `next(isolation:)` throws using the rules described in [SE-0413](/proposals/0413-typed-throws.md).
 
-If the `AsyncIteratorProtocol`-conforming type uses the default implementation of `nextElement`, then the `Failure` associated type is inferred from the `next` function instead based on the following rules:
-
-* If `next()` throws nothing, `Failure` is inferred to `Never`.
-* If `next()` throws, `Failure` is inferred to `any Error`.
-* If `next()` rethrows, `Failure` is inferred to `T.Failure`, where `T` is the first type parameter with a conformance to either `AsyncSequence` or `AsyncIteratorProtocol`. If there are multiple such requirements, take the `errorUnion` of them all.
-
-### `rethrows` checking
-
-Conformance requirements to `@rethrows` protocols can be considered as sources of errors for rethrowing. For example, the following `rethrows` function is valid:
-
-```swift
-extension AsyncSequence {
-  func contains(_ predicate: (Element) async throws -> Bool) rethrows -> Bool { ... }
-}
-```
-
-and this function can throw if either the `AsyncSequence` throws (i.e., it's `Failure` type is not `Never`) or if the predicate throws. To preserve source compatibility, this proposal introduces a specific rule that allows requirements on `AsyncSequence` and `AsyncIteratorProtocol` to be involved in `rethrows` checking.
+If the `AsyncIteratorProtocol`-conforming type uses the default implementation of `next(isolation:)`, then the `Failure` associated type is inferred from the `next` function instead. Whatever type is thrown from the `next` function (including `Never` if it is non-throwing) is inferred as the `Failure` type.
 
 ## Source compatibility
 
-The new requirements to `AsyncSequence` and `AsyncIteratorProtocol` are additive with no source compatibility impact on existng code.
+The new requirements to `AsyncSequence` and `AsyncIteratorProtocol` are additive, with default implementations and `Failure` associated type inference heuristics that ensure that existing types that conform to these protocols will continue to work.
+
+The experimental "rethrowing conformances" feature used by `AsyncSequence` and `AsyncIteratorProtocol` presents some challenges for source compatibility. Namely, one can declare a `rethrows` function that considers conformance to these rethrowing protocols as sources of errors for rethrowing. For example, the following `rethrows` function is currently valid:
+
+```swift
+extension AsyncSequence {
+  func contains(_ value: Element) rethrows -> Bool where Element: Hashable { ... }
+}
+```
+
+With the removal of the experimental "rethrowing conformances" feature, this function becomes ill-formed because there is no closure argument that can throw. To preserve source compatibility for such functions, this proposal introduces a specific rule that allows requirements on `AsyncSequence` and `AsyncIteratorProtocol` to be involved in `rethrows` checking: a `rethrows` function is considered to be able to throw `T.Failure` for every `T: AsyncSequence` or `T: AsyncIteratorProtocol` conformance requirement. In the case of this `contains` operation, that means it can throw `Self.Failure`. The rule permitting the definition of these `rethrows` functions will only be permitted prior to Swift 6.
 
 ## ABI compatibility
 
-This proposal is purely an extension of the ABI of the standard library and does not change any existing features. Note that the addition of a new `nextElement()` requirement, rather than modifying the existing `next()` requirement, is necessary to maintain ABI compatibility, because changing `next()` to abstract over actor isolation requires passing the actor as a parameter in order to hop back to that actor after any `async` calls in the implementation. The typed throws ABI is also different from the rethrows ABI, so the adoption of typed throws alone necessitates a new requirement.
+This proposal is purely an extension of the ABI of the standard library and does not change any existing features. Note that the addition of a new `next(isolation:)` requirement, rather than modifying the existing `next()` requirement, is necessary to maintain ABI compatibility, because changing `next()` to abstract over actor isolation requires passing the actor as a parameter in order to hop back to that actor after any `async` calls in the implementation. The typed throws ABI is also different from the rethrows ABI, so the adoption of typed throws alone necessitates a new requirement.
 
 ## Implications on adoption
 
-The associated `Failure` types of `AsyncSequence` and `AsyncIteratorProtocol` are only available at runtime with the Swift 5.11 standard library, because code that runs against prior standard library versions does not have a witness table entry for `Failure`. Code that needs to access the `Failure` type through the associated type, e.g. to dynamic cast to it or constrain it in a generic signature, must be availability constrained. For this reason, the default implementations of `next()` and `nextElement()` have the same availability as the Swift 5.11 standard library.
+The associated `Failure` types of `AsyncSequence` and `AsyncIteratorProtocol` are only available at runtime with the Swift 5.11 standard library, because code that runs against prior standard library versions does not have a witness table entry for `Failure`. Code that needs to access the `Failure` type through the associated type, e.g. to dynamic cast to it or constrain it in a generic signature, must be availability constrained. For this reason, the default implementations of `next()` and `next(isolation:)` have the same availability as the Swift 5.11 standard library.
 
-This means that concrete `AsyncIteratorProtocol` conformances cannot switch over to implementing `nextElement()` only (without providing an implementation of `next()`) if they are available earlier than the Swift 5.11 standard library.
+This means that concrete `AsyncIteratorProtocol` conformances cannot switch over to implementing `next(isolation:)` only (without providing an implementation of `next()`) if they are available earlier than the Swift 5.11 standard library.
 
 Simiarly, primary associated types of `AsyncSequence` and `AsyncIteratorProtocol` must be gated behind Swift 5.11 availability.
 
-Once the concrete `AsyncIteratorProtocol` types in the standard library, such as `Async{Throwing}Stream.Iterator`, implement `nextElement()` directly, code that iterates over those concrete `AsyncSequence` types in an actor-isolated context may exhibit fewer hops to the generic executor at runtime.
+Once the concrete `AsyncIteratorProtocol` types in the standard library, such as `Async{Throwing}Stream.Iterator`, implement `next(isolation:)` directly, code that iterates over those concrete `AsyncSequence` types in an actor-isolated context may exhibit fewer hops to the generic executor at runtime.
 
 ## Future directions
 
-### Add a default argument to `nextElement()`
+### Add a default argument to `next(isolation:)`
 
-Most calls to `nextElement()` will pass the isolation of the enclosing context. We could consider lifting the restriction that protocol requirements cannot have default arguments, and adding a default argument value of `#isolated` as described in the [pitch for actor isolation inheritance](https://forums.swift.org/t/pitch-inheriting-the-callers-actor-isolation/68391).
+Most calls to `next(isolation:)` will pass the isolation of the enclosing context. We could consider lifting the restriction that protocol requirements cannot have default arguments, and adding a default argument value of `#isolated` as described in the [pitch for actor isolation inheritance](https://forums.swift.org/t/pitch-inheriting-the-callers-actor-isolation/68391).
 
 ## Alternatives considered
 
-### Avoiding an existential parameter in `nextElement()`
+### Avoiding an existential parameter in `next(isolation:)`
 
-The isolated parameter to `nextElement()` has existential type `(any Actor)?` because a `nil` value is used to represent `nonisolated`. There is no concrete `Actor` type that describes a `nonisolated` context, which necessitates using `(any Actor)?` instead of `some Actor` or `(some Actor)?`. Potential alternatives to this are:
+The isolated parameter to `next(isolation:)` has existential type `(any Actor)?` because a `nil` value is used to represent `nonisolated`. There is no concrete `Actor` type that describes a `nonisolated` context, which necessitates using `(any Actor)?` instead of `some Actor` or `(some Actor)?`. Potential alternatives to this are:
 
 1. Represent `nonisolated` with some other value than `nil`, or a specific declaration in the standard library that has a concrete optional actor type to enable `(some Actor)?`. Any solution in this category requires the compiler to have special knowledge of the value that represents `nonisolated` for actor isolation checking of the call.
-2. Introduce a separate entrypoint for `nextElement()` that is always `nonisolated`. This defeats the purpose of having a single implementation of `nextElement()` that abstracts over actor isolation.
+2. Introduce a separate entrypoint for `next(isolation:)` that is always `nonisolated`. This defeats the purpose of having a single implementation of `next(isolation:)` that abstracts over actor isolation.
 
-Note that the use of an existential type `(any Actor)?` means that [embedded Swift](/visions/embedded-swift.md) would need to support class existentials in order to use `nextElement()`.
+Note that the use of an existential type `(any Actor)?` means that [embedded Swift](/visions/embedded-swift.md) would need to support class existentials in order to use `next(isolation:)`.
 
 ## Acknowledgments
 
