@@ -40,13 +40,13 @@ They cannot guarantee that `buff` will outlive the `array`, which means there is
 Library authors trying to support this kind of code pattern today have a few options, but none are entirely satisfactory:
 
 * The client developer can manually insert `withExtendedLifetime` and similar annotations to control the lifetime of specific objects.
- This is awkward and error-prone.
-We would prefer a mechanism where the library author can declare the necessary semantics and have the compiler automatically enforce them.
+  This is awkward and error-prone.
+  We would prefer a mechanism where the library author can declare the necessary semantics and have the compiler automatically enforce them.
 * The library author can store a back-reference to the container as part of their "pointer" or "slice" object.
-However, this incurs reference counting overhead which sacrifices some of the performance gains that pointer-based designs are generally intended to provide.
-In addition, this approach is not possible in environments that lack support for dynamic allocation.
+  However, this incurs reference counting overhead which sacrifices some of the performance gains that pointer-based designs are generally intended to provide.
+  In addition, this approach is not possible in environments that lack support for dynamic allocation.
 * The library author can make the pointer information available only within a scoped function, but this is also unsafe, as demonstrated by well-meaning developers who extract the pointer out of such functions using code like that below.
- Even when used correctly, scoped functions can lead to a pyramid of deeply-indented code blocks.
+  Even when used correctly, scoped functions can lead to a pyramid of deeply-indented code blocks.
 
 ```
 // 🛑 The following line of code is dangerous!  DO NOT DO THIS!
@@ -90,7 +90,7 @@ Our proposal would allow you to declare an `array.bufferReference()` method as f
 ```
 extension Array {
   borrowing func bufferReference() -> borrow(self) BufferReference<Element> {
-     ... construct a BufferReference ...
+    ... construct a BufferReference ...
   }
 }
 ```
@@ -102,20 +102,20 @@ In essence, the `borrow(self)` annotation extends that borrowed access beyond th
 Specifically, the `borrow(self)` annotation informs the compiler that:
 
 * The array must not be destroyed until after the `BufferReference<Element>` is destroyed.
- This ensures that use-after-free cannot occur.
+  This ensures that use-after-free cannot occur.
 * The array must not be mutated while the  `BufferReference<Element>` value exists.
- This enforces the usual Swift exclusivity rules.
+  This enforces the usual Swift exclusivity rules.
 
 In addition to `borrow(self)`, we also propose supporting three other lifetime dependency annotations:
 
 #### `mutate(self)`  or  `mutate(arg)`
 
 Let’s consider another hypothetical type: a `MutatingBufferReference<T>` type that could provide indirect mutating access to a block of memory.
- This would need to be exposed slightly differently, since it provides *write* access:
+This would need to be exposed slightly differently, since it provides *write* access:
 
 ```
 func mutatingBufferReference(to: inout Array) -> mutate(to) MutatingBufferReference<Element> {
-     ... construct a MutatingBufferReference ...
+  ... construct a MutatingBufferReference ...
 }
 ```
 
@@ -170,7 +170,7 @@ func complexView(data: Array<Item>, statistics: Array<Statistics>, other: Int)
 #### Allowed Lifetime Dependencies
 
 Only certain types of lifetime dependencies make sense, depending on the type of argument.
- The syntax is somewhat different for functions and methods, though the basic rules are essentially the same.
+The syntax is somewhat different for functions and methods, though the basic rules are essentially the same.
 
 **Functions:** A function with a lifetime dependency annotation generally takes this form:
 
@@ -192,10 +192,10 @@ Further:
 * `copy` lifetime-type is only permitted with `borrowing` or `inout` parameter-convention
 
 **Methods:** Similar rules apply to `self` lifetime dependencies on methods.
- Given a method of this form:
+Given a method of this form:
 
 ```
-   <mutation-modifier> func method(... args ...) -> <lifetime-type>(self) ResultType
+<mutation-modifier> func method(... args ...) -> <lifetime-type>(self) ResultType
 ```
 
 We only permit
@@ -207,9 +207,8 @@ We only permit
 
 The rules above apply regardless of whether the parameter-convention or mutation-modifier is explicitly written or is implicit.
 
-**Initializers:** An initializer dependency annotation takes one of two forms.
-An initializer can define a lifetime dependency on one of its arguments.
- In this case, the rules are the same as for “Functions” above:
+**Initializers:** An initializer can define a lifetime dependency on one of its arguments.
+In this case, the rules are the same as for “Functions” above:
 
 ```
 init(arg: <parameter-convention> ArgType) -> <lifetime-type>(arg) Self
@@ -265,7 +264,7 @@ This modifies *function-result* in the Swift grammar as follows:
 
 Here, the argument to the lifetime modifier must be one of the following:
 
-*  *external-parameter-name:* the external name of one of the function parameters,
+* *external-parameter-name:* the external name of one of the function parameters,
 * *parameter-index:* a numeric index of one of the parameters in the *parameter-clause* (the first parameter is number zero), or
 * the token **`self`**.
 
@@ -413,7 +412,7 @@ For example:
 func f(arg1: Type1) -> borrow(arg1) NonEscapableType // 🛑 `arg1` must be marked `borrowing`
 
 ... Type ... {
-   func f() -> borrow(self) Self // 🛑 method must be marked `borrowing`
+  func f() -> borrow(self) Self // 🛑 method must be marked `borrowing`
 }
 ```
 
