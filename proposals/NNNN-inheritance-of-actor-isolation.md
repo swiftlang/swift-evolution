@@ -1,7 +1,7 @@
 # Inheritance of actor isolation
 
 * Proposal: [SE-NNNN](NNNN-inheritance-of-actor-isolation.md)
-* Authors: [John McCall](https://github.com/rjmccall), [Holly Borla](https://github.com/hborla)
+* Authors: [John McCall](https://github.com/rjmccall), [Holly Borla](https://github.com/hborla), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: https://github.com/apple/swift/pull/70758, https://github.com/apple/swift/pull/70902
@@ -12,8 +12,10 @@
 [SE-0306]: https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md
 [SE-0313]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md
 [SE-0316]: https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md
+[SE-0336]: https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md
 [SE-0338]: https://github.com/apple/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md
 [SE-0392]: https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md
+[isolated-conformance]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md#isolated-protocol-conformances
 
 ## Introduction
 
@@ -235,7 +237,44 @@ statically-specified isolation of the current context if:
 
 The third clause is modified by this proposal to say that isolation
 is also inherited if a non-optional binding of an isolated parameter
-is captured by the closure (see below).
+is captured by the closure. A non-optional binding of an isolated
+parameter is defined in the
+[generalized isolation checking](#generalized-isolation-checking) section.
+
+### Isolated distributed actors
+
+There is currently no type or protocol that enables abstracting over both
+actor and distributed actor isolation using isolated parameters. The
+[Distributed actor isolation][SE-0336] proposal introduced the
+`DistributedActor` protocol as a separate protocol from `Actor` because
+distributed actors only behave like actors when they are known to be
+local. An `isolated` distributed actor parameter is known to be local, so
+it has the capabilities of an actor. The following local API on
+`DistributedActor` is provided to return a local actor instance from a
+distributed actor, enabling distributed actors to be used with isolated
+parameters of type `isolated any Actor` and `isolated (any Actor)?`:
+
+```swift
+@available(SwiftStdlib 5.7, *)
+extension DistributedActor {
+  /// Produces an erased `any Actor` reference to this known to be local distributed actor.
+  ///
+  /// Since this method is not distributed, it can only be invoked when the underlying
+  /// distributed actor is known to be local, e.g. from a context that is isolated
+  /// to this actor.
+  ///
+  /// Such reference can be used to work with APIs accepting `isolated any Actor`,
+  /// as only a local distributed actor can be isolated on and may be automatically
+  /// erased to such `any Actor` when calling methods implicitly accepting the
+  /// caller's actor isolation, e.g. by using the `#isolation` macro.
+  @backDeployed(before: SwiftStdlib 5.11)
+  public var asLocalActor: any Actor {
+}
+```
+
+In the future, a conditional conformance to `Actor` that is only available
+when the distributed actor is konwn to be local may be represented using
+an [isolated conformance][isolated-conformance].
 
 ### Generalized isolation checking
 
@@ -247,8 +286,9 @@ shares the same isolation as the current context if:
 
 - the current context has an `isolated` parameter (including the
   implicitly-`isolated` `self` parameter of an actor function) and
-  the argument expression is a reference to that parameter or a
-  non-optional derivation of it (see below); or
+  the argument expression is a reference to that parameter, a
+  non-optional derivation of it (see below), or a local actor derivation
+  from a distributed actor using `DistributedActor.asAnyActor`; or
 
 - the current context is isolated to a global actor type `T` and the
   argument expression is `T.shared`, where `shared` is `GlobalActor`'s
@@ -339,8 +379,8 @@ func testNonIsolated(counter: Counter) {
 
 ### `#isolation` default argument
 
-The special expression form `#isolation` can be used as a default
-argument:
+The special expression form `#isolation` can be used in arbitrary
+expression position:
 
 ```swift
 extension Collection {
@@ -355,24 +395,29 @@ extension Collection {
 }
 ```
 
-When a call uses this default argument, it behaves as if the argument
-was an expression representing the static actor isolation of the
-current context:
+When a call uses `#isolation` as the argument to an isolated parameter,
+it behaves as if the argument was an expression representing the static
+actor isolation of the current context:
 
 - if the current context is statically non-isolated, the parameter
   must have optional type, and the argument is `nil`;
 - if the current context is isolated to a global actor `T`, the argument
   is `T.shared`;
-- if the current context has an `isolated` parameter (including the
+- if the current context has an `isolated` actor parameter (including the
   implicit `self` parameter of an actor method), the argument is a
   reference to that parameter;
+- if the current context has an `isolated` distributed actor parameter
+  `d` (including the implicit `self` parameter of a distributed actor
+  method), the argument is `d.asAnyActor`;
 - otherwise, the current context must be a closure which captures
   an `isolated` parameter or a non-optional binding of it, and the
   argument is a reference to that capture.
 
-Except where noted above, a parameter using `#isolation` as a default
-argument can have any type.  When type-checking considers a candidate
-function for a call that would use this default argument for a parameter,
+The type of `#isolation` depends on the type annotation provided in the
+context of the expression, similar to other builtin macros such as `#file`
+and `#line`, with a default type of `(any Actor)?` if no contextual type
+is provided. When type-checking considers a candidate function for a call
+that would use `#isolation` as an argument for a parameter,
 it assumes that the notional argument expression above can be coerced
 to the parameter type.  If the call is actually resolved to use that
 candidate, the coercion must succeed or the call is ill-formed.
