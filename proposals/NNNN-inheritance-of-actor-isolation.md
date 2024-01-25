@@ -88,71 +88,55 @@ functions inherit their caller's isolation by default, they aren't
 passed that information reliably and have no way to implement those
 semantics.
 
-For example, suppose you wanted to write a version of `map` that
-allows the transform to be `async`:[^3]
+For example, consider the following code that calls `next` on an instance
+of `AsyncStream.Iterator` from the `@MainActor`:
 
 ```swift
-extension Collection {
-  func sequentialMap<R>(transform: (Element) async -> R) async -> [R] {
-    var results: [R] = []
-    for elt in self {
-      results.append(await transform(elt))
-    }
-    return results
+@MainActor func iterate(over stream: AsyncStream<Int>) async {
+  var iterator = stream.makeAsyncIterator()
+  while let element = await iterator.next() {
+    // do something with 'element'
   }
 }
 ```
 
-[^3]: The prospect of an `async` `map` function naturally raises the
-question of whether it should be a *parallel* map, i.e. whether the
-operation should be run concurrently for different elements.
-Parallel maps are a useful but different operation from the one
-we're discussing here, which still runs the transform sequentially
-for each element.  Inheriting isolation isn't as important for a
-parallel map because the transform probably isn't isolated itself
-and certainly has to be `@Sendable`.
+The above code produces a warning:
 
-As written above, `sequentialMap` is a non-isolated asynchronous
-function.  If it is called from another non-isolated asynchronous
-function, everything's okay: it can be passed an arbitrary function
-and work with arbitrary types.  But if it's called from an *isolated*
-asynchronous function, Swift will treat the call as crossing an
-isolation barrier and enforce three restrictions:
+```
+warning: passing argument of non-sendable type 'inout AsyncStream<Int>.Iterator' outside of main actor-isolated context may introduce data races
+  while let element = await iterator.next() {
+                            ^
+```
 
-- First, the result of the call (`[R]`, i.e. `Array<R>`) must be
-  `Sendable`.  `Array` conditionally conforms to `Sendable` if its
-  `Element` type does, so this means `R` must be `Sendable`.
-  In short, this restriction prevents `sequentialMap` from being
-  used from an actor to produce an array of values isolated to the
-  actor.
+This happens because `AsyncIteratorProtocol.next()` is a non-isolated
+asynchronous function, and most concrete `AsyncIteratorProtocol` types
+including `AsyncStream.Iterator` are not `Sendable`.  If `next()` is called
+from another non-isolated asynchronous function, everything's okay:
+it can be passed an arbitrary function and work with arbitrary types.
+But if it's called from an *isolated* asynchronous function, Swift will
+treat the call as crossing an isolation barrier and enforce three restrictions:
 
-- Second, the `self` argument to the call (the collection) must
-  be `Sendable`.  Collections are generally `Sendable` if their
-  element types are `Sendable`, so in short, this restriction
-  prevents `sequentialMap` from being used from an actor to work
-  on a collection of values isolated to the actor.
+- First, the result of the call must be `Sendbale`. This restriction prevents
+  `next()` from being used from an actor to produce non-`Sendable` element
+  values.
 
-- Finally, the `transform` argument to the call must be `Sendable`.
-  Functions are can only be `Sendable` if they only capture
-  `Sendable` values, so in short, this restriction prevents
-  `sequentialMap` from using any other data that's isolated to
-  the actor.
+- Second, the `self` argument to the call (the iterator) must
+  be `Sendable`.  This restriction prevents `next()` from being
+  used from an actor for concrete async iterator types that are not
+  `Sendable`.
+
+- Finally, any other arguments to the function must be `Sendable`.
+  This particular example doesn't have other function arguments, but
+  this restriction prevents non-isolated `async` functions from using
+  any other data that's isolated to the actor in the general case.
 
 In summary, these restrictions unnecessarily limit the capability of
-the API when used from an isolated context.[^4]  Furthermore, even
+the API when used from an isolated context.  Furthermore, even
 if the API is usable (e.g. because all the types involved are
 `Sendable`), it may be unexpectedly inefficient if, say, the
-function argument is an isolated function because `sequentialMap`
-will hop back and forth between the generic executor and the
-function argument's isolation domain at each iteration.
-
-[^4]: To be sure, there are some reasons to be concerned about using
-this sort of API from an isolated context --- for example, because
-actors are re-entrant, other operations on the actor can interleave
-whenever `sequentialMap` suspends.  An API author might reasonably
-decide that this consideration advises against making `sequentialMap`
-try to inherit actor isolation.  But the example concisely demonstrates
-the isolation problems this proposal is trying to solve.
+element-producing closure is actor isolated, because `next()` will
+hop to the generic executor only to immediately hop to the isolation
+domain of the closure.
 
 This proposal addresses this problem by giving programmers better
 tools for formally inheriting isolation from their caller, allowing
@@ -378,14 +362,9 @@ The special expression form `#isolation` can be used in arbitrary
 expression position:
 
 ```swift
-extension Collection {
-  func sequentialMap<R>(isolation: isolated (any Actor)? = #isolation,
-                        transform: (Element) async -> R) async -> [R] {
-    var results: [R] = []
-    for elt in self {
-      results.append(await transform(elt))
-    }
-    return results
+extension AsyncIteratorProtocol {
+  func next(isolation: isolated (any Actor)? = #isolation) async -> Element {
+    ...
   }
 }
 ```
@@ -517,9 +496,7 @@ functions, but it's also interesting to look at propagating isolation
 function isolation to be expressed in limited ways: functions can be
 declared as isolated to a global actor (e.g. `@MainActor () -> ()`), but
 all other kinds of isolation must be "type-erased", leaving a value
-whose type appears to be non-isolated.  This forces some of the same
-awkward `Sendable` restrictions that this proposal discusses with the
-`sequentialMap` example in the Motivation section.
+whose type appears to be non-isolated.
 
 One way to solve this would be to introduce value-dependent isolated
 function types.  With such a feature, you could declare a value to have
@@ -539,7 +516,19 @@ can immediately start on the right executor.  This would compose well
 with the features in this proposal because it would be natural to allow
 such functions to be used as `isolated` parameters.  This would be very
 nice for functions like `sequentialMap` that should probably be isolated
-not to their *caller* but to the *function they've been passed*.
+not to their *caller* but to the *function they've been passed*:
+
+```swift
+extension Collection {
+  func sequentialMap<R>(transform: (Element) async -> R) async -> [R] {
+    var results: [R] = []
+    for elt in self {
+      results.append(await transform(elt))
+    }
+    return results
+  }
+}
+```
 
 ## Alternatives Considered
 
