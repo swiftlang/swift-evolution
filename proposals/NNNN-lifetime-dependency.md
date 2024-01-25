@@ -181,7 +181,7 @@ func f(arg: <parameter-convention> ArgType) -> <lifetime-type>(arg) ResultType
 Where
 
 *  *`parameter-convention`* is one of the ownership specifiers **`borrowing`**, **`consuming`**, or **`inout`**, (this may be implied by Swift’s default parameter ownership rules),
-* `*lifetime-type*` is one of the lifetime dependency annotations **`copy`**, **`borrow`**, **`consume`**, or **`mutate`**.
+* *`lifetime-type`* is one of the lifetime dependency annotations **`copy`**, **`borrow`**, **`consume`**, or **`mutate`**.
 * `ResultType` must be `~Escapable`.
 
 Further:
