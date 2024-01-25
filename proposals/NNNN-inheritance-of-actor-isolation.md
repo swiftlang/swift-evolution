@@ -15,7 +15,6 @@
 [SE-0336]: https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md
 [SE-0338]: https://github.com/apple/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md
 [SE-0392]: https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md
-[isolated-conformance]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md#isolated-protocol-conformances
 
 ## Introduction
 
@@ -271,10 +270,6 @@ extension DistributedActor {
   public var asLocalActor: any Actor {
 }
 ```
-
-In the future, a conditional conformance to `Actor` that is only available
-when the distributed actor is konwn to be local may be represented using
-an [isolated conformance][isolated-conformance].
 
 ### Generalized isolation checking
 
