@@ -1,9 +1,9 @@
 # Inheritance of actor isolation
 
-* Proposal: [SE-NNNN](NNNN-inheritance-of-actor-isolation.md)
+* Proposal: [SE-0420](0420-inheritance-of-actor-isolation.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Holly Borla](https://github.com/hborla), [Doug Gregor](https://github.com/douggregor)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (January 25...February 6, 2024)**
 * Implementation: https://github.com/apple/swift/pull/70758, https://github.com/apple/swift/pull/70902
 * Review: ([pitch](https://forums.swift.org/t/pitch-inheriting-the-callers-actor-isolation/68391))  
 
