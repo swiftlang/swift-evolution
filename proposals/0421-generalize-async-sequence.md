@@ -5,7 +5,7 @@
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
 * Status: **Review scheduled (January 26...Febuary 7, 2024)**
 * Implementation: https://github.com/apple/swift/pull/70635
-* Review: ([pitch](https://forums.swift.org/t/pitch-generalize-asyncsequence-and-asynciteratorprotocol/69283))
+* Review: ([pitch](https://forums.swift.org/t/pitch-generalize-asyncsequence-and-asynciteratorprotocol/69283))([review](https://forums.swift.org/t/se-0421-generalize-effect-polymorphism-for-asyncsequence-and-asynciteratorprotocol/69662))
 
 ## Introduction
 
