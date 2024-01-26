@@ -420,7 +420,7 @@ Requiring an explicit mutation specification seems to us to improve readability,
 
 ## Future Directions
 
-#### **Lifetime Dependencies for Computed Properties**
+#### Lifetime Dependencies for Computed Properties
 
 It might be useful to allow lifetime dependencies between `self` and the value returned by a computed property.
 There is some ambiguity here, since resilience hides the distinction between a computed and stored property, and it’s not clear that there is any use for lifetime dependencies when returning stored properties.
@@ -447,7 +447,7 @@ This simplifies the model by identifying `~Escapable` types as exactly those typ
 It also helps simplify the enforcement of lifetime constraints by guaranteeing that constrained values cannot escape before being returned.
 We expect that in the future, additional investigation can reveal a way to relax this restriction.
 
-### Downgraded Dependencies
+#### Downgraded Dependencies
 
 ```
 // This is forbidden by the current proposal, but could be supported in theory
@@ -459,4 +459,11 @@ It may be useful to permit “downgrading” the access so that the function can
 We are not confident that we can make this fully safe today:  With our current diagnostic work, we cannot prevent the implementor of `f` from “sneaking” read-write access into the returned value.
 We hope to expand these diagnostics in the future, at which point we may be able to safely lift this restriction.
 
+#### Lifetime Dependencies between arguments
 
+A caller may need assurance that a callee will honor a lifetime dependency between two arguments.
+For example, if a function is going to destroy a container and a reference to that container in the process of computing some result,
+it needs to guarantee that the reference is destroyed before the container:
+```
+func f(container: consuming ContainerType, ref: borrow(container) consuming RefType) -> ResultType
+```
