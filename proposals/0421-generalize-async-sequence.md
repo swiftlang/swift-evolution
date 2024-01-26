@@ -1,9 +1,9 @@
 # Generalize effect polymorphism for `AsyncSequence` and `AsyncIteratorProtocol`
 
-* Proposal: [SE-NNNN](NNNN-generalize-async-sequence.md)
+* Proposal: [SE-0421](0421-generalize-async-sequence.md)
 * Authors: [Doug Gregor](https://github.com/douggregor), [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
+* Status: **Review scheduled (January 26...Febuary 7, 2024)**
 * Implementation: https://github.com/apple/swift/pull/70635
 * Review: ([pitch](https://forums.swift.org/t/pitch-generalize-asyncsequence-and-asynciteratorprotocol/69283))
 
