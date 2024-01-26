@@ -116,7 +116,11 @@ public struct MyColumnMacro: ExpressionMacro {
 
 ### Type-checking default argument macro expressions
 
-Since the macro expanded expression might reference declarations that are not available in the scope where the function is declared, macro expressions are not expanded at the primary function declaration. However, macro expression used as a default argument is type checked to make sure that its arguments, if any, must be literals; and its return type matches what that parameter expects.
+Since the macro expanded expression might reference declarations that are not available in the scope where the function is declared, macro expressions are not expanded at the primary function declaration. However, macro expression used as a default argument is type checked without expansion to make sure that
+
+1. it is at least as visible as the function using it,
+2. its return type matches what that parameter expects, and
+3. its arguments, if any, are literals without string interpolation.
 
 ### Type-checking macro expanded expressions
 
