@@ -5,7 +5,7 @@
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (January 25...February 6, 2024)**
 * Implementation: https://github.com/apple/swift/pull/70758, https://github.com/apple/swift/pull/70902
-* Review: ([pitch](https://forums.swift.org/t/pitch-inheriting-the-callers-actor-isolation/68391))  
+* Review: ([pitch](https://forums.swift.org/t/pitch-inheriting-the-callers-actor-isolation/68391)) ([review](https://forums.swift.org/t/se-0420-inheritance-of-actor-isolation/69638))
 
 [SE-0302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
 [SE-0304-propagation]: https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md#actor-context-propagation
