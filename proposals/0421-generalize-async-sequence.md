@@ -3,7 +3,7 @@
 * Proposal: [SE-0421](0421-generalize-async-sequence.md)
 * Authors: [Doug Gregor](https://github.com/douggregor), [Holly Borla](https://github.com/hborla)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Review scheduled (January 26...Febuary 7, 2024)**
+* Status: **Active review (January 26...Febuary 7, 2024)**
 * Implementation: https://github.com/apple/swift/pull/70635
 * Review: ([pitch](https://forums.swift.org/t/pitch-generalize-asyncsequence-and-asynciteratorprotocol/69283))([review](https://forums.swift.org/t/se-0421-generalize-effect-polymorphism-for-asyncsequence-and-asynciteratorprotocol/69662))
 
@@ -23,16 +23,15 @@ This proposal generalizes `AsyncSequence` in two ways:
         - [Error type inference from `for try await` loops](#error-type-inference-from-for-try-await-loops)
     + [Adopting primary associated types](#adopting-primary-associated-types)
     + [Adopting isolated parameters](#adopting-isolated-parameters)
-    + [Default implementations of `next()` and `next(isolation:)`](#default-implementations-of-next-and-next-isolation)
+    + [Default implementations of `next()` and `next(isolation:)`](#default-implementations-of-next-and-nextisolation)
     + [Associated type inference for `AsyncIteratorProtocol` conformances](#associated-type-inference-for-asynciteratorprotocol-conformances)
-    + [`rethrows` checking](#rethrows-checking)
 * [Source compatibility](#source-compatibility)
 * [ABI compatibility](#abi-compatibility)
 * [Implications on adoption](#implications-on-adoption)
 * [Future directions](#future-directions)
-    + [Add a default argument to `next(isolation:)`](#add-a-default-argument-to-next-isolation)
+    + [Add a default argument to `next(isolation:)`](#add-a-default-argument-to-nextisolation)
 * [Alternatives considered](#alternatives-considered)
-    + [Avoiding an existential parameter in `next(isolation:)`](#avoiding-an-existential-parameter-in-next-isolation)
+    + [Avoiding an existential parameter in `next(isolation:)`](#avoiding-an-existential-parameter-in-nextisolation)
 * [Acknowledgments](#acknowledgments)
 
 ## Motivation
