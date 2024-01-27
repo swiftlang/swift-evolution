@@ -1,7 +1,7 @@
 # Integer-convertible character literals
 
 * Proposal: [SE-0243](0243-codepoint-and-character-literals.md)
-* Authors: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13), [Chris Lattner](https://github.com/lattner), [John Holdsworth](https://github.com/johnno1962)
+* Authors: [Dianna Ma (“Taylor Swift”)](https://github.com/tayloraswift), [Chris Lattner](https://github.com/lattner), [John Holdsworth](https://github.com/johnno1962)
 * Review manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Rejected** ([Rationale](https://forums.swift.org/t/se-0243-codepoint-and-character-literals/21188/341))
 * Implementation: [apple/swift#21873](https://github.com/apple/swift/pull/21873)
