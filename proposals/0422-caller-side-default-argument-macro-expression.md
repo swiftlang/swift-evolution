@@ -1,11 +1,10 @@
 # Expression macro as caller-side default argument
 
-* Proposal: SE-NNNN
+* Proposal: SE-0422
 * Authors: [Apollo Zhu](https://github.com/ApolloZhu)
-* Review Manager: TBD
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Awaiting review**
-* Implementation: https://github.com/ApolloZhu/swift/tree/macro/expression-as-default-argument
-* Upcoming Feature Flag: `ExpressionMacroDefaultArguments`
+* Implementation: [PR #70602](https://github.com/apple/swift/pull/70602) with experimental feature flag `ExpressionMacroDefaultArguments`
 * Review: ([pitch](https://forums.swift.org/t/pitch-expression-macro-as-caller-side-default-argument/69019))
 
 ## Introduction
