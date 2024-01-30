@@ -1,6 +1,6 @@
-# Advanced isolation checking for SerialExecutor
+# Advanced custom isolation checking for SerialExecutor
 
-* Proposal: [SE-NNNN](NNNN-advanced-isolation-checking-for-serialexecutor.md)
+* Proposal: [SE-NNNN](NNNN-advanced-custom-isolation-checking-for-serialexecutor.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: ???
 * Status:  **Work in Progress**
@@ -113,7 +113,7 @@ Specific use-cases of this API include `DispatchSerialQueue`, which would be abl
 // Dispatch 
 
 extension DispatchSerialQueue { 
-  public func checkIsolated() {
+  public func checkIsolated(message: String) {
     dispatchPrecondition(condition: .onQueue(self)) // existing Dispatch API
   }
 }
@@ -131,7 +131,9 @@ This means that the following code snippet, while a bit unusual remains correct 
 actor Worker {
   var number: Int 
   
-  nonisolated func canOnlyCallMeWhileIsolatedOnThisInstance() -> Int { 
+  nonisolated func canOnlyCallMeWhileIsolatedOnThisInstance() -> Int {
+    self.preconditionIsolated("This method must be called while isolated to \(self)")
+
     return self.assumeIsolated { // () throws -> Int
       // suspensions are not allowed in this closure.
       
@@ -168,7 +170,7 @@ The custom heurystics that are today part of the Swift Concurrency runtime to de
 ```swift
 // concurrency runtime pseudo-code
 if expectedExecutor.isMainActor() {
-  globalMainActor.checkIsolated()
+  expectedExecutor.checkIsolated(message: message)
 }
 ```
 
