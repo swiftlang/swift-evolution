@@ -3,9 +3,9 @@
 * Proposal: SE-0422
 * Authors: [Apollo Zhu](https://github.com/ApolloZhu)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review**
+* Status: **Active review (January 30...February 13, 2024)**
 * Implementation: [PR #70602](https://github.com/apple/swift/pull/70602) with experimental feature flag `ExpressionMacroDefaultArguments`
-* Review: ([pitch](https://forums.swift.org/t/pitch-expression-macro-as-caller-side-default-argument/69019))
+* Review: ([Review](https://forums.swift.org/t/se-0422-expression-macro-as-caller-side-default-argument/69730))([Pitch](https://forums.swift.org/t/pitch-expression-macro-as-caller-side-default-argument/69019))
 
 ## Introduction
 
