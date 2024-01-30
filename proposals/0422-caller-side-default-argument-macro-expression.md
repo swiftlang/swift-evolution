@@ -1,6 +1,6 @@
 # Expression macro as caller-side default argument
 
-* Proposal: SE-0422
+* Proposal: [SE-0422](0422-caller-side-default-argument-macro-expression.md)
 * Authors: [Apollo Zhu](https://github.com/ApolloZhu)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (January 30...February 13, 2024)**
