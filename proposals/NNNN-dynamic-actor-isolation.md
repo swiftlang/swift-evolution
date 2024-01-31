@@ -1,12 +1,13 @@
 # Dynamic actor isolation enforcement
 
 * Proposal: [SE-NNNN](NNNN-dynamic-actor-isolation.md)
-* Authors: [Holly Borla](https://github.com/hborla)
+* Authors: [Holly Borla](https://github.com/hborla), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: TBD
-* Status: **Awaiting implementation** or **Awaiting review**
+* Status: **Awaiting review**
 * Implementation: TBD
 * Upcoming Feature Flag: `DynamicActorIsolation`
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-dynamic-actor-isolation-enforcement/68354))
+* Implementation: [apple/swift#70867](https://github.com/apple/swift/pull/70867), [apple/swift#71261](https://github.com/apple/swift/pull/71261), [apple/swift-syntax#2419](https://github.com/apple/swift-syntax/pull/2419)
 
 ## Introduction
 
@@ -58,47 +59,68 @@ With this workaround, the programmer must annotate every witness with `nonisolat
 
 ## Proposed solution
 
-This proposal adds dynamic actor isolation checking for all synchronous isolated functions. For example:
+This proposal adds dynamic actor isolation checking to:
 
-```swift
-@MainActor 
-class MyViewController {
-  func respondToUIEvent() {
-    // implementation...
-  }
-}
-```
+  - Witnesses of `nonisolated` protocol requirements when protocol conformance is annotated as `@preconcurrency`. For example:
 
-With dynamic actor isolation enforcement, `@MainActor` isolation for the synchronous `respondToUIEvent` method  will assert that the code is on the main actor at runtime. 
+    If `respondToUIEvent` is a witness to a protocol requirement, the protocol conformance error can be	suppressed using a `@preconcurrency` annotation on the protocol to indicate that the protocol itself 	predates concurrency:
 
-If `respondToUIEvent` is a witness to a protocol requirement, the protocol conformance error can be suppressed using a `@preconcurrency` annotation on the protocol to indicate that the protocol itself predates concurrency:
+   ```swift
+	import NotMyLibrary
 
-```swift
-import NotMyLibrary
+	@MainActor
+	class MyViewController: @preconcurrency ViewDelegateProtocol {
+     func respondToUIEvent() {
+       // implementation...
+     }
+   }
+   ```
 
-@MainActor
-class MyViewController: @preconcurrency ViewDelegateProtocol {
-  func respondToUIEvent() {
-    // implementation...
-  }
-}
-```
+	The witness checker diagnostic will be suppressed, the actor isolation assertion will fail if `respondToUIEvent()` is called inside `NonMyLibrary` from off the main actor, and the compiler will continue to emit diagnostics inside the module when called from off the main actor.
 
-The witness checker diagnostic will be suppressed, the actor isolation assertion will fail if `respondToUIEvent()` is called inside `NonMyLibrary` from off the main actor, and the compiler will continue to emit diagnostics inside the module when called from off the main actor.
+  - `@objc` thunks of synchronous actor-isolated members of classes.
+
+	Similarly to the previous case if a class or its individual synchronous members are actor-isolated and marked as either `@objc` or `@objcMembers`, the thunks, synthesized by the compiler to make them available from Objective-C, would have a new precondition check to make sure that use always happens on the right actor.
+
+  - Synchronous actor isolated function values passed to APIs that erase actor isolation and haven't yet adopted strict concurrency checking.
+
+	When API comes from a module that doesn't have strict concurrency checking enabled it's possible that it could introduce actor isolation violations that would not be surfaced to a client. In such cases actor isolation erasure should be handled defensively by introducing a runtime check at each position for granular protection.
+
+	```swift
+	@MainActor
+	func updateUI(view: MyViewController) {
+		NotMyLibrary.track(view.renderToUIEvent)
+	}
+	```
+
+	The use of `track` here would be considered unsafe if it accepts a synchronous nonisolated function type due to loss of `@MainActor` from `renderToUIEvent` and compiler would transform the call site into a function equivalent of:
+
+	```swift
+	@MainActor
+	func updateUI(view: MyViewController) {
+		NotMyLibrary.track({
+		  MainActor.assumeIsolated {
+		    view.renderToUIEvent()
+		  }
+		})
+	}
+	```
+
+
+These are the most common circumstances when loosing actor isolation could be problematic and restricting runtime checking to them significantly limits negative performance impact of the new checks. The strategy of only emitting runtime checks when there’s potential for the function to be called from unchecked code is desirable, because it means the dynamic checks will be eliminated as more of the Swift ecosystem transitions to Swift 6.
+
 
 ## Detailed design
 
 ### Runtime actor isolation checking
 
-Upon entry to every synchronous function that is isolated to a global actor or an actor instance, the compiler will emit a runtime check to assert that the current executor matches the expected executor of the isolated actor. Calling an isolated synchronous function from outside the isolation domain will result in a runtime error that halts program execution.
+For all of the situations described in the previous section the compiler will emit a runtime check to assert that the current executor matches the expected executor of the isolated actor. Calling an isolated synchronous function from outside the isolation domain will result in a runtime error that halts program execution.
 
 Runtime checking for actor isolation is not necessary for `async` functions, because switching to the callee's actor is always performed by the callee. `async` functions cannot be unsafely called from non-Swift code because they are not available directly in C/C++/Objective-C.
 
 ### `@preconcurrency` conformances
 
-A `@preconcurrency` protocol conformance is scoped to the implementation of the protocol requirements in the conforming type. A `@preconcurrency` conformance can be written at the primary declartaion or in an extension, and witness checker diagnostics about actor isolation and `Sendable` argument and result types for the protocol's requirements will be suppressed. Like other `@preconcurrency` annotations, if no diagnotsics are suppressed, a warning will be emitted at the `@preconcurrency` annotation stating that the annotation has no effect and it should be removed.
-
-A `@preconcurrency import` of `NotMyLibrary` will also suppress witness checker diagnostics for `ViewDelegateProtocol`.
+A `@preconcurrency` protocol conformance is scoped to the implementation of the protocol requirements in the conforming type. A `@preconcurrency` conformance can be written at the primary declartaion or in an extension, and witness checker diagnostics about actor isolation will be suppressed. Like other `@preconcurrency` annotations, if no diagnotsics are suppressed, a warning will be emitted at the `@preconcurrency` annotation stating that the annotation has no effect and it should be removed.
 
 ## Source compatibility
 
