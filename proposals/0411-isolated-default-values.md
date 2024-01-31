@@ -3,7 +3,7 @@
 * Proposal: [SE-0411](0411-isolated-default-values.md)
 * Authors: [Holly Borla](https://github.com/hborla)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.10)**
 * Bug: *if applicable* [apple/swift#58177](https://github.com/apple/swift/issues/58177)
 * Implementation: [apple/swift#68794](https://github.com/apple/swift/pull/68794)
 * Upcoming Feature Flag: `IsolatedDefaultValues`

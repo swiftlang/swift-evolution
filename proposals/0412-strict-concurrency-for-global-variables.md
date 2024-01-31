@@ -3,7 +3,7 @@
 * Proposal: [SE-0412](0412-strict-concurrency-for-global-variables.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Sophia Poirier](https://github.com/sophiapoirier)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.10)**
 * Implementation: On `main` gated behind `-enable-experimental-feature GlobalConcurrency`
 * Previous Proposals: [SE-0302](0302-concurrent-value-and-concurrent-closures.md), [SE-0306](0306-actors.md), [SE-0316](0316-global-actors.md), [SE-0337](0337-support-incremental-migration-to-concurrency-checking.md), [SE-0343](0343-top-level-concurrency.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-strict-concurrency-for-global-variables/66908)), ([review](https://forums.swift.org/t/se-0412-strict-concurrency-for-global-variables/68352)), ([acceptance](https://forums.swift.org/t/accepted-se-0412-strict-concurrency-for-global-variables/69004))
