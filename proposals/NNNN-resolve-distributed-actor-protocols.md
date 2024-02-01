@@ -65,7 +65,7 @@ The goal of this proposal is to allow the following module approach to sharing d
 ┌────────────────────────────────────────────────┐      ┌──────────────────────────────────────────────┐
 │             Client Module                      │      │               Server Module                  │
 │================================================│      │==============================================│
-│ let g: any Greeter = try .resolve(...) /*new*/ │      │ distributed actor EnglishGreeter: Greeter {  │
+│ let g: any Greeter = try #resolve(...) /*new*/ │      │ distributed actor EnglishGreeter: Greeter {  │
 │ try await greeter.hello(name: ...)             │      │   distributed func greet(name: String){      │
 └────────────────────────────────────────────────┘      │     "Greeting in english, for \(name)!"      │
 /* Client cannot know about EnglishGreeter type */      │ }                                            │
@@ -84,9 +84,9 @@ In order to achieve this, this proposal improves upon two aspects of distributed
 
 While concrete distributed actor types have a `resolve(id:using:)` method available on them, however since the implementation of such method for a protocol would involve code generation, we'll instead leverage the new macro capabilities of the Swift compiler.
 
-The `resolve(id:using:)` method is the entry point to locate and return a local or remote distributed actor reference, depending on where the distributed actor system implementation determines the ID to be pointing at.
+The `#resolve(id:using:)` macro is the entry point to locate and return a local or remote distributed actor reference, depending on where the distributed actor system implementation determines the ID to be pointing at.
 
-With concrete distributed actors, this method is declared as a static requirement on the DistributedActor protocol, and its implementation is synthesized by the compiler for every concrete distributed actor. This is necessarily synthesized, because a remote distributed actor reference is a special kind of object that is allocated as a "small shim" rather than the complete state of the object. The declaration for the concrete distributed actor resolve is as follows:
+With concrete distributed actors, this method is declared as a static requirement on the `DistributedActor` protocol, and its implementation is synthesized by the compiler for every concrete distributed actor. This is necessarily synthesized, because a remote distributed actor reference is a special kind of object that is allocated as a "small shim" rather than the complete state of the object. The declaration for the concrete distributed actor resolve is as follows:
 
 ```swift
 @available(SwiftStdlib 5.7, *)
@@ -104,7 +104,6 @@ Let us consider a `Greeter` protocol that is constrained to `DistributedActor`, 
 
 ```swift
 import Distributed
-import SampleDistributed // provides SampleSystem
 
 public protocol Greeter: DistributedActor {
   distributed func greet()
@@ -114,6 +113,8 @@ public protocol Greeter: DistributedActor {
 Swift does not permit static functions to be invoked on a protocol metatype, so sadly we cannot spell this API as follows:
 
 ```swift
+import SampleDistributed // provides SampleSystem
+
 let system: SampleActorSystem
 let greeter = try Greeter.resolve(id: id, using: system)
 // ❌ error: static member 'resolve' cannot be used on protocol metatype '(any Greeter).Type'
@@ -132,29 +133,20 @@ let greeter = try #resolve<any Greeter, SampleActorSystem>(id: id, using: system
 Where the #resolve macro is declared in the `Distributed` module shipping with Swift:
 
 ```swift
-public macro resolve<DA, DAS: DistributedActorSystem>(id: Any, using system: DAS) -> DA = ... 
+public macro resolve<DA: DistributedActor, DAS: DistributedActorSystem>(
+  id: DAS.ActorID, using system: DAS) -> DA = ... 
 ```
 
-The `#resolve` macro functions similarily to the resolve method, however it expands into the following, rather than directly forming a call to the `SampleActorSystem`'s underlying resolve method:
+The `#resolve` macro functions similarily to the resolve method, however it is able to work with protocol types constrained to `DistributedActor`. It creates an anonymous distributed actor type that is used as the "stub" for the remote calls to be performed at runtime.
+
+The synthesized "stub type" is generally not visible to end users as the macto returns an `any MyActor` rather than exposing the underlying synthesized type. The name of the synthesized type is unique and cannot be relied on by observers, e.g. by inspecting names using the `type(of:)` function -- there is no guarantee the name of the synthesized type will always be the same.
+
+This macro necessarily must be passed the explicit types of the resolved actor, and cannot be used in a generic function to create "any distributed actor", as the macro based code synthesis would not be able ot know what such generic `T` actor actually is:
 
 ```swift
-// ~~~ #resolve synthesized code ~~~
-#resolve_Greeter<SampleActorSystem>(id: id, using: system)
-// ~~~ end of synthesized code ~~~
-```
-
-This macro necessarily must be passed the explicit types of the resolved actor, and the target `ActorSystem` to use for the resolve, as it must be passed along explicitly to the `#resolve_Greeter<DAS: DistributedActorSystem>` macro that is synthesized for every protocol constrained to a `DistributedActor`.
-
-The `#resolve_Greeter` protocol is generated when the compiler encounters a "distributed protocol" (i.e. a protocol refining DistributedActor). 
-
-**TODO: EXPLAIN MACRO KIND HERE: The macro kind here is a "stub" macro, which is passed all protocol requirements of a given protocol and asked to fill the implementations in with a "stub implementation".**
-
-The `#resolve_ProtocolTypeName` macros all share the following signature:
-
-```swift
-// access control matching the 'Greeter' declaration
-macro resolve_Greeter<DAS: DistributedActorSystem>(
-  id: DAS.ActorID, using system: DAS) -> any Greeter = ...
+func ohNo<T: DistributedActor>(...) {
+  #resolve<any T, SampleActorSystem>(...) // ❌ types passed to resolve must be statically known
+}
 ```
 
 And in our `Greeter` example, expands to the following:
@@ -171,15 +163,15 @@ And in our `Greeter` example, expands to the following:
 }()
 ```
 
-The important part is that the macro is able to synthesize an stub implementation type, that the existing resolution mechanisms can be invoked on. The necessity to synthesize such type stems from the fact that the `ActorSystem` type must be a concrete type for synthesis of a distributed method's thunk to work correctly. Sadly, at present, the `ActorSystem` cannot be made generic due to difficult type-system implications this would cause, neccessitating some form of code synthesis at a point where both the actor system, and protocol are known statically, which is usually in the "Client" module of a project.
+The important part is that the macro is able to synthesize an stub implementation type, that the existing resolution mechanisms can be invoked on. 
 
-> Aside: The "Server" module does not need to synthesize any stubs, as it would host a concrete implementation of the `Greeter` protocol, like the `EnglishGreater` in our example used so far in the proposal.
+The necessity to synthesize such type stems from the fact that the `ActorSystem` type must be a concrete type for synthesis of a distributed method's thunk to work correctly. Sadly, at present, the `ActorSystem` cannot be made generic due to difficult type-system implications this would cause, neccessitating some form of code synthesis at a point where both the actor system, and protocol are known statically, which is usually in the "Client" module of a project.
 
-
+> Aside: The "Server" module does not need to synthesize any code, as it would host a concrete implementation of the `Greeter` protocol, like the `EnglishGreater` in our example used so far in the proposal.
 
 ## Detailed design
 
-### Details of the `#resolve` 
+### Details of the `#resolve` macro's workings
 
 The entry point to resolve a distributed actor protocol is the new `#resolve` macro, which is declared as follows:
 
