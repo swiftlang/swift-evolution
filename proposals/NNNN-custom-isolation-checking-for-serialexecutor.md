@@ -1,4 +1,4 @@
-# Advanced custom isolation checking for SerialExecutor
+# Custom isolation checking for SerialExecutor
 
 * Proposal: [SE-NNNN](NNNN-advanced-custom-isolation-checking-for-serialexecutor.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
