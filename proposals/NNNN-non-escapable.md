@@ -24,8 +24,8 @@ This feature is a key requirement for the proposed `BufferView` type.
 * [Language Support for Bufferview](https://forums.swift.org/t/roadmap-language-support-for-bufferview/66211)
 * [Roadmap for improving Swift performance predictability: ARC improvements and ownership control](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206)
 * [Ownership Manifesto](https://forums.swift.org/t/manifesto-ownership/5212)
-* ### TODO: Link to BufferView proposal
-* ### TODO: Link to lifetime dependency annotations proposal
+* **TODO: Link to BufferView proposal**
+* **TODO: Link to lifetime dependency annotations proposal**
 
 ## Motivation
 
