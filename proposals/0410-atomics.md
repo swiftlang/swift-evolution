@@ -28,7 +28,7 @@ New Swift-evolution thread: [Atomics](https://forums.swift.org/t/atomics/67350)
 - 2023-12-04: Fourth revision.
   - Response to language steering group [review decision notes](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522).
   - New APIs are now in a `Synchronization` module instead of the default `Swift` module.
-  - Declaring a `var` of `Atomic` type is now an error.
+  - Declaring a `var` of `Atomic` type is now an error, gated behind the `StaticExclusiveOnly` exprimental feature flag.
 
 ## Table of Contents
 
@@ -1051,7 +1051,7 @@ class Counter {
 
 By declaring this variable as a `var`, we opt into Swift's dynamic exclusivity checking for this property, so all non-exclusive accesses incur a runtime check to see if there is an active exclusive (e.g. mutating) access. This inherently means that atomic operations through such a variable will incur undesirable runtime overhead -- they are no longer purely atomic. (Even if the check never actually triggers a trap.)
 
-To prevent users from accidentally falling into this trap, `Atomic` (and `AtomicLazyReference`) will not support `var` bindings. It is a compile-time error to have a `var` that has an explicit or inferred type of `Atomic`.
+To prevent users from accidentally falling into this trap, `Atomic` (and `AtomicLazyReference`) will not support `var` bindings. It is a compile-time error to have a `var` that has an explicit or inferred type of `Atomic`. This behavior is gated behind the `StaticExclusiveOnly` exprimental feature flag.
 
 ```swift
 // error: variable of type 'Atomic<Int>' must be declared with a 'let'
