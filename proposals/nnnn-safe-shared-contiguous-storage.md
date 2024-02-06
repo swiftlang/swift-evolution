@@ -1,6 +1,6 @@
 ## Safe Access to Contiguous Storage
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](nnnn-safe-shared-contiguous-storage.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
