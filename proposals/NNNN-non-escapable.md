@@ -7,7 +7,7 @@
 * Roadmap: [BufferView Language Requirements](https://forums.swift.org/t/roadmap-language-support-for-bufferview)
 * Implementation: **Pending**
 * Upcoming Feature Flag: `NonescapableTypes`
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865))
 
 ## Introduction
 
