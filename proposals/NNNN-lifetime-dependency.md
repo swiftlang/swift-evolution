@@ -4,6 +4,7 @@
 * Authors: [Andrew Trick](https://github.com/atrick), [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Review: ([pitch](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865))
 
 ## Introduction
 
