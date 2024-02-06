@@ -8,7 +8,7 @@
 * Bug: rdar://48132971, rdar://96837923
 * Implementation: (pending)
 * Upcoming Feature Flag: (pending)
-* Review: (pitch pending)
+* Review: ([pitch](https://forums.swift.org/t/69888))
 
 ## Introduction
 
