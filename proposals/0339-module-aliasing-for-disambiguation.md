@@ -37,21 +37,21 @@ App
 
 The modules from each package have the following code:
 
-```
+```swift
 [Module Game] // swift-game
 
 import Utils  // swift-game
 public func start(level: Utils.Level) { ... }
 ```
 
-```
+```swift
 [Module Utils] // swift-game
 
 public struct Level { ... }
 public var currentLevel: Utils.Level { ... }
 ```
 
-```
+```swift
 [Module Utils] // swift-draw
 
 public protocol Drawable { ... }
@@ -59,7 +59,7 @@ public class Canvas: Utils.Drawable { ... }
 ```
 
 Since `App` depends on these two `Utils` modules, we have a conflict, thus we need to rename one. We will introduce a new setting in SwiftPM called `moduleAliases` that will allow setting unique names for dependencies, like so:
-```
+```swift
  targets: [
   .executableTarget(
     name: "App",
@@ -71,7 +71,7 @@ Since `App` depends on these two `Utils` modules, we have a conflict, thus we ne
 ```
 
 The setting `moduleAliases` will rename `Utils` from the `swift-game` package as `GameUtils` and alias all its references in the source code to be compiled as `GameUtils`. Since renaming one of the `Utils` modules will resolve the conflict, it is not necessary to rename the other `Utils` module. The references to `Utils` in the `Game` module will be built as `GameUtils` without requiring any source changes. If `App` needs to reference both `Utils` modules in its source code, it can do so by directly including the aliased name:
-```
+```swift
 [App]
 
 import GameUtils
@@ -130,8 +130,8 @@ App
 
 Here are the manifest examples for `swift-game` and `swift-draw`.
 
-```
-{
+```swift
+let package = Package(
  name: "swift-game",
  dependencies: [],
  products: [
@@ -142,11 +142,11 @@ Here are the manifest examples for `swift-game` and `swift-draw`.
    .target(name: "Game", dependencies: ["Utils"]),
    .target(name: "Utils", dependencies: [])
  ]
-}
+)
 ```
 
-```
-{
+```swift
+let package = Package(
  name: "swift-draw",
  dependencies: [],
  products: [
@@ -155,12 +155,12 @@ Here are the manifest examples for `swift-game` and `swift-draw`.
  targets: [
    .target(name: "Utils", dependencies: [])
  ]
-}
+)
 ```
 
 The `App` manifest needs to explicitly define unique names for the conflicting modules via a new parameter called `moduleAliases`. 
-```
-{
+```swift
+let package = Package(
  name: "App",
  dependencies: [
   .package(url: https://.../swift-game.git),
@@ -177,15 +177,15 @@ The `App` manifest needs to explicitly define unique names for the conflicting m
      .product(name: "Utils", package: "swift-draw"), 
    ])
  ]
-}
+)
 ```
 
 SwiftPM will perform validations when it parses `moduleAliases`; for each entry, it will check whether the given alias is a unique name, whether there is a conflict among aliases, whether the specified module is built from source (pre-compiled modules cannot be rebuilt to respect the rename), and whether the module is a pure Swift module (see **Requirements/Limitations** section for more details). 
 
 It will also check if any aliases are defined in upstream packages and override them if necessary. For example, if the `swift-game` package were modified per below and defined its own alias `SwiftUtils` for module `Utils` from a dependency package, the alias defined in `App` will override it, thus the `Utils` module from `swift-utils` will be built as `GameUtils`. 
 
-```
-{
+```swift
+let package = Package(
  name: "swift-game",
  dependencies: [
   .package(url: https://.../swift-utils.git),
@@ -201,7 +201,7 @@ It will also check if any aliases are defined in upstream packages and override 
                          moduleAliases: ["Utils": "SwiftUtils"]),
            ])
  ]
-}
+)
 ```
 
 Once the validation and alias overriding steps pass, dependency resolution will take place using the new module names, and the `-module-alias [name]=[new_name]` flag will be passed to the build execution.
