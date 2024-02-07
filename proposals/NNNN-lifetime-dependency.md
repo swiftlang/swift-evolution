@@ -446,6 +446,7 @@ We expect that the lifetime notation would be mandatory for any property that pr
 This proposal has deliberately limited the application of lifetime dependencies to return types that are `~Escapable`.
 This simplifies the model by identifying `~Escapable` types as exactly those types that can carry such dependencies.
 It also helps simplify the enforcement of lifetime constraints by guaranteeing that constrained values cannot escape before being returned.
+Most importantly, this restriction helps ensure that the new semantics (especially lifetime dependency inference) cannot accidentally break existing code.
 We expect that in the future, additional investigation can reveal a way to relax this restriction.
 
 #### Downgraded Dependencies
@@ -468,3 +469,25 @@ it needs to guarantee that the reference is destroyed before the container:
 ```
 func f(container: consuming ContainerType, ref: borrow(container) consuming RefType) -> ResultType
 ```
+
+#### Lifetime Dependencies for Tuples
+
+It should be possible to return a tuple where one part has a lifetime dependency.
+For example:
+```swift
+func f(a: consume A, b: B) -> (consume(a) C, B)
+```
+We expect to address this in the near future in a separate proposal.
+
+#### Lifetime Dependencies for containers and their elements
+
+It should be possible to return containers with collections of lifetime-constrained elements.
+For example, a container may want to return a partition of its contents:
+```swift
+borrowing func chunks(n: Int) -> borrow(self) SomeList<borrow(self) BufferView<UInt8>>
+```
+We're actively looking into ways to support these more involved cases and expect to address this in a future proposal.
+
+## Acknowledgements
+
+Dima Galimzianov provided several examples for Future Directions.
