@@ -265,7 +265,7 @@ This modifies *function-result* in the Swift grammar as follows:
 
 Here, the argument to the lifetime modifier must be one of the following:
 
-* *external-parameter-name:* the external name of one of the function parameters,
+* *local-parameter-name:* the local name of one of the function parameters,
 * *parameter-index:* a numeric index of one of the parameters in the *parameter-clause* (the first parameter is number zero), or
 * the token **`self`**.
 
