@@ -226,7 +226,7 @@ Returning a non-escapable value from a closure requires explicit lifetime depend
 
 All of the requirements on use of non-escapable values as function arguments and return values also apply to async functions, including those invoked via `async let`.
 
-The closures used in `Task.init` or `Task.detached` are escaping closures and therefore cannot capture non-escapable values.
+The closures used in `Task.init`, `Task.detached`, or `TaskGroup.addTask` are escaping closures and therefore cannot capture non-escapable values.
 
 ## Source compatibility
 
@@ -299,9 +299,11 @@ We’ve explicitly excluded class types from being non-escapable.  In the future
 
 #### Concurrency
 
-Structured concurrency implies lifetime constraints similar to those outlined in this proposal.  It may be appropriate to incorporate `~Escapable` into the structured concurrency primitives.
+Structured concurrency implies lifetime constraints similar to those outlined in this proposal.
+It may be appropriate to incorporate `~Escapable` into the structured concurrency primitives.
 
-We expect a future proposal will deal with the relationship to `TaskGroup` and other concurrency constructs.
+For example, the current `TaskGroup` type is supposed to never be escaped from the local context;
+making it `~Escapable` would prevent this type of abuse and possibly enable other optimizations.
 
 #### Global non-escapable types with immortal lifetimes
 
