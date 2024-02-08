@@ -387,6 +387,8 @@ func f(arg1: Array<Int>) -> BufferReference<Int> dependsOn(arg1)
 
 We propose above using the existing `borrow`/`mutate`/`consume`/`copy` keywords, since we feel the new behaviors have a substantial similarity to how similar keywords are used elsewhere in the language.
 
+We also considered `borrowing`/`mutating`/`consuming`/`copying` but felt that the semantic differences merited using a different form of these words.
+
 Other alternatives considered include:
 
 ```
@@ -424,7 +426,7 @@ Requiring an explicit mutation specification seems to us to improve readability,
 #### Lifetime Dependencies for Computed Properties
 
 It might be useful to allow lifetime dependencies between `self` and the value returned by a computed property.
-There is some ambiguity here, since resilience hides the distinction between a computed and stored property, and it’s not clear that there is any use for lifetime dependencies when returning stored properties.
+There is some ambiguity here, since resilience hides the distinction between a computed and stored property.
 In particular, the resilience concern might prevent us from inferring lifetime dependencies for properties across module boundaries.
 The notation for an explicit lifetime dependency on a property might look like the following:
 
