@@ -338,7 +338,10 @@ struct Box<T> {
 extension Box: NonEscapable when T: NonEscapable { }
 ```
 
-However, we felt it best to stick with the precedent set by `~Copyable`.
+However, this would imply that any `NonEscapable` type was a
+subtype of `Any` and could therefore be placed within an `Any` existential box.
+An `Any` existential box is both `Copyable` and `Escapable`,
+so it cannot be allowed to contain a non-escapable value.
 
 #### Rely on `~Copyable`
 
