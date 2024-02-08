@@ -389,4 +389,4 @@ We expect that future experience with non-escapable types will clarify whether a
 
 ## Acknowledgements
 
-Many people discussed this proposal and gave important feedback, including:  Kavon Farvardin, Meghana Gupta, John McCall, Slava Pestov, Joe Groff, and Guillaume Lessard.
+Many people discussed this proposal and gave important feedback, including:  Kavon Farvardin, Meghana Gupta, John McCall, Slava Pestov, Joe Groff, Guillaume Lessard, and Franz Busch.
