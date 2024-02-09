@@ -291,8 +291,8 @@ The following typealiases, properties, functions and subscripts have direct coun
 
 ```swift
 extension StorageView {
-  public typealias Index: StorageViewIndex<Element>
-  public typealias SubSequence: Self
+  public typealias Index = StorageViewIndex<Element>
+  public typealias SubSequence = Self
 
   public var startIndex: Index { _read }
   public var endIndex: Index { _read }
