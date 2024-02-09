@@ -1,7 +1,7 @@
 # Resolve DistributedActor protocols
 
 * Proposal: [SE-NNNN](NNNN-resolve-distributed-actor-protocols.md)
-* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
+* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](http://github.com/xedin)
 * Review Manager: TBD
 * Status:  **Implementation in progress**
 * Implementation: [PR #70928](https://github.com/apple/swift/pull/70928)
@@ -65,7 +65,7 @@ The goal of this proposal is to allow the following module approach to sharing d
 ┌────────────────────────────────────────────────┐      ┌──────────────────────────────────────────────┐
 │             Client Module                      │      │               Server Module                  │
 │================================================│      │==============================================│
-│ let g: any Greeter = try #resolve(...) /*new*/ │      │ distributed actor EnglishGreeter: Greeter {  │
+│ let g = try $Greeter.resolve(...) /*new*/      │      │ distributed actor EnglishGreeter: Greeter {  │
 │ try await greeter.hello(name: ...)             │      │   distributed func greet(name: String){      │
 └────────────────────────────────────────────────┘      │     "Greeting in english, for \(name)!"      │
 /* Client cannot know about EnglishGreeter type */      │ }                                            │
@@ -75,200 +75,194 @@ The goal of this proposal is to allow the following module approach to sharing d
 In this scenario the client module (and application) has no knowledge of the concrete distributed actor type or implementation.
 
 In order to achieve this, this proposal improves upon two aspects of distributed actors:
-- introduce the ability to call `resolve(id:using:)` on a protocol type, rather than having to create an empty "stub" type manually
+- introduce the `@DistributedProtocol` macro that can be attached to distributed actor protocols, and enable the use of `resolve(id:using:)` with such types,
 - extend the distributed metadata section such that a distributed method which is witness to a distributed requirement, is also recorded using the protocol method's `RemoteCallTarget.identifier` and not only the concrete method's
 
 ## Proposed solution
 
-### The `#resolve` macro
+### The `@DistributedProtocol` macro
 
-While concrete distributed actor types have a `resolve(id:using:)` method available on them, however since the implementation of such method for a protocol would involve code generation, we'll instead leverage the new macro capabilities of the Swift compiler.
+At the core of this proposal is the `@DistributedProtocol` macro. It is an attached declaration macro, which introduces a number of declarations which allow the protocol, or rather, a "stub" type for the protocol, to be used on a client without knowledge about the server implementation's concrete distributed actor type.
 
-The `#resolve(id:using:)` macro is the entry point to locate and return a local or remote distributed actor reference, depending on where the distributed actor system implementation determines the ID to be pointing at.
-
-With concrete distributed actors, this method is declared as a static requirement on the `DistributedActor` protocol, and its implementation is synthesized by the compiler for every concrete distributed actor. This is necessarily synthesized, because a remote distributed actor reference is a special kind of object that is allocated as a "small shim" rather than the complete state of the object. The declaration for the concrete distributed actor resolve is as follows:
+The macro must be attached to the a `protocol` declaration that is a `DistributedActor` constrained protocol, like this:
 
 ```swift
-@available(SwiftStdlib 5.7, *)
-public protocol DistributedActor: AnyActor, Identifiable, Hashable 
-  where ID == ActorSystem.ActorID, 
-        SerializationRequirement == ActorSystem.SerializationRequirement {
-          
-  static func resolve(id: ID, using system: ActorSystem) throws -> Self
+import Distributed 
+
+@DistributedProtocol
+protocol Greeter where ActorSystem: DistributedActorSystem<any Codable> {
+  distributed func greet(name: String) -> String
 }
 ```
 
-This method is not possible to call "on" a protocol since Swift does permit static method calls on metatypes. And it works by calling into the `DistributedActorSystem` to attempt to locate a local instance of this actor, and if none is found, forms a remote proxy instance of the specific type.
+The protocol must specify the a constraint on the `ActorSystem` in which it specifies the kind of `SerializationRequirement` it is able to work with. This serialization requirement must be a protocol, and existing distributed actor functionality already will be verifying this.
 
-Let us consider a `Greeter` protocol that is constrained to `DistributedActor`, as follows:
+Checking of distributed functions works as before, and the compiler will check that the `distributed` declarations all fulfill the `SerializationRequirement` constraint. E.g. in the example above, the parameter type `String` and return type `String` both conform to the `Codable` protocol, so this distributed protocol is well formed.
+
+It is possible to for a distributed actor protocol to contain non-distributed requirements. However in practice, it will be impossible to ever invoke such methods on a remote distributed actor reference. It is possible to call such methods if one were to obtain a local distributed actor reference implementing such protocol, and use the existing `whenLocal(operation:)` method on it.
+
+The `@DistributedProtocol` macro generates a number of internal declarations necessary for the distributed machinery to work, however the only type users should care about is always a dollar prefixed concrete distributed actor declaration, that is the "stub" type. This stub type can be used to resolve a remote actor using this protocol stub:
+
+E.g. if we knew a remote has a `Greeter` instance for a specific ID we have discovered using some external mechanism, this is how we'd resolve it:
+
+```swift 
+let clusterSystem: ClusterSystem // example system
+
+let greeter = $Greeter.resolve(id: id, using: clusterSystem)
+```
+
+As the `ClusterSystem` is using `Codable` as it's serialization requirement, the resolve compiles and produces a valid reference.
+
+### Distributed actors generic over their `ActorSystem`
+
+The previous section made use of a distributed actor that abstracted over a generic ActorSystem. Today (in Swift 5.10) this is not possible, and would result in a compile time error.
+
+Previously, the compiler would require that the `ActorSystem` typealias refer to a specific distributed actor system type (not a protocol, a concrete nominal type). For example, the following actor can only be used with the `ClusterSystem`:
 
 ```swift
 import Distributed
+import DistributedCluster // github.com/apple/swift-distributed-actors provides `ClusterSystem`
 
-public protocol Greeter: DistributedActor {
-  distributed func greet()
+distributed actor DistributedAsyncSequence<Element> where Element: Sendable & Codable { 
+  typealias ActorSystem = ClusterSystem
+
+  // not real implementation; simplified method to showcase introduced capabilities
+  distributed func gimmeNextElement() async throws -> Element? { ... }
 }
 ```
 
-Swift does not permit static functions to be invoked on a protocol metatype, so sadly we cannot spell this API as follows:
+And while such generally useful "distributed async sequence" actor can be written generically, to work with the vast majority of actor systems, today's language did not allow to spell abstract over it, and the `ActorSystem` type always was forced to be a _concrete_ type. 
+
+To support this new pattern, the `DistributedActorSystem` protocol gains a *primary associated type* for the `SerializationRequirement` associated type:
 
 ```swift
-import SampleDistributed // provides SampleSystem
+// before: 
+// protocol DistributedActorSystem<SerializationRequirement>: Sendable {
+//   associatedtype SerializationRequirement where ...
+//   // ...
+// }
 
-let system: SampleActorSystem
-let greeter = try Greeter.resolve(id: id, using: system)
-// ❌ error: static member 'resolve' cannot be used on protocol metatype '(any Greeter).Type'
+// now: 
+protocol DistributedActorSystem<SerializationRequirement>: Sendable {
+  /// The serialization requirement that will be applied to all distributed targets used with this system.
+  associatedtype SerializationRequirement
+    where SerializationRequirement == InvocationEncoder.SerializationRequirement,
+          SerializationRequirement == InvocationDecoder.SerializationRequirement,
+          SerializationRequirement == ResultHandler.SerializationRequirement
+  // ...
+}
+
+// 
 ```
 
-Even if we could invoke such method on a metatype, we still would not have a concrete type that a proxy instance could be formed of. In other words, such a resolve must trigger code generation -- we need to obtain a "stub" type, that implements all requirements of the `Greeter` protocol with stub implementations, and then return a remote reference for it.
+The `SerializationRequirement` must be specified for all actors and protocols attempting to abstract over an actor system, because it is necessary to compile-time guarantee the correctness of values passed to such distributed actor methods. The compiler uses this associated type to verify all argument types and returned values are able to be serialized when performing remote calls, and will refuse to compile invocations would otherwise would have failed at runtime.
 
-Instead of relying on ad-hoc compiler built-in synthesis, we can rely on Swift's macros to provide the type and implementation for `resolve`:
-
-```swift
-let system: SampleActorSystem = ... 
-let id: SampleActorSystem.ActorID = ...
-let greeter = try #resolve<any Greeter, SampleActorSystem>(id: id, using: system) // ✅ correct 
-```
-
-Where the #resolve macro is declared in the `Distributed` module shipping with Swift:
+Thanks to this new primary associated type, it is now possible to spell such our "distributed async sequence" as a generic actor, implement it once, and re-use it across any compatible actor system implementation:
 
 ```swift
-public macro resolve<DA: DistributedActor, DAS: DistributedActorSystem>(
-  id: DAS.ActorID, using system: DAS) -> DA = ... 
-```
-
-The `#resolve` macro functions similarily to the resolve method, however it is able to work with protocol types constrained to `DistributedActor`. It creates an anonymous distributed actor type that is used as the "stub" for the remote calls to be performed at runtime.
-
-The synthesized "stub type" is generally not visible to end users as the macto returns an `any MyActor` rather than exposing the underlying synthesized type. The name of the synthesized type is unique and cannot be relied on by observers, e.g. by inspecting names using the `type(of:)` function -- there is no guarantee the name of the synthesized type will always be the same.
-
-This macro necessarily must be passed the explicit types of the resolved actor, and cannot be used in a generic function to create "any distributed actor", as the macro based code synthesis would not be able ot know what such generic `T` actor actually is:
-
-```swift
-func ohNo<T: DistributedActor>(...) {
-  #resolve<any T, SampleActorSystem>(...) // ❌ types passed to resolve must be statically known
+distributed actor DistributedAsyncSequence<Element, ActorSystem> 
+  where Element: Sendable & Codable,
+        ActorSystem: DistributedActorSystem<any Codable> { 
+          
+  // not real implementation; simplified method to showcase introduced capabilities
+  distributed func exampleNextElement() async throws -> Element? { ... }
 }
 ```
 
-And in our `Greeter` example, expands to the following:
+Note that since the `ActorSystem` specifies a concrete `SerializationRequirement` the compiler is still able to check that all types invoked in a distributed function call conform to this protocol, i.e. we're guaranteed to be able to serialize `Element` because the ActorSystem provided must be able to handle this serialization mechanism.
+
+This also extends to distributed protocols, which are now able to abstract over an actor system, while specifying what serialization requirement they support:
 
 ```swift
-{
-    distributed actor UniqueStubName(Greeter, SampleActorSystem): Greeter {
-        typealias ActorSystem = SampleActorSystem // must be known statically
-           
-        distributed func hello(param: NotCodable) -> String { Distributed._methodStub() }
-    }
-    return try UniqueStubName(Greeter, SampleActorSystem)
-      .resolve(id: id, using: system)
-}()
+protocol DistributedAsyncSequence: DistributedActor 
+    where ActorSystem: DistributedActorSystem<any Codable> {
+  associatedtype Element: Sendable & Codable
+      
+  distributed func exampleNextElement() async throws -> Element? { ... }
+}
 ```
 
-The important part is that the macro is able to synthesize an stub implementation type, that the existing resolution mechanisms can be invoked on. 
+Missing to specify the serialization requirement is a compile time error:
 
-The necessity to synthesize such type stems from the fact that the `ActorSystem` type must be a concrete type for synthesis of a distributed method's thunk to work correctly. Sadly, at present, the `ActorSystem` cannot be made generic due to difficult type-system implications this would cause, neccessitating some form of code synthesis at a point where both the actor system, and protocol are known statically, which is usually in the "Client" module of a project.
+```swift
+protocol DistributedAsyncSequence: DistributedActor 
+    where ActorSystem: DistributedActorSystem { 
+    // error: distributed actor protocol must specify `ActorSystem.SerializationRequirement`,
+    // you can provide it like this: DistributedActorSystem<any Codable>
+  associatedtype Element: Sendable & Codable
+      
+  distributed func exampleNextElement() async throws -> Element? { ... }
+}
+```
 
-> Aside: The "Server" module does not need to synthesize any code, as it would host a concrete implementation of the `Greeter` protocol, like the `EnglishGreater` in our example used so far in the proposal.
+The serialization requirement must be a `protocol` type; This was previously enforced, and remains so after this proposal.The important part is that the macro is able to synthesize an stub implementation type, that the existing resolution mechanisms can be invoked on. 
 
 ## Detailed design
 
-### Details of the `#resolve` macro's workings
+The `@DistributedProtocol` macro generates a concrete `distributed actor` declaration as well as an extension which implements the protocol's method requirements with "stub" implementations.
 
-The entry point to resolve a distributed actor protocol is the new `#resolve` macro, which is declared as follows:
+>  **NOTE:** The exact details of the macro synthesized code are not guaranteed to remain the same, and may change without notice.
+
+This proposal also introduces an empty `DistributedStubActor` protocol:
 
 ```swift
-@freestanding(expression)
-public macro resolve<DA: DistributedActor, DAS: DistributedActorSystem>(
-  id: DAS.ActorID, using system: DAS
-) throws -> DA
-
+public protocol DistributedStubActor where Self: DistributedActor {}
 ```
 
-This macro depends on the existence of other macros, that the protocol type type provided to its invocation is expected to generate. E.g. an invocation on `Greeter` like this:
+The macro synthesizes a concrete distributed actor which accepts a generic `ActorSystem`. The generated actor declaration matches access level with the original declaration, and implements the protocol as well as the `DistributedStub` protocol:
 
 ```swift
-// Module: API
-public protocol Greeter: DistributedActor { 
-  distributed func hello()
+protocol Greeter: where ActorSystem: DistributedActorSystem<any Codable> {
   distributed func greet(name: String) -> String
 }
 
-// !! macro names are subject to change and are not guaranteed !!
-
-// @freestanding(expression)
-// public macro _distributed_resolve_Greeter<DAS: DistributedActorSystem>(
-//  stubName: String,
-//  id: DAS.ActorID,
-//  using system: DAS) -> Any
-
-// @freestanding(declaration, names: named(hello(), greet(name:)))
-// public macro _distributed_stubs_Greeter() =
-//   /* encodes all method requirements of Greeter in a form that stubs can be generated from */
-```
-
-All these macros are implemented in the `Distributed`  module, even though the macro *declarations* are specific for every distributed actor protocol and present in their respective modules. In our example, if the `Greeter` protocol is present in the `API` module, the macros generated from it reside in it as well.
-
-To make the example more interesting, let us consider a `Greeter` protocol that also inherits from other protocols, like this:
-
-```swift
-public protocol Watchable: DistributedActor {
-  distributed func watch()
-}
-
-public protocol Greeter: Watchable, DistributedActor { 
-  distributed func hello()
-  distributed func greet(name: String) -> String
+// "stub" type
+distributed actor $Greeter<ActorSystem>: Greeter, DistributedStubActor
+    where DistributedActorSystem<any Codable> {
+  private init() {} // cannot initialize, can only resolve(id:using:)
+      
+  // stub implementations provided via extension on 'Greeter & DistributedStubActor'
 }
 ```
 
-Both these protocols have their respective distributed macros synthesized.
+Default implementations for all the protocol's requirements (including non-distributed requirements) are provided by extensions utilizing the `DistributedStubActor` protocol.
 
-Now, when it comes to invoke the resolve macro invoked as:
+It is possible for a protocol type to inherit other protocols, in that case the parent protocol must either have default implementations for all its requirements, or it must also apply the `@DistributedProtocol` protocol which generates such default implementations.
+
+The default method "stub" implementations provided by the `@DistributedProtocol` simply fatal error if they were to ever be invoked. Invoking them however is not possible.
+
+It is recommended to use `some/any Greeter` rather than `$Greeter` when passing around resolved instances of a distributed actor protocol. This way none of your code is tied to the fact of using a specific type of proxy, but rather, can accept any greeter, be it local or resolved through a proxy reference. This can come in handy when refactoring a codebase, and merging modules in such way where the greeter may actually be a local instance in some situations.
+
+### Interaction with the `DefaultDistributedActorSystem`
+
+Since the introduction of distributed actors, it is possible to declare a module wide `DefaultDistributedActorSystem` type alias, like this:
 
 ```swift
-let g = try #resolve<any Greeter, MyActorSystem>(id: id, using: system)
+typealias DefaultDistributedActorSystem = ClusterSystem
 ```
 
-It effectively forms a series of expansions:
-
-- `#resolve<any Greeter, MyActorSystem>` expands into an invocation of the specific target macro `#_distributed_resolve_Greeter<MyActorSystem>`
-
-- `#_distributed_resolve_Greeter<MyActorSystem>` synthesizes the body of the resolve body, and an anonymous distributed actor declaration
-
-  - The body of the anonymous actor declaration declares `typealias ActorSystem = MyActorSystem`, which was obtained though the macros forwarding the type argument through to eachother
-
-  - A number of `#_distributed_stubs_TYPE` expansions, for every protocol that the `Greeter` protocol refines, as they all contribute requirements that need to be stubbed out.
-
-    In our example this means the anonymous actor body expands the following two macros:
-
-    - `#_distributed_stubs_Watchable`
-    - `#_distributed_stubs_Greeter`
-    - If `Watchable` were to also refine some other protocol (which may contribute protocol requirements), this macro would also expand to provide stubs for those.
-
-- The specific `#_distributed_stubs_TYPE` expansions simply form a list of declarations (function or computed property) which are implemented using a fatalError explaining that this type is a stub and should never have been able to invoked "directly."
-
-  - Methods invoked on a stub shall always be turned into `remoteCall` invocations, therefore the function bodies of the stubs can directly just assume that calling them directly is "impossible" (or the result of some bug).
-
-None of the names generated by these intermediate macros surfaced to end users and are not generally observable–except opening the existential and inspecting the `type(of:)` of the returned stub).
-
-> :warning: The names and functions of macro declarations explained in this section are not stable and may change between Swift versions. Specifically, if the need for source synthesis were to be subsumed by sufficiently powerful language features, the macros may instead directly delegate to those instead.
-
-#### Limitations
-
-Because the `#resolve` necessarily needs to obtain concrete type information it is not possible to call it from generic methods.
-
-The macro must be provided a **concrete** name of a distributed actor system and type that a proxy should be synthesized for.
+This makes it easier to declare distributed actors as the `ActorSystem` type requirement is witnessed by an implicit type alias generated in every concrete distributed actor, like this:
 
 ```swift
-try #resolve<any DA, LocalTestingDistributedActorSystem>(id: id, using: system)
-```
-
-It is not possible to use this macro from a context where for example the distributed actor system is provided via a generic type parameter:
-
-```swift
-func cannot<DAS: DistributedActorSystem>(_: DAS.Type = DAS.self) {
-  try #resolve<any DA, DAS>(id: id, using: system) // ❌ expansion will fail
+distributed actor Worker { 
+  // synthesized:
+  // typealias ActorSystem = ClusterSystem // because 'DefaultDistributedActorSystem = ClusterSystem'
+  
+  distributed func work()
 }
 ```
+
+The newly introduced ability to abstract over the `ActorSystem` in concrete distributed actors _wins_ over the synthesized typealias, causing the typealias to not be emitted:
+
+```swift
+distributed actor Worker<ActorSystem> where ActorSystem: DistributedActorSystem<any Codable> {
+  distributed func work()
+}
+```
+
+The `ActorSystem` type requirement of the `DistributedActorProtocol` in this case is witnessed by the generic parameter, and not by the "default" fallaback type.
+
+This is the right behavior because this generic worked can work on _any_ distributed actor system where the `SerializationRequirement` is Codable, and not only on the `ClusterSystem`.
 
 ### Extend Distributed metadata for protocol method identifier lookups
 
@@ -366,7 +360,7 @@ This logic is exactly the same as any existing `DistributedActorSystem` implemen
 
 The changes proposed are purely additive.
 
-The introduced macros do not introduce any new capabilities to the `DistributedActorSystem` protocol itself, but rather introduce new source generation techniques 
+The introduced macros do not introduce any new capabilities to the `DistributedActorSystem` protocol itself, but rather introduce new source generation techniques.
 
 ## ABI compatibility
 
@@ -465,6 +459,8 @@ extension Greeter {
 
 This simplified snippet does not solve the problem about introducing the new protocol requirement in a binary compatible way, and we'd have to come up with some pattern for it -- however the general direction of allowing introducing new versions of APIs with easier deprecation of old ones is something we'd like to explore in the future.
 
+Support for renaming methods could also be provided, such that the legacy method can be called `__deprecated_greet()` for example, while maintaining the "legacy name" of "`greet()`". Overall, we believe that the protocol evolution story here is somethign we will have to flesh out in the near future, anf feel we have the tools to do so.
+
 ### Consider customization points for distributed call target metadata assignment
 
 Currently the metadata used for remote call targets is based on Swift's mangling scheme. This is sub-optimal as it includes slightly "too much" information, such as the parameters being classes or structs, un-necessarily wire causing wire-incompatible changes when one could handle them more gracefully.
@@ -493,12 +489,31 @@ At the same time though, Swift is used in many exciting domains where the use of
 
 ### Handle stub synthesis in the compiler
 
+An earlier attempt at implementation of this feature attempted to handle synthesis in the compiler, and emit ad-hoc distributed actor declaration types as triggered by the _call site_ of `resolve(id:using:)` - this is problematic in being a very custom and special path in the compiler, complicating the language and giving distributed actors more "privileges" than normal code.
 
+The idea was as follows:
+
+```swift
+protocol Greeter: DistributedActor {
+  distributed func greet(name: String) -> String
+}
+
+let someSystem: some DistributedActorSystem<any Codable> = ... 
+let g: any Greeter = try .resolve(id: id, using: someSystem)
+```
+
+This would have to synthesize an ad-hoc created anonymous declaration for a `$Greeter` and at the site of the `resolve` type-check if the declaration can be used with the `someSystem`'s serialization requirement. We would have to check if the distributed greet method's parameters and return type conform to `Codable` etc, and all this would have to happen lazily -- triggered by the existence of a `.resolve` method combining a protocol with a specific actor system.
+
+The only possible spelling of such API would have been this: `let g: any Greeter = try .resolve(...)` as the concrete type that is used to implement this `any Greeter` is not user visible, and cannot be. This is a lot of complexity, to what amounts to just a simple stub type.
+
+We believe that the macro stub approach is a good balance between convenience and lack of "magic" compiler support, as for this specific piece of the design no deep integration in the type system is necessary.
 
 
 ## Revisions
 
-- 2.0
+- 1.2
+  - Change implementation to not need `#resolve` macro, but rely on generic distributed actors
+- 2.1
   - Change implementation approach to macros, introduce `#resolve` macro
 - 1.0
   - Initial revision
