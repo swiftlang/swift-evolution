@@ -177,7 +177,7 @@ internal func _deinitAsync(_ object: __owned AnyObject,
 If no switching is needed, then `deinit` is executed immediately on the current thread. Otherwise, the task-less job copies priority and task-local values from the task/thread that released the last strong reference to the object.
 
 Function takes flags that control how task-locals are copied:
-* `copyTaskLocalsOnHop` - if task-locals should be copied in `O(n)` when creating a job.
+* `copyTaskLocalsOnHop` - if task-locals should be copied in `O(n)` if job needs to be created.
 * `resetTaskLocalsOnNoHop` - if task-locals should be blocked by a barrier in `O(1)` when deinit is executed immediately.
 
 Passing no flags performs least work, but creates inconsistency between cases of calling deinit immediately and creating a job. Passing only `copyTaskLocalsOnHop` ensures that task-locals are consistently available in both cases. Passing only `resetTaskLocalsOnNoHop` ensures that task-locals are consistently reset in both cases. Passing both flags technically is possible, but creates inverted inconsistent behavior with runtime cost in all cases. Value of the `flags` parameter is controlled by [attributes](#task-local-values) applied to the deinit declaration.
@@ -301,7 +301,7 @@ class Implicit: Base {
 }
 ```
 
-Note that type-checking of overridden `deinit` is inverted compared to regular functions. When type-checking regular function, compiler analyzes if overriding function can be called through the vtable slot of the overridden one. When type-checking `deinit`, compiler analyzes `super.deinit()` can be called from the body of the `deinit`.
+Note that type-checking of overridden `deinit` is inverted compared to regular functions. When type-checking regular function, compiler analyzes if overriding function can be called through the vtable slot of the overridden one. When type-checking `deinit`, compiler analyzes if `super.deinit()` can be called from the body of the `deinit`.
 
 ```swift
 class Base {
@@ -343,7 +343,7 @@ class Bar {
 
 #### Asynchronous `deinit`
 
-Asynchronous `deinit` comes with higher costs compared to isolated synchronous deinit. For asynchronous `deinit` new task is created every time. There is no fast path that would execute deinit code immediately. And task has higher memory cost compared to a single ad-hoc job.
+Asynchronous `deinit` comes with higher costs compared to isolated synchronous deinit. For asynchronous `deinit` new task is created every time. There is no fast path that would execute deinit code immediately. And task has higher memory and performance cost compared to a single ad-hoc job.
 
 Because of that, when isolated synchronous `deinit` is sufficient, usage of asynchronous `deinit` is discouraged by a warning. Fix-it suggests to remove `async`, and insert `isolated` if there are no isolation-related attributes.
 
@@ -494,7 +494,7 @@ class Derived: Base {
 
 Async deinit can have isolation different from the isolation of the `super.deinit`. If `super.deinit` is asynchronous, then it is responsible for switching to the correct executor (including generic executor).
 
-If `super.deinit` is synchronous and isolated, then async `deinit` in the derived class will hop to the correct executor before calling `super.deinit`. If `super.deinit` is synchronous and but not isolated, then it will be called on whatever executor `deinit` of the derived class executes. This is similar to how calling synchronous functions from async functions works.
+If `super.deinit` is synchronous and isolated, then async `deinit` in the derived class will hop to the correct executor before calling `super.deinit`. If `super.deinit` is synchronous and not isolated, then it will be called on whatever executor `deinit` of the derived class executes. This is similar to how calling synchronous functions from async functions works.
 
 ```swift
 @MainActor
@@ -602,6 +602,12 @@ When deinitializing an instance of default actor, `swift_task_deinitOnExecutor()
 
 `deinit` declared in the code of the distributed actor applies only to the local actor and can be isolated or marked async as described above. Remote proxy has an implicit compiler-generated synchronous `deinit` which is never isolated.
 
+### Interaction with task executor preference
+
+Ad-hoc job created for isolated synchronous deinit is executed outside a task, so task executor preference does not apply.
+
+Task created for async deinit is unstructed, and thus does not inherit task executor preference.
+
 ### Task-local values
 
 Copying task-local values is a safe default choice for handling task-local values in isolated or asynchronous `deinit`. It allows code in the deinit to access task-local values at the point of last release, the same way they are available in synchronous nonisolated `deinit`.
@@ -619,7 +625,7 @@ private class Logger {
 
 public func withLogger(operation: () async -> Void) {
   let logger = Logger()
-  Logger.$instance..withValue(logger, operation: operation)
+  Logger.$instance.withValue(logger, operation: operation)
 }
 
 public func log(_ message: String) {
@@ -767,6 +773,8 @@ Adding an isolation annotation to a `dealloc` method of an imported Objective-C 
 
 Removing an isolation annotation from the `dealloc` method (together with `retain`/`release` overrides) is a breaking change. Any existing subclasses would be type-checked as isolated but compiled without isolation thunks. After changes in the base class, subclass `deinit`s could be called on the wrong executor.
 
+If isolated and async deinit need to be suppressed in `.swiftinterface` for compatibility with older compilers, then `open` classes are emitted as `public` to prevent subclassing.
+
 ## Future Directions
 
 ### Linear types
@@ -854,17 +862,22 @@ a.enqueue { aIsolated in
 
 `UIView` and `UIViewController` implement hopping to the main thread by overriding the `release` method. But in Swift there are no vtable/wvtable slots for releasing, and adding them would also affect a lot of code that does not need isolated deinit.
 
-### Don't copy task-local values by default
+### Don't copy task-local values when hopping by default
 
-When switching executors, the current implementation copies priority and task-local values from the task/thread where the last release happened. This minimizes differences between async/isolated and nonisolated synchronous `deinit`s.
+When switching executors, the current implementation copies priority and task-local values from the task/thread where the last release happened. This minimizes differences after code changes between async/isolated and nonisolated synchronous `deinit`s, and runtime differences between fast and slow paths of isolated deinit. Copying task-locals by default and providing an option to opt-out, follows the precedent of `Task.init` vs `Task.detached` and adheres to the principle of progressive disclosure.
 
-Availability of the task-local values depends on the point of the last release, which can be racy or simply hard to predict. Even when point of the last release cannot be known exactly, often it can be bound to a scope. If task-local values are set for the entire scope, they can be reliably used in the `deinit`. But in some cases it might be a better practice to capture task-local values in the `init()`, store them as object properties and re-inject them into `deinit`. 
+There are no compile-time checks for availability of the non-default task-local values.
+Checking correctness of the code that uses task-local values relies on testing.
+Having different behavior depending on the point of the last release can lead to bugs,
+which are easy to miss during the testing and hard to reproduce once reported.
 
-But it is not always possible to know which task-local values are used inside the `deinit`. For example, if it calls functions from closed-source frameworks or hidden behind type-erasure.
+One can argue that since point of the last release can be racy or simply hard to predict exactly, task-local values have little value in deinit. But even when point of the last release cannot be known exactly, often it can be bound to a scope. If task-local values are set for the entire scope, developers can expect them to be reliably available in the `deinit`.
 
-It can be easy to miss that task-local values are not injected into code running inside `deinit` if task-local values are accessed only in exceptional situations -  e.g. for logging assertion failures or runtime errors. But those are exactly the use cases where it is critically important for logging to work.
+In some cases it might be a better practice to capture task-local values in the `init()`, store them as object properties and re-inject them into `deinit`. But it is not always possible to know which task-local values are used inside the `deinit`. For example, if it calls functions from closed-source frameworks or hidden behind type-erasure.
 
-Copying task-locals by default and providing an option to opt-out, follows the precedent of `Task.init` vs `Task.detached`.
+It can be easy to miss during testing that task-local values are not injected into code running inside `deinit` if task-local values are accessed only in exceptional situations -  e.g. for logging assertion failures or runtime errors. But those are exactly the use cases where it is critically important for logging to work.
+
+Consistently resetting task-locals is another alternative which gives consistent behavior. But it comes with it's own runtime cost, which needs to be paid on the fast-path of the isolated deinit per object. Assuming that trees of objects are likely to be isolated to the same actor. Cost of copying task-local values needs to be paid only when deinitiazing root object and is proportional to the number of task-locals. While cost of resetting needs to be paid per object and is proportional to the tree size. Assuming that number of task-locals is smaller than number of objects for a typical use case, copying task-local values is actually faster then resetting them.
 
 ### Implicitly propagate isolation to synchronous `deinit`.
 
@@ -874,13 +887,13 @@ Majority of the `deinit`'s are implicitly synthesized by the compiler and only r
 
 ### Use asynchronous deinit as the only tool for `deinit` isolation
 
-Synchronous `deinit` has an efficient fast path that jumps right into the `deinit` implementation without context switching, or any memory allocations. Fast path is expected to be taken in majority of cases. But asynchronous `deinit` requires creation of task in all cases.
+Synchronous `deinit` has an efficient fast path that jumps right into the `deinit` implementation without context switching, or any memory allocations. Fast path is expected to be taken in majority of cases. And even slow path of isolated synchronous deinit is faster and has smaller memory footprint that asynchronous `deinit`.
 
 ### Execute asynchronous `deinit` sequentially if last release happens from async code
 
-That would mean that behavior of asynchronous deinit changes when synchronous function is inlined into asynchronous caller, or part of asynchronous function is extracted into a synchronous helper. This can happen due to optimizations, monomorphing generic code or manual refactoring. In either case, change in behavior is likely to be unexpected to the developer. Changes caused by optimizations can lead to issues which reproduce only in release build.
+That would mean that behavior of asynchronous deinit changes when synchronous function is inlined into asynchronous caller, or a part of asynchronous function is extracted into a synchronous helper. This can happen due to optimizations, monomorphing generic code or manual refactoring. In either case, the change in behavior is likely to be unexpected to the developer. Changes caused by optimizations can lead to issues which reproduce only in release build.
 
-Sequential execution of asynchronous deinit with last release from sync code could be approximated
+Sequential execution of asynchronous deinit with the last release from sync code could be approximated
 by adding such objects to the task-owned queue, which would be drained at the end of async scope. Calling runtime function at the end of each async scope can be too high performance cost.
 
 It could be possible to implement this using explicit API:
