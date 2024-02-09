@@ -788,10 +788,6 @@ func communicate() async {
 }
 ```
 
-### Asserting that `self` does not escape from `deinit`.
-
-It is not legal for `self` to escape from `deinit`. Any strong references remaining after `swift_deallocObject()` is executed cannot be even released safely. Dereferencing dangling references can manifest itself as a crash, reading garbage data or corruption of unrelated memory. It can be hard to connect symptoms with the origin of the problem. A better solution would be to deterministically produce `fatalError()` in `swift_deallocObject()` if there are additional strong references. The ideal solution would be to detect escaping `self` using compile-time analysis.
-
 ### Improving de-virtualization and inlining of the executor access.
 
 Consider the following example:
