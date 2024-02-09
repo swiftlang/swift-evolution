@@ -53,7 +53,7 @@ The goal of this proposal is to allow the following module approach to sharing d
 - Client module: which depends on API module, and uses the `DistributedActor` constrained protocol to resolve and obtain a remote reference to the server's implementation; without knowledge of the concrete type.
 
 ```swift
- 	 										   ┌────────────────────────────────────────┐
+                         ┌────────────────────────────────────────┐
                          │                API Module              │
                          │========================================│
                          │ protocol Greeter: DistributedActor {   │
