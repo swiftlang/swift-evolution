@@ -243,6 +243,9 @@ extension StorageView {
   public init<Owner>(
     unsafePointer: UnsafePointer<Element>, count: Int, owner: borrowing Owner
   ) -> borrow(owner) Self
+}
+
+extension StorageView where Element: BitwiseCopyable {
 
   /// Unsafely create a `StorageView` over a span of initialized memory.
   ///
@@ -259,7 +262,7 @@ extension StorageView {
   ///   - type: the type to use when interpreting the bytes in memory.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the returned `StorageView`.
-  public init<Element: BitwiseCopyable, Owner>(
+  public init<Owner>(
     unsafeBytes: UnsafeRawBufferPointer, as type: Element.Type, owner: borrowing Owner
   ) -> borrow(owner) Self
   
@@ -279,7 +282,7 @@ extension StorageView {
   ///   - count: the number of initialized elements in the view.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the returned `StorageView`.
-  public init<Element: BitwiseCopyable, Owner>(
+  public init<Owner>(
     unsafeRawPointer: UnsafeRawPointer, as type: Element.Type, count: Int, owner: borrowing Owner
   ) -> borrow(owner) Self
 }
