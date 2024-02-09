@@ -324,6 +324,10 @@ extension StorageView {
   public subscript(
     x: UnboundedRange
   ) -> copy StorageView<Element> { _read }
+  
+  // utility properties
+  public var first: copy(self) Element? { _read }
+  public var last: copy(self) Element? { _read }
 
   // one-sided slicing operations
   public func prefix(upTo: Index) -> copy(self) StorageView<Element>
