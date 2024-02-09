@@ -124,7 +124,7 @@ func nonisolatedAsyncFunc() async -> Int {
 } 
 ```
 
-or, for a specific scope using the `withTaskExecutorPreference` method:
+or, for a specific scope using the `withTaskExecutorPreference` method. Notably, the task executor preference is in effect for the entire structured task hierarchy while running in a task or scope where a task executor preference is set. For example, the following snippet illustrates child tasks created inside of a `withTaskExecutorPreference`:
 
 ```swift
 await withTaskExecutorPreference(executor) { 
@@ -135,7 +135,7 @@ await withTaskExecutorPreference(executor) {
   await withDiscardingTaskGroup { group in 
     group.addTask {
       // starts and runs on the 'executor'
-      await nonisolatedAsyncFunc()
+      await nonisolatedAsyncFunc() // also runs on 'executor'
     }
   }
   
@@ -145,19 +145,20 @@ await withTaskExecutorPreference(executor) {
 }
 ```
 
-Notably, the task executor preference is in effect for the entire structured task hierarchy while running in a task or scope where a task executor preference is set. For example, the following snippet illustrates child tasks created inside of a `withTaskExecutorPreference`.
-
-If a task with such executor preference encounters code which is `isolated` to some specific actor, it would adhere to that requirement and hop to it as expected:
+If a task with such executor preference encounters code which is `isolated` to some specific actor, the isolation properties of the actor still are upheld, however, unless that actor has a custom executor configured, the source of the thread actually running the actor's functions will be from the preferred executor:
 
 ```swift
 let capy: Capybara = Capybara()
 actor Capybara { func eat() {} } 
 
 Task(executorPreference: executor) {
-  // starts on 'executor', however...
-  try await capy.eat() // still executes actor isolated code on the actor's executor, as expected
+  // starts on 'executor'
+  try await capy.eat() // execution is isolated to the 'capy' actor, however execution happens on the 'executor' TaskExecutor
 }
 ```
+
+In a way, one should think of the `SerialExecutor` of the actor and `TaskExecutor` both being tracked and providing different semantics. 
+The `SerialExecutor` guarntees mutual exclusion, and the `TaskExecutor` provides a source of threads.
 
 ## Detailed design
 
