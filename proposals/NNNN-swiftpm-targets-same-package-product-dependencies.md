@@ -4,6 +4,7 @@
 * Authors: [stackotter](https://github.com/stackotter), [Tammo Freese](https://github.com/tammofreese)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Implementation: [apple/swift-package-manager#7331](https://github.com/apple/swift-package-manager/pull/7331)
 
 ## Introduction
 
@@ -92,30 +93,22 @@ The proposed solution is to introduce a new method `Target.Dependency.product(na
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves adding or
-modifying functionality in the package manager, explain how the package manager
-behaves in different scenarios and with existing features. If it's a new API in
-the `Package.swift` manifest, show the full API and its documentation comments
-detailing what it does. The detail in this section should be sufficient for
-someone who is *not* one of the author of the proposal to be able to reasonably
-implement the feature.
-
 A new `innerProductItem(name:condition:)` case will be added to `Target.Dependency` as the underlying representation for same-package product dependencies. It will be accompanied by a `product(name:condition:)` method — just as all existing enum cases of `Target.Dependency` have accompanying methods.
 
 ```swift
 extension Target {
-	public enum Dependency {
-		/// A dependency on a product in the same package.
+    public enum Dependency {
+        /// A dependency on a product in the same package.
         ///
         /// - Parameters:
         ///    - name: The name of the product.
         ///    - condition: A condition that limits the application of the target dependency. For example, only apply a dependency for a specific platform.
         case innerProductItem(name: String, condition: TargetDependencyCondition?)
-	}
+    }
 }
 
 extension Target.Dependency {
-	/// Creates a dependency on a product from the same package.
+    /// Creates a dependency on a product from the same package.
     ///
     /// - Parameters:
     ///   - name: The name of the product.
@@ -123,9 +116,9 @@ extension Target.Dependency {
     ///       dependency for a specific platform.
     /// - Returns: A `Target.Dependency` instance.
     public static func product(
-	    name: String,
-		condition: TargetDependencyCondition? = nil
-	) -> Target.Dependency {
+        name: String,
+        condition: TargetDependencyCondition? = nil
+    ) -> Target.Dependency {
         return .innerProductItem(name: name, condition: condition)
     }
 }
@@ -145,7 +138,7 @@ This isn't a breaking change for users of SwiftPM, and won't affect existing pac
 
 ### Rust's Cargo Workspaces
 
-Rust's Cargo package manager has a feature called [Cargo Workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) which allows multiple packages to be vended from a single repository. This is very useful for keeping subsystems of a large project separate, including being able to keep their dependencies separate. SwiftPM could introduce a similar system which would make the existing workaround much more manageable, by essentially making it a supported use-case. However this would be a massive undertaking and would likely require much stronger motivation to be worthwhile. Additionally, this can already be somewhat achieved using [a custom Swift package registry implementation designed to vend subdirectories of a repository as separate packages](https://github.com/stackotter/swiftpm-workspaces).
+Rust's Cargo package manager has a feature called [Cargo Workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) which allows multiple packages to be vended from a single repository. This is very useful for keeping subsystems of a large project separate, including being able to keep their dependencies separate. SwiftPM could introduce a similar system which would make the existing workaround much more manageable, by essentially making it a supported use-case. However this would be a massive undertaking and would likely require much stronger motivation to be worthwhile. Additionally, this can already be somewhat achieved using [a custom Swift package registry implementation designed to vend subdirectories of a repository as separate packages](https://github.com/stackotter/swiftpm-workspaces), however that has issues of its own for local development (the separate packages can't depend on eachother via paths which means that this solution is basically useless).
 
 ### Doing nothing
 
