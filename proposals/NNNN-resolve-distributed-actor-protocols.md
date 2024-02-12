@@ -137,7 +137,7 @@ To support this new pattern, the `DistributedActorSystem` protocol gains a *prim
 
 ```swift
 // before: 
-// protocol DistributedActorSystem<SerializationRequirement>: Sendable {
+// protocol DistributedActorSystem: Sendable {
 //   associatedtype SerializationRequirement where ...
 //   // ...
 // }
