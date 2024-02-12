@@ -204,7 +204,7 @@ We only permit
 * A `borrow(self)` lifetime dependency with a `borrowing` mutation-modifier
 * A `mutate(self)` lifetime dependency with a `mutating` mutation-modifier
 * A `consume(self)` lifetime dependency with a `consuming` mutation-modifier
-* A `copy(self)` lifetime dependency with a `borrowing` or `inout` mutation-modifier
+* A `copy(self)` lifetime dependency with a `borrowing` or `mutating` mutation-modifier
 
 The rules above apply regardless of whether the parameter-convention or mutation-modifier is explicitly written or is implicit.
 
