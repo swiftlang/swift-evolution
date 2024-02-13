@@ -61,9 +61,9 @@ With this workaround, the programmer must annotate every witness with `nonisolat
 
 This proposal adds dynamic actor isolation checking to:
 
-  - Witnesses of `nonisolated` protocol requirements when protocol conformance is annotated as `@preconcurrency`. For example:
+  - Witnesses of synchronous `nonisolated` protocol requirements when the witness is isolated and the protocol conformance is annotated as `@preconcurrency`. For example:
 
-    If `respondToUIEvent` is a witness to a protocol requirement, the protocol conformance error can be	suppressed using a `@preconcurrency` annotation on the protocol to indicate that the protocol itself 	predates concurrency:
+    If `respondToUIEvent` is a witness to a synchronous `nonisolated` protocol requirement, the protocol conformance error can be suppressed using a `@preconcurrency` annotation on the protocol to indicate that the protocol itself 	predates concurrency:
 
    ```swift
 	import NotMyLibrary
@@ -77,6 +77,8 @@ This proposal adds dynamic actor isolation checking to:
    ```
 
 	The witness checker diagnostic will be suppressed, the actor isolation assertion will fail if `respondToUIEvent()` is called inside `NonMyLibrary` from off the main actor, and the compiler will continue to emit diagnostics inside the module when called from off the main actor.
+
+	These dynamic checks apply to any situation where a synchronous `nonisolated` requirement is implemented by an isolated method, including synchronous actor methods.
 
   - `@objc` thunks of synchronous actor-isolated members of classes.
 
