@@ -33,7 +33,7 @@ func == <each Element: Equatable>(lhs: (repeat each Element), rhs: (repeat each 
 
   // Do-catch statement for short-circuiting as soon as two tuple elements are not equal.
   do {
-    repeat isEqual(each lhs, each rhs)
+    repeat try isEqual(each lhs, each rhs)
   } catch {
     return false
   }
