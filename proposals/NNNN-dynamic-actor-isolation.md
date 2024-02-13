@@ -1,4 +1,4 @@
-# Dynamic actor isolation enforcement
+# Dynamic actor isolation enforcement from non-strict-concurrency contexts
 
 * Proposal: [SE-NNNN](NNNN-dynamic-actor-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Pavel Yaskevich](https://github.com/xedin)
