@@ -138,6 +138,12 @@ This feature can be freely adopted and un-adopted in source code with no deploym
 
 ## Alternatives considered
 
+### Always emit dynamic checks upon entry to synchronous isolated functions
+
+A previous iteration of this proposal specified that dynamic actor isolation checks are always emitted upon entry to a synchronous isolated function. This approach is foolproof; there's little possiblity for missing a dynamic check for code that can be called from another module that does not have strict concurrency checking at compile time. However, the major downside of this approach is that code will be paying the price of runtime overhead for actor isolation checking even when actor isolation is fully enforced at compile time in Swift 6.
+
+The current approach in this proposal has a very desirable property of eliminated more runtime overhead as more of the Swift ecosystem transitions to Swift 6 at the cost of introducing the potential for missing dynamic checks where synchronous functions can be called from not-statically-checked code. We believe this is the right tradeoff for the long term arc of data race safety in Swift 6 and beyond, but it may require more special cases when we discover code patterns that are not covered by the specific set of rules in this proposal.
+
 ### `@preconcurrency(unsafe)` to downgrade dynamic actor isolation violations to warnings
 
 If adoption of this feature exposes a bug in existing binaries because actor isolated code from outside the actor, a `@preconcurrency(unsafe)` annotation (or similar) could be provided to downgrade assertion failures to warnings. However, it's not clear whether allowing a known data race exhibited at runtime is the right approach to solving such a problem.
