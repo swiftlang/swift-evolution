@@ -879,6 +879,12 @@ It can be easy to miss during testing that task-local values are not injected in
 
 Consistently resetting task-locals is another alternative which gives consistent behavior. But it comes with it's own runtime cost, which needs to be paid on the fast-path of the isolated deinit per object. Assuming that trees of objects are likely to be isolated to the same actor. Cost of copying task-local values needs to be paid only when deinitiazing root object and is proportional to the number of task-locals. While cost of resetting needs to be paid per object and is proportional to the tree size. Assuming that number of task-locals is smaller than number of objects for a typical use case, copying task-local values is actually faster then resetting them.
 
+Note that copying task-local values does not prevent future optimizations for reusing current task for async deinit of the child objects.
+Release of the child objects happens from complier-generated code which does interfere with task-local values.
+And any task-local values added inside the body of the deinit, would be removed inside the body as well.
+So if last release of the child object starts a new async deinit, it would need to be executed with the same set of task-local values as parent deinit,
+and thus can be executed in the same task.
+
 ### Implicitly propagate isolation to synchronous `deinit`.
 
 This would be a source-breaking change.
