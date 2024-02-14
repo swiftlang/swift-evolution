@@ -503,6 +503,7 @@ extension StorageView where Element: BitwiseCopyable {
   public func loadUnaligned<T: BitwiseCopyable>(
     fromByteOffset: Int = 0, as: T.Type
   ) -> T
+
   /// Returns a new instance of the given type, constructed from the raw memory
   /// at the specified index.
   ///
@@ -518,6 +519,15 @@ extension StorageView where Element: BitwiseCopyable {
   public func loadUnaligned<T: BitwiseCopyable>(
     from index: Index, as: T.Type
   ) -> T
+  
+  /// View the memory span represented by this view as a different type
+  ///
+  /// The memory must be laid out identically to the in-memory representation of `T`.
+  ///
+  /// - Parameters:
+  ///   - type: The type you wish to view the memory as
+  /// - Returns: A new `StorageView` over elements of type `T`
+  public func view<T: BitwiseCopyable>(as: T.Type) -> borrow(self) StorageView<T>
 }
 ```
 
