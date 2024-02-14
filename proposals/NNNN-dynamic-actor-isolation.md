@@ -63,50 +63,50 @@ This proposal adds dynamic actor isolation checking to:
 
   - Witnesses of synchronous `nonisolated` protocol requirements when the witness is isolated and the protocol conformance is annotated as `@preconcurrency`. For example:
 
-    If `respondToUIEvent` is a witness to a synchronous `nonisolated` protocol requirement, the protocol conformance error can be suppressed using a `@preconcurrency` annotation on the protocol to indicate that the protocol itself 	predates concurrency:
+    If `respondToUIEvent` is a witness to a synchronous `nonisolated` protocol requirement, the protocol conformance error can be suppressed using a `@preconcurrency` annotation on the protocol to indicate that the protocol itself predates concurrency:
 
-   ```swift
-	import NotMyLibrary
+    ```swift
+    import NotMyLibrary
 
-	@MainActor
-	class MyViewController: @preconcurrency ViewDelegateProtocol {
+    @MainActor
+    class MyViewController: @preconcurrency ViewDelegateProtocol {
      func respondToUIEvent() {
        // implementation...
      }
-   }
-   ```
+    }
+    ```
 
-	The witness checker diagnostic will be suppressed, the actor isolation assertion will fail if `respondToUIEvent()` is called inside `NonMyLibrary` from off the main actor, and the compiler will continue to emit diagnostics inside the module when called from off the main actor.
+    The witness checker diagnostic will be suppressed, the actor isolation assertion will fail if `respondToUIEvent()` is called inside `NonMyLibrary` from off the main actor, and the compiler will continue to emit diagnostics inside the module when called from off the main actor.
 
-	These dynamic checks apply to any situation where a synchronous `nonisolated` requirement is implemented by an isolated method, including synchronous actor methods.
+    These dynamic checks apply to any situation where a synchronous `nonisolated` requirement is implemented by an isolated method, including synchronous actor methods.
 
   - `@objc` thunks of synchronous actor-isolated members of classes.
 
-	Similarly to the previous case if a class or its individual synchronous members are actor-isolated and marked as either `@objc` or `@objcMembers`, the thunks, synthesized by the compiler to make them available from Objective-C, would have a new precondition check to make sure that use always happens on the right actor.
+    Similarly to the previous case if a class or its individual synchronous members are actor-isolated and marked as either `@objc` or `@objcMembers`, the thunks, synthesized by the compiler to make them available from Objective-C, would have a new precondition check to make sure that use always happens on the right actor.
 
   - Synchronous actor isolated function values passed to APIs that erase actor isolation and haven't yet adopted strict concurrency checking.
 
-	When API comes from a module that doesn't have strict concurrency checking enabled it's possible that it could introduce actor isolation violations that would not be surfaced to a client. In such cases actor isolation erasure should be handled defensively by introducing a runtime check at each position for granular protection.
+    When API comes from a module that doesn't have strict concurrency checking enabled it's possible that it could introduce actor isolation violations that would not be surfaced to a client. In such cases actor isolation erasure should be handled defensively by introducing a runtime check at each position for granular protection.
 
-	```swift
-	@MainActor
-	func updateUI(view: MyViewController) {
-		NotMyLibrary.track(view.renderToUIEvent)
-	}
-	```
+    ```swift
+    @MainActor
+    func updateUI(view: MyViewController) {
+        NotMyLibrary.track(view.renderToUIEvent)
+    }
+    ```
 
-	The use of `track` here would be considered unsafe if it accepts a synchronous nonisolated function type due to loss of `@MainActor` from `renderToUIEvent` and compiler would transform the call site into a function equivalent of:
+    The use of `track` here would be considered unsafe if it accepts a synchronous nonisolated function type due to loss of `@MainActor` from `renderToUIEvent` and compiler would transform the call site into a function equivalent of:
 
-	```swift
-	@MainActor
-	func updateUI(view: MyViewController) {
-		NotMyLibrary.track({
-		  MainActor.assumeIsolated {
-		    view.renderToUIEvent()
-		  }
-		})
-	}
-	```
+    ```swift
+    @MainActor
+    func updateUI(view: MyViewController) {
+        NotMyLibrary.track({
+            MainActor.assumeIsolated {
+            view.renderToUIEvent()
+            }
+        })
+    }
+    ```
 
 
 These are the most common circumstances when loosing actor isolation could be problematic and restricting runtime checking to them significantly limits negative performance impact of the new checks. The strategy of only emitting runtime checks when there’s potential for the function to be called from unchecked code is desirable, because it means the dynamic checks will be eliminated as more of the Swift ecosystem transitions to Swift 6.
