@@ -1,4 +1,4 @@
-## Safe Access to Contiguous Storage
+# Safe Access to Contiguous Storage
 
 * Proposal: [SE-NNNN](nnnn-safe-shared-contiguous-storage.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
