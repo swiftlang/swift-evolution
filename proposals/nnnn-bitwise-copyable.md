@@ -19,7 +19,7 @@ We propose a new marker protocol `BitwiseCopyable` that can be conformed to by t
 When compiling generic code with such constraints, the compiler can emit these efficient operations directly, only requiring minimal overhead to look up the size of the value at runtime.
 Alternatively, developers can use this constraint to selectively provide high-performance variations of specific operations, such as bulk copying of a container.
 
-[^1]: The term "trivial" is used in [SE-138](0138-unsaferawbufferpointer.md) and [SE-0370](0370-pointer-family-initialization-improvements.md) to refer to types with the property above. The discussion below will explain why certain generic or resilient types that are trivial will not in fact be `BitwiseCopyable`.
+[^1]: The term "trivial" is used in [SE-138](0138-unsaferawbufferpointer.md) and [SE-0370](0370-pointer-family-initialization-improvements.md) to refer to types with the property above. The discussion below will explain why certain generic or exported types that are trivial will not in fact be `BitwiseCopyable`.
 
 ## Motivation
 
@@ -58,7 +58,7 @@ Many basic types in the standard library will conformed to this protocol.
 Developer's own types may be conformed to the protocol, as well.
 The compiler will check any such conformance and emit a diagnostic if the type contains elements that are not `BitwiseCopyable`.
 
-Furthermore, when building a module, the compiler will infer conformance to `BitwiseCopyable` for any non-resilient struct or enum defined within the module whose stored members are all `BitwiseCopyable`.
+Furthermore, when building a module, the compiler will infer conformance to `BitwiseCopyable` for any non-exported struct or enum defined within the module whose stored members are all `BitwiseCopyable`.
 
 Developers cannot conform types defined in other modules to the protocol.
 
@@ -146,14 +146,16 @@ For generic types, a conformance will only be inferred if its fields uncondition
 In the `RegularBox` example above, a conditional conformance will not be inferred.
 If this is desired, the developer can explicitly write the conditional conformance.
 
-### Inference for types in evolving libraries
+### Inference for exported types
 
-This does not apply to public (or `@usableFromInline`) types defined within a module built with library evolution.
-While all the type's fields may be `BitwiseCopyable` at the moment, the compiler can't predict that they will always be.
+This does not apply to exported (`public`, `package`, or `@usableFromInline`) types.
+In the case of a library built with library evolution, while all the type's fields may be `BitwiseCopyable` at the moment, the compiler can't predict that they will always be.
 If this is the developer's intent, they can explicitly conform the type.
+To avoid having semantics that vary based on library evolution, the same applies to all exported (`public`, `package`, or `@usableFromInline`) types.
 
-For `@frozen` types, however, `BitwiseCopyable` conformance will be inferred even when in a module built with library evolution.
-That's because the compiler can see that the type's fields are all `BitwiseCopyable` and knows that they will remain that way.
+For `@frozen` types, however, `BitwiseCopyable` conformance will be inferred.
+That's allowed, even in the case of a library built with library evolution, because the compiler can see that the type's fields are all `BitwiseCopyable` and knows that they will remain that way.
+
 For example, the compiler will infer a conformance of the following struct
 ```swift
 @frozen
