@@ -168,6 +168,15 @@ public struct Coordinate3 {
 ```
 to `BitwiseCopyable`.
 
+### Suppressing inferred conformance
+
+To suppress the inference of `BitwiseCopyable`, a conformance can explicitly be made unavailable:
+
+```
+@available(*, unavailable)
+extension Coordinate4 : BitwiseCopyable {}
+```
+
 ### Standard library API improvements
 
 The standard library includes a load method on both `UnsafeRawPointer` and `UnsafeMutableRawPointer`
