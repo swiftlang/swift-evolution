@@ -95,7 +95,7 @@ A type can declare that it can provide access to contiguous storage by conformin
 public protocol ContiguousStorage<Element>: ~Escapable {
   associatedtype Element: ~Copyable & ~Escapable
 
-  var storageView: borrow(self) StorageView<Element> { _read }
+  var storage: borrow(self) StorageView<Element> { _read }
 }
 ```
 
@@ -107,15 +107,15 @@ An API that wishes to read from contiguous storage can declare a parameter type 
 extension MyResilientType {
   // public API
   @inlinable public func essentialFunction(_ a: some ContiguousStorage<some Any>) -> Int {
-    a.withStorageView({ self.essentialFunction($0) })
+    self.essentialFunction(a.storage)
   }
 
   // ABI boundary
-  @usableFromInline func essentialFunction(_ a: StorageView<some Any>) -> Int { ... }
+  public func essentialFunction(_ a: StorageView<some Any>) -> Int { ... }
 }
 ```
 
-Here, the public function obtains the `StorageView` from the type that vends it in inlinable code, then calls a concrete, opaque function defined in terms of `StorageView`. Inlining the generic shim in the client is often a critical optimization. The need for such a pattern and related improvements are discussed in the future directions below (see [Syntactic Sugar for Automatic Conversions](#Conversions))
+Here, the public function obtains the `StorageView` from the type that vends it in inlinable code, then calls a concrete, opaque function defined in terms of `StorageView`. Inlining the generic shim in the client is often a critical optimization. The need for such a pattern and related improvements are discussed in the future directions below (see [Syntactic Sugar for Automatic Conversions](#Conversions).)
 
 
 
@@ -183,7 +183,7 @@ extension UnsafeMutableRawBufferPointer: ContiguousStorage<UInt8> {
 
 #### Using `StorageView` with C functions or other unsafe code:
 
-`StorageView` has an escape hatch to allow its use with C functions:
+`StorageView` has an unsafe hatch for use with unsafe code.
 
 ```swift
 extension StorageView {
@@ -307,12 +307,18 @@ extension StorageView {
   public func index(after i: Index) -> Index
   public func index(before i: Index) -> Index
   public func index(_ i: Index, offsetBy distance: Int) -> Index
-
-  public func distance(from start: Index, to end: Index) -> Int
+  public func index(
+    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+  ) -> Index?
 
   public func formIndex(after i: inout Index)
   public func formIndex(before i: inout Index)
   public func formIndex(_ i: inout Index, offsetBy distance: Int)
+	public func formIndex(
+    _ i: inout Index, offsetBy distance: Int, limitedBy limit: Index
+  ) -> Bool
+
+  public func distance(from start: Index, to end: Index) -> Int
 
   // subscripts
   public subscript(
