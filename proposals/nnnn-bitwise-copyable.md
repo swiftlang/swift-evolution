@@ -46,6 +46,8 @@ public func loadUnaligned<T: BitwiseCopyable>(
 ) -> T
 ```
 
+And this proposal includes the addition of three overloads of existing standard library functions.
+
 ## Proposed solution
 
 We add a new protocol `BitwiseCopyable` to the standard library:
@@ -165,6 +167,52 @@ public struct Coordinate3 {
 }
 ```
 to `BitwiseCopyable`.
+
+### Standard library API improvements
+
+The standard library includes a load method on both `UnsafeRawPointer` and `UnsafeMutableRawPointer`
+
+```
+@inlinable
+@_alwaysEmitIntoClient
+public func loadUnaligned<T>(
+  fromByteOffset offset: Int = 0,
+  as type: T.Type
+) -> T
+```
+
+and a corresponding write method on `UnsafeMutableRawPointer`
+
+```
+@inlinable
+@_alwaysEmitIntoClient
+public func storeBytes<T>(
+  of value: T, toByteOffset offset: Int = 0, as type: T.Type
+)
+```
+
+that must be called with a trivial `T`.
+
+We propose adding overloads of these methods to constrain the value to `BitwiseCopyable`:
+
+```
+// on both UnsafeRawPointer and UnsafeMutableRawPointer
+@inlinable
+@_alwaysEmitIntoClient
+public func loadUnaligned<T : BitwiseCopyable>(
+  fromByteOffset offset: Int = 0,
+  as type: T.Type
+) -> T
+
+// on UnsafeMutableRawPointer
+@inlinable
+@_alwaysEmitIntoClient
+public func storeBytes<T : BitwiseCopyable>(
+  of value: T, toByteOffset offset: Int = 0, as type: T.Type
+)
+```
+
+This allows for optimal code generation because `memcpy` instead of value witnesses can be used.
 
 ## Effect on ABI stability
 
