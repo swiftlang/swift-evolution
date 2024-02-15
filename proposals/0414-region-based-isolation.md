@@ -3,9 +3,9 @@
 * Proposal: [SE-0414](0414-region-based-isolation.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm) [Joshua Turcotti](https://github.com/jturcotti)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (January 30 - February 6, 2024)**
+* Status: **Accepted**
 * Implementation: On `main` gated behind `-enable-experimental-feature RegionBasedIsolation`
-* Review: ([second review](https://forums.swift.org/t/se-0414-second-review-region-based-isolation/69740)), ([decision notes](https://forums.swift.org/t/returned-for-revision-se-0414-region-based-isolation/69123)), ([review](https://forums.swift.org/t/se-0414-region-based-isolation/68805)), ([pitch 2](https://forums.swift.org/t/pitch-region-based-isolation/67888)), ([pitch 1](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566))
+* Review: ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0414-region-based-isolation/70051)), ([second review](https://forums.swift.org/t/se-0414-second-review-region-based-isolation/69740)), ([decision notes](https://forums.swift.org/t/returned-for-revision-se-0414-region-based-isolation/69123)), ([review](https://forums.swift.org/t/se-0414-region-based-isolation/68805)), ([pitch 2](https://forums.swift.org/t/pitch-region-based-isolation/67888)), ([pitch 1](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566))
 
 ## Introduction
 
