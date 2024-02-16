@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
 * Vision: *if applicable* [Vision Name](https://github.com/apple/swift-evolution/visions/NNNNN.md)
-* Roadmap: *if applicable* [Roadmap Name](https://forums.swift.org/...))
+* Roadmap: *if applicable* [Roadmap Name](https://forums.swift.org/...)
 * Bug: *if applicable* [apple/swift#NNNNN](https://github.com/apple/swift/issues/NNNNN)
 * Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
 * Upcoming Feature Flag: *if applicable* `MyFeatureName`
