@@ -52,7 +52,12 @@ It provides a collection-like interface to the elements stored in that span of m
 
 ```swift
 extension StorageView {
-  public typealias Index: StorageViewIndex<Element>
+	public struct Index: Copyable, Escapable, Strideable { /* .... */ }
+  public struct Iterator: Copyable, ~Escapable {
+    // Should conform to a `BorrowingIterator` protocol
+    // that will be defined at a later date.
+  }
+  
   public typealias SubSequence: Self
 
   public var startIndex: Index { _read }
@@ -72,16 +77,7 @@ extension StorageView {
   subscript(offsets: Range<Int>) -> copy(self) StorageView<Element> { _read }
 }
 
-struct StorageViewIndex<Element: ~Copyable & ~Escapable>
-: Copyable, Escapable, Strideable { /* ... */ }
-
-struct StorageViewIterator<Element: ~Copyable & ~Escapable>
-: ~Escapable, Copyable {
-  // Should conform to a `BorrowingIterator` protocol that is not yet defined
-  // public mutating func borrowingNextElement() -> @copy(self) Element?
-}
-
-extension StorageViewIterator where Element: Escapable, Copyable {
+extension StorageView.Iterator where Element: Escapable, Copyable {
   // Cannot conform to `IteratorProtocol` because `Self: ~Escapable`
   public mutating func next() -> Element?
 }
