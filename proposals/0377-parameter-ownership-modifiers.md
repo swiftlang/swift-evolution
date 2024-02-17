@@ -229,7 +229,7 @@ extension String {
 }
 ```
 
-A value would need to be implicitly copied if:
+A value would need to be explicitly copied if:
 
 - a *consuming operation* is applied to a `borrowing` binding, or
 - a *consuming operation* is applied to a `consuming` binding after it has
