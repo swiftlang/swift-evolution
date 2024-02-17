@@ -3,7 +3,7 @@
 * Proposal: [SE-0405](0405-string-validating-initializers.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Implemented (Swift Next)**
+* Status: **Implemented (Swift 6.0)**
 * Bugs: rdar://99276048, rdar://99832858
 * Implementation: [Swift PR 68419](https://github.com/apple/swift/pull/68419), [Swift PR 68423](https://github.com/apple/swift/pull/68423)
 * Review: ([pitch](https://forums.swift.org/t/66206)), ([review](https://forums.swift.org/t/se-0405-string-initializers-with-encoding-validation/66655)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0405-string-initializers-with-encoding-validation/67134))
