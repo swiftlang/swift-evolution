@@ -3,7 +3,7 @@
 * Proposal: [SE-0420](0420-inheritance-of-actor-isolation.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Holly Borla](https://github.com/hborla), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Implemented (Swift 6.0)**
+* Status: **Implemented (Swift 6)**
 * Implementation: https://github.com/apple/swift/pull/70758, https://github.com/apple/swift/pull/70902
 * Review: ([pitch](https://forums.swift.org/t/pitch-inheriting-the-callers-actor-isolation/68391)) ([review](https://forums.swift.org/t/se-0420-inheritance-of-actor-isolation/69638)) ([acceptance](https://forums.swift.org/t/accepted-se-0420-inheritance-of-actor-isolation/69913))
 
