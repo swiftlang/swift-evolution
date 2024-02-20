@@ -110,7 +110,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///     }
   ///     return try body(&value)
   ///
-  /// - Warning: Recursive calls to `tryWithLock` within the
+  /// - Warning: Recursive calls to `withLockIfAvailable` within the
   ///   closure parameter has behavior that is platform dependent.
   ///   Some platforms may choose to panic the process, deadlock,
   ///   or leave this behavior unspecified.
@@ -123,7 +123,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter
   ///   or nil if the lock couldn't be acquired.
-  public borrowing func tryWithLock<Result: ~Copyable & Sendable, E>(
+  public borrowing func withLockIfAvailable<Result: ~Copyable & Sendable, E>(
     _ body: @Sendable (inout Value) throws(E) -> Result
   ) throws(E) -> Result?
   
@@ -148,7 +148,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   /// - Note: This version of `withLock` is unchecked because it does
   ///   not enforce any sendability guarantees.
   ///
-  /// - Warning: Recursive calls to `tryWithLockUnchecked` within the
+  /// - Warning: Recursive calls to `withLockIfAvailableUnchecked` within the
   ///   closure parameter has behavior that is platform dependent.
   ///   Some platforms may choose to panic the process, deadlock,
   ///   or leave this behavior unspecified.
@@ -161,7 +161,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter
   ///   or nil if the lock couldn't be acquired.
-  public borrowing func tryWithLockUnchecked<Result: ~Copyable, E>(
+  public borrowing func withLockIfAvailableUnchecked<Result: ~Copyable, E>(
     _ body: (inout Value) throws(E) -> Result
   ) throws(E) -> Result?
   
@@ -372,6 +372,8 @@ extension Mutex {
 
 extension Mutex {
   public borrowing func lock() -> borrow(self) Guard {...}
+  
+  public borrowing func tryLock() -> borrow(self) Guard? {...}
 }
 
 func add(_ i: Int, to mutex: Mutex<Int>) {
