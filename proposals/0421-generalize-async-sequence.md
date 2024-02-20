@@ -79,10 +79,10 @@ protocol AsyncIteratorProtocol<Element, Failure> {
 
   mutating func next() async throws -> Element?
 
-  @available(SwiftStdlib 5.11, *)
+  @available(SwiftStdlib 6.0, *)
   associatedtype Failure: Error = any Error
 
-  @available(SwiftStdlib 5.11, *)
+  @available(SwiftStdlib 6.0, *)
   mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element?
 }
 
@@ -91,7 +91,7 @@ public protocol AsyncSequence<Element, Failure> {
   associatedtype AsyncIterator: AsyncIteratorProtocol
   associatedtype Element where AsyncIterator.Element == Element
 
-  @available(SwiftStdlib 5.11, *)
+  @available(SwiftStdlib 6.0, *)
   associatedtype Failure = AsyncIterator.Failure where AsyncIterator.Failure == Failure
 
   func makeAsyncIterator() -> AsyncIterator
@@ -108,7 +108,7 @@ Concrete `AsyncSequence` and `AsyncIteratorProtocol` types determine whether cal
 
 #### Error type inference from `for try await` loops
 
-The `Failure` associated type is only accessible at runtime in the Swift 5.11 standard library; code running against older standard library versions does not include the `Failure` requirement in the witness tables for `AsyncSequence` and `AsyncIteratorProtocol` conformances. This impacts error type inference from `for try await` loops.
+The `Failure` associated type is only accessible at runtime in the Swift 6.0 standard library; code running against older standard library versions does not include the `Failure` requirement in the witness tables for `AsyncSequence` and `AsyncIteratorProtocol` conformances. This impacts error type inference from `for try await` loops.
 
 When the thrown error type of an `AsyncIteratorProtocol` is available, either through the associated type witness (because the context has appropriate availability) or because the iterator type is concrete, iteration over an async sequence throws its `Failure` type:
 
@@ -181,7 +181,7 @@ Because existing `AsyncIteratorProtocol`-conforming types only implement `next()
 extension AsyncIteratorProtocol {
   /// Default implementation of `next(isolation:)` in terms of `next()`, which is
   /// required to maintain backward compatibility with existing async iterators.
-  @available(SwiftStdlib 5.11, *)
+  @available(SwiftStdlib 6.0, *)
   @available(*, deprecated, message: "Provide an implementation of 'next(isolation:)'")
   public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
     nonisolated(unsafe) var unsafeIterator = self
@@ -202,7 +202,7 @@ To enable conformances of `AsyncIteratorProtocol` to only implement `next(isolat
 
 ```swift
 extension AsyncIteratorProtocol {
-  @available(SwiftStdlib 5.11, *)
+  @available(SwiftStdlib 6.0, *)
   public mutating func next() async throws -> Element? {
     // Callers to `next()` will always run `next(isolation:)` on the generic executor.
     try await next(isolation: nil)
@@ -210,7 +210,7 @@ extension AsyncIteratorProtocol {
 }
 ```
 
-Both function requirements of `AsyncIteratorProtocol` have default implementations that are written in terms of each other, meaning that it is a programmer error to implement neither of them. Types that are available prior to the Swift 5.11 standard library must provide an implementation of `next()`, because the default implementation is only available with the Swift 5.11 standard library.
+Both function requirements of `AsyncIteratorProtocol` have default implementations that are written in terms of each other, meaning that it is a programmer error to implement neither of them. Types that are available prior to the Swift 6.0 standard library must provide an implementation of `next()`, because the default implementation is only available with the Swift 6.0 standard library.
 
 To avoid silently allowing conformances that implement neither requirement, and to facilitate the transition of conformances from `next()` to `next(isolation:)`, we add a new availability rule where the witness checker diagnoses a protocol conformance that uses an deprecated, obsoleted, or unavailable default witness implementation. Deprecated implementations will produce a warning, while obsoleted and unavailable implementations will produce an error.
 
@@ -242,11 +242,11 @@ This proposal is purely an extension of the ABI of the standard library and does
 
 ## Implications on adoption
 
-The associated `Failure` types of `AsyncSequence` and `AsyncIteratorProtocol` are only available at runtime with the Swift 5.11 standard library, because code that runs against prior standard library versions does not have a witness table entry for `Failure`. Code that needs to access the `Failure` type through the associated type, e.g. to dynamic cast to it or constrain it in a generic signature, must be availability constrained. For this reason, the default implementations of `next()` and `next(isolation:)` have the same availability as the Swift 5.11 standard library.
+The associated `Failure` types of `AsyncSequence` and `AsyncIteratorProtocol` are only available at runtime with the Swift 6.0 standard library, because code that runs against prior standard library versions does not have a witness table entry for `Failure`. Code that needs to access the `Failure` type through the associated type, e.g. to dynamic cast to it or constrain it in a generic signature, must be availability constrained. For this reason, the default implementations of `next()` and `next(isolation:)` have the same availability as the Swift 6.0 standard library.
 
-This means that concrete `AsyncIteratorProtocol` conformances cannot switch over to implementing `next(isolation:)` only (without providing an implementation of `next()`) if they are available earlier than the Swift 5.11 standard library.
+This means that concrete `AsyncIteratorProtocol` conformances cannot switch over to implementing `next(isolation:)` only (without providing an implementation of `next()`) if they are available earlier than the Swift 6.0 standard library.
 
-Simiarly, primary associated types of `AsyncSequence` and `AsyncIteratorProtocol` must be gated behind Swift 5.11 availability.
+Similarly, primary associated types of `AsyncSequence` and `AsyncIteratorProtocol` must be gated behind Swift 6.0 availability.
 
 Once the concrete `AsyncIteratorProtocol` types in the standard library, such as `Async{Throwing}Stream.Iterator`, implement `next(isolation:)` directly, code that iterates over those concrete `AsyncSequence` types in an actor-isolated context may exhibit fewer hops to the generic executor at runtime.
 
