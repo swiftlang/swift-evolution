@@ -1,10 +1,9 @@
 # Dynamic actor isolation enforcement from non-strict-concurrency contexts
 
-* Proposal: [SE-NNNN](NNNN-dynamic-actor-isolation.md)
+* Proposal: [SE-0423](NNNN-dynamic-actor-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
-* Status: **Awaiting review**
-* Implementation: TBD
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (Feb 20 - Mar 1 2024)**
 * Upcoming Feature Flag: `DynamicActorIsolation`
 * Review: ([pitch](https://forums.swift.org/t/pitch-dynamic-actor-isolation-enforcement/68354))
 * Implementation: [apple/swift#70867](https://github.com/apple/swift/pull/70867), [apple/swift#71261](https://github.com/apple/swift/pull/71261), [apple/swift-syntax#2419](https://github.com/apple/swift-syntax/pull/2419)
