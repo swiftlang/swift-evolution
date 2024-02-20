@@ -1,7 +1,7 @@
 # Character Literal Operators
 
 * Proposal: [SE-0243](0243-character-operators.md)
-* Authors: [Dianna ma (“Taylor Swift”)](https://github.com/kelvin13), [John Holdsworth](https://github.com/johnno1962)
+* Authors: [Dianna ma (“Taylor Swift”)](https://github.com/tayloraswift), [John Holdsworth](https://github.com/johnno1962)
 * Review manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Second review** 
 * Implementation: [apple/swift#71749](https://github.com/apple/swift/pull/71749)
