@@ -5,6 +5,7 @@
 * Review manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Second review** 
 * Implementation: [apple/swift#71749](https://github.com/apple/swift/pull/71749)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9713526f3423270c27082c620c75b2e5bc92050e/proposals/0243-codepoint-and-character-literals.md)
 * Threads: [1](https://forums.swift.org/t/prepitch-character-integer-literals/10442) [2](https://forums.swift.org/t/se-0243-codepoint-and-character-literals/21188) [3](https://forums.swift.org/t/single-quoted-character-literals-why-yes-again/61898)
 
 ## Introduction
