@@ -116,7 +116,7 @@ it can be passed an arbitrary function and work with arbitrary types.
 But if it's called from an *isolated* asynchronous function, Swift will
 treat the call as crossing an isolation barrier and enforce three restrictions:
 
-- First, the result of the call must be `Sendbale`. This restriction prevents
+- First, the result of the call must be `Sendable`. This restriction prevents
   `next()` from being used from an actor to produce non-`Sendable` element
   values.
 
@@ -250,7 +250,7 @@ extension DistributedActor {
   /// as only a local distributed actor can be isolated on and may be automatically
   /// erased to such `any Actor` when calling methods implicitly accepting the
   /// caller's actor isolation, e.g. by using the `#isolation` macro.
-  @backDeployed(before: SwiftStdlib 5.11)
+  @backDeployed(before: SwiftStdlib 6.0)
   public var asLocalActor: any Actor {
 }
 ```
