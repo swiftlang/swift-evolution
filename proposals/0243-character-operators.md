@@ -12,9 +12,35 @@
 
 This proposal improves Swift's character-literal ergonomics. This support is fundamental not only to parsing tasks within the Swift language but also to tasks that require developers to extract and manipulate data. Areas that would benefit include handling domain-specific languages (DSLs) and parsing commonly-used data formats such as JSON. Any workflow based on lexical analysis or tokenization requirements will gain from this proposal.
 
-The Swift community previously considered single-quote syntax for character literals. While working on Swift's Lexer code, another solution came to light.  Adding well-chosen operators to the Standard Library tidied up the Lexer implementation with minimal impact on the language. These operators didn't burn the single-quote for future reserved use, they served all the most pressing use-cases effectively and demonstrated small but measurable performance improvements.
+The Swift community previously considered single-quote syntax for character literals. While working on Swift's Lexer code, another solution came to light.  Adding well-chosen operators to the Standard Library tidied up the Lexer implementation with minimal impact on the language. These operators didn't burn the single-quote for future reserved use, they served all the most pressing use-cases effectively and demonstrated a small but measurable performance improvement.
 
 This improvement was validated through our work on [PR 2439](https://github.com/apple/swift-syntax/pull/2439#issuecomment-1922292277). The patch showcased how to streamline character-binary integer interchange for low level code. This proposal offers the same readable solution that seamlessly integrates with the established character and style of Swift. Additionally, it provides a slight performance boost, making it a valuable enhancement for performant code.
+
+To see of how the proposal simplifies code, consider how the PR above resulted in the following changes from:
+
+```Swift
+    switch self.previous {
+     case UInt8(ascii: " "), UInt8(ascii: "\r"), UInt8(ascii: "\n"), UInt8(ascii: "\t"),  // whitespace
+       UInt8(ascii: "("), UInt8(ascii: "["), UInt8(ascii: "{"),  // opening delimiters
+       UInt8(ascii: ","), UInt8(ascii: ";"), UInt8(ascii: ":"),  // expression separators
+```
+to:
+
+```
+    switch self.previous {
+     case " ", "\r", "\n", "\t",  // whitespace
+       "(", "[", "{",  // opening delimiters
+       ",", ";", ":",  // expression separators
+```
+
+And in other places from
+```
+if self.isAtStartOfFile, self.peek(at: 1) == UInt8(ascii: "!") {
+```
+to:
+```
+if self.isAtStartOfFile, self.peek(at: 1) == "!" {
+```
 
 ## Motivation
 
