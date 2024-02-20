@@ -197,26 +197,6 @@ public struct Backtrace: CustomStringConvertible, Codable, Sendable {
   /// separately yourself using `captureImages()`.
   public var images: [Image]?
 
-  /// Holds information about the shared cache.
-  public struct SharedCacheInfo: Identifiable, Codable, Sendable {
-    /// The image ID (UUID) from the shared cache.
-    public var imageID: [UInt8] { get }
-
-    /// The base address of the shared cache.
-    public var baseAddress: Address { get }
-
-    /// Says whether there is in fact a shared cache.
-    public var hasSharedCache: Bool { get }
-  }
-
-  /// Information about the shared cache.
-  ///
-  /// On systems with a shared cache, holds information about the status of
-  /// the shared cache; note that on systems that support a shared cache,
-  /// but where the shared cache is not present, this will not be `nil`;
-  /// instead, the `hasSharedCache` flag will be `false`.
-  public var sharedCacheInfo: SharedCacheInfo?
-
   /// Capture a backtrace from the current program location.
   ///
   /// The `capture()` method itself will not be included in the backtrace;
@@ -247,11 +227,6 @@ public struct Backtrace: CustomStringConvertible, Codable, Sendable {
   ///
   /// @returns A list of `Image`s.
   public static func captureImages() -> [Image]
-
-  /// Capture shared cache information.
-  ///
-  /// @returns A `SharedCacheInfo`.
-  public static func captureSharedCacheInfo() -> SharedCacheInfo
 
   /// Specifies options for the `symbolicated` method.
   public struct SymbolicationOptions: OptionSet {
@@ -414,9 +389,6 @@ public struct SymbolicatedBacktrace: CustomStringConvertible, Codable, Sendable 
 
   /// A list of images found in the process.
   public var images: [Backtrace.Image]
-
-  /// Shared cache information.
-  public var sharedCacheInfo: Backtrace.SharedCacheInfo?
 
   /// True if this backtrace is a Swift runtime failure.
   public var isSwiftRuntimeFailure: Bool { get }
