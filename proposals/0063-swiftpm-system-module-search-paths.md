@@ -3,7 +3,7 @@
 * Proposal: [SE-0063](0063-swiftpm-system-module-search-paths.md)
 * Author: [Max Howell](https://github.com/mxcl)
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0063-swiftpm-system-module-search-paths/2218)
 * Implementation: [apple/swift-package-manager#257](https://github.com/apple/swift-package-manager/pull/257)
 

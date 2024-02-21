@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Implementation: [apple/swift#20305](https://github.com/apple/swift/pull/20305)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-216-user-defined-dynamically-callable-types/14110)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 
 ## Introduction
 

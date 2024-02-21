@@ -3,7 +3,7 @@
 * Proposal: [SE-0062](0062-objc-keypaths.md)
 * Author: [David Hart](https://github.com/hartbit)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0062-referencing-objective-c-key-paths/2198)
 * Bug: [SR-1237](https://bugs.swift.org/browse/SR-1237)
 

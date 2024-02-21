@@ -3,7 +3,7 @@
 * Proposal: [SE-0059](0059-updated-set-apis.md)
 * Author: [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0059-update-api-naming-guidelines-and-rewrite-set-apis-accordingly/2251)
 
 ## Introduction

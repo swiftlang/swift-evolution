@@ -3,7 +3,7 @@
 * Proposal: [SE-0227](0227-identity-keypath.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#18804](https://github.com/apple/swift/pull/18804), [apple/swift#19382](https://github.com/apple/swift/pull/19382)
 * Review: [Discussion thread](https://forums.swift.org/t/se-0227-identity-key-path/15830), [Announcement thread](https://forums.swift.org/t/accepted-se-0227-identity-key-path/16278)
 

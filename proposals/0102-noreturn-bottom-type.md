@@ -3,7 +3,7 @@
 * Proposal: [SE-0102](0102-noreturn-bottom-type.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0102-remove-noreturn-attribute-and-introduce-an-empty-never-type/3213)
 * Bug: [SR-1953](https://bugs.swift.org/browse/SR-1953)
 

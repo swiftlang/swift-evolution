@@ -3,7 +3,7 @@
 * Proposal: [SE-0049](0049-noescape-autoclosure-type-attrs.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0049-move-noescape-and-autoclosure-to-be-type-attributes/2194)
 * Bug: [SR-1235](https://bugs.swift.org/browse/SR-1235)
 

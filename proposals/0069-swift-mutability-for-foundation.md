@@ -3,7 +3,7 @@
 * Proposal: [SE-0069](0069-swift-mutability-for-foundation.md)
 * Author: [Tony Parker](https://github.com/parkera)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0069-mutability-and-foundation-value-types/2460)
 
 ## Introduction

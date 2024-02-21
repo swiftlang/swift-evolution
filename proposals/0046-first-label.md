@@ -3,7 +3,7 @@
 * Proposal: [SE-0046](0046-first-label.md)
 * Authors: [Jake Carter](https://github.com/JakeCarter), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0046-establish-consistent-label-behavior-across-all-parameters-including-first-labels/1834)
 * Bug: [SR-961](https://bugs.swift.org/browse/SR-961)
 

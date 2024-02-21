@@ -3,7 +3,7 @@
 * Proposal: [SE-0055](0055-optional-unsafe-pointers.md)
 * Author: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0055-make-unsafe-pointer-nullability-explicit-using-optional/2012)
 * Implementation: [apple/swift#1878](https://github.com/apple/swift/pull/1878)
 

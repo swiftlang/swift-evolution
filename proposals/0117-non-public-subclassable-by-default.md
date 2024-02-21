@@ -3,7 +3,7 @@
 * Proposal: [SE-0117](0117-non-public-subclassable-by-default.md)
 * Authors: [Javier Soto](https://github.com/JaviSoto), [John McCall](https://github.com/rjmccall)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0117-allow-distinguishing-between-public-access-and-public-overridability/3578)
 * Implementation: [apple/swift#3882](https://github.com/apple/swift/pull/3882)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/367086f18a5deaf8f9dfbe3f5a4846ef19addf38/proposals/0117-non-public-subclassable-by-default.md), [2](https://github.com/apple/swift-evolution/blob/2989538daa1640cfa6a56f80b5c7599967af0905/proposals/0117-non-public-subclassable-by-default.md), [3](https://github.com/apple/swift-evolution/blob/15c18d24adb7e701ae831b643e0803f1b6e601d9/proposals/0117-non-public-subclassable-by-default.md)

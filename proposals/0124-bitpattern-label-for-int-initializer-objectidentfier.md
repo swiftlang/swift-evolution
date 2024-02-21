@@ -3,7 +3,7 @@
 * Proposal: [SE-0124](0124-bitpattern-label-for-int-initializer-objectidentfier.md)
 * Author: [Arnold Schwaighofer](https://github.com/aschwaighofer)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0124-int-init-objectidentifier-and-uint-init-objectidentifier-should-have-a-bitpattern-label/3474)
 * Bug: [SR-2064](https://bugs.swift.org/browse/SR-2064)
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0175](0175-package-manager-revised-dependency-resolution.md)
 * Author: [Rick Ballard](https://github.com/rballard)
 * Review Manager: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0175-package-manager-revised-dependency-resolution/5896)
 
 ## Introduction

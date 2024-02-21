@@ -3,7 +3,7 @@
 * Proposal: [SE-0106](0106-rename-osx-to-macos.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0106-add-a-macos-alias-for-the-osx-platform-configuration-test/3176)
 * Bugs: [SR-1823](https://bugs.swift.org/browse/SR-1823),
         [SR-1887](https://bugs.swift.org/browse/SR-1887)

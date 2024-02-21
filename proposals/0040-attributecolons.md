@@ -3,7 +3,7 @@
 * Proposal: [SE-0040](0040-attributecolons.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0040-replacing-equal-signs-with-colons-for-attribute-arguments/1719)
 * Implementation: [apple/swift#1537](https://github.com/apple/swift/pull/1537)
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0241](0241-string-index-explicit-encoding-offset.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#22108](https://github.com/apple/swift/pull/22108)
 * Review: ([review](https://forums.swift.org/t/se-0241-explicit-encoded-offsets-for-string-indices/19929)) ([acceptance](https://forums.swift.org/t/accepted-se-0241-explicit-encoded-offsets-for-string-indices/20540))
 

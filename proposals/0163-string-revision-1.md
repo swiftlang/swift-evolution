@@ -3,7 +3,7 @@
 * Proposal: [SE-0163](0163-string-revision-1.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](http://github.com/dabrahams/)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7513547ddac66b06770a1fd620aad915d75987ff/proposals/0163-string-revision-1.md)
 * Decision Notes: [Rationale #1](https://forums.swift.org/t/accepted-se-0163-string-revision-collection-conformance-c-interop-transcoding/5716/2), [Rationale #2](https://forums.swift.org/t/accepted-se-0163-string-revision-collection-conformance-c-interop-transcoding/5952)

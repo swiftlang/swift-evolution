@@ -3,7 +3,7 @@
 * Proposal: [SE-0112](0112-nserror-bridging.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0112-improved-nserror-bridging/3362)
 
 ## Introduction

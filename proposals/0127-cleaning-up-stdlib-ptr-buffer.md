@@ -3,7 +3,7 @@
 * Proposal: [SE-0127](0127-cleaning-up-stdlib-ptr-buffer.md)
 * Author: [Charlie Monroe](https://github.com/charlieMonroe)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0127-cleaning-up-stdlib-pointer-and-buffer-routines/3549)
 * Bugs: [SR-1937](https://bugs.swift.org/browse/SR-1937),
         [SR-1955](https://bugs.swift.org/browse/SR-1955),

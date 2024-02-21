@@ -3,7 +3,7 @@
 * Proposal: [SE-0057](0057-importing-objc-generics.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0057-importing-objective-c-lightweight-generics/2185)
 * Previous Revision: [Originally Accepted Proposal](https://github.com/apple/swift-evolution/blob/3abbed3edd12dd21061181993df7952665d660dd/proposals/0057-importing-objc-generics.md)
 
