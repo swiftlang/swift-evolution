@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status:  **Implementation in progress**
 * Implementation: [PR #70928](https://github.com/apple/swift/pull/70928)
-* Review: [Review](https://forums.swift.org/t/se-0417-task-executor-preference/68958)
+* Review: [Pitch](https://forums.swift.org/t/pitch-resolve-distributedactor-protocols-for-server-client-apps/69933/10)
 * Discussion threads:
   * TBD
 
