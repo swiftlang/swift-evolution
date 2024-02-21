@@ -4,7 +4,7 @@
 * Author: [Karoy Lorentey](https://github.com/lorentey), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Bug: [SR-9144](https://github.com/apple/swift/issues/51640)
-* Implementation: https://github.com/apple/swift/pull/68857
+* Implementation: [apple/swift#68857](https://github.com/apple/swift/pull/68857)
 * Version: 2023-12-04
 * Status: **Implemented (Swift 6.0)**
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/d35d6566fe2297f4782bdfac4d5253e0ca96b353/proposals/0410-atomics.md)
