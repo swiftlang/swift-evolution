@@ -9,31 +9,24 @@
 
 ## Introduction
 
-Swift introduced custom actor executors in [SE-0392: Custom Actor Executors](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md), and ever since allowed further customization of isolation and execution semantics of actors.
-
-This proposal also introduced a family of assertion and assumption APIs which are able to dynamically check the isolation of a currently executing task. These APIs are:
-
-- Asserting isolation context:
-  - [`Actor/assertIsolated(_:file:line:)`](https://developer.apple.com/documentation/swift/actor/assertisolated(_:file:line:))
-  - [`Actor/preconditionIsolated(_:file:line:)`](https://developer.apple.com/documentation/swift/actor/preconditionisolated(_:file:line:))
-  - [`DistributedActor/assertIsolated(_:file:line:)`](https://developer.apple.com/documentation/distributed/distributedactor/preconditionisolated(_:file:line:))
-  - [`DistributedActor/preconditionIsolated(_:file:line:)`](https://developer.apple.com/documentation/distributed/distributedactor/preconditionisolated(_:file:line:))
-- Assuming isolation context, and obtaining an `isolated actor` reference of the target actor
-  - [`Actor/assumeIsolated(_:file:line:)`](https://developer.apple.com/documentation/swift/actor/assumeisolated(_:file:line:))
-  - [`DistributedActor/assumeIsolated(_:file:line:)`](https://developer.apple.com/documentation/distributed/distributedactor/assumeisolated(_:file:line:))
+[SE-0392 (Custom Actor Executors)](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md) added support for custom actor executors, but its support is incomplete. Safety checks like [`Actor.assumeIsolated`](https://developer.apple.com/documentation/swift/actor/assumeisolated(_:file:line:)) work correctly when code is running on the actor through a task, but they don't work when code is scheduled to run on the actor's executor through some other mechanism. For example, if an actor uses a serial `DispatchQueue` as its executor, a function dispatched _directly_ to the queue with DispatchQueue.async cannot use `assumeIsolated` to assert that the actor is currently isolated. This proposal fixes this by allowing custom actor executors to provide their own logic for these safety checks.
 
 ## Motivation
 
-All the above mentioned APIs rely on an internal capability of the Swift concurrency runtime to obtain the "current serial executor", and compare it against the expected executor. Additional comparison modes such as "complex equality" are also supported, which help executors that e.g. share a single thread across multiple executor instances to still be able to correctly answer the "are we on the same executor?" question when different executor *instances* are being compared, however in reality they utilize the same threading resource.
+The Swift concurrency runtime already provides means of dynamically tracking and checking the tasks's current executor, and APIs like `assertIsolated` and `assumeIsolated` are built on top of that functionality.
 
-The proposal did not account for the situation in which the Swift concurrency runtime has no notion of "current executor" though, causing the following situation to -- perhaps surprisingly -- result in runtime crashes reporting an isolation violation, while in reality, no such violation takes place in the following piece of code:
+In those APIs the expected executor is compared with the "current" executor of a current task which is tracked by the runtime. If the code calling the comparison logic is not running within a Swift concurrency task, the comparison fails, as there are no two executors that can be compared.
+
+This logic is not sufficient to be able to handle the situation in which code is runnin on the correct queue or thread, and mutual exclusion is properly ensured, however, the calling code is not being called from a task and therefore the check fails unexpectedly. The following example demonstrates such situation:
 
 ```swift
 import Dispatch
 
 actor Caplin {
   let queue: DispatchSerialQueue(label: "CoolQueue")
-  
+
+  var num: Int // actor isolated state
+
   // use the queue as this actor's `SerialExecutor`
   nonisolated var unownedExecutor: UnownedSerialExecutor {
     queue.asUnownedSerialExecutor()
@@ -44,20 +37,19 @@ actor Caplin {
       // guaranteed to execute on `queue`
       // which is the same as self's serial executor
       queue.assertIsolated() // CRASH: Incorrect actor executor assumption
-      self.assertIsolated() // CRASH: Incorrect actor executor assumption
+      self.assumeIsolated {  // CRASH: Incorrect actor executor assumption
+        num += 1
+      }
     }
   }
 }
 ```
 
-One might assume that since we are specifically using the `queue` as this actor's executor... the assertions in the `connect()` function should NOT crash, however how the runtime handles this situation can be simplified to the following steps:
+Even though the code is executing on the correct Dispatch**Serial**Queue, the assertions trigger and we're left unable to access the actor's state, even though isolation wise it would be safe and correct to do so.
 
-- try to obtain the "current executor"
-- since the current block of code is not executing a swift concurrency task... there is no "current executor" set in the context of `queue.async { ... }`
-- compare current "no executor" to the "expected executor" (the `queue` in our example)
-- crash, as `nil` is not the same executor as the specific `queue`
+This use-case is common and important enough, that the runtime actually has special cased the MainActor's isolation checking handling. A fallback check exists, which is used when the target executor is the MainActors', and the current code is not running within a task, however it is running on the *main thread*. The Swift runtime handles this special case already, however, the same problem exists for all kinds of threads which may be used as actor executors. Specifically, the problem becomes quite common when the use of `SerialDispatchQueues` as actor executors becomes prevalent, in projects migrating their pre-concurrency code-bases towards the use of actors and swift concurrency.
 
-In other words, these APIs assume to be running "within Swift Concurrency", however there may be situations in which we are running on the exact serial executor, but outside of Swift Concurrency. Isolation-wise, these APIs should still be returning correctly and detecting this situation -- however they are unable to do so, without some form of cooperation with the expected `SerialExecutor`.
+Therefore, this proposal extends this "fallback" check mechanism to all SerialExecutors, rather than keeping it specialized to the MainActor.
 
 ## Proposed solution
 
