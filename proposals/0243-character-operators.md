@@ -16,7 +16,7 @@ The Swift community previously considered single-quote syntax for character lite
 
 This improvement was validated through our work on [PR 2439](https://github.com/apple/swift-syntax/pull/2439#issuecomment-1922292277). The patch showcased how to streamline character-binary integer interchange for low level code. This proposal offers the same readable solution that seamlessly integrates with the established character and style of Swift. Additionally, it provides a slight performance boost, making it a valuable enhancement for performant code.
 
-To see of how the proposal simplifies code, consider how the PR above resulted in the following changes from:
+To see how the proposal simplifies code, consider how the PR above resulted in the following changes from:
 
 ```Swift
     switch self.previous {
@@ -159,17 +159,7 @@ This last initializer is optional. It provides an alternate to the existing `Int
 
 ## Source compatibility
 
-Our proposed operator suite is additive. After running the existing test suite, it does change diagnostics on a limited part of pattern matching code. We believe this diagnostic information was already flawed, and the change inconsequential. Finally, the last initializer (the one we noted as optional) may affect currently valid code, such as the following:
-
-```
-unicodeScalars.map(UInt32.init)
-```
-
-Upon adoption, this becomes ambiguous and will need to be rewritten explicitly as:
-
-```
-unicodeScalars.map { UInt32($0) }
-```
+Our proposed operator suite is additive. After running the existing test suite, it does change diagnostics on a limited part of invalid pattern matching code. We believe this diagnostic information was already flawed, and the change inconsequential.
 
 ## Effect on ABI stability
 
