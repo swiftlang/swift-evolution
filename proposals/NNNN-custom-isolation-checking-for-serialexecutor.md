@@ -91,18 +91,42 @@ This proposal adds another customization point to the Swift concurrency runtime 
 
 ### Extended executor comparison mechanism
 
-With this proposal, the logic for checking if the current executor is the same as an expected executor changes as follows:
+With this proposal, the logic for checking if the current executor is the same as an expected executor changes, and can be expressed using the following pseudo-code:
 
-- obtain current executor
-  - if no current executor exists, ​​use heurystics to detect the "main actor" executor 
-    - These heurystics could be removed by using this proposal's `checkIsolation()` API, however we'll first need to expose the MainActor's SerialExecutor as a global property which this proposal does not cover. Please see **Future Directions** for more discussion of this topic.
-  - if a current executor exists, perform basic object comparison between them
-- if unable to prove the executors are equal:
-  - compare the executors using "complex equality" (see [SE-0392: Custom Actor Executors](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md) for a detailed description of complex exector equality)
-- if still unable to prove the executors are equal:
-  - :arrow_right: call the expected executor's `checkIsolation()` method
+```swift
+// !!!! PSEUDO-CODE !!!! Simplified for readability.
 
-The last step of this used to be just to unconditionally fail the comparison, leaving no space for an executor to take over and use whatever its own tracking -- usually expressed using thread-locals the executor sets as it creates its own worker thread -- to actually save the comparison from failing.
+let current = Task.current.executor
+
+guard let current else {
+  // no current executor, last effort check performed by the expected executor:
+  expected.checkIsolated()
+
+  // e.g. MainActor:
+  // MainActorExecutor.checkIsolated() {
+  //   guard Thread.isMain else { fatalError("Expected main thread!")
+  //   return // ok!
+  // }
+}
+
+if isSameSerialExecutor(current, expected) {
+  // comparison takes into account "complex equality" as introduced by 'SE-0392
+  return // ok!
+} else {
+  // executor comparisons failed...
+
+  // give the expected executor a last chance to check isolation by itself:
+  expected.checkIsolated()
+
+  // as the default implementation of checkIsolated is to unconditionally crash,
+  // this call usually will result in crashing -- as expected.
+}
+
+return // ok, it seems the expected executor was able to prove isolation
+```
+
+This pseudo code snippet explains the flow of the executor comparisons. There are two situations in which the new `checkIsolated` method can be invoked: when there is no current executor present, or if all other comparisons have failed.
+For more details on the executor comparison logic you can refer to [SE-0392: Custom Actor Executors'](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md).
 
 Specific use-cases of this API include `DispatchSerialQueue`, which would be able to implement the requirement as follows:
 
