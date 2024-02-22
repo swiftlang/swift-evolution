@@ -3,7 +3,7 @@
 * Proposal: [SE-0029](0029-remove-implicit-tuple-splat.md)
 * Author: [Chris Lattner](http://github.com/lattner)
 * Review Manager: [Joe Groff](http://github.com/jckarter)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0029-remove-implicit-tuple-splat-behavior-from-function-applications/1380)
 * Implementation: [apple/swift@8e12008](https://github.com/apple/swift/commit/8e12008d2b34a605f8766310f53d5668f3d50955)
 

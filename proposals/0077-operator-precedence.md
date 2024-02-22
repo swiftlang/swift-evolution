@@ -3,7 +3,7 @@
 * Proposal: [SE-0077](0077-operator-precedence.md)
 * Author: [Anton Zhilin](https://github.com/Anton3)
 * Review Manager: [Joe Groff](http://github.com/jckarter)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0077-v2-improved-operator-declarations/3321)
 
 **Revision history**

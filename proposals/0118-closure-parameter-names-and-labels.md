@@ -3,7 +3,7 @@
 * Proposal: [SE-0118](0118-closure-parameter-names-and-labels.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0118-closure-parameter-names-and-labels/3387)
 * Bug: [SR-2072](https://bugs.swift.org/browse/SR-2072)
 

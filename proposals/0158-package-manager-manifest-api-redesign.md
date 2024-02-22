@@ -3,7 +3,7 @@
 * Proposal: [SE-0158](0158-package-manager-manifest-api-redesign.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Bug: [SR-3949](https://bugs.swift.org/browse/SR-3949)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0158-package-manager-manifest-api-redesign/5468)
 

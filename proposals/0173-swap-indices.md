@@ -3,7 +3,7 @@
 * Proposal: [SE-0173](0173-swap-indices.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0173-add-mutablecollection-swapat/5811)
 * Implementation: [apple/swift#9119](https://github.com/apple/swift/pull/9119)
 

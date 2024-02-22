@@ -3,7 +3,7 @@
 * Proposal: [SE-0160](0160-objc-inference.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0160-limiting-objc-inference/5621) 
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/0389b1f49fc55b1a898701c549ce89738307b9fc/proposals/0160-objc-inference.md)
 * Implementation: [apple/swift#8379](https://github.com/apple/swift/pull/8379)

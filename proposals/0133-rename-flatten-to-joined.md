@@ -3,7 +3,7 @@
 * Proposal: [SE-0133](0133-rename-flatten-to-joined.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0133-rename-flatten-to-joined/3575)
 * Implementation: [apple/swift#3809](https://github.com/apple/swift/pull/3809),
                   [apple/swift#3838](https://github.com/apple/swift/pull/3838),

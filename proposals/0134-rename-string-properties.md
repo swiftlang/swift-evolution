@@ -3,7 +3,7 @@
 * Proposal: [SE-0134](0134-rename-string-properties.md)
 * Authors: [Xiaodi Wu](https://github.com/xwu), [Erica Sadun](https://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0134-rename-two-utf8-related-properties-on-string/3576)
 * Implementation: [apple/swift#3816](https://github.com/apple/swift/pull/3816)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/aea8b836d21051076663c5692ec1d09bb3222527/proposals/0134-rename-string-properties.md)

@@ -3,7 +3,7 @@
 * Proposal: [SE-0214](0214-DictionaryLiteral.md)
 * Authors: [Erica Sadun](https://github.com/erica), [Chéyo Jiménez](https://github.com/masters3d)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#16577](https://github.com/apple/swift/pull/16577)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0214-renaming-the-dictionaryliteral-type-to-keyvaluepairs/13661)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/12315c44dd6b36fec924f4f6c30f48d8784ae4cc/proposals/0214-DictionaryLiteral.md)

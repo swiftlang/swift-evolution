@@ -3,7 +3,7 @@
 * Proposal: [SE-0125](0125-remove-nonobjectivecbase.md)
 * Author: [Arnold Schwaighofer](https://github.com/aschwaighofer)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0125-remove-nonobjectivecbase-and-isuniquelyreferenced/3548)
 * Bug: [SR-1962](http://bugs.swift.org/browse/SR-1962)
 

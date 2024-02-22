@@ -3,7 +3,7 @@
 * Proposal: [SE-0156](0156-subclass-existentials.md)
 * Authors: [David Hart](http://github.com/hartbit), [Austin Zheng](http://github.com/austinzheng)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0156-class-and-subtype-existentials/5477)
 * Bug: [SR-4296](https://bugs.swift.org/browse/SR-4296)
 

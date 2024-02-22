@@ -3,7 +3,7 @@
 * Proposal: [SE-0114](0114-buffer-naming.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0114-updating-buffer-value-names-to-header-names/3359)
 * Implementation: [apple/swift#3374](https://github.com/apple/swift/pull/3374)
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0081](0081-move-where-expression.md)
 * Authors: [David Hart](https://github.com/hartbit), [Robert Widmann](https://github.com/CodaFi), [Pyry Jahkola](https://github.com/pyrtsa)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0081-move-where-clause-to-end-of-declaration/2685)
 * Bug: [SR-1561](https://bugs.swift.org/browse/SR-1561)
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0221](0221-character-properties.md)
 * Authors: [Michael Ilseman](https://github.com/milseman), [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#20520](https://github.com/apple/swift/pull/20520)
 * Review: [Discussion thread](https://forums.swift.org/t/se-0221-character-properties/14686), [Announcement thread](https://forums.swift.org/t/accepted-with-modification-se-0221-character-properties/14944/2)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/fdb725c240033c5273860b0a66d2189d62a97608/proposals/0221-character-properties.md)

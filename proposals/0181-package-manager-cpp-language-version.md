@@ -3,7 +3,7 @@
 * Proposal: [SE-0181](0181-package-manager-cpp-language-version.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0181-package-manager-c-c-language-standard-support/6353)
 * Implementation: [apple/swift-package-manager#1264](https://github.com/apple/swift-package-manager/pull/1264)
 

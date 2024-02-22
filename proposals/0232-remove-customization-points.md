@@ -3,7 +3,7 @@
 * Proposal: [SE-0232](0232-remove-customization-points.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#19995](https://github.com/apple/swift/pull/19995)
 * Review: [Discussion thread](https://forums.swift.org/t/se-0232-remove-some-customization-points-from-the-standard-librarys-collection-hierarchy/17265), [Announcement thread](https://forums.swift.org/t/accepted-se-0232-remove-some-customization-points-from-the-standard-librarys-collection-hierarchy/17560)
 

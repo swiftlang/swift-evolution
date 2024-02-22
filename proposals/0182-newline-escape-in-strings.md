@@ -3,7 +3,7 @@
 * Proposal: [SE-0182](0182-newline-escape-in-strings.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962), [David Hart](https://github.com/hartbit), [Adrian Zubarev](https://github.com/DevAndArtist)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Implementation: [apple/swift#11080](https://github.com/apple/swift/pull/11080)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0182-string-newline-escaping/6355)
 * Previous Proposal: [SE-0168](0168-multi-line-string-literals.md)

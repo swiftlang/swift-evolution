@@ -3,7 +3,7 @@
 * Proposal: [SE-0142](0142-associated-types-constraints.md)
 * Authors: [David Hart](https://github.com/hartbit), [Jacob Bandes-Storch](https://github.com/jtbandes), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0142-permit-where-clauses-to-constrain-associated-types/4191)
 * Bugs: [SR-4506](https://bugs.swift.org/browse/SR-4506)
 

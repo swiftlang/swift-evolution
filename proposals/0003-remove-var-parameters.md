@@ -3,7 +3,7 @@
 * Proposal: [SE-0003](0003-remove-var-parameters.md)
 * Author: [Ashley Garland](https://github.com/bitjammer)
 * Review Manager: [Joe Pamer](https://github.com/jopamer)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0003-removing-var-from-function-parameters-and-pattern-matching/1230)
 * Implementation: [apple/swift@8a5ed40](https://github.com/apple/swift/commit/8a5ed405bf1f92ec3fc97fa46e52528d2e8d67d9)
 

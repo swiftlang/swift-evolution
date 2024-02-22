@@ -3,7 +3,7 @@
 * Proposal: [SE-0215](0215-conform-never-to-hashable-and-equatable.md)
 * Author: [Matt Diephouse](https://github.com/mdiep)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0215-conform-never-to-equatable-and-hashable/13586/45)
 * Implementation: [apple/swift#16857](https://github.com/apple/swift/pull/16857)
 

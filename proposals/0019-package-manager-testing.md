@@ -3,7 +3,7 @@
 * Proposal: [SE-0019](0019-package-manager-testing.md)
 * Authors: [Max Howell](https://github.com/mxcl), [Daniel Dunbar](https://github.com/ddunbar), [Mattt Thompson](https://github.com/mattt)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0019-swift-testing-package-manager/1155)
 * Bug: [SR-592](https://bugs.swift.org/browse/SR-592)
 

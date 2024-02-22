@@ -3,7 +3,7 @@
 * Proposal: [SE-0137](0137-avoiding-lock-in.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0137-avoiding-lock-in-to-legacy-protocol-designs/3781)
 
 ## Introduction

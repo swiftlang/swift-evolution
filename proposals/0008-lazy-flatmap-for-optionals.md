@@ -3,7 +3,7 @@
 * Proposal: [SE-0008](0008-lazy-flatmap-for-optionals.md)
 * Author: [Oisin Kidney](https://github.com/oisdk)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0008-add-a-lazy-flatmap-for-sequences-of-optionals/748)
 * Bug: [SR-361](https://bugs.swift.org/browse/SR-361)
 

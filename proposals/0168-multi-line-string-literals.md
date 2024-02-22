@@ -3,7 +3,7 @@
 * Proposal: [SE-0168](0168-multi-line-string-literals.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962), [Becca Royal-Gordon](https://github.com/beccadax), [Tyler Cloutier](https://github.com/TheArtOfEngineering)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Implementation: [apple/swift#8813](https://github.com/apple/swift/pull/8813)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0168-multi-line-string-literals/5715)
 * Bugs: [SR-170](https://bugs.swift.org/browse/SR-170), [SR-4701](https://bugs.swift.org/browse/SR-4701), [SR-4708](https://bugs.swift.org/browse/SR-4708), [SR-4874](https://bugs.swift.org/browse/SR-4874)

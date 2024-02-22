@@ -3,7 +3,7 @@
 * Proposal: [SE-0053](0053-remove-let-from-function-parameters.md)
 * Author: [Nicholas Maccharoli](https://github.com/nirma)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0053-remove-explicit-use-of-let-from-function-parameters/1966)
 * Implementation: [apple/swift#1812](https://github.com/apple/swift/pull/1812)
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0224](0224-ifswift-lessthan-operator.md)
 * Authors: [Daniel Martín](https://github.com/danielmartin)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0224-support-less-than-operator-in-compilation-conditions/15213/5)
 * Bugs: [SR-6852](https://bugs.swift.org/browse/SR-6852)
 * Implementations: [apple/swift#14503](https://github.com/apple/swift/pull/14503) (Stale?), [apple/swift#17690](https://github.com/apple/swift/pull/17960)

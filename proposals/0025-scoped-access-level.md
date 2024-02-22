@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0025](0025-scoped-access-level.md)
 * Author: Ilya Belenkiy
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Review Manager: [Doug Gregor](http://github.com/DougGregor)
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0025-scoped-access-level-next-steps/1797/131)
 * Bug: [SR-1275](https://bugs.swift.org/browse/SR-1275)

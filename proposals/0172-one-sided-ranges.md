@@ -3,7 +3,7 @@
 * Proposal: [SE-0172](0172-one-sided-ranges.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](https://github.com/dabrahams), [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 4)** 
+* Status: **Implemented (Swift 4.0)** 
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0172-one-sided-ranges/5768)
 
 ## Introduction

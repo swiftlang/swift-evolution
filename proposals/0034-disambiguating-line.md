@@ -3,7 +3,7 @@
 * Proposal: [SE-0034](0034-disambiguating-line.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0034-disambiguating-line-control-statements-from-debugging-identifiers/1614)
 * Bug: [SR-840](https://bugs.swift.org/browse/SR-840)
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0121](0121-remove-optional-comparison-operators.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0121-remove-optional-comparison-operators/3478)
 * Implementation: [apple/swift#3637](https://github.com/apple/swift/pull/3637)
 

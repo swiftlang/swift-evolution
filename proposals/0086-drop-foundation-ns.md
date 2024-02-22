@@ -3,7 +3,7 @@
 * Proposal: [SE-0086](0086-drop-foundation-ns.md)
 * Authors: [Tony Parker](https://github.com/parkera), [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0086-drop-ns-prefix-in-swift-foundation/3382)
 
 ##### Related radars or Swift bugs

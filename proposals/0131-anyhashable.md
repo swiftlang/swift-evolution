@@ -3,7 +3,7 @@
 * Proposal: [SE-0131](0131-anyhashable.md)
 * Author: [Dmitri Gribenko](https://github.com/gribozavr)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0131-add-anyhashable-to-the-standard-library/3553)
 
 ## Introduction

@@ -4,7 +4,7 @@
 * Authors: [John Holdsworth](https://github.com/johnno1962), [Becca Royal-Gordon](https://github.com/beccadax), [Erica Sadun](https://github.com/erica)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/102b2f2770f0dab29f254a254063847388647a4a/proposals/0200-raw-string-escaping.md)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#17668](https://github.com/apple/swift/pull/17668)
 * Bugs: [SR-6362](https://bugs.swift.org/browse/SR-6362)
 * Review: [Discussion thread](https://forums.swift.org/t/se-0200-enhancing-string-literals-delimiters-to-support-raw-text/15420), [Announcement thread](https://forums.swift.org/t/accepted-se-0200-enhancing-string-literals-delimiters-to-support-raw-text/15822/2)
