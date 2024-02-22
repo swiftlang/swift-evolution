@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (Feburary 22nd...March 4th, 2024)**
 * Implementation: [PR #71172](https://github.com/apple/swift/pull/71172)
-* Review: ([pitch](https://forums.swift.org/t/pitch-custom-isolation-checking-for-serialexecutor/69786))
+* Review: ([pitch](https://forums.swift.org/t/pitch-custom-isolation-checking-for-serialexecutor/69786)) ([review](https://forums.swift.org/t/se-0424-custom-isolation-checking-for-serialexecutor/70195))
 
 ## Introduction
 
