@@ -1,11 +1,11 @@
 # Custom isolation checking for SerialExecutor
 
-* Proposal: [SE-NNNN](NNNN-advanced-custom-isolation-checking-for-serialexecutor.md)
+* Proposal: [SE-0424](0424-advanced-custom-isolation-checking-for-serialexecutor.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
-* Review Manager: ???
-* Status:  **Work in Progress**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active Review (Feburary 22nd...March 4th, 2024)**
 * Implementation: [PR #71172](https://github.com/apple/swift/pull/71172)
-* Review: ???
+* Review: ([pitch](https://forums.swift.org/t/pitch-custom-isolation-checking-for-serialexecutor/69786))
 
 ## Introduction
 
@@ -14,7 +14,6 @@
 ## Motivation
 
 The Swift concurrency runtime dynamically tracks the current executor of a running task in thread-local storage. To run code on behalf of a task, an executor must call into the runtime, and the runtime will set up the tracking appropriately. APIs like `assertIsolated` and `assumeIsolated` are built on top of that functionality and perform their checks by comparing the expected executor with the current executor tracked by the runtime. If the current thread is not running a task, the runtime treats it as if it were running a non-isolated function, and the comparison will fail.
-
 
 This logic is not sufficient to handle the situation in which code is running on an actor's serial executor, but the code is not associated with a task. Swift's default actor executors currently do not provide any way to enqueue work on them that is not associated with a task, so this situation does not apply to them. However, many custom executors do provide other APIs for enqueuing work, such as the `async` method on `DispatchSerialQueue`. These APIs are not required to inform the Swift concurrency runtime before running the code.  As a result, the runtime will be unaware that the current thread is associated with an actor's executor, and checks like `assumeIsolated` will fail.  This is undesirable because, as long as the executor still acts like a serial executor for any non-task code it runs this way, the code will still be effectively actor-isolated: no code that accesses the actor's isolated state can run concurrently with it.
 
@@ -46,7 +45,7 @@ actor Caplin {
 }
 ```
 
-Even though the code is executing on the correct Dispatch**Serial**Queue, the assertions trigger and we're left unable to access the actor's state, even though isolation wise it would be safe and correct to do so.
+Even though the code is executing on the correct Dispatch**Serial**Queue, the assertions trigger and we're left unable to access the actor's state, even though isolation-wise it would be safe and correct to do so.
 
 Being able to assert isolation for non-task code this way is important enough that the Swift runtime actually already has a special case for it: even if the current thread is not running a task, isolation checking will succeed if the target actor is the `MainActor` and the current thread is the *main thread*. This problem is more general than the main actor, however; it exists for all kinds of threads which may be used as actor executors. The most important example of this is `DispatchSerialQueue`, especially because it is so commonly used in pre-concurrency code bases to provide actor-like isolation.  Allowing types like `DispatchSerialQueue` to hook into isolation checking makes it much easier to gradually migrate code to actors: if an actor uses a queue as its executor, existing code that uses the queue don't have to be completely rewritten in order to access the actor's state.
 
@@ -87,7 +86,7 @@ extension SerialExecutor {
 
 ## Detailed design
 
-This proposal adds another customization point to the Swift concurrency runtime that hooks into isolation context comparison mechanisms used by `assertIsolated`, `preconditionIsolated`, `assumeIsolated` as well as implicitly injected assertions used in `@preconcurrency` code.
+This proposal adds another customization point to the Swift concurrency runtime that hooks into isolation context comparison mechanisms used by `assertIsolated`, `preconditionIsolated`, and `assumeIsolated`, as well as any implicitly injected assertions used in `@preconcurrency` code.
 
 ### Extended executor comparison mechanism
 
@@ -125,8 +124,8 @@ if isSameSerialExecutor(current, expected) {
 return // ok, it seems the expected executor was able to prove isolation
 ```
 
-This pseudo code snippet explains the flow of the executor comparisons. There are two situations in which the new `checkIsolated` method can be invoked: when there is no current executor present, or if all other comparisons have failed.
-For more details on the executor comparison logic you can refer to [SE-0392: Custom Actor Executors'](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md).
+This pseudo code snippet explains the flow of the executor comparisons. There are two situations in which the new `checkIsolated` method may be invoked: when there is no current executor present, or if all other comparisons have failed.
+For more details on the executor comparison logic, you can refer to [SE-0392: Custom Actor Executors](https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md).
 
 Specific use-cases of this API include `DispatchSerialQueue`, which would be able to implement the requirement as follows:
 
@@ -166,15 +165,7 @@ actor Worker {
 
 As such, there is no negative impact on the correctness of these APIs.
 
-Asynchronous functions should not use dyanamic isolation checking.  Isolation
-checking is useful in synchronous functions because they naturally inherit
-execution properties like their caller's isolation without disturbing it.
-A synchronous function may be formally non-isolated and yet actually
-run in an isolated context dynamically.  This is not true for asynchronous
-functions, which switch to their formal isolation on entry without regard
-to their caller's isolation.  If an asynchronous function is not formally
-isolated to an actor, its execution will never be dynamically in an
-isolated context, so there's no point in checking for it.
+Asynchronous functions should not use dyanamic isolation checking.  Isolation checking is useful in synchronous functions because they naturally inherit execution properties like their caller's isolation without disturbing it.  A synchronous function may be formally non-isolated and yet actually run in an isolated context dynamically.  This is not true for asynchronous functions, which switch to their formal isolation on entry without regard to their caller's isolation.  If an asynchronous function is not formally isolated to an actor, its execution will never be dynamically in an isolated context, so there's no point in checking for it.
 
 ## Future directions
 
@@ -211,11 +202,6 @@ This would allow the isolation model to support different kinds of main executor
 
 ### Do not provide customization points, and just hardcode DispatchQueue handling
 
-Alternatively, we could harcode detecting dispatch queues and triggering `dispatchPrecondition` from within the Swift runtime.
+Alternatively, we could hardcode detecting dispatch queues and triggering `dispatchPrecondition` from within the Swift runtime.
 
 This is not a good direction though, as our goal is to have the concurrency runtime be less attached to Dispatch and allow Swift to handle each and every execution environment equally well. As such, introducing necessary hooks as official and public API is the way to go here.
-
-
-## Revisions
-- 1.0
-  - initial revision
