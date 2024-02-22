@@ -389,21 +389,19 @@ We propose above using the existing `borrow`/`mutate`/`consume`/`copy` keywords,
 
 We also considered `borrowing`/`mutating`/`consuming`/`copying` but felt that the semantic differences merited using a different form of these words.
 
-Other alternatives considered include:
-
+We could have a single `scoped` annotation that covers the `borrow` and `mutate` semantics described above,
+since the semantics are implied by the argument.
+Similarly we could collapse `copy` and `consume` to use just `copy` (since they are formally identical).
+That would give us two notations rather than the four in our current proposal:
 ```
-func f(arg1: Array<Int>) -> @dependsOn(arg1) BufferReference<Int>
-```
-
-The above syntax states the dependency, but could require elaboration to clarify the type of dependency.
-As illustrated by the inference rules above, there is often only one reasonable lifetime dependency type for a particular situation.
-But `copy` and “Downgraded dependencies” described below complicate this somewhat.
-
-```
-func f(arg1: Array<Int>) -> @scoped(arg1) BufferReference<Int>
+// `borrow` and `mutate` semantics could share a single annotation:
+func f(arg1: borrow Array<Int>) -> scoped(arg1) BufferReference<Int> // Same as `borrow(arg1)`
+func f(arg1: inout Array<Int>) -> scoped(arg1) BufferReference<Int> // Same as `mutate(arg1)`
 ```
 
-Lifetime dependencies are sometimes referred to as “scoped access.” We find this terminology less natural in practice.
+This single `scoped` notation would prevent us from eventually supporting the
+“Downgraded dependencies” described below.
+The `scoped` notation could also be spelled `@scoped` or `@dependsOn`.
 
 #### Implicit argument convention or method mutation modifier
 
