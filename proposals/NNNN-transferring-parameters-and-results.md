@@ -13,8 +13,9 @@
 
 This proposal extends region isolation to enable an explicit `transferring`
 annotation to denote when a parameter or result value is required to be in a
-disconnected region, allowing the callee or the caller, respectively, to
-transfer a non-`Sendable` parameter or result value over an isolation boundary.
+disconnected region at the function boundary. This allows the callee or the
+caller, respectively, to transfer a non-`Sendable` parameter or result value
+over an isolation boundary or merge the value into an actor-isolated region.
 
 ## Motivation
 
@@ -37,9 +38,13 @@ func tryTransfer(ns: NonSendable) async {
 }
 ```
 
-However, for actor initializers, parameters are always considered to be
-transferred into the actor's region, because initializer parameters are
-typically used to initialize actor-isolated state:
+Actor initializers have a special rule that allows transferring its parameter
+values into the actor-isolated region. Actor initializers are `nonisolated`, so
+a call to an actor initializer does not cross an isolation boundary, meaning
+the argument values would be usable in the caller after the initializer returns
+under the standard region isolation rules. SE-0414 consider actor initializer
+parameters as being transferred into the actor's region to allow initializing
+actor-isolated state with those values:
 
 ```swift
 class NonSendable {}
@@ -123,12 +128,14 @@ data-race safety diagnostics, even under `-strict-concurrency=complete`.
 
 Requiring `Sendable` on the parameter type of `resume(returning:)` is a harsh
 restriction, and it's safe to pass a non-`Sendable` value as long as the value
-is in a disconnected region.
+is in a disconnected region and all values in that disconnected region are not
+used again after the call to `resume(returning:)`.
 
 ## Proposed solution
 
 This proposal enables explicitly specifying parameter and result values as
-being transferred over an isolation boundary using a modifier:
+being transferred over an isolation boundary using a contextual `transferring`
+modifier:
 
 ```swift
 public struct CheckedContinuation<T, E: Error>: Sendable {
@@ -192,8 +199,12 @@ is in a disconnected region, enabling non-`Sendable` result values to cross an
 actor isolation boundary:
 
 ```swift
+@MainActor func onMain(_: NonSendable) { ... }
+
 nonisolated func f(s: S) async {
   let ns = s.getNonSendable() // okay; 'ns' is in a disconnected region
+
+  await onMain(ns) // 'ns' can be transferred away to the main actor
 }
 ```
 
@@ -284,9 +295,17 @@ struct Y2: P1 {
 
 When a call passes an argument to a `transferring` parameter, the caller cannot
 use the argument value again after the callee returns. By default `transferring`
-on a function parameter implies that the callee consumes the parameter, but it does
-not imply no implicit copying semantics. `transferring` may also be used with an
-explicit `consuming` or `borrowing` ownership modifier.
+on a function parameter implies that the callee consumes the parameter. Like
+`consuming` parameters, a `transferring` parameter can be re-assigned inside
+the callee. Unlike `consuming` parameters, `transferring` parameters do not
+have no-implicit-copying semantics.
+
+To opt into no-implicit-copying semantics or to change the default ownership
+convention, `transferring` may also be used with an explicit `consuming` or
+`borrowing` ownership modifier. Note that an explicit `borrowing` annotation
+always implies no-implicit-copying, so there is no way to change the default
+ownership convention of a `transferring` parameter without also opting into
+no-implicit-copying semantics.
 
 ## Source compatibility
 
