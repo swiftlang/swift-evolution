@@ -334,6 +334,20 @@ explicitly) `consuming`.
 
 ## Future directions
 
-### `disconnected` types
+### `Disconnected` types
 
-TODO
+`transferring` requires parameter and result values to be in a disconnected
+region at the function boundary, but there is no way to preserve that a value
+is in a disconnected region through stored properties, collections, function
+calls, etc. To preserve that a value is in a disconnected region through the
+type system, we could introduce a `Disconnected` type into the Concurrency
+library. The  `Disconnected` type would suppress copying via `~Copyable`, it
+would conform to `Sendable`, constructing a `Disconnected` instance would
+require the value it wraps to be in a disconnected region, and a value of type
+`Disconnected` can never be merged into another isolation region.
+
+This would enable important patterns that take a `transferring T` parameter,
+store the value in a collection of `Disconnected<T>`, and later remove values
+from the collection and return them as `transferring T` results. This would
+allow some `AsyncSequence` types to return non-`Sendable` buffered elements as
+`transferring` without resorting to unsafe opt-outs in the implementation.
