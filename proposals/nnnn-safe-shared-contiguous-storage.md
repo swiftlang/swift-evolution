@@ -88,7 +88,7 @@ Note that `StorageView` does _not_ conform to `Collection`. This is because `Col
 A type can declare that it can provide access to contiguous storage by conforming to the `ContiguousStorage` protocol:
 
 ```swift
-public protocol ContiguousStorage<Element>: ~Escapable {
+public protocol ContiguousStorage<Element>: ~Copyable, ~Escapable {
   associatedtype Element: ~Copyable & ~Escapable
 
   var storage: borrow(self) StorageView<Element> { _read }
