@@ -1,6 +1,6 @@
-# `transferring` parameter and result types
+# `transferring` isolation regions of parameter and result values
 
-* Proposal: [SE-NNNN](NNNN-transferring-parameteres-and-results.md)
+* Proposal: [SE-NNNN](NNNN-transferring-parameters-and-results.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall)
 * Review Manager: TBD
 * Status: **Awaiting review**
