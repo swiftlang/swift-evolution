@@ -208,6 +208,10 @@ nonisolated func f(s: S) async {
 }
 ```
 
+A `Sendable` value always satisfies the requirements of `transferring` because
+`Sendable` values are always safe to pass over isolation boundaries, and thus
+not included in region analysis.
+
 ### Function subtyping
 
 For a given type `T`, `transferring T` is a subtype of `T`. `transferring` is
