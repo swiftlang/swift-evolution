@@ -1,10 +1,10 @@
 # Custom isolation checking for SerialExecutor
 
-* Proposal: [SE-0424](0424-advanced-custom-isolation-checking-for-serialexecutor.md)
+* Proposal: [SE-0424](0424-custom-isolation-checking-for-serialexecutor.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (Feburary 22nd...March 4th, 2024)**
-* Implementation: [PR #71172](https://github.com/apple/swift/pull/71172)
+* Status: **Active Review (February 22nd...March 4th, 2024)**
+* Implementation: [apple/swift#71172](https://github.com/apple/swift/pull/71172)
 * Review: ([pitch](https://forums.swift.org/t/pitch-custom-isolation-checking-for-serialexecutor/69786)) ([review](https://forums.swift.org/t/se-0424-custom-isolation-checking-for-serialexecutor/70195))
 
 ## Introduction
