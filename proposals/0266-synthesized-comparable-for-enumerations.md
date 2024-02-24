@@ -1,7 +1,7 @@
 # Synthesized `Comparable` conformance for `enum` types
 
 * Proposal: [SE-0266](0266-synthesized-comparable-for-enumerations.md)
-* Author: [Dianna Ma (taylorswift)](https://forums.swift.org/u/taylorswift)
+* Author: [Dianna Ma (taylorswift)](https://github.com/tayloraswift)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#25696](https://github.com/apple/swift/pull/25696)
