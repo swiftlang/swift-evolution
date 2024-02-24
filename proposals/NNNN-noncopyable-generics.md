@@ -77,13 +77,14 @@ struct FileDescriptor: ~Copyable {
 ```
 
 Practical use of generics also requires supporting protocol conformances,
-since generic parameters are often constrained to particular protocols:
+since generic parameters gain capabilities when they are constrained to particular protocols:
 ```swift
+// T is capable of being compared with other T's
 func max<T: Comparable>(...) { ... }
 ```
 
 In order to broaden the expressiveness and utility of noncopyable types, then,
-we need a sound way to allow these types to be used in generic parameters,
+language extensions are needed to allow these types to be used in generic parameters,
 to conform to protocols, and to be stored in existentials.
 This in turn requires a consistent and sound way to relax the fundamental
 assumption of copyability that permeates Swift's generics system.
@@ -96,9 +97,9 @@ There are three fundamental components to this proposal that together provide a 
 2. This protocol is applied by default to type definitions and generic requirements
 3. The `~Copyable` notation can suppress this implicit requirement in specific cases
 
-**Note**: Several other issues will need to be addressed before we can adapt the bulk of the standard library to support noncopyable types.
-We are exploring possible approaches and hope to have a concrete proposal in the near future.
-This expansion of the generics system is an obvious prerequisite for any such effort.
+**Note**: Several other issues will need to be addressed before the bulk of the standard library can be adapted to support noncopyable types.
+Various approaches are being explored for separate proposals in the near future.
+This proposal's expansion of the generics system is a clear prerequisite for any such effort.
 
 ### Copying and `Copyable`
 
