@@ -37,61 +37,57 @@
 
 ## Introduction
 
-The noncopyable types introduced in [SE-0390: Noncopyable structs and enums](0390-noncopyable-structs-and-enums.md) come with the heavy limitation that such values cannot be substituted for a generic type parameter, erased to an existential, or even conform to a protocol.
+The noncopyable types introduced in [SE-0390: Noncopyable structs and enums](0390-noncopyable-structs-and-enums.md) come with the heavy limitation that such values cannot be substituted for a generic type parameter, erased to an existential, or conform to a protocol.
 This proposal extends Swift's type system with syntax and semantics allowing noncopyable types to be used in all of these ways.
 
 ## Motivation
 
-Suppose an implementation of a noncopyable file descriptor type would like to conform to `Comparable` so that it can be ordered using the infix `<` operator:
-
+SE-0390 laid the groundwork for declaring struct and enum types that cannot be copied.
+This ensures correct semantics for types for which it is not meaningful to
+have multiple copies:
 ```swift
-struct FileDescriptor: ~Copyable, Comparable {
-  let fd: Int
-  
-  static func == (lhs: borrowing FileDescriptor, 
-                  rhs: borrowing FileDescriptor) -> Bool {
-   lhs.fd == rhs.fd
-  }
+// A file descriptor cannot be usefully used from
+// multiple places at once, so make it non-copyable
+// to prevent such usage.
+struct FileDescriptor: ~Copyable { ... }
+```
 
-  static func < (lhs: borrowing FileDescriptor, 
-                 rhs: borrowing FileDescriptor) -> Bool {
-   lhs.fd < rhs.fd
+This also provides an alternative to class objects for some use cases.
+In particular, the tightly defined lifecycle allows noncopyable structs
+to carry deinitializers:
+```swift
+struct HeapBuffer: ~Copyable {
+  init() { ... allocate working storage on heap ... }
+  deinit() { ... release storage ... }
+}
+```
+
+But SE-0390 also made a number of concessions to simplify the initial implementation,
+limitations which significantly reduce the usefulness of noncopyable types.
+
+For example, if noncopyable types cannot be used in generics,
+then they cannot be used with `Optional`,
+which prevents you from defining failable initializers:
+```swift
+struct FileDescriptor: ~Copyable {
+  init?(filename: String) { // 🛑 Cannot return Optional<FileDescriptor>
+    ...
   }
 }
 ```
 
-While this type `FileDescriptor` has defined the required functions `==` and `<` to satisfy `Comparable`, the conformance is not valid according to SE-390.
-A type parameter `T` constrained by the `Comparable` protocol would be copyable.
-So, despite having all of the correct witnesses, substituting a `FileDescriptor` for `T` would permit an illegal copy:
-
+Practical use of generics also requires supporting protocol conformances,
+since generic parameters gain capabilities when they are constrained to particular protocols:
 ```swift
-public func max<T: Comparable>(_ x: borrowing T, _ y: borrowing T) -> T {
-  var result: T
-  if y >= x {
-    result = y  // an implicit copy of `y` stored in `result`
-  } else {
-    result = copy x // an explicit copy of `x` stored in `result`
-  }
-  return result
-}
-
-let fd1 = FileDescriptor(fd: 0)
-let fd2 = fd1.copy()  // 'fd2' is a copy of 'fd1'!
-let bigger = max(fd1, fd2)  // 'bigger' is copy of 'fd2'!
+// T is capable of being compared with other T's
+func max<T: Comparable>(...) { ... }
 ```
 
-In addition, extensions of `Comparable` implicitly assume `Self` can be copied:
-
-```swift
-extension Comparable {
-  func min(_ other: Self) -> Self { 
-    return self <= other ? copy self : copy other
-  }
-}
-```
-
-This baseline assumption of copying throughout the generics system, without a way to opt-out, is the fundamental reason noncopyable types in [SE-0390](0390-noncopyable-structs-and-enums.md) came with limitations around generics.
-Providing a sound way to lift those limitations is the goal of this proposal.
+In order to broaden the expressiveness and utility of noncopyable types, then,
+language extensions are needed to allow these types to be used in generic parameters,
+to conform to protocols, and to be stored in existentials.
+This in turn requires a consistent and sound way to relax the fundamental
+assumption of copyability that permeates Swift's generics system.
 
 ## Proposed Solution
 
@@ -101,27 +97,9 @@ There are three fundamental components to this proposal that together provide a 
 2. This protocol is applied by default to type definitions and generic requirements
 3. The `~Copyable` notation can suppress this implicit requirement in specific cases
 
-### Reading Note
-
-A central theme of this proposal is introducing _implicit_ `Copyable` requirements.
-To aid in reading this proposal, fragments of Swift code will appear as comments within examples to make _all_ implicit requirements clear.
-
-The primary way these implicit requirements are written is within `/* ... */`  comments, for example, 
-```swift
-func f<T>(_ t: T) /* where T: ConstraintType */ {}
-```
-means that the requirement `T` conforms to `ConstraintType` is implicit and is not actually written in the source code for that example.
-In addition, some comments containing a _generic signature_ or _interface type_ may appear next to a type or function, respectively.
-These generic signatures fully spell-out all of the requirements or type constraints for generic parameters in scope:
-```swift
-// signature <Self where Self: Comparable>
-protocol P: Comparable {}
-
-struct S<T: Equatable> {
-  func f() {}  // signature <T where T: Equatable>
-}
-```
-These comments are used for clarity, especially when it is not possible to otherwise convey the requirements on a type using Swift syntax.
+**Note**: Several other issues will need to be addressed before the bulk of the standard library can be adapted to support noncopyable types.
+Various approaches are being explored for separate proposals in the near future.
+This proposal's expansion of the generics system is a clear prerequisite for any such effort.
 
 ### Copying and `Copyable`
 
@@ -133,6 +111,24 @@ Naturally, the set of noncopyable types are exactly those that do _not_ conform 
 When initializing a new variable binding using an existing struct or enum value, semantically the binding is initialized with a copy as long as the value is `Copyable`.
 Otherwise, the value is moved into the binding.
 See [SE-0390](0390-noncopyable-structs-and-enums.md) for more details about copy/move behaviors and working with noncopyable types.
+
+**Note**: For clarity, the examples in this proposal will detail implicit requirements in comments.
+In this example
+```swift
+func f<T>(_ t: T) /* where T: Copyable */ {}
+```
+the comment indicates that the requirement `T: Copyable` is an implicit default that will be automatically inferred by the generics system.
+
+In addition, comments with _generic signature_ or _interface type_ may appear next to a type or function, respectively.
+These generic signatures will detail all of the requirements or type constraints for generic parameters in scope:
+```swift
+// signature <Self where Self: Comparable>
+protocol P: Comparable {}
+
+struct S<T: Equatable> {
+  func f() {}  // signature <T where T: Equatable>
+}
+```
 
 #### Conformance
 
@@ -214,7 +210,7 @@ enum List<Elm: ~Copyable>: ~Copyable { /* ... */ }
 enum List<Elm>: ~Copyable where Elm: ~Copyable { /* ... */ }
 ```
 
-Sice `Elm` is not required to be `Copyable`, a noncopyable type like `FileDescriptor` can be substituted in `List`, in addition to copyable ones.
+Since `Elm` is not required to be `Copyable`, a noncopyable type like `FileDescriptor` can be substituted in `List`, in addition to copyable ones.
 
 #### Automatic synthesis of conditional `Copyable` conformance
 Often a type parameter is added to a nominal type because values of that generic type will be stored somewhere within the parameterized nominal type.
@@ -516,6 +512,21 @@ protocol P {
   // error: cannot suppress constraint 'Self.Bob: ~Copyable' on generic parameter 'Self.Bob' defined in outer scope
 }
 ```
+
+### `AnyObject`
+
+... ### TODO: can classes be cast to `any ~Copyable`? If so, then it seems fine to
+permit an `AnyObject` to be cast to `any ~Copyable`. 
+
+... ### TODO: is this legal? `func f<T>(_ t: T) where T: AnyObject, T: ~Copyable {}` -->
+
+## Effect on ABI stability
+
+... ### TODO
+
+## Effect on API resilience
+
+... ### TODO
 
 ## Alternatives Considered
 
