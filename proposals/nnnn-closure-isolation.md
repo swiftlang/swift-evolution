@@ -1,7 +1,7 @@
 # Closure isolation control
 
 * Proposal: [SE-NNNN](nnnn-closure-isolation.md)
-* Authors: [Sophia Poirier](https://github.com/sophiapoirier), [Matt Massicotte](https://github.com/mattmassicotte), [John McCall](https://github.com/rjmccall)
+* Authors: [Sophia Poirier](https://github.com/sophiapoirier), [Matt Massicotte](https://github.com/mattmassicotte), [Konrad Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: On `main` gated behind `-enable-experimental-feature TODO`
@@ -17,11 +17,14 @@ This proposal provides the ability to explicitly specify actor-isolation or non-
 * [Introduction](#introduction)
 * [Motivation](#motivation)
 * [Proposed solution](#proposed-solution)
+  + [Explicit closure isolation](#explicit-closure-isolation)
+  + [Isolation inheritance](#isolation-inheritance)
 * [Detailed design](#detailed-design)
 * [Source compatibility](#source-compatibility)
 * [ABI compatibility](#abi-compatibility)
 * [Implications on adoption](#implications-on-adoption)
 * [Alternatives considered](#alternatives-considered)
+* [Future directions](#future-directions)
 * [Acknowledgments](#acknowledgments)
 
 ## Motivation
@@ -62,6 +65,8 @@ class NonSendableType {
 
 ## Proposed solution
 
+### Explicit closure isolation
+
 Enable explicit specification of non-isolation by allowing `nonisolated` to be a specifier on a closure:
 
 ```swift
@@ -81,6 +86,36 @@ actor A {
   }
 }
 ```
+
+The same mechanism works with distributed actors, however only statically "known to be local" distributed actors may be promoted to `isolated`. Currently, this is achieved only through an `isolated` distributed actor type, meaning that a task can only be made isolated to a distributed actor if the value already was isolated, like this:
+
+```
+import Distributed
+
+distributed actor D {
+  func isolateSelf() {
+    // 'self' is isolated
+    Task { [isolated self] in print("OK") } // OK: self was isolated
+  }
+
+  nonisolated func bad() {
+    // 'self' is not isolated
+    Task { [isolated self] in print("BAD") } // Error: self was not isolated, and may be remote
+  }
+}
+
+func isolate(d: isolated D) {
+  Task { [isolated d] in print("OK") } // OK: d was isolated, thus known-to-be-local
+}
+
+func isolate(d: D) {
+  Task { [isolated d] in print("OK") } // Error: d was not isolated, and may be remote
+}
+```
+
+While it is technically possible to enqueue work on a remote distributed actor reference, the enqueue on such actor will always immediately crash. Because of that, we err on the side of not allowing such illegal code to begin with. Future directions discuss how this can be made more powerful when it is known that an actor is local. Worth reminding is also the `da.whenLocal { isolated da in ... }` API, which allows dynamically recovering an isolated distributed actor reference, after it has dynamically been checked for locality.
+
+### Isolation inheritance
 
 Provide a formal replacement of the experimental parameter attribute `@_inheritActorContext` to resolve its ambiguity with closure isolation. Its replacement `@inheritsIsolation` changes the behavior so that it unconditionally and implicitly captures the isolation context (as opposed to currently in actor-isolated contexts it being conditional on whether you capture an isolated parameter or isolated capture or actor-isolated function, but guaranteed if the context is isolated to a global actor or `nonisolated`).
 
@@ -186,6 +221,25 @@ class NonSendableType {
 Despite this being a useful pattern, it does not address the underlying inheritance semantic differences.
 
 There was also discussion about the ability to make synchronous methods on actors. The scope of such a change is much larger than what is covered here and would still not address the underlying differences.
+
+## Future directions
+
+### "Known to be local" distributed actors and isolation
+
+Distributed actors have a property that is currently not exposed in the type-system that is "known to be local". If a distributed is known to be local, code may become isolated to it.
+
+Once the locality of a type is expressed in the type system the following would be possible:
+
+```
+let worker: local Worker
+
+// silly example, showcasing isolating on a known-to-be-local distributed actor
+func work(item: Item) async {
+  await Task { [isolated worker] in
+    worker.work(on: item)
+  }.value
+}
+```
 
 ## Acknowledgments
 
