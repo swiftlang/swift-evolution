@@ -1,7 +1,7 @@
 # Adding `toggle` to `Bool`
 
 * Proposal: [SE-0199](0199-bool-toggle.md)
-* Author: [Chris Eidhof](http://chris.eidhof.nl)
+* Author: [Chris Eidhof](https://github.com/chriseidhof)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
 * Status: **Implemented (Swift 4.2)**
 * Decision notes: [Rationale](https://forums.swift.org/t/accepted-se-199-add-toggle-to-bool/10681)
