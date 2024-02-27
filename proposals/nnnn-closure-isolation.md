@@ -1,15 +1,28 @@
 # Closure isolation control
 
 * Proposal: [SE-NNNN](nnnn-closure-isolation.md)
-* Authors: [Sophia Poirier](https://github.com/sophiapoirier), [John McCall](https://github.com/rjmccall)
+* Authors: [Sophia Poirier](https://github.com/sophiapoirier), [Matt Massicotte](https://github.com/mattmassicotte), [John McCall](https://github.com/rjmccall)
 * Review Manager: TBD
+* Status: **Awaiting review**
 * Implementation: On `main` gated behind `-enable-experimental-feature TODO`
 * Previous Proposals: [SE-0313](0313-actor-isolation-control.md), [SE-0316](0316-global-actors.md)
-* Review: ([pitch](https://forums.swift.org/TODO))
+* Review: ([pitch](https://forums.swift.org/t/isolation-assumptions/69514))
 
 ## Introduction
 
-This proposal provides the ability to explicitly specify actor-isolation or non-isolation of a closure, as well as providing a parameter attribute to guarantee that a closure parameter inherits the isolation of the context.
+This proposal provides the ability to explicitly specify actor-isolation or non-isolation of a closure, as well as providing a parameter attribute to guarantee that a closure parameter inherits the isolation of the context. It makes the isolation inheritance rules more uniform while also making a specific concurrency pattern less restrictive.
+
+## Table of Contents
+
+* [Introduction](#introduction)
+* [Motivation](#motivation)
+* [Proposed solution](#proposed-solution)
+* [Detailed design](#detailed-design)
+* [Source compatibility](#source-compatibility)
+* [ABI compatibility](#abi-compatibility)
+* [Implications on adoption](#implications-on-adoption)
+* [Alternatives considered](#alternatives-considered)
+* [Acknowledgments](#acknowledgments)
 
 ## Motivation
 
@@ -26,7 +39,26 @@ Without a global actor isolation annotation, actor-isolation or non-isolation of
 * global actor
 * specific actor value
 
-Explicit annotation has the benefit of disabling inference rules and the potential that they lead to a formal isolation that is not preferred. For example, there are circumstances where it is beneficial to guarantee that a closure is `nonisolated` therefore knowing that its execution will hop off the current actor. Explicit annotation also offers the ability to identify a mismatch of intention, such as a case where the developer expected `nonisolated` but inference landed on actor-isolated, and the closure is used in an isolated context. With explicit annotation, the developer would receive a diagnostic about a `nonisolated` closure being used in an actor-isolated context which helpfully identifies this mismatch of intention.
+Explicit annotation has the benefit of disabling inference rules and the potential that they lead to a formal isolation that is not preferred. For example, there are circumstances where it is beneficial to guarantee that a closure is `nonisolated` therefore knowing that its execution will hop off the current actor. Explicit annotation also offers the ability to identify a mismatch of intention, such as a case where the developer expected `nonisolated` but inference landed on actor-isolated, and the closure is mistakenly used in an isolated context. Using explicit annotation, the developer would receive a diagnostic about a `nonisolated` closure being used in an actor-isolated context which helpfully identifies this mismatch of intention.
+
+Additionally, there is a difference in how isolation inheritance behaves via the experimental attribute `@_inheritActorContext` (as used by `Task.init`) for isolated parameters vs actor isolation: global actor isolatation is inherited by `Task`'s initializer closure argument, whereas an actor-isolated parameter is not inherited. This makes it challenging to build intuition around how isolation inheritance works. It also makes some kinds of concurrency patterns impossible to use without being overly restrictive.
+
+```swift
+class NonSendableType {
+  @MainActor
+  func globalActor() {
+    Task {
+      // accessing self okay
+    }
+  }
+
+  func isolatedParameter(_ actor: isolated any Actor) {
+    Task {
+      // not okay to access actor
+    }
+  }
+}
+``` 
 
 ## Proposed solution
 
@@ -50,7 +82,7 @@ actor A {
 }
 ```
 
-Providing a formal replacement of the experimental parameter attribute `@_inheritActorContext` is needed to resolve another area of ambiguity with closure isolation. Its replacement `@inheritsIsolation` changes the behavior so that it unconditionally and implicitly captures the isolation context (as opposed to currently in actor-isolated contexts it being conditional on whether you capture an isolated parameter or isolated capture or actor-isolated function, but guaranteed if the context is isolated to a global actor or `nonisolated`).
+Provide a formal replacement of the experimental parameter attribute `@_inheritActorContext` to resolve its ambiguity with closure isolation. Its replacement `@inheritsIsolation` changes the behavior so that it unconditionally and implicitly captures the isolation context (as opposed to currently in actor-isolated contexts it being conditional on whether you capture an isolated parameter or isolated capture or actor-isolated function, but guaranteed if the context is isolated to a global actor or `nonisolated`).
 
 ```swift
 class Old {
@@ -97,18 +129,64 @@ Opting out of `@inheritsIsolation` can be achieved by explicitly annotating the 
 
 The language changes are additive and therefore have no implications on source compatibility. The change to `Task.init` in the standard library does have the potential to isolate some closures that previously were inferred to be `nonisolated`. Prior behavior in those cases could be restored, if desired, by explicitly declaring the closure as `nonisolated`.
 
+It is worth noting that this does not affect the isolation semantics for actor-isolated types that make use of isolated parameters. It is currently impossible to access self in these cases, and even with this new inheritance rule that remains true.
+
+```swift
+actor MyActor {
+  var mutableState = 0
+
+  func isolatedParameter(_ actor: isolated any Actor) {
+    self.mutableState += 1 // invalid
+
+    Task {
+      self.mutableState += 1 // invalid
+    }
+  }
+}
+
+@MainActor
+class MyClass {
+  var mutableState = 0
+
+  func isolatedParameter(_ actor: isolated any Actor) {
+    self.mutableState += 1 // invalid
+
+    Task {
+      self.mutableState += 1 // invalid
+    }
+  }
+}
+```
+
 ## ABI compatibility
 
-The language change does not add or affect ABI since formal isolation is already part of a closure's type regardless of whether it is explicitly specified. The `Task.init` cahnge does not impact ABI since the function is annotated with `@_alwaysEmitIntoClient` and therefore has no ABI.
+The language change does not add or affect ABI since formal isolation is already part of a closure's type regardless of whether it is explicitly specified. The `Task.init` change does not impact ABI since the function is annotated with `@_alwaysEmitIntoClient` and therefore has no ABI.
 
 ## Implications on adoption
 
-none
+This feature can be freely adopted and un-adopted in source code with no deployment constraints and without affecting source or ABI compatibility.
 
 ## Alternatives considered
 
-TODO
+When this problem was originally brought up, there were several alternatives suggested.
 
-## Future directions
+The most obvious is to just not use `Task` in combination with non-Sendable types in this way. Restructuring the code to avoid needing to rely on isolation inheritance in the first place.
 
-TODO
+```swift
+class NonSendableType {
+    private var internalState = 0
+
+    func doSomeStuff(isolatedTo actor: isolated any Actor) async throws {
+        try await Task.sleep(for: .seconds(1))
+        print(self.internalState)
+    }
+}
+```
+
+Despite this being a useful pattern, it does not address the underlying inheritance semantic differences.
+
+There was also discussion about the ability to make synchronous methods on actors. The scope of such a change is much larger than what is covered here and would still not address the underlying differences.
+
+## Acknowledgments
+
+Thank you to Franz Busch and Aron Lindberg for looking at the underlying problem so closely and suggesting alternatives. Thank you to Holly Borla for helping to clarify the current behavior, as well as suggesting a path forward that resulted in a much simpler and less-invasive change.
