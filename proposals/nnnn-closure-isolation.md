@@ -20,6 +20,7 @@ This proposal provides the ability to explicitly specify actor-isolation or non-
   + [Explicit closure isolation](#explicit-closure-isolation)
   + [Isolation inheritance](#isolation-inheritance)
 * [Detailed design](#detailed-design)
+  + [Distributed actor isolation](#distributed-actor-isolation)
 * [Source compatibility](#source-compatibility)
 * [ABI compatibility](#abi-compatibility)
 * [Implications on adoption](#implications-on-adoption)
@@ -87,34 +88,6 @@ actor A {
 }
 ```
 
-The same mechanism works with distributed actors, however only statically "known to be local" distributed actors may be promoted to `isolated`. Currently, this is achieved only through an `isolated` distributed actor type, meaning that a task can only be made isolated to a distributed actor if the value already was isolated, like this:
-
-```
-import Distributed
-
-distributed actor D {
-  func isolateSelf() {
-    // 'self' is isolated
-    Task { [isolated self] in print("OK") } // OK: self was isolated
-  }
-
-  nonisolated func bad() {
-    // 'self' is not isolated
-    Task { [isolated self] in print("BAD") } // Error: self was not isolated, and may be remote
-  }
-}
-
-func isolate(d: isolated D) {
-  Task { [isolated d] in print("OK") } // OK: d was isolated, thus known-to-be-local
-}
-
-func isolate(d: D) {
-  Task { [isolated d] in print("OK") } // Error: d was not isolated, and may be remote
-}
-```
-
-While it is technically possible to enqueue work on a remote distributed actor reference, the enqueue on such actor will always immediately crash. Because of that, we err on the side of not allowing such illegal code to begin with. Future directions discuss how this can be made more powerful when it is known that an actor is local. Worth reminding is also the `da.whenLocal { isolated da in ... }` API, which allows dynamically recovering an isolated distributed actor reference, after it has dynamically been checked for locality.
-
 ### Isolation inheritance
 
 Provide a formal replacement of the experimental parameter attribute `@_inheritActorContext` to resolve its ambiguity with closure isolation. Its replacement `@inheritsIsolation` changes the behavior so that it unconditionally and implicitly captures the isolation context (as opposed to currently in actor-isolated contexts it being conditional on whether you capture an isolated parameter or isolated capture or actor-isolated function, but guaranteed if the context is isolated to a global actor or `nonisolated`).
@@ -159,6 +132,36 @@ An isolated parameter in a capture list must be of actor type, or conform to or 
 Opting out of `@inheritsIsolation` can be achieved by explicitly annotating the closure argument as `nonisolated`.
 
 `@_inheritActorContext` is currently used by the `Task` initializer in the standard library which should be updated to use `@inheritsIsolation` instead.
+
+### Distributed actor isolation
+
+`isolated` capture parameter works with distributed actors, however only statically "known to be local" distributed actors may be promoted to `isolated`. Currently, this is achieved only through an `isolated` distributed actor type, meaning that a task can only be made isolated to a distributed actor if the value already was isolated, like this:
+
+```swift
+import Distributed
+
+distributed actor D {
+  func isolateSelf() {
+    // 'self' is isolated
+    Task { [isolated self] in print("OK") } // OK: self was isolated
+  }
+
+  nonisolated func bad() {
+    // 'self' is not isolated
+    Task { [isolated self] in print("BAD") } // error: self was not isolated, and may be remote
+  }
+}
+
+func isolate(d: isolated D) {
+  Task { [isolated d] in print("OK") } // OK: d was isolated, thus known-to-be-local
+}
+
+func isolate(d: D) {
+  Task { [isolated d] in print("OK") } // error: d was not isolated, and may be remote
+}
+```
+
+While it is technically possible to enqueue work on a remote distributed actor reference, the enqueue on such actor will always immediately crash. Because of that, we err on the side of disallowing such illegal code. [Future directions](#future-directions) discusses how this can be made more powerful when it is known that an actor is local. It is also worth noting the `da.whenLocal { isolated da in ... }` API which allows dynamically recovering an isolated distributed actor reference after it has dynamically been checked for locality.
 
 ## Source compatibility
 
@@ -226,11 +229,11 @@ There was also discussion about the ability to make synchronous methods on actor
 
 ### "Known to be local" distributed actors and isolation
 
-Distributed actors have a property that is currently not exposed in the type-system that is "known to be local". If a distributed is known to be local, code may become isolated to it.
+Distributed actors have a property that is currently not exposed in the type system that is "known to be local". If a distributed actor is known to be local, code may become isolated to it.
 
-Once the locality of a type is expressed in the type system the following would be possible:
+Once the locality of a type is expressed in the type system, the following would become possible:
 
-```
+```swift
 let worker: local Worker
 
 // silly example, showcasing isolating on a known-to-be-local distributed actor
