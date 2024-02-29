@@ -13,27 +13,41 @@
 * Previous Revision: *if applicable* [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Review: ([pitch](https://forums.swift.org/...)) -->
 
-## Table of Contents
-- [Noncopyable Generics](#noncopyable-generics)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Motivation](#motivation)
-  - [Proposed Solution](#proposed-solution)
-    - [Reading Note](#reading-note)
-    - [Copying and `Copyable`](#copying-and-copyable)
-      - [Conformance](#conformance)
-    - [Type parameters](#type-parameters)
-    - [Structs and enums](#structs-and-enums)
-      - [Automatic synthesis of conditional `Copyable` conformance](#automatic-synthesis-of-conditional-copyable-conformance)
-    - [Classes](#classes)
-    - [Protocols](#protocols)
-      - [Inheritance](#inheritance)
-   - [Detailed Design](#detailed-design)
-    - [The top type](#the-top-type)
-    - [Existentials](#existentials)
-    - [Scoping rule](#scoping-rule)
-  - [Acknowledgments](#acknowledgments)
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
 
+- [Noncopyable Generics](#noncopyable-generics)
+    - [Introduction](#introduction)
+    - [Motivation](#motivation)
+    - [Proposed Solution](#proposed-solution)
+        - [The `Copyable` Protocol](#the-copyable-protocol)
+            - [Conforming to `Copyable`](#conforming-to-copyable)
+        - [Type parameters](#type-parameters)
+        - [Structs and enums](#structs-and-enums)
+        - [Classes](#classes)
+        - [Protocols](#protocols)
+            - [Inheritance](#inheritance)
+    - [Detailed Design](#detailed-design)
+        - [Conditionally-copyable types](#conditionally-copyable-types)
+        - [The top type](#the-top-type)
+        - [Existentials](#existentials)
+        - [Scoping rule](#scoping-rule)
+        - [`AnyObject`](#anyobject)
+    - [Impact to existing source code](#impact-to-existing-source-code)
+    - [Effect on ABI stability](#effect-on-abi-stability)
+    - [Effect on API resilience](#effect-on-api-resilience)
+    - [Alternatives Considered](#alternatives-considered)
+        - [`NonCopyable` as a Positive Requirement](#noncopyable-as-a-positive-requirement)
+        - [`❌Copyable` as a Negative Requirement](#❌copyable-as-a-negative-requirement)
+        - [Alternative Spellings](#alternative-spellings)
+        - [Inferred Conditional Copyability](#inferred-conditional-copyability)
+    - [Future Directions](#future-directions)
+        - [`~Escapable`](#escapable)
+        - [Non-copyable Classes](#non-copyable-classes)
+        - [Dynamic Queries and Runtime Support](#dynamic-queries-and-runtime-support)
+    - [Acknowledgments](#acknowledgments)
+
+<!-- markdown-toc end -->
 
 ## Introduction
 
@@ -65,9 +79,9 @@ struct HeapBuffer: ~Copyable {
 But SE-0390 also made a number of concessions to simplify the initial implementation,
 limitations which significantly reduce the usefulness of noncopyable types.
 
-For example, if noncopyable types cannot be used in generics,
-then they cannot be used with `Optional`,
-which prevents you from defining failable initializers:
+For example, SE-0390 did not allow noncopyable types to be used in generics,
+which prevents them from being used with `Optional`,
+which prevents you from defining a failable initializer on a noncopyable type:
 ```swift
 struct FileDescriptor: ~Copyable {
   init?(filename: String) { // 🛑 Cannot return Optional<FileDescriptor>
@@ -97,15 +111,12 @@ There are three fundamental components to this proposal that together provide a 
 2. This protocol is applied by default to type definitions and generic requirements
 3. The `~Copyable` notation can suppress this implicit requirement in specific cases
 
-**Note**: Several other issues will need to be addressed before the bulk of the standard library can be adapted to support noncopyable types.
-Various approaches are being explored for separate proposals in the near future.
-This proposal's expansion of the generics system is a clear prerequisite for any such effort.
+**Note**: This proposal does not cover adapting the standard library to support noncopyable types.
 
-### Copying and `Copyable`
+### The `Copyable` Protocol
 
-Swift's semantics and programmer's expectations of program values is that, by default, they can be copied.
-The type `Copyable` is a new marker protocol that represents types that support copying.
-All kinds of values in Swift that have supported copying will now conform to `Copyable`.
+`Copyable` is a new protocol that represents types that support copying.
+Values in Swift that support copying will now conform to `Copyable`.
 Naturally, the set of noncopyable types are exactly those that do _not_ conform to `Copyable`.
 
 When initializing a new variable binding using an existing struct or enum value, semantically the binding is initialized with a copy as long as the value is `Copyable`.
@@ -122,26 +133,23 @@ the comment indicates that the requirement `T: Copyable` is an implicit default 
 In addition, comments with _generic signature_ or _interface type_ may appear next to a type or function, respectively.
 These generic signatures will detail all of the requirements or type constraints for generic parameters in scope:
 ```swift
-// signature <Self where Self: Comparable>
+// signature <Self where Self: Comparable & Copyable>
 protocol P: Comparable {}
 
 struct S<T: Equatable> {
-  func f() {}  // signature <T where T: Equatable>
+  func f() {}  // signature <T where T: Equatable & Copyable>
 }
 ```
 
-#### Conformance
+#### Conforming to `Copyable`
 
-Being a marker protocol, `Copyable` has no explicit requirements.
-Value types like structs and enums conform to `Copyable` only if all of their stored properties or associated values conform to `Copyable`.
+`Copyable` has no explicit requirements.
+Value types like structs and enums conform to `Copyable` when all of their stored properties or associated values conform to `Copyable`.
 Reference types like classes and actors can always conform to `Copyable`, because a reference to an object can always be copied, regardless of what is contained in the object.
-Metatypes are always copyable as they only represent information about a type.
+Metatypes are always copyable as they represent immutable information about a type.
 Support for noncopyable tuples and element packs are left to future work.
 
 ... #### Extensions: Conditional conformances to `Copyable` can be defined as an extension, but all conditional requirements must involve marker protocols only.
-
-
-... #### Dynamic queries: TODO: Can we make `MemoryLayout<T>.isCopyable` work? What is needed here?
 
 ### Type parameters
 
@@ -150,7 +158,6 @@ All generic type parameters default to carrying a `Copyable` conformance constra
 ```swift
 struct FileDescriptor: ~Copyable { /* ... */ }
 
-// signature <T where T: Copyable>
 func genericFn<T>(_ t: T) /* where T: Copyable */ {
   return copy t  // OK
 }
@@ -166,9 +173,8 @@ Suppressing requirements other than `Copyable` is outside the scope of this prop
 A generic parameter can have its default `Copyable` requirement suppressed by applying `~Copyable` to the parameter:
 
 ```swift
-// signature <T>
 func identity<T: ~Copyable>(_ t: borrowing T) -> T  {
-  return copy t  // ERROR: 't' is noncopyable
+  return copy t  // ERROR: 't' may not be copyable
 }
 
 identity(FileDescriptor())  // OK, FileDescriptor is not Copyable
@@ -182,6 +188,7 @@ As with a concrete noncopyable type, any generic type parameter that does not co
 For details on these parameter ownership modifiers, see [SE-377](0377-parameter-ownership-modifiers.md).
 
 ### Structs and enums
+
 All struct and enum types conform to `Copyable` by default:
 
 ```swift
@@ -212,93 +219,11 @@ enum List<Elm>: ~Copyable where Elm: ~Copyable { /* ... */ }
 
 Since `Elm` is not required to be `Copyable`, a noncopyable type like `FileDescriptor` can be substituted in `List`, in addition to copyable ones.
 
-#### Automatic synthesis of conditional `Copyable` conformance
-Often a type parameter is added to a nominal type because values of that generic type will be stored somewhere within the parameterized nominal type.
-Because of `Copyable`'s containment rule, that implies the parameterized type itself is commonly noncopyable if any of its type parameters is noncopyable.
-This observation is one of the guiding principles behind the rules in this section.
-
-Using `~Copyable` on any type parameter of a struct or enum, without specifying the copying behavior for the parameterized type itself, will automatically synthesize a conditional conformance to `Copyable`:
-
-```swift
-// A conditionally-copyable pair.
-struct Pair<Elm: ~Copyable> {
-  // signature <Elm>
-  func exchangeFirst(_ new: consuming Elm) -> Elm? { /* ... */ }
-}
-/* extension Pair: Copyable where Elm: Copyable {} */
-
-struct RequiresCopyable<T> {}
-
-typealias Err = RequiresCopyable<Pair<FileDescriptor>>
-// error: type 'Pair<FileDescriptor>' does not conform to protocol 'Copyable'
-
-typealias Ok = RequiresCopyable<Pair<Int>>
-
-// A conditionally-copyable factory.
-struct Factory<Product: ~Copyable, Token: ~Copyable, Policy> {
-  var seed = 0
-
-  // signature <Product, Token, Policy where Policy : Copyable>
-  mutating func produce(_ payment: consuming Token) -> Product { /* ... */ }
-}
-/* extension Factory: Copyable where Product: Copyable, Token: Copyable {} */
-```
-
-Notice that despite this `Factory` not storing any noncopyable data, it does not have an implicit unconditional `Copyable` conformance because one of its type parameters has suppressed its default `Copyable` constraint.
-Instead, a conditional conformance was synthesized to make `Factory` copyable once those type parameters are `Copyable`.
-To override this behavior, `Factory` should _explicitly_ state that it conforms to `Copyable`.
-
-... ### TODO: add justification for relying on interface rather than storage / implementation details.
-Will need to contrast this with Sendable, which does it via implementation details implicitly.
-
-The synthesis procedure generates the `where` clause of the conditional `Copyable` conformance by enumerating _all_ of the type parameters and requiring each one to be `Copyable`.
-It does not matter whether the parameter is used in the storage of the `Factory` struct.
-
-It is an error if the parameterized type contains some noncopyable type other than one of its parameters.
-In such a case, the `~Copyable` becomes required on the parameterized type:
-
-```swift
-struct TaggedFile<Tag: ~Copyable> {
-  //                             ^
-  //                             note: add ': ~Copyable' here
-  let tag: Tag
-  let fd: FileDescriptor // error: stored property 'fd' of 'Copyable'-conforming 
-                        //         generic struct 'TaggedFile' has noncopyable
-                        //         type 'FileDescriptor'
-}
-```
-
-Control over the conformance synthesis behavior can be achieved in a few ways.
-First, explicitly write a conformance to `Copyable` to make the type unconditionally copyable, while keeping the type parameter itself noncopyable:
-
-```swift
-struct AlwaysCopyableFactory<Product: ~Copyable, Token: ~Copyable>: Copyable {
-  // signature <Product>
-  func produce(_ payment: consuming Token) -> Product { /* ... */ }
-}
-```
-
-Next, to disable the conditional conformance synthesis _and_ suppress the implicit `Copyable`, use `~Copyable` on the type instead:
-
-```swift
-struct ExplicitFactory<Product: ~Copyable, Token: ~Copyable>: ~Copyable {
-  // signature <Product>
-  func produce(_ payment: consuming Token) -> Product { /* ... */ }
-}
-```
-
-After applying `~Copyable` to `ExplicitFactory` itself, it is possible to specify a custom conditional conformance to `Copyable` if desired:
-
-```swift
-extension ExplicitFactory: Copyable where Product: Copyable {}
-```
-
-This design is meant to strike a balance between brevity in the most common case (implicit conditional `Copyable` conformance) and expressivity (full control when explicit).
-
 ### Classes
 
-Classes (including actors) and all of their generic parameters default to being `Copyable`:
-
+Classes (including actors) are always `Copyable`,
+even if they have noncopyable properties.
+This proposal does not provide support for noncopyable classes.
 ```swift
 class FileHandle<File> /* : Copyable where File: Copyable */ {
   var file: File
@@ -306,8 +231,8 @@ class FileHandle<File> /* : Copyable where File: Copyable */ {
 }
 ```
 
-To allow a class to contain a generic noncopyable value, use the inverse `~Copyable` on the type parameter:
-
+Generic parameters on classes are `Copyable` by default.
+This can be suppressed with `~Copyable` on the type parameter:
 ```swift
 class FileHandle<File: ~Copyable> /* : Copyable */ {
   var file: File
@@ -315,13 +240,9 @@ class FileHandle<File: ~Copyable> /* : Copyable */ {
 }
 ```
 
-Classes can contain noncopyable storage without themselves becoming noncopyable, i.e., the containment rule does not apply to classes.
-As a result, a class does _not_ become conditionally copyable when one of its type parameters has the inverse `~Copyable`.
-Support for noncopyable classes is left to future work.
-
 ### Protocols
 
-Protocols and their associated types default to carrying an implicit `Copyable` conformance requirement:
+Protocols and their associated types default to implicit `Copyable` conformance requirement:
 
 ```swift
 // signature <Self where Self: Copyable, Self.T: Copyable>
@@ -347,7 +268,7 @@ protocol EventLog: ~Copyable {
 ```
 
 Within `EventLog`, the type `Self` has no conformance requirements at all, but the associated type `Self.Event` is copyable.
-The removal of the `Copyable` conformance requirement on `EventLog` allows copyable and noncopyable types to conform:
+Suppressing the `Copyable` conformance requirement on `EventLog` allows copyable and noncopyable types to conform:
 
 ```swift
 // signature <Self where Self: EventLog, Self: Copyable>
@@ -377,13 +298,15 @@ protocol JobQueue<Job> /* : Copyable */ {
 
 In an unconditional extension of `EventLog`, the type `Self` is not `Copyable` because `~Copyable` was used to suppress its implicit `Copyable` requirement:
 
+... ### TODO: Is this really correct?  Can you extend someone else's protocol?   If so, this would preclude making existing protocols be noncopyable.
+
 ```swift
 protocol EventLog: ~Copyable {
   associatedtype Event /* : Copyable */
   // ...
 }
 
-extension EventLog {
+extension EventLog /* where Self: ~Copyable */ {
   func duplicate() -> Self { 
     return copy self // error: copy of noncopyable value
   } 
@@ -404,8 +327,7 @@ The same principle applies to `JobQueue`'s associated type `Job` in extensions, 
 
 #### Inheritance
 
-When inheriting a protocol that has suppressed its implicit Copyable constraint via `~Copyable`, that removal does _not_ carry-over to inheritors.
-That means a type must restate `~Copyable` even if it inherits only from protocols using `~Copyable`, because the _absence_ of a requirement is not propagated:
+A type must restate `~Copyable` even if it only conforms to protocols that are `~Copyable`, because the _absence_ of a requirement is not propagated:
 
 ```swift
 protocol Token: ~Copyable {}
@@ -417,11 +339,11 @@ protocol ArcadeCoin: Token /* , Copyable */ {}
 protocol CasinoChip: Token, ~Copyable {}
 ```
 
-A key takeaway from the example above is that `~Copyable` as a constraint is not viral:
-a protocol that has no `Copyable` constraint does _not_ mean its conformers cannot have the `Copyable` capability.
-As a corollary, a protocol that inherits from a noncopyable one can still be `Copyable`.
+Note that `~Copyable` as a constraint is not viral:
+types that conform to a `~Copyable` protocol can themselves be `Copyable`.
+Similarly, a protocol that inherits from a noncopyable one can still be `Copyable`.
 
-Associated type requirements that are inherited from another protocol are taken as-is:
+In contrast, associated type requirements that are inherited from another protocol do preserve `~Copyable`:
 
 ```swift
 // signature <Self: Copyable>
@@ -432,14 +354,15 @@ protocol JobQueue /* : Copyable */ {
 
 // signature <Self where Self: Copyable, Self: JobQueue>
 protocol FIFOJobQueue<Job>: JobQueue {
+  // associatedtype Job: ~Copyable // Because inherited
   func pushBack(_ j: Job) // error: missing ownership specifier for parameter of
                           //        noncopyable type 'Job'
 }
 ```
 
 In the above example, `JobQueue.Job` remains noncopyable in `FIFOJobQueue`.
-The exception is if an associated type requirement with the same name is  redeclared in the inheritor.
-In that case, the usual rule for `associatedtype` requirements will add an implicit `Copyable` requirement for the redeclaration:
+However, if the associated type requirement is  redeclared in the inheritor, 
+the usual rule for `associatedtype` requirements will add an implicit `Copyable` requirement for the redeclaration:
 
 ```swift
 // signature <Self where Self: JobQueue, Self.Job: Copyable>
@@ -451,6 +374,22 @@ protocol LIFOJobQueue<Event>: JobQueue {
 ## Detailed Design
 
 This section spells out additional details about the proposed extensions.
+
+### Conditionally-copyable types
+
+An aggregate type can only be copyable if all its stored fields are copyable.
+A generic type with properties that may or may not be copyable will often want
+to conditionally declare copyability.
+
+Since `Copyable` is an additive capability, this must be done by declaring
+the base type to not require copyability and then conditionally extending it:
+```swift
+struct MaybeCopyable<T: ~Copyable>: ~Copyable {
+  var t: T
+}
+
+extension MaybeCopyable: Copyable where T: Copyable { }
+```
 
 ### The top type
 
@@ -466,8 +405,6 @@ The new world order is:
         |
 < all other copyable types >
 ```
-
-In other words, new top type is `any ~Copyable`.
 
 ### Existentials
 
@@ -520,13 +457,28 @@ permit an `AnyObject` to be cast to `any ~Copyable`.
 
 ... ### TODO: is this legal? `func f<T>(_ t: T) where T: AnyObject, T: ~Copyable {}` -->
 
+## Impact to existing source code
+
+Since `Copyable` is implicitly assumed for any context that does not explicitly
+specify `~Copyable`, this does not change the interpretation of existing code.
+
 ## Effect on ABI stability
 
-... ### TODO
+Adding `~Copyable` to an existing type, function, or generic parameter is generally an ABI-breaking change.
+To preserve existing ABI, function and type mangling will encode the lack of `Copyable` conformance rather than its presence.
+
+We are exploring targeted mechanisms that can be used to preserve ABI compatibility when adding `~Copyable` to existing types,
+but such mechanisms will require extreme care to use correctly.
+In particular, this can allow clients to compile against new versions of a library and then run with an old version.
+If the old version attempts to copy a non-copyable value, this will break.
 
 ## Effect on API resilience
 
-... ### TODO
+Adding `~Copyable` to a generic parameter does not generally impact
+existing clients that provide implicitly-`Copyable` types for such parameters.
+Whether this can be done safely depends on how the particular parameter is used.
+
+... ### TODO FIXME
 
 ## Alternatives Considered
 
@@ -536,25 +488,10 @@ Our proposal above adds `Copyable` to the Swift language as a default property o
 and a default requirement in all generic contexts.
 It then uses `~Copyable` to indicate that this default property and/or requirement should be suppressed.
 
-In particular, this means that a `Copyable` type can be substituted for any generic argument
-with a `~Copyable` annotation.
-```
-struct S<T: ~Copyable> { ... }
-struct NC: ~Copyable { ... }
-
-var s1: S<NC>  // OK.  NC is not Copyable
-var s2: S<Int>  // OK.  Int is copyable
-```
-If you read `~Copyable` as "does not require Copyable",
-then the two uses above can be seen to be consistent.
-
-... ### TODO FIXME: Above is probably redundant with the rest of the proposal.
-Reconsider it after the rest of the proposal is updated.
-
 An alternative approach would instead add `NonCopyable` as a positive requirement.
 In essence, `NonCopyable` would be the positive assertion that values of this type will
 receive additional scrutiny inside the compiler:
-```
+```swift
 struct AltS<T: NonCopyable> { ... }
 struct AltNC: NonCopyable { ... }
 var s3: AltS<AltNC> // OK. AltNC is not copyable
@@ -591,6 +528,20 @@ We considered `?` and `!` as alternatives,
 but felt that `~` best conveyed the intent while avoiding confusion with the
 existing uses of `?` and `!` in the language.
 
+### Inferred Conditional Copyability
+
+It would be possible to infer conditional copyability for generic types with
+stored properties that might not be copyable.
+```swift
+struct MaybeCopyable<T: ~Copyable>: ~Copyable {
+  var t: T
+}
+
+// This could be inferred
+extension MaybeCopyable: Copyable where T: Copyable { }
+```
+But in practice, such inference seems more confusing than helpful.
+
 ## Future Directions
 
 ### `~Escapable`
@@ -604,7 +555,7 @@ A companion proposal will provide details.
 
 This proposal supports classes with generic parameters,
 but it does not permit classes to be directly marked `~Copyable`.
-Such classes could avoid essentially all reference-counting operations,
+If supported, such classes could avoid essentially all reference-counting operations,
 which could be a significant performance boost in practice.
 We expect to explore this in a future proposal.
 
@@ -613,6 +564,11 @@ We expect to explore this in a future proposal.
 The current implementation does not provide a mechanism to test at runtime whether
 a value is copyable.
 We expect to explore such support in a future proposal.
+```swift
+// Possible future extensions...
+if MemoryLayout<T>.isCopyable { ... }
+if let t = value as? Copyable { ... }
+```
 
 ## Acknowledgments
 
