@@ -3,7 +3,7 @@
 * Proposal: [SE-0416](0416-keypath-function-subtyping.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.0)**
 * Implementation: [apple/swift#39612](https://github.com/apple/swift/pull/39612)
 * Review: ([pitch](https://forums.swift.org/t/pitch-generalize-keypath-to-function-conversions/52681)) ([review](https://forums.swift.org/t/se-0416-subtyping-for-keypath-literals-as-functions/68984)) ([acceptance](https://forums.swift.org/t/accepted-se-0416-subtyping-for-keypath-literals-as-functions/69241))
 
