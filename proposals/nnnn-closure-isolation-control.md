@@ -202,7 +202,11 @@ The language change does not add or affect ABI since formal isolation is already
 
 ## Implications on adoption
 
-This feature can be freely adopted and un-adopted in source code with no deployment constraints and without affecting source or ABI compatibility.
+It is possible that existing code could have a closure that names a type-inferred parameter `nonisolated`:
+```swift
+{ nonisolated in print(nonisolated) }
+```
+but with this proposed change, `nonisolated` in this case would instead be interpretted as the contextual keyword specifying the formal isolation of the closure. Such code would then result in a compilation error when trying to use a parameter named `nonisolated`.
 
 ## Alternatives considered
 
