@@ -165,7 +165,7 @@ actor Worker {
 
 As such, there is no negative impact on the correctness of these APIs.
 
-Asynchronous functions should not use dyanamic isolation checking.  Isolation checking is useful in synchronous functions because they naturally inherit execution properties like their caller's isolation without disturbing it.  A synchronous function may be formally non-isolated and yet actually run in an isolated context dynamically.  This is not true for asynchronous functions, which switch to their formal isolation on entry without regard to their caller's isolation.  If an asynchronous function is not formally isolated to an actor, its execution will never be dynamically in an isolated context, so there's no point in checking for it.
+Asynchronous functions should not use dynamic isolation checking.  Isolation checking is useful in synchronous functions because they naturally inherit execution properties like their caller's isolation without disturbing it.  A synchronous function may be formally non-isolated and yet actually run in an isolated context dynamically.  This is not true for asynchronous functions, which switch to their formal isolation on entry without regard to their caller's isolation.  If an asynchronous function is not formally isolated to an actor, its execution will never be dynamically in an isolated context, so there's no point in checking for it.
 
 ## Future directions
 
