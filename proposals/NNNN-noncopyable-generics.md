@@ -440,7 +440,7 @@ So when calling `peelOneTopping` on an `any Pizza`, an `any ~Copyable` value is 
 
 ### Diagnosing contradictory intent
 
-An error will be diagnosed whenever a type expression includes an explicit `~Copyable` but the type resolves to be `Copyable`.
+An error will be diagnosed whenever a type includes an explicit `~Copyable` but its generic requirements can only be satisfied if it were `Copyable`.
 This can occur in cases such as the following:
 ```swift
 protocol CopyableProtocol /* : Copyable */ { ... }
