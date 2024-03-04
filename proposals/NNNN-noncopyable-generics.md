@@ -26,22 +26,26 @@
         - [Structs and enums](#structs-and-enums)
         - [Classes](#classes)
         - [Protocols](#protocols)
-            - [Inheritance](#inheritance)
+            - [Protocol Extensions](#protocol-extensions)
+            - [Protocol Inheritance](#protocol-inheritance)
     - [Detailed Design](#detailed-design)
         - [Conditionally-copyable types](#conditionally-copyable-types)
         - [The top type](#the-top-type)
         - [Existentials](#existentials)
+        - [Diagnosing contradictory intent](#diagnosing-contradictory-intent)
         - [Scoping rule](#scoping-rule)
-        - [`AnyObject`](#anyobject)
-    - [Impact to existing source code](#impact-to-existing-source-code)
-    - [Effect on ABI stability](#effect-on-abi-stability)
-    - [Effect on API resilience](#effect-on-api-resilience)
+    - [Source Compatibility](#source-compatibility)
+    - [ABI compatibility](#abi-compatibility)
+    - [Implications on adoption](#implications-on-adoption)
     - [Alternatives Considered](#alternatives-considered)
         - [`NonCopyable` as a Positive Requirement](#noncopyable-as-a-positive-requirement)
         - [`❌Copyable` as a Negative Requirement](#❌copyable-as-a-negative-requirement)
         - [Alternative Spellings](#alternative-spellings)
         - [Inferred Conditional Copyability](#inferred-conditional-copyability)
+        - [Extension defaults](#extension-defaults)
     - [Future Directions](#future-directions)
+        - [Standard Library and Concurrency support](#standard-library-and-concurrency-support)
+        - [Tuples and element packs](#tuples-and-element-packs)
         - [`~Escapable`](#escapable)
         - [Non-copyable Classes](#non-copyable-classes)
         - [Dynamic Queries and Runtime Support](#dynamic-queries-and-runtime-support)
@@ -81,7 +85,7 @@ limitations which significantly reduce the usefulness of noncopyable types.
 
 For example, SE-0390 did not allow noncopyable types to be used in generics,
 which prevents them from being used with `Optional`,
-which prevents you from defining a failable initializer on a noncopyable type:
+which then prevents you from defining a failable initializer on a noncopyable type:
 ```swift
 struct FileDescriptor: ~Copyable {
   init?(filename: String) { // 🛑 Cannot return Optional<FileDescriptor>
@@ -144,12 +148,13 @@ struct S<T: Equatable> {
 #### Conforming to `Copyable`
 
 `Copyable` has no explicit requirements.
-Value types like structs and enums conform to `Copyable` when all of their stored properties or associated values conform to `Copyable`.
-Reference types like classes and actors can always conform to `Copyable`, because a reference to an object can always be copied, regardless of what is contained in the object.
-Metatypes are always copyable as they represent immutable information about a type.
-Support for noncopyable tuples and element packs are left to future work.
+`Copyable` conformance is generally implicit and inferred by the compiler unless it is explicitly suppressed.
 
-... #### Extensions: Conditional conformances to `Copyable` can be defined as an extension, but all conditional requirements must involve marker protocols only.
+In particular:
+* Value types like structs and enums conform to `Copyable` when they do not contain a `deinit` and all of their stored properties or associated values conform to `Copyable`.
+* Reference types like classes and actors can always conform to `Copyable`, because a reference to an object can always be copied, regardless of what is contained in the object.
+* Metatypes are always copyable as they represent immutable information about a type.
+* Support for noncopyable tuples and element packs are left to future work.
 
 ### Type parameters
 
@@ -184,7 +189,7 @@ identity([1, 2, 3])  // OK, even though Array<Int> is Copyable
 > **Key Idea:** Suppressing the `Copyable` requirement by using `T: ~Copyable` does _not_ prevent a `Copyable` type from being substituted for `T`.
 > This is the reason why the syntax `~Copyable` is referred to as _suppressing_ `Copyable` rather than _inverting_ or _negating_ it.
 
-As with a concrete noncopyable type, any generic type parameter that does not conform `Copyable` must use one of the ownership modifiers `borrowing`, `consuming`, or `inout`, when it appears as the type of a function's parameter.
+As with a concrete noncopyable type, any generic type parameter that does not conform to `Copyable` must use one of the ownership modifiers `borrowing`, `consuming`, or `inout`, when it appears as the type of a function's parameter.
 For details on these parameter ownership modifiers, see [SE-377](0377-parameter-ownership-modifiers.md).
 
 ### Structs and enums
@@ -261,7 +266,7 @@ Protocols can suppress the default `Copyable` requirement from `Self` using `~Co
 // signature <Self where Self.Event: Copyable>
 protocol EventLog: ~Copyable {
   associatedtype Event /* : Copyable */
-  
+
   mutating func push(_ event: Event)
   mutating func pop() throws -> Event
 }
@@ -286,7 +291,7 @@ struct UniqueLog<Element>: EventLog, ~Copyable /* where Element: Copyable */ {
 }
 ```
 
-Associated types can additionally use `~Copyable` to suppress their default `Copyable` requirement, meaning a noncopyable type can witness the requirement:
+Associated types can additionally use `~Copyable` to suppress their default `Copyable` requirement, allowing a noncopyable type to witness the requirement:
 
 ```swift
 protocol JobQueue<Job> /* : Copyable */ {
@@ -296,36 +301,29 @@ protocol JobQueue<Job> /* : Copyable */ {
 }
 ```
 
-In an unconditional extension of `EventLog`, the type `Self` is not `Copyable` because `~Copyable` was used to suppress its implicit `Copyable` requirement:
+#### Protocol Extensions
 
-... ### TODO: Is this really correct?  Can you extend someone else's protocol?   If so, this would preclude making existing protocols be noncopyable.
-
+An extension of a protocol is implicitly constrained to `Self: Copyable` unless you explicitly state otherwise.
 ```swift
 protocol EventLog: ~Copyable {
-  associatedtype Event /* : Copyable */
-  // ...
+  ...
 }
 
-extension EventLog /* where Self: ~Copyable */ {
-  func duplicate() -> Self { 
-    return copy self // error: copy of noncopyable value
-  } 
+extension EventLog /* where Self: Copyable */ {
+  func duplicate() -> Self {
+    return copy self // OK
+  }
 }
 ```
 
-Of course, when the conformer _does_ happen to be copyable, additional functionality can be made available to it using a conditional extension:
-
+If you wish to extend the behavior for noncopyable `Self`, you must explicitly state so:
 ```swift
-extension EventLog where Self: Copyable {
-  func duplicate() -> Self { 
-   copy self // OK
-  } 
+extension EventLog where Self: ~Copyable {
+  ...
 }
 ```
 
-The same principle applies to `JobQueue`'s associated type `Job` in extensions, where the `Job` is not `Copyable`.
-
-#### Inheritance
+#### Protocol Inheritance
 
 A type must restate `~Copyable` even if it only conforms to protocols that are `~Copyable`, because the _absence_ of a requirement is not propagated:
 
@@ -339,12 +337,13 @@ protocol ArcadeCoin: Token /* , Copyable */ {}
 protocol CasinoChip: Token, ~Copyable {}
 ```
 
-Note that `~Copyable` as a constraint is not viral:
+Note that `~Copyable` on a protocol is not viral:
 types that conform to a `~Copyable` protocol can themselves be `Copyable`.
-Similarly, a protocol that inherits from a noncopyable one can still be `Copyable`.
+Similarly, a protocol that inherits from a noncopyable one can still require its
+conformers to be `Copyable`.
 
-In contrast, associated type requirements that are inherited from another protocol do preserve `~Copyable`:
-
+In contrast, associated type requirements that are inherited from another protocol do preserve `~Copyable`.
+In the following example, `JobQueue.Job` remains noncopyable in `FIFOJobQueue`:
 ```swift
 // signature <Self: Copyable>
 protocol JobQueue /* : Copyable */ {
@@ -360,8 +359,7 @@ protocol FIFOJobQueue<Job>: JobQueue {
 }
 ```
 
-In the above example, `JobQueue.Job` remains noncopyable in `FIFOJobQueue`.
-However, if the associated type requirement is  redeclared in the inheritor, 
+However, if the associated type requirement is  redeclared in the inheritor,
 the usual rule for `associatedtype` requirements will add an implicit `Copyable` requirement for the redeclaration:
 
 ```swift
@@ -377,7 +375,6 @@ This section spells out additional details about the proposed extensions.
 
 ### Conditionally-copyable types
 
-An aggregate type can only be copyable if all its stored fields are copyable.
 A generic type with properties that may or may not be copyable will often want
 to conditionally declare copyability.
 
@@ -388,7 +385,23 @@ struct MaybeCopyable<T: ~Copyable>: ~Copyable {
   var t: T
 }
 
-extension MaybeCopyable: Copyable where T: Copyable { }
+extension MaybeCopyable /* : Copyable where T: Copyable */ { }
+```
+
+Conditional conformances to `Copyable` can only depend on
+generic parameters being `Copyable`.
+For example:
+```swift
+protocol P { }
+struct Foo<T: ~Copyable> { }
+
+extension Foo: P where T == Int { } // OK
+extension Foo: P where T: Copyable { } // OK
+extension Foo: Copyable where T: Copyable { } // OK
+extension Foo: Copyable where T: P { } // 🛑
+extension Foo: Copyable where T == Int {} // 🛑
+extension Foo: Copyable where T: Sendable {} // 🛑
+extension Foo: Copyable where T.A: Copyable {} // 🛑
 ```
 
 ### The top type
@@ -398,10 +411,9 @@ The new world order is:
 
 ```
               any ~Copyable
-                /        \
-               /          \
-              /            \
-    Any == any Copyable   <all noncopyable types>
+               /         \
+              /           \
+   Any == any Copyable   <all noncopyable types>
         |
 < all other copyable types >
 ```
@@ -423,8 +435,26 @@ let _: any Copyable = t.peelOneTopping() // signature <Self: Copyable>
 let u: any Pizza & ~Copyable = ... // signature <Self: Pizza>
 let _: any ~Copyable = u.peelOneTopping() // signature <Self>
 ```
-For associated types within a protocol erased to an existential preserve conformances to a marker protocol like `Copyable`.
-So when calling `peelOneTopping` on an `any Pizza`, an `any ~Copyable` value is returned instead of `any Copyable`, which is equivalent to `Any`.
+Associated types within a protocol erased to an existential preserve conformances to `Copyable`.
+So when calling `peelOneTopping` on an `any Pizza`, an `any ~Copyable` value is returned instead of `any Copyable`.
+
+### Diagnosing contradictory intent
+
+An error will be diagnosed whenever a type includes an explicit `~Copyable` but its generic requirements can only be satisfied if it were `Copyable`.
+This can occur in cases such as the following:
+```swift
+protocol CopyableProtocol /* : Copyable */ { ... }
+
+// Error: `S` is `Copyable` but has an explicit `~Copyable`
+struct S: CopyableProtocol, ~Copyable { ... }
+```
+
+This diagnostic only occurs if the `~Copyable` is directly specified:
+```swift
+protocol CopyableProtocol /* : Copyable */ { ... }
+protocol MaybeCopyableProtocol: ~Copyable { ... }
+struct S: CopyableProtocol, MaybeCopyableProtocol { ... } // OK
+```
 
 ### Scoping rule
 
@@ -437,7 +467,7 @@ struct S<T> { // signature: <T: Copyable>
 }
 ```
 
-The rationale is that an outer generic context, like `S<T>`, already requires that `T` is `Copyable`.
+Rationale: An outer generic context, like `S<T>`, already requires that `T` is `Copyable`.
 Removing that `Copyable` requirement for the nested generic context `S<T>.f` is useless, as there will never be a noncopyable value substituted for `S<T>`.
 The same logic applies to mututally-scoped contexts:
 
@@ -450,35 +480,36 @@ protocol P {
 }
 ```
 
-### `AnyObject`
-
-... ### TODO: can classes be cast to `any ~Copyable`? If so, then it seems fine to
-permit an `AnyObject` to be cast to `any ~Copyable`. 
-
-... ### TODO: is this legal? `func f<T>(_ t: T) where T: AnyObject, T: ~Copyable {}` -->
-
-## Impact to existing source code
+## Source Compatibility
 
 Since `Copyable` is implicitly assumed for any context that does not explicitly
 specify `~Copyable`, this does not change the interpretation of existing code.
 
-## Effect on ABI stability
+## ABI compatibility
 
-Adding `~Copyable` to an existing type, function, or generic parameter is generally an ABI-breaking change.
-To preserve existing ABI, function and type mangling will encode the lack of `Copyable` conformance rather than its presence.
+Ordinarily, mangled symbols include a list of protocols to which the entity conforms.
+To preserve the ABI for existing code (which now implicitly conforms to `Copyable`),
+we are adjusting the mangling policy to encode the lack of a `Copyable` requirement
+rather than its presence.
+This ensures that existing ABI will end up with the same symbols as before.
 
-We are exploring targeted mechanisms that can be used to preserve ABI compatibility when adding `~Copyable` to existing types,
+## Implications on adoption
+
+**ABI**: Adding `~Copyable` to an existing type, function, or generic parameter is generally an ABI-breaking change.
+
+Targeted mechanisms are being explored that can be used to preserve ABI compatibility when adding `~Copyable` to existing types,
 but such mechanisms will require extreme care to use correctly.
 In particular, this can allow clients to compile against new versions of a library and then run with an old version.
-If the old version attempts to copy a non-copyable value, this will break.
+Of course, if the old version attempts to copy a non-copyable value, this will break.
 
-## Effect on API resilience
+**Source**: Adding `~Copyable` to a generic parameter on a function
+is generally not source-breaking for existing clients that provide
+implicitly-`Copyable` types for such parameters.
 
-Adding `~Copyable` to a generic parameter does not generally impact
-existing clients that provide implicitly-`Copyable` types for such parameters.
-Whether this can be done safely depends on how the particular parameter is used.
+Adding `~Copyable` to an existing type or protocol (generic or concrete) is typically
+source-breaking, as existing code may rely on the ability to copy values of this type.
 
-... ### TODO FIXME
+Adding `~Copyable` to an associated type is also generally source breaking.
 
 ## Alternatives Considered
 
@@ -506,26 +537,34 @@ This applies equally to any other container.
 
 ### `❌Copyable` as a Negative Requirement
 
-Another alternative would introduce a syntax (for our purpose here, we'll use `❌Copyable`)
+Another alternative would introduce a syntax `❌Copyable`
 that serves as a negative requirement.
 Such a marker in any context would indicate that the `Copyable`
 capability _must not_ be present.
 This is distinctly different than our proposed `~Copyable` which
 indicates that `Copyable` is not required in this context.
+```swift
+func f<T: ❌Copyable>(_ t: T) { ... }
 
-... ### TODO FIXME: Why does this break down?
-I know that negation is a massive complication for any kind of solver,
-but it would be gratifying to have a more substantial reason here.
+f(7) // 🛑 Int is copyable
+```
+
+This approach would fundamentally undermine the current behavior
+of Swift generics, which assumes that all constraints on a generic
+type variable are _minimum_ requirements.
+As explained above, `Copyable` types are able to be copied which
+implies they have strictly _more_ capabilities than the equivalent
+type without copyability.
 
 ### Alternative Spellings
 
-Instead of `~Copyable`, we could use any of a variety of other spellings.
-As argued immediately above, we need a spelling that indicates
+Spellings other than `~Copyable` are possible.
+As argued immediately above, a suitable spelling must indicate
 the relaxation of a default copyable requirement.
-We feel this is most natural if we name the copyable requirement `Copyable`
-and use a sigil to indicate the suppression of that requirement.
-We considered `?` and `!` as alternatives,
-but felt that `~` best conveyed the intent while avoiding confusion with the
+This is most natural if the copyable requirement is spelled `Copyable`
+and a sigil indicates the suppression of that requirement.
+Both `?` and `!` are reasonable alternative sigils,
+but `~` better conveys the intent while avoiding confusion with the
 existing uses of `?` and `!` in the language.
 
 ### Inferred Conditional Copyability
@@ -540,9 +579,87 @@ struct MaybeCopyable<T: ~Copyable>: ~Copyable {
 // This could be inferred
 extension MaybeCopyable: Copyable where T: Copyable { }
 ```
-But in practice, such inference seems more confusing than helpful.
+But initial attempts to adopt this feature have suggested that
+such inference is more confusing than helpful.
+
+### Extension defaults
+
+This proposal specifies that extensions and redefinitions
+default to `Copyable` rather than implicitly inheriting
+the copyability of the base.
+
+It would be possible to allow library authors to explicitly control this behavior.
+New syntax could allow library authors to choose the
+appropriate behavior for their types:
+* Old types can gain support for noncopyable types
+  without breaking existing extensions in client code
+* New types specifically targeting noncopyable uses
+  could have a more natural interface.
+
+This could be provided by a `default extension` feature
+as outlined here:
+```swift
+public enum Either<T: ~Copyable, U: ~Copyable> {
+  case a(T)
+  case b(U)
+  case empty
+
+  // Neither `T` nor `U` is copyable for members here.
+
+  default extension where T: Copyable
+  default extension where U: ~Copyable
+}
+
+// `T` is copyable and `U` noncopyable because of the defaults above
+extension Perhaps /* where T: Copyable, U: ~Copyable */ { ... }
+
+// Specific extensions can override the defaults
+extension Perhaps where T: ~Copyable, U: Copyable { ... }
+
+```
+
+This becomes much more complex for protocols with associated types:
+```swift
+protocol P: ~Copyable {
+  associatedtype A: P, ~Copyable
+
+  default extension where A: Copyable
+}
+
+extension P {
+  // A is Copyable here
+  // What about A.A?  A.A.A?
+  // Do we need syntax for the infinite
+  // set of {A, A.A, A.A.A, ...}?
+}
+```
+
+In addition to the complexity suggested by the above,
+early experiments suggested that this approach actually leads to
+considerable confusion about the meaning of a particular
+extension.
+As a result, this idea was ultimately omitted from this proposal.
 
 ## Future Directions
+
+### Standard Library and Concurrency support
+
+The core `Optional` and `UnsafePointer` family of types will be updated
+soon to support noncopyable elements.
+A proposal will be forthcoming.
+
+The rest of the Swift standard library, including
+the standard collections (`Array`, `Dictionary`, `Set`, etc.),
+core collection protocols (`Iterator`, `Sequence`, `RangeReplaceableCollection`, etc.),
+and the core concurrency types (`Task`, `AsyncSequence`, etc.)
+will be updated incrementally over time.
+Future proposals will explore this area.
+
+### Tuples and element packs
+
+Tuples and variadic element packs can only be copied
+if all of their elements are copyable.
+A forthcoming proposal will provide details.
 
 ### `~Escapable`
 
@@ -555,20 +672,41 @@ A companion proposal will provide details.
 
 This proposal supports classes with generic parameters,
 but it does not permit classes to be directly marked `~Copyable`.
+Similarly, `AnyObject` cannot be combined with `~Copyable`:
+```swift
+func f<T>(_ t: T) where T: AnyObject, T: ~Copyable { ... }
+```
+
 If supported, such classes could avoid essentially all reference-counting operations,
 which could be a significant performance boost in practice.
-We expect to explore this in a future proposal.
+This will be explored in a future proposal.
 
 ### Dynamic Queries and Runtime Support
 
 The current implementation does not provide a mechanism to test at runtime whether
 a value is copyable.
-We expect to explore such support in a future proposal.
 ```swift
 // Possible future extensions...
 if MemoryLayout<T>.isCopyable { ... }
 if let t = value as? Copyable { ... }
 ```
+
+This proposal does not support dynamic casts to or from noncopyable existentials.
+In particular, this requires `Optional` to fully supporting noncopyable types.
+```swift
+// Future support
+if let y = x as? P & ~Copyable {
+  // The value in y:
+  // * conforms to P
+  // * might not be copyable
+  // So y itself cannot be copied.
+  if let z = y as? Int {
+    ...
+  }
+}
+```
+
+This issue will be addressed in a future proposal.
 
 ## Acknowledgments
 
