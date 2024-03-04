@@ -5,9 +5,8 @@
 * Review Manager: TBD
 * Status:  **Implementation in progress**
 * Implementation: [PR #70928](https://github.com/apple/swift/pull/70928)
-* Review: [Pitch](https://forums.swift.org/t/pitch-resolve-distributedactor-protocols-for-server-client-apps/69933/10)
 * Discussion threads:
-  * TBD
+  * [Pitch thread](https://forums.swift.org/t/pitch-resolve-distributedactor-protocols-for-server-client-apps/69933)
 
 ## Introduction
 
@@ -45,19 +44,20 @@ let greeting = try await remote.greet(name: "Caplin")
 assert(greeting == "Hello, Caplin!")
 ```
 
-This is common and acceptable in a **peer-to-peer system**, where all nodes of a cluster share the same types -- or at least a "client side" of a connection can only discover types it knows about, e.g. during version upgrade rollouts. However, this pattern is problematic in a **client/server deployment**, where the two applications do not share the concrete implementation of the `Greeter` type.
+This is common and acceptable in a **peer-to-peer system**, where all nodes of a cluster share the same types -- or at least a "client side" of a connection can only discover types it knows about, e.g. during version upgrade rollouts. However, this pattern is problematic in a **client/server deployment**, where the two applications do not share the concrete implementation of the `Greeter` type. It is also worth calling out that typical inter-process communications (IPC) use-cases often fall into the category of a client/server setup, where e.g. a daemon process serves as a "server" and an application "client" calls into it.
 
 The goal of this proposal is to allow the following module approach to sharing distributed actor APIs:
-- API module: allow sharing a `DistributedActor` constrained protocol, which only declares the API surface the server is going to expose
-- Server module: which depends on API module, and implements the API description using a concrete distributed actor
-- Client module: which depends on API module, and uses the `DistributedActor` constrained protocol to resolve and obtain a remote reference to the server's implementation; without knowledge of the concrete type.
+- **API** module: allow sharing a `DistributedActor` constrained protocol, which only declares the API surface the server is going to expose
+- **Server** module: which depends on API module, and implements the API description using a concrete distributed actor
+- **Client** module: which depends on API module, and `$Greeter` type (synthesized by the `@DistributedProtocol` macro) to resolve a remote actor reference it can then invoke distributed methods on 
 
 ```swift
                          ┌────────────────────────────────────────┐
                          │                API Module              │
                          │========================================│
+                         │ @DistributedProtocol                   │
                          │ protocol Greeter: DistributedActor {   │
-                 ┌───────┤   distributed func greet(name: String  ├───────┐
+                 ┌───────┤   distributed func greet(name: String) ├───────┐
                  │       │ }                                      │       │
                  │       └────────────────────────────────────────┘       │
                  │                                                        │
@@ -66,16 +66,18 @@ The goal of this proposal is to allow the following module approach to sharing d
 │             Client Module                      │      │               Server Module                  │
 │================================================│      │==============================================│
 │ let g = try $Greeter.resolve(...) /*new*/      │      │ distributed actor EnglishGreeter: Greeter {  │
-│ try await greeter.hello(name: ...)             │      │   distributed func greet(name: String){      │
+│ try await greeter.hello(name: ...)             │      │   distributed func greet(name: String) {     │
 └────────────────────────────────────────────────┘      │     "Greeting in english, for \(name)!"      │
-/* Client cannot know about EnglishGreeter type */      │ }                                            │
+/* Client cannot know about EnglishGreeter type */      │   }                                          │      
+                                                        │ }                                            │
                                                         └──────────────────────────────────────────────┘
 ```
 
-In this scenario the client module (and application) has no knowledge of the concrete distributed actor type or implementation.
+In this scenario the client module has no knowledge of the concrete distributed actor type or implementation.
 
-In order to achieve this, this proposal improves upon two aspects of distributed actors:
+In order to achieve this, this proposal improves upon _three_ aspects of distributed actors:
 - introduce the `@DistributedProtocol` macro that can be attached to distributed actor protocols, and enable the use of `resolve(id:using:)` with such types,
+- allow distributed actors to be generic over their `ActorSystem`
 - extend the distributed metadata section such that a distributed method which is witness to a distributed requirement, is also recorded using the protocol method's `RemoteCallTarget.identifier` and not only the concrete method's
 
 ## Proposed solution
@@ -101,21 +103,21 @@ Checking of distributed functions works as before, and the compiler will check t
 
 It is possible to for a distributed actor protocol to contain non-distributed requirements. However in practice, it will be impossible to ever invoke such methods on a remote distributed actor reference. It is possible to call such methods if one were to obtain a local distributed actor reference implementing such protocol, and use the existing `whenLocal(operation:)` method on it.
 
-The `@DistributedProtocol` macro generates a number of internal declarations necessary for the distributed machinery to work, however the only type users should care about is always a dollar prefixed concrete distributed actor declaration, that is the "stub" type. This stub type can be used to resolve a remote actor using this protocol stub:
+The `@DistributedProtocol` macro generates a number of internal declarations necessary for the distributed machinery to work, however the only type users should care about is always a `$`-prefixed concrete distributed actor declaration, that is the "stub" type. This stub type can be used to resolve a remote actor using this protocol stub:
 
 E.g. if we knew a remote has a `Greeter` instance for a specific ID we have discovered using some external mechanism, this is how we'd resolve it:
 
 ```swift 
 let clusterSystem: ClusterSystem // example system
 
-let greeter = $Greeter.resolve(id: id, using: clusterSystem)
+let greeter = try $Greeter.resolve(id: id, using: clusterSystem)
 ```
 
 As the `ClusterSystem` is using `Codable` as it's serialization requirement, the resolve compiles and produces a valid reference.
 
 ### Distributed actors generic over their `ActorSystem`
 
-The previous section made use of a distributed actor that abstracted over a generic ActorSystem. Today (in Swift 5.10) this is not possible, and would result in a compile time error.
+The previous section made use of a distributed actor that abstracted over a generic `ActorSystem`. Today (in Swift 5.10) this is not possible, and would result in a compile time error.
 
 Previously, the compiler would require that the `ActorSystem` typealias refer to a specific distributed actor system type (not a protocol, a concrete nominal type). For example, the following actor can only be used with the `ClusterSystem`:
 
@@ -131,7 +133,7 @@ distributed actor DistributedAsyncSequence<Element> where Element: Sendable & Co
 }
 ```
 
-And while such generally useful "distributed async sequence" actor can be written generically, to work with the vast majority of actor systems, today's language did not allow to spell abstract over it, and the `ActorSystem` type always was forced to be a _concrete_ type. 
+And while such generally useful "distributed async sequence" actor can be written generically, to work with the vast majority of actor systems, today's language did not allow to write such generic actor, and the `ActorSystem` type always was forced to be a _concrete_ type. 
 
 To support this new pattern, the `DistributedActorSystem` protocol gains a *primary associated type* for the `SerializationRequirement` associated type:
 
@@ -195,7 +197,7 @@ protocol DistributedAsyncSequence: DistributedActor
 }
 ```
 
-The serialization requirement must be a `protocol` type; This was previously enforced, and remains so after this proposal.The important part is that the macro is able to synthesize an stub implementation type, that the existing resolution mechanisms can be invoked on. 
+The serialization requirement must be a `protocol` type; This was previously enforced, and remains so after this proposal. The important part is that the macro is able to synthesize an stub implementation type, that the existing resolution mechanisms can be invoked on. 
 
 ## Detailed design
 
@@ -203,13 +205,13 @@ The `@DistributedProtocol` macro generates a concrete `distributed actor` declar
 
 >  **NOTE:** The exact details of the macro synthesized code are not guaranteed to remain the same, and may change without notice.
 
-This proposal also introduces an empty `DistributedStubActor` protocol:
+This proposal also introduces an empty `DistributedActorStub` protocol:
 
 ```swift
-public protocol DistributedStubActor where Self: DistributedActor {}
+public protocol DistributedActorStub where Self: DistributedActor {}
 ```
 
-The macro synthesizes a concrete distributed actor which accepts a generic `ActorSystem`. The generated actor declaration matches access level with the original declaration, and implements the protocol as well as the `DistributedStub` protocol:
+The `@DistributedProtocol` macro synthesizes a concrete distributed actor which accepts a generic `ActorSystem`. The generated actor declaration matches access level with the original declaration, and implements the protocol as well as the `DistributedStub` protocol:
 
 ```swift
 protocol Greeter: where ActorSystem: DistributedActorSystem<any Codable> {
@@ -220,16 +222,18 @@ protocol Greeter: where ActorSystem: DistributedActorSystem<any Codable> {
 distributed actor $Greeter<ActorSystem>: Greeter, DistributedStubActor
     where DistributedActorSystem<any Codable> {
   private init() {} // cannot initialize, can only resolve(id:using:)
-      
-  // stub implementations provided via extension on 'Greeter & DistributedStubActor'
+}
+
+extension Greeter where Self: DistributedActorStub {
+  // ... stub implementations for protocol requirements ...
 }
 ```
 
-Default implementations for all the protocol's requirements (including non-distributed requirements) are provided by extensions utilizing the `DistributedStubActor` protocol.
+Default implementations for all the protocol's requirements (including non-distributed requirements) are provided by extensions utilizing the `DistributedActorStub` protocol.
 
 It is possible for a protocol type to inherit other protocols, in that case the parent protocol must either have default implementations for all its requirements, or it must also apply the `@DistributedProtocol` protocol which generates such default implementations.
 
-The default method "stub" implementations provided by the `@DistributedProtocol` simply fatal error if they were to ever be invoked. Invoking them however is not possible.
+The default method "stub" implementations provided by the `@DistributedProtocol` simply fatal error if they were to ever be invoked. In practice, invoking those methods is not possible, because resolving a stub will always return a remote reference, and therefore calls on these methods are redirected to `DistributedActorSystem`'s `remoteCall` rather than invoking the "local" methods.  
 
 It is recommended to use `some/any Greeter` rather than `$Greeter` when passing around resolved instances of a distributed actor protocol. This way none of your code is tied to the fact of using a specific type of proxy, but rather, can accept any greeter, be it local or resolved through a proxy reference. This can come in handy when refactoring a codebase, and merging modules in such way where the greeter may actually be a local instance in some situations.
 
@@ -260,41 +264,26 @@ distributed actor Worker<ActorSystem> where ActorSystem: DistributedActorSystem<
 }
 ```
 
-The `ActorSystem` type requirement of the `DistributedActorProtocol` in this case is witnessed by the generic parameter, and not by the "default" fallaback type.
+The `ActorSystem` type requirement of the `DistributedActorProtocol` in this case is witnessed by the generic parameter, and not by the "default" fallback type.
 
 This is the right behavior because this generic worked can work on _any_ distributed actor system where the `SerializationRequirement` is Codable, and not only on the `ClusterSystem`.
 
 ### Extend Distributed metadata for protocol method identifier lookups
 
-The way distributed method invocations work on the receipient node is that a message is parsed from some incoming transport, and a `RemoteCallTarget` is recovered. The remote call target in currently is a mangled encoding of the concrete distributed method the call was made for, like this:
+The way distributed method invocations work on the recipient node is that a message is parsed from some incoming transport, and a `RemoteCallTarget` is recovered. The remote call target in currently is a mangled encoding of the concrete distributed method the call was made for, like this:
 
 A shared module introducing the `Capybara` protocol:
 
 ```swift
 // Module "Shared"
-public protocol Capybara where ActorSystem == ... {
+@DistributedProtocol
+public protocol Capybara where ActorSystem: DistributedActorSystem<any Codable> {
   distributed var name: String { get }
   distributed func eat()
 }
 ```
 
-And a server component implementing it with a concrete type:
-
-```swift
-// Module "ServerAnimals"
-distributed actor Caplin: Capybara { 
-  distributed var name: String { "Caplin" }
-  distributed func eat() { ... }
-}
-
-// RemoteCallIdentifier = mangled("Animals.Capybara.eat()"
-```
-
-The identifier currently includes the fully qualified identity of the method, including its module and type names, and parameters. This is a limiting afactor for protocol based remote calls, since the client side is not aware of `Caplin` distributed actor implementing the `Capybara` protocol.
-
-The distributed actor runtime stores static metadata about distributed methods, such that the `executeDistributedTarget(on:target:invocationDecoder:handler:)` method is able to turn the mangled `RemoteCallIdentifier` into a concrete method handle that it then invokes. Since the remote caller has no idea about the concrete implementation type (or even module) or the `Caplin` type, this lookup will currently fail.
-
-This proposal introduces additional metadata such that when calling the eat method on a resolved remote `any Capybara` reference, the created `RemoteCallIdentifier` will be the mangling of the method requirement, rather than that of any specific concrete distributed actor type.
+The distributed actor runtime stores static metadata about distributed methods, such that the `executeDistributedTarget(on:target:invocationDecoder:handler:)` method is able to turn the mangled `RemoteCallIdentifier` into a concrete method handle that it then invokes. This proposal introduces a way to mangle calls on distributed protocol requirements, in such a way that they refer to the `$`-prefixed name, and invocations on such accessor are performed on the recipient side using the concrete actor's witness tables.
 
 We can illustrate the new remoteCall flow like this:
 
@@ -304,7 +293,7 @@ We can illustrate the new remoteCall flow like this:
 // Module MyClientApp
 
 let discoveredCaplinID = ...
-let capybara: any Capybara = try .resolve(id: discoveredCaplinID, using: system)
+let capybara: some Capybara = try $Caybara.resolve(id: discoveredCaplinID, using: system)
 
 // make the remote call, without knowing the concrete 
 // capybara type that we'll invoke on the remote side
@@ -313,7 +302,7 @@ let name = try await capybara.name
 // invokes selected actor system's remoteCall:
 //   DistributedActorSystem.remoteCall(
 //     on: someCapybara,
-//     target: RemoteCallIdentifier("Shared.Capybara.name"), <<< PROTOCOL REQUIREMENT MANGLING
+//     target: RemoteCallIdentifier("Shared.$Capybara.name"), <<< PROTOCOL REQUIREMENT MANGLING
 //     invocation: <InvocationEncoder>, 
 //     throwing: Never.self, 
 //     returnType: String.self) 
@@ -323,9 +312,9 @@ assert("Hello, \(name)!" ==
        "Hello, Caplin!")
 ```
 
-The caller just performed a normal remote call as usual, however the Distributed runtime offered a protocol based remote call identifier (`RemoteCallIdentifier("Shared.Capybara.name")`) rather than one based on some underlying type that is hidden under the `any Capybara` existential.
+The caller just performed a normal remote call as usual, however the Distributed runtime offered a protocol based remote call identifier (`RemoteCallIdentifier("Shared.$Capybara.name")`) rather than one based on some underlying type that is hidden under the `any Capybara` existential.
 
-Developers need not know or care about what concrete implementation (or stub implementation) is used to implement this call, as it will only ever be performing such distributed protocol based calls.
+The client-side does not need to know or care about what concrete implementation type is used to implement this call on the recipient system, as it will only ever be performing such distributed protocol based calls.
 
 **Recipient, i.e. server side:**
 
@@ -338,7 +327,8 @@ final class MySampleDistributedActorSystem: DistributedActorSystem, ... {
   func findById(_ id: ActorID) -> (any DistributedActor)? { ... }
   
   func receiveMessage() async throws {
-    let envelope: MyTransportEnvelope = await readFromNetwork()
+    let envelope: MyTransportEnvelope = try await readFromNetwork()
+    
     guard let actor = findById(envelope.id) else {
       throw TargetActorNotFound(envelope.id)
     }
@@ -372,47 +362,11 @@ We introduce new static, accessible at runtime, metadata necessary for the ident
 
 > Since distributed actors are used across processes, an additional kind of compatibility is necessary to discuss in proposals which may impact how messages are sent or methods identified and invoked.
 
-This proposal is additive and provides additional metadata such that "distributed protocol" methods may be invoked across process. 
+This proposal is additive and provides additional metadata such that "distributed protocol" methods may be invoked across process. Such calls were previously not supported.
 
-Remote calls are identified using the `RemoteCallTarget` struct, which contains an `identifier` of the target method. In today's distributed actors these identifiers are the mangled name of the target method. 
+Remote calls are identified using the `RemoteCallTarget` struct, which contains an `identifier` of the target method. In today's distributed actors these identifiers are the mangled name of the target method.
 
-In this proposal `identifier` of a call made on a distributed protocol method is changed to use the protocol method declaration's mangled name. This means that e.g. in this situation:
-
-```swift
-protocol Greeter {
-  func greet()
-}
-
-distributed actor Impl: Greeter {
-  func greeter() {}
-}
-
-try await remoteImpl.greeter()
-```
-
-The mangling used to be `mangledName(Impl, greet)` but now will be `mangledName(Greeter, greet)`. 
-
-### :white_check_mark: "Old" process, sending protocol based method to "new" process
-
-When an "old" process or node invokes a distributed protocol method on a distributed actor, its return `RemoteCallTarget.identifier` is going to be the same as always - identifying the specific concrete type's method.
-
-The recipient "new" process may indeed be aware that this method is a "distributed protocol method", however metadata to invoke it using the concrete target identifier is still available. This works without any effort on the distributed actor system implementation side.
-
-### :warning: "New" process, sending protocol based method to "old" process
-
-When a process using Swift with support for distributed protocol methods sends an invocation using the new target identifier, an "old" Swift version recipient will not be able to invoke such method -- and will throw an error from its `executeDistributedTarget` call.
-
-```swift
-if isAtLeast(targetNode, version: "5.11") { // external knowladge
-  await sendInvocation(target.identifier, ...) // identifier is the protocol method identifier
-} else if target.protocolTargetIdentifier != nil {
-  // target node is old and cannot support protocol call; attempt a call with forced concrete target
-  await sendInvocation(target.concreteTargetIdentifier, ...) // identifier is the protocol method identifier
-} else {
-  // it is not a protocol call, all target versions understand such calls, no need to special handle
-  await sendInvocation(target.identifier, ...)
-}
-```
+This proposal introduces a special way to mangle calls made on default implementations of distributed protocol requirements, in such a way that the target type identifier of the protocol (e.g. `Greeter`) is replaced with the stub type (e.g. `$Greeter`), and the server performs the invocation on a specific target actor using the concrete types witness and generic accessor thunk when such calls are made.
 
 ## Future directions
 
@@ -425,7 +379,8 @@ We find that the needs of distributed protocol evolution overlap in some parts w
 This could be handled with declaration macros, introducing a peer method with the expected new API:
 
 ```swift
-protocol Greeter: DistributedActor { 
+@DistributedProtocol(deprecatedName: "Greeter")
+protocol DeprecatedGreeter: DistributedActor { 
   @Distributed.Deprecated(newVersion: greet(name:), defaults: [name: nil])
   distributed func greet() -> String 
   
@@ -471,7 +426,7 @@ This would require introducing a dynamic lookup table in the runtime and it woul
 
 ### Utilize distributed method metadata for auditing
 
-Given the information in distributed metadata, we could provide a command line application, or rather extend `swift-inspect` to be able to inspect a binary or runninb application for the distributed entry points to the application. 
+Given the information in distributed metadata, we could provide a command line application, or rather extend `swift-inspect` to be able to inspect a binary or running application for the distributed entry points to the application. 
 
 This is useful as it allows auditors to quickly scan for all potential distributed entry points into an application, making auditing easier and more reliable than source scanning as it can be performed on the final artifact of a build.
 
@@ -513,6 +468,7 @@ We believe that the macro stub approach is a good balance between convenience an
 
 - 1.2
   - Change implementation to not need `#resolve` macro, but rely on generic distributed actors
+  - General cleanup
 - 2.1
   - Change implementation approach to macros, introduce `#resolve` macro
 - 1.0
