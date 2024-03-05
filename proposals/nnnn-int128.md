@@ -5,6 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Implementation: https://github.com/stephentyrone/swift-numerics/tree/int128
 * Status: **Awaiting review**
+* Review: ([Pitch](https://forums.swift.org/t/pitch-128-bit-integer-types/70188))
 
 ## Motivation
 
