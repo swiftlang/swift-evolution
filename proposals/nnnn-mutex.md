@@ -90,7 +90,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   /// Initializes a value of this mutex with the given initial state.
   ///
   /// - Parameter initialValue: The initial value to give to the mutex.
-  public init(_: consuming Value)
+  public init(_: transferring consuming Value)
   
   /// Attempts to acquire the lock and then calls the given closure if
   /// successful.
@@ -331,23 +331,19 @@ The API proposed here is fully addative and does not change or alter any of the 
 
 There are quite a few potential future directions this new type can take as well as new future similar types.
 
-### Transferring Parameters
+### Disconnected Parameters
 
-With [Region Based Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0414-region-based-isolation.md), a future direction in that proposal is the introduction of a `transferring` modifier to function parameters. This would allow the `Mutex` type to decorate its closure parameter in the `withLock` API as `transferring` and potentially remove the `@Sendable` restriction on the closure altogether. By marking the closure parameter as such, we guarantee that state held within the lock cannot be assigned to some non-sendable captured reference which is the primary motivator for why the closure is marked `@Sendable` now to begin with. A future closure based API may look something like the following:
+With [Region Based Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0414-region-based-isolation.md), a future direction in that proposal is the introduction of a `disconnected` modifier to function parameters. This would allow the `Mutex` type to decorate its closure parameter in the `withLock` API as `disconnected` and potentially remove the `@Sendable` restriction on the closure altogether. By marking the closure parameter as such, we guarantee that state held within the lock cannot be assigned to some non-sendable captured reference which is the primary motivator for why the closure is marked `@Sendable` now to begin with. A future closure based API may look something like the following:
 
 ```swift
 public borrowing func withLock<U: ~Copyable & Sendable, E>(
-  _: (transferring inout Value) throws(E) -> U
+  _: (disconnected inout Value) throws(E) -> U
 ) throws(E) -> U
 ```
 
 This would remove a lot of the restrictions that a `@Sendable` closure enforces because this closure isn't escaping nor is it being passed to other isolation domains, it's being ran on the same calling execution context. However, again we guarantee that the passed in parameter, who may not be sendable, can't be written to a non-sendable reference within the closure effectively crossing isolation domains.
 
-In addition to marking the closure parameter `transferring`, marking the initializer's initial value as well would allow `Mutex` to be unconditionally `Sendable`:
-
-```swift
-public init(_ initialValue: transferring consuming Value)
-```
+Alternatively in the [Transferring isolation regions pitch](https://forums.swift.org/t/pitch-transferring-isolation-regions-of-parameter-and-result-values/70240), it discusses a potential `Disconnected<T>` type we could pass to fully enforce this value is disconnected from the domain the closure is running on. This approach would work, but may feel awkward to unwrap the value to access it, etc.
 
 This completes the story of completly marking the value contained within the mutex as being in its own isolation domain. With this, we can say that `Mutex` is unconditionally sendable regardless of whether or not the value it contains is itself sendable.
 
