@@ -469,7 +469,6 @@ We believe that the macro stub approach is a good balance between convenience an
 - 1.2
   - Change implementation to not need `#resolve` macro, but rely on generic distributed actors
   - General cleanup
-- 2.1
   - Change implementation approach to macros, introduce `#resolve` macro
 - 1.0
   - Initial revision
