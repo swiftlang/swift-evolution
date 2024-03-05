@@ -272,6 +272,19 @@ In order to allow that, a new field could be added to `MemoryLayout`.
 Most Swift types have the property that their representation can be relocated in memory with direct memory operations.
 This could be represented with a `BitwiseMovable` protocol that would be handled similarly to `BitwiseCopyable`.
 
+### BitwiseCopyable as a composition
+
+Some discussion in the pitch thread discussed how `BitwiseCopyable` could be defined as the composition of several protocols.
+For example,
+```swift
+typealias BitwiseCopyable = Bitwise & Copyable & DefaultDeinit
+```
+Such a definition remains possible after this proposal.
+
+Because `BitwiseCopyable` is a marker protocol, its ABI is rather limited.
+Specifically, it only affects name mangling.
+If, in a subsequent proposal, the protocol were redefined as a composition, symbols into which `BitwiseCopyable` was mangled could still be mangled in the same way, ensuring ABI compatibility.
+
 ## Alternatives considered
 
 ### Alternate Spellings
