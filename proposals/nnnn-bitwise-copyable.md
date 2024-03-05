@@ -141,12 +141,14 @@ extension Box : BitwiseCopyable where Value : BitwiseCopyable {}
 
 ### Automatic inference for aggregates
 
-As a convenience, unconditional conformances will be inferred for structs and enums much of the time.
+As a convenience, unconditional conformances will be inferred for structs and enums[^2] much of the time.
 When the module containing the type is built, if all of the type's fields are `BitwiseCopyable`, the compiler will generate a conformance for it to `BitwiseCopyable`.
 
 For generic types, a conformance will only be inferred if its fields unconditionally conform to `BitwiseCopyable`.
 In the `RegularBox` example above, a conditional conformance will not be inferred.
 If this is desired, the developer can explicitly write the conditional conformance.
+
+[^2]: This includes raw-value enums.  While such enums do include a conformance to `RawRepresentable` where `RawValue` could be a non-conforming type (`String`), the instances of the enums themselves are `BitwiseCopyable`.
 
 ### Inference for exported types
 
