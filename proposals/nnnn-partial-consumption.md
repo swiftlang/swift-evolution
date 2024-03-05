@@ -9,6 +9,7 @@
 ## Introduction
 
 We propose allowing noncopyable fields in deinit-less, non-resilient aggregates to be consumed individually.
+Additionally, we propose allowing fields of a non-resilient aggregate with deinit to be consumed individually within that deinit.
 This permits common patterns to be used with many noncopyable values.
 
 ## Motivation
@@ -96,7 +97,7 @@ extension Pair {
 
 Here, only `first` is consumed on the path taken when `front` is `true` and only `second` on that taken when `front` is `false`.
 
-### Field lifetime extension
+### Field lifetime extension<a name="lifetime-extension"/>
 
 When a field is _not_ consumed on some path, its destruction is deferred as long as possible.
 Here, that looks like this:
@@ -176,6 +177,29 @@ extension Named {
   }
 }
 ```
+
+### Partial consumption within deinits
+
+There are two related reasons to limit partial consumption to fields of types without deinits:
+First, the deinit of such types can't be run if it is partially consumed.
+Second, no proposed mechanism to indicate that the deinit should not be run has been accepted.
+
+Neither applies when partially consuming a value within its own deinit.
+We propose allowing a value to be partially consumed there.
+
+```swift
+struct Pair2 : ~Copyable {
+  let first: Unique
+  let second: Unique
+
+  deinit {
+    takeUnique(first) // partially consumes self
+    takeUnique(second) // partially consumes self
+  }
+}
+```
+
+This enables noncopyable structs to dispose of any resources they own on destruction.
 
 ## Source compatibility
 
