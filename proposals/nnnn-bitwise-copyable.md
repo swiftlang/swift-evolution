@@ -316,13 +316,12 @@ The following types in the standard library will gain the `BitwiseCopyable` cons
   - `UnsafeBufferPointer.Iterator`, `UnsafeRawBufferPointer.Iterator`, `EmptyCollection.Iterator`
   - `String.Index`, `CollectionDifference.Index`
 - Some types related to unicode
-  - `Unicode`
   - `Unicode.ASCII`, `Unicode.UTF8`, `Unicode.UTF16`, `Unicode.UTF32`, `Unicode.Scalar`
   - `Unicode.ASCII.Parser`, `Unicode.UTF8.ForwardParser`, `Unicode.UTF8.ReverseParser`, `Unicode.UTF16.ForwardParser`, `Unicode.UTF16.ReverseParser`, `Unicode.UTF32.Parser`
   - `Unicode.Scalar.UTF8View`, `Unicode.Scalar.UTF16View`
   - `UnicodeDecodingResult`
 - Some fieldless types
-  - `Never`, `MemoryLayout`, `CommandLine`, `SystemRandomNumberGenerator`
+  - `Never`, `SystemRandomNumberGenerator`
 - `StaticString`
 - `Hasher`
 - `ObjectIdentifier`
