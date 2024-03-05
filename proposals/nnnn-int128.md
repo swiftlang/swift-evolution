@@ -56,6 +56,23 @@ and decoders do not support such large integer types. Therefore they are
 encoded as a pair of 64b integers. This pair is always in little-endian
 order, regardless of the endianness of the architecture.
 
+The actual API of the types is uninteresting; they are entirely constrained by
+their protocol conformances. Notably, these types conform to the following
+protocols, and hence to any protocol that they refine:
+
+- Hashable
+- Equatable
+- Comparable
+- Codable
+- Sendable
+- LosslessStringConvertible
+- ExpressibleByIntegerLiteral
+- AdditiveArithmetic
+- [Signed]Numeric
+- BinaryInteger
+- FixedWidthInteger
+- [Unsigned|Signed]Integer
+
 -------
 ¹ For the purposes of this discussion, arm64\_32 and similar architectures
 are "64b targets."
