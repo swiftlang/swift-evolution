@@ -300,7 +300,7 @@ The following types in the standard library will gain the `BitwiseCopyable` cons
   - `UInt8.Words`, `UInt16.Words`, `UInt32.Words`, `UInt64.Words`, `UInt.Words`
   - `Int8.Words`, `Int16.Words`, `Int32.Words`, `Int64.Words`, `Int.Words`
 - The fixed-precision floating-point types:
-  - `Float`, `Double`, `Float80`
+  - `Float`, `Double`, `Float16`, `Float80`
   - `FloatingPointSign`, `FloatingPointClassification`
 - The family of `SIMDx<Scalar>` types
 - The family of unmanaged pointer types:
