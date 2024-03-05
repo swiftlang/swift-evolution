@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](nnnn-int128.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
-* Review Manager: TBD
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Implementation: https://github.com/stephentyrone/swift-numerics/tree/int128
 * Status: **Awaiting review**
 
