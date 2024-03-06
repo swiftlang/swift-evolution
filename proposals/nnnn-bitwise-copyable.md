@@ -313,7 +313,6 @@ This proposal has benefitted from discussions with John McCall, Joe Groff, Andre
 
 The following protocols in the standard library will gain the `BitwiseCopyable` constraint:
 
-- `FixedWidthInteger`
 - `_Pointer`
 - `SIMDStorage`, `SIMDScalar`, `SIMD`
 
