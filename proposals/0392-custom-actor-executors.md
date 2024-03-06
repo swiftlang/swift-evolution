@@ -225,7 +225,7 @@ extension SerialExecutor {
 }
 ```
 
-A `SerialExecutor` does not introduce new API, other than the wrapping itself in an `UnownedSerialExecutor` which is used by the Swift runtime to pass executors without incuring reference counting overhead.
+A `SerialExecutor` does not introduce new API, other than the wrapping itself in an `UnownedSerialExecutor` which is used by the Swift runtime to pass executors without incurring reference counting overhead.
 
 ```swift
 /// An unowned reference to a serial executor (a `SerialExecutor`
