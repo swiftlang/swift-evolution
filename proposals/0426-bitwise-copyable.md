@@ -1,8 +1,8 @@
 # BitwiseCopyable
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0426](0426-bitwise-copyable.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Guillaume Lessard](https://github.com/glessard), [Nate Chandler](https://github.com/nate-chandler), [Tim Kientzle](https://github.com/tbkka)
-* Review Manager: TBD
+* Review Manager: [Tony Allevato](https://github.com/allevato)
 * Implementation: On `main` gated behind `-enable-experimental-feature BitwiseCopyable`
 
 <!-- *During the review process, add the following fields as needed:*
