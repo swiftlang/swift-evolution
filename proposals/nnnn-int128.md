@@ -133,3 +133,12 @@ or to improve human-readability, we could instead encode these types as
 decimal or hexadecimal strings. However, this would be somewhat less 
 efficient in some use cases, and it is possible for users to achieve the
 same effect by converting to a string before encoding.
+
+### NSNumber bridging
+`[U]Int128` will not bridge to `NSNumber`. In the future, Swift will need
+a careful rethinking of how best to handle type-erased numbers, but we don't
+want to pile on the debt by including ever more types in an existing system
+that isn't supported on all platforms. In addition, the most common use for
+such bridging, unpacking type-erased fields from encoded dictionaries, is
+somewhat moot since most existing coders do not support 128b integers. We
+will likely revisit this more holistically in the future.
