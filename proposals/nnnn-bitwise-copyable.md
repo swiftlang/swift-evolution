@@ -150,6 +150,20 @@ If this is desired, the developer can explicitly write the conditional conforman
 
 [^2]: This includes raw-value enums.  While such enums do include a conformance to `RawRepresentable` where `RawValue` could be a non-conforming type (`String`), the instances of the enums themselves are `BitwiseCopyable`.
 
+### Inference for imported types
+
+The same inference will be done on imported C and C++ types.
+
+For an imported C or C++ enum, the compiler will always generate a conformance to to `BitwiseCopyable`.
+
+For an imported C struct, if all its fields are `BitwiseCopyable`, the compiler will generate a conformance to `BitwiseCopyable`.
+The same is true for an imported C++ struct or class, unless the type is non-trivial[^3].
+
+For an imported C or C++ struct, if any of its fields cannot be represented in Swift, the compiler will not generate a conformance.
+This can be overridden, however, by annotating the type `__attribute__((__swift_attr__("_BitwiseCopyable")))`.
+
+[^3]: A C++ type is considered non-trivial (for the purpose of calls, as defined by the Itanium ABI) if any of the following is non-default: its constructor; its copy-constructor; its destructor.
+
 ### Inference for exported types
 
 This does not apply to exported (`public`, `package`, or `@usableFromInline`) types.
