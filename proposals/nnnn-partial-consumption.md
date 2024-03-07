@@ -168,7 +168,9 @@ struct Named : ~Copyable {
   consuming func use() {
     takeString(name)
     takeString(name)
-    // self is consumed
+    takeString(name)
+    takeString(name)
+    // unique is consumed
   }
 }
 ```
@@ -181,6 +183,8 @@ extension Named {
     takeString(name)
     takeString(name)
     takeUnique(unique)
+    takeString(name)
+    takeString(name)
   }
 }
 ```
