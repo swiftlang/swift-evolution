@@ -8,8 +8,9 @@
 
 ## Introduction
 
-We propose allowing noncopyable fields in deinit-less, non-resilient aggregates to be consumed individually.
-Additionally, we propose allowing fields of a non-resilient aggregate with deinit to be consumed individually within that deinit.
+We propose allowing noncopyable fields in deinit-less aggregates to be consumed individually,
+so long as they are defined in the current module or frozen.
+Additionally, we propose allowing fields of such an aggregate with a deinit to be consumed individually _within that deinit_.
 This permits common patterns to be used with many noncopyable values.
 
 ## Motivation
@@ -44,20 +45,20 @@ There are various workarounds for this, but they are not ideal.
 
 ## Proposed solution
 
-We allow non-resilient, noncopyable aggregates without deinits to be consumed field-by-field.
+We allow noncopyable aggregates without deinits to be consumed field-by-field, if they are defined in the current module or frozen.
 That makes `swap` above legal as written.
 
 This initial proposal is deliberately minimal:
 - We do not allow partial consumption of [noncopyable aggregates that have deinits](#future-direction-discard).
 - We do not support [reinitializing](#future-direction-partial-reinitialization) fields after they are consumed.
 
-[Resilient aggregates](#resilient-aggregates) can never be partially consumed.
+[Imported aggregates](#imported-aggregates) can never be partially consumed, unless they are frozen.
 
 ## Detailed design
 
 We relax the requirement that a noncopyable aggregate be consumed at most once on each path.
 Instead we require only that each of its noncopyable fields be consumed at most once on each path.
-Resilient aggregates, however, cannot be partially consumed when used outside their defining resilience domain.
+Imported aggregates, however, cannot be partially consumed unless they are marked `@frozen`.
 
 Extending the `Pair` example above, the following becomes legal:
 
@@ -139,35 +140,20 @@ extension Pair {
 }
 ```
 
-### Interaction with resilient types<a name="resilient-aggregates"/>
+### Imported aggregates<a name="imported-aggregates"/>
 
-`public` (and `@usableFromInline`) types defined in a library built with library evolution are "resilient".
-Although a resilient struct may--at the time the library is compiled--actually just combine fields together
+Partial consumption of a non-copyable type is always allowed when the type is defined in the module where it is consumed.
+If the type is defined in another module, partial consumption is only permitted if the type is marked `@frozen`.
 
-```swift
-public struct Resilient : ~Copyable {
-  public var unique: Unique
-}
-```
+The reason for this limitation is that as the module defining a type changes,
+the type itself may change, adding or removing fields, changing fields to computed properties, and so on.
+A partial consumption of the type's fields that makes sense as the type is defined by one version of the module
+may not make sense as the type is defined in another version.
+That consideration does not apply to frozen types, however,
+because by marking them `@frozen`, the module's author promises not to change their layouts.
 
-client code cannot rely on that: the struct may evolve.
-For example, the stored property might become computed in a later release of the library:
-
-```swift
-public struct Resilient : ~Copyable {
-  public var unique: Unique {
-    get {...}
-    set {...}
-  }
-}
-```
-
-Partial consumption relies on viewing a struct as just a combination of values, though.
-This view is what permits the refinement of the check that the whole noncopyable aggregate is consumed on each path
-to checking that each noncopyable field of the aggregate is consumed exactly once.
-
-Because, as this example illustrates, the layout of a resilient struct may change,
-partial consumption isn't permitted for a noncopyable resilient value used outside the resilience domain which defines the type.
+These rules are unavoidable for libraries built with library evolution
+and are applied universally to avoid having language rules differ based on the build mode.
 
 ### Copyable fields
 
