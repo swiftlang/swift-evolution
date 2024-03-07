@@ -58,7 +58,7 @@ This initial proposal is deliberately minimal:
 
 We relax the requirement that a noncopyable aggregate be consumed at most once on each path.
 Instead we require only that each of its noncopyable fields be consumed at most once on each path.
-Imported aggregates, however, cannot be partially consumed unless they are marked `@frozen`.
+Imported aggregates (i.e. those defined in another module and marked either `public` or `package`), however, cannot be partially consumed unless they are marked `@frozen`.
 
 Extending the `Pair` example above, the following becomes legal:
 
