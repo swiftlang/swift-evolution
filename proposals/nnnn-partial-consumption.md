@@ -157,7 +157,7 @@ and are applied universally to avoid having language rules differ based on the b
 
 ### Copyable fields
 
-It is currently legal to repeatedly consume a copyable field of a noncopyable aggregate.
+It is currently legal to have multiple consuming uses of a copyable field of a noncopyable aggregate.
 For example:
 
 ```swift
@@ -274,6 +274,45 @@ extension Pair {
 }
 ```
 
+### Partial consumption of copyable fields
+
+This document only proposes allowing the noncopyable fields of a noncopyable aggregate to be consumed individually.
+In the future, the ability to explicitly consume (via the `consume` keyword) the copyable fields of a copyable aggregate could be added.
+
+```swift
+class C {}
+func takeC(_ c: consuming C)
+struct PairPlusC : ~Copyable {
+  let first: Unique
+  let second: Unique
+  let c: C
+}
+
+func disaggregate(_ p: consuming PairPlusC) {
+  takeUnique(p.first)
+  takeC(consume p.c) // p.c's lifetime ends
+  takeUnique(p.second)
+}
+```
+
+That would provide the ability to specify the point at which the lifetime of a copyable field should end.
+
+### Partial consumption of copyable aggregates
+
+This document only proposes allowing noncopyable aggregates to be partially consumed.
+There is a natural extension of this to copyable aggregates:
+
+```swift
+class C {}
+struct CopyablePairOfCs {
+  let c1: C
+  let c2: C
+}
+func tearDownInOrder(_ p: consuming CopyablePairOfCs) {
+  takeC(consume p.c2)
+  takeC(consume p.c1)
+}
+```
 
 ## Alternatives considered
 
