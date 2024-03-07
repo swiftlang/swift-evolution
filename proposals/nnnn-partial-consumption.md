@@ -118,6 +118,27 @@ extension Pair {
 
 Neither `first` nor `second` can be destroyed _after_ the `if`/`else` blocks because that would require a copy.
 
+### Explicit field consumption
+
+Fields can also be consumed explicitly via the `consume` keyword.
+This enables overriding the [extension of a field's lifetime](#lifetime-extension).
+
+Continuing the example, if it were necessary that `first` always be destroyed before `second`, the following could be written:
+
+```swift
+extension Pair {
+  consuming func passUnique(_ front: Bool) {
+    if front {
+      takeUnique(first)
+      // second is destroyed
+    } else {
+      _ = consume first
+      takeUnique(second)
+    }
+  }
+}
+```
+
 ### Interaction with resilient types<a name="resilient-aggregates"/>
 
 `public` (and `@usableFromInline`) types defined in a library built with library evolution are "resilient".
