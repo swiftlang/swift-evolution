@@ -252,10 +252,10 @@ struct Box : ~Copyable {
 ### Partial reinitialization<a name="future-direction-partial-reinitialization"/>
 
 This document only proposes allowing the fields of an aggregate to be consumed individually.
-It does not allow for those fields to be _reinitialized_ in order to return then aggregate to a legal state.
+It does not allow for those fields to be _reinitialized_ in order to return the aggregate to a legal state.
 In the future, though, another proposal could lift that restriction.
 
-That would enable further code patterns legal with copyable values to be written in noncopyable contexts
+That would enable further code patterns--already legal with copyable values--to be written in noncopyable contexts
 For example:
 
 ```swift
@@ -320,7 +320,7 @@ func tearDownInOrder(_ p: consuming CopyablePairOfCs) {
 
 Instead of consuming the fields of a struct piecewise, an alternative would be to simultaneously bind every field to a variable:
 
-```
+```swift
 let (a, b) = destructure s
 ```
 
