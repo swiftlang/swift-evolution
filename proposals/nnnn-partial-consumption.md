@@ -34,8 +34,8 @@ For example, the following code is not currently allowed:
 extension Pair {
   consuming func swap() -> Pair {
     return Pair(
-      first: first, // error: cannot partially consume 'self'
-      second: second // error: cannot partially consume 'self'
+      first: second, // error: cannot partially consume 'self'
+      second: first // error: cannot partially consume 'self'
     )
   }
 }
