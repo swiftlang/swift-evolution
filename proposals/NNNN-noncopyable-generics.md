@@ -80,8 +80,7 @@ that permeates Swift's generics system.
 
 We begin by recalling the restrictions from SE-0390:
 
-1. A reference to a noncopyable type was not permitted to appear the generic
-   argument of another generic type.
+1. A noncopyable type could not appear in the generic argument of some other generic type.
 2. A noncopyable type could not conform to protocols.
 3. A noncopyable type could not witness an associated type requirement.
 
