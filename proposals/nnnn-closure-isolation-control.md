@@ -4,7 +4,7 @@
 * Authors: [Sophia Poirier](https://github.com/sophiapoirier), [Matt Massicotte](https://github.com/mattmassicotte), [Konrad Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: On `main` gated behind `-enable-experimental-feature TODO`
+* Implementation: On `main` gated behind `-enable-experimental-feature ClosureIsolation`
 * Previous Proposals: [SE-0313](0313-actor-isolation-control.md), [SE-0316](0316-global-actors.md)
 * Review: ([pitch](https://forums.swift.org/t/isolation-assumptions/69514))
 
