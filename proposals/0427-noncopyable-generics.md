@@ -1,9 +1,12 @@
 # Noncopyable Generics
 
-* Proposal: [SE-NNNN](NNNN-noncopyable-generics.md)
+* Proposal: [SE-0427](NNNN-noncopyable-generics.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Tim Kientzle](https://github.com/tbkka), [Slava Pestov](https://github.com/slavapestov)
-* Upcoming Feature Flag: `NoncopyableGenerics`
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (March 8 - March 22, 2024)**
+* Implementation: On `main` gated behind `-enable-experimental-feature NoncopyableGenerics`
 * Previous Proposal: [SE-0390: Noncopyable structs and enums](0390-noncopyable-structs-and-enums.md)
+* Review: ([pitch](https://forums.swift.org/t/pitch-noncopyable-generics/68180))
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
