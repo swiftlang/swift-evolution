@@ -154,7 +154,7 @@ This is the reason why we refer to `~Copyable` as _suppressing_ the conformance
 rather than _inverting_ or _negating_ it.
 
 As with a concrete noncopyable type, a noncopyable generic parameter type must
-be prefixed with one the ownership modifiers `borrowing`,
+be prefixed with one of the ownership modifiers `borrowing`,
 `consuming`, or `inout`, when it appears as the type of a function's parameter.
 For details on these parameter ownership modifiers,
 see [SE-377](0377-parameter-ownership-modifiers.md).
@@ -650,8 +650,9 @@ the design for such a system is far beyond the scope of this proposal.
 
 ### `~Copyable` as logical negation
 
-Instead, one can attempt to formalize `T: ~Copyable` as the logical negation
-of a conformance, extending the theory with a fifth requirement kind to
+Instead of the syntactic desugaring presented in this proposal, one can attempt to
+formalize `T: ~Copyable` as the _logical negation_
+of a conformance, extending the theory of Swift generics with a fifth requirement kind to
 represent this negation. It is not apparent how this leads to a sound and
 usable model and we have not explored this further.
 
