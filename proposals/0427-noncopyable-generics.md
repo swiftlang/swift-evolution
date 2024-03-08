@@ -1,6 +1,6 @@
 # Noncopyable Generics
 
-* Proposal: [SE-0427](NNNN-noncopyable-generics.md)
+* Proposal: [SE-0427](0427-noncopyable-generics.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Tim Kientzle](https://github.com/tbkka), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (March 8 - March 22, 2024)**
