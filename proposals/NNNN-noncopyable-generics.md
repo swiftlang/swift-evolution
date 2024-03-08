@@ -83,10 +83,10 @@ covered in a follow-on proposal.
 
 We begin by recalling the restrictions from SE-0390:
 
-1. A declaration of a noncopyable type was not allowed to have generic parameters.
-2. A reference to a noncopyable type was not permitted in the generic argument of another generic type.
-3. A noncopyable type could not conform to protocols.
-4. A noncopyable type could not witness an associated type requirement.
+1. A reference to a noncopyable type was not permitted to appear the generic
+   argument of another generic type.
+2. A noncopyable type could not conform to protocols.
+3. A noncopyable type could not witness an associated type requirement.
 
 This proposal builds on the `~Copyable`  notation introduced in SE-0390, and
 introduces three fundamental concepts that together eliminate these
@@ -334,7 +334,32 @@ protocol CasinoToken: Token, ~Copyable {}
 Again, because `~Copyable` supresses a default conformance instead of introducing
 a new kind of requirement, it is not propagated through protocol inheritance.
 
-### Conforming to `Copyable`
+If a base protocol declares an associated type with a suppressed conformance
+to `Copyable`, and a derived protocol re-states the associated type, a
+default conformance is introduced in the derived protocol, unless it is again
+suppressed:
+```swift
+protocol Base {
+  associatedtype A: ~Copyable
+  func f() -> A
+}
+
+protocol Derived: Base {
+  associatedtype A /* : Copyable */
+  func g() -> A
+}
+```
+
+Requirements on associated types can be written in the associated type's
+inheritance clause, or in a `where` clause, or on the protocol itself. All
+three of the following are equivalent:
+```swift
+protocol P { associatedtype A: ~Copyable }
+protocol P { associatedtype A where A: ~Copyable }
+protocol P where A: ~Copyable { associatedtype A }
+```
+
+### Conformance to `Copyable`
 
 Structs and enums conform to `Copyable` unconditionally by default, but a
 conditional conformance can also be defined. For example, we start with this
@@ -364,6 +389,9 @@ extension Pair: Copyable /* where T: Copyable */ {}
 Note that no `where` clause needs to be written, because by the rules above,
 the default conformances here will already range over all generic parameters
 of the type.
+
+Now, `Pair<Int>` becomes `Copyable`, because `Int` is `Copyable`. On the other
+hand, `Pair<FileDescriptor>` is noncopyable.
 
 A conformance to `Copyable` is checked by verifying that every stored property
 (of a struct) or associated value (or an enum) itself conforms to `Copyable`.
@@ -464,132 +492,145 @@ require extreme care to use correctly.
 
 ## Alternatives Considered
 
-### `NonCopyable` as a Positive Requirement
-
-Our proposal above adds `Copyable` to the Swift language as a default property of all types
-and a default requirement in all generic contexts.
-It then uses `~Copyable` to indicate that this default property and/or requirement should be suppressed.
-
-An alternative approach would instead add `NonCopyable` as a positive requirement.
-In essence, `NonCopyable` would be the positive assertion that values of this type will
-receive additional scrutiny inside the compiler:
-```swift
-struct AltS<T: NonCopyable> { ... }
-struct AltNC: NonCopyable { ... }
-var s3: AltS<AltNC> // OK. AltNC is not copyable
-var s4: AltS<Int> // 🛑 Int is not NonCopyable
-```
-
-This would make any type `T & NonCopyable` be a subtype of `T`.
-In particular, `NonCopyable` itself would be a subtype of `Any`,
-which implies that such values can be assigned into an `Any` existential.
-But `Any` can be arbitrarily copied, so we cannot allow this.
-This applies equally to any other container.
-
-### `❌Copyable` as a Negative Requirement
-
-Another alternative would introduce a syntax `❌Copyable`
-that serves as a negative requirement.
-Such a marker in any context would indicate that the `Copyable`
-capability _must not_ be present.
-This is distinctly different than our proposed `~Copyable` which
-indicates that `Copyable` is not required in this context.
-```swift
-func f<T: ❌Copyable>(_ t: T) { ... }
-
-f(7) // 🛑 Int is copyable
-```
-
-This approach would fundamentally undermine the current behavior
-of Swift generics, which assumes that all constraints on a generic
-type variable are _minimum_ requirements.
-As explained above, `Copyable` types are able to be copied which
-implies they have strictly _more_ capabilities than the equivalent
-type without copyability.
-
 ### Alternative Spellings
 
-Spellings other than `~Copyable` are possible.
-As argued immediately above, a suitable spelling must indicate
-the relaxation of a default copyable requirement.
-This is most natural if the copyable requirement is spelled `Copyable`
-and a sigil indicates the suppression of that requirement.
-Both `?` and `!` are reasonable alternative sigils,
-but `~` better conveys the intent while avoiding confusion with the
-existing uses of `?` and `!` in the language.
+The spelling of `~Copyable` generalizes the existing syntax introduced in
+SE-0390, and changing it is out of scope for this proposal.
 
 ### Inferred Conditional Copyability
 
-It would be possible to infer conditional copyability for generic types with
-stored properties that might not be copyable.
+A struct or enum can opt out of copyability with `~Copyable`, and then possibly
+declare a conditional conformance. It would be possible to automatically infer
+this conditional conformance. For example, in the below,
 ```swift
-struct MaybeCopyable<T: ~Copyable>: ~Copyable {
+struct MaybeCopyable<T: ~Copyable> {
   var t: T
 }
-
-// This could be inferred
-extension MaybeCopyable: Copyable where T: Copyable { }
 ```
-But initial attempts to adopt this feature have suggested that
-such inference is more confusing than helpful.
+The only way this _could_ be valid is if we had inferred the conditional
+conformance:
+```
+extension MaybeCopyable: Copyable /* where T: Copyable */ {}
+```
+Feedback from early attempts at implementing this form of inference suggested
+it was more confusing than helpful, so it was removed.
 
 ### Extension Defaults
 
-This proposal specifies that extensions and redefinitions
-default to `Copyable` rather than implicitly inheriting
-the copyability of the base.
+One possible downside is that extensions of types with noncopyable generic
+parameters must suppress the conformance on each generic parameter.
 
-It would be possible to allow library authors to explicitly control this behavior.
-New syntax could allow library authors to choose the
-appropriate behavior for their types:
-* Old types can gain support for noncopyable types
-  without breaking existing extensions in client code
-* New types specifically targeting noncopyable uses
-  could have a more natural interface.
-
-This could be provided by a `default extension` feature
-as outlined here:
+It would be possible to allow library authors to explicitly control this
+behavior, with a new syntax allowing the default `where` clause of an
+extension to be written inside of a type declaration. For example,
 ```swift
 public enum Either<T: ~Copyable, U: ~Copyable> {
   case a(T)
   case b(U)
-  case empty
 
-  // Neither `T` nor `U` is copyable for members here.
-
-  default extension where T: Copyable
-  default extension where U: ~Copyable
+  // Hypothetical syntax:
+  default extension where T: Copyable, U: ~Copyable
 }
 
-// `T` is copyable and `U` noncopyable because of the defaults above
-extension Perhaps /* where T: Copyable, U: ~Copyable */ { ... }
-
-// Specific extensions can override the defaults
-extension Perhaps where T: ~Copyable, U: Copyable { ... }
+// `T` is copyable, but `U` is not, because of the defaults above:
+extension Perhaps /* where T: Copyable */ { ... }
 
 ```
 
-This becomes much more complex for protocols with associated types:
+This becomes much more complex for protocols that impose conformance
+requirements on their own associated types:
 ```swift
 protocol P: ~Copyable {
   associatedtype A: P, ~Copyable
 
+  // Hypothetical syntax:
   default extension where A: Copyable
 }
 
 extension P {
-  // A is Copyable here
-  // What about A.A?  A.A.A?
-  // Do we need syntax for the infinite
-  // set of {A, A.A, A.A.A, ...}?
+  // A is Copyable. What about A.A? A.A.A? ...
 }
 ```
 
-In addition to the complexity suggested by the above,
-early experiments suggested that this approach actually leads to
-considerable confusion about the meaning of a particular
-extension.
-As a result, this idea was ultimately omitted from this proposal.
+Besides the unclear semantics with associated types, it was also felt this
+approach could lead to user confusion about the meaning of a particular
+extension. As a result, we feel that explicitly suppressing `Copyable` on
+every extension is the best approach.
+
+### Recursive `Copyable`
+
+The behavior of default `Copyable` conformance on associated types prevents
+existing protocols from adopting `~Copyable` on their associated types in a
+source compatible way.
+
+For example, suppose we attempt to change `IteratorProtocol` to accomodate
+noncopyable element types:
+```swift
+protocol IteratorProtocol: ~Copyable {
+  associatedtype Element: ~Copyable
+  mutating func next() -> Element?
+}
+```
+An existing program might declare a generic function that assumes `T.Element` is
+`Copyable`:
+```swift
+func f<T: IteratorProtocol /* & Copyable */>(iter: inout T) {
+  let value = iter.next()!
+  let copy = value  // error
+}
+```
+Since `IteratorProtocol` suppresses its `Copyable` conformance, the generic
+parameter `T` defaults to `Copyable`. However, `T.Element` is no longer
+`Copyable`, thus the above code would not compile.
+
+One can imagine a design where instead of a single default conformance
+requirement `T: Copyable` being introduced above, we also add a requirement
+`T.Element: Copyable`. This would preserve source compatibility and our
+function `f()` would continue to work as before.
+
+However, this approach introduces major complications, if we again consider
+protocols that impose conformance requirements on their associated types.
+
+Consider this simple protocol and function that uses it:
+```swift
+protocol P: ~Copyable {
+  associatedtype A: P, ~Copyable
+}
+
+f<T: P>(_: T) {}
+```
+Our hypothetical design would actually introduce an infinite sequence of
+requirements here unless supressed:
+```swift
+f<T: P>(_: T) /* where T: Copyable, T.A: Copyable, T.A.A: Copyable, ... */ {}
+```
+Of course, it seems natural to represent this infinite sequence of requirements
+as a new kind of "recursive conformance" requirement instead.
+
+Swift generics are based on the mathematical theory of
+_string rewriting_, and requirements and associated types define certain _rewrite
+rules_ which operate on a set of terms. In this formalism, a
+hypothetical "recursive conformance" requirement corresponds to a rewrite
+rule that can match an infinite set of terms given by a _regular expression_.
+We would then need to generalize the algorithms for deciding term equivalence to
+handle regular expressions. While there has been research in this area,
+the design for such a system is far beyond the scope of this proposal.
+
+### `~Copyable` as Logical Negation
+
+This proposal does not fundamentally change the abstract theory of Swift
+generics, with its four fundamental kinds of requirements: conformance,
+superclass, `AnyObject`, and same-type.
+
+The mechanism around default conformance to `Copyable`, and its suppression by
+writing `~Copyable`, are really just a form of syntax sugar which transforms
+requirements written by the user into this abstract form. This transformation
+is purely syntactic and local.
+
+Instead, one can attempt to formalize `T: ~Copyable` as the logical negation
+of a conformance, extending the theory with a fifth requirement kind to
+represent this negation. It is not apparent how this leads to a sound and
+usable model and we have not explored this further.
 
 ## Future Directions
 
@@ -624,4 +665,5 @@ func f<T>(_ t: T) where T: AnyObject, T: ~Copyable { ... }  // error
 
 ## Acknowledgments
 
-Thank you to Joe Groff and Ben Cohen for their feedback throughout the development of this proposal.
+Thank you to Joe Groff and Ben Cohen for their feedback throughout the
+development of this proposal.
