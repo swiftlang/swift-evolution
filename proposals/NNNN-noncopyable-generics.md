@@ -56,7 +56,7 @@ type system to fill this gap.
 ## Motivation
 
 Noncopyable structs and enums are intended to express value types for which
-it is not meaningful to have multiple copies of a value.
+it is not meaningful to have multiple copies of the same value.
 
 Support for noncopyable generic types was omitted from SE-0390. For example,
 `Optional` could not be instantiated with a noncopyable type,
@@ -75,9 +75,6 @@ noncopyable types could not conform to protocols.
 In order to broaden the utility of noncopyable types in the language, we need
 a consistent and sound way to relax the fundamental assumption of copyability
 that permeates Swift's generics system.
-
-**Note**: The adoption of noncopyable generics in the standard library will be
-covered in a follow-on proposal.
 
 ## Proposed Solution
 
@@ -98,7 +95,10 @@ now conforms to `Copyable` _by default_.
 3. The `~Copyable` notation is used to _suppress_ this default conformance
 requirement anywhere it would otherwise be inferred.
 
-### The `Copyable` Protocol
+**Note**: The adoption of noncopyable generics in the standard library will be
+covered in a subsequent proposal.
+
+### The `Copyable` protocol
 
 The notion of copyability of a value is now expressed as a special kind of
 protocol. The existing `~Copyable` notation is re-interpreted as _suppressing_
@@ -107,9 +107,9 @@ explicit requirements, and it has some special behaviors. For example,
 metatypes and tuples cannot normally conform to other protocols,
 but they do conform to `Copyable`.
 
-A key goal in our design is _progressive disclosure_. The idea of _default_ conformance to
+A key goal of the design is _progressive disclosure_. The idea of _default_ conformance to
 `Copyable` means that a user never interacts with noncopyable generics unless
-they choose to opt-in, using the `~Copyable` notation to _suppress_
+they choose to do so, using the `~Copyable` notation to _suppress_
 the default conformance.
 
 The meaning of existing code remains the same; all generic parameters and
@@ -127,35 +127,40 @@ conformance to `Copyable`:
 struct Polygon /* : Copyable */ {...}
 ```
 
-Similarly to concrete types, generic parameters now conform to `Copyable` by
+Furthermore, generic parameters now conform to `Copyable` by
 default, so the following generic function can only be called with `Copyable` types:
 ```swift
 func identity<T>(x: T) /* where T: Copyable */ { return x }
 ```
 
-Protocols can also be seen as having a default conformance to `Copyable`, thus
+Finally, protocols also have a default conformance to `Copyable`, thus
 only `Copyable` types can conform to `Shape` below:
 ```swift
 protocol Shape /*: Copyable */ {}
 ```
 
-### Supression of `Copyable`
+### Suppression of `Copyable`
 
-So far, we haven't described any new capabilities. However, from this new point
-of view, we can describe what it means to write `~Copyable` in some new
-locations where it was not previously allowed. For example, we can generalize
-our identity function to also allow noncopyable types as follows:
+So far, we haven't described anything new, just formalized existing behavior with
+a protocol. Now, we allow writing `~Copyable` in some new positions.
+
+For example, to generalize our identity function to also allow noncopyable types, we
+suppress the default `Copyable` conformance on `T` as follows:
 ```swift
 func identity<T: ~Copyable>(x: consuming T) { return x }
 ```
+This function imposes _no_ requirements on the generic parameter `T`. All possible
+types, both `Copyable` and noncopyable, can be substituted for `T`.
+This is the reason why we refer to `~Copyable` as _suppressing_ the conformance
+rather than _inverting_ or _negating_ it.
 
-As with a concrete noncopyable type, any generic type parameter that does not
-conform to `Copyable` must use one of the ownership modifiers `borrowing`,
+As with a concrete noncopyable type, a noncopyable generic parameter type must
+be prefixed with one the ownership modifiers `borrowing`,
 `consuming`, or `inout`, when it appears as the type of a function's parameter.
 For details on these parameter ownership modifiers,
 see [SE-377](0377-parameter-ownership-modifiers.md).
 
-A protocol can allow noncopyable conforming types by supressing its inherited
+A protocol can allow noncopyable conforming types by suppressing its inherited
 conformance to `Copyable`:
 ```swift
 protocol Resource: ~Copyable {
@@ -164,17 +169,21 @@ protocol Resource: ~Copyable {
 
 extension FileDescriptor: Resource {...}
 ```
+A `Copyable` type can still conform to a `~Copyable` protocol.
 
 What it means to write `~Copyable` in each position will be fully explained in
 the **Detailed Design** section.
 
-> **Key Idea:** Suppressing the `Copyable` requirement by using `T: ~Copyable`
-> does _not_ prevent a `Copyable` type from being substituted for `T`.
-> This is the reason why the syntax `~Copyable` is referred to as _suppressing_
-> `Copyable` rather than _inverting_ or _negating_ it. Similarly, a copyable
-> type can still conform to a `~Copyable` protocol.
-
 ## Detailed Design
+
+This proposal does not fundamentally change the abstract theory of Swift
+generics, with its four fundamental kinds of requirements that can appear in a
+`where` clause; namely conformance, superclass, `AnyObject`, and same-type
+requirements.
+
+The proposed mechanism of default conformance to `Copyable`, and its suppression by
+writing `~Copyable`, is essentially a new form of syntax sugar; the transformation
+is purely syntactic and local.
 
 ### The `Copyable` protocol
 
@@ -213,7 +222,7 @@ func f<T>(_: T) where T: Resource, T: ~Copyable {}
 
 A conformance to `Copyable` cannot be suppressed if it must hold for
 some _other_ reason. In the above declaration of `f()`, we can suppress
-`Copyable` on `T` because `Resource` supresses its own `Copyable` requirement
+`Copyable` on `T` because `Resource` suppresses its own `Copyable` requirement
 on `Self`:
 ```swift
 protocol Resource: ~Copyable {...}
@@ -223,12 +232,12 @@ other hand, let's look at a copyable protocol like `Shape` below:
 ```swift
 protocol Shape /*: Copyable */ {...}
 ```
-If we try to supress the `Copyable` conformance on a generic parameter that also
+If we try to suppress the `Copyable` conformance on a generic parameter that also
 conforms to `Shape`, we get an error:
 ```swift
 func f<T: Shape & ~Copyable>(_: T) {...}  // error
 ```
-The reason is that the conformance `T: Copyable` is _implied_ by `T: Shape`, and
+The reason being that the conformance `T: Copyable` is _implied_ by `T: Shape`, and
 cannot be suppressed.
 
 Furthermore, a `Copyable` conformance can only be suppressed if the subject type
@@ -236,7 +245,7 @@ is a generic parameter declared in the innermost scope. That is, the following
 is an error:
 ```swift
 struct S<T /* : Copyable */> {
-  func f<U>(_: T, _: U) where T: ~Copyable  // error!
+  func f<U /* : Copyable */>(_: T, _: U) where T: ~Copyable  // error!
 }
 ```
 The rationale here is that since `S` must be instantiated with a copyable type,
@@ -255,20 +264,37 @@ struct Pair<T: ~Copyable>: ~Copyable {...}
 
 extension Pair /* where T: Copyable */ {...}
 ```
-The extensions presents a copyable view of the world; we get the _same_ behavior
-as if `Pair` was declared like so:
-```swift
-struct CopyablePair<T /* : Copyable */> /* : Copyable */ {...}
-```
 The conformance can be suppressed to get an unconstrained extension of `Pair`:
 ```swift
 extension Pair where T: ~Copyable {...}
 ```
-For reasons already described, attempting this with `CopyablePair` is an error;
-we cannot suppress the default conformance on `T`:
+
+An extension presents a copyable view of the world by default, behaving as if
+`Pair` were declared like so:
 ```swift
-extension CopyablePair where T: ~Copyable {...}  // error
+struct Pair<T /* : Copyable */> /* : Copyable */ {...}
 ```
+
+An extension of a nested type introduces default conformance requirements for
+all outer generic parameters of the extended type, and each conformance
+can be individually suppressed:
+```swift
+struct Outer<T: ~Copyable> {
+  struct Inner<U: ~Copyable> {}
+}
+
+extension Outer.Inner /* where T: Copyable, U: Copyable */ {}
+extension Outer.Inner where T: ~Copyable /* , U: Copyable */ {}
+extension Outer.Inner where /* T: Copyable, */ U: ~Copyable {}
+```
+
+An extension of a type whose generic parameters must be copyable cannot
+suppress conformances:
+```swift
+struct Horse<Hay> {...}
+extension Horse where Hay: ~Copyable {...}  // error
+```
+
 ### Protocol extensions
 
 Where possible, we wish to allow the user to change an existing protocol to
@@ -318,9 +344,19 @@ extension Manager {
 }
 ```
 For this reason, while adding `~Copyable` to the inheritance clause of a protocol
-is a source-compatible change, but the same with an _associated type_ is not
+is a source-compatible change, the same with an _associated type_ is not
 source compatible. The designer of a new protocol must decide which associated
 types are `~Copyable` up-front.
+
+Requirements on associated types can be written in the associated type's
+inheritance clause, or in a `where` clause, or on the protocol itself. As
+with ordinary requirements, all three of the following forms define the same
+protocol:
+```swift
+protocol P { associatedtype A: ~Copyable }
+protocol P { associatedtype A where A: ~Copyable }
+protocol P where A: ~Copyable { associatedtype A }
+```
 
 ### Protocol inheritance
 
@@ -328,10 +364,10 @@ Another consequence that immediately follows from the rules as explained so far
 is that protocol inheritance must re-state `~Copyable` if needed:
 ```swift
 protocol Token: ~Copyable {}
-protocol ArcadeToken: Token /*, Copyable */ {}
+protocol ArcadeToken: Token /* , Copyable */ {}
 protocol CasinoToken: Token, ~Copyable {}
 ```
-Again, because `~Copyable` supresses a default conformance instead of introducing
+Again, because `~Copyable` suppresses a default conformance instead of introducing
 a new kind of requirement, it is not propagated through protocol inheritance.
 
 If a base protocol declares an associated type with a suppressed conformance
@@ -350,48 +386,30 @@ protocol Derived: Base {
 }
 ```
 
-Requirements on associated types can be written in the associated type's
-inheritance clause, or in a `where` clause, or on the protocol itself. All
-three of the following are equivalent:
-```swift
-protocol P { associatedtype A: ~Copyable }
-protocol P { associatedtype A where A: ~Copyable }
-protocol P where A: ~Copyable { associatedtype A }
-```
-
 ### Conformance to `Copyable`
 
 Structs and enums conform to `Copyable` unconditionally by default, but a
-conditional conformance can also be defined. For example, we start with this
-`Copyable` type:
+conditional conformance can also be defined. For example, take this
+noncopyable generic type:
 ```swift
-enum Pair<T /* : Copyable */> /* : Copyable */ {
-  var first: T
-  var second: T
+enum List<T: ~Copyable>: ~Copyable {
+  case empty
+  indirect case element(T, List<T>)
 }
 ```
-
-To allow use of `Pair` with noncopyable types, we supress the conformance on
-the generic parameter and `Pair` itself:
+We would like `List<Int>` to be `Copyable` since `Int` is, while still being
+able to use a noncopyable element type, like `List<FileDescriptor>`. We do
+this by declaring a _conditional conformance_:
 ```swift
-enum Pair<T: ~Copyable>: ~Copyable {
-  var first: T
-  var second: T
-}
-```
-
-However, the above is source-breaking because `Pair` is now unconditionally
-noncopyable. To allow a `Pair` to be copyable when its generic argument is,
-we can declare a _conditional conformance_:
-```swift
-extension Pair: Copyable /* where T: Copyable */ {}
+extension List: Copyable /* where T: Copyable */ {}
 ```
 Note that no `where` clause needs to be written, because by the rules above,
 the default conformances here will already range over all generic parameters
 of the type.
 
-Now, `Pair<Int>` becomes `Copyable`, because `Int` is `Copyable`. On the other
-hand, `Pair<FileDescriptor>` is noncopyable.
+Note that a conditional `Copyable` conformance is not permitted if the
+struct or enum declares a `deinit`. Deterministic destruction requires the
+type to be unconditionally noncopyable.
 
 A conformance to `Copyable` is checked by verifying that every stored property
 (of a struct) or associated value (or an enum) itself conforms to `Copyable`.
@@ -404,7 +422,8 @@ struct Holder<T: ~Copyable> /* : Copyable */ {
   var value: T  // error
 }
 ```
-However, there are two situations when it is permissible for a copyable type to
+
+There are two situations when it is permissible for a copyable type to
 have a noncopyable generic parameter. The first is when the generic parameter
 is not stored inside the type itself:
 ```swift
@@ -441,14 +460,25 @@ Conditional `Copyable` conformance must be declared in the same source
 file as the struct or enum itself. Unlike conformance to other protocols,
 copyability is a deep, inherent property of the type itself.
 
+### Classes
+
+This proposal supports classes with noncopyable generic parameters,
+but it does not permit classes to themselves be `~Copyable`.
+Similarly, an `AnyObject` or superclass requirement cannot be combined with
+`~Copyable`:
+```swift
+func f<T>(_ t: T) where T: AnyObject, T: ~Copyable { ... }  // error
+```
+
 ### Existential types
 
 The type `Any` is no longer the supertype of all types in the type system's
 implicit conversion rules.
 
-Like generic parameters, existentials have a default `Copyable` member. So
-the type `Any` is really `any Copyable`, and the supertype of all types is
-`any ~Copyable`:
+The constraint type of an existential type is now understood as being a
+protocol composition, with a default `Copyable` _member_. So
+the empty protocol composition type `Any` is really `any Copyable`, and the
+supertype of all types is now `any ~Copyable`:
 
 ```
               any ~Copyable
@@ -459,29 +489,32 @@ the type `Any` is really `any Copyable`, and the supertype of all types is
 <all copyable types>
 ```
 
-This default conformance is supressed by writing `~Copyable` as a member of a
+This default conformance is suppressed by writing `~Copyable` as a member of a
 protocol composition:
 
 ```swift
 protocol Pizza: ~Copyable {}
 struct UniquePizza: Pizza, ~Copyable {}
 
-let t: any Pizza /* & Copyable */ = UniquePizza()  // error: not copyable
+let t: any Pizza /* & Copyable */ = UniquePizza()  // error
 let _: any Pizza & ~Copyable = UniquePizza()  // ok
 ```
 
-## Source Compatibility
+## Source compatibility
 
-Since `Copyable` is implicitly assumed for any context that does not explicitly
-specify `~Copyable`, this does not change the interpretation of existing code.
+The default conformance to `Copyable` is inferred anywhere it is not explicitly
+suppressed with `~Copyable`, so this proposal does not change the interpretation
+of existing code.
 
 Similarly, the re-interpretation of the SE-0390 restrictions in terms of
 conformance to `Copyable` preserves the meaning of existing code that makes use of
-non-generic noncopyable structs and enums.
+noncopyable structs and enums.
 
 ## ABI compatibility
 
-This proposal does not change the ABI of existing code. Adding `~Copyable` to
+This proposal does not change the ABI of existing code.
+
+Adding `~Copyable` to
 an existing generic parameter is generally an ABI-breaking change, even when
 source-compatible.
 
@@ -492,12 +525,12 @@ require extreme care to use correctly.
 
 ## Alternatives Considered
 
-### Alternative Spellings
+### Alternative spellings
 
 The spelling of `~Copyable` generalizes the existing syntax introduced in
 SE-0390, and changing it is out of scope for this proposal.
 
-### Inferred Conditional Copyability
+### Inferred conditional copyability
 
 A struct or enum can opt out of copyability with `~Copyable`, and then possibly
 declare a conditional conformance. It would be possible to automatically infer
@@ -515,7 +548,7 @@ extension MaybeCopyable: Copyable /* where T: Copyable */ {}
 Feedback from early attempts at implementing this form of inference suggested
 it was more confusing than helpful, so it was removed.
 
-### Extension Defaults
+### Extension defaults
 
 One possible downside is that extensions of types with noncopyable generic
 parameters must suppress the conformance on each generic parameter.
@@ -533,7 +566,7 @@ public enum Either<T: ~Copyable, U: ~Copyable> {
 }
 
 // `T` is copyable, but `U` is not, because of the defaults above:
-extension Perhaps /* where T: Copyable */ { ... }
+extension Either /* where T: Copyable */ { ... }
 
 ```
 
@@ -597,12 +630,12 @@ protocol P: ~Copyable {
   associatedtype A: P, ~Copyable
 }
 
-f<T: P>(_: T) {}
+func f<T: P>(_: T) {}
 ```
 Our hypothetical design would actually introduce an infinite sequence of
-requirements here unless supressed:
+requirements here unless suppressed:
 ```swift
-f<T: P>(_: T) /* where T: Copyable, T.A: Copyable, T.A.A: Copyable, ... */ {}
+func f<T: P>(_: T) /* where T: Copyable, T.A: Copyable, T.A.A: Copyable, ... */ {}
 ```
 Of course, it seems natural to represent this infinite sequence of requirements
 as a new kind of "recursive conformance" requirement instead.
@@ -616,16 +649,7 @@ We would then need to generalize the algorithms for deciding term equivalence to
 handle regular expressions. While there has been research in this area,
 the design for such a system is far beyond the scope of this proposal.
 
-### `~Copyable` as Logical Negation
-
-This proposal does not fundamentally change the abstract theory of Swift
-generics, with its four fundamental kinds of requirements: conformance,
-superclass, `AnyObject`, and same-type.
-
-The mechanism around default conformance to `Copyable`, and its suppression by
-writing `~Copyable`, are really just a form of syntax sugar which transforms
-requirements written by the user into this abstract form. This transformation
-is purely syntactic and local.
+### `~Copyable` as logical negation
 
 Instead, one can attempt to formalize `T: ~Copyable` as the logical negation
 of a conformance, extending the theory with a fifth requirement kind to
@@ -634,14 +658,14 @@ usable model and we have not explored this further.
 
 ## Future Directions
 
-### Standard Library Adoption
+### Standard library adoption
 
 The `Optional` and `UnsafePointer` family of types can support noncopyable types
 in a straightforward way. In the future, we will also explore noncopyable
 collections, and so on. All of this requires significant design work and is out
 of scope for this proposal.
 
-### Tuples and Parameter Packs
+### Tuples and parameter packs
 
 Noncopyable tuples and parameter packs are a straightforward generalization
 which will be discussed in a separate proposal.
@@ -652,16 +676,6 @@ The ability to "escape" the current context is another implicit capability
 of all current Swift types.
 Suppressing this requirement provides an alternative way to control object lifetimes.
 A companion proposal will provide details.
-
-### Noncopyable Classes
-
-This proposal supports classes with noncopyable generic parameters,
-but it does not permit classes to themselves be `~Copyable`.
-Similarly, an `AnyObject` or superclass requirement cannot be combined with
-`~Copyable`:
-```swift
-func f<T>(_ t: T) where T: AnyObject, T: ~Copyable { ... }  // error
-```
 
 ## Acknowledgments
 
