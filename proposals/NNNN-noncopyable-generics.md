@@ -25,8 +25,8 @@
     - [Conformance to `Copyable`](#conformance-to-copyable)
     - [Classes](#classes)
     - [Existential types](#existential-types)
-  - [Source compatibility](#source-compatibility)
-  - [ABI compatibility](#abi-compatibility)
+  - [Source Compatibility](#source-compatibility)
+  - [ABI Compatibility](#abi-compatibility)
   - [Alternatives Considered](#alternatives-considered)
     - [Alternative spellings](#alternative-spellings)
     - [Inferred conditional copyability](#inferred-conditional-copyability)
@@ -402,7 +402,7 @@ Note that no `where` clause needs to be written, because by the rules above,
 the default conformances here will already range over all generic parameters
 of the type.
 
-Note that a conditional `Copyable` conformance is not permitted if the
+A conditional `Copyable` conformance is not permitted if the
 struct or enum declares a `deinit`. Deterministic destruction requires the
 type to be unconditionally noncopyable.
 
@@ -435,7 +435,7 @@ copied, so noncopyable types can appear in the stored properties of a class:
 class Box<T: ~Copyable> {
   let value: T  // ok
 
-  init(value: T) { self.value = value }
+  init(value: consuming T) { self.value = value }
 }
 ```
 
@@ -495,7 +495,7 @@ let t: any Pizza /* & Copyable */ = UniquePizza()  // error
 let _: any Pizza & ~Copyable = UniquePizza()  // ok
 ```
 
-## Source compatibility
+## Source Compatibility
 
 The default conformance to `Copyable` is inferred anywhere it is not explicitly
 suppressed with `~Copyable`, so this proposal does not change the interpretation
@@ -505,7 +505,7 @@ Similarly, the re-interpretation of the SE-0390 restrictions in terms of
 conformance to `Copyable` preserves the meaning of existing code that makes use of
 noncopyable structs and enums.
 
-## ABI compatibility
+## ABI Compatibility
 
 This proposal does not change the ABI of existing code.
 
