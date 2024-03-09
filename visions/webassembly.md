@@ -52,13 +52,13 @@ and `wasm64` "architectures" respectively.
 ### WebAssembly System Interface (WASI)
 
 WebAssembly instruction set on its own doesn't "support" file I/O or networking, in the same way that ARM64 or x86_64
-don't "support" those directly either. Actual implementation of I/O for a hardware CPU is provided by the operating system, and
-for a Wasm module it's provided by a runtime that executes it.
+don't "support" those directly either. Actual implementation of I/O for a hardware CPU is provided by the operating
+system, and for a Wasm module it's provided by a runtime that executes it.
 
-A standardized set of APIs implemented by a Wasm runtime for interaction with the host
-operating system is called [WebAssembly System Interface](https://wasi.dev). A layer on top of WASI that Swift apps compiled to Wasm
-can already use thanks to C interop is [WASI libc](https://github.com/WebAssembly/wasi-libc). In fact, the current
-implementation of Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C library.
+A standardized set of APIs implemented by a Wasm runtime for interaction with the host operating system is called
+[WebAssembly System Interface](https://wasi.dev). A layer on top of WASI that Swift apps compiled to Wasm can already
+use thanks to C interop is [WASI libc](https://github.com/WebAssembly/wasi-libc). In fact, the current implementation of
+Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C library.
 
 ### The WebAssembly Component Model
 
@@ -80,8 +80,10 @@ The Component Model defines these core concepts:
 - *WebAssembly Interface Types (WIT) language* allows defining contracts between components;
 - *Canonical ABI* is an ABI for types defined by WIT and used by component interfaces in the Component Model.
 
-WIT is a high-level language with [an advanced type system](https://component-model.bytecodealliance.org/design/wit.html#built-in-types). It can be particularly interesting for Swift, as it allows significantly more Swift APIs to be exposed directly in interfaces of Wasm
-components compiled from Swift.
+WIT is a high-level language with
+[an advanced type system](https://component-model.bytecodealliance.org/design/wit.html#built-in-types). It can be
+particularly interesting for Swift, as it allows significantly more Swift APIs to be exposed directly in interfaces of
+Wasm components compiled from Swift.
 
 Preliminary support for WIT has been implemented in
 [the `wit-tool` subcommand](https://github.com/swiftwasm/WasmKit/blob/0.0.3/Sources/WITTool/WITTool.swift) of WasmKit
