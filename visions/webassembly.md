@@ -5,7 +5,7 @@
 WebAssembly (abbreviated [Wasm](https://webassembly.github.io/spec/core/intro/introduction.html#wasm)) is a virtual 
 machine instruction set focused on portability, security, and high performance. It is vendor-neutral, designed and
 developed by [W3C](https://w3.org). An implementation of a WebAssembly virtual machine is usually called a
-*WebAssembly runtime*, or [*embedder*](https://webassembly.github.io/spec/core/intro/overview.html#embedder).
+*WebAssembly runtime*, or an [*embedder*](https://webassembly.github.io/spec/core/intro/overview.html#embedder).
 
 Despite its origins in the browser, it is a general-purpose technology that has use cases in client-side and
 server-side applications and services. WebAssembly support in Swift makes the language more appealing in those settings,
@@ -36,7 +36,7 @@ execute in a correctly implemented spec-compliant WebAssembly runtime.
 
 ### Performance
 
-WebAssembly instruction set is designed with performance in mind. A WebAssembly module can be JIT-interpreted or
+WebAssembly instruction set is designed with performance in mind. A WebAssembly module can be JIT-compiled or
 compiled on a client machine to an optimized native binary ahead of time. With recently accepted proposals to the Wasm
 specification it now supports features such as SIMD, atomics, multi-threading, and more. A WebAssembly runtime can
 generate native binary code that implements these features with little performance overhead.
@@ -62,10 +62,10 @@ Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C lib
 
 ### The WebAssembly Component Model
 
-Initial version of WASI (referred to as "Preview 1" or as `wasi_snapshot_preview1` used by its Wasm module name) was
-inspired by C ABI and POSIX, and WASI libc itself is a fork of a portable [Musl libc](http://musl.libc.org) used on
+Initial version of WASI (referred to as "Preview 1" or as `wasi_snapshot_preview1` by its module name) was
+inspired by C ABI and POSIX, and WASI libc itself is a fork of [Musl libc](http://musl.libc.org) originally developed for
 Linux. This proved to be limiting with continued development of WASI, especially as it does not necessarily have to
-be constrained by C ABI and POSIX, as it can abstract these away in more powerful runtime implementations.
+be constrained by C ABI and POSIX. A more powerful runtime implementation can abstract these away.
 
 At the same time, W3C WebAssembly Working Group was considering multiple proposals for improving the WebAssembly [type
 system](https://github.com/webassembly/interface-types) and
