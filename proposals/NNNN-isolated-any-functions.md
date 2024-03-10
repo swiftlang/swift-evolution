@@ -1,4 +1,4 @@
-# Feature name
+# `@isolated(any)` Function Types
 
 * Proposal: [SE-NNNN](NNNN-isolated-any-functions.md)
 * Authors: [John McCall](https://github.com/rjmccall)
@@ -384,26 +384,26 @@ func process() async {
 In a pipeline, code responds to an event by performing work on a series
 of queues, like so:
 
-  ```swift
-  func handleEvent(event: Event) {}
-    queue1.async {
-      let x = makeX(event)
-      queue2.async {
-        let y = makeY(event)
-        queue3.async {
-          handle(x, y)
+    ```swift
+    func handleEvent(event: Event) {}
+      queue1.async {
+        let x = makeX(event)
+        queue2.async {
+          let y = makeY(event)
+          queue3.async {
+            handle(x, y)
+          }
         }
       }
     }
-  }
-  ```
+    ```
 
-  As long as execution always goes through the exact same sequence of FIFO
-  queues, each queue will execute its stage of the overall pipeline in
-  the same order as the events were originally received.  This can be a
-  difficult property to maintain --- concurrency at any stage will destroy
-  it, as will skipping any stages of the pipeline --- but it's not uncommon
-  for systems to be architected around it.
+    As long as execution always goes through the exact same sequence of FIFO
+    queues, each queue will execute its stage of the overall pipeline in
+    the same order as the events were originally received.  This can be a
+    difficult property to maintain --- concurrency at any stage will destroy
+    it, as will skipping any stages of the pipeline --- but it's not uncommon
+    for systems to be architected around it.
 
 ## Source compatibility
 
