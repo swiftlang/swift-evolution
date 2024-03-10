@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: [apple/swift#71433](https://github.com/apple/swift/pull/71433), [apple/swift#71574](https://github.com/apple/swift/pull/71574)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/isolated-any-function-types/70562))
 
 ## Introduction
 
