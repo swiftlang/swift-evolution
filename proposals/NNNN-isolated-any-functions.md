@@ -4,7 +4,7 @@
 * Authors: [John McCall](https://github.com/rjmccall)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Implementation: [apple/swift#71433](https://github.com/apple/swift/pull/71433), [apple/swift#71574](https://github.com/apple/swift/pull/71574)
 * Review: ([pitch](https://forums.swift.org/...))
 
 ## Introduction
