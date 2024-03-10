@@ -344,62 +344,66 @@ tasks:
 
 This proposal modifies all of these APIs so that the task function has
 `@isolated(any)` function type.  These APIs now all synchronously enqueue
-the new task directly on the appropriate executor for the function.
+the new task directly on the appropriate executor for the task function's
+dynamic isolation.
 
-The fact that tasks are now synchronously enqueued allows systems to make
-certain guarantees about in-order execution.  In particular, if task `A` is
-created before task `B`[^2], and they are both created with functions
-isolated to the same actor (but not non-isolated), and that actor's executor
-promises to run jobs in the order they were enqueued (FIFO), then
-the task `A` will run (until it suspends) before task `B`.
+Swift reserves the right to optimize the execution of tasks to avoid
+"unnecessary" isolation changes, such as when an isolated `async` function
+starts by calling a function with different isolation.  In general, this
+includes optimizing where the task initially starts executing.  As an
+exception, in order to provide a primitive scheduling operation with
+stronger guarantees, Swift will always start a task function on its
+appropriate executor for its formal dynamic isolation unless:
+- it is non-isolated or
+- it comes from a closure expression that is only *implicitly* isolated
+  to an actor (that is, it has neither an explicit `isolated` capture
+  nor a global actor attribute).
 
-[^2]: under the standard happens-before ordering
-
-However, there is an important caveat to this.  Swift generally reserves the
-right to optimize the execution of tasks to eliminate switches between
-executors that appear locally unnecessary.  It may do this even if it
-would interfere with transitive ordering.
-
-For example, in code that works with explicit queues, there is a common
-"pipeline" pattern in which each queue does some work and then dispatches
-to another queue:
+As a result, in the following code, these two tasks are guaranteed
+to start executing on the main actor in the order in which they were
+created, even if they immediately switch away from the main actor without
+having done anything that requires isolation:[^2]
 
 ```swift
-queue1.async {
-  let x = makeX()
-  queue2.async {
-    let y = makeY()
-    queue3.async {
-      handle(x, y)
-    }
+func process() async {
+  Task { @MainActor in
+    ...
+  }
+
+  // do some work
+
+  Task { @MainActor in
+    ...
   }
 }
 ```
 
-If every queue in the pipeline is FIFO and always dispatches to the same
-queue, this pattern gives you a guarantee that each step in the pipeline
-will execute in the same order it was received on the first queue.  However,
-this guarantee relies on every job visiting the exact same sequence of
-queues; even if you know that the next queue has no work to do, the job
-must not skip it, or else jobs may appear out of sequence at the queue
-following the skipped queue.
 
-There are several ways to write code using Swift actors that naively appear
-to follow this pipeline pattern.  For example, you could have an isolated
-function call an isolated function on the next actor.  However, because Swift
-can eliminate switches when they appear locally unnecessary, it is possible
-for Swift to effectively skip steps in the pipeline, which can lead to
-events being processed out of order.  Swift cannot do this if each step
-really does do isolated work on the actor, so it is still possible to use
-this pattern with carefully-written code.  However, it is a somewhat
-treacherous to try to do.
+[^2]: This sort of guarantee is important when working with a FIFO
+"pipeline", which is a common pattern when working with explicit queues.
+In a pipeline, code responds to an event by performing work on a series
+of queues, like so:
 
-Additionally, Swift's default actors are FIFO only for tasks with the same
-priority; higher-priority tasks can jump the line.  If a function kicks
-off multiple tasks, and nothing ever escalates the priority of those tasks,
-this should not be a problem.  However, high-priority tasks that wait for
-the result of a task will lend their priority to that task, changing its
-priority.
+  ```swift
+  func handleEvent(event: Event) {}
+    queue1.async {
+      let x = makeX(event)
+      queue2.async {
+        let y = makeY(event)
+        queue3.async {
+          handle(x, y)
+        }
+      }
+    }
+  }
+  ```
+
+  As long as execution always goes through the exact same sequence of FIFO
+  queues, each queue will execute its stage of the overall pipeline in
+  the same order as the events were originally received.  This can be a
+  difficult property to maintain --- concurrency at any stage will destroy
+  it, as will skipping any stages of the pipeline --- but it's not uncommon
+  for systems to be architected around it.
 
 ## Source compatibility
 
