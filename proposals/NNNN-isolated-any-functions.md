@@ -7,6 +7,8 @@
 * Implementation: [apple/swift#71433](https://github.com/apple/swift/pull/71433), [apple/swift#71574](https://github.com/apple/swift/pull/71574)
 * Review: ([pitch](https://forums.swift.org/t/isolated-any-function-types/70562))
 
+[SE-0316]: https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md
+
 ## Introduction
 
 The actor isolation of a function is an important part of how it's
@@ -337,10 +339,14 @@ There are a large number of functions in the standard library that create
 tasks:
 - `Task.init`
 - `Task.detached`
-- `TaskGroup.add`
-- `ThrowingTaskGroup.add`
-- `DiscardingTaskGroup.add`
-- `ThrowingDiscardingTaskGroup.add`
+- `TaskGroup.addTask`
+- `TaskGroup.addTaskUnlessCancelled`
+- `ThrowingTaskGroup.addTask`
+- `ThrowingTaskGroup.addTaskUnlessCancelled`
+- `DiscardingTaskGroup.addTask`
+- `DiscardingTaskGroup.addTaskUnlessCancelled`
+- `ThrowingDiscardingTaskGroup.addTask`
+- `ThrowingDiscardingTaskGroup.addUnlessCancelled`
 
 This proposal modifies all of these APIs so that the task function has
 `@isolated(any)` function type.  These APIs now all synchronously enqueue
@@ -349,20 +355,39 @@ dynamic isolation.
 
 Swift reserves the right to optimize the execution of tasks to avoid
 "unnecessary" isolation changes, such as when an isolated `async` function
-starts by calling a function with different isolation.  In general, this
-includes optimizing where the task initially starts executing.  As an
-exception, in order to provide a primitive scheduling operation with
-stronger guarantees, Swift will always start a task function on its
+starts by calling a function with different isolation.[^2] In general, this
+includes optimizing where the task initially starts executing:
+
+```swift
+@MainActor class MyViewController: UIViewController {
+  @IBAction func buttonTapped(_ sender : UIButton) {
+    Task {
+      // This closure is implicitly isolated to the main actor, but Swift
+      // is free to recognize that it doesn't actually need to start there.
+      let image = await downloadImage()
+      display.showImage(image)
+    }
+  }
+}
+```
+
+[^2]: This optimization doesn't change the formal isolation of the functions
+involved and so has no effect on the value of either `#isolation` or
+`.isolation`.
+
+As an exception, in order to provide a primitive scheduling operation with
+stronger guarantees, Swift will always start a task function on the
 appropriate executor for its formal dynamic isolation unless:
 - it is non-isolated or
 - it comes from a closure expression that is only *implicitly* isolated
   to an actor (that is, it has neither an explicit `isolated` capture
-  nor a global actor attribute).
+  nor a global actor attribute).  This can currently only happen with
+  `Task {}`.
 
 As a result, in the following code, these two tasks are guaranteed
 to start executing on the main actor in the order in which they were
 created, even if they immediately switch away from the main actor without
-having done anything that requires isolation:[^2]
+having done anything that requires isolation:[^3]
 
 ```swift
 func process() async {
@@ -379,7 +404,7 @@ func process() async {
 ```
 
 
-[^2]: This sort of guarantee is important when working with a FIFO
+[^3]: This sort of guarantee is important when working with a FIFO
 "pipeline", which is a common pattern when working with explicit queues.
 In a pipeline, code responds to an event by performing work on a series
 of queues, like so:
