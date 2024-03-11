@@ -482,6 +482,26 @@ which generally should not cause incompatibilities with direct callers
 but can introduce problems in the somewhat unlikely case that anyone
 is using those function as values.
 
+### When to use `@isolated(any)`
+
+It is recommended that APIs which take functions that are likely to run
+concurrently and don't have a predetermined isolation take those functions
+as `@isolated(any)`.  This allows the API to make more intelligent
+scheduling decisions about the function.
+
+Examples that should usually use `@isolated(any)` include:
+- functions that wrap the creation of a task
+- algorithms that call a function multiple times in parallel, such as a
+  parallel `map`
+
+Examples that should usually not use `@isolated(any)` include:
+- algorithms that preserve the current isolation, such as a non-parallel
+  `map`; these functions should usually take a non-`Sendable` function
+  instead
+- APIs that intend to call the function with a specific isolation, such
+  as UI frameworks that expect their event handlers to be `@MainActor`
+  or actor functions that run an operation on the actor
+
 ## Future directions
 
 ### Statically-isolated function types
