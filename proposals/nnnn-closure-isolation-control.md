@@ -68,10 +68,10 @@ class NonSendableType {
 
 ### Explicit closure isolation
 
-Enable explicit specification of non-isolation by allowing `nonisolated` to be a specifier on a closure:
+Enable explicit specification of non-isolation by allowing `@nonisolated` to be an attribute on a closure:
 
 ```swift
-Task { nonisolated in
+Task { @nonisolated in
   print("nonisolated")
 }
 ```
@@ -129,7 +129,7 @@ class C {
 
 An isolated parameter in a capture list must be of actor type, or conform to or imply an actor, potentially optional, and there can only be one isolated parameter captured, following the same rules described in [SE-0313](0313-actor-isolation-control.md#actor-isolated-parameters) for actor-isolated parameters.
 
-Opting out of `@inheritsIsolation` can be achieved by explicitly annotating the closure argument as `nonisolated`.
+Opting out of `@inheritsIsolation` can be achieved by explicitly annotating the closure argument as `@nonisolated`.
 
 `@_inheritActorContext` is currently used by the `Task` initializer in the standard library which should be updated to use `@inheritsIsolation` instead.
 
@@ -165,7 +165,7 @@ While it is technically possible to enqueue work on a remote distributed actor r
 
 ## Source compatibility
 
-The language changes are additive and therefore have no implications on source compatibility. The change to `Task.init` in the standard library does have the potential to isolate some closures that previously were inferred to be `nonisolated`. Prior behavior in those cases could be restored, if desired, by explicitly declaring the closure as `nonisolated`.
+The language changes are additive and therefore have no implications on source compatibility. The change to `Task.init` in the standard library does have the potential to isolate some closures that previously were inferred to be `nonisolated`. Prior behavior in those cases could be restored, if desired, by explicitly declaring the closure as `@nonisolated`.
 
 It is worth noting that this does not affect the isolation semantics for actor-isolated types that make use of isolated parameters. It is currently impossible to access self in these cases, and even with this new inheritance rule that remains true.
 
@@ -202,17 +202,13 @@ The language change does not add or affect ABI since formal isolation is already
 
 ## Implications on adoption
 
-It is possible that existing code could have a closure that names a type-inferred parameter `nonisolated`:
-```swift
-{ nonisolated in print(nonisolated) }
-```
-but with this proposed change, `nonisolated` in this case would instead be interpretted as the contextual keyword specifying the formal isolation of the closure. Such code would then result in a compilation error when trying to use a parameter named `nonisolated`.
+none
 
 ## Alternatives considered
 
-When this problem was originally brought up, there were several alternatives suggested.
+The typical `nonisolated` modifier form (without `@`) was considered, but its ambiguities with type-inferred closure parameters are problematic, particularly disambiguating `{ nonisolated parameter in ... }` as a modifier followed by a single parameter vs both as a bound pair of tokens.
 
-The most obvious is to just not use `Task` in combination with non-Sendable types in this way. Restructuring the code to avoid needing to rely on isolation inheritance in the first place.
+One alternative to `@inheritsIsolation` is to not use `Task` in combination with non-Sendable types in this way, restructuring the code to avoid needing to rely on isolation inheritance in the first place.
 
 ```swift
 class NonSendableType {
@@ -227,7 +223,7 @@ class NonSendableType {
 
 Despite this being a useful pattern, it does not address the underlying inheritance semantic differences.
 
-There was also discussion about the ability to make synchronous methods on actors. The scope of such a change is much larger than what is covered here and would still not address the underlying differences.
+There has also been discussion about the ability to make synchronous methods on actors. The scope of such a change is much larger than what is covered here and would still not address the underlying differences.
 
 ## Future directions
 
