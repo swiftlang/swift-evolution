@@ -97,7 +97,7 @@ protocol Greeter where ActorSystem: DistributedActorSystem<any Codable> {
 }
 ```
 
-The protocol must specify the a constraint on the `ActorSystem` in which it specifies the kind of `SerializationRequirement` it is able to work with. This serialization requirement must be a protocol, and existing distributed actor functionality already will be verifying this.
+The protocol must specify a constraint on the `ActorSystem` which specifies the kind of `SerializationRequirement` it is able to work with. This serialization requirement must be a protocol, and existing distributed actor functionality already will be verifying this.
 
 Checking of distributed functions works as before, and the compiler will check that the `distributed` declarations all fulfill the `SerializationRequirement` constraint. E.g. in the example above, the parameter type `String` and return type `String` both conform to the `Codable` protocol, so this distributed protocol is well formed.
 
@@ -159,7 +159,7 @@ protocol DistributedActorSystem<SerializationRequirement>: Sendable {
 
 The `SerializationRequirement` must be specified for all actors and protocols attempting to abstract over an actor system, because it is necessary to compile-time guarantee the correctness of values passed to such distributed actor methods. The compiler uses this associated type to verify all argument types and returned values are able to be serialized when performing remote calls, and will refuse to compile invocations would otherwise would have failed at runtime.
 
-Thanks to this new primary associated type, it is now possible to spell such our "distributed async sequence" as a generic actor, implement it once, and re-use it across any compatible actor system implementation:
+Thanks to this new primary associated type, it is now possible to spell our `DistributedAsyncSequence` as a generic actor, implement it once, and re-use it across any compatible actor system implementation:
 
 ```swift
 distributed actor DistributedAsyncSequence<Element, ActorSystem> 
@@ -184,7 +184,7 @@ protocol DistributedAsyncSequence: DistributedActor
 }
 ```
 
-Missing to specify the serialization requirement is a compile time error:
+Failing to specify the serialization requirement is a compile time error:
 
 ```swift
 protocol DistributedAsyncSequence: DistributedActor 
@@ -203,7 +203,7 @@ The serialization requirement must be a `protocol` type; This was previously enf
 
 The `@DistributedProtocol` macro generates a concrete `distributed actor` declaration as well as an extension which implements the protocol's method requirements with "stub" implementations.
 
->  **NOTE:** The exact details of the macro synthesized code are not guaranteed to remain the same, and may change without notice.
+>  **NOTE:** The exact details of the macro synthesized code are not guaranteed to remain the same, and may change without notice. The existence of the $-prefixed generated type is guaranteed however, as it is the public API how developers resolve and obtain remote references, I.e. for a `protocol Greeter` annotated with the `@DistributedProtocol` macro, developers may rely on the existence of the `distributed actor $Greeter` with the same access level as the protocol.
 
 This proposal also introduces an empty `DistributedActorStub` protocol:
 
@@ -211,7 +211,7 @@ This proposal also introduces an empty `DistributedActorStub` protocol:
 public protocol DistributedActorStub where Self: DistributedActor {}
 ```
 
-The `@DistributedProtocol` macro synthesizes a concrete distributed actor which accepts a generic `ActorSystem`. The generated actor declaration matches access level with the original declaration, and implements the protocol as well as the `DistributedStub` protocol:
+The `@DistributedProtocol` macro synthesizes a concrete distributed actor which accepts a generic `ActorSystem`. The generated actor declaration matches access level with the original declaration, and implements the protocol as well as the `DistributedActorStub` protocol:
 
 ```swift
 protocol Greeter: where ActorSystem: DistributedActorSystem<any Codable> {
@@ -235,11 +235,11 @@ It is possible for a protocol type to inherit other protocols, in that case the 
 
 The default method "stub" implementations provided by the `@DistributedProtocol` simply fatal error if they were to ever be invoked. In practice, invoking those methods is not possible, because resolving a stub will always return a remote reference, and therefore calls on these methods are redirected to `DistributedActorSystem`'s `remoteCall` rather than invoking the "local" methods.  
 
-It is recommended to use `some/any Greeter` rather than `$Greeter` when passing around resolved instances of a distributed actor protocol. This way none of your code is tied to the fact of using a specific type of proxy, but rather, can accept any greeter, be it local or resolved through a proxy reference. This can come in handy when refactoring a codebase, and merging modules in such way where the greeter may actually be a local instance in some situations.
+It is recommended to use `some Greeter` or `any Greeter` rather than `$Greeter` when passing around resolved instances of a distributed actor protocol. This way none of your code is tied to the fact of using a specific type of proxy, but rather, can accept any greeter, be it local or resolved through a proxy reference. This can come in handy when refactoring a codebase, and merging modules in such way where the greeter may actually be a local instance in some situations.
 
 ### Interaction with the `DefaultDistributedActorSystem`
 
-Since the introduction of distributed actors, it is possible to declare a module wide `DefaultDistributedActorSystem` type alias, like this:
+Since the introduction of distributed actors, it is possible to declare a module-wide `DefaultDistributedActorSystem` type alias, like this:
 
 ```swift
 typealias DefaultDistributedActorSystem = ClusterSystem
@@ -266,7 +266,7 @@ distributed actor Worker<ActorSystem> where ActorSystem: DistributedActorSystem<
 
 The `ActorSystem` type requirement of the `DistributedActorProtocol` in this case is witnessed by the generic parameter, and not by the "default" fallback type.
 
-This is the right behavior because this generic worked can work on _any_ distributed actor system where the `SerializationRequirement` is Codable, and not only on the `ClusterSystem`.
+This is the right behavior because this generic type works with _any_ distributed actor system where the `SerializationRequirement` is Codable, and not only on the `ClusterSystem`.
 
 ### Extend Distributed metadata for protocol method identifier lookups
 
@@ -285,7 +285,7 @@ public protocol Capybara where ActorSystem: DistributedActorSystem<any Codable> 
 
 The distributed actor runtime stores static metadata about distributed methods, such that the `executeDistributedTarget(on:target:invocationDecoder:handler:)` method is able to turn the mangled `RemoteCallIdentifier` into a concrete method handle that it then invokes. This proposal introduces a way to mangle calls on distributed protocol requirements, in such a way that they refer to the `$`-prefixed name, and invocations on such accessor are performed on the recipient side using the concrete actor's witness tables.
 
-We can illustrate the new remoteCall flow like this:
+We can illustrate the new `remoteCall` flow like this:
 
 **Caller, i.e. client side:**
 
@@ -344,7 +344,7 @@ final class MySampleDistributedActorSystem: DistributedActorSystem, ... {
 )
 ```
 
-This logic is exactly the same as any existing `DistributedActorSystem` implementation -- however changes in the Distributed runtime will handle the protocol method invocation and be able to route it to the concrete resolved actor (returned by `findByID` in this snippet, e.g. the `Caplin` concrete type).
+This logic is exactly the same as any existing `DistributedActorSystem` implementation -- however, changes in the Distributed runtime will handle the protocol method invocation and be able to route it to the concrete resolved actor (returned by `findByID` in this snippet, e.g. the `Caplin` concrete type).
 
 ## Source compatibility
 
