@@ -171,7 +171,13 @@ While it is technically possible to enqueue work on a remote distributed actor r
 
 ## Source compatibility
 
-The language changes are additive and therefore have no implications on source compatibility. The change to `Task.init` in the standard library does have the potential to isolate some closures that previously were inferred to be `nonisolated`. Prior behavior in those cases could be restored, if desired, by explicitly declaring the closure as `nonisolated`.
+It is possible that existing code could have a closure that names a type-inferred parameter `nonisolated`:
+```swift
+{ nonisolated in print(nonisolated) }
+```
+but with this proposed change, `nonisolated` in this case would instead be interpretted as the contextual keyword specifying the formal isolation of the closure. Such code would then result in a compilation error when trying to use a parameter named `nonisolated`.
+
+The change to `Task.init` in the standard library does have the potential to isolate some closures that previously were inferred to be `nonisolated`. Prior behavior in those cases could be restored, if desired, by explicitly declaring the closure as `nonisolated`.
 
 It is worth noting that this does not affect the isolation semantics for actor-isolated types that make use of isolated parameters. It is currently impossible to access self in these cases, and even with this new inheritance rule that remains true.
 
@@ -208,11 +214,7 @@ The language change does not add or affect ABI since formal isolation is already
 
 ## Implications on adoption
 
-It is possible that existing code could have a closure that names a type-inferred parameter `nonisolated`:
-```swift
-{ nonisolated in print(nonisolated) }
-```
-but with this proposed change, `nonisolated` in this case would instead be interpretted as the contextual keyword specifying the formal isolation of the closure. Such code would then result in a compilation error when trying to use a parameter named `nonisolated`.
+none
 
 ## Alternatives considered
 
