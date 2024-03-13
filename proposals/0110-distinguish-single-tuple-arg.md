@@ -1,6 +1,6 @@
 # Distinguish between single-tuple and multiple-argument function types
 
-* Proposal: [SE-0110](0110-distingish-single-tuple-arg.md)
+* Proposal: [SE-0110](0110-distinguish-single-tuple-arg.md)
 * Authors: Vladimir S., [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented**
