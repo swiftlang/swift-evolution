@@ -45,7 +45,7 @@ Without a global actor isolation annotation, actor-isolation or non-isolation of
 
 Explicit annotation has the benefit of disabling inference rules and the potential that they lead to a formal isolation that is not preferred. For example, there are circumstances where it is beneficial to guarantee that a closure is `nonisolated` therefore knowing that its execution will hop off the current actor. Explicit annotation also offers the ability to identify a mismatch of intention, such as a case where the developer expected `nonisolated` but inference landed on actor-isolated, and the closure is mistakenly used in an isolated context. Using explicit annotation, the developer would receive a diagnostic about a `nonisolated` closure being used in an actor-isolated context which helpfully identifies this mismatch of intention.
 
-Additionally, there is a difference in how isolation inheritance behaves via the experimental attribute `@_inheritActorContext` (as used by `Task.init`) for isolated parameters vs actor isolation: global actor isolatation is inherited by `Task`'s initializer closure argument, whereas an actor-isolated parameter is not inherited. This makes it challenging to build intuition around how isolation inheritance works. It also makes some kinds of concurrency patterns impossible to use without being overly restrictive.
+Additionally, there is a difference in how isolation inheritance behaves via the experimental attribute `@_inheritActorContext` (as used by `Task.init`) for isolated parameters vs actor isolation: global actor isolatation is inherited by `Task`'s initializer closure argument, whereas an actor-isolated parameter is not inherited. This makes it challenging to build intuition around how isolation inheritance works. It also makes the concurrency pattern impossible  to allow a non-Sendable type to create a new Task that can mutate self.
 
 ```swift
 class NonSendableType {
@@ -58,7 +58,7 @@ class NonSendableType {
 
   func isolatedParameter(_ actor: isolated any Actor) {
     Task {
-      // not okay to access actor
+      // not okay to access self
     }
   }
 }
