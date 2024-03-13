@@ -6,7 +6,7 @@
 * Status: **Awaiting review**
 * Implementation: On `main` gated behind `-enable-experimental-feature TransferringArgsAndResults`
 * Previous Proposal: [SE-0414: Region-based isolation](/proposals/0414-region-based-isolation.md)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-transferring-isolation-regions-of-parameter-and-result-values/70240))
 
 
 ## Introduction
