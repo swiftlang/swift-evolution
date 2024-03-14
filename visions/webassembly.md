@@ -48,7 +48,7 @@ Wasm runtime, removing the overhead of new process setup and IPC infrastructure.
 
 ### WebAssembly System Interface and the Component Model
 
-WebAssembly instruction set on its own doesn't "support" file I/O or networking, in the same way that ARM64 or x86_64
+The WebAssembly instruction set on its own doesn't "support" file I/O or networking, in the same way that ARM64 or x86_64
 don't "support" those directly either. Actual implementation of I/O for a hardware CPU is provided by the operating
 system, and for a Wasm module it's provided by a runtime that executes it.
 
