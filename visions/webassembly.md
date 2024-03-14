@@ -7,22 +7,20 @@ machine instruction set focused on portability, security, and high performance. 
 developed by [W3C](https://w3.org). An implementation of a WebAssembly virtual machine is usually called a
 *WebAssembly runtime*, or an [*embedder*](https://webassembly.github.io/spec/core/intro/overview.html#embedder).
 
-Despite its origins in the browser, it is a general-purpose technology that has use cases in client-side and
+An application compiled to a Wasm module can run on any platform that has a Wasm runtime available. Despite its origins
+in the browser, it is a general-purpose technology that has use cases in client-side and
 server-side applications and services. WebAssembly support in Swift makes the language more appealing in those settings,
-and also brings it to the browser where it previously wasn't available at all.
+and also brings it to the browser where it previously wasn't available at all. It facilitates a broader adoption of
+Swift in more environments and contexts.
 
-### Portability
-
-An application compiled to a Wasm module can run on any platform that has a Wasm runtime available. This is useful not
-only for certain applications and libraries, but for the Swift toolchain itself. To quote
+We can't anticipate every possible application Swift developers are going to create with Wasm, but we can provide a few
+examples of its possible adoption in the Swift toolchain itself. To quote
 [a GSoC 2024 idea](https://www.swift.org/gsoc2024/#building-swift-macros-with-webassembly):
 
 > WebAssembly could provide a way to build Swift macros into binaries that can be distributed and run anywhere,
 > eliminating the need to rebuild them continually.
 
 This can be applicable not only to Swift macros, but also SwiftPM manifests and plugins.
-
-### Security
 
 WebAssembly instruction set has useful properties from a security perspective, as it has
 no interrupts or peripherals access instructions. Access to the underlying system is always done by calling a
@@ -34,22 +32,21 @@ and validated by the runtime upfront. Combined with the lack of "jump to address
 instructions that require explicit labels in the same function body, this makes a certain class of attacks impossible to
 execute in a correctly implemented spec-compliant WebAssembly runtime.
 
-### Performance
+In the context of Swift developer tools, arbitrary code execution during build time can be more easily virtualized.
+While Swift macros, SwiftPM manifests, and plugins are sandboxed on Darwin platforms, with Wasm we can also apply strong
+security guarantees on other platforms that have a compatible Wasm runtime available.
 
 WebAssembly instruction set is designed with performance in mind. A WebAssembly module can be JIT-compiled or
 compiled on a client machine to an optimized native binary ahead of time. With recently accepted proposals to the Wasm
 specification it now supports features such as SIMD, atomics, multi-threading, and more. A WebAssembly runtime can
-generate native binary code that implements these features with little performance overhead.
+generate a restricted subset of native binary code that implements these features with little performance overhead.
 
-### 64-bit Support
+This means that adoption of Wasm in developer tools does not imply unavoidable performance overhead. In fact, with
+security guarantees that virtualization brings there's no longer a need to spawn a separate process for each
+Swift compiler and SwiftPM plugin/manifest invocation. Virtualized Wasm binaries can run in the host process of a
+Wasm runtime, removing the overhead of new process setup and IPC infrastructure.
 
-WebAssembly specifies support for both 32-bit and 64-bit integers and floats as a baseline. Currently, the most common
-pointer size used by Wasm binaries is 32-bit. A large proportion of Wasm applications and libraries don't need to
-address more than 4 GiB of memory. Support for 64-bit pointers was added to the WebAssembly spec and widely used
-runtimes later as an extension. Wasm binaries utilizing certain pointer width are referred as supporting `wasm32`
-and `wasm64` "architectures" respectively.
-
-### WebAssembly System Interface (WASI)
+### WebAssembly System Interface and the Component Model
 
 WebAssembly instruction set on its own doesn't "support" file I/O or networking, in the same way that ARM64 or x86_64
 don't "support" those directly either. Actual implementation of I/O for a hardware CPU is provided by the operating
@@ -59,8 +56,6 @@ A standardized set of APIs implemented by a Wasm runtime for interaction with th
 [WebAssembly System Interface](https://wasi.dev). A layer on top of WASI that Swift apps compiled to Wasm can already
 use thanks to C interop is [WASI libc](https://github.com/WebAssembly/wasi-libc). In fact, the current implementation of
 Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C library.
-
-### The WebAssembly Component Model
 
 Initial version of WASI (referred to as "Preview 1" or as `wasi_snapshot_preview1` by its module name) was
 inspired by C ABI and POSIX, and WASI libc itself is a fork of [Musl libc](http://musl.libc.org) originally developed for
@@ -87,8 +82,28 @@ Wasm components compiled from Swift.
 
 Preliminary support for WIT has been implemented in
 [the `wit-tool` subcommand](https://github.com/swiftwasm/WasmKit/blob/0.0.3/Sources/WITTool/WITTool.swift) of WasmKit
-CLI.
+CLI. Users of this tool can generate `.wit` files from Swift declarations, and vice versa: Swift bindings from `.wit`
+files.
 
 ## Goals
 
-TBD
+As of March 2024 all patches necessary for basic Wasm and WASI support have been merged to the Swift toolchain and
+core libraries. Based on this, we propose a high-level roadmap for WebAssembly support and adoption in the Swift
+ecosystem:
+
+1. Ensure that Swift toolchain and core libraries have a regularly running test suite for supported Wasm and WASI
+triples.
+
+2. Allow Swift developers to easily install and build with a Swift SDK for WASI. This requires an implementation
+of corresponding build scripts and CI jobs to generate and publish such SDK. Some parts of Swift toolchain and core
+libraries need a Swift SDK for running tests for WASI, so this will benefit the previous point in stabilizing support
+for this platform.
+
+3. As a virtualized embeddable platform, not all system APIs are always available or easy to port to WASI. For example,
+multi-threading, file system access, and localization need special support in Wasm runtimes and certain amount of
+consideration from a developer adopting these APIs. We should focus on simplifying the adoption and increasing
+API coverage for these features in Swift core libraries.
+
+4. Improve support for cross-compilation in Swift and SwiftPM. We can simplify versioning, installation, and overall
+management of Swift SDKs for cross-compilation in general, which is beneficial not only foe WebAssembly, but for all
+platforms.
