@@ -112,3 +112,24 @@ platforms.
 that future versions of WASI are available to Swift developers targeting Wasm. A more ambitious long-term goal to
 consider is making interoperability with Wasm components as smooth as C and C++ interop already is for Swift. With
 a formal specification for Canonical ABI progressing, this goal will become more achievable with time.
+
+### Proposed Language Features
+
+In our work on Wasm support in Swift we experimented with a few function attributes that could be considered
+as pitches and eventually Swift Evolution proposals, if the community is interested in their wider adoption.
+These attributes allow easier interoperation between Swift code and other Wasm modules linked with it by a Wasm
+runtime.
+
+* [`@_extern(wasm)` attribute](https://github.com/apple/swift/pull/69107) that corresponds to Clang's
+[`__attribute__((import_name("declaration_name")))`](https://clang.llvm.org/docs/AttributeReference.html#export-name)
+and [`__attribute__((import_module("module_name")))`](https://clang.llvm.org/docs/AttributeReference.html#import-module).
+This indicates that function's implementation is not provided together with its declaration in Swift and is
+available externally, imported by a Wasm runtime during the linking phase. The declaration is added to current Wasm
+module's imports section. Without `@_extern(wasm)` developers need to rely on C interop to create a declaration in a C
+header using the Clang version of attributes.
+
+* [`@_expose_(wasm)` attribute](https://github.com/apple/swift/pull/68524) that corresponds to Clang's
+[`__attribute__((export_name("name")))`](https://clang.llvm.org/docs/AttributeReference.html#export-name), which
+is the counterpart of `@_extern(wasm)` working in the opposite direction. This explicitly makes a Swift declaration
+available outside of the current module, added to its exports section under a given name. Again, the lack of
+this attribute in Swift requires use of C headers as a workaround.
