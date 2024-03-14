@@ -1,12 +1,11 @@
 # Resolve DistributedActor protocols
 
-* Proposal: [SE-NNNN](NNNN-resolve-distributed-actor-protocols.md)
+* Proposal: [SE-0428](0428-resolve-distributed-actor-protocols.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](http://github.com/xedin)
-* Review Manager: TBD
-* Status:  **Implementation in progress**
+* Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
+* Status:  **Active Review (March 13...March 26, 2024)**
 * Implementation: [PR #70928](https://github.com/apple/swift/pull/70928)
-* Discussion threads:
-  * [Pitch thread](https://forums.swift.org/t/pitch-resolve-distributedactor-protocols-for-server-client-apps/69933)
+* Review: ([pitch](https://forums.swift.org/t/pitch-resolve-distributedactor-protocols-for-server-client-apps/69933))
 
 ## Introduction
 
@@ -214,7 +213,7 @@ public protocol DistributedActorStub where Self: DistributedActor {}
 The `@DistributedProtocol` macro synthesizes a concrete distributed actor which accepts a generic `ActorSystem`. The generated actor declaration matches access level with the original declaration, and implements the protocol as well as the `DistributedActorStub` protocol:
 
 ```swift
-protocol Greeter: where ActorSystem: DistributedActorSystem<any Codable> {
+protocol Greeter: DistributedActor where ActorSystem: DistributedActorSystem<any Codable> {
   distributed func greet(name: String) -> String
 }
 
