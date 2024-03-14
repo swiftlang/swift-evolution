@@ -128,7 +128,7 @@ available externally, imported by a Wasm runtime during the linking phase. The d
 module's imports section. Without `@_extern(wasm)` developers need to rely on C interop to create a declaration in a C
 header using the Clang version of attributes.
 
-* [`@_expose_(wasm)` attribute](https://github.com/apple/swift/pull/68524) that corresponds to Clang's
+* [`@_expose(wasm)` attribute](https://github.com/apple/swift/pull/68524) that corresponds to Clang's
 [`__attribute__((export_name("name")))`](https://clang.llvm.org/docs/AttributeReference.html#export-name), which
 is the counterpart of `@_extern(wasm)` working in the opposite direction. This explicitly makes a Swift declaration
 available outside of the current module, added to its exports section under a given name. Again, the lack of
