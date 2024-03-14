@@ -20,7 +20,7 @@ examples of its possible adoption in the Swift toolchain itself. To quote
 > WebAssembly could provide a way to build Swift macros into binaries that can be distributed and run anywhere,
 > eliminating the need to rebuild them continually.
 
-This can be applicable not only to Swift macros, but also SwiftPM manifests and plugins.
+This can be applicable not only to Swift macros, but also for the evaluation of SwiftPM manifests and plugins.
 
 WebAssembly instruction set has useful properties from a security perspective, as it has
 no interrupts or peripherals access instructions. Access to the underlying system is always done by calling an
@@ -36,7 +36,7 @@ In the context of Swift developer tools, arbitrary code execution during build t
 While Swift macros, SwiftPM manifests, and plugins are sandboxed on Darwin platforms, with Wasm we can provide stronger
 security guarantees on other platforms that have a compatible Wasm runtime available.
 
-WebAssembly instruction set is designed with performance in mind. A WebAssembly module can be JIT-compiled or
+The WebAssembly instruction set is designed with performance in mind. A WebAssembly module can be JIT-compiled or
 compiled on a client machine to an optimized native binary ahead of time. With recently accepted proposals to the Wasm
 specification it now supports features such as SIMD, atomics, multi-threading, and more. A WebAssembly runtime can
 generate a restricted subset of native binary code that implements these features with little performance overhead.
@@ -53,11 +53,11 @@ don't "support" those directly either. Actual implementation of I/O for a hardwa
 system, and for a Wasm module it's provided by a runtime that executes it.
 
 A standardized set of APIs implemented by a Wasm runtime for interaction with the host operating system is called
-[WebAssembly System Interface](https://wasi.dev). A layer on top of WASI that Swift apps compiled to Wasm can already
+[WebAssembly System Interface (WASI)](https://wasi.dev). A layer on top of WASI that Swift apps compiled to Wasm can already
 use thanks to C interop is [WASI libc](https://github.com/WebAssembly/wasi-libc). In fact, the current implementation of
 Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C library.
 
-At the same time, W3C WebAssembly Working Group was considering multiple proposals for improving the WebAssembly [type
+At the same time, the W3C WebAssembly Working Group was considering multiple proposals for improving the WebAssembly [type
 system](https://github.com/webassembly/interface-types) and
 [module linking](https://github.com/webassembly/module-linking). These were later subsumed into a combined
 [Component Model](https://component-model.bytecodealliance.org) proposal thanks to the ongoing work on
