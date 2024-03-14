@@ -3,8 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-number.md)
 * Author: [C. Heath](https://github.com/hexleytheplatypus)
 * Review Manager: TBD
-* Status: TBD
-* Implementation: TBD
+* Status: [Pitch](https://forums.swift.org/t/pitch-comprehensive-number/70682/1)
+* Implementation: [Package](https://github.com/hexleytheplatypus/swift-se0000-number)
 * Review: TBD
 
 <details>
