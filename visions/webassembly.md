@@ -57,7 +57,7 @@ A standardized set of APIs implemented by a Wasm runtime for interaction with th
 use thanks to C interop is [WASI libc](https://github.com/WebAssembly/wasi-libc). In fact, the current implementation of
 Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C library.
 
-Initial version of WASI (referred to as "Preview 1" or as `wasi_snapshot_preview1` by its module name) was
+The initial version of WASI (referred to as "Preview 1" or as `wasi_snapshot_preview1` by its module name) was
 inspired by C ABI and POSIX, and WASI libc itself is a fork of [Musl libc](http://musl.libc.org) originally developed for
 Linux. This proved to be limiting with continued development of WASI, especially as it does not necessarily have to
 be constrained by C ABI and POSIX. A more powerful runtime implementation can abstract these away.
@@ -99,13 +99,13 @@ of corresponding build scripts and CI jobs to generate and publish such SDK. Som
 libraries need a Swift SDK for running tests for WASI, so this will benefit the previous point in stabilizing support
 for this platform.
 
-3. Make to easier to evaluate and adopt Wasm with increased API coverage for this platform in Swift core libraries. As a
+3. Make it easier to evaluate and adopt Wasm with increased API coverage for this platform in Swift core libraries. As a
 virtualized embeddable platform, not all system APIs are always available or easy to port to WASI. For example,
 multi-threading, file system access, and localization need special support in Wasm runtimes and certain amount of
 consideration from a developer adopting these APIs.
 
 4. Improve support for cross-compilation in Swift and SwiftPM. We can simplify versioning, installation, and overall
-management of Swift SDKs for cross-compilation in general, which is beneficial not only foe WebAssembly, but for all
+management of Swift SDKs for cross-compilation in general, which is beneficial not only for WebAssembly, but for all
 platforms.
 
 5. Continue work on Wasm Component Model support in Swift as the Component Model proposal is stabilized. Ensure
