@@ -5,7 +5,7 @@
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
 * Status:  **Active Review (March 13...March 26, 2024)**
 * Implementation: [PR #70928](https://github.com/apple/swift/pull/70928)
-* Review: ([pitch](https://forums.swift.org/t/pitch-resolve-distributedactor-protocols-for-server-client-apps/69933))
+* Review: ([pitch](https://forums.swift.org/t/pitch-resolve-distributedactor-protocols-for-server-client-apps/69933)) ([review](https://forums.swift.org/t/se-0428-resolve-distributedactor-protocols/70669))
 
 ## Introduction
 
