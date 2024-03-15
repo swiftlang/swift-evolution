@@ -7,6 +7,9 @@ machine instruction set focused on portability, security, and high performance. 
 developed by [W3C](https://w3.org). An implementation of a WebAssembly virtual machine is usually called a
 *WebAssembly runtime*, or an [*embedder*](https://webassembly.github.io/spec/core/intro/overview.html#embedder).
 
+One prominent spec-compliant implementation of a Wasm runtime in Swift is [WasmKit](https://github.com/swiftwasm/WasmKit). It is available as a Swift package, supports multiple
+host platforms, and has a simple API for interaction with guest Wasm modules.
+
 An application compiled to a Wasm module can run on any platform that has a Wasm runtime available. Despite its origins
 in the browser, it is a general-purpose technology that has use cases in client-side and
 server-side applications and services. WebAssembly support in Swift makes the language more appealing in those settings,
