@@ -276,7 +276,7 @@ A class can only be annotated with a global actor if it has no superclass, the s
 Declarations that are not explicitly annotated with either a global actor or `nonisolated` can infer global actor isolation from several different places:
 
 * Subclasses infer actor isolation from their superclass:
-* 
+
   ```swift
   class RemoteIconViewController: IconViewController { // implicitly @MainActor
       func connect() { ... } // implicitly @MainActor
