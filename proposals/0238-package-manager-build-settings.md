@@ -28,7 +28,7 @@ We propose to add the following build settings in this proposal:
 
 ### Header search path (C/CXX)
 
-```
+```swift
 static func headerSearchPath(_ path: String, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>
 ```
 
