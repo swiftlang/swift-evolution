@@ -93,7 +93,7 @@ of corresponding build scripts and CI jobs to generate and publish such SDK. Som
 libraries need a Swift SDK for running tests for WASI, so this will benefit the previous point in stabilizing support
 for this platform.
 
-3. Make it easier to evaluate and adopt Wasm with increased API coverage for this platform in Swift core libraries. As a
+3. Make it easier to evaluate and adopt Wasm with increased API coverage for this platform in the Swift core libraries. As a
 virtualized embeddable platform, not all system APIs are always available or easy to port to WASI. For example,
 multi-threading, file system access, and localization need special support in Wasm runtimes and a certain amount of
 consideration from a developer adopting these APIs.
