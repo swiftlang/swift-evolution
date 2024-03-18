@@ -8,15 +8,15 @@
 
 ## Introduction
 
-<p align="justify">One great goal for Swift 3 is to sort out any source breaking language changes. This proposal aims to fix access modifier inconsistency on extensions compared to other scope declarations types.</p>
+One great goal for Swift 3 is to sort out any source breaking language changes. This proposal aims to fix access modifier inconsistency on extensions compared to other scope declarations types.
 
 Swift-evolution thread: [\[Proposal\] Revising access modifiers on extensions](https://forums.swift.org/t/proposal-revising-access-modifiers-on-extensions/3138)
 
 ## Motivation
 
-<p align="justify">The access control of classes, enums and structs in Swift is very easy to learn and memorize. It also disallows to suppress the access modifier of implemented conformance members to lower access modifier if the host type has an access modifier of higher or equal level.</p>
+The access control of classes, enums and structs in Swift is very easy to learn and memorize. It also disallows to suppress the access modifier of implemented conformance members to lower access modifier if the host type has an access modifier of higher or equal level.
 
-<center>`public` > `internal` > `fileprivate` >= `private`</center>
+`public` > `internal` > `fileprivate` >= `private`
 
 ```swift
 public class A {
