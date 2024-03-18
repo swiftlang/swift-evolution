@@ -115,7 +115,7 @@ extension QuakeMonitor {
         continuation.yield(quake)
       }
       continuation.onTermination = { _ in 
-        monitor.stopMonitoring // also retains the monitor, preventing deinit
+        monitor.stopMonitoring()
       }
       monitor.startMonitoring()
     }
