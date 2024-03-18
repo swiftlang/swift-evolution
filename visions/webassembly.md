@@ -58,10 +58,11 @@ system, and for a Wasm module it's provided by a runtime that executes it.
 A standardized set of APIs implemented by a Wasm runtime for interaction with the host operating system is called
 [WebAssembly System Interface (WASI)](https://wasi.dev). A layer on top of WASI that Swift apps compiled to Wasm can already
 use thanks to C interop is [WASI libc](https://github.com/WebAssembly/wasi-libc). In fact, the current implementation of
-Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C library.
+Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C library. It is important for WASI support in
+Swift to be as complete as possible to ensure portability of Swift code in the broader Wasm ecosystem.
 
-At the same time, the W3C WebAssembly Working Group was considering multiple proposals for improving the WebAssembly [type
-system](https://github.com/webassembly/interface-types) and
+In the last few years, W3C WebAssembly Working Group considered multiple proposals for improving the WebAssembly
+[type system](https://github.com/webassembly/interface-types) and
 [module linking](https://github.com/webassembly/module-linking). These were later subsumed into a combined
 [Component Model](https://component-model.bytecodealliance.org) proposal thanks to the ongoing work on
 [WASI Preview 2](https://github.com/WebAssembly/WASI/blob/main/preview2/README.md), which served as playground for
@@ -101,9 +102,7 @@ consideration from a developer adopting these APIs.
 management of Swift SDKs for cross-compilation in general, which is beneficial not only for WebAssembly, but for all
 platforms.
 
-5. Explore and prototype virtualization of SwiftPM manifests/plugins and Swift macros with Wasm.
-
-6. Continue work on Wasm Component Model support in Swift as the Component Model proposal is stabilized. Ensure
+5. Continue work on Wasm Component Model support in Swift as the Component Model proposal is stabilized. Ensure
 that future versions of WASI are available to Swift developers targeting Wasm. A more ambitious long-term goal to
 consider is making interoperability with Wasm components as smooth as C and C++ interop already is for Swift. With
 a formal specification for Canonical ABI progressing, this goal will become more achievable with time.
