@@ -28,7 +28,9 @@ We propose to add the following build settings in this proposal:
 
 ### Header search path (C/CXX)
 
-`static func headerSearchPath(_ path: String, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>`
+```
+static func headerSearchPath(_ path: String, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>
+```
 
 Many C-family projects are structured in a way that requires adding header search paths to different directories of the project. Currently, SwiftPM only adds a search path to the `include` directory which makes it difficult for many C projects to add support for building with SwiftPM. This specified path should be relative to the target and should not escape the package boundary. Absolute paths are disallowed.
 
@@ -36,7 +38,9 @@ Many C-family projects are structured in a way that requires adding header searc
 
 ### Define (C/CXX)
 
-`static func define(_ name: String, to value: String? = nil, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>`
+```swift
+static func define(_ name: String, to value: String? = nil, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>
+```
 
 This setting will add the `-D<name>=<value>` flag during a target's compilation. This is useful for projects that want to specify a compile-time condition.
 
@@ -44,25 +48,33 @@ This setting will add the `-D<name>=<value>` flag during a target's compilation.
 
 ### Define (Swift)
 
-`static func define(_ name: String, _ condition: BuildSettingCondition? = nil) -> SwiftSetting`
+```swift
+static func define(_ name: String, _ condition: BuildSettingCondition? = nil) -> SwiftSetting
+```
 
 This setting enables the specified compilation condition for Swift targets. Unlike C/CXX's define, it doesn't have an associated value.
 
 ### Link library (Linker)
 
-`static func linkLibrary(_ libraryName: String, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>`
+```swift
+static func linkedLibrary(_ libraryName: String, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>
+```
 
 This is useful for packages that want to link against a library present in the system. The current approach requires them to create a module map using system library targets or a fake C target in order to achieve this effect. There is also no provision for conditionalization based on the platform in the existing approach, which is valuable when writing cross-platform packages.
 
 ### Link framework (Linker)
 
-`static func linkFramework(_ frameworkName: String, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>`
+```swift
+static func linkedFramework(_ frameworkName: String, _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>
+```
 
 Frameworks are autolinked for Swift and C/ObjC targets so most packages shouldn't require this build setting. However, packages that contain C++ files can't autolink the frameworks. Since frameworks are widely used on Apple platforms, it is recommended to use this setting with a platform conditional.
 
 ### Unsafe flags (All)
 
-`static func unsafeFlags(_ flags: [String], _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>`
+```swift
+static func unsafeFlags(_ flags: [String], _ condition: BuildSettingCondition? = nil) -> <BuildSettingType>
+```
 
 This is an escape hatch that will allow targets to pass arbitrary command-line flags to the corresponding build tool. The "unsafe" here implies that SwiftPM can't safely determine if the build flags will have any negative side-effect to the build since certain flags can change the behavior of how a build is performed. It is similar to how the `-Xcc`, `-Xswiftc`, `-Xlinker` option work in the command-line SwiftPM tools.
 
