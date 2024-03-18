@@ -650,7 +650,7 @@ The following operations are mutating uses:
 
 When noncopyable types are used as function parameters, the ownership
 convention becomes a much more important part of the API contract.
-As such, when a function parameter is declared with an noncopyable type, it
+As such, when a function parameter is declared with a noncopyable type, it
 **must** declare whether the parameter uses the `borrowing`, `consuming`, or
 `inout` convention:
 
