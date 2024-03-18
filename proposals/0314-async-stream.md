@@ -114,8 +114,8 @@ extension QuakeMonitor {
       monitor.quakeHandler { quake in
         continuation.yield(quake)
       }
-      monitor.onTermination = { _ in 
-        monitor.stopMonitoring
+      continuation.onTermination = { _ in 
+        monitor.stopMonitoring()
       }
       monitor.startMonitoring()
     }
