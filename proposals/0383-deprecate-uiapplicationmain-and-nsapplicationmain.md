@@ -4,7 +4,7 @@
 * Authors: [Robert Widmann](https://github.com/codafi)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 5.10)**
-* Upcoming Feature Flag: `DeprecateApplicationMain`
+* Upcoming Feature Flag: `DeprecateApplicationMain` (Enabled in Swift 6 language mode)
 * Implementation: [PR 62151](https://github.com/apple/swift/pull/62151)
 * Review: ([pitch](https://forums.swift.org/t/deprecate-uiapplicationmain-and-nsapplicationmain/61493)) ([review](https://forums.swift.org/t/se-0383-deprecate-uiapplicationmain-and-nsapplicationmain/62375)) ([acceptance](https://forums.swift.org/t/accepted-se-0383-deprecate-uiapplicationmain-and-nsapplicationmain/62645))
 
@@ -96,7 +96,7 @@ changes are required.
 
 ## Source compatibility
 
-Current Swift libraries will continue to build because they compile under
+Current Swift libraries will continue to build becuase they compile under
 pre-Swift 6 language modes. Under such language modes this proposal adds only an
 unconditional warning when framework-specific entrypoints are used, and provides
 diagnostics to avoid the warning by automatically migrating user code.
