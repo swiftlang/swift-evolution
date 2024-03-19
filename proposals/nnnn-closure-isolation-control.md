@@ -239,6 +239,10 @@ There has also been discussion about the ability to make synchronous methods on 
 
 ## Future directions
 
+### weak isolated
+
+Explore support for explicitly `isolated` closure captures to additionally be specified as `weak`.
+
 ### "Known to be local" distributed actors and isolation
 
 Distributed actors have a property that is currently not exposed in the type system that is "known to be local". If a distributed actor is known to be local, code may become isolated to it.
