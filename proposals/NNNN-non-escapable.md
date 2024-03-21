@@ -41,8 +41,8 @@ In addition, the use of reference counting to ensure correctness at runtime make
 ## Proposed solution
 
 Currently, the notion of "escapability" appears in the Swift language as a feature of closures.
-Closures that are declared as `@nonescapable` can use a very efficient stack-based representation;
-closures that are `@escapable` store their state on the heap.
+Nonescapable closures can use a very efficient stack-based representation;
+closures that are `@escapable` store their captures on the heap.
 
 By allowing Swift developers to mark various types as nonescapable, we provide a mechanism for them to opt into a specific set of usage limitations that:
 
@@ -64,7 +64,7 @@ We are not at this time proposing any changes to Swift's current `Iterator` prot
 
 #### New Escapable Concept
 
-We add a new suppressible type constraint `Escapable` to the standard library and implicitly apply it to all current Swift types (with the sole exception of `@nonescapable` closures).
+We add a new suppressible protocol `Escapable` to the standard library and implicitly apply it to all current Swift types (with the sole exception of nonescapable closures).
 `Escapable` types can be assigned to global variables, passed into arbitrary functions, or returned from the current function or closure.
 This matches the existing semantics of all Swift types prior to this proposal.
 
@@ -77,7 +77,7 @@ protocol Escapable: ~Copyable {}
 
 #### In concrete contexts, `~Escapable` indicates nonescapability
 
-Using the same approach as used for `~Copyable` and `Copyable`, we use `~Escapable` to indicate the lack of the `Escapable` attribute on a type.
+Using the same approach as used for `~Copyable` and `Copyable`, we use `~Escapable` to suppress the `Escapable` conformance on a type.
 
 ```swift
 // Example: A type that is not escapable
@@ -86,7 +86,7 @@ struct NotEscapable: ~Escapable {
 }
 ```
 
-A nonescapable type is not allowed to escape the local context:
+A nonescapable value is not allowed to escape the local context:
 ```swift
 // Example: Basic limits on ~Escapable types
 func f() -> NotEscapable {
@@ -98,10 +98,10 @@ func f() -> NotEscapable {
 }
 ```
 
-**Note**: The inability to return a nonescapable type has implications for how initializers must be written.
-The section "Returned nonescapable values require lifetime dependency" has more details.
+**Note**:
+The section "Returned nonescapable values require lifetime dependency" explains the implications for how you must write initializers.
 
-Without a `~Escapable` marker, the default for any type is to be escapable.  Since `~Escapable` indicates the lack of a capability, you cannot put this in an extension.
+Without `~Escapable`, the default for any type is to be escapable.  Since `~Escapable` suppresses a capability, you cannot put this in an extension.
 
 ```swift
 // Example: Escapable by default
@@ -111,36 +111,19 @@ extension Ordinary: ~Escapable // 🛑 Extensions cannot remove a capability
 
 Classes cannot be declared `~Escapable`.
 
-#### In generic contexts,  `~Escapable` marks the lack of an Escapable requirement
+#### In generic contexts, `~Escapable` suppresses the default Escapable requirement
 
 When used in a generic context, `~Escapable` allows you to define functions or types that can work with values that might or might not be escapable.
-That is, `~Escapable` indicates the lack of an escapable requirement.
+That is, `~Escapable` indicates the default escapable requirement has been suppressed.
 Since the values might not be escapable, the compiler must conservatively prevent the values from escaping:
 
 ```swift
-// Example: In generic contexts, ~Escapable is
-// the lack of an Escapable requirement.
 func f<MaybeEscapable: ~Escapable>(_ value: MaybeEscapable) {
   // `value` might or might not be Escapable
   globalVar = value // 🛑 Cannot assign possibly-nonescapable type to a global var
 }
 f(NotEscapable()) // Ok to call with nonescapable argument
 f(7) // Ok to call with escapable argument
-```
-
-This also permits the definition of types whose escapability varies depending on their generic arguments.
-As with other conditional behaviors, this is expressed by using an extension to conditionally add a new capability to the type:
-
-```swift
-// Example: Conditionally Escapable generic type
-// By default, Box is itself nonescapable
-struct Box<T: ~Escapable>: ~Escapable {
-  var t: T
-}
-
-// Box gains the ability to escape whenever its
-// generic argument is Escapable
-extension Box: Escapable when T: Escapable { }
 ```
 
 [SE-0427 Noncopyable Generics](https://github.com/apple/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md) provides more detail on
@@ -238,9 +221,64 @@ All of the requirements on use of nonescapable values as function arguments and 
 
 The closures used in `Task.init`, `Task.detached`, or `TaskGroup.addTask` are escaping closures and therefore cannot capture nonescapable values.
 
+#### Conditionally `Escapable` types
+
+You can define types whose escapability varies depending on their generic arguments.
+As with other conditional behaviors, this is expressed by using an extension to conditionally add a new capability to the type:
+
+```swift
+// Example: Conditionally Escapable generic type
+// By default, Box is itself nonescapable
+struct Box<T: ~Escapable>: ~Escapable {
+  var t: T
+}
+
+// Box gains the ability to escape whenever its
+// generic argument is Escapable
+extension Box: Escapable when T: Escapable { }
+```
+
+This can be used in conjunction with other suppressible protocols.
+For example, many general library types will need to be copyable and/or escapable following their contents.
+Here's a compact way to declare such a type:
+```swift
+struct Wrapper<T: ~Copyable & ~Escapable> { ... }
+extension Wrapper: Copyable where T: ~Escapable {}
+extension Wrapper: Escapable where T: ~Copyable {}
+```
+
+The above declarations all in a single source file will result in a type `Wrapper` that is `Escapable` exactly when `T` is `Escapable` and `Copyable` exactly when `T` is `Copyable`.
+To see why, first note that the explicit `extension Wrapper: Escapable` in the same source file implies that the original `struct Wrapper` must be `~Escapable` and similarly for `Copyable`, exactly as if the first line had been
+```swift
+struct Wrapper<T: ~Copyable & ~Escapable>: ~Copyable & ~Escapable {}
+```
+
+Now recall from SE-427 that suppressible protocols must be explicitly suppressed on type parameters in extensions.
+This means that
+```swift
+extension Wrapper: Copyable where T: ~Escapable {}
+```
+is exactly the same as
+```swift
+extension Wrapper: Copyable where T: Copyable & ~Escapable {}
+```
+which implies that `Wrapper` becomes `Copyable` when `T` is `Copyable`.
+Finally, remember that `~Escapable` means that `Escapable` is not required, so
+this condition on `Copyable` applies regardless of whether `T` is `Escapable` or not.
+
+Similarly,
+```swift
+extension Wrapper: Escapable where T: ~Copyable {}
+```
+is exactly the same as
+```swift
+extension Wrapper: Escapable where T: Escapable & ~Copyable {}
+```
+which means that `Wrapper` is `Escapable` whenever `T` is `Escapable` regardless of whether `T` is `Copyable` or not.
+
 ## Source compatibility
 
-The compiler will treat any type without an explicit `~Escapable` marker as escapable.
+The compiler will treat any type without explicit `~Escapable` as escapable.
 This matches the current behavior of the language.
 
 Only when new types are marked as `~Escapable` does this have any impact.
@@ -325,7 +363,7 @@ We expect to eventually allow this by explicitly annotating a “static” or �
 #### Require `Escapable` to indicate escapable types without using `~Escapable`
 
 We could avoid using `~Escapable` to mark types that lack the `Escapable` property by requiring `Escapable` on all escapable types.
-However, it is infeasible to require updating all existing types in all existing Swift code with a new capability marker.
+However, it is infeasible to require updating all existing types in all existing Swift code with a new explicit capability.
 
 Apart from that, we expect almost all types to continue to be escapable in the future, so the negative marker reduces the overall burden.
 It is also consistent with progressive disclosure:
