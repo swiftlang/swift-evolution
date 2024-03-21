@@ -321,6 +321,20 @@ always implies no-implicit-copying, so there is no way to change the default
 ownership convention of a `transferring` parameter without also opting into
 no-implicit-copying semantics.
 
+### Adoption in the Concurrency library
+
+There are several APIs in the concurrency library that transfer a parameter
+across isolation boundaries and don't need the full guarnatees of `Sendable`.
+These APIs will instead adopt `transferring` parameters:
+
+* `CheckedContinuation.resume(returning:)`
+* `Async{Throwing}Stream.Continuation.yield(_:)`
+* `Async{Throwing}Stream.Continuation.yield(with:)`
+* The `Task` creation APIs
+
+Note that this list does not include `UnsafeContinuation.resume(returning:)`,
+because `UnsafeContinuation` deliberately opts out of correctness checking.
+
 ## Source compatibility
 
 In the Swift 5 language mode, `transferring` diagnostics are suppressed under
