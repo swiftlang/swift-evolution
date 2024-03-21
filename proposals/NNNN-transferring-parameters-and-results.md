@@ -151,9 +151,10 @@ public func withCheckedContinuation<T>(
 ## Detailed design
 
 A `transferring` parameter requires the argument value to be in a disconnected
-region. At the point of the call, the disconnected region is transferred to
-the isolation domain of the callee, and cannot be used in the caller's isolation
-domain after the transfer:
+region. At the point of the call, the disconnected region is transferred away
+and cannot be used in the caller's isolation domain after the transfer,
+allowing the callee to transfer the parameter value to a region that is opaque
+to the caller:
 
 ```swift
 @MainActor
