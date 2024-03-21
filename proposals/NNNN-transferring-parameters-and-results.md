@@ -295,6 +295,15 @@ struct Y2: P1 {
 }
 ```
 
+### `transferring inout` parameters
+
+A `transferring` parameter can also be marked as `inout`, meaning that the
+argument value must be in a disconnected region when passed to the function,
+and the parameter value must be in a disconnected region when the function
+returns. Inside the function, the `transferring inout` parameter can be merged
+with actor-isolated callees or further transferred as long as the parameter is
+re-assigned a value in a disconnected region upon function exit.
+
 ### Ownership convention for `transferring` parameters
 
 When a call passes an argument to a `transferring` parameter, the caller cannot
