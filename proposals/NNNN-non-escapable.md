@@ -134,19 +134,21 @@ Copyable or noncopyable types can be escapable or nonescapable.
 
 #### Constraints on nonescapable local variables
 
-A nonescapable value can be freely copied and passed into other functions as long as the usage can guarantee that the value does not persist beyond the current scope:
+A nonescapable value can be freely copied and passed into other functions, including async and throwing functions, as long as the usage can guarantee that the value does not persist beyond the current scope:
 
 ```swift
 // Example: Local variable with nonescapable type
 func borrowingFunc(_: borrowing NotEscapable) { ... }
 func consumingFunc(_: consuming NotEscapable) { ... }
 func inoutFunc(_: inout NotEscapable) { ... }
+func asyncBorrowingFunc(_: borrowing NotEscapable) async -> ResultType { ... }
 
 func f() {
   var value: NotEscapable
   let copy = value // OK to copy as long as copy does not escape
   globalVar = value // 🛑 May not assign to global
   SomeType.staticVar = value // 🛑 May not assign to static var
+  async let r = asyncBorrowingFunc(value) // OK to pass borrowing
   borrowingFunc(value) // OK to pass borrowing
   inoutFunc(&value) // OK to pass inout
   consumingFunc(value) // OK to pass consuming
