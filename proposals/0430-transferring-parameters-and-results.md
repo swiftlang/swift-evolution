@@ -1,9 +1,9 @@
 # `transferring` isolation regions of parameter and result values
 
-* Proposal: [SE-NNNN](NNNN-transferring-parameters-and-results.md)
+* Proposal: [SE-0430](0430-transferring-parameters-and-results.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
+* Status: **Active Review (March 21...April 1, 2024)** 
 * Implementation: On `main` gated behind `-enable-experimental-feature TransferringArgsAndResults`
 * Previous Proposal: [SE-0414: Region-based isolation](/proposals/0414-region-based-isolation.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-transferring-isolation-regions-of-parameter-and-result-values/70240))
