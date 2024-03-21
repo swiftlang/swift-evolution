@@ -134,7 +134,7 @@ Similar to the previous example:
 
 In both this and the previous case, the lifetime of the return value is "scoped" to the lifetime of the original value.
 Because lifetime dependencies can only be attached to `~Escapable` values, types that contain pointers will generally need to be `~Escapable` in order to provide safe semantics.
-As a result, **scoped lifetime dependencies** are the common case whenever an `Escapable` value (such as an Array or similar container) is providing a `~Escapable` value (such as the `BufferReference` or `MutatingBufferReference` in these examples).
+As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as an Array or similar container) is providing a `~Escapable` value (such as the `BufferReference` or `MutatingBufferReference` in these examples).
 
 #### Copy Lifetime Dependency
 
@@ -214,7 +214,7 @@ Given a method of this form:
 
 The behavior depends as above on the mutation-modifier and whether the defining type is `Escapable` or `~Escapable`.
 
-**Initializers:** An initializer can define a lifetime dependency on one of its arguments.
+**Initializers:** An initializer can define lifetime dependencies on one or more arguments.
 In this case, we use the same rules same as for “Functions” above
 by using the convention that initializers can be viewed as functions that return `Self`:
 
