@@ -238,8 +238,8 @@ struct EscStruct {
   borrowing func f2(...) -> /* @dependsOn(self) */ NonescapableType
   mutating func f3(...) -> /* @dependsOn(self) */ NonescapableType
 
-  // Note: no lifetime dependency is inferred for a consuming method
-  // on an `Escapable` type, since there is no legal option
+  // 🛑 Error: there is no valid lifetime dependency for
+  // a consuming method on an `Escapable` type
   consuming func f4(...) -> NonescapableType
 }
 
@@ -275,86 +275,6 @@ We expect these implicit inferences to cover most cases, with the explicit form 
 
 ## Detailed design
 
-### Grammar
-
-This new syntax adds an optional lifetime modifier just before the return type.
-This modifies *function-result* in the Swift grammar as follows:
-
->
-> *function-signature* → *parameter-clause* **`async`***?* **`throws`***?* *function-result**?* \
-> *function-signature* → *parameter-clause* **`async`***?* **`rethrows`** *function-result**?*
-> *function-result* → **`->`** *attributes?* *lifetime-modifiers?* *type*
-> *lifetime-modifiers* **`->`** *lifetime-modifier* *lifetime-modifiers?*
-> *lifetime-modifier* **`->`** **`@dependsOn`** **`(`** *lifetime-dependency* **`)`**
-> *lifetime-dependency* **`->`** **`self`** | *local-parameter-name* | **`scoped self`** | **`scoped`** *local-parameter-name*
->
-
-Here, the *lifetime-dependency* argument to the lifetime modifier must be one of the following:
-
-* *local-parameter-name*: the local name of one of the function parameters, or
-* the token **`self`**, or
-* either of the above preceded by the **`scoped`** keyword
-
-#### Initializers
-
-Initializers can have arguments, and there are cases where users will want to specify a lifetime dependency between one or more arguments and the constructed value.
-We propose allowing initializers to write out an explicit return clause for this case.
-The return type must be exactly the token `Self` or the token sequence `Self?` in the case of a failable initializer:
-
-```swift
-struct S {
-  init(arg1: Type1) -> @dependsOn(arg1) Self
-  init?(arg2: Type2) -> @dependsOn(scoped arg2) Self?
-}
-```
-
-> Grammar of an initializer declaration:
->
-> *initializer-declaration* → *initializer-head* *generic-parameter-clause?* *parameter-clause* **`async`***?* **`throws`***?* *initializer-lifetime-modifier?* *generic-where-clause?* *initializer-body* \
-> *initializer-declaration* → *initializer-head* *generic-parameter-clause?* *parameter-clause* **`async`***?* **`rethrows`** *initializer-lifetime-modifier?* *generic-where-clause?* *initializer-body*
-> *initializer-lifetime-modifier* → `**->**` *lifetime-modifiers* ** **`Self`** \
-> *initializer-lifetime-modifier* → `**->**` *lifetime-modifiers* ** **`Self?`**
-
-### Inference Rules
-
-If there is no explicit lifetime dependency, we will automatically infer one according to the following rules:
-
-**For methods where the return type is `~Escapable`**, we will infer a dependency against self, depending on the mutation type of the function.
-Note that this is not affected by the presence, type, or modifier of any other arguments to the method.
-
-**For a free or static functions or initializers with at least one argument,** we will infer a lifetime dependency when all of the following are true:
-
-* the return type is `~Escapable`,
-* there is exactly one argument that satisfies any of the following:
-** is either `~Copyable` or `~Escapable`
-** is `Escapable` and `Copyable` and has an explicit `borrowing`, `consuming`, or `inout` convention specified
-
-In this case, the compiler will infer a dependency on the unique argument identified by this last set of conditions.
-
-**In no other case** will a function, method, or initializer implicitly gain a lifetime dependency.
-If a function, method, or initializer has a `~Escapable` return type, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
-
-### Semantics
-
-The previous sections detail how lifetime dependency between the return value of a function or method and a function argument, method argument, or `self` can be explicitly declared or implicitly inferred by the compiler.
-
-When the dependency involves a function, method, or initializer argument,
-if the corresponding argument is `borrowing` or `inout` then we can refer to that argument as the *source* of the dependency, and the return value then has a *scoped lifetime dependency* on the source.
-When this occurs, the compiler may shorten the lifetime of the return value or extend the lifetime of the source value within the existing language rules in order to satisfy the requirements below.
-Further, the compiler will issue diagnostics if these requirements cannot be satisfied:
-
-* The return value must be destroyed before the source value.
-  This can be obstructed if there are other factors (such as nested scopes, function returns, or closure captures) that contradict the lifetime dependency.
-* For a borrowing argument, the source value cannot be mutated before the return value is destroyed.
-* For an inout argument, the source value is accessed or mutated before the return value is destroyed.
-
-The rules above apply with the obvious modifications for a method that explicitly or implicitly has a lifetime dependency between the return value and `self`.
-
-If the `lifetime-kind` is `consume` or `copy`, then the return value from the function or method gains the same lifetime dependency as the function argument, method argument, or `self`.
-In this case, we’ll refer to the argument or `self` as the *original* value.
-In this case, the original value must itself must be `~Escapable`, and must in turn have a borrow or mutate lifetime dependency on some other source value.
-The return value will then have a borrow or mutate lifetime dependency on that same source value that will be enforced by the compiler as above.
-
 ### Relation to ~Escapable
 
 The lifetime dependencies described in this document can be applied only to `~Escapable` return values.
@@ -367,13 +287,112 @@ struct S: ~Escapable {
 }
 ```
 
+### Basic Semantics
+
+A lifetime dependency annotation creates a *lifetime dependency* between a *dependent value* and a *source value*.
+This relationship obeys the following requirements:
+
+* The dependent value must be nonescapable.
+
+* The dependent value's lifetime must not be longer than that of the source value.
+
+* The dependent value is treated as an ongoing access to the source value.
+  Following Swift's usual exclusivity rules, the source value may not be mutated during the lifetime of the dependent value;
+  if the access is a mutating access, the source value is further prohibited from being accessed at all during the lifetime of the dependent value.
+
+The compiler must issue a diagnostic if any of the above cannot be satisfied.
+
+### Grammar
+
+This new syntax adds an optional lifetime modifier just before the return type.
+This modifies *function-result* in the Swift grammar as follows:
+
+>
+> *function-signature* → *parameter-clause* **`async`***?* **`throws`***?* *function-result**?* \
+> *function-signature* → *parameter-clause* **`async`***?* **`rethrows`** *function-result**?* \
+> *function-result* → **`->`** *attributes?* *lifetime-modifiers?* *type* \
+> *lifetime-modifiers* → **`->`** *lifetime-modifier* *lifetime-modifiers?* \
+> *lifetime-modifier* → **`->`** **`@dependsOn`** **`(`** *lifetime-dependent* **`)`** \
+> *lifetime-dependent* → **`->`** **`self`** | *local-parameter-name* | **`scoped self`** | **`scoped`** *local-parameter-name*
+>
+
+The *lifetime-dependent* argument to the lifetime modifier is one of the following:
+
+* *local-parameter-name*: the local name of one of the function parameters, or
+* the token **`self`**, or
+* either of the above preceded by the **`scoped`** keyword
+
+This modifier creates a lifetime dependency with the return value used as the dependent value.
+The return value must be nonescapable.
+
+The source value of the resulting dependency can vary.
+In some cases, the source value will be the named parameter or `self` directly.
+However, if the corresponding named parameter or `self` is nonescapable, then that value will itself have an existing lifetime dependency and thus the new dependency might "copy" the source of that existing dependency.
+
+The following table summarizes the possibilities, which depend on the type and mutation modifier of the argument or `self` and the existence of the `scoped` keyword.
+Here, "scoped" indicates that the dependent gains a direct lifetime dependency on the named parameter or `self` and "copied" indicates that the dependent gains a lifetime dependency on the source of an existing dependency:
+
+| mutation modifier  | argument type | without `scoped` | with `scoped` |
+| ------------------ | ------------- | ---------------- | ------------- |
+| borrowed           | escapable     | scoped           | scoped        |
+| inout or mutating  | escapable     | scoped           | scoped        |
+| consuming          | escapable     | Illegal          | Illegal       |
+| borrowed           | nonescapable  | copied           | scoped        |
+| inout or mutating  | nonescapable  | copied           | scoped        |
+| consuming          | nonescapable  | copied           | Illegal       |
+
+Two observations may help in understanding the table above:
+* An escapable argument cannot have a pre-existing lifetime dependency, so copying is never possible in those cases.
+* A consumed argument cannot be the source of a lifetime dependency that will outlive the function call, so only copying is legal in that case.
+
+**Note**: In practice, the `scoped` modifier keyword is likely to be only rarely used.  The rules above were designed to support the known use cases without requiring such a modifier.
+
+#### Initializers
+
+Since nonescapable values cannot be returned without a lifetime dependency,
+initializers for such types must specify a lifetime dependency on one or more arguments.
+We propose allowing initializers to write out an explicit return clause for this case, which permits the use of the same syntax as functions or methods.
+The return type must be exactly the token `Self` or the token sequence `Self?` in the case of a failable initializer:
+
+```swift
+struct S {
+  init(arg1: Type1) -> @dependsOn(arg1) Self
+  init?(arg2: Type2) -> @dependsOn(arg2) Self?
+}
+```
+
+> Grammar of an initializer declaration:
+>
+> *initializer-declaration* → *initializer-head* *generic-parameter-clause?* *parameter-clause* **`async`***?* **`throws`***?* *initializer-lifetime-modifier?* *generic-where-clause?* *initializer-body* \
+> *initializer-declaration* → *initializer-head* *generic-parameter-clause?* *parameter-clause* **`async`***?* **`rethrows`** *initializer-lifetime-modifier?* *generic-where-clause?* *initializer-body* \
+> *initializer-lifetime-modifier* → `**->**` *lifetime-modifiers* ** **`Self`** \
+> *initializer-lifetime-modifier* → `**->**` *lifetime-modifiers* ** **`Self?`**
+
+The implications of mutation modifiers and argument type on the resulting lifetime dependency exactly follow the rules above for functions and methods.
+
+### Inference Rules
+
+If there is no explicit lifetime dependency, we will automatically infer one according to the following rules:
+
+**For methods where the return type is `~Escapable`**, we will infer a dependency against self, depending on the mutation type of the function.
+Note that this is not affected by the presence, type, or modifier of any other arguments to the method.
+
+**For a free or static functions or initializers with at least one argument,** we will infer a lifetime dependency when all of the following are true:
+
+* the return type is `~Escapable`,
+* there is exactly one argument that satisfies any of the following:
+  - is either `~Copyable` or `~Escapable`
+  - has an explicit `borrowing`, `consuming`, or `inout` convention specified
+
+In this case, the compiler will infer a dependency on the unique argument identified by this last set of conditions.
+
+**In no other case** will a function, method, or initializer implicitly gain a lifetime dependency.
+If a function, method, or initializer has a `~Escapable` return type, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
+
 ## Source compatibility
 
 Everything discussed here is additive to the existing Swift grammar and type system.
 It has no effect on existing code.
-
-The tokens `-> dependsOn` in a function declaration might indicate the beginning of a borrowing lifetime annotation or could indicate that the function returns an existing type called `dependsOn`.
-This ambiguity can be fully resolved in the parser by looking for an open parenthesis `(` after the `dependsOn` token.
 
 ## Effect on ABI stability
 
