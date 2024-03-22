@@ -8,6 +8,8 @@
 * Review: ([pitch](https://forums.swift.org/t/isolated-any-function-types/70562))
 
 [SE-0316]: https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md
+[SE-0392]: https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md
+[isolated-captures]: https://forums.swift.org/t/closure-isolation-control/70378
 
 ## Introduction
 
@@ -31,22 +33,37 @@ function will almost certainly introduce data races.
 Function declarations and closures in Swift support three different
 forms of actor isolation:
 
-- They can be non-isolated, which means somewhat different things
-  depending on whether the function is synchronous or asynchronous.
-  This can be explicitly expressed with the `nonisolated` modifier,
-  but it is also the default if other rules don't apply.
+- They can be non-isolated.
+
+  - This can be explicitly expressed with the `nonisolated` modifier.
+  - It is also the default if other rules don't apply.
 
 - They can be isolated to a specific [global actor][SE-0316] type.
-  This can be explicitly expressed with a global actor attribute
-  such as `@MainActor`.  It can also be inferred from context in a
-  number of ways, such as if the function is a method of a type with
-  that attribute (which itself can be inferred in a number of ways).
 
-- They can be isolated to a specific parameter or captured value.  This
-  can be explicitly expressed by declaring a parameter or capture with
-  the `isolated` modifier.  This can also be inferred; most importantly,
-  all instance methods on an actor type are isolated to their `self`
-  parameter unless otherwise specified.
+  - This can be explicitly expressed with a global actor attribute,
+    such as `@MainActor`.
+  - It can also be inferred from context in a number of ways, such as
+    if the function is a method of a type with that attribute (which
+    itself can be inferred in a number of ways).
+  - Additionally, a closure passed directly to the `Task` initializer
+    is inferred to be isolated to a global actor if the enclosing
+    context is isolated to a global actor.
+
+- They can be isolated to a specific parameter or captured value.
+
+  - This can be explicitly expressed by declaring a parameter with
+    the `isolated` modifier.
+  - There is [another proposal being worked on][isolated-captures]
+    to allow it to be explicitly expressed with the `isolated` modifier
+    on a closure capture.
+  - Instance methods on an actor type are inferred to be isolated to
+    `self` if they're not explicitly declared to be non-isolated or
+    global-actor-isolated.
+  - Additionally, a closure passed directly to the `Task` initializer
+    is inferred to be isolated to a specific parameter or capture if
+    the enclosing context is isolated to that parameter or capture and
+    the closure refers to it.  (This rule about referring to it can be
+    confusing and may be revised by the isolated-captures proposal.)
 
 When a function is called directly, Swift's isolation checker can
 analyze its isolation precisely and compare that to the isolation of the
@@ -67,7 +84,7 @@ system:
 
 There's a very important case that isn't covered by any of those: a
 closure can be isolated to one of its captures.  In the following
-example, the closure is isolated to its `self` capture:
+example, the closure is isolated to its captured `self` value:
 
 ```swift
 actor WorldModelObject {
@@ -81,36 +98,36 @@ actor WorldModelObject {
       self.position = originalPosition + progressProportion * motion
     }
   }
-}
-```
 
-This example uses an [explicit `isolated` capture](https://forums.swift.org/t/closure-isolation-control/70378) for clarity, but isolated captures
-can also happen implicitly with the `Task` initializer:
-
-```swift
-extension WorldModelObject {
   func updateLater() {
     Task {
-      // This closure doesn't have an explicit isolation specification, and
-      // it's being passed to a parameter with the @inheritsIsolation
-      // attribute, so it will be inferred to have the same isolation as
-      // its containing context.  The containing context is isolated to its
-      // `self` parameter, so this closure will have `self` as an implicit
-      // isolated capture.
+      // This closure doesn't have an explicit isolation
+      // specification, and it's being passed to the `Task`
+      // initializer, so it will be inferred to have the same
+      // isolation as its enclosing context.  The enclosing
+      // context is isolated to its `self` parameter, which this
+      // closure captures, so this closure will also be isolated
+      // that value.
       self.update()
     }
   }
 }
 ```
 
-Partially-applied actor functions, such as `myActor.methodName`, are
-in the same boat: the resulting function will be isolated to the
-specific value `myActor`.  In none of these cases is there is any way
-to exactly represent the function's isolation in its type.[^1]
+This can also arise with a partial applicaion of an actor method,
+such as `myActor.methodName`: the resulting function value captures
+`myActor` and is isolated to it.  For now, these are the only two
+cases of isolated captures.  However, the upcoming
+[closure isolation control][isolated-captures] proposal is expected
+to give this significantly greater prominence and importance, because
+isolated captures will become a general tool for controlling the
+isolation of a specific piece of code.  In none of these cases is
+there is any way to exactly represent the function's isolation in
+its type.[^1]
 
 [^1]: This would be an example of a value-dependent type, which is a
 very advanced type system feature that we cannot easily add to Swift.
-It is discussed briefly in Future Directions.
+This is discussed in Future Directions.
 
 This is a very unfortunate limitation, because it actually means that
 there's no way for a function to accept a function argument with
@@ -328,10 +345,10 @@ func delay(operation: @isolated(any) () -> ()) {
 }
 ```
 
-TODO: Add some way to use `assumeIsolated` to assert that we're currently
-isolated to the isolation of an `@isolated(any)` function, such that
-calls within that context no longer cross isolation boundaries.
-Maybe this could also decompose the function value?
+(This uses the `isolated` capture modifier proposed in the draft
+[closure isolation control][isolated-captures] proposal.  It would be
+possible but significantly more awkward to get this effect with that
+proposal.)
 
 ### Adoption in task-creation routines
 
@@ -504,6 +521,96 @@ Examples that should usually not use `@isolated(any)` include:
 
 ## Future directions
 
+### Interaction with `assumeIsolated`
+
+It would be convenient in some cases to be able to assert that the
+current synchronous context is already isolated to the isolation of
+an `@isolated(any)` function, allowing the function to be called without
+crossing isoaltion.  Similar functionality is provided by the
+`assumeIsolated` function introduced by [SE-0392][SE-0392].
+Unfortunately, the current `assumeIsolated` function is inadequate
+for this purpose for several reasons.
+
+The first problem is that `assumeIsolated` only works on a
+non-optional actor reference.  We could add a version of this API
+which does work on optional actors, but it's not clear what it
+should actually do if given a `nil` reference.  A `nil` isolation
+represents non-isolation, which of course does not actually isolate
+anything.  Should `assumeIsolated` check that the current context
+has exactly the given isolation, or should it check that it is safe
+to use something with the given isolation requirement from the current
+context?  The first rule is probably the one that most people would
+assume when they first heard about the feature.  However, it implies
+that `assumeIsolated(nil)` should check that no actors are currently
+isolated, and that is not something we can feasibly check in general:
+Swift's concurrency runtime does track the current isolation of a task,
+but outside of a task, arbitrary things can be isolated without Swift
+knowing about them.  It is also needlessly restrictive, because there
+is nothing that is unsafe to do in an isolated context that would be
+safe if done in a non-isolated context.[^4]  The second rule is less
+intuitive but more closely matches the safety properties that static
+isolation checking tests for.  It implies that `assumeIsolated(nil)`
+should always succeed.  This is notably good enough for `@isolated(any)`:
+since `assumeIsolated` is a synchronous function, only synchronous
+`@isolated(any)` functions can be called within it, and calling a
+synchronous non-isolated function always runs immediately without
+changing the current isolation.
+
+[^4]: As far as data-race safety goes, at least.  A specific actor
+could conceivably have important semantic restrictions against doing
+certain operations in its isolated code.  Of course, such an actor should
+generally not be calling arbitrary functions that are handed to it.
+
+The second problem is that `assumeIsolated` does not currently establish
+a link back to the original expression passed to it.  Code such as
+the following is invalid:
+
+```swift
+myActor.assumeIsolated {
+  myActor.property += 1   // invalid: Swift doesn't know that myActor is isolated
+}
+```
+
+The callback passed to `assumeIsolated` is isolated because it takes
+an `isolated` parameter, and while this parameter is always bound to
+the actor that `assumeIsolated` was called on, Swift's isolation checking
+doesn't know that.  As a result, it is necessary to use the parameter
+instead of the original actor reference, which is a persistent annoyance
+when using this API:
+
+```swift
+myActor.assumeIsolated { myActor2 in
+  myActor2.property += 1
+}
+```
+
+For `@isolated(any)`, we would naturally want to write this:
+
+```swift
+myFn.isolation.assumeIsolated {
+  myFn()
+}
+```
+
+However, since Swift doesn't understand the connection between the
+closure's `isolated` parameter and `myFn`, this call will not work,
+and there is no way to make it work.
+
+One way to fix this would be to add some new way to assert that an
+`@isolated(any)` function is currently isolated.  This could even
+destructure the function value, giving the program access it to as
+a non-`@isolated(any)` function.  But it seems like a better approach
+to allow isolation checking to understand that the `isolated` parameter
+and the `self` argument of `assumeIsolated` are the same value.
+That would fix both the usability problem with actors and the
+expressivity problem with `@isolated(any)`.  Decomposition could
+be done as a general rule that permits isolation to be removed from
+a function value as long as that isolation matches the current
+context and the resulting function is non-`Sendable`.
+
+This is all sufficiently complex that it seems best to leave it for
+a future direction.  However, it should be relatively approachable.
+
 ### Statically-isolated function types
 
 `@isolated(any)` function types are effectively an "existential
@@ -527,11 +634,13 @@ func delay<A: Actor>(on operationActor: A,
 This is a kind of value-dependent type.  Value-dependent types add a
 lot of complexity to a type system.  Consider how the arguments interact
 in the example above: both value and type information from the first
-argument flows into the second.  This is not something to do lightly.
+argument flows into the second.  This is not something to do lightly,
+and we think Swift is relatively unlikely to ever add such a feature
+as `@isolated(to:)`.
 
-It is also likely to be unnecessary.  We believe that `@isolated(any)`
-function types are superior from a usability perspective for all the
-dominant patterns of higher-order APIs.  The main thing that
+Fortunately, is is unlikely to be necessary.  We believe that
+`@isolated(any)` function types are superior from a usability perspective
+for all the dominant patterns of higher-order APIs.  The main thing that
 `@isolated(to:)` can express in an API signature that `@isolated(any)`
 cannot is multiple functions that share a common isolation.  It is
 quite uncommon for APIs to take multiple closely-related functions
@@ -541,15 +650,16 @@ is required in an API, `@isolated(any)` allows its isolation to bound
 up with it in a single value, which is both more convenient and likely
 to have a more performant representation.
 
-But if we do decide to explore in the direction of `@isolated(to:)`,
-nothing in this proposal would interfere with it, and in fact they
-could support each other well.  Erasing the isolation of an `@isolated(to:)`
-function into an `@isolated(any)` type would be straightforward, and
-an `@isolated(any)` function could be "opened" into a pair of an
-`@isolated(to:)` function and its known isolation.
-
-Even in a world with that feature, we are unlikely to regret having
-previously added `@isolated(any)`.
+If Swift ever does explore in the direction of `@isolated(to:)`,
+nothing in this proposal would interfere with it.  In fact, the
+features would support each other well.  Erasing the isolation of
+an `@isolated(to:)` function into an `@isolated(any)` type would
+be straightforward, much like erasing an `Int` into an `Any`.
+Similarly, an `@isolated(any)` function could be "opened" into a
+pair of an `@isolated(to:)` function and its known isolation.
+Since the common cases will still be more convenient to express
+with `@isolated(any)`, the community is unlikely to regret having
+added this proposal first.
 
 ## Alternatives considered
 
