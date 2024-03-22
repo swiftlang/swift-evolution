@@ -92,6 +92,33 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   /// - Parameter initialValue: The initial value to give to the mutex.
   public init(_: transferring consuming Value)
   
+  /// Calls the given closure after acquring the lock and then releases
+  /// ownership.
+  ///
+  /// This method is equivalent to the following sequence of code:
+  ///
+  ///     mutex.lock()
+  ///     defer {
+  ///       mutex.unlock()
+  ///     }
+  ///     return try body(&value)
+  ///
+  /// - Warning: Recursive calls to `withLock` within the
+  ///   closure parameter has behavior that is platform dependent.
+  ///   Some platforms may choose to panic the process, deadlock,
+  ///   or leave this behavior unspecified.
+  ///
+  /// - Parameter body: A closure with a parameter of `Value`
+  ///   that has exclusive access to the value being stored within
+  ///   this mutex. This closure is considered the critical section
+  ///   as it will only be executed once the calling thread has
+  ///   acquired the lock.
+  ///
+  /// - Returns: The return value, if any, of the `body` closure parameter.
+  public borrowing func withLock<Result: ~Copyable, E: Error>(
+    _ body: (transferring inout Value) throws(E) -> Result
+  ) throws(E) -> Result
+  
   /// Attempts to acquire the lock and then calls the given closure if
   /// successful.
   ///
@@ -123,107 +150,12 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter
   ///   or nil if the lock couldn't be acquired.
-  public borrowing func withLockIfAvailable<Result: ~Copyable & Sendable, E>(
-    _ body: @Sendable (inout Value) throws(E) -> Result
+  public borrowing func withLockIfAvailable<Result: ~Copyable, E: Error>(
+    _ body: (transferring inout Value) throws(E) -> Result
   ) throws(E) -> Result?
-  
-  /// Attempts to acquire the lock and then calls the given closure if
-  /// successful.
-  ///
-  /// If the calling thread was successful in acquiring the lock, the
-  /// closure will be executed and then immediately after it will
-  /// release ownership of the lock. If we were unable to acquire the
-  /// lock, this will return `nil`.
-  ///
-  /// This method is equivalent to the following sequence of code:
-  ///
-  ///     guard mutex.tryLock() else {
-  ///       return nil
-  ///     }
-  ///     defer {
-  ///       mutex.unlock()
-  ///     }
-  ///     return try body(&value)
-  ///
-  /// - Note: This version of `withLock` is unchecked because it does
-  ///   not enforce any sendability guarantees.
-  ///
-  /// - Warning: Recursive calls to `withLockIfAvailableUnchecked` within the
-  ///   closure parameter has behavior that is platform dependent.
-  ///   Some platforms may choose to panic the process, deadlock,
-  ///   or leave this behavior unspecified.
-  ///
-  /// - Parameter body: A closure with a parameter of `Value`
-  ///   that has exclusive access to the value being stored within
-  ///   this mutex. This closure is considered the critical section
-  ///   as it will only be executed if the calling thread acquires
-  ///   the lock.
-  ///
-  /// - Returns: The return value, if any, of the `body` closure parameter
-  ///   or nil if the lock couldn't be acquired.
-  public borrowing func withLockIfAvailableUnchecked<Result: ~Copyable, E>(
-    _ body: (inout Value) throws(E) -> Result
-  ) throws(E) -> Result?
-  
-  /// Calls the given closure after acquring the lock and then releases
-  /// ownership.
-  ///
-  /// This method is equivalent to the following sequence of code:
-  ///
-  ///     mutex.lock()
-  ///     defer {
-  ///       mutex.unlock()
-  ///     }
-  ///     return try body(&value)
-  ///
-  /// - Warning: Recursive calls to `withLock` within the
-  ///   closure parameter has behavior that is platform dependent.
-  ///   Some platforms may choose to panic the process, deadlock,
-  ///   or leave this behavior unspecified.
-  ///
-  /// - Parameter body: A closure with a parameter of `Value`
-  ///   that has exclusive access to the value being stored within
-  ///   this mutex. This closure is considered the critical section
-  ///   as it will only be executed once the calling thread has
-  ///   acquired the lock.
-  ///
-  /// - Returns: The return value, if any, of the `body` closure parameter.
-  public borrowing func withLock<Result: ~Copyable & Sendable, E>(
-    _ body: @Sendable (inout Value) throws(E) -> Result
-  ) throws(E) -> Result
-  
-  /// Calls the given closure after acquring the lock and then releases
-  /// ownership.
-  ///
-  /// This method is equivalent to the following sequence of code:
-  ///
-  ///     mutex.lock()
-  ///     defer {
-  ///       mutex.unlock()
-  ///     }
-  ///     return try body(&value)
-  ///
-  /// - Warning: Recursive calls to `withLockUnchecked` within the
-  ///   closure parameter has behavior that is platform dependent.
-  ///   Some platforms may choose to panic the process, deadlock,
-  ///   or leave this behavior unspecified.
-  ///
-  /// - Note: This version of `withLock` is unchecked because it does
-  ///   not enforce any sendability guarantees.
-  ///
-  /// - Parameter body: A closure with a parameter of `Value`
-  ///   that has exclusive access to the value being stored within
-  ///   this mutex. This closure is considered the critical section
-  ///   as it will only be executed once the calling thread has
-  ///   acquired the lock.
-  ///
-  /// - Returns: The return value, if any, of the `body` closure parameter.
-  public borrowing func withLockUnchecked<U: ~Copyable, E>(
-    _ body: (inout Value) throws(E) -> U
-  ) throws(E) -> U
 }
 
-extension Mutex: Sendable where Value: Sendable {}
+extension Mutex: Sendable {}
 ```
 
 ## Interaction with Existing Language Features
@@ -231,6 +163,8 @@ extension Mutex: Sendable where Value: Sendable {}
 `Mutex` will decorated with the `@_staticExclusiveOnly` attribute, meaning you will not be able to declare a variable of type `Mutex` as `var`. These are the same restrictions imposed on the recently accepted `Atomic` and `AtomicLazyReference` types. Please refer to the [Atomics proposal](https://github.com/apple/swift-evolution/blob/main/proposals/0410-atomics.md) for a more in-depth discussion on what is allowed and not allowed. These restrictions are enabled for `Mutex` for all of the same reasons why it was resticted for `Atomic`. We do not want to introduce dynamic exclusivity checking when accessing a value of `Mutex` as a class stored property for instance.
 
 ### Interactions with Swift Concurrency
+
+`Mutex` is unconditionally `Sendable` regardless of the value it's protecting. We can ensure the safetyness of this value due to the `transferring` marked parameters of both the initializer and the closure `inout` argument. This allows us to statically determine that the non-sendable value we're initializing the mutex with will have no other uses after initialization. Within the closure body, it ensures that 
 
 Similar to `Atomic`, `Mutex` will have a conditional conformance to `Sendable` when the underlying value itself is also `Sendable`. Consider the following example declaring a global mutex in some top level script:
 
@@ -330,22 +264,6 @@ The API proposed here is fully addative and does not change or alter any of the 
 ## Future directions
 
 There are quite a few potential future directions this new type can take as well as new future similar types.
-
-### Disconnected Parameters
-
-With [Region Based Isolation](https://github.com/apple/swift-evolution/blob/main/proposals/0414-region-based-isolation.md), a future direction in that proposal is the introduction of a `disconnected` modifier to function parameters. This would allow the `Mutex` type to decorate its closure parameter in the `withLock` API as `disconnected` and potentially remove the `@Sendable` restriction on the closure altogether. By marking the closure parameter as such, we guarantee that state held within the lock cannot be assigned to some non-sendable captured reference which is the primary motivator for why the closure is marked `@Sendable` now to begin with. A future closure based API may look something like the following:
-
-```swift
-public borrowing func withLock<U: ~Copyable & Sendable, E>(
-  _: (disconnected inout Value) throws(E) -> U
-) throws(E) -> U
-```
-
-This would remove a lot of the restrictions that a `@Sendable` closure enforces because this closure isn't escaping nor is it being passed to other isolation domains, it's being ran on the same calling execution context. However, again we guarantee that the passed in parameter, who may not be sendable, can't be written to a non-sendable reference within the closure effectively crossing isolation domains.
-
-Alternatively in the [Transferring isolation regions pitch](https://forums.swift.org/t/pitch-transferring-isolation-regions-of-parameter-and-result-values/70240), it discusses a potential `Disconnected<T>` type we could pass to fully enforce this value is disconnected from the domain the closure is running on. This approach would work, but may feel awkward to unwrap the value to access it, etc.
-
-This completes the story of completly marking the value contained within the mutex as being in its own isolation domain. With this, we can say that `Mutex` is unconditionally sendable regardless of whether or not the value it contains is itself sendable.
 
 ### Mutex Guard API
 
