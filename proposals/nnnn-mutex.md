@@ -115,7 +115,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///   acquired the lock.
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter.
-  public borrowing func withLock<Result: ~Copyable, E: Error>(
+  public borrowing func withLock<Result: ~Copyable & Sendable, E: Error>(
     _ body: (transferring inout Value) throws(E) -> Result
   ) throws(E) -> Result
   
@@ -150,8 +150,8 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter
   ///   or nil if the lock couldn't be acquired.
-  public borrowing func withLockIfAvailable<Result: ~Copyable, E: Error>(
-    _ body: (transferring inout Value) throws(E) -> Result
+  public borrowing func withLockIfAvailable<Result: ~Copyable & Sendable, E: Error>(
+    _ body: (transferring inout Value) throws(E) -> Result?
   ) throws(E) -> Result?
 }
 
@@ -164,42 +164,9 @@ extension Mutex: Sendable {}
 
 ### Interactions with Swift Concurrency
 
-`Mutex` is unconditionally `Sendable` regardless of the value it's protecting. We can ensure the safetyness of this value due to the `transferring` marked parameters of both the initializer and the closure `inout` argument. This allows us to statically determine that the non-sendable value we're initializing the mutex with will have no other uses after initialization. Within the closure body, it ensures that 
+`Mutex` is unconditionally `Sendable` regardless of the value it's protecting. We can ensure the safetyness of this value due to the `transferring` marked parameters of both the initializer and the closure `inout` argument. (Please refer to [SE-0430 `transferring` isolation regions of parameter and result values](https://github.com/apple/swift-evolution/blob/main/proposals/0430-transferring-parameters-and-results.md)) This allows us to statically determine that the non-sendable value we're initializing the mutex with will have no other uses after initialization. Within the closure body, it ensures that if we tried to escape the protected non-sendable value, it would require us to replace the stored value for the notion of transferring out and then transferring back in.
 
-Similar to `Atomic`, `Mutex` will have a conditional conformance to `Sendable` when the underlying value itself is also `Sendable`. Consider the following example declaring a global mutex in some top level script:
-
-```swift
-let lockedPointer = Mutex<UnsafeMutablePointer<Int>>(...)
-
-func something() {
-  // warning: non-sendable type 'Mutex<UnsafeMutablePointer<Int>>' in
-  //          asynchronous access to main actor-isolated let 'lockedPointer'
-  //          cannot cross actor boundary
-  // note: consider making generic struct 'Mutex' conform to the 'Sendable'
-  //       protocol
-  let pointer = lockedPointer.withLock {
-    $0
-  }
-  
-  ... bad stuff with pointer
-}
-```
-
-Our variable is treated as immutable by the compiler, but the underlying type is not sendable thus this variable is implicitly main actor-isolated. We're attempting to reference a main actor-isolated piece of data in a synchronous global function that is not isolated to any actor (hence the warning). However, this warning is actually appreciated. While the lock does protect the state it's holding onto, it does not protect class references or any underlying memory being pointed to (by pointers). In the example, the global function `something` now has access to read/write values from this pointer, but there's nothing synchronizing access to the memory referenced by the pointer. Multiple threads could potentially race with each other trying to read/write data into this memory. The same applies to non-sendable class references, once threads have a hold of the reference, they can potentially race with each other trying to mutate the underlying instance.
-
-As an added measure to prevent this particular issue, the return value of the `withLock` API must be `Sendable`. This completely invalidates the above code example. We can get around this warning though, if we isolate usages of `something()` to the main actor as well:
-
-````swift
-@MainActor
-func something() {
-  // No more warnings!
-  lockedPointer.withLock {
-    ...
-  }
-}
-````
-
-Usages of this mutex no longer emit these sendability warnings, but if we alter the example just slightly we see the next issue we need to solve:
+Consider the following example of a mutex to a non-sendable class.
 
 ```swift
 class NonSendableReference {
@@ -209,34 +176,27 @@ class NonSendableReference {
 // Some non-sendable class reference somewhere, perhaps a global.
 let nonSendableRef = NonSendableReference(...)
 
-@MainActor
+let lockedPointer = Mutex<UnsafeMutablePointer<Int>>(...)
+
 func something() {
   lockedPointer.withLock {
-    // No warnings!
+    // error: isolated parameter transferred out
+    //        but hasn't had a value transferred back in.
     nonSendableRef.prop = $0
   }
 }
 ```
 
-If the `withLock` method was not labeled with `@Sendable` then this code would emit no warnings. All good right? The compiler hasn't complained to us! Unfortunately, this highlights one of the bigger issues I mentioned earlier in that `Mutex` does not protect class references or any underlying memory referenced by pointers. This is still a hole for shared mutable state. We've now given a non-sendable value complete access to the memory pointed to by our value. This non-sendable class does not guarantee synchronization for the data being modified at by the pointer. We need to mark the closure in the `withLock` as `@Sendable` :
+Had this closure not been marked `transferring inout` or perhaps `@Sendable`, then `Mutex` would not have protected this class references or any underlying memory referenced by pointers. Transferring inout allows us to plug this safety hole of shared mutable state by statically requiring that if we need to escape the closure or `Mutex` isolation domain as a whole, that we transfer in a new value in this domain (or it could be the same value perhaps).
 
 ```swift
-@MainActor
 func something() {
   lockedPointer.withLock {
-    // warning: non-sendable type 'NonSendableReference' in asynchronous access
-    //          to main actor-isolated let 'nonSendableRef' cannot cross actor
-    //          boundary
+    // OK because we assign '$0' to a new value
     nonSendableRef.prop = $0
-  }
-  
-  // or if you tried to be sneaky:
-  let nonSendableRefCopy = nonSendableRef
-  
-  lockedPointer.withLock {
-    // warning: capture of 'nonSendableRefCopy' with non-sendable type
-    //          'NonSendableReference' in a '@Sendable' closure
-    nonSendableRefCopy.prop = $0
+    
+    // OK because we're transferring a new value in
+    $0 = ...
   }
 }
 ```
@@ -372,25 +332,3 @@ A very common name for this type in various codebases is simply `Lock`. This is 
 ### Include `Mutex` in the default Swift namespace (either in `Swift` or in `_Concurrency`)
 
 This is another intriguing idea because on one hand misusing this type is significantly harder than misusing something like `Atomic`. Generally speaking, we do want folks to reach for this when they just need a simple traditional lock. However, by including it in the default namespace we also unintentionally discouraging folks from reaching for the language features and APIs they we've already built like `async/await`, `actors`, and so much more in this space. Gating the presence of this type behind `import Synchronization` is also an important marker for anyone reading code that the file deals with managing their own synchronization through the use of synchronization primitives such as `Atomic` and `Mutex`.
-
-### Introduce a separate `UncheckedMutex` or similar
-
-We could also separate out the unchecked variants of the methods in `Mutex` to an `UncheckedMutex` of sorts to reduce API surface to improve documentation, auto complete, and push more towards folks opting into the Swift Concurrency world by enforcing sendability constraints.
-
-````swift
-public struct UncheckedMutex<Value: ~Copyable>: ~Copyable {
-  ...
-  
-  // Should this have unchecked in the name? It wouldn't
-  // be discernable from the safe one at the call site,
-  // but then we're repeating information that's already
-  // in the type name 🤔
-  public borrowing func withLock<U: ~Copyable, E>(
-    _: (inout Value) throws(E) -> U
-  ) throws(E) -> U
-  
-  ...
-}
-````
-
-An approach like this means uses of `Mutex` only has access to two functions making it easier for developers to choose a sendable checked API over debating if they need an unchecked one.
