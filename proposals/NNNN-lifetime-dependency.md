@@ -84,7 +84,7 @@ struct BufferReference<T>: ~Escapable {
 }
 ```
 
-Because this type is marked `~Escapable`, it cannot be returned from a function or even initialized without some way to relax the escapability restrictions.
+Because this type is marked as unconditionally `~Escapable`, it cannot be returned from a function or even initialized without some way to relax the escapability restrictions.
 This proposal provides a set of constraints that can tie the lifetime of a nonescapable value to the lifetime of some other value.
 In the most common cases, these constraints can be inferred automatically.
 
@@ -136,7 +136,7 @@ In both this and the previous case, the lifetime of the return value is "scoped"
 Because lifetime dependencies can only be attached to nonescapable values, types that contain pointers will generally need to be nonescapable in order to provide safe semantics.
 As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as an Array or similar container) is providing a nonescapable value (such as the `BufferReference` or `MutatingBufferReference` in these examples).
 
-#### Copy Lifetime Dependency
+#### Copied Lifetime Dependency
 
 The case where a nonescapable value is used to produce another nonescapable value is somewhat different.
 Here's a typical example that constructs a new `BufferReference` from an existing one:
@@ -215,7 +215,7 @@ Given a method of this form:
 The behavior depends as above on the mutation-modifier and whether the defining type is escapable or nonescapable.
 
 **Initializers:** An initializer can define lifetime dependencies on one or more arguments.
-In this case, we use the same rules same as for “Functions” above
+In this case, we use the same rules as for “Functions” above
 by using the convention that initializers can be viewed as functions that return `Self`:
 
 ```swift
@@ -248,7 +248,7 @@ struct NEStruct: ~Escapable {
   borrowing func f2(...) -> /* @dependsOn(self) */ NonescapableType
   mutating func f3(...) -> /* @dependsOn(self) */ NonescapableType
 
-  // Note: A copy lifetime dependency is legal here
+  // Note: A copied lifetime dependency is legal here
   consuming func f4(...) -> /* @dependsOn(self) */ NonescapableType
 }
 ```
@@ -440,15 +440,14 @@ The notation for an explicit lifetime dependency on a property might look like t
 
 ```swift
 struct Container {
-  var view: ReturnType { borrowing get }
+  var view: @dependsOn(self) ReturnType { get }
 }
 
-extension Type1 {
-  var transformedView: Type1 { consuming get }
+struct Type1: ~Escapable {
+  var childView: @dependsOn(self) Type1 { get }
 }
 ```
 
-Where `borrowing` or `consuming` would indicate that the returned value has a lifetime dependency on `self`.
 We expect that the lifetime notation would be mandatory for any property that provided a `~Escapable` value.
 
 #### Lifetime Dependencies for Escapable Types
