@@ -5,7 +5,7 @@
 WebAssembly (abbreviated [Wasm](https://webassembly.github.io/spec/core/intro/introduction.html#wasm)) is a virtual 
 machine instruction set focused on portability, security, and high performance. It is vendor-neutral, designed and
 developed by [W3C](https://w3.org). An implementation of a WebAssembly virtual machine is usually called a
-*WebAssembly runtime*, or an [*embedder*](https://webassembly.github.io/spec/core/intro/overview.html#embedder).
+*WebAssembly runtime*.
 
 One prominent spec-compliant implementation of a Wasm runtime in Swift is [WasmKit](https://github.com/swiftwasm/WasmKit). It is available as a Swift package, supports multiple
 host platforms, and has a simple API for interaction with guest Wasm modules.
@@ -51,9 +51,7 @@ Wasm runtime, removing the overhead of new process setup and IPC infrastructure.
 
 ### WebAssembly System Interface and the Component Model
 
-The WebAssembly instruction set on its own doesn't "support" file I/O or networking, in the same way that ARM64 or x86_64
-don't "support" those directly either. Actual implementation of I/O for a hardware CPU is provided by the operating
-system, and for a Wasm module it's provided by a runtime that executes it.
+The WebAssembly virtual machine has no in-built support for I/O; instead, a Wasm module's access to I/O is dependent entirely upon the runtime that executes it.
 
 A standardized set of APIs implemented by a Wasm runtime for interaction with the host operating system is called
 [WebAssembly System Interface (WASI)](https://wasi.dev). A layer on top of WASI that Swift apps compiled to Wasm can already
@@ -61,7 +59,7 @@ use thanks to C interop is [WASI libc](https://github.com/WebAssembly/wasi-libc)
 Swift stdlib and runtime for `wasm32-unknown-wasi` triple is based on this C library. It is important for WASI support in
 Swift to be as complete as possible to ensure portability of Swift code in the broader Wasm ecosystem.
 
-In the last few years, W3C WebAssembly Working Group considered multiple proposals for improving the WebAssembly
+In the last few years, the W3C WebAssembly Working Group considered multiple proposals for improving the WebAssembly
 [type system](https://github.com/webassembly/interface-types) and
 [module linking](https://github.com/webassembly/module-linking). These were later subsumed into a combined
 [Component Model](https://component-model.bytecodealliance.org) proposal thanks to the ongoing work on
@@ -75,7 +73,7 @@ The Component Model defines these core concepts:
 - *Canonical ABI* is an ABI for types defined by WIT and used by component interfaces in the Component Model.
 
 Preliminary support for WIT has been implemented in
-[the `wit-tool` subcommand](https://github.com/swiftwasm/WasmKit/blob/0.0.3/Sources/WITTool/WITTool.swift) of WasmKit
+[the `wit-tool` subcommand](https://github.com/swiftwasm/WasmKit/blob/0.0.3/Sources/WITTool/WITTool.swift) of the WasmKit
 CLI. Users of this tool can generate `.wit` files from Swift declarations, and vice versa: Swift bindings from `.wit`
 files.
 
