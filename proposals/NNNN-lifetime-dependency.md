@@ -63,16 +63,16 @@ These lifetime dependencies can be expressed in several different ways, with var
 
 ### Background: "Escapable" and “Nonescapable” Types
 
-In order to avoid changing the meaning of existing code, we will introduce two complementary type constraints:
-`Escapable` and `~Escapable`.
-These constraints can appear in a type declaration as a protocol.
+In order to avoid changing the meaning of existing code, we will introduce a
+new protocol `Escapable` which can be suppressed with `~Escapable`.
 
 Normal Swift types are `Escapable` by default.
 This implies that they can be returned, stored in properties, or otherwise "escape" the local context.
-Conversely, types explicitly declared `~Escapable` are not allowed to escape the local context except in very specific circumstances.
-A separate proposal explains the general syntax and semantics of `Escapable` and `~Escapable` types.
+Conversely, types can be explicitly declared to be "nonescapable" using `~Escapable`.
+These types are not allowed to escape the local context except in very specific circumstances.
+A separate proposal explains the general syntax and semantics of `Escapable` and `~Escapable`.
 
-By themselves, `~Escapable` types have severe constraints on usage.
+By themselves, nonescapable types have severe constraints on usage.
 For example, consider a hypothetical `BufferReference` type that is similar to the standard library `UnsafeBufferPointer` or the `StorageView` type that is being proposed for inclusion in the standard library.
 It simply holds a pointer and size and can be used to access data stored in a contiguous block of memory.
 (We are not proposing this type; it is shown here merely for illustrative purposes.)
@@ -85,7 +85,7 @@ struct BufferReference<T>: ~Escapable {
 ```
 
 Because this type is marked `~Escapable`, it cannot be returned from a function or even initialized without some way to relax the escapability restrictions.
-This proposal provides a set of constraints that can tie the lifetime of a `~Escapable` value to the lifetime of some other value.
+This proposal provides a set of constraints that can tie the lifetime of a nonescapable value to the lifetime of some other value.
 In the most common cases, these constraints can be inferred automatically.
 
 ### Explicit Lifetime Dependency Annotations
@@ -133,12 +133,12 @@ Similar to the previous example:
 * No other read or write access to the array will be allowed for as long as the returned value exists.
 
 In both this and the previous case, the lifetime of the return value is "scoped" to the lifetime of the original value.
-Because lifetime dependencies can only be attached to `~Escapable` values, types that contain pointers will generally need to be `~Escapable` in order to provide safe semantics.
-As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as an Array or similar container) is providing a `~Escapable` value (such as the `BufferReference` or `MutatingBufferReference` in these examples).
+Because lifetime dependencies can only be attached to nonescapable values, types that contain pointers will generally need to be nonescapable in order to provide safe semantics.
+As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as an Array or similar container) is providing a nonescapable value (such as the `BufferReference` or `MutatingBufferReference` in these examples).
 
 #### Copy Lifetime Dependency
 
-The case where a `~Escapable` value is used to produce a different `~Escapable` value is somewhat different.
+The case where a nonescapable value is used to produce another nonescapable value is somewhat different.
 Here's a typical example that constructs a new `BufferReference` from an existing one:
 ```swift
 struct BufferReference<T>: ~Escapable {
@@ -148,8 +148,8 @@ struct BufferReference<T>: ~Escapable {
 }
 ```
 
-In this examples, the `~Escapable` result depends on a `~Escapable` value.
-Recall that `~Escapable` values such as these represent values that are already lifetime-constrained to another value.
+In this examples, the nonescapable result depends on a nonescapable value.
+Recall that nonescapable values such as these represent values that are already lifetime-constrained to another value.
 
 For a `consuming` method, the return value cannot have a scoped lifetime dependency on the original value, since the original value no longer exists when the method returns.
 Instead, the return value must "copy" the lifetime dependency from the original:
@@ -182,11 +182,11 @@ func f(arg: <parameter-convention> ArgType) -> @dependsOn(arg) ResultType
 Where
 
 *  *`parameter-convention`* is one of the ownership specifiers **`borrowing`**, **`consuming`**, or **`inout`**, (this may be implied by Swift’s default parameter ownership rules),
-* `ResultType` must be `~Escapable`.
+* `ResultType` must be nonescapable.
 
-If the `ArgType` is `Escapable`, the return value will have a new scoped dependency on the argument.
-(This is the only possibility, as an `Escapable` value cannot have an existing lifetime dependency,
-so we cannot copy it.)
+If the `ArgType` is escapable, the return value will have a new scoped dependency on the argument.
+(This is the only possibility, as an escapable value cannot have an existing lifetime dependency,
+so we cannot copy the lifetime dependency.)
 A scoped dependency ensures the argument will not be destroyed while the result is alive.
 Also, access to the argument will be restricted for the lifetime of the result following Swift's usual exclusivity rules:
 
@@ -194,7 +194,7 @@ Also, access to the argument will be restricted for the lifetime of the result f
 * An `inout` parameter-convention extends mutating access, prohibiting any access to the argument.
 * A `consuming` parameter-convention is illegal, since that ends the lifetime of the argument immediately.
 
-If the `ArgType` is `~Escapable`, then it can have a pre-existing lifetime dependency.
+If the `ArgType` is nonescapable, then it can have a pre-existing lifetime dependency.
 In this case, the semantics of `@dependsOn()` are slightly different:
 * A `consuming` parameter-convention will copy the lifetime dependency from the argument to the result
 * A `borrowing` or `inout` parameter-convention can either copy the lifetime dependency or create a new scoped lifetime dependency.
@@ -212,7 +212,7 @@ Given a method of this form:
 <mutation-modifier> func method(... args ...) -> @dependsOn(self) ResultType
 ```
 
-The behavior depends as above on the mutation-modifier and whether the defining type is `Escapable` or `~Escapable`.
+The behavior depends as above on the mutation-modifier and whether the defining type is escapable or nonescapable.
 
 **Initializers:** An initializer can define lifetime dependencies on one or more arguments.
 In this case, we use the same rules same as for “Functions” above
@@ -226,10 +226,10 @@ init(arg: <parameter-convention> ArgType) -> @dependsOn(arg) Self
 
 The syntax above allows developers to explicitly annotate lifetime dependencies in their code.
 But because the possibilities are limited, we can usually allow the compiler to infer a suitable dependency.
-The detailed rules are below, but generally we require that the return type be `~Escapable` and that there be one “obvious” source for the dependency.
+The detailed rules are below, but generally we require that the return type be nonescapable and that there be one “obvious” source for the dependency.
 
-In particular, we can infer a lifetime dependency on `self` for any method that returns a `~Escapable` type.
-As above, the details vary depending on whether `self` is `Escapable` or `~Escapable`:
+In particular, we can infer a lifetime dependency on `self` for any method that returns a nonescapable value.
+As above, the details vary depending on whether `self` is escapable or nonescapable:
 
 ```swift
 struct NonescapableType: ~Escapable { ... }
@@ -253,7 +253,7 @@ struct NEStruct: ~Escapable {
 }
 ```
 
-For free or static functions or initializers, we can infer a lifetime dependency when the return value is `~Escapable` and there is only one obvious argument that can serve as the source of the dependency.
+For free or static functions or initializers, we can infer a lifetime dependency when the return value is nonescapable and there is only one obvious argument that can serve as the source of the dependency.
 For example:
 
 ```swift
@@ -277,9 +277,9 @@ We expect these implicit inferences to cover most cases, with the explicit form 
 
 ### Relation to ~Escapable
 
-The lifetime dependencies described in this document can be applied only to `~Escapable` return values.
-Further, any return value that is `~Escapable` must have a lifetime dependency.
-In particular, this implies that the initializer for a non-escapable type must have at least one argument.
+The lifetime dependencies described in this document can be applied only to nonescapable return values.
+Further, any return value that is nonescapable must have a lifetime dependency.
+In particular, this implies that the initializer for a nonescapable type must have at least one argument.
 
 ```swift
 struct S: ~Escapable {
@@ -374,20 +374,20 @@ The implications of mutation modifiers and argument type on the resulting lifeti
 
 If there is no explicit lifetime dependency, we will automatically infer one according to the following rules:
 
-**For methods where the return type is `~Escapable`**, we will infer a dependency against self, depending on the mutation type of the function.
+**For methods where the return value is nonescapable**, we will infer a dependency against self, depending on the mutation type of the function.
 Note that this is not affected by the presence, type, or modifier of any other arguments to the method.
 
 **For a free or static functions or initializers with at least one argument,** we will infer a lifetime dependency when all of the following are true:
 
-* the return type is `~Escapable`,
+* the return value is nonescapable,
 * there is exactly one argument that satisfies any of the following:
-  - is either `~Copyable` or `~Escapable`
+  - is either noncopyable or nonescapable, or
   - has an explicit `borrowing`, `consuming`, or `inout` convention specified
 
 In this case, the compiler will infer a dependency on the unique argument identified by this last set of conditions.
 
 **In no other case** will a function, method, or initializer implicitly gain a lifetime dependency.
-If a function, method, or initializer has a `~Escapable` return type, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
+If a function, method, or initializer has a nonescapable return value, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
 
 ## Source compatibility
 
@@ -433,7 +433,7 @@ This was changed after we realized that there was in practice almost always a si
 
 #### Lifetime Dependencies for Computed Properties
 
-It might be useful to allow lifetime dependencies between `self` and the value returned by a computed property.
+It would be useful to allow lifetime dependencies between `self` and the value returned by a computed property.
 There is some ambiguity here, since resilience hides the distinction between a computed and stored property.
 In particular, the resilience concern might prevent us from inferring lifetime dependencies for properties across module boundaries.
 The notation for an explicit lifetime dependency on a property might look like the following:
@@ -449,12 +449,12 @@ extension Type1 {
 ```
 
 Where `borrowing` or `consuming` would indicate that the returned value has a lifetime dependency on `self`.
-We expect that the lifetime notation would be mandatory for any property that provided a `~Escaping` value.
+We expect that the lifetime notation would be mandatory for any property that provided a `~Escapable` value.
 
 #### Lifetime Dependencies for Escapable Types
 
-This proposal has deliberately limited the application of lifetime dependencies to return types that are `~Escapable`.
-This simplifies the model by identifying `~Escapable` types as exactly those types that can carry such dependencies.
+This proposal has deliberately limited the application of lifetime dependencies to return types that are nonescapable.
+This simplifies the model by identifying nonescapable types as exactly those types that can carry such dependencies.
 It also helps simplify the enforcement of lifetime constraints by guaranteeing that constrained values cannot escape before being returned.
 Most importantly, this restriction helps ensure that the new semantics (especially lifetime dependency inference) cannot accidentally break existing code.
 We expect that in the future, additional investigation can reveal a way to relax this restriction.
