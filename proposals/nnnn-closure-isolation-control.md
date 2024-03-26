@@ -129,6 +129,13 @@ class C {
 
 An isolated parameter in a capture list must be of actor type, or conform to or imply an actor, potentially optional, and there can only be one isolated parameter captured, following the same rules described in [SE-0313](0313-actor-isolation-control.md#actor-isolated-parameters) for actor-isolated parameters.
 
+The contexts in which an isolated parameter is permitted in the capture list of a synchronous closure are when the closure is:
+
+* called immediately
+* converted to an `async` function type
+* converted to an `@isolated(any)` function type
+* converted to a non-Sendable function type and has the correct isolation for the context that does the conversion
+
 Due to the ambiguity between the `nonisolated` modifier and a type-inferred closure parameter, most notably disambiguating `{ nonisolated parameter in ... }` as a modifier followed by a single parameter vs both as a bound pair of tokens, the use of parentheses for a parameter list is required when `nonisolated` is specified.
 
 ```swift
