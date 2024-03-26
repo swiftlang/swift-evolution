@@ -10,6 +10,7 @@
 [SE-0316]: https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md
 [SE-0392]: https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md
 [isolated-captures]: https://forums.swift.org/t/closure-isolation-control/70378
+[generalized-isolation]: https://github.com/apple/swift-evolution/blob/main/proposals/0420-inheritance-of-actor-isolation.md#generalized-isolation-checking
 
 ## Introduction
 
@@ -34,41 +35,38 @@ Function declarations and closures in Swift support three different
 forms of actor isolation:
 
 - They can be non-isolated.
-
-  - This can be explicitly expressed with the `nonisolated` modifier.
-  - It is also the default if other rules don't apply.
-
 - They can be isolated to a specific [global actor][SE-0316] type.
-
-  - This can be explicitly expressed with a global actor attribute,
-    such as `@MainActor`.
-  - It can also be inferred from context in a number of ways, such as
-    if the function is a method of a type with that attribute (which
-    itself can be inferred in a number of ways).
-  - Additionally, a closure passed directly to the `Task` initializer
-    is inferred to be isolated to a global actor if the enclosing
-    context is isolated to a global actor.
-
 - They can be isolated to a specific parameter or captured value.
 
-  - This can be explicitly expressed by declaring a parameter with
-    the `isolated` modifier.
-  - There is [another proposal being worked on][isolated-captures]
-    to allow it to be explicitly expressed with the `isolated` modifier
-    on a closure capture.
-  - Instance methods on an actor type are inferred to be isolated to
-    `self` if they're not explicitly declared to be non-isolated or
-    global-actor-isolated.
-  - Additionally, a closure passed directly to the `Task` initializer
-    is inferred to be isolated to a specific parameter or capture if
-    the enclosing context is isolated to that parameter or capture and
-    the closure refers to it.  (This rule about referring to it can be
-    confusing and may be revised by the isolated-captures proposal.)
+A function's isolation can be specified or inferred in many ways.
+Non-isolation is the default if no other rules apply, and it can also
+be specified explicitly with the `nonisolated` modifier.  Global actor
+isolation can be expressed explicitly with a global actor attribute,
+such as `@MainActor`, but it can also be inferred from context, such
+as in the methods of main-actor-isolated types.  A function can
+explicitly declare one of its parameters as `isolated` to isolate
+itself to the value of that parameter; this is also done implicitly to
+the `self` parameter of an actor method if the method doesn't explicitly
+use some other isolation.  Closure expressions can be declared with a
+global actor attribute, and there is a [proposal currently being
+developed][isolated-captures] to also allow them to have an explicit
+`isolated` capture or to be explicitly non-isolated.  Additionally,
+when you pass a closure expression directly to the `Task` initializer,
+that closure is inferred to have the isolation of the enclosing context.[^1]
+These rules are fairly complex, but at the end of the day, they all
+boil down to this: every function is assigned one of the three kinds of
+actor isolation above.
+
+[^1]: Currently, if the enclosing context is isolated to a value, the
+closure is only isolated to it if it actually captures that value (by
+using it somewhere in its body).  This is often seen as confusing, and
+the `isolated` captures proposal is considering lifting this restriction
+by unconditionally capturing the value.
 
 When a function is called directly, Swift's isolation checker can
 analyze its isolation precisely and compare that to the isolation of the
-calling context.  When a function call is to an opaque value of function
-type, however, Swift is limited by what can be expressed in the type
+calling context.  However, when a call expression calls an opaque value
+of function type, Swift is limited by what can be expressed in the type
 system:
 
 - A function type with no isolation specifiers, such as `() -> Int`,
@@ -82,9 +80,10 @@ system:
   `(isolated MyActor) - > Int`, represents a function that's isolated to
   that parameter.
 
-There's a very important case that isn't covered by any of those: a
-closure can be isolated to one of its captures.  In the following
-example, the closure is isolated to its captured `self` value:
+But there's a very important case that can't be expressed in the type
+system like this: a closure can be isolated to one of its captures.  In
+the following example, the closure is isolated to its captured `self`
+value:
 
 ```swift
 actor WorldModelObject {
@@ -114,20 +113,21 @@ actor WorldModelObject {
 }
 ```
 
-This can also arise with a partial applicaion of an actor method,
-such as `myActor.methodName`: the resulting function value captures
-`myActor` and is isolated to it.  For now, these are the only two
-cases of isolated captures.  However, the upcoming
+This inexpressible case also arises with a partial applicaion of an
+actor method, such as `myActor.methodName`: the resulting function
+value captures `myActor` and is isolated to it.  For now, these are
+the only two cases of isolated captures.  However, the upcoming
 [closure isolation control][isolated-captures] proposal is expected
-to give this significantly greater prominence and importance, because
-isolated captures will become a general tool for controlling the
-isolation of a specific piece of code.  In none of these cases is
-there is any way to exactly represent the function's isolation in
-its type.[^1]
+to give this significantly greater prominence and importance.  Under
+that proposal, isolated captures will become a powerful general tool
+for controlling the isolation of a specific piece of code.  But there
+will still not be a way to express the isolation of that closure in
+the type system.[^2]
 
-[^1]: This would be an example of a value-dependent type, which is a
-very advanced type system feature that we cannot easily add to Swift.
-This is discussed in Future Directions.
+[^2]: Expressing this exactly would require the use of value-dependent
+types.  Value dependence is an advanced type system feature that we
+cannot easily add to Swift.  This is discussed in greater depth in
+the Future Directions section.
 
 This is a very unfortunate limitation, because it actually means that
 there's no way for a function to accept a function argument with
@@ -242,8 +242,9 @@ following conditions apply:
       closure expression (including an implicit autoclosure), a function
       reference, or a partial application of a method reference, the
       resulting function is dynamically isolated to the isolation of the
-      function or closure.  This looks through non-instrumental differences
-      in expression syntax such as parentheses.
+      function or closure.  This looks through syntax that has no impact
+      on the value produced by the expression, such as parentheses; the
+      list is the same as in [SE-0420][generalized-isolation].
     - Otherwise, if `F` is non-isolated, the resulting function is
       dynamically non-isolated.
     - Otherwise, `F` must be isolated to a global actor, and the resulting
@@ -324,13 +325,16 @@ An expression is a derivation of `E` if:
 
 - it has the exact form of `E`;
 - it is a reference to a capture or immutable binding immediately
-  initialized with a derivation of `E`; or
-- it is a non-optional derivation of `E`.
+  initialized with a derivation of `E`;
+- it is the result of `?` (the optional-chaining operator) or `!`
+  (the optional-forcing operator) applied to a derivation of `E`; or
+- it is a reference to a non-optional binding (an immutable binding
+  initialized by a successful pattern-match which removes optionality,
+  such as `x` in `if let x = E`) of a derivation of `E`.
 
-When analyzing an expression for these rules, certain non-instrumental
-differences in expression syntax and behavior must be ignored.  This
-and certain other terms in this section are intended to match the
-definitions laid out in [SE-0420](https://github.com/apple/swift-evolution/blob/main/proposals/0420-inheritance-of-actor-isolation.md#generalized-isolation-checking).
+This analysis looks through syntax that has no effect on the value of
+an expression, such as parentheses.  These cases are the same as
+described in [SE-0420][generalized-isolation].
 
 For example:
 
@@ -347,8 +351,40 @@ func delay(operation: @isolated(any) () -> ()) {
 
 (This uses the `isolated` capture modifier proposed in the draft
 [closure isolation control][isolated-captures] proposal.  It would be
-possible but significantly more awkward to get this effect with that
-proposal.)
+possible but significantly more awkward to get this effect without
+that proposal.)
+
+The primary intent of this section is to simply extend the generalized
+isolation checking rules laid out in [SE-0420][generalized-isolation]
+to work with an underlying expression like `fn.isolation`.  However,
+the rules above go beyond the SE-0420 rules in some ways, most
+importantly by looking through local immutable bindings.  Looking
+through such bindings was not especially important for SE-0420, but
+it is important for this proposal.  In order to keep the rules
+consistent, the isolation checking rules from SE-0420 will be
+"rebased" on top of the rules in this proposal, as follows:
+
+- When calling a function with an `isolated` parameter `calleeParam`,
+  if the current context also has an `isolated` parameter or capture
+  `callerIsolation`, the function has the same isolation as the current
+  context if the argument expression corresponding to `calleeParam` is
+  a derivation of either:
+
+  - a reference to `callerIsolation` or
+  - a call to `DistributedActor.asAnyActor` applied to a derivation of
+    `calleeIsolation`.
+
+As a result, the following code is now well-formed:
+
+```swift
+func operate(actor: isolated MyActor) {
+  let actor2 = actor
+  actor2.isolatedMethod() // Swift now knows that actor2 is isolated
+}
+```
+
+There is no reason to write code this way, but it's good to have
+consistent rules.
 
 ### Adoption in task-creation routines
 
@@ -372,7 +408,7 @@ dynamic isolation.
 
 Swift reserves the right to optimize the execution of tasks to avoid
 "unnecessary" isolation changes, such as when an isolated `async` function
-starts by calling a function with different isolation.[^2] In general, this
+starts by calling a function with different isolation.[^3] In general, this
 includes optimizing where the task initially starts executing:
 
 ```swift
@@ -388,7 +424,7 @@ includes optimizing where the task initially starts executing:
 }
 ```
 
-[^2]: This optimization doesn't change the formal isolation of the functions
+[^3]: This optimization doesn't change the formal isolation of the functions
 involved and so has no effect on the value of either `#isolation` or
 `.isolation`.
 
@@ -404,7 +440,7 @@ appropriate executor for its formal dynamic isolation unless:
 As a result, in the following code, these two tasks are guaranteed
 to start executing on the main actor in the order in which they were
 created, even if they immediately switch away from the main actor without
-having done anything that requires isolation:[^3]
+having done anything that requires isolation:[^4]
 
 ```swift
 func process() async {
@@ -421,7 +457,7 @@ func process() async {
 ```
 
 
-[^3]: This sort of guarantee is important when working with a FIFO
+[^4]: This sort of guarantee is important when working with a FIFO
 "pipeline", which is a common pattern when working with explicit queues.
 In a pipeline, code responds to an event by performing work on a series
 of queues, like so:
@@ -446,6 +482,23 @@ of queues, like so:
     difficult property to maintain --- concurrency at any stage will destroy
     it, as will skipping any stages of the pipeline --- but it's not uncommon
     for systems to be architected around it.
+
+The exception here to allow more optimization for implicitly-isolated
+closures is an effort to avoid turning `Task {}` into a surprising
+performance bottleneck.  Programmers often reach for `Task {}` just to
+do something concurrently with the current context, such as downloading
+a file from the internet and then storing it somewhere.  However, if
+`Task {}` is used from an isolated context (such as from a `@MainActor`
+event handler), the closure passed to `Task` will implicitly formally
+inherit that isolation.  A strict interpretation of the scheduling
+guarantee in this proposal would require the closure to run briefly
+on the current actor before it could do anything else.  That would mean
+that the task could never begin the download immediately; it would have
+to wait, not just for the current operation on the actor to finish, but
+for the actor to finish processing everything else currently in its
+queue.  If this is needed, it is not unreasonable to ask programmers
+to state it explicitly, just as they would have to from a non-isolated
+context.
 
 ## Source compatibility
 
@@ -547,7 +600,7 @@ Swift's concurrency runtime does track the current isolation of a task,
 but outside of a task, arbitrary things can be isolated without Swift
 knowing about them.  It is also needlessly restrictive, because there
 is nothing that is unsafe to do in an isolated context that would be
-safe if done in a non-isolated context.[^4]  The second rule is less
+safe if done in a non-isolated context.[^5]  The second rule is less
 intuitive but more closely matches the safety properties that static
 isolation checking tests for.  It implies that `assumeIsolated(nil)`
 should always succeed.  This is notably good enough for `@isolated(any)`:
@@ -556,7 +609,7 @@ since `assumeIsolated` is a synchronous function, only synchronous
 synchronous non-isolated function always runs immediately without
 changing the current isolation.
 
-[^4]: As far as data-race safety goes, at least.  A specific actor
+[^5]: As far as data-race safety goes, at least.  A specific actor
 could conceivably have important semantic restrictions against doing
 certain operations in its isolated code.  Of course, such an actor should
 generally not be calling arbitrary functions that are handed to it.
