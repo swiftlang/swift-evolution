@@ -86,11 +86,11 @@ Below is the complete API design for the new `Mutex` type:
 ///   Some platforms may choose to panic the process, deadlock,
 ///   or leave this behavior unspecified.
 ///
-public struct Mutex<Value: ~Copyable>: ~Copyable {
-  /// Initializes a value of this mutex with the given initial state.
+public struct Mutex<State: ~Copyable>: ~Copyable {
+  /// Initializes an instance of this mutex with the given initial state.
   ///
-  /// - Parameter initialValue: The initial value to give to the mutex.
-  public init(_: transferring consuming Value)
+  /// - Parameter state: The initial state to give to the mutex.
+  public init(_ state: transferring consuming State)
   
   /// Calls the given closure after acquring the lock and then releases
   /// ownership.
@@ -108,7 +108,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///   Some platforms may choose to panic the process, deadlock,
   ///   or leave this behavior unspecified.
   ///
-  /// - Parameter body: A closure with a parameter of `Value`
+  /// - Parameter body: A closure with a parameter of `State`
   ///   that has exclusive access to the value being stored within
   ///   this mutex. This closure is considered the critical section
   ///   as it will only be executed once the calling thread has
@@ -116,7 +116,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter.
   public borrowing func withLock<Result: ~Copyable & Sendable, E: Error>(
-    _ body: (transferring inout Value) throws(E) -> Result
+    _ body: (transferring inout State) throws(E) -> Result
   ) throws(E) -> Result
   
   /// Attempts to acquire the lock and then calls the given closure if
@@ -142,7 +142,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   ///   Some platforms may choose to panic the process, deadlock,
   ///   or leave this behavior unspecified.
   ///
-  /// - Parameter body: A closure with a parameter of `Value`
+  /// - Parameter body: A closure with a parameter of `State`
   ///   that has exclusive access to the value being stored within
   ///   this mutex. This closure is considered the critical section
   ///   as it will only be executed if the calling thread acquires
@@ -151,7 +151,7 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   /// - Returns: The return value, if any, of the `body` closure parameter
   ///   or nil if the lock couldn't be acquired.
   public borrowing func withLockIfAvailable<Result: ~Copyable & Sendable, E: Error>(
-    _ body: (transferring inout Value) throws(E) -> Result?
+    _ body: (transferring inout State) throws(E) -> Result?
   ) throws(E) -> Result?
 }
 
@@ -234,7 +234,7 @@ extension Mutex {
   public struct Guard: ~Copyable, ~Escapable {
     // Hand waving some syntax to borrow Mutex, or perhaps
     // we just store a pointer to it.
-    let mutex: borrow Mutex<Value>
+    let mutex: borrow Mutex<State>
     
     public var value: Value {...}
     
