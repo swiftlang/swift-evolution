@@ -91,7 +91,11 @@ public struct Mutex<State: ~Copyable>: ~Copyable {
   ///
   /// - Parameter state: The initial state to give to the mutex.
   public init(_ state: transferring consuming State)
+}
   
+extension Mutex: Sendable where State: ~Copyable {}
+  
+extension Mutex where State: ~Copyable {
   /// Calls the given closure after acquring the lock and then releases
   /// ownership.
   ///
@@ -154,8 +158,6 @@ public struct Mutex<State: ~Copyable>: ~Copyable {
     _ body: (transferring inout State) throws(E) -> Result?
   ) throws(E) -> Result?
 }
-
-extension Mutex: Sendable {}
 ```
 
 ## Interaction with Existing Language Features
