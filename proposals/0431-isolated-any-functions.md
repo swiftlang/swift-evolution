@@ -1,9 +1,9 @@
 # `@isolated(any)` Function Types
 
-* Proposal: [SE-NNNN](NNNN-isolated-any-functions.md)
+* Proposal: [SE-0431](0431-isolated-any-functions.md)
 * Authors: [John McCall](https://github.com/rjmccall)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (March 27...April 9, 2024)**
 * Implementation: [apple/swift#71433](https://github.com/apple/swift/pull/71433), [apple/swift#71574](https://github.com/apple/swift/pull/71574)
 * Review: ([pitch](https://forums.swift.org/t/isolated-any-function-types/70562))
 
@@ -516,7 +516,7 @@ of queues, like so:
       }
     }
     ```
-
+    
     As long as execution always goes through the exact same sequence of FIFO
     queues, each queue will execute its stage of the overall pipeline in
     the same order as the events were originally received.  This can be a
