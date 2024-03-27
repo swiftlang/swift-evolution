@@ -4,8 +4,8 @@
 * Authors: [John McCall](https://github.com/rjmccall)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (March 27...April 9, 2024)**
-* Implementation: [apple/swift#71433](https://github.com/apple/swift/pull/71433), [apple/swift#71574](https://github.com/apple/swift/pull/71574)
-* Review: ([pitch](https://forums.swift.org/t/isolated-any-function-types/70562))
+* Implementation: [apple/swift#71433](https://github.com/apple/swift/pull/71433), [apple/swift#71574](https://github.com/apple/swift/pull/71574), available on `main` with `-enable-experimental-feature IsolatedAny`. 
+* Review: ([pitch](https://forums.swift.org/t/isolated-any-function-types/70562))([review](https://forums.swift.org/t/se-0431-isolated-any-function-types/70939))
 
 [SE-0316]: https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md
 [SE-0392]: https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md
