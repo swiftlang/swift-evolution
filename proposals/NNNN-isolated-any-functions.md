@@ -184,7 +184,7 @@ The isolation can be read using the special `isolation` property
 of these types:
 
 ```swift
-func traverse(operation: isolated(any) (Node) -> ()) {
+func traverse(operation: @isolated(any) (Node) -> ()) {
   let isolation = operation.isolation
 }
 ```
@@ -307,23 +307,53 @@ as [`#isolation`](https://github.com/apple/swift-evolution/blob/main/proposals/0
 
 ### Isolation checking
 
-Since the isolation of a dynamically-isolated function value is
-statically unknown, calls to it typically cross an isolation barrier.
+Since the isolation of an `@isolated(any)` function value is
+statically unknown, calls to it typically cross an isolation boundary.
 This means that the call must be `await`ed even if the function is
 synchronous, and the arguments and result must satisfy the usual
 sendability restrictions for cross-isolation calls.
 
-If `f` is an immutable binding (such as a local `let` or a non-`inout`
-parameter) of `@isolated(any)` function type, then a call to `f` does
-not cross an isolation barrier if the current context is isolated
-to a derivation of the expression `f.isolation`.
+In order for a call to an `@isolated(any)` function to be treated as
+not crossing an isolation boundary, the caller must be known to have
+the same isolation as the function.  Since the isolation of an
+`@isoalted(any)` parameter is necessarily an opaque value, this would
+require the caller to be declared with value-specific isolation.  It
+is currently not possible for a local function or closure to be
+isolated to a specific value that isn't already the isolation of the
+current context.[^4]  The following rules lay out how `@isolated(any)`
+should interact with possible future language support for functions
+that are explicitly isolated to a captured value.  In order to
+present these rules, this proposal uses the syntax currently proposed
+by the [closure isolation control pitch][isolated-captures], where
+putting `isolated` before a capture makes the closure isolated to
+that value.  This should not be construed as accepting the terms of
+that pitch.  Accepting this proposal will leave most of this
+section "suspended" until a feature with a similar effect is added
+to the language.
 
-A context is isolated to a derivation of a expression `E` if it has an
-isolated capture that is initialized to a derivation of `E`.
+[^4]: Technically, it is possible to achieve this effect in Swift
+today in a way that Swift could conceivably look through: the caller
+could be a closure with an `isolated` parameter, and that closure
+could be called with an expression like `fn.isolation` as the arugment.
+Swift could analyze this to see that the parameter has the value of
+`fn.isolation` and then understand the connection between the caller's
+isolation and `fn`.  This would be very cumbersome, though, and it
+would have significant expressivity gaps vs. an isolated-captures
+feature.
 
-An expression is a derivation of `E` if:
+If `f` is an immutable binding of `@isolated(any)` function type,
+then a call to `f` does not cross an isolation boundary if the
+current context is isolated to a *derivation* of the expression
+`f.isolation`.
 
-- it has the exact form of `E`;
+In the isolated captures pitch, a closure can be isolated to a specific
+value by using the `isolated` modifier on an entry in its capture list.
+So this question would reduce to whether that capture was initialized
+to a derivation of `f.isolation`.
+
+An expression is a derivation of some expression form `E` if:
+
+- it has the exact form required by `E`;
 - it is a reference to a capture or immutable binding immediately
   initialized with a derivation of `E`;
 - it is the result of `?` (the optional-chaining operator) or `!`
@@ -332,16 +362,18 @@ An expression is a derivation of `E` if:
   initialized by a successful pattern-match which removes optionality,
   such as `x` in `if let x = E`) of a derivation of `E`.
 
-This analysis looks through syntax that has no effect on the value of
-an expression, such as parentheses.  These cases are the same as
-described in [SE-0420][generalized-isolation].
+The term *immutable binding* in the rules above means a `let` constant
+or immutable (non-`inout`) parameter that is neither `weak` nor
+`unowned`.  The analysis ignores syntax that has no effect on the
+value of an expression, such as parentheses; the exact set of cases
+are the same as described in [SE-0420][generalized-isolation].
 
 For example:
 
 ```swift
 func delay(operation: @isolated(any) () -> ()) {
   let isolation = operation.isolation
-  Task { [isolated isolation] in
+  Task { [isolated isolation] in // <-- tentative syntax from the isolated captures pitch
     print("waking")
     operation() // <-- does not cross an isolation barrier and so is synchronous
     print("finished")
@@ -349,20 +381,29 @@ func delay(operation: @isolated(any) () -> ()) {
 }
 ```
 
-(This uses the `isolated` capture modifier proposed in the draft
-[closure isolation control][isolated-captures] proposal.  It would be
-possible but significantly more awkward to get this effect without
-that proposal.)
+In this example, the expression `operation()` calls `operation`,
+which is an immutable binding (a parameter) of `@isolated(any)`
+function type.  The call therefore does not cross an isolation
+boundary if the calling context is isolated to a derivation of
+`operation.isolation`.  The calling context is the closure passed
+to `Task.init`, which has an explicit `isolated` capture named
+`isolation` and so is isolated to that value of that capture.
+The capture is initialized with the value of the enclosing
+variable `isolation`, which is an immutable binding (a `let`
+constant) initialized to `operation.isolation`.  As such, the
+calling context is isolated to a derivation of `operation.isolation`,
+so the call does not cross an isolation boundary.
 
-The primary intent of this section is to simply extend the generalized
-isolation checking rules laid out in [SE-0420][generalized-isolation]
-to work with an underlying expression like `fn.isolation`.  However,
-the rules above go beyond the SE-0420 rules in some ways, most
-importantly by looking through local immutable bindings.  Looking
-through such bindings was not especially important for SE-0420, but
-it is important for this proposal.  In order to keep the rules
-consistent, the isolation checking rules from SE-0420 will be
-"rebased" on top of the rules in this proposal, as follows:
+The primary intent of the rules above is simply to extend the
+generalized isolation checking rules laid out in
+[SE-0420][generalized-isolation] to work with an underlying
+expression like `fn.isolation`.  However, the rules above go
+beyond the SE-0420 rules in some ways, most importantly by looking
+through local `let`s.  Looking through such bindings was not especially
+important for SE-0420, but it is important for this proposal.  In
+order to keep the rules consistent, the isolation checking rules from
+SE-0420 will be "rebased" on top of the rules in this proposal,
+as follows:
 
 - When calling a function with an `isolated` parameter `calleeParam`,
   if the current context also has an `isolated` parameter or capture
@@ -377,14 +418,14 @@ consistent, the isolation checking rules from SE-0420 will be
 As a result, the following code is now well-formed:
 
 ```swift
-func operate(actor: isolated MyActor) {
-  let actor2 = actor
+func operate(actor1: isolated MyActor) {
+  let actor2 = actor1
   actor2.isolatedMethod() // Swift now knows that actor2 is isolated
 }
 ```
 
-There is no reason to write code this way, but it's good to have
-consistent rules.
+There is no reason to write this code instead of just using `actor1`,
+but it's good to have consistent rules.
 
 ### Adoption in task-creation routines
 
