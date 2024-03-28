@@ -96,7 +96,7 @@ changes are required.
 
 ## Source compatibility
 
-Current Swift libraries will continue to build becuase they compile under
+Current Swift libraries will continue to build because they compile under
 pre-Swift 6 language modes. Under such language modes this proposal adds only an
 unconditional warning when framework-specific entrypoints are used, and provides
 diagnostics to avoid the warning by automatically migrating user code.
