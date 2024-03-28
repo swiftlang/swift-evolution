@@ -1,11 +1,12 @@
 # Borrowing and consuming pattern matching for noncopyable types
 
 * Proposal: [SE-ABCD](ABCD-noncopyable-switch.md)
-* Authors: [Joe Groff](https://github.com/jckarter),
+* Authors: [Joe Groff](https://github.com/jckarter)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: on `main`, using the `BorrowingSwitch` feature flag and `_borrowing x` binding spelling
 * Upcoming Feature Flag: `BorrowingSwitch`
+* Previous Revision: [first pitch](https://github.com/apple/swift-evolution/blob/86cf6eadcdb35a09eb03330bf5d4f31f2599da02/proposals/ABCD-noncopyable-switch.md)
 
 ## Introduction
 
@@ -26,89 +27,220 @@ since switching over them is the only way to access their associated values.
 ## Proposed solution
 
 We lift the restriction that noncopyable pattern matches must consume their
-subject value. To enable this, we introduce **borrowing bindings** into
-patterns, and formalize the ownership behavior of patterns during matching
-and dispatch to case blocks. `switch` statements **infer their ownership
-behavior** based on the necessary ownership behavior of the patterns in
-the `switch`.
+subject value, and  formalize the ownership behavior of patterns during
+matching and dispatch to case blocks. `switch` statements **infer their
+ownership behavior** based on a combination of whether the subject expression
+refers to storage or a temporary value, in addition to the necessary ownership
+behavior of the patterns in the `switch`. We also introduce **borrowing
+bindings** into patterns, as a way of explicitly declaring a binding as a
+borrow that doesn't allow for implicit copies. 
 
 ## Detailed design
 
+### Determining the ownership behavior of a `switch` operation
+
+Whether a `switch` borrows or consumes its subject can be determined from
+the subject expression and the patterns involved in the switch. Based on
+the criteria below, a switch may be one of:
+
+- **copying**, meaning that the subject is semantically copied, and additional
+  copies of some or all of the subject value may be formed to execute the
+  pattern match.
+- **borrowing**, meaning that the subject is borrowed for the duration of the
+  `switch` block.
+- **consuming**, meaning that the subject is consumed by the `switch` block.
+
+These modes can be thought of as being increasing in strictness. The compiler
+looks recursively through the patterns in the `switch` and increases the
+strictness of the `switch` behavior when it sees a pattern requiring stricter
+ownership behavior. For copyable subjects, *copying* is the baseline mode, 
+whereas for noncopyable subjects, the baseline mode depends on the subject
+expression:
+
+- If the expression refers to a variable or stored property, and is not
+  explicitly consumed using the `consume` operator, then the baseline
+  mode is *borrowing*. (Properties and subscripts which use the experimental
+  `_read`, `_modify`, or `unsafeAddress` accessors also get a baseline mode
+  of borrowing.)
+- Otherwise, the baseline mode is *consuming*.
+
+While looking through the patterns:
+
+- if there is a `borrowing` binding subpattern (described below), then the
+  `switch` behavior is at least *borrowing*.
+- if there is a `var` binding subpattern, and the subpattern is of
+  a noncopyable type, then the `switch` behavior is *consuming*. If the
+  subpattern is copyable, then `var` bindings do not affect the behavior
+  of the `switch`, since the binding value can be copied if necessary to
+  form the binding.
+- if there is an `as T` subpattern, and the type of the value being matched
+  is noncopyable, then the `switch` behavior is *consuming*. If the value
+  being matched is copyable, there is no effect on the behavior of the
+  `switch`. This is because some forms of dynamic cast on noncopyable types
+  may require consuming the input value.
+
+For example, given the following copyable definition:
+
+```
+enum CopyableEnum {
+    case foo(Int)
+    case bar(Int, String)
+}
+```
+
+then the following patterns have ownership behavior as indicated below:
+
+```
+case let x: // copying
+case borrowing x: // borrowing
+
+case .foo(let x): // copying
+case .foo(borrowing x): // borrowing
+
+case .bar(let x, let y): // copying
+case .bar(borrowing x, let y): // borrowing
+case .bar(let x, borrowing y): // borrowing
+case .bar(borrowing x, borrowing y): // borrowing
+```
+
+And for a noncopyable enum definition:
+
+```
+struct NC: ~Copyable {}
+
+enum NoncopyableEnum: ~Copyable {
+    case copyable(Int)
+    case noncopyable(NC)
+}
+```
+
+then the following patterns have ownership behavior as indicated below:
+
+```
+var foo: NoncopyableEnum // stored variable
+
+switch foo {
+case let x: // borrowing
+case borrowing x: // borrowing
+
+case .copyable(let x): // borrowing (because `x: Int` is copyable)
+case .copyable(borrowing x): // borrowing
+
+case .noncopyable(let x): // borrowing
+case .noncopyable(borrowing x): // borrowing
+}
+
+func bar() -> NoncopyableEnum {...} // function returning a temporary
+
+switch bar() {
+case let x: // consuming
+case borrowing x: // borrowing
+
+case .copyable(let x): // borrowing (because `x: Int` is copyable)
+case .copyable(borrowing x): // borrowing
+
+case .noncopyable(let x): // consuming
+case .noncopyable(borrowing x): // borrowing
+}
+```
+
+### Refining the ownership behavior of `switch`
+
+The order in which `switch` patterns are evaluated is unspecified in Swift,
+aside from the property that when multiple patterns can match a value,
+the earliest matching `case` condition takes priority. Therefore, it is
+important that matching dispatch **cannot mutate or consume the subject**
+until a final match has been chosen. For copyable values, this means that
+pattern matching operations can't mutate the subject, but they can be copied
+as necessary to keep an instance of the subject available throughout the
+pattern match even if a match operation wants to consume an instance of
+part of the value.
+
+Copying isn't an option for noncopyable types, so
+**noncopyable types strictly cannot undergo `consuming` operations until 
+the pattern match is complete**. For many kinds of pattern matches, this
+doesn't need to affect their expressivity, since checking whether a type
+matches the pattern criteria can be done nondestructively separate from
+consuming the value to form variable bindings. Matching enum cases and tuples
+(when noncopyable tuples are supported) for instance is still possible
+even if they contain consuming `let` or `var` bindings as subpatterns:
+
+```
+extension Handle {
+    var isReady: Bool { ... }
+}
+
+let x: MyNCEnum = ...
+switch consume x {
+// OK to have `let y` in multiple patterns because we can delay consuming
+// `x` to form bindings until we establish a match
+case .foo(let y) where y.isReady:
+    y.close()
+case .foo(let y):
+    y.close()
+}
+```
+
+However, when a pattern has a `where` clause, variable bindings cannot be
+consumed in the where clause even if the binding is consumable in the case
+body:
+
+```
+extension Handle {
+    consuming func tryClose() -> Bool { ... }
+}
+
+let x: MyNCEnum = ...
+switch consume x {
+// error: cannot consume `y` in a "where" clause
+case .foo(let y) where y.tryClose():
+    // OK to consume in the case body
+    y.close()
+case .foo(let y):
+    y.close()
+}
+```
+
+Similarly, an expression subpattern whose `~=` operator consumes the subject
+cannot be used to test a noncopyable subpattern.
+
+```
+extension Handle {
+    static func ~=(identifier: Int, handle: consuming Handle) -> Bool { ... }
+}
+
+switch consume x {
+// error: uses a `~=` operator that would consume the subject before
+// a match is chosen
+case .foo(42):
+    ....
+case .foo(let y):
+    ...
+}
+```
+
+Noncopyable types do not yet support dynamic casting, but it is worth
+anticipating how `is` and `as` patterns will work given this restriction.
+An `is T` pattern only needs to determine whether the value being matched can
+be cast to `T` or not, which can generally be answered nondestructively.
+However, in order to form the value of type `T`, many kinds of casting,
+including casts that bridge or which wrap the value in an existential
+container, need to consume or copy parts of the input value in order to form
+the result. The cast can still be separated into a check whether the type
+matches, using a borrowing access, followed by constructing the actual cast
+result by consuming if necessary. However, for this to be allowed, the
+subpattern `p` of the `p as T` pattern would need to be irrefutable, and the
+pattern could not have an associated `where` clause, since we would be unable
+to back out of the pattern match once a consuming cast is performed.
+
 ### `borrowing` bindings
 
-Patterns can currently contain `var` and `let` bindings, which take part
-of the matched value and bind it to a new independent variable in the
-matching `case` block:
-
-```
-enum MyCopyableEnum {
-    case foo(String)
-
-    func doStuff() { ... }
-}
-
-var x: MyCopyableEnum = ...
-
-switch x {
-case .foo(let y):
-    // We can pass `y` off somewhere else, or capture it indefinitely
-    // in a closure, such as to use it in a detached task
-    Task.detached {
-        print(y)
-    }
-
-    // We can use `x` and update it independently without disturbing `y`
-    x.doStuff()
-    x = MyEnum.foo("38")
-
-}
-```
-
-For copyable types, we can ensure the pattern bindings are independent by
-copying the matched part into the new variable, but for noncopyable bindings,
-their values can't be copied and need to be moved out of the original value,
-consuming the original in the process:
-
-```
-struct Handle: ~Copyable {
-    var value: Int
-
-    borrowing func access() { ... }
-
-    consuming func close() { ... }
-}
-
-enum MyNCEnum: ~Copyable {
-    case foo(Handle)
-
-    borrowing func doStuff() { ... }
-    consuming func throwAway() { ... }
-}
-
-var x: MyNCEnum = ...
-switch x {
-case .foo(let y):
-    // We can pass `y` off somewhere else, or capture it indefinitely
-    // in a closure, such as to use it in a detached task
-    Task.detached {
-        y.access()
-    }
-    
-    // ...but we can't copy `Handle`s, so in order to support that, we have to
-    // have moved `y` out of `x`, leaving `x` consumed and unable to be used
-    // again
-    x.doStuff() // error: 'x' consumed
-}
-
-// Since the pattern match had to consume the value, we can't even use it
-// after the switch is done.
-x.doStuff() // error: 'x' consumed
-```
-
-We introduce a new `borrowing` binding modifier. A `borrowing` binding
-references the matched part of the value as it currently exists in
-the subject value without copying it, instead putting the subject under
-a *borrowing access* in order to access the matched part.
+In order to explicitly declare a binding as `borrowing`,
+we introduce a new `borrowing` binding modifier in patterns. A `borrowing`
+binding references the matched part of the value as it currently exists in the
+value from the pattern match without copying it, instead putting the subject
+under a *borrowing access* in order to access the matched part. Like other
+borrow bindings, the borrowed value cannot be consumed or mutated.
 
 ```
 var x: MyNCEnum = ...
@@ -137,6 +269,23 @@ case .foo(borrowing y):
 x.doStuff()
 x.throwAway()
 x = .foo(Handle(value: 1738))
+
+// Even if we `consume x` in the switch subject, a `borrowing` binding cannot
+// be locally consumed.
+switch consume x {
+case .foo(borrowing y):
+    y.access()
+
+    x.doStuff()
+
+    // Even though we consumed `x`, `y` is still only a borrow binding so
+    // can't consume or extend its lifetime.
+    Task.detached {
+        y.access() // error, can't capture borrow `y` in an escaping closure
+    }
+    y.close() // error, can't consume `y`
+}
+
 ```
 
 `borrowing` bindings can also be formed when the subject of the pattern
@@ -204,175 +353,6 @@ as bindings.
 case borrowing .foo(x, y): // parses as `borrowing.foo(x, y)`, a method call expression pattern
 
 case borrowing (x, y): // parses as `borrowing(x, y)`, a function call expression pattern
-```
-
-### Refining the ownership behavior of `switch`
-
-The order in which `switch` patterns are evaluated is unspecified in Swift,
-aside from the property that when multiple patterns can match a value,
-the earliest matching `case` condition takes priority. Therefore, it is
-important that matching dispatch **cannot mutate or consume the subject**
-until a final match has been chosen. For copyable values, this means that
-pattern matching operations can't mutate the subject, but they can be copied
-as necessary to keep an instance of the subject available throughout the
-pattern match even if a match operation wants to consume an instance of
-part of the value.
-
-Copying isn't an option for noncopyable types, so
-**noncopyable types strictly cannot undergo `consuming` operations until 
-the pattern match is complete**. For many kinds of pattern matches, this
-doesn't need to affect their expressivity, since checking whether a type
-matches the pattern criteria can be done nondestructively separate from
-consuming the value to form variable bindings. Matching enum cases and tuples
-(when noncopyable tuples are supported) for instance is still possible
-even if they contain consuming `let` or `var` bindings as subpatterns:
-
-```
-extension Handle {
-    var isReady: Bool { ... }
-}
-
-let x: MyNCEnum = ...
-switch x {
-// OK to have `let y` in multiple patterns because we can delay consuming
-// `x` to form bindings until we establish a match
-case .foo(let y) where y.isReady:
-    y.close()
-case .foo(let y):
-    y.close()
-}
-```
-
-However, when a pattern has a `where` clause, variable bindings cannot be
-consumed in the where clause even if the binding is consumable in the case
-body:
-
-```
-extension Handle {
-    consuming func tryClose() -> Bool { ... }
-}
-
-let x: MyNCEnum = ...
-switch x {
-// error: cannot consume `y` in a "where" clause
-case .foo(let y) where y.tryClose():
-    // OK to consume in the case body
-    y.close()
-case .foo(let y):
-    y.close()
-}
-```
-
-Similarly, an expression subpattern whose `~=` operator consumes the subject
-cannot be used to test a noncopyable subpattern.
-
-```
-extension Handle {
-    static func ~=(identifier: Int, handle: consuming Handle) -> Bool { ... }
-}
-
-switch x {
-// error: uses a `~=` operator that would consume the subject before
-// a match is chosen
-case .foo(42):
-    ....
-case .foo(let y):
-    ...
-}
-```
-
-Noncopyable types do not yet support dynamic casting, but it is worth
-anticipating how `is` and `as` patterns will work given this restriction.
-An `is T` pattern only needs to determine whether the value being matched can
-be cast to `T` or not, which can generally be answered nondestructively.
-However, in order to form the value of type `T`, many kinds of casting,
-including casts that bridge or which wrap the value in an existential
-container, need to consume or copy parts of the input value in order to form
-the result. The cast can still be separated into a check whether the type
-matches, using a borrowing access, followed by constructing the actual cast
-result by consuming if necessary. However, for this to be allowed, the
-subpattern `p` of the `p as T` pattern would need to be irrefutable, and the
-pattern could not have an associated `where` clause, since we would be unable
-to back out of the pattern match once a consuming cast is performed.
-
-### Determining the ownership behavior of a `switch` operation
-
-Whether a `switch` borrows or consumes its subject can be determined from
-the type of the subject and the patterns involved in the switch. Based on
-the criteria below, a switch may be one of:
-
-- **copying**, meaning that the subject is semantically copied, and additional
-  copies of some or all of the subject value may be formed to execute the
-  pattern match.
-- **borrowing**, meaning that the subject is borrowed for the duration of the
-  `switch` block.
-- **consuming**, meaning that the subject is consumed by the `switch` block.
-
-These modes can be thought of as being increasing in strictness. The compiler
-looks recursively through the patterns in the `switch` and increases the
-strictness of the `switch` behavior when it sees a pattern requiring stricter
-ownership behavior. For copyable subjects, *copying* is the baseline mode, 
-whereas for noncopyable subjects, *borrowing* is the baseline mode. While
-looking through the patterns:
-
-- if there is a `borrowing` binding subpattern, then the `switch` behavior is
-  at least *borrowing*.
-- if there is a `let` or `var` binding subpattern, and the subpattern is of
-  a noncopyable type, then the `switch` behavior is *consuming*. If the
-  subpattern is copyable, then `let` bindings do not affect the behavior
-  of the `switch`, since the binding value can be copied if necessary to
-  form the binding.
-- if there is an `as T` subpattern, and the type of the value being matched
-  is noncopyable, then the `switch` behavior is *consuming*. If the value
-  being matched is copyable, there is no effect on the behavior of the
-  `switch`.
-
-For example, given the following copyable definition:
-
-```
-enum CopyableEnum {
-    case foo(Int)
-    case bar(Int, String)
-}
-```
-
-then the following patterns have ownership behavior as indicated below:
-
-```
-case let x: // copying
-case borrowing x: // borrowing
-
-case .foo(let x): // copying
-case .foo(borrowing x): // borrowing
-
-case .bar(let x, let y): // copying
-case .bar(borrowing x, let y): // borrowing
-case .bar(let x, borrowing y): // borrowing
-case .bar(borrowing x, borrowing y): // borrowing
-```
-
-And for a noncopyable enum definition:
-
-```
-struct NC: ~Copyable {}
-
-enum NoncopyableEnum: ~Copyable {
-    case copyable(Int)
-    case noncopyable(NC)
-}
-```
-
-then the following patterns have ownership behavior as indicated below:
-
-```
-case let x: // consuming
-case borrowing x: // borrowing
-
-case .copyable(let x): // borrowing (because `x: Int` is copyable)
-case .copyable(borrowing x): // borrowing
-
-case .noncopyable(let x): // consuming
-case .noncopyable(borrowing x): // borrowing
 ```
 
 ### `case` conditions in `if`, `while`, `for`, and `guard`
@@ -454,18 +434,31 @@ is consuming `switch`. Now that this proposal allows for `borrowing` switches,
 we could allow `enum`s to have `deinit`s, with the restriction that such
 enums cannot be decomposed by a consuming `switch`.
 
+### Explicit `borrow` operator
+
+The [`borrow` operator](https://forums.swift.org/t/selective-control-of-implicit-copying-behavior-take-borrow-and-copy-operators-noimplicitcopy/60168)
+could be used in the future to explicitly mark the subject of a switch as
+being borrowed, even if it is normally copyable or would be a consumable
+temporary, as in:
+
+```
+let x: String? = "hello"
+
+switch borrow x {
+case .some(borrowing y): // ensure y is bound from a borrow of x, no copies
+    ...
+}
+```
+
 ## Alternatives considered
 
-### Explicit marking of switch ownership
+### Determining pattern match ownership wholly from patterns
 
-SE-0390 required all `switch` statements on noncopyable bindings to use an
-explicit `consume`. Rather than infer the ownership behavior from the 
-patterns in a `switch`, as we propose, we could alternatively keep the
-requirement that a noncopyable `switch` explicitly mark its ownership. Using
-the [`borrow` operator](https://forums.swift.org/t/selective-control-of-implicit-copying-behavior-take-borrow-and-copy-operators-noimplicitcopy/60168)
-which has previously been proposed could serve as an explicit marker that
-a `switch` should perform a borrow on its subject. This proposal chooses
-not to require these explicit markers, though `consume` (and `borrow` when
-it's introduced) can still be explicitly used if the developer chooses to
-enforce that a particular `switch` either consumes or borrows its subject.
-
+The [first pitched revision](https://github.com/apple/swift-evolution/blob/86cf6eadcdb35a09eb03330bf5d4f31f2599da02/proposals/ABCD-noncopyable-switch.md)
+of this proposal kept `let` bindings in patterns as always being consuming
+bindings, and required the use of `borrowing` bindings in every pattern in order
+for a `switch` to act as a borrow. Early feedback using the feature found this
+tedious; `borrowing` is more often a better default for accessing values
+stored in variables and stored properties. This led us to the design now
+proposed, where `let` behaves as a copying, consuming, or borrowing binding
+based on the subject expression.
