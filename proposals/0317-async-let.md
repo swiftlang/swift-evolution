@@ -641,7 +641,7 @@ It would be very confusing to have `async let` tasks automatically "not run" if 
 
 ### Requiring an `await`on any execution path that waits for an `async let`
 
-In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This rule turned out to be too simplistic, because it isn't generally possible to annotate all of the control-flow edges that would result in waiting for a child task the complete. The most problematic case involves a control-flow edge due to a thrown exception, e.g.,
+In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This rule turned out to be too simplistic, because it isn't generally possible to annotate all of the control-flow edges that would result in waiting for a child task to complete. The most problematic case involves a control-flow edge due to a thrown exception, e.g.,
 
 ```swift
 func runException() async {
