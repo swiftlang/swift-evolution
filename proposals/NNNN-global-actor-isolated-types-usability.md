@@ -103,7 +103,6 @@ We propose that:
 - Stored properties of `Sendable` type in a global-actor-isolated value type are treated as `nonisolated` when used within the module or if the value type is `frozen`.
 - `@Sendable` is inferred for global-actor-isolated functions and closures.
 - Global-actor-isolated closures are allowed to capture non-`Sendable` values despite being `@Sendable`.
-- The programmer would be able to suppress the automatic conformance inferred via the above rule using the new `@~Sendable` attribute. By analogy, introduce a new `~Sendable` protocol to indicate that a nominal type is not `Sendable`.
 - A global-actor-isolated subclass of a non-isolated, non-`Sendable` class is allowed, but it must be non-`Sendable`.
 
 
@@ -173,45 +172,6 @@ The above code is data-race safe, since a globally isolated closure will never o
 
 Note that under region isolation in SE-0414, capturing a non-`Sendable` value in an actor-isolated closure will transfer the region into the actor, so it is impossible to have concurrent access on non-`Sendable` captures even if the isolated closure is formed outside the actor.
 
-
-### `@~Sendable` and `~Sendable`
-
-This proposal also adds a way to "opt-out" of the implicit `@Sendable` inference introduced by the above change by using the new `@~Sendable` attribute:
-
-```swift
-func test() {
-  let closure: @~Sendable @MainActor () -> Void = {
-    print("hmmmm")
-  }
-
-  Task {
-    await closure() // error
-  }
-}
-```
-
-In the above code, we use `@~Sendable` to explicitly indicate that the closure is not `Sendable` and suppress the implicit `@Sendable`. This change will mostly help with possible ABI compatibility issues, but will not necessarily improve usability.
-
-By analogy, this proposal inroduces the new `~Sendable` syntax for explicitly suppressing a conformance to `Sendable`:
-
-```swift
-class C { ... }
-
-@available(*, unavailable)
-extension C: @unchecked Sendable {}
-
-// instead
-
-class C: ~Sendable {}
-```
-
-In the above code, we use `~Sendable` instead of an unavailable `Sendable` conformance to indicate that the type `C` is not `Sendable`. Suppressing a `Sendable` conformance in a superclass still allows a conformance to be added in subclasses:
-
-```swift
-class Sub: C, @unchecked Sendable { ... }
-```
-
-Previously, an unavailable `Sendable` conformance would prevent `@unchecked Sendable` conformances from being added to subclasses because types can only conform to protocols in one way, and the unavailable `Sendable` conformance was inherited in all subclasses.
 
 ### Global actor isolation and inheritance
 
