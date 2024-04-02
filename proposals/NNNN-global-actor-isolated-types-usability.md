@@ -99,7 +99,8 @@ In the above code, an instance of `Subclass` can be passed across isolation boun
 
 We propose that:
 
-- `Sendable` properties of a global-actor-isolated value type would be treated `nonisolated` as inferred within the module.
+- Stored properties of `Sendable` type in a global-actor-isolated value type can be declared as `nonisolated` without using `(unsafe)`.
+- Stored properties of `Sendable` type in a global-actor-isolated value type are treated as `nonisolated` when used within the module or if the value type is `frozen`.
 - `@Sendable` would be inferred for global-actor-isolated functions and closures. Additionally, globally isolated closures would be allowed to capture non-`Sendable` values.
 - The programmer would be able to suppress the automatic conformance inferred via the above rule using the new `@~Sendable` attribute. By analogy, introduce a new `~Sendable` protocol to indicate that a nominal type is not `Sendable`.
 - Require the global-actor-isolated subclass of a `nonisolated`, non-`Sendable` to be non-`Sendable`.
