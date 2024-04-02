@@ -104,7 +104,7 @@ We propose that:
 - `@Sendable` is inferred for global-actor-isolated functions and closures.
 - Global-actor-isolated closures are allowed to capture non-`Sendable` values despite being `@Sendable`.
 - The programmer would be able to suppress the automatic conformance inferred via the above rule using the new `@~Sendable` attribute. By analogy, introduce a new `~Sendable` protocol to indicate that a nominal type is not `Sendable`.
-- Require the global-actor-isolated subclass of a `nonisolated`, non-`Sendable` to be non-`Sendable`.
+- A global-actor-isolated subclass of a non-isolated, non-`Sendable` class is allowed, but it must be non-`Sendable`.
 
 
 ## Detailed design
