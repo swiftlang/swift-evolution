@@ -129,7 +129,7 @@ extension S: Equatable {
 
 In the above code, `x` is implicitly `nonisolated` within the module. Under this proposal, `nonisolated` is inferred for within the module access of `Sendable` properties of a global-actor-isolated value type. This is data-race safe because the property belongs to a value type, meaning it will be copied every time it crosses an isolation boundary.
 
-The programmer can still choose to mark the property `nonisolated` to allow synchronous access from outside the module. Requiring asynchronous access from outside the module preserves the ability for library authors to change a stored property to a computed property without breaking clients, and the library author may explicitly write `nonisolated` to opt-into synchronous access as part of the API contract.
+The programmer can still choose to explicitly mark a stored property `nonisolated` to allow synchronous access from outside the module. It is not necessary to use `nonisolated(unsafe)` if the property has `Sendable` type and the property is of a value type. Once added, `nonisolated` cannot later be removed without potentially breaking clients. The programmer can still convert the property to a computed property, but it has to be a `nonisolated` computed property.
 
 ### `@Sendable` inference for global-actor-isolated functions and closures
 
