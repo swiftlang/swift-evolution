@@ -48,7 +48,7 @@ func test() {
 }
 ```
 
-Requiring both a global actor attribute and `@Sendable` creates an unfortunate pile-up of attributes, and it would be better for Swift to just infer `@Sendable` from the global actor attribute.
+Requiring both a global actor attribute and `@Sendable` creates an unfortunate pile-up of attributes, and it would be better to infer `@Sendable` from the global actor attribute.
 
 Because a globally-isolated closure cannot be called concurrently, it's safe for it to capture non-`Sendable` values even if it's implicitly `@Sendable`.  Such values just need to be transferred to the global actor's region (if they aren't there already).  This also applies to closures that are isolated to a specific actor reference.
 
@@ -132,7 +132,7 @@ The programmer can still choose to explicitly mark a stored property `nonisolate
 
 ### `@Sendable` inference for global-actor-isolated functions and closures
 
-To improve usability of globally isolated functions and closures, under this proposal `@Sendable` is inferred:
+To improve usability of globally-isolated functions and closures, under this proposal `@Sendable` is inferred:
 
 ```swift
 func test() {
@@ -168,7 +168,7 @@ func test() {
 }
 ```
 
-The above code is data-race safe, since a globally isolated closure will never operate on the same instance of `NonSendable` concurrently.
+The above code is data-race safe, since a globally-isolated closure will never operate on the same instance of `NonSendable` concurrently.
 
 Note that under region isolation in SE-0414, capturing a non-`Sendable` value in an actor-isolated closure will transfer the region into the actor, so it is impossible to have concurrent access on non-`Sendable` captures even if the isolated closure is formed outside the actor.
 
