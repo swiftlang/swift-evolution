@@ -204,7 +204,7 @@ class IsolatedSubclass: NonSendable {
   var mutable = 0
   override func test() {
     super.test()
-    mutable += 0 // error: Main actor-isolated property 'isolated' can not be referenced from a non-isolated context
+    mutable += 0 // error: Main actor-isolated property 'mutable' can not be referenced from a non-isolated context
   }
 }
 ```
