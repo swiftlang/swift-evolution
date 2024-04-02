@@ -29,7 +29,9 @@ extension S: Equatable {
 }
 ```
 
-The above code is perfectly safe and should not require an unsafe opt-out. Since `S` is a value type and `x` is of a `Sendable` type `Int`, it should not be unsafe to declare `x` non-isolated, because when accessing `x` from different concurrency domains, we will be operating on a copy of the value type, and the result type is `Sendable` so it's safe to return the same value across different isolation domains. Because access to `x` across concurrency domains is always safe, `nonisolated` should be implicit within the module, similar to actor-isolated `let` constants with `Sendable` type.
+Because `S` is a value type and `x` has the `Sendable` type `Int`, it is never unsafe in itself to use `x` from different concurrency domains.  `x` is mutable, but since `S` is a value type, any mutation of `x` is always part of a mutation of the containing `S` value, and the concurrency model will prevent data races at that level without needing any extra rules for `x`.  If we do have concurrent accesses to `x` on the same `S` value, they must both be reads, and it's fine to have concurrent reads of the same value as long as it's `Sendable`.  So, first off, it should be possible to declare `x` as `nonisolated` without adding `(unsafe)`.
+
+We can do better than that, though.  The only problem with treating `x` as *implicitly* `nonisolated` is source and binary stability: someone could reasonably change `x` to be a computed property in the future, and the getter and setter for that might need to be global-actor-isolated.  Within the module, though, we know that hasn't happened.  So Swift should treat stored properties like `x` as implicitly `nonisolated` when they're used from the same module, or when the containing type is declared `frozen`.
 
 Next, under the current concurrency rules, globally isolated functions and closures do not implicitly conform to `Sendable`. This impacts usability, because these closures cannot themselves be captured by `@Sendable` closures, which makes them unusable with `Task`:
 
