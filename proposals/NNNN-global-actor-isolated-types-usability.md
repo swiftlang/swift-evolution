@@ -48,7 +48,9 @@ func test() {
 }
 ```
 
-In the above code, the closure is global-actor-isolated, so it cannot be called concurrently. The compiler should be able to infer the `@Sendable` attribute. Because of the same reason, globally isolated closures should be allowed to capture non-`Sendable` values.
+Requiring both a global actor attribute and `@Sendable` creates an unfortunate pile-up of attributes, and it would be better for Swift to just infer `@Sendable` from the global actor attribute.
+
+Because a globally-isolated closure cannot be called concurrently, it's safe for it to capture non-`Sendable` values even if it's implicitly `@Sendable`.  Such values just need to be transferred to the global actor's region (if they aren't there already).  This also applies to closures that are isolated to a specific actor reference.
 
 
 Finally, the current diagnostic for a global-actor-isolated subclass of a non-isolated superclass is too restrictive:
