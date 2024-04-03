@@ -10,7 +10,7 @@
 
 ## Introduction
 
-This proposal provides the ability to explicitly specify actor-isolation or non-isolation of a closure, as well as providing a parameter attribute to guarantee that a closure parameter inherits the isolation of the context. It makes the isolation inheritance rules more uniform while also making a specific concurrency pattern less restrictive.
+This proposal provides the ability to explicitly specify actor-isolation or non-isolation of a closure, as well as providing a parameter attribute to guarantee that a closure parameter inherits the isolation of the context. It makes the isolation inheritance rules more uniform, helps to better express intention at closure-creation time, and also makes integrating concurrency with non-Sendable types less restrictive.
 
 ## Table of Contents
 
@@ -45,7 +45,7 @@ Without a global actor isolation annotation, actor-isolation or non-isolation of
 
 Explicit annotation has the benefit of disabling inference rules and the potential that they lead to a formal isolation that is not preferred. For example, there are circumstances where it is beneficial to guarantee that a closure is `nonisolated` therefore knowing that its execution will hop off the current actor. Explicit annotation also offers the ability to identify a mismatch of intention, such as a case where the developer expected `nonisolated` but inference landed on actor-isolated, and the closure is mistakenly used in an isolated context. Using explicit annotation, the developer would receive a diagnostic about a `nonisolated` closure being used in an actor-isolated context which helpfully identifies this mismatch of intention.
 
-Additionally, there is a difference in how isolation inheritance behaves via the experimental attribute `@_inheritActorContext` (as used by `Task.init`) for isolated parameters vs actor isolation: global actor isolatation is inherited by `Task`'s initializer closure argument, whereas an actor-isolated parameter is not inherited. This makes it challenging to build intuition around how isolation inheritance works. It also makes the concurrency pattern impossible  to allow a non-Sendable type to create a new Task that can mutate self.
+Additionally, there is a difference in how isolation inheritance behaves via the experimental attribute `@_inheritActorContext` (as used by `Task.init`) for isolated parameters vs actor isolation: global actor isolation is inherited by `Task`'s initializer closure argument, whereas an actor-isolated parameter is not inherited. This makes it challenging to build intuition around how isolation inheritance works. It also makes it impossible to allow a non-Sendable type to create a new Task that can access self.
 
 ```swift
 class NonSendableType {
@@ -80,7 +80,7 @@ Enable explicit specification of actor-isolation via an isolated parameter in a 
 
 ```swift
 actor A {
-  func isolate() {
+  nonisolated func isolate() {
     Task { [isolated self] in
       print("isolated to 'self'")
     }
@@ -90,7 +90,7 @@ actor A {
 
 ### Isolation inheritance
 
-Provide a formal replacement of the experimental parameter attribute `@_inheritActorContext` to resolve its ambiguity with closure isolation. Its replacement `@inheritsIsolation` changes the behavior so that it unconditionally and implicitly captures the isolation context (as opposed to currently in actor-isolated contexts it being conditional on whether you capture an isolated parameter or isolated capture or actor-isolated function, but guaranteed if the context is isolated to a global actor or `nonisolated`).
+Provide a formal replacement of the experimental parameter attribute `@_inheritActorContext` to resolve its ambiguity with closure isolation. Currently, `@_inheritActorContext` actual context capture behavior is conditional on whether you capture an isolated parameter or isolated capture or actor-isolated function, but unconditional if the context is isolated to a global actor or `nonisolated`. Its replacement `@inheritsIsolation` changes the behavior so that it unconditionally and implicitly captures the isolation context.
 
 ```swift
 class Old {
@@ -174,7 +174,7 @@ func isolate(d: D) {
 }
 ```
 
-While it is technically possible to enqueue work on a remote distributed actor reference, the enqueue on such actor will always immediately crash. Because of that, we err on the side of disallowing such illegal code. [Future directions](#future-directions) discusses how this can be made more powerful when it is known that an actor is local. It is also worth noting the `da.whenLocal { isolated da in ... }` API which allows dynamically recovering an isolated distributed actor reference after it has dynamically been checked for locality.
+While it is technically possible to enqueue work on a remote distributed actor reference, the enqueue on such an actor will always immediately crash. Because of that, we err on the side of disallowing such illegal code. [Future directions](#future-directions) discusses how this can be made more powerful when it is known that an actor is local. It is also worth noting the `da.whenLocal { isolated da in ... }` API which allows dynamically recovering an isolated distributed actor reference after it has dynamically been checked for locality.
 
 ## Source compatibility
 
@@ -182,7 +182,7 @@ It is possible that existing code could have a closure that names a type-inferre
 ```swift
 { nonisolated in print(nonisolated) }
 ```
-but with this proposed change, `nonisolated` in this case would instead be interpretted as the contextual keyword specifying the formal isolation of the closure. Such code would then result in a compilation error when trying to use a parameter named `nonisolated`.
+but with this proposed change, `nonisolated` in this case would instead be interpreted as the contextual keyword specifying the formal isolation of the closure. Such code would then result in a compilation error when trying to use a parameter named `nonisolated`.
 
 The change to `Task.init` in the standard library does have the potential to isolate some closures that previously were inferred to be `nonisolated`. Prior behavior in those cases could be restored, if desired, by explicitly declaring the closure as `nonisolated`.
 
