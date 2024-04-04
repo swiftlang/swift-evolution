@@ -497,7 +497,9 @@ func race(left: () async -> Int, right: () async -> Int) async -> Int {
     group.async { left() }
     group.async { right() }
 
-    return await group.next()! // !-safe, there is at-least one result to collect
+    let first = await group.next()! // !-safe, there is at-least one result to collect
+    group.cancelAll() // cancel the other task
+    return first
   }
 }
 ```
