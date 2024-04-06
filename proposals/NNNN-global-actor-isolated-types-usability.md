@@ -33,21 +33,18 @@ However, there is nothing unsafe about treating `x` as nonisolated.  The general
 
 We can do better than that, though.  It should be possible to treat a `var` stored property of a global-actor value type as *implicitly* `nonisolated` under the same conditions that a `let` property can be.  A stored property from a different module can be changed to a computed property in the future, and those future computed accessors may need to be isolated to the global actor, so allowing access across module boundaries would not be okay for source or binary compatibility.  But within the module that defines the property, we know that hasn't happened, so it's fine to use a more relaxed rule.
 
-Next, under the current concurrency rules, it is possible for a function type to be both isolated to a global actor and yet not required to be `Sendable`. This is not a useful combination: such a function can only be used if the current context is isolated to the global actor, and in that case the global actor annotation is unnecessary because *all* non-`Sendable` functions will run with global actor isolation. It would be better for a global actor attribute to always imply `@Sendable`:
+Next, under the current concurrency rules, it is possible for a function type to be both isolated to a global actor and yet not required to be `Sendable`. This is not a useful combination: such a function can only be used if the current context is isolated to the global actor, and in that case the global actor annotation is unnecessary because *all* non-`Sendable` functions will run with global actor isolation. 
 
 ```swift 
-func test() {
-  let closure: @MainActor () -> Void = {
-    print("hmmmm")
-  }
-
+func test(globallyIsolated: @escaping @MainActor () -> Void) {
   Task {
-    // error: capture of 'closure' with non-sendable type '@MainActor () -> Void' in a `@Sendable` closure
-    await closure()
+    // error: capture of 'globallyIsolated' with non-sendable type '@MainActor () -> Void' in a `@Sendable` closure
+    await globallyIsolated()
   }
 }
 ```
 
+It would be better for a global actor attribute to always imply `@Sendable`.
 
 Because a globally-isolated closure cannot be called concurrently, it's safe for it to capture non-`Sendable` values even if it's implicitly `@Sendable`.  Such values just need to be transferred to the global actor's region (if they aren't there already).  The same logic also applies to closures that are isolated to a specific actor reference, although it isn't currently possible to write such a closure in a context that isn't isolated to that actor.
 
@@ -134,18 +131,14 @@ The programmer can still choose to explicitly mark a stored property `nonisolate
 To improve usability of globally-isolated functions and closures, under this proposal `@Sendable` is inferred:
 
 ```swift
-func test() {
-  let closure: @MainActor () -> Void = {
-    print("hmmmm")
-  }
-
+func test(globallyIsolated: @escaping @MainActor () -> Void) {
   Task {
-    await closure() // okay
+    await globallyIsolated() //okay
   }
 }
 ```
 
-The closure in the above code is global-actor isolated via the `@MainActor`. Thus, it can never operate on the same reference concurrently at the same time, making it safe to be invoked from different isolation domains. This means that for such global-actor-isolated closures and functions, the `@Sendable` attribute is implicit.
+The `globallyIsolated` closure in the above code is global-actor isolated via the `@MainActor`. Thus, it can never operate on the same reference concurrently at the same time, making it safe to be invoked from different isolation domains. This means that for such global-actor-isolated closures and functions, the `@Sendable` attribute is implicit.
 
 #### Non-`Sendable` captures in isolated closures
 
