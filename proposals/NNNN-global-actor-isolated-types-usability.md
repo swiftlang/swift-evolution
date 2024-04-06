@@ -33,7 +33,7 @@ However, there is nothing unsafe about treating `x` as nonisolated.  The general
 
 We can do better than that, though.  It should be possible to treat a `var` stored property of a global-actor value type as *implicitly* `nonisolated` under the same conditions that a `let` property can be.  A stored property from a different module can be changed to a computed property in the future, and those future computed accessors may need to be isolated to the global actor, so allowing access across module boundaries would not be okay for source or binary compatibility.  But within the module that defines the property, we know that hasn't happened, so it's fine to use a more relaxed rule.
 
-Next, under the current concurrency rules, globally isolated functions and closures do not implicitly conform to `Sendable`. This impacts usability, because these closures cannot themselves be captured by `@Sendable` closures, which makes them unusable with `Task`:
+Next, under the current concurrency rules, it is possible for a function type to be both isolated to a global actor and yet not required to be `Sendable`. This is not a useful combination: such a function can only be used if the current context is isolated to the global actor, and in that case the global actor annotation is unnecessary because *all* non-`Sendable` functions will run with global actor isolation. It would be better for a global actor attribute to always imply `@Sendable`:
 
 ```swift 
 func test() {
