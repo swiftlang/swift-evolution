@@ -15,7 +15,7 @@ This proposal encompasses a collection of changes to concurrency rules concernin
 
 Currently, there exist limitations in the concurrency model around types that are isolated to global actors.
 
-First, let's consider rules for properties of global-isolated value types. The first limitation is that `var` properties of such value types cannot be declared `nonisolated`. This poses a number of problems, for example when implementing a protocol conformance. The current workaround is to use the `nonisolated(unsafe)` keyword on the property:
+First, let's consider the stored properties of `struct`s isolated to global actors. `let` properties of such types are implicitly treated as `isolated` within the current module if they have `Sendable` type, but `var` properties are not.  This poses a number of problems, such as when implementing a protocol conformance.  Currently, the only solution is to declare the property `nonisolated(unsafe)`:
 
 ```swift
 @MainActor struct S {
