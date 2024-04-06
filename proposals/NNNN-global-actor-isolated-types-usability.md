@@ -48,7 +48,6 @@ func test() {
 }
 ```
 
-Requiring both a global actor attribute and `@Sendable` creates an unfortunate pile-up of attributes, and it would be better to infer `@Sendable` from the global actor attribute.
 
 Because a globally-isolated closure cannot be called concurrently, it's safe for it to capture non-`Sendable` values even if it's implicitly `@Sendable`.  Such values just need to be transferred to the global actor's region (if they aren't there already).  The same logic also applies to closures that are isolated to a specific actor reference, although it isn't currently possible to write such a closure in a context that isn't isolated to that actor.
 
