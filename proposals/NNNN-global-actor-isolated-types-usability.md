@@ -138,7 +138,7 @@ func test(globallyIsolated: @escaping @MainActor () -> Void) {
 }
 ```
 
-The `globallyIsolated` closure in the above code is global-actor isolated via the `@MainActor`. Thus, it can never operate on the same reference concurrently at the same time, making it safe to be invoked from different isolation domains. This means that for such global-actor-isolated closures and functions, the `@Sendable` attribute is implicit.
+The `globallyIsolated` closure in the above code is global-actor isolated because it has the `@MainActor` attribute. Because it will always run isolated, it's fine for it to capture and use values that are isolated the same way. It's also safe to share it with other isolation domains because the captured values are never directly exposed to those isolation domains. This means that there's no reason not to always treat these functions as `@Sendable`.
 
 #### Non-`Sendable` captures in isolated closures
 
