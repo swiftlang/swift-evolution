@@ -4,7 +4,7 @@
 * Authors: [Sima Nerush](https://github.com/simanerush), [Matt Massicotte](https://github.com/mattmassicotte), [Holly Borla](https://github.com/hborla)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: TBD
+* Implementation: On `main` gated behind `-enable-experimental-feature GlobalActorIsolatedTypesUsability`
 * Review: ([pitch](https://forums.swift.org/t/pitch-usability-of-global-actor-isolated-types/70799))
 
 ## Introduction
