@@ -3,7 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-swiftpm-per-target-swift-language-version-setting.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: TBD
-* Status: **Awaiting Implementation**
+* Status: **Awaiting Review**
+* Implementation: https://github.com/apple/swift-package-manager/pull/7439
 
 ## Introduction
 
