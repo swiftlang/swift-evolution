@@ -15,7 +15,7 @@ This proposal encompasses a collection of changes to concurrency rules concernin
 
 Currently, there exist limitations in the concurrency model around types that are isolated to global actors.
 
-First, let's consider the stored properties of `struct`s isolated to global actors. `let` properties of such types are implicitly treated as `isolated` within the current module if they have `Sendable` type, but `var` properties are not.  This poses a number of problems, such as when implementing a protocol conformance.  Currently, the only solution is to declare the property `nonisolated(unsafe)`:
+First, let's consider the stored properties of `struct`s isolated to global actors. `let` properties of such types are implicitly treated as `nonisolated` within the current module if they have `Sendable` type, but `var` properties are not.  This poses a number of problems, such as when implementing a protocol conformance.  Currently, the only solution is to declare the property `nonisolated(unsafe)`:
 
 ```swift
 @MainActor struct S {
@@ -29,13 +29,13 @@ extension S: Equatable {
 }
 ```
 
-However, there is nothing unsafe about treating `x` as nonisolated.  The general rule is that concurrency is safe as long as there aren't data races.  The type of `x` conforms to `Sendable`, and using a value of `Sendable` type from multiple concurrent contexts shouldn't ever introduce a data race, so any data race involved with an access to `x` would have to be on memory in which `x` is stored.  But `x` is part of a value type, which means any access to it is always also an access to the containing `S` value.  As long as Swift is properly preventing data races on that larger access, it's always safe to access the `x` part of it.  So, first off, there's no reason for Swift to require `(unsafe)` when marking `x` `nonisolated`.
+However, there is nothing unsafe about treating `x` as `nonisolated`.  The general rule is that concurrency is safe as long as there aren't data races.  The type of `x` conforms to `Sendable`, and using a value of `Sendable` type from multiple concurrent contexts shouldn't ever introduce a data race, so any data race involved with an access to `x` would have to be on memory in which `x` is stored.  But `x` is part of a value type, which means any access to it is always also an access to the containing `S` value.  As long as Swift is properly preventing data races on that larger access, it's always safe to access the `x` part of it.  So, first off, there's no reason for Swift to require `(unsafe)` when marking `x` `nonisolated`.
 
-We can do better than that, though.  It should be possible to treat a `var` stored property of a global-actor value type as *implicitly* `nonisolated` under the same conditions that a `let` property can be.  A stored property from a different module can be changed to a computed property in the future, and those future computed accessors may need to be isolated to the global actor, so allowing access across module boundaries would not be okay for source or binary compatibility.  But within the module that defines the property, we know that hasn't happened, so it's fine to use a more relaxed rule.
+We can do better than that, though.  It should be possible to treat a `var` stored property of a global-actor-isolated value type as *implicitly* `nonisolated` under the same conditions that a `let` property can be.  A stored property from a different module can be changed to a computed property in the future, and those future computed accessors may need to be isolated to the global actor, so allowing access across module boundaries would not be okay for source or binary compatibility without an explicit `nonisolated` annotation.  But within the module that defines the property, we know that hasn't happened, so it's fine to use a more relaxed rule.
 
-Next, under the current concurrency rules, it is possible for a function type to be both isolated to a global actor and yet not required to be `Sendable`. This is not a useful combination: such a function can only be used if the current context is isolated to the global actor, and in that case the global actor annotation is unnecessary because *all* non-`Sendable` functions will run with global actor isolation. 
+Next, under the current concurrency rules, it is possible for a function type to be both isolated to a global actor and yet not required to be `Sendable`:
 
-```swift 
+```swift
 func test(globallyIsolated: @escaping @MainActor () -> Void) {
   Task {
     // error: capture of 'globallyIsolated' with non-sendable type '@MainActor () -> Void' in a `@Sendable` closure
@@ -44,7 +44,7 @@ func test(globallyIsolated: @escaping @MainActor () -> Void) {
 }
 ```
 
-It would be better for a global actor attribute to always imply `@Sendable`.
+This is not a useful combination: such a function can only be used if the current context is isolated to the global actor, and in that case the global actor annotation is unnecessary because *all* non-`Sendable` functions will run with global actor isolation. It would be better for a global actor attribute to always imply `@Sendable`.
 
 Because a globally-isolated closure cannot be called concurrently, it's safe for it to capture non-`Sendable` values even if it's implicitly `@Sendable`.  Such values just need to be transferred to the global actor's region (if they aren't there already).  The same logic also applies to closures that are isolated to a specific actor reference, although it isn't currently possible to write such a closure in a context that isn't isolated to that actor.
 
@@ -110,7 +110,7 @@ We propose that:
 Let's look at the first problem with usability of a `var` property of a main-actor-isolated struct:
 
 ```swift
-@MainActor 
+@MainActor
 struct S {
   var x: Int = 0 // okay ('nonisolated' is inferred within the module)
 }
@@ -122,9 +122,25 @@ extension S: Equatable {
 }
 ```
 
-In the above code, `x` is implicitly `nonisolated` within the module. Under this proposal, `nonisolated` is inferred for within the module access of `Sendable` properties of a global-actor-isolated value type. This is data-race safe because the property belongs to a value type, meaning it will be copied every time it crosses an isolation boundary.
+In the above code, `x` is implicitly `nonisolated` within the module. Under this proposal, `nonisolated` is inferred for in-module access to `Sendable` properties of a global-actor-isolated value type. A `var` with `Sendable` type within a value type can also have an explicit `nonisolated` modifier to allow synchronous access from outside the module. Once added, `nonisolated` cannot later be removed without potentially breaking clients. The programmer can still convert the property to a computed property, but it has to be a `nonisolated` computed property.
 
-The programmer can still choose to explicitly mark a stored property `nonisolated` to allow synchronous access from outside the module. It is not necessary to use `nonisolated(unsafe)` if the property has `Sendable` type and the property is of a value type. Once added, `nonisolated` cannot later be removed without potentially breaking clients. The programmer can still convert the property to a computed property, but it has to be a `nonisolated` computed property.
+Because `nonisolated` access only applies to stored properties, wrapped properties and `lazy`-initialized properties with `Sendable` type still must be isolated because they are computed properties:
+
+```swift
+@propertyWrapper
+struct MyWrapper<T> { ... }
+
+@MainActor
+struct S {
+  @MyWrapper var x: Int = 0
+}
+
+extension S: Equatable {
+  static nonisolated func ==(lhs: S, rhs: S) -> Bool {
+    return lhs.x == rhs.x // error
+  }
+}
+```
 
 ### `@Sendable` inference for global-actor-isolated functions and closures
 
@@ -162,8 +178,19 @@ func test() {
 
 The above code is data-race safe, since a globally-isolated closure will never operate on the same instance of `NonSendable` concurrently.
 
-Note that under region isolation in SE-0414, capturing a non-`Sendable` value in an actor-isolated closure will transfer the region into the actor, so it is impossible to have concurrent access on non-`Sendable` captures even if the isolated closure is formed outside the actor.
+Note that under region isolation in SE-0414, capturing a non-`Sendable` value in an actor-isolated closure will transfer the region into the actor, so it is impossible to have concurrent access on non-`Sendable` captures even if the isolated closure is formed outside the actor:
 
+```swift
+class NonSendable {}
+
+func test(ns: NonSendable) async {
+  let closure { @MainActor in
+    print(ns) // error: task-isolated value 'ns' can't become isolated to the main actor
+  }
+
+  await closure()
+}
+```
 
 ### Global actor isolation and inheritance
 
