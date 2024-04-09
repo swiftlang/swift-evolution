@@ -49,6 +49,8 @@ Linux (x86_64): https://download.swift.org/tmp/pull-request/71383/779/ubuntu2004
 
 Windows: `https://ci-external.swift.org/job/swift-PR-build-toolchain-windows/1200/artifact/*zip*/archive.zip`
 
+Note that these toolchains don't currently have the `transferring inout` implemented, but the functions are marked `@Sendable` to at least enforce sendability.
+
 ## Detailed design
 
 ### Underlying System Mutex Implementation
