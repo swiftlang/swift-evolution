@@ -4,7 +4,8 @@
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: TBD
 * Status: **Awaiting Review**
-* Implementation: https://github.com/apple/swift-package-manager/pull/7439
+* Implementation: [apple/swift-package-manager#7439](https://github.com/apple/swift-package-manager/pull/7439)
+* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-swift-language-version-per-target/71067))
 
 ## Introduction
 
