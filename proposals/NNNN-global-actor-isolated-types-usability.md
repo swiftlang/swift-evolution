@@ -236,16 +236,17 @@ Matching the isolation of the superclass method is necessary because the supercl
 
 ## Source compatibility
 
-The introduced changes are additive, so the proposal does not impact source compatibility.
+This proposal changes the interpretation of existing code that uses global-actor-isolated function types that are not already marked with `@Sendable`. This can cause minor changes in type inference and overload resolution. However, the proposal authors have not encountered any such issues in source compatibility testing, so this proposal does not gate the inference change behind an upcoming feature flag.
+
+An alternative choice would be to introduce an upcoming feature flag that's enabled by default in the Swift 6 language mode, but this flag could not be enabled by default under `-strict-concurrency=complete` without risk of changing behavior in existing projects that adopt complete concurrency checking. Gating the `@Sendable` inference change behind a separate upcoming feature flag may lead to more code churn than necessary when migrating to complete concurrency checking unless the programmer knows to enable the flags in a specific order.
 
 ## ABI compatibility
 
-This proposal should have no impact on ABI compatibility.
-
+`@Sendable` is included in name mangling, so treating global-actor-isolated function types as implicitly `@Sendable` changes mangling. This change only impacts resilient libraries that use global-actor-isolated-but-not-`Sendable` function types in effectively-public APIs. However, as noted in this proposal, such a function type is not useful, and the proposal authors expect that any API that uses a global-actor-isolated function type either already has `@Sendable`, or should add `@Sendable`. Because the only ABI impact of `@Sendable` is mangling, `@_silgen_name` can be used to preserve ABI in cases where `@Sendable` should be added, and the API is not already `@preconcurrency` (in which case the mangling will strip both the global actor and `@Sendable`).
 
 ## Implications on adoption
 
-This feature can be freely adopted and un-adopted in source code with no deployment constraints and without affecting source or ABI compatibility.
+The existing adoption implications of `@Sendable` and global actor isolation adoption apply when making use of the rules in this proposal. For example, `@Sendable` and `@MainActor` can be staged into existing APIs using `@preconcurrency`. See [SE-0337: Incremental migration to concurrency checking](/proposals/0337-support-incremental-migration-to-concurrency-checking.md) for more information.
 
 ## Acknowledgments
 
