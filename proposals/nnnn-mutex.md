@@ -39,6 +39,16 @@ Use cases for such a synchronized type are common. Another common need is a glob
 let globalCache = Mutex<[MyKey: MyValue]>([:])
 ```
 
+### Toolchains
+
+You can try out `Mutex` using one of the following toolchains:
+
+macOS: https://ci.swift.org/job/swift-PR-toolchain-macos/1207/artifact/branch-main/swift-PR-71383-1207-osx.tar.gz
+
+Linux (x86_64): https://download.swift.org/tmp/pull-request/71383/779/ubuntu2004/PR-ubuntu2004.tar.gz
+
+Windows: `https://ci-external.swift.org/job/swift-PR-build-toolchain-windows/1200/artifact/*zip*/archive.zip`
+
 ## Detailed design
 
 ### Underlying System Mutex Implementation
