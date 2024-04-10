@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](NNNN-mutex.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
+* Review Manager: [Stephen Canon](http://github.com/stephentyrone)
 * Status: **Awaiting implementation**
 
 ## Introduction
