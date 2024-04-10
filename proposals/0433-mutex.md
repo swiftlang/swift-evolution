@@ -1,9 +1,11 @@
 # Synchronous Mutual Exclusion Lock 🔒
 
-* Proposal: [SE-NNNN](NNNN-mutex.md)
+* Proposal: [SE-0433](0433-mutex.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Stephen Canon](http://github.com/stephentyrone)
-* Status: **Awaiting implementation**
+* Implementation: https://github.com/apple/swift/pull/71383
+* Status: **Active Review (April 10-24, 2024)**
+* Previous Revision: [pitch](https://forums.swift.org/t/pitch-synchronous-mutual-exclusion-lock/69889)
 
 ## Introduction
 
