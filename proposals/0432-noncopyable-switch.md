@@ -1,8 +1,8 @@
 # Borrowing and consuming pattern matching for noncopyable types
 
-* Proposal: [SE-0432](ABCD-noncopyable-switch.md)
+* Proposal: [SE-0432](0432-noncopyable-switch.md)
 * Authors: [Joe Groff](https://github.com/jckarter)
-* Review Manager: [Ben Cohen](https://githun.com/airspeedswift)
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (April 9 – April 22, 2024)**
 * Implementation: on `main`, using the `BorrowingSwitch` feature flag and `_borrowing x` binding spelling
 * Upcoming Feature Flag: `BorrowingSwitch`
