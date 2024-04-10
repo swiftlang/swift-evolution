@@ -1,4 +1,4 @@
-## Usability of global-actor-isolated types
+# Usability of global-actor-isolated types
 
 * Proposal: [SE-0434](0434-global-actor-isolated-types-usability.md)
 * Authors: [Sima Nerush](https://github.com/simanerush), [Matt Massicotte](https://github.com/mattmassicotte), [Holly Borla](https://github.com/hborla)
