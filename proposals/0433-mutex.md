@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0433](0433-mutex.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: [Stephen Canon](http://github.com/stephentyrone)
-* Implementation: https://github.com/apple/swift/pull/71383
+* Review Manager: [Stephen Canon](https://github.com/stephentyrone)
+* Implementation: [apple/swift#71383](https://github.com/apple/swift/pull/71383)
 * Status: **Active Review (April 10-24, 2024)**
 * Discussion: [pitch](https://forums.swift.org/t/pitch-synchronous-mutual-exclusion-lock/69889) [review](https://forums.swift.org/t/se-0433-synchronous-mutual-exclusion-lock/71174)
 
