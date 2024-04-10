@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (April 10th...22nd, 2024)**
 * Implementation: On `main` gated behind `-enable-experimental-feature GlobalActorIsolatedTypesUsability`
-* Review: ([pitch](https://forums.swift.org/t/pitch-usability-of-global-actor-isolated-types/70799))
+* Review: ([pitch](https://forums.swift.org/t/pitch-usability-of-global-actor-isolated-types/70799)) ([review](https://forums.swift.org/t/se-0434-usability-of-global-actor-isolated-types/71187))
 
 ## Introduction
 
