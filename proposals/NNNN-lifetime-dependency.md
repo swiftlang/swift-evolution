@@ -14,6 +14,8 @@ To reduce the burden of manually adding such annotations, we also propose inferr
 
 This is a key requirement for the `StorageView` type (previously called `BufferView`) being discussed elsewhere, and is closely related to the proposal for `~Escapable` types.
 
+**Edited** (Apr 12, 2024): Changed `@dependsOn` to `dependsOn` to match the current implementation.
+
 #### See Also
 
 * **TODO**: **** Forum thread discussing this proposal
@@ -97,16 +99,16 @@ Our proposal would allow you to declare an `array.bufferReference()` method as f
 
 ```swift
 extension Array {
-  borrowing func bufferReference() -> @dependsOn(self) BufferReference<Element> {
+  borrowing func bufferReference() -> dependsOn(self) BufferReference<Element> {
     ... construct a BufferReference ...
   }
 }
 ```
 
-The annotation `@dependsOn(self)` here indicates that the returned value must not outlive the array that produced it.
+The annotation `dependsOn(self)` here indicates that the returned value must not outlive the array that produced it.
 Conceptually, it is a continuation of the function's borrowing access:
 the array is being borrowed by the function while the function executes and then continues to be borrowed by the `BufferReference` for as long as the return value exists.
-Specifically, the `@dependsOn(self)` annotation in this example informs the compiler that:
+Specifically, the `dependsOn(self)` annotation in this example informs the compiler that:
 
 * The array must not be destroyed until after the `BufferReference<Element>` is destroyed.
   This ensures that use-after-free cannot occur.
@@ -119,13 +121,13 @@ Let’s consider another hypothetical type: a `MutatingBufferReference<T>` type 
 Here's one way such a value might be produced:
 
 ```swift
-func mutatingBufferReference(to: inout Array, count: Int) -> @dependsOn(to) MutatingBufferReference<Element> {
+func mutatingBufferReference(to: inout Array, count: Int) -> dependsOn(to) MutatingBufferReference<Element> {
   ... construct a MutatingBufferReference ...
 }
 ```
 
 We’ve written this example as a free function rather than as a method to show how this annotation syntax can be used to express constraints that apply to a particular argument.
-The `@dependsOn(to)` annotation indicates that the returned value depends on the argument named `to`.
+The `dependsOn(to)` annotation indicates that the returned value depends on the argument named `to`.
 Because `count` is not mentioned in the lifetime dependency, that argument does not participate.
 Similar to the previous example:
 
@@ -143,7 +145,7 @@ Here's a typical example that constructs a new `BufferReference` from an existin
 ```swift
 struct BufferReference<T>: ~Escapable {
   ...
-  consuming func drop(_: Int) -> @dependsOn(self) BufferReference<T> { ... }
+  consuming func drop(_: Int) -> dependsOn(self) BufferReference<T> { ... }
   ...
 }
 ```
@@ -176,7 +178,7 @@ The syntax is somewhat different for functions and methods, though the basic rul
 **Functions:** A simple function with an explicit lifetime dependency annotation generally takes this form:
 
 ```swift
-func f(arg: <parameter-convention> ArgType) -> @dependsOn(arg) ResultType
+func f(arg: <parameter-convention> ArgType) -> dependsOn(arg) ResultType
 ```
 
 Where
@@ -195,21 +197,21 @@ Also, access to the argument will be restricted for the lifetime of the result f
 * A `consuming` parameter-convention is illegal, since that ends the lifetime of the argument immediately.
 
 If the `ArgType` is nonescapable, then it can have a pre-existing lifetime dependency.
-In this case, the semantics of `@dependsOn()` are slightly different:
+In this case, the semantics of `dependsOn()` are slightly different:
 * A `consuming` parameter-convention will copy the lifetime dependency from the argument to the result
 * A `borrowing` or `inout` parameter-convention can either copy the lifetime dependency or create a new scoped lifetime dependency.
   In this case, for reasons explained earlier, we default to copying the lifetime dependency.
   If a scoped lifetime dependency is needed, it can be explicitly requested by adding the `scoped` keyword:
   
 ```swift
-func f(arg: borrowing ArgType) -> @dependsOn(scoped arg) ResultType
+func f(arg: borrowing ArgType) -> dependsOn(scoped arg) ResultType
 ```
 
 **Methods:** Similar rules apply to `self` lifetime dependencies on methods.
 Given a method of this form:
 
 ```swift
-<mutation-modifier> func method(... args ...) -> @dependsOn(self) ResultType
+<mutation-modifier> func method(... args ...) -> dependsOn(self) ResultType
 ```
 
 The behavior depends as above on the mutation-modifier and whether the defining type is escapable or nonescapable.
@@ -219,7 +221,7 @@ In this case, we use the same rules as for “Functions” above
 by using the convention that initializers can be viewed as functions that return `Self`:
 
 ```swift
-init(arg: <parameter-convention> ArgType) -> @dependsOn(arg) Self
+init(arg: <parameter-convention> ArgType) -> dependsOn(arg) Self
 ```
 
 ### Implicit Lifetime Dependencies
@@ -234,9 +236,9 @@ As above, the details vary depending on whether `self` is escapable or nonescapa
 ```swift
 struct NonescapableType: ~Escapable { ... }
 struct EscStruct {
-  func f1(...) -> /* @dependsOn(self) */ NonescapableType
-  borrowing func f2(...) -> /* @dependsOn(self) */ NonescapableType
-  mutating func f3(...) -> /* @dependsOn(self) */ NonescapableType
+  func f1(...) -> /* dependsOn(self) */ NonescapableType
+  borrowing func f2(...) -> /* dependsOn(self) */ NonescapableType
+  mutating func f3(...) -> /* dependsOn(self) */ NonescapableType
 
   // 🛑 Error: there is no valid lifetime dependency for
   // a consuming method on an `Escapable` type
@@ -244,12 +246,12 @@ struct EscStruct {
 }
 
 struct NEStruct: ~Escapable {
-  func f1(...) -> /* @dependsOn(self) */ NonescapableType
-  borrowing func f2(...) -> /* @dependsOn(self) */ NonescapableType
-  mutating func f3(...) -> /* @dependsOn(self) */ NonescapableType
+  func f1(...) -> /* dependsOn(self) */ NonescapableType
+  borrowing func f2(...) -> /* dependsOn(self) */ NonescapableType
+  mutating func f3(...) -> /* dependsOn(self) */ NonescapableType
 
   // Note: A copied lifetime dependency is legal here
-  consuming func f4(...) -> /* @dependsOn(self) */ NonescapableType
+  consuming func f4(...) -> /* dependsOn(self) */ NonescapableType
 }
 ```
 
@@ -260,10 +262,10 @@ For example:
 struct NEType: ~Escapable { ... }
 
 // If there is only one argument with an explicit parameter convention:
-func f(..., arg1: borrowing Type1, ...) -> /* @dependsOn(arg1) */ NEType
+func f(..., arg1: borrowing Type1, ...) -> /* dependsOn(arg1) */ NEType
 
 // Or there is only one argument that is `~Escapable`:
-func g(..., arg2: NEType, ...) -> /* @dependsOn(arg2) */ NEType
+func g(..., arg2: NEType, ...) -> /* dependsOn(arg2) */ NEType
 
 // If there are multiple possible arguments that we might depend
 // on, we require an explicit dependency:
@@ -312,7 +314,7 @@ This modifies *function-result* in the Swift grammar as follows:
 > *function-signature* → *parameter-clause* **`async`***?* **`rethrows`** *function-result**?* \
 > *function-result* → **`->`** *attributes?* *lifetime-modifiers?* *type* \
 > *lifetime-modifiers* → **`->`** *lifetime-modifier* *lifetime-modifiers?* \
-> *lifetime-modifier* → **`->`** **`@dependsOn`** **`(`** *lifetime-dependent* **`)`** \
+> *lifetime-modifier* → **`->`** **`dependsOn`** **`(`** *lifetime-dependent* **`)`** \
 > *lifetime-dependent* → **`->`** **`self`** | *local-parameter-name* | **`scoped self`** | **`scoped`** *local-parameter-name*
 >
 
@@ -356,8 +358,8 @@ The return type must be exactly the token `Self` or the token sequence `Self?` i
 
 ```swift
 struct S {
-  init(arg1: Type1) -> @dependsOn(arg1) Self
-  init?(arg2: Type2) -> @dependsOn(arg2) Self?
+  init(arg1: Type1) -> dependsOn(arg1) Self
+  init?(arg2: Type2) -> dependsOn(arg2) Self?
 }
 ```
 
@@ -440,11 +442,11 @@ The notation for an explicit lifetime dependency on a property might look like t
 
 ```swift
 struct Container {
-  var view: @dependsOn(self) ReturnType { get }
+  var view: dependsOn(self) ReturnType { get }
 }
 
 struct Type1: ~Escapable {
-  var childView: @dependsOn(self) Type1 { get }
+  var childView: dependsOn(self) Type1 { get }
 }
 ```
 
@@ -464,7 +466,7 @@ A caller may need assurance that a callee will honor a lifetime dependency betwe
 For example, if a function is going to destroy a container and a reference to that container in the process of computing some result,
 it needs to guarantee that the reference is destroyed before the container:
 ```swift
-func f(container: consuming ContainerType, ref: @dependsOn(container) consuming RefType) -> ResultType
+func f(container: consuming ContainerType, ref: dependsOn(container) consuming RefType) -> ResultType
 ```
 
 #### Lifetime Dependencies for Tuples
@@ -481,7 +483,7 @@ We expect to address this in the near future in a separate proposal.
 It should be possible to return containers with collections of lifetime-constrained elements.
 For example, a container may want to return a partition of its contents:
 ```swift
-borrowing func chunks(n: Int) -> @dependsOn(self) SomeList<@dependsOn(self) StorageView<UInt8>>
+borrowing func chunks(n: Int) -> dependsOn(self) SomeList<dependsOn(self) StorageView<UInt8>>
 ```
 We're actively looking into ways to support these more involved cases and expect to address this in a future proposal.
 
@@ -491,7 +493,7 @@ Internally, the implementation records dependencies based on the parameter index
 This could be exposed as an alternate spelling if there were sufficient demand.
 
 ```swift
-func f(arg1: Type1, arg2: Type2, arg3: Type3) -> @dependsOn(0) ReturnType
+func f(arg1: Type1, arg2: Type2, arg3: Type3) -> dependsOn(0) ReturnType
 ```
 
 ## Acknowledgements
