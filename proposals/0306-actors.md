@@ -4,8 +4,8 @@
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 5.5)**
-* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-with-modification-se-0306-actors/47662), [First Review](https://forums.swift.org/t/se-0306-actors/45734), [Second Review](https://forums.swift.org/t/se-0306-second-review-actors/47291)
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Review: ([first review](https://forums.swift.org/t/se-0306-actors/45734)), ([second review](https://forums.swift.org/t/se-0306-second-review-actors/47291)), ([acceptance](https://forums.swift.org/t/accepted-with-modification-se-0306-actors/47662))
 
 ## Table of Contents
 

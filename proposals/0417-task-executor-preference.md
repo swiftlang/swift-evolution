@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status:  **Accepted**
 * Implementation: [PR #68793](https://github.com/apple/swift/pull/68793)
-* Review: [Acceptance](https://forums.swift.org/t/accepted-se-0417-task-executor-preference/69705), [Review](https://forums.swift.org/t/se-0417-task-executor-preference/68958), [Pitch](https://forums.swift.org/t/pitch-task-executor-preference/68191)
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-executor-preference/68191)), ([review](https://forums.swift.org/t/se-0417-task-executor-preference/68958)), ([acceptance](https://forums.swift.org/t/accepted-se-0417-task-executor-preference/69705))
 
 ## Introduction
 
