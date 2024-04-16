@@ -7,7 +7,7 @@
 * Bug: *if applicable* [apple/swift#58177](https://github.com/apple/swift/issues/58177)
 * Implementation: [apple/swift#68794](https://github.com/apple/swift/pull/68794)
 * Upcoming Feature Flag: `IsolatedDefaultValues`
-* Review: ([acceptance](https://forums.swift.org/t/accepted-se-0411-isolated-default-value-expressions/68806)) ([review](https://forums.swift.org/t/se-0411/68065)) ([pitch](https://forums.swift.org/t/pitch-isolated-default-value-expressions/67714))
+* Review: ([pitch](https://forums.swift.org/t/pitch-isolated-default-value-expressions/67714)), ([review](https://forums.swift.org/t/se-0411/68065)), ([acceptance](https://forums.swift.org/t/accepted-se-0411-isolated-default-value-expressions/68806))
 
 ## Introduction
 
