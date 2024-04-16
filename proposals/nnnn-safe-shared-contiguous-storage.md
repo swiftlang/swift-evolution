@@ -43,7 +43,7 @@ extension HypotheticalBase64Decoder {
 ```swift
 public struct StorageView<Element: ~Copyable & ~Escapable>
 : ~Escapable, Copyable {
-  internal var _start: StorageViewIndex<Element>
+  internal var _start: StorageView<Element>.Index
   internal var _count: Int
 }
 ```
