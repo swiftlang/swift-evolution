@@ -146,6 +146,8 @@ Opting out of `@inheritsIsolation` can be achieved by explicitly annotating the 
 
 `@_inheritActorContext` is currently used by the `Task` initializer in the standard library which should be updated to use `@inheritsIsolation` instead.
 
+One further related clarification of isolation inheritence is that non-`@Sendable` local functions should always inherit their enclosing isolation (unless explicitly `nonisolated` or isolated some other way).
+
 ### Distributed actor isolation
 
 `isolated` capture parameter works with distributed actors, however only statically "known to be local" distributed actors may be promoted to `isolated`. Currently, this is achieved only through an `isolated` distributed actor type, meaning that a task can only be made isolated to a distributed actor if the value already was isolated, like this:
