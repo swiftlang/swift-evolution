@@ -4,8 +4,8 @@
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Guillaume Lessard](https://github.com/glessard), [Nate Chandler](https://github.com/nate-chandler), [Tim Kientzle](https://github.com/tbkka)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Implementation: On `main` gated behind `-enable-experimental-feature BitwiseCopyable`
-* Status: **Returned for revision**
-* Review: ([Pitch](https://forums.swift.org/t/pitch-bitwisecopyable-marker-protocol/69943)) ([Review](https://forums.swift.org/t/se-0426-bitwisecopyable/70479)) ([Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0426-bitwisecopyable/70892))
+* Status: **Active Review (April 17–May 2, 2024)**
+* Review: ([Pitch](https://forums.swift.org/t/pitch-bitwisecopyable-marker-protocol/69943)) ([First review](https://forums.swift.org/t/se-0426-bitwisecopyable/70479)) ([Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0426-bitwisecopyable/70892)) ([Second review](https://forums.swift.org/t/se-0426-second-review-bitwisecopyable/71316))
 
 <!-- *During the review process, add the following fields as needed:*
 
