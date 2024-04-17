@@ -11,7 +11,7 @@
 
 We propose an alternative to `@objc` classes where Objective-C header `@interface` declarations are implemented by Swift `extension`s. The resulting classes will be implemented in Swift, but will be indistinguishable from Objective-C classes, fully supporting Objective-C subclassing and runtime trickery.
 
-Swift-evolution thread: [first pitch](https://forums.swift.org/t/pitch-objective-c-implementations-in-swift/61907), (this one)
+Swift-evolution thread: [first pitch](https://forums.swift.org/t/pitch-objective-c-implementations-in-swift/61907), [second pitch](https://forums.swift.org/t/pitch-2-objective-c-implementations-in-swift/68090), [third pitch](https://forums.swift.org/t/pitch-3-objective-c-implementations-in-swift/71315)
 
 ## Motivation
 
