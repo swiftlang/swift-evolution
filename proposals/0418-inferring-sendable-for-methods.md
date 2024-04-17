@@ -262,7 +262,7 @@ let ageKP = \User.age
 let infoKP = \User.[Info()]
 ```
 
-The type of age`KP` is `KeyPath<User, Int>` because `age` is isolated to a global actor. Similarly `infoKP` is a non-Sendable key path because `Info()` argument to a subscript reference has a non-Sendable type.
+The type of `ageKP` is `KeyPath<User, Int>` because `age` is isolated to a global actor. Similarly `infoKP` is a non-Sendable key path because `Info()` argument to a subscript reference has a non-Sendable type.
 
 Key path types respect all of the existing sub-typing rules related to Sendable protocol which means a key path that is not marked as Sendable cannot be assigned to a value that is Sendable.
 
