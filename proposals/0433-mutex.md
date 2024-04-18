@@ -124,7 +124,8 @@ extension Mutex where State: ~Copyable {
   /// - Warning: Recursive calls to `withLock` within the
   ///   closure parameter has behavior that is platform dependent.
   ///   Some platforms may choose to panic the process, deadlock,
-  ///   or leave this behavior unspecified.
+  ///   or leave this behavior unspecified. This will never
+  ///   reacquire the lock however.
   ///
   /// - Parameter body: A closure with a parameter of `State`
   ///   that has exclusive access to the value being stored within
@@ -133,9 +134,9 @@ extension Mutex where State: ~Copyable {
   ///   acquired the lock.
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter.
-  public borrowing func withLock<Result: ~Copyable & Sendable, E: Error>(
-    _ body: (transferring inout State) throws(E) -> Result
-  ) throws(E) -> Result
+  public borrowing func withLock<Result: ~Copyable, E: Error>(
+    _ body: (transferring inout State) throws(E) -> transferring Result
+  ) throws(E) -> transferring Result
   
   /// Attempts to acquire the lock and then calls the given closure if
   /// successful.
@@ -158,7 +159,8 @@ extension Mutex where State: ~Copyable {
   /// - Warning: Recursive calls to `withLockIfAvailable` within the
   ///   closure parameter has behavior that is platform dependent.
   ///   Some platforms may choose to panic the process, deadlock,
-  ///   or leave this behavior unspecified.
+  ///   or leave this behavior unspecified. This will never
+  ///   reacquire the lock however.
   ///
   /// - Parameter body: A closure with a parameter of `State`
   ///   that has exclusive access to the value being stored within
@@ -168,9 +170,9 @@ extension Mutex where State: ~Copyable {
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter
   ///   or nil if the lock couldn't be acquired.
-  public borrowing func withLockIfAvailable<Result: ~Copyable & Sendable, E: Error>(
-    _ body: (transferring inout State) throws(E) -> Result?
-  ) throws(E) -> Result?
+  public borrowing func withLockIfAvailable<Result: ~Copyable, E: Error>(
+    _ body: (transferring inout State) throws(E) -> transferring Result?
+  ) throws(E) -> transferring Result?
 }
 ```
 
