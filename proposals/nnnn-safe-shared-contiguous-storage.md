@@ -43,8 +43,7 @@ We will also provide a `RawSpan` in order to provide operations over contiguous 
 `Span<Element>` is a simple representation of a span of initialized memory.
 
 ```swift
-public struct Span<Element: ~Copyable & ~Escapable>
-: ~Escapable, Copyable {
+public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
   internal var _start: Span<Element>.Index
   internal var _count: Int
 }
@@ -54,20 +53,15 @@ It provides a collection-like interface to the elements stored in that span of m
 
 ```swift
 extension Span {
-  public struct Index: Copyable, Escapable, Strideable { /* .... */ }
-  public struct Iterator: Copyable, ~Escapable {
-    // Should conform to a `BorrowingIterator` protocol
-    // that will be defined at a later date.
-  }
-
   public typealias SubSequence: Self
 
+  public struct Index: Copyable, Escapable, Strideable { /* ... */ }
   public var startIndex: Index { get }
   public var endIndex: Index { get }
+  public var indices: Range<Index> { get }
+
   public var count: Int { get }
   public var isEmpty: Bool { get }
-
-  public func makeIterator() -> dependsOn(self) Span<Element>.Iterator
 
   // index-based subscripts
   subscript(_ position: Index) -> dependsOn(self) Element { get }
@@ -77,14 +71,17 @@ extension Span {
   subscript(offset: Int) -> dependsOn(self) Element { get }
   subscript(offsets: Range<Int>) -> dependsOn(self) Span<Element> { get }
 }
-
-extension Span.Iterator where Element: Copyable, Escapable {
-  // Cannot conform to `IteratorProtocol` because `Self: ~Escapable`
-  public mutating func next() -> Element?
-}
 ```
 
 Note that `Span` does _not_ conform to `Collection`. This is because `Collection`, as originally conceived and enshrined in existing source code, assumes pervasive copyability and escapability for itself as well as its elements. In particular a subsequence of a `Collection` is semantically a separate value from the instance it was derived from. In the case of `Span`, the slice _must_ have the same lifetime as the view from which it originates. Another proposal will consider collection-like protocols to accommodate different combinations of `~Copyable` and `~Escapable` for the collection and its elements.
+
+As a side-effect of not conforming to `Collection` or `Sequence`, `Span` is not directly supported by `for` loops at this time. It is, however, easy to use in a `for` loop via indexing:
+
+```swift
+for i in mySpan.indices {
+  calculation(mySpan[i])
+}
+```
 
 A type can declare that it can provide access to contiguous storage by conforming to the `ContiguousStorage` protocol:
 
@@ -98,7 +95,7 @@ public protocol ContiguousStorage<Element>: ~Copyable, ~Escapable {
 
 The key safety feature is that a `Span` cannot escape to a scope where the value it borrowed no longer exists.
 
-An API that wishes to read from contiguous storage can declare a parameter type of `some ContiguousStorage`. The implementation will internally consist of a brief generic section, followed by business logic implemented in terms of a concrete `Span`. Frameworks that support library evolution (resilient frameworks) have an additional concern. Resilient frameworks have an ABI boundary that may differ from the API proper. Resilient frameworks may wish to adopt a pattern such as the following:
+A function that wishes to read from contiguous storage can declare a parameter type of `some ContiguousStorage`. The implementation will internally consist of a brief generic section, followed by business logic implemented in terms of a concrete `Span`. Frameworks that support library evolution (resilient frameworks) have an additional concern. Resilient frameworks have an ABI boundary that may differ from the API proper. Resilient frameworks may wish to adopt a pattern such as the following:
 
 ```swift
 extension MyResilientType {
@@ -120,9 +117,11 @@ In addition to `Span<T>`, we propose the addition of `RawSpan`. `RawSpan` is sim
 
 ```swift
 extension Array: ContiguousStorage<Self.Element> {
+  // note: this could borrow a temporary copy of the `Array`'s storage
   var storage: Span<Element> { get }
 }
 extension ArraySlice: ContiguousStorage<Self.Element> {
+  // note: this could borrow a temporary copy of the `ArraySlice`'s storage
   var storage: Span<Element> { get }
 }
 extension ContiguousArray: ContiguousStorage<Self.Element> {
@@ -134,15 +133,15 @@ extension Foundation.Data: ContiguousStorage<UInt8> {
 }
 
 extension String.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
-  // note: this could borrow a temporary copy of the original `String`'s storage object
+  // note: this could borrow a temporary copy of the `String`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
 }
 extension Substring.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
-  // note: this could borrow a temporary copy of the original `Substring`'s storage object
+  // note: this could borrow a temporary copy of the `Substring`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
 }
 extension Character.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
-  // note: this could borrow a temporary copy of the original `Character`'s storage object
+  // note: this could borrow a temporary copy of the `Character`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
 }
 
@@ -161,19 +160,19 @@ extension Slice: ContiguousStorage where Base: ContiguousStorage {
 }
 
 extension UnsafeBufferPointer: ContiguousStorage<Self.Element> {
-  // note: this applies additional preconditions to `self` for the duration of the borrow
+  // note: additional preconditions apply until the end of the scope
   var storage: Span<Element> { @_unsafeNonescapableResult get }
 }
 extension UnsafeMutableBufferPointer: ContiguousStorage<Self.Element> {
-  // note: this applies additional preconditions to `self` for the duration of the borrow
+  // note: additional preconditions apply until the end of the scope
   var storage: Span<Element> { @_unsafeNonescapableResult get }
 }
 extension UnsafeRawBufferPointer: ContiguousStorage<UInt8> {
-  // note: this applies additional preconditions to `self` for the duration of the borrow
+  // note: additional preconditions apply until the end of the scope
   var storage: Span<UInt8> { @_unsafeNonescapableResult get }
 }
 extension UnsafeMutableRawBufferPointer: ContiguousStorage<UInt8> {
-  // note: this applies additional preconditions to `self` for the duration of the borrow
+  // note: additional preconditions apply until the end of the scope
   var storage: Span<UInt8> { @_unsafeNonescapableResult get }
 }
 ```
@@ -199,8 +198,7 @@ extension Span where Element: BitwiseCopyable {
 #### Complete `Span` API:
 
 ```swift
-public struct Span<Element: ~Copyable & ~Escapable>
-: Copyable, ~Escapable {
+public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
   internal var _start: Span<Element>.Index
   internal var _count: Int
 }
@@ -223,7 +221,8 @@ extension Span {
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the returned `Span`.
   public init?<Owner>(
-    unsafeBufferPointer buffer: UnsafeBufferPointer<Element>, owner: borrowing Owner
+    unsafeBufferPointer buffer: UnsafeBufferPointer<Element>,
+    owner: borrowing Owner
   ) -> dependsOn(owner) Self?
 
   /// Unsafely create a `Span` over initialized memory.
@@ -238,7 +237,9 @@ extension Span {
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the returned `Span`.
   public init<Owner>(
-    unsafePointer pointer: UnsafePointer<Element>, count: Int, owner: borrowing Owner
+    unsafePointer pointer: UnsafePointer<Element>,
+    count: Int,
+    owner: borrowing Owner
   ) -> dependsOn(owner) Self
 }
 
@@ -356,18 +357,6 @@ extension Span {
 
 ```swift
 extension Span {
-  /// Traps if `position` is not a valid index for this `Span`
-  ///
-  /// - Parameters:
-  ///   - position: an Index to validate
-  public boundsCheckPrecondition(_ position: Index)
-
-  /// Traps if `bounds` is not a valid range of indices for this `Span`
-  ///
-  /// - Parameters:
-  ///   - position: a range of indices to validate
-  public boundsCheckPrecondition(_ bounds: Range<Index>)
-
   // Integer-offset subscripts
 
   /// Accesses the element at the specified offset in the `Span`.
@@ -422,8 +411,8 @@ extension Span {
     uncheckedBounds bounds: Range<Index>
   ) -> dependsOn(self) Span<Element> { get }
 
-  /// Accesses the contiguous subrange of the elements represented by this `Span`,
-  /// specified by a range expression.
+  /// Accesses the contiguous subrange of the elements represented by
+  /// this `Span`, specified by a range expression.
   ///
   /// This subscript does not validate `bounds`; this is an unsafe operation.
   ///
@@ -445,7 +434,9 @@ extension Span {
   ///     must be greater or equal to zero, and less than the `count` property.
   ///
   /// - Complexity: O(1)
-  public subscript(uncheckedOffset offset: Int) -> dependsOn(self) Element { get }
+  public subscript(
+    uncheckedOffset offset: Int
+  ) -> dependsOn(self) Element { get }
 
   /// Accesses the contiguous subrange of elements at the specified
   /// range of offsets in this `Span`.
@@ -459,6 +450,38 @@ extension Span {
   public subscript(
     uncheckedOffsets offsets: Range<Int>
   ) -> dependsOn(self) Span<Element> { get }
+}
+```
+
+##### Index validation utilities:
+
+Every time `Span` uses an index or an integer offset, it checks for their validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
+
+```swift
+extension Span {
+  /// Traps if `position` is not a valid index for this `Span`
+  ///
+  /// - Parameters:
+  ///   - position: an Index to validate
+  public boundsCheckPrecondition(_ position: Index)
+
+  /// Traps if `bounds` is not a valid range of indices for this `Span`
+  ///
+  /// - Parameters:
+  ///   - position: a range of indices to validate
+  public boundsCheckPrecondition(_ bounds: Range<Index>)
+
+  /// Traps if `offset` is not a valid offset into this `Span`
+  ///
+  /// - Parameters:
+  ///   - offset: an offset to validate
+  public boundsCheckPrecondition(offset: Int)
+  
+  /// Traps if `offsets` is not a valid range of offsets into this `Span`
+  ///
+  /// - Parameters:
+  ///   - offsets: a range of offsets to validate
+  public boundsCheckPrecondition(offsets: Range<Int>)
 }
 ```
 
@@ -564,14 +587,12 @@ extension RawSpan {
 
 ##### Indexing Operations:
 
-`RawSpan` has `Collection`-like indexing operations:
+`RawSpan` has these `Collection`-like indexing operations:
 
 ```swift
 extension RawSpan {
   public typealias Index = Span<Element>.Index
   public typealias SubSequence = Self
-
-  public func makeIterator() -> dependsOn(self) Span<Element>.Iterator
 
   public var startIndex: Index { get }
   public var endIndex: Index { get }
@@ -599,19 +620,56 @@ extension RawSpan {
 }
 ```
 
+##### Index validation utiliities:
+
+Every time `Span` uses an index or an integer offset, it checks for their validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
+
 ```swift
 extension RawSpan {
-  /// Traps if `position` is not a valid index for this `Span`
+  /// Traps if `position` is not a valid index for this `RawSpan`
   ///
   /// - Parameters:
   ///   - position: an Index to validate
   public boundsCheckPrecondition(_ position: Index)
 
-  /// Traps if `bounds` is not a valid range of indices for this `Span`
+  /// Traps if `bounds` is not a valid range of indices for this `RawSpan`
   ///
   /// - Parameters:
-  ///   - position: a range of indices to validate
+  ///   - bounds: a range of indices to validate
   public boundsCheckPrecondition(_ bounds: Range<Index>)
+  
+  /// Traps if `offset` is not a valid offset into this `RawSpan`
+  ///
+  /// - Parameters:
+  ///   - offset: an offset to validate
+  public boundsCheckPrecondition(offset: Int)
+  
+  /// Traps if `offsets` is not a valid range of offsets into this `RawSpan`
+  ///
+  /// - Parameters:
+  ///   - offsets: a range of offsets to validate
+  public boundsCheckPrecondition(offsets: Range<Int>)
+}
+```
+
+##### Slicing of `RawSpan` instances:
+
+`RawSpan` has `Collection`-like slicing operations. Like `Span<T>`, it also has unchecked slicing operations and can be sliced using integer offsets:
+
+```swift
+extension RawSpan {
+  public subscript(bounds: Range<Index>) -> dependsOn(self) Self { get }
+  public subscript(unchecked bounds: Range<Index>) -> dependsOn(self) Self { get }
+
+  public subscript(bounds: some RangeExpression<Index>) -> dependsOn(self) Self { get }
+  public subscript(unchecked bounds: some RangeExpression<Index>) -> dependsOn(self) Self { get }
+  public subscript(x: UnboundedRange) -> dependsOn(self) Self { get }
+  
+  public subscript(offsets: Range<Int>) -> dependsOn(self) Self { get }
+  public subscript(uncheckedOffsets offsets: Range<Int>) -> dependsOn(self) Self { get }
+
+  public subscript(offsets: some RangeExpression<Int>) -> dependsOn(self) Self { get }
+  public subscript(uncheckedOffsets offsets: some RangeExpression<Int>) -> dependsOn(self) Self { get }
 }
 ```
 
@@ -698,8 +756,6 @@ extension RawSpan {
 }
 ```
 
-##### 
-
 ## Source compatibility
 
 This proposal is additive and source-compatible with existing code.
@@ -726,7 +782,7 @@ Eventually we want a similar usage pattern for a `MutableSpan` as we are proposi
 ##### Naming
 The ideas in this proposal previously used the name `BufferView`. While the use of the word "buffer" would be consistent with the `UnsafeBufferPointer` type, it is nevertheless not a great name, since "buffer" is usually used in reference to transient storage. On the other hand we already have a nomenclature using the term "Storage" in the `withContiguousStorageIfAvailable()` function, and the term "View" in the API of `String`. A possible alternative name is `StorageSpan`, which mark it as a relative of C++'s `std::span`.
 
-##### Adding `load` and `loadUnaligned` on `Span<UInt8>` instead of making `RawSpan`
+##### Adding `load` and `loadUnaligned` to `Span<UInt8>`on `Span<some BitwiseCopyable>` instead of adding `RawSpan
 
 TKTKTK
 
