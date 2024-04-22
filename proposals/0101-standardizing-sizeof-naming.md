@@ -1,8 +1,8 @@
 # Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct
 
 * Proposal: [SE-0101](0101-standardizing-sizeof-naming.md)
-* Authors: [Erica Sadun](http://github.com/erica), [Dave Abrahams](https://github.com/dabrahams)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Authors: [Erica Sadun](https://github.com/erica), [Dave Abrahams](https://github.com/dabrahams)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0101-reconfiguring-sizeof-and-related-functions-into-a-unified-memorylayout-struct/3477)
 

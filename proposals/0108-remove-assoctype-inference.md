@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0108](0108-remove-assoctype-inference.md)
 * Authors: [Douglas Gregor](https://github.com/DougGregor), Austin Zheng
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0108-remove-associated-type-inference/3304)
 

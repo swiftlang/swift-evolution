@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0120](0120-revise-partition-method.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0120-revise-partition-method-signature/3475)
 * Bug: [SR-1965](https://bugs.swift.org/browse/SR-1965)

@@ -1,7 +1,7 @@
 # String Revision: Collection Conformance, C Interop, Transcoding
 
 * Proposal: [SE-0163](0163-string-revision-1.md)
-* Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](http://github.com/dabrahams/)
+* Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](https://github.com/dabrahams/)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 4.0)**
 * Revision: 2

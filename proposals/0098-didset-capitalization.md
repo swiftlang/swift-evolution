@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0098](0098-didset-capitalization.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0098-lowercase-didset-and-willset-for-more-consistent-keyword-casing/2852)
 

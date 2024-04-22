@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0117](0117-non-public-subclassable-by-default.md)
 * Authors: [Javier Soto](https://github.com/JaviSoto), [John McCall](https://github.com/rjmccall)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0117-allow-distinguishing-between-public-access-and-public-overridability/3578)
 * Implementation: [apple/swift#3882](https://github.com/apple/swift/pull/3882)

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0115](0115-literal-syntax-protocols.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0115-rename-literal-syntax-protocols/3358)
 * Bug: [SR-2054](https://bugs.swift.org/browse/SR-2054)

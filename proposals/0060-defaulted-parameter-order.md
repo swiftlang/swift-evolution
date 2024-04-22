@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0060](0060-defaulted-parameter-order.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0060-enforcing-order-of-defaulted-parameters/2573)
 * Bug: [SR-1489](https://bugs.swift.org/browse/SR-1489)

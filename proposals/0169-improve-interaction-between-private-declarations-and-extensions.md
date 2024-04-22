@@ -1,7 +1,7 @@
 # Improve Interaction Between `private` Declarations and Extensions
 
 * Proposal: [SE-0169](0169-improve-interaction-between-private-declarations-and-extensions.md)
-* Authors: [David Hart](http://github.com/hartbit), [Chris Lattner](https://github.com/lattner)
+* Authors: [David Hart](https://github.com/hartbit), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0169-improve-interaction-between-private-declarations-and-extensions/5692)

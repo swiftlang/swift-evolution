@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0103](0103-make-noescape-default.md)
 * Author: [Trent Nadeau](https://github.com/tanadeau)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0103-make-non-escaping-closures-the-default/3212)
 * Bug: [SR-1952](https://bugs.swift.org/browse/SR-1952)

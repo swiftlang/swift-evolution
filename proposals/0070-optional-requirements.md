@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0070](0070-optional-requirements.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0070-make-optional-requirements-objective-c-only/2426)
 * Bug: [SR-1395](https://bugs.swift.org/browse/SR-1395)
