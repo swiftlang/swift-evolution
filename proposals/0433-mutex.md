@@ -27,7 +27,7 @@ We propose a new type in the Standard Library Synchronization module: `Mutex`. T
 class FancyManagerOfSorts {
   let cache = Mutex<[String: Resource]>([:])
   
-  func save(_ resource: Resouce, as key: String) {
+  func save(_ resource: Resource, as key: String) {
     cache.withLock {
       $0[key] = resource
     }
