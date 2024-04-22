@@ -871,7 +871,7 @@ while let elt = iter.next() {
 
 ```
 
-**TODO**: Karoy mentioned that be might not want to even take the name `Iterator` until more of the borrowed iterator design if figured out
+**TODO**: Karoy mentioned that be might not want to even take the name `Iterator` until more of the borrowed iterator design is figured out
 
 ##### Collection-like protocols for non-copyable and non-escapable types
 
