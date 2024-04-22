@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0111](0111-remove-arg-label-type-significance.md)
 * Author: Austin Zheng
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0111-remove-type-system-significance-of-function-argument-labels/3306), [Additional Commentary](https://forums.swift.org/t/update-commentary-se-0111-remove-type-system-significance-of-function-argument-labels/3391)
 * Bug: [SR-2009](https://bugs.swift.org/browse/SR-2009)

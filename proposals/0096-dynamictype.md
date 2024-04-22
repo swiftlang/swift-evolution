@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0096](0096-dynamictype.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0098-converting-dynamictype-from-a-property-to-an-operator/2853)
 * Bug: [SR-2218](https://bugs.swift.org/browse/SR-2218)

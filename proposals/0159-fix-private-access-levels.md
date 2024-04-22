@@ -1,7 +1,7 @@
 # Fix Private Access Levels
 
 * Proposal: [SE-0159](0159-fix-private-access-levels.md)
-* Author: [David Hart](http://github.com/hartbit)
+* Author: [David Hart](https://github.com/hartbit)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0159-fix-private-access-levels/5576)

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0091](0091-improving-operators-in-protocols.md)
 * Authors: [Tony Allevato](https://github.com/allevato), [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0091-improving-operator-requirements-in-protocols/3390)
 * Bug: [SR-2073](https://bugs.swift.org/browse/SR-2073)

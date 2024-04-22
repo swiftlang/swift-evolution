@@ -1,7 +1,7 @@
 # Resolve DistributedActor protocols
 
 * Proposal: [SE-0428](0428-resolve-distributed-actor-protocols.md)
-* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](http://github.com/xedin)
+* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
 * Status:  **Active Review (March 13...March 26, 2024)**
 * Implementation: [PR #70928](https://github.com/apple/swift/pull/70928)

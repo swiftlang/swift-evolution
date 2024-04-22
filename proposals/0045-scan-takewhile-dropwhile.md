@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 * Author: [Lily Ballard](https://github.com/lilyball)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0045-add-scan-prefix-while-drop-while-and-unfold-to-the-stdlib/2466)
 * Bug: [SR-1516](https://bugs.swift.org/browse/SR-1516)

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0095](0095-any-as-existential.md)
 * Authors: [Adrian Zubarev](https://github.com/DevAndArtist), [Austin Zheng](https://github.com/austinzheng)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0095-replace-protocol-p1-p2-syntax-with-p1-p2-syntax/3198)
 * Bug: [SR-1938](https://bugs.swift.org/browse/SR-1938)

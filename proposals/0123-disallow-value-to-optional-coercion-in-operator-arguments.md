@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0123](0123-disallow-value-to-optional-coercion-in-operator-arguments.md)
 * Authors: [Mark Lacey](https://github.com/rudkx), [Doug Gregor](https://github.com/DougGregor), [Jacob Bandes-Storch](https://github.com/jtbandes)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0123-disallow-coercion-to-optionals-in-operator-arguments/3479)
 

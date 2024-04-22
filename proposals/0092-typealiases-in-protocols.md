@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0092](0092-typealiases-in-protocols.md)
 * Authors: [David Hart](https://github.com/hartbit), [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0092-typealiases-in-protocols-and-protocol-extensions/2639)
 * Bug: [SR-1539](https://bugs.swift.org/browse/SR-1539)

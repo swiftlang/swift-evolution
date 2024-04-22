@@ -1,8 +1,8 @@
 # Removing Where Clauses from For-In Loops
 
 * Proposal: [SE-0105](0105-remove-where-from-forin-loops.md)
-* Author: [Erica Sadun](http://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Author: [Erica Sadun](https://github.com/erica)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0105-removing-where-clauses-from-for-in-loops/3205)
 

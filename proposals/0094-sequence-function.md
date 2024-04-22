@@ -1,8 +1,8 @@
 # Add sequence(first:next:) and sequence(state:next:) to the stdlib
 
 * Proposal: [SE-0094](0094-sequence-function.md)
-* Authors: [Lily Ballard](https://github.com/lilyball), [Erica Sadun](http://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Authors: [Lily Ballard](https://github.com/lilyball), [Erica Sadun](https://github.com/erica)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0094-add-sequence-initial-next-and-sequence-state-next-to-the-stdlib/2775)
 * Bug: [SR-1622](https://bugs.swift.org/browse/SR-1622)

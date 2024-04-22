@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0132](0132-sequence-end-ops.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax), [Dave Abrahams](https://github.com/dabrahams)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/deferred-se-0132-rationalizing-sequence-end-operation-names/3577)
 

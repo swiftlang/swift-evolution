@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0037](0037-clarify-comments-and-operators.md)
 * Author: [Jesse Rusak](https://github.com/jder)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0037-clarify-interaction-between-comments-operators/1833)
 * Bug: [SR-960](https://bugs.swift.org/browse/SR-960)

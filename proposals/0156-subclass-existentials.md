@@ -1,7 +1,7 @@
 # Class and Subtype existentials
 
 * Proposal: [SE-0156](0156-subclass-existentials.md)
-* Authors: [David Hart](http://github.com/hartbit), [Austin Zheng](http://github.com/austinzheng)
+* Authors: [David Hart](https://github.com/hartbit), [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0156-class-and-subtype-existentials/5477)
@@ -214,4 +214,4 @@ rules; see the decision notes at the top for more information.
 
 ## Acknowledgements
 
-Thanks to [Austin Zheng](http://github.com/austinzheng) and [Matthew Johnson](https://github.com/anandabits) who brought a lot of attention to existentials in this mailing-list and from whom most of the ideas in the proposal come from.
+Thanks to [Austin Zheng](https://github.com/austinzheng) and [Matthew Johnson](https://github.com/anandabits) who brought a lot of attention to existentials in this mailing-list and from whom most of the ideas in the proposal come from.

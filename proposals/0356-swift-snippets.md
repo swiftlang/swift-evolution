@@ -1,7 +1,7 @@
 # Swift Snippets
 
 * Proposal: [SE-0356](0356-swift-snippets.md)
-* Authors: [Ashley Garland](http://github.com/bitjammer)
+* Authors: [Ashley Garland](https://github.com/bitjammer)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Implemented (Swift 5.7)**
 * Implementation:

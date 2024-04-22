@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0089](0089-rename-string-reflection-init.md)
 * Authors: [Austin Zheng](https://github.com/austinzheng), [Becca Royal-Gordon](https://github.com/beccadax)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0089-renaming-string-init-t-t/3097)
 * Bug: [SR-1881](https://bugs.swift.org/browse/SR-1881)

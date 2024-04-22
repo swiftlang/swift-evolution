@@ -1,8 +1,8 @@
 # Adding a Build Configuration Import Test
 
 * Proposal: [SE-0075](0075-import-test.md)
-* Author: [Erica Sadun](http://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Author: [Erica Sadun](https://github.com/erica)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0075-adding-a-build-configuration-import-test/2683)
 * Bug: [SR-1560](https://bugs.swift.org/browse/SR-1560)

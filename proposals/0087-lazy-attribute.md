@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0087](0087-lazy-attribute.md)
 * Author: [Anton3](https://github.com/Anton3)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0087-rename-lazy-to-lazy/2778)
 
