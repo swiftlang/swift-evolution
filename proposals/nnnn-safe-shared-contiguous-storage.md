@@ -1,7 +1,7 @@
 # Safe Access to Contiguous Storage
 
 * Proposal: [SE-NNNN](nnnn-safe-shared-contiguous-storage.md)
-* Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick)
+* Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
@@ -20,7 +20,16 @@ This proposal is related to two other features being proposed along with it: [No
 
 ## Motivation
 
-Consider for example a program using multiple libraries, including one for [base64](https://datatracker.ietf.org/doc/html/rfc4648) decoding. The program would obtain encoded data from one or more of its dependencies, which could supply the data in the form of `[UInt8]`, `Foundation.Data` or even `String`, among others. None of these types is necessarily more correct than another, but the base64 decoding library must pick an input format. It could declare its input parameter type to be `some Sequence<UInt8>`, but such a generic function significantly limits performance. This may force the library author to either declare its entry point as inlinable, or to implement an internal fast path using `withContiguousStorageIfAvailable()` and use an unsafe type. The ideal interface would have a combination of the properties of both `some Sequence<UInt8>` and `UnsafeBufferPointer<UInt8>`.
+Swift needs safe and performant types for local processing over values in contiguous memory. Consider for example a program using multiple libraries, including one for [base64](https://datatracker.ietf.org/doc/html/rfc4648) decoding. The program would obtain encoded data from one or more of its dependencies, which could supply the data in the form of `[UInt8]`, `Foundation.Data` or even `String`, among others. None of these types is necessarily more correct than another, but the base64 decoding library must pick an input format. It could declare its input parameter type to be `some Sequence<UInt8>`, but such a generic function significantly limits performance. This may force the library author to either declare its entry point as inlinable, or to implement an internal fast path using `withContiguousStorageIfAvailable()` and use an unsafe type. The ideal interface would have a combination of the properties of both `some Sequence<UInt8>` and `UnsafeBufferPointer<UInt8>`.
+
+The `UnsafeBufferPointer` passed to a `withUnsafeXXX` closure-style API, while performant, is unsafe in multiple ways:
+
+1. The pointer itself is unsafe and unmanaged
+2. `subscript` is only bounds-checked in debug builds of client code
+3. It might escape the duration of the closure
+
+Even if the body of the `withUnsafeXXX` call does not escape the pointer, other functions called inside the closure have to be written in terms of unsafe pointers. This requires programmer vigilance across a project and pollutes code that otherwise could be written in terms of safe constructs.
+
 
 ## Proposed solution
 
@@ -28,7 +37,13 @@ Consider for example a program using multiple libraries, including one for [base
 
 By relying on borrowing, `Span` can provide simultaneous access to a non-copyable container, and can help avoid unwanted copies of copyable containers. Note that `Span` is not a replacement for a copyable container with owned storage; see the future directions for more details ([Resizable, contiguously-stored, untyped collection in the standard library](#Bytes))
 
-A type can indicate that it can provide a `Span` by conforming to the `ContiguousStorage` protocol. For example, for the hypothetical base64 decoding library mentioned above, a possible API could be:
+`Span` is the currency type for local processing over values in contiguous memory. It is the replacement for any API currently using `Array`, `UnsafeBufferPointer`, `Foundation.Data`, etc., that does not need to escape the value.
+
+### `ContiguousStorage`
+
+A type can indicate that it can provide a `Span` by conforming to the `ContiguousStorage` protocol. `ContiguousStorage` forms a bridge between multi-type or generically-typed interfaces and a performant concrete implementation.
+
+For example, for the hypothetical base64 decoding library mentioned above, a possible API could be:
 
 ```swift
 extension HypotheticalBase64Decoder {
@@ -36,7 +51,16 @@ extension HypotheticalBase64Decoder {
 }
 ```
 
-We will also provide a `RawSpan` in order to provide operations over contiguous bytes, for use in decoders and the like. The advantage of `RawSpan` is to be a concrete type, without a generic parameter.
+**TODO**: But, we don't want to encourage this use. We want to encourage one concrete function taking a `Span<UInt8>`. Advanced libraries might add an inlinable/alwaysEmitIntoClient generic-dispatch interface in addition to this.
+
+### `RawSpan`
+
+`RawSpan` allows sharing the contiguous internal representation for values which may be heterogenously-typed, such as in decoders. Furthermore, it is a fully concrete type, without a generic parameter, which achieves better performance in debug builds of client code as well as a more straight-forwards unstanding of performance for library code.
+
+All `Span<T>`s have a backing `RawSpan`.
+
+**TODO**: Do we have a (parent) protocol for just raw span? Do we have API to get the raw span from a span?
+
 
 ## Detailed design
 
@@ -83,6 +107,8 @@ for i in mySpan.indices {
 }
 ```
 
+### `ContiguousStorage`
+
 A type can declare that it can provide access to contiguous storage by conforming to the `ContiguousStorage` protocol:
 
 ```swift
@@ -110,8 +136,6 @@ extension MyResilientType {
 ```
 
 Here, the public function obtains the `Span` from the type that vends it in inlinable code, then calls a concrete, opaque function defined in terms of `Span`. Inlining the generic shim in the client is often a critical optimization. The need for such a pattern and related improvements are discussed in the future directions below (see [Syntactic Sugar for Automatic Conversions](#Conversions).)
-
-In addition to `Span<T>`, we propose the addition of `RawSpan`. `RawSpan` is similar to `Span<T>`, but represents initialized bytes. Its API supports slicing, along with the operations `load(as:)` and `loadUnaligned(as:)`. `RawSpan` is a specialized type supporting parsing and decoding applications in particular, where heavily-used code paths require concrete types as much as possible.
 
 #### Extensions to Standard Library and Foundation types
 
@@ -176,6 +200,14 @@ extension UnsafeMutableRawBufferPointer: ContiguousStorage<UInt8> {
   var storage: Span<UInt8> { @_unsafeNonescapableResult get }
 }
 ```
+
+**TODO**: What is the `@_unsafeNonescapableResult` annotation? Would `Slice<UnsafeBufferPointer<UInt8>>` need it?
+
+**TODO**: Do we do a `Sequence.withSpanIfAvailable` API?
+
+**TODO**: What all can we deprecate with this proposal?
+
+**TODO**: Do these needs lifetime annotations on them?
 
 #### Using `Span` with C functions or other unsafe code:
 
@@ -529,6 +561,14 @@ extension Span where Element: BitwiseCopyable {
 }
 ```
 
+**TODO**: `public var rawSpan: RawSpan` API, as well a conformance to a raw span protocol if there is one.
+
+### RawSpan
+
+In addition to `Span<T>`, we propose the addition of `RawSpan` which can represent heterogenously-typed values in contiguous memory. `RawSpan` is similar to `Span<T>`, but represents initialized untyped bytes. Its API supports slicing, along with the operations `load(as:)` and `loadUnaligned(as:)`. 
+
+`RawSpan` is a specialized type supporting parsing and decoding applications in particular, as well as applications where heavily-used code paths require concrete types as much as possible.
+
 #### Complete `RawSpan` API:
 
 ```swift
@@ -620,9 +660,11 @@ extension RawSpan {
 }
 ```
 
+**TODO**: What does `typealias Index = Span<Element>.Index` mean? 
+
 ##### Index validation utiliities:
 
-Every time `Span` uses an index or an integer offset, it checks for their validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
+Every time `RawSpan` uses an index or an integer offset, it checks for their validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
 
 ```swift
 extension RawSpan {
@@ -744,7 +786,13 @@ extension RawSpan {
   public func loadUnaligned<T: BitwiseCopyable>(
     from index: Index, as: T.Type
   ) -> T
+```
 
+**TODO**: What about unchecked variants? Those would/could be the bottom API called by data parsers which have already checked the bounds earlier (e.g. for error-throwing purposes).
+
+A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homogenously as instances of `T`.
+
+```swift
   /// View the memory span represented by this view as a different type
   ///
   /// The memory must be laid out identically to the in-memory representation of `T`.
@@ -809,23 +857,60 @@ while i < view.endIndex {
   doSomething(view[i])
   view.index(after: &i)
 }
+
 // ...or:
-for o in 0..<view.count {
-  doSomething(view[offset: o])
+for i in 0..<view.indices {
+  doSomething(view[i])
 }
+
+// ...or
+var iter = view.makeIterator()
+while let elt = iter.next() {
+  doSomething(elt)
+}
+
 ```
 
+**TODO**: Karoy mentioned that be might not want to even take the name `Iterator` until more of the borrowed iterator design if figured out
+
 ##### Collection-like protocols for non-copyable and non-escapable types
+
 Non-copyable and non-escapable containers would benefit from a `Collection`-like protocol family to represent a set basic, common operations. This may be `Collection` if we find a way to make it work; it may be something else.
 
 ##### Sharing piecewise-contiguous memory
+
 Some types store their internal representation in a piecewise-contiguous manner, such as trees and ropes. Some operations naturally return information in a piecewise-contiguous manner, such as network operations. These could supply results by iterating through a list of contiguous chunks of memory.
 
-##### Delegating mutations of memory with `MutableSpan<T>`
-Some data structures can delegate mutations of their owned memory. In the standard library we have `withMutableBufferPointer()`, for example. A `MutableSpan<T>` should provide a better, safer alternative.
+##### Safe mutations of memory with `MutableSpan<T>`
+
+Some data structures can delegate mutations of their owned memory. In the standard library we have `withMutableBufferPointer()`, for example.
+
+The `UnsafeMutableBufferPointer` passed to a `withUnsafeMutableXXX` closure-style API is unsafe in multiple ways:
+
+1. The pointer itself is unsafe and unmanaged
+2. `subscript` is only bounds-checked in debug builds of client code
+3. It might escape the duration of the closure
+4. Exclusivity of writes is not enforced
+5. Initialization of any particular memory address is not ensured
+
+I.e., it is unsafe in all the ways `UnsafeBufferPointer`-passing closure APIs are unsafe in addition to being unsafe in exclusivity and in initialization.
+
+Loading an uninitialized non-`BitwiseCopyable` value leads to undefined behavior. Loading an uninitialized `BitwiseCopyable` value does not immediately lead to undefined behavior, but it produces a garbage value which may lead to misbehavior of the program.
+
+A `MutableSpan<T>` should provide a better, safer alternative to mutable memory in the same way that `Span<T>` provides a better, safer read-only type. `MutableSpan<T>` would also automatically enforce exclusivity of writes.
+
+However, it alone does not track initialization state of each address, and that will continue to be the responsibility of the developer.
+
 
 ##### Delegating initialization of memory with `OutputSpan<T>`
+
 Some data structures can delegate initialization of their initial memory representation, and in some cases the initialization of additional memory. In the standard library we have `Array.init(unsafeUninitializedCapacity:initializingWith:)` and `String.init(unsafeUninitializedCapacity:initializingUTF8With:)`. A safer abstraction for initialization would make such initializers less dangerous, and would allow for a greater variety of them.
+
+`OutputSpan<T>` would need run-time bookkeeping (e.g. a bitvector with a bit per-address) to track initialization state to safely support random access and random-order initialization.
+
+Alternatively, a divide-and-conqueor style initialization order might be solvable via an API layer without run-time bookkeeping, but with more complex ergonomics.
+
+
 
 ##### <a name="Bytes"></a>Resizable, contiguously-stored, untyped collection in the standard library
 
@@ -856,4 +941,4 @@ The [`std::span`](https://en.cppreference.com/w/cpp/container/span) class templa
 
 ## Acknowledgments
 
-Joe Groff, John McCall, Tim Kientzle, Michael Ilseman, Karoy Lorentey contributed to this proposal with their clarifying questions and discussions.
+Joe Groff, John McCall, Tim Kientzle, Karoy Lorentey contributed to this proposal with their clarifying questions and discussions.
