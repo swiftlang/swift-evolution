@@ -4,8 +4,8 @@
 * Authors: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (April 9 – April 22, 2024)**
-* Implementation: on `main`, using the `BorrowingSwitch` feature flag and `_borrowing x` binding spelling
-* Upcoming Feature Flag: `BorrowingSwitch`
+* Implementation: on `main`, using the `BorrowingSwitch` experimental feature flag and `_borrowing x` binding spelling
+* Experimental Feature Flag: `BorrowingSwitch`
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/86cf6eadcdb35a09eb03330bf5d4f31f2599da02/proposals/ABCD-noncopyable-switch.md)
 * Review: ([review](https://forums.swift.org/t/se-0432-borrowing-and-consuming-pattern-matching-for-noncopyable-types/71158))
 
