@@ -1,4 +1,4 @@
-# Allow trailing comma in tuples, arguments and if/guard/while conditions
+# Allow trailing comma in tuples, arguments, parameters and if/guard/while conditions
 
 - Proposal: SE-NNNN
 - Author: Mateus Rodrigues
@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This proposal aims to allow the use of trailing commas, currently restricted to array and dictionary literals, in tuples, arguments and if/guard/while conditions.
+This proposal aims to allow the use of trailing commas, currently restricted to array and dictionary literals, in tuples, arguments, parameters and if/guard/while conditions.
 
 ## Motivation
 
@@ -107,7 +107,7 @@ foo(
 
 This proposal adds support for trailing comma to:
 
-### Arguments
+### Arguments and Parameters
 
 Including declaration and call of initializers, functions and enum case associated values.
 
@@ -194,3 +194,7 @@ print(
 This was even [proposed](https://forums.swift.org/t/se-0257-eliding-commas-from-multiline-expression-lists/22889/188) and returned to revision back in 2019.
 
 Even though both approach are not mutually exclusive, this proposal is about consistently extend an existing behavior in the language while eliding comma is a more serious change to the language.
+
+## Acknowledgments
+
+Thanks to all those who gave feedback during the implementation review, especially Alex Hoppen, who was very patient and helped me a lot during the process.
