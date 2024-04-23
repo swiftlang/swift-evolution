@@ -5,20 +5,18 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Implemented (Swift 5.9)**
 * Implementation:
-  * https://github.com/apple/swift-package-manager/pull/6101
-  * https://github.com/apple/swift-package-manager/pull/6146
-  * https://github.com/apple/swift-package-manager/pull/6159
-  * https://github.com/apple/swift-package-manager/pull/6169
-  * https://github.com/apple/swift-package-manager/pull/6188
-  * https://github.com/apple/swift-package-manager/pull/6189
-  * https://github.com/apple/swift-package-manager/pull/6215
-  * https://github.com/apple/swift-package-manager/pull/6217
-  * https://github.com/apple/swift-package-manager/pull/6220
-  * https://github.com/apple/swift-package-manager/pull/6229
-  * https://github.com/apple/swift-package-manager/pull/6237
-* Review: 
-  * pitch: https://forums.swift.org/t/pitch-package-registry-publish/62828
-  * review: https://forums.swift.org/t/se-0391-package-registry-publish/63405
+  * [apple/swift-package-manager#6101](https://github.com/apple/swift-package-manager/pull/6101)
+  * [apple/swift-package-manager#6146](https://github.com/apple/swift-package-manager/pull/6146)
+  * [apple/swift-package-manager#6159](https://github.com/apple/swift-package-manager/pull/6159)
+  * [apple/swift-package-manager#6169](https://github.com/apple/swift-package-manager/pull/6169)
+  * [apple/swift-package-manager#6188](https://github.com/apple/swift-package-manager/pull/6188)
+  * [apple/swift-package-manager#6189](https://github.com/apple/swift-package-manager/pull/6189)
+  * [apple/swift-package-manager#6215](https://github.com/apple/swift-package-manager/pull/6215)
+  * [apple/swift-package-manager#6217](https://github.com/apple/swift-package-manager/pull/6217)
+  * [apple/swift-package-manager#6220](https://github.com/apple/swift-package-manager/pull/6220)
+  * [apple/swift-package-manager#6229](https://github.com/apple/swift-package-manager/pull/6229)
+  * [apple/swift-package-manager#6237](https://github.com/apple/swift-package-manager/pull/6237)
+* Review: ([pitch](https://forums.swift.org/t/pitch-package-registry-publish/62828)), ([review](https://forums.swift.org/t/se-0391-package-registry-publish/63405)), ([acceptance](https://forums.swift.org/t/accepted-se-0391-swift-package-registry-authentication/64088))
 
 ## Introduction
 
