@@ -502,7 +502,10 @@ declaration of a type.
 
 ## ABI compatibility
 
-`init` accessors are only called from within a module, so they are not part of the module's ABI. In cases where a type's initializer is `@inlinable`, the body of an `init` accessor must also be inlinable.
+`init` accessors are an ABI-additive change; they are at most `internal` but can
+be ABI-public.
+Calling an `init` accessor from an `inlinable` type initializer requires that
+the `init` accessor is ABI-public.
 
 ## Implications on adoption
 
