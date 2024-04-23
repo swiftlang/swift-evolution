@@ -491,6 +491,11 @@ init() {
 }
 ```
 
+### Restrictions
+
+A property with an `init` accessor can only be declared in the primary
+declaration of a type.
+
 ## Source compatibility
 
 `init` accessors are an additive capability with new syntax; there is no impact on existing source code.
