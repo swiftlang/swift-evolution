@@ -6,7 +6,6 @@
 * Implementation: On `main` gated behind `-enable-experimental-feature MoveOnlyPartialConsumption`
 * Status: **Accepted**
 * Review: ([pitch #1](https://forums.swift.org/t/request-for-feedback-partial-consumption-of-fields-of-noncopyable-types/65884)) ([pitch #2](https://forums.swift.org/t/pitch-piecewise-consumption-of-noncopyable-values/70045)) ([review](https://forums.swift.org/t/se-0429-partial-consumption-of-noncopyable-values/70675)) ([acceptance](https://forums.swift.org/t/accepted-se-0429-partial-consumption-of-noncopyable-values/70972))
-* Upcoming Feature Flag: `MoveOnlyPartialConsumption`
 
 ## Introduction
 
