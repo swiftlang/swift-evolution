@@ -508,7 +508,7 @@ extension Span {
   /// - Parameters:
   ///   - offset: an offset to validate
   public boundsCheckPrecondition(offset: Int)
-  
+
   /// Traps if `offsets` is not a valid range of offsets into this `Span`
   ///
   /// - Parameters:
@@ -679,13 +679,13 @@ extension RawSpan {
   /// - Parameters:
   ///   - bounds: a range of indices to validate
   public boundsCheckPrecondition(_ bounds: Range<Index>)
-  
+
   /// Traps if `offset` is not a valid offset into this `RawSpan`
   ///
   /// - Parameters:
   ///   - offset: an offset to validate
   public boundsCheckPrecondition(offset: Int)
-  
+
   /// Traps if `offsets` is not a valid range of offsets into this `RawSpan`
   ///
   /// - Parameters:
@@ -706,7 +706,7 @@ extension RawSpan {
   public subscript(bounds: some RangeExpression<Index>) -> dependsOn(self) Self { get }
   public subscript(unchecked bounds: some RangeExpression<Index>) -> dependsOn(self) Self { get }
   public subscript(x: UnboundedRange) -> dependsOn(self) Self { get }
-  
+
   public subscript(offsets: Range<Int>) -> dependsOn(self) Self { get }
   public subscript(uncheckedOffsets offsets: Range<Int>) -> dependsOn(self) Self { get }
 
