@@ -245,7 +245,6 @@ This feature would also work very well with some improvements to private Objecti
 
 Again, that’s something we can flesh out over time.
 
-
 ## Alternatives considered
 
 ### A different attribute spelling
@@ -300,4 +299,4 @@ This might be able to reduce code duplication for adopters who want to write cro
 
 ## Acknowledgments
 
-Doug Gregor gave a *ton* of input into this design.
+Doug Gregor gave a *ton* of input into this design; Allan Shortlidge reviewed much of the code; and Mike Ash provided timely help with a tricky Objective-C metadata issue. Thanks to all of them for their contributions, and thanks to all of the engineers who have provided feedback and bug reports on this feature in its experimental state.
