@@ -175,9 +175,11 @@ Because `@implementation` attributes and member implementations are not printed 
 
 ## Implications on adoption
 
-The exact backwards deployment constraints for this feature are not yet certain.
+`@implementation` extensions that implement categories are back-deployable to Swift 5.0 runtimes and later, and many `@implementation` extensions that implement classes are too. However, if a class's ivar layout cannot be computed at compile time, that class will require new runtime support and will not be back-deployable to old platforms.
 
-> **Note**: Support for resilient value-typed stored properties (which have variable size, and thus require the class to modify its ivar layout before it is realized) is currently under development. At this point we're certain that they can be supported and we think it's likely they can be back-deployed to all platforms with Swift in the OS, but the exact implementation is still being developed and it's possible there will be tighter back-deployment limitations.
+Affected classes are ones whose stored properties contain a non-frozen enum or struct imported from another module that has library evolution enabled. (This property is transitive—if your stored properties contain a struct in your own module, but that struct has a stored property of an affected type, that also limits back deployment.) In practice, it is usually possible to work around this problem by boxing affected values in a class or existential, at the cost of some overhead.
+
+> **Note**: Some of the required runtime changes are in the Objective-C runtime, so even a snapshot toolchain will not be sufficient to actually run modules with affected classes. However, you can test the diagnostics and code generation by compiling with the experimental feature flag `ObjCImplementationWithResilientStorage`; OS version 99.99 will be treated as high enough to have the necessary runtime support.
 
 ## Future directions
 
