@@ -5,7 +5,6 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation** (but only of resilience support)
 * Implementation: In main and release/6.0, behind the `ObjCImplementation` experimental feature flag
-* Upcoming Feature Flag: `ObjCImplementation`
 
 ## Introduction
 
