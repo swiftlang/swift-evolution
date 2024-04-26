@@ -30,9 +30,11 @@ Swift also quietly supports a hacky pseudo-feature that allows a different model
 
 ## Proposed solution
 
-We propose adding a new attribute, `@implementation`, which allows a Swift `extension` to replace an Objective-C `@implementation` block. You write headers as normal for an Objective-C class, but instead of writing an `@implementation` in an Objective-C file, you write an `@implementation extension` in a Swift file. You can even port an existing class’s implementation to Swift one category at a time without breaking backwards compatibility.
+We propose adding a new attribute, `@implementation`, which, when paired with an interop attribute like `@objc`, tells Swift that it is to implement a declaration it has imported from another language, rather than creating a new declaration and exporting it *to* that language.
 
-Specifically, if you were adding a new class, you would start by writing a normal Objective-C header, as though you were planning to implement the class in an Objective-C .m file:
+Specifically, in this proposal, `@objc @implementation` allows a Swift `extension` to replace an Objective-C `@implementation` block. You write headers as normal for an Objective-C class, but instead of writing an `@implementation` in an Objective-C file, you write an `@objc @implementation extension` in a Swift file. You can even port an existing class’s implementation to Swift one category at a time without breaking backwards compatibility.
+
+For instance, if you were adding a new class, you would start by writing a normal Objective-C header, as though you were planning to implement the class in an Objective-C .m file:
 
 ```objc
 #import <UIKit/UIKit.h>
@@ -69,7 +71,7 @@ NS_HEADER_AUDIT_END(nullability, sendability)
 And you would arrange for Swift to import it through an umbrella or bridging header. You would then write an `extension` for each `@interface` you wish to implement in Swift. For example, you could implement the main `@interface` (plus any visible class extensions) in Swift by writing:
 
 ```swift
-@implementation extension MYFlippableViewController {
+@objc @implementation extension MYFlippableViewController {
     ...
 }
 ```
@@ -77,70 +79,81 @@ And you would arrange for Swift to import it through an umbrella or bridging hea
 And the `Animation` category by writing:
 
 ```swift
-@implementation(Animation) extension MYFlippableViewController {
+@objc(Animation) @implementation extension MYFlippableViewController {
     ...
 }
 ```
 
 Note that there is nothing special in the header which indicates that a given `@interface` is implemented in Swift. The header can use all of the usual Swift annotations—like `NS_SWIFT_NAME`, `NS_NOESCAPE` etc.—but they simply affect how the member is imported. Swift does not even require you to implement every declared `@interface` in Swift, so you can implement some parts of a class in Objective-C and others in Swift. But if you choose to implement a particular `@interface` in Swift, each Objective-C member in that `@interface` must be matched by a Swift declaration in the extension that has the same Swift name; these special members are called "member implementations".
 
-An `@implementation extension` can contain four kinds of members:
+An `@objc @implementation extension` can contain four kinds of members:
 
 1. **Open, public, package, or internal `@objc` members** must be member implementations. Swift will give you an error if they don't match a member from the imported headers, so it will diagnose typos and mismatched Swift names.
 2. **Fileprivate or private `@objc` members** are helper methods (think `@IBAction`s or callback selectors). They must *not* match a member from the imported headers, but they are accessible from Objective-C by performing a selector or declaring them in a place that is not visible to Swift.
 3. **Members with a `final` modifier (or `@nonobjc` on an initializer)** are Swift-only and can use Swift-only types or features. These may be Swift-only implementation details (if `internal` or `private`) or Swift-only APIs (if `public` or `package`).
 4. **Members with an `override` modifier** override superclass members and function normally.
 
-Within an `@implementation` extension, all members are `@objc` unless they are marked `final` or `@nonobjc`, and all `@objc` members are `dynamic`.
+Within an `@objc @implementation` extension, `final` members are `@nonobjc` by default.
 
-As a special exception to the usual rule, a non-category `@implementation extension` can declare stored properties and other members that are normally only allowed in the main `class` body. They can be (perhaps implicitly) `@objc` or they can also be `final`; in the latter case they are only accessible from Swift. Note that `@implementation` does not have an equivalent to Objective-C's implicit `@synthesize`—you must declare a `var` explicitly for each `@property` in the header that you want to be backed by a stored property.
+As a special exception to the usual rule, a non-category `@objc @implementation extension` can declare stored properties and other members that are normally only allowed in the main `class` body. They can be (perhaps implicitly) `@objc` or they can also be `final`; in the latter case they are only accessible from Swift. Note that `@implementation` does not have an equivalent to Objective-C's implicit `@synthesize`—you must declare a `var` explicitly for each `@property` in the header that you want to be backed by a stored property.
 
 ## Detailed design
 
-### `@implementation extension`s
+### Custom category names
 
-The compiler will accept a new attribute, `@implementation`, on `extension`s. This attribute can optionally be followed by a parenthesized identifier. If this identifier is present, the extension matches an Objective-C category with that name. If it is absent, it matches the main Objective-C interface and all Objective-C class extensions.
+As an enabling step, we propose that using `@objc(CustomName)` on an `extension` should cause the Objective-C category created for that extension to be named `CustomName`, rather than using a category name generated by the compiler. This name should appear in both generated headers and Objective-C metadata. The compiler should enforce that there is only one extension per class/category-name combination.
+
+`@objc(CustomName) extension` also has the effect of `@objc extension`, namely, making members of the extension `@objc` by default.
+
+### `@implementation`
+
+The compiler will accept a new attribute, `@implementation`, which turns a declaration that would normally be exported to another language into a declaration that implements something imported from another language. This attribute takes no arguments; it should be used alongside another attribute specifying the foreign language, such as `@objc`.
+
+In general, `@implementation` will cause the affected declarations to be matched against imported declarations, and will emit errors if a good enough match cannot be found. It cannot necessarily be applied to all declarations that can be exported to a foreign language; for instance, `@objc @implementation` is only supported on whole extensions, not on individual members.
+
+### `@objc @implementation extension`s
+
+`@objc @implementation extension` causes an extension to be used as the implementation of an Objective-C `@interface` declaration for the class it extends. If the `@objc` attribute specifies a custom category name, it will implement a category with that name; otherwise it will implement the main `@interface` for the class (plus any class extensions).
 
 ```swift
-@implementation extension SomeClass {
+@objc @implementation extension SomeClass {
     // Equivalent to `@implementation SomeClass`;
     // implements everything in `@interface SomeClass` and
     // all `@interface SomeClass ()` extensions.
 }
 
-@implementation(SomeCategory) extension SomeClass {
+@objc(SomeCategory) @implementation extension SomeClass {
     // Equivalent to `@implementation SomeClass (SomeCategory)`;
     // implements everything in `@interface SomeClass (SomeCategory)`.
 }
 ```
 
-All non-`final`, non-`@nonobjc` members are implicitly `@objc`, and all `@objc` members are implicitly `dynamic`. As a special exception to the usual rule, an extension which implements the main Objective-C interface of a class can declare stored properties, designated and required `init`s, and `deinit`s.
+As in any `@objc extension`, all members are implicitly `@objc` by default, and all `@objc` members are implicitly `dynamic`; unlike other `@objc extension`s, adding the `final` keyword makes the declaration *not* `@objc` by default.
+
+As a special exception to the usual rule, an `@objc @implementation extension` which implements the main Objective-C interface of a class can declare stored properties, designated and required `init`s, and `deinit`s.
 
 #### Rules
 
-An `@implementation extension` must:
+An `@objc @implementation extension` must:
 
 * Extend a non-root class imported from Objective-C which does not use lightweight generics.
-* If a category name is present, have imported a category by that name for that class (if no category name is present, the extension matches the main interface).
-* Be the only extension on that class with that `@implementation` category name (or lack of category name).
+* If a category name is present, match a category by that name for that class (if no category name is present, the extension matches the main interface).
 * Not declare conformances. (Conformances should be declared in the header if they are for Objective-C protocols, or in an ordinary extension otherwise.)
 * Provide a member implementation (see below) for each member of the `@interface` it implements.
 * Contain only `@objc`, `override`, `final`, or (for initializers) `@nonobjc` members. (Note that member implementations are implicitly `@objc`, as mentioned below, so this effectively means that non-`override`, non-`final`, non-`@nonobjc` members *must* be member implementations.)
 * `@nonobjc` initializers must be convenience initializers, not designated or required initializers.
 
-> **Note**: `@implementation` cannot support Swift-only designated and required initializers because subclasses with additional stored properties must be able to override designated and required initializers, but `@implementation` only supports overriding of `@objc` members. The Swift-only metadata that would be used for dynamic dispatch in an ordinary `@objc` class is not present in an `@implementation` class.
+> **Note**: `@objc @implementation` cannot support Swift-only designated and required initializers because subclasses with additional stored properties must be able to override designated and required initializers, but `@implementation` only supports overriding of `@objc` members. The Swift-only metadata that would be used for dynamic dispatch in an ordinary `@objc` class is not present in an `@implementation` class.
 
 ### Member implementations
 
-Any non-`override` open, public, package, or internal `@objc` member of an `@implementation extension` is a “member implementation”; that is, it implements some imported Objective-C member of the class it is extending. Member implementations are special because much of the compiler completely ignores them:
+Any non-`override` open, public, package, or internal `@objc` member of an `@objc @implementation extension` is a “member implementation”; that is, it implements some imported Objective-C member of the class it is extending. Member implementations are special because much of the compiler completely ignores them:
 
 * Access control denies access to member implementations in most contexts.
 * Module interfaces and generated interfaces do not include member implementations.
 * Objective-C generated headers do not include member implementations.
 
 This means that calls in expressions will *always* ignore the member implementation and use the imported Objective-C member instead. In other words, even other Swift code in the same module will behave as though the member is implemented in Objective-C.
-
-If a member implementation doesn't have an `@objc` attribute, one will be synthesized with the appropriate selector.
 
 #### Rules
 
@@ -158,14 +171,16 @@ Member implementations must have an overload signature that closely matches the 
 
 ### Objective-C metadata generation
 
-When Swift generates metadata for an `@implementation extension`, it will generate metadata that matches what clang would have generated for a similar `@implementation`. That is:
+When Swift generates metadata for an `@objc @implementation extension`, it will generate metadata that matches what clang would have generated for a similar `@implementation`. That is:
 
 * `@objc` members will only have Objective-C metadata, not Swift metadata. (`final` members may require Swift metadata.)
-* If the extension is for the main class interface, it will generate complete Objective-C class metadata with an ivar for each Objective-C-compatible stored property, and without setting the Swift bit or using any features incompatible with clang subclasses or categories.
+* If the extension is for the main class interface, it will generate complete Objective-C class metadata with an ivar for each stored property, and without setting the Swift bit or using any features incompatible with clang subclasses or categories.
 
 ## Source compatibility
 
-This change is additive and doesn't affect existing code. Replacing an Objective-C `@implementation` declaration with a Swift `@implementation extension` is invisible to the library's Objective-C and Swift clients, so it should not be source-breaking unless the implementations have observable behavior differences.
+These changes is additive and doesn't affect existing code. Replacing an Objective-C `@implementation` declaration with a Swift `@objc @implementation extension` is invisible to the library's Objective-C and Swift clients, so it should not be source-breaking unless the implementations have observable behavior differences.
+
+Previous versions of Swift have accepted the `@objc(CustomName) extension` syntax and simply ignored the custom name, so merely adding a custom category name won't break source compatibility.
 
 ## Effect on ABI stability
 
@@ -183,7 +198,7 @@ Affected classes are ones whose stored properties contain a non-frozen enum or s
 
 ## Future directions
 
-### Extending `@objc` capabilities to extend `@implementation` capabilities
+### Extending `@objc` capabilities to extend `@objc @implementation` capabilities
 
 `@implementation` cannot create declarations that aren't supported by `@objc`. The most notable limitations include:
 
@@ -194,13 +209,13 @@ Affected classes are ones whose stored properties contain a non-frozen enum or s
 * Members with nonstandard memory management behavior, even if it is correctly annotated.
 * Members which deviate from the Objective-C error convention in certain subtle ways, such as by having the `NSError**` parameter in the wrong place.
 
-`@implementation` heavily piggybacks on `@objc`'s code emission, so in most cases, the best approach to expanding `@implementation`'s support would be to extend `@objc` to support the feature and then make sure `@implementation` supports it too.
+`@objc @implementation` heavily piggybacks on `@objc`'s code emission, so in most cases, the best approach to expanding `@implementation`'s support would be to extend `@objc` to support the feature and then make sure `@objc @implementation` supports it too.
 
 ### `@implementation` for plain C declarations
 
 Many of the capabilities mentioned as future directions for `@objc` would also be useful for plain-C clients, including those on non-Darwin platforms. Once again, the best approach here would probably be to stabilize and extend something like `@_cdecl` to support creating these with a generated header, and then make sure `@implementation` supports this attribute too.
 
-The compiler currently has experimental support for `@implementation @_cdecl` for global functions; it's behind a separate experimental feature flag because it's not part of this proposal.
+The compiler currently has experimental support for `@_cdecl @implementation` for global functions; it's behind a separate experimental feature flag because it's not part of this proposal.
 
 ### `@implementation` for C++ declarations
 
@@ -221,18 +236,22 @@ public:
 ```swift
 // Swift implementation file
 
-@implementation extension CppClass {
+@_expose(Cxx) @implementation extension CppClass {
     func swiftMethod() -> Int32 { return self.myStorage }
 }
 ```
 
 This would be tricker than Objective-C interop because for Objective-C interop, Swift already generates machine code thunks directly in the binary, whereas for C++ interop, Swift generates C++ source code thunks in a generated header. Swift could either compile this generated code internally, or it could emit it to a file and expect the build system to build and link it.
 
-We believe that there wouldn't be a problem with sharing the `@implementation` attribute with this feature; Swift could detect whether a given extension is extending an Objective-C class or a C++ class and change its behavior to match.
+We believe that there wouldn't be a problem with sharing the `@implementation` attribute with this feature because `@implementation` is always paired with a language-specific attribute
 
 ### Supporting lightweight generics
 
 Objective-C's "lightweight generics" behave in rather janky ways in Swift extensions, so we have banned them in this initial document. If there’s demand for implementing Objective-C generic classes in Swift, we may want to extend this feature to support them.
+
+### `@objc @implementation(unchecked)`
+
+One could imagine an option that disables `@objc @implementation`'s exhaustiveness checking so that Swift implementations can use dynamic mechanisms like `+instanceMethodForSelector:` to create methods at runtime. This change would be purely additive, so we can consider it if there's demand.
 
 ### Implementation-only bridging header
 
@@ -251,9 +270,9 @@ Again, that’s something we can flesh out over time.
 
 ### A different attribute spelling
 
-Previous drafts of this proposal used the name `@objcImplementation`. We shortened that to `@implementation` to allow us to use the same attribute for the C and C++ future directions described above.
+We've chosen the proposed spelling—`@objc(CategoryName) @implementation`—because it makes `@implementation` orthogonal to the specific language being implemented. Everything Objective-C-specific about it is tied to the `@objc` attribute, and it's pretty clear how it would be expanded in the future to support other langauges. Many alternatives—such as the original pitch's `@objcImplementation(CategoryName)` and suggestions like `@implementation(objc, category: CategoryName)`—do not have this property.
 
-We chose the word "implementation" rather than "extern" because the attribute marks an implementation of something that was declared elsewhere; in most languages, "extern" works in the opposite direction, marking a declaration of something that is implemented elsewhere. Also, the name suggests a relationship to the `@implementation` keyword in Objective-C, which is appropriate since an `@implementation extension` is a one-to-one drop-in replacement.
+We chose the word "implementation" rather than "extern" because the attribute marks an implementation of something that was declared elsewhere; in most languages, "extern" works in the opposite direction, marking a declaration of something that is implemented elsewhere. Also, the name suggests a relationship to the `@implementation` keyword in Objective-C, which is appropriate since an `@objc @implementation extension` is a one-to-one drop-in replacement.
 
 `@implementation` has a similar spelling to the compiler-internal `@_implements` attribute, but there has been little impetus to stabilize `@_implements` in the seven years since it was added, and if it ever *is* stabilized it wouldn't be unreasonable to make it a variant of `@implementation` (e.g. `@implementation(forRequirement: SomeProto.someMethod)`).
 
@@ -271,7 +290,7 @@ import SwiftUIKitClone    // hypothetical pure-Swift UIKit for non-Darwin platfo
 #endif
 
 #if OBJC
-@implementation
+@objc @implementation
 #endif
 class MYFlippableViewController: UIViewController {
     var frontViewController: UIViewController {
@@ -290,7 +309,7 @@ class MYFlippableViewController: UIViewController {
 }
 
 #if OBJC
-@implementation(Animation)
+@objc(Animation) @implementation
 #endif
 extension MYFlippableViewController {
     ...
