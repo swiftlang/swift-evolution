@@ -5,7 +5,7 @@
 * Review Manager: [Stephen Canon](https://github.com/stephentyrone)
 * Implementation: [apple/swift#71383](https://github.com/apple/swift/pull/71383)
 * Status: **Accepted**
-* Review: ([pitch](https://forums.swift.org/t/pitch-synchronous-mutual-exclusion-lock/69889)), ([review](https://forums.swift.org/t/se-0433-synchronous-mutual-exclusion-lock/71174))
+* Review: ([pitch](https://forums.swift.org/t/pitch-synchronous-mutual-exclusion-lock/69889)), ([review](https://forums.swift.org/t/se-0433-synchronous-mutual-exclusion-lock/71174)), ([acceptance](https://forums.swift.org/t/accepted-se-0433-synchronous-mutual-exclusion-lock/71463))
 
 ## Introduction
 
