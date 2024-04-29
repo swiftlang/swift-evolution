@@ -4,8 +4,8 @@
 * Authors: [Nate Cook](https://github.com/natecook1000), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.7)**
-* Review: https://forums.swift.org/t/se-0363-unicode-for-string-processing/58520
-* Implementation: [apple/swift-experimental-string-processing][repo]  
+* Implementation: [apple/swift-experimental-string-processing][repo]
+* Review: ([pitch](https://forums.swift.org/t/pitch-unicode-for-string-processing/56907)), ([review](https://forums.swift.org/t/se-0363-unicode-for-string-processing/58520)), ([acceptance](https://forums.swift.org/t/accepted-se-0363-unicode-for-string-processing/59998))
 
 ### Version History
 

@@ -5,9 +5,7 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Implemented (Swift 5.8)**
 * Implementation: [apple/swift-package-manager#5838](https://github.com/apple/swift-package-manager/pull/5838)
-* Review:
-  * Pitch: https://forums.swift.org/t/pitch-package-registry-authentication/61047
-  * Review: https://forums.swift.org/t/se-0378-swift-package-registry-authentication/61436
+* Review: ([pitch](https://forums.swift.org/t/pitch-package-registry-authentication/61047)), ([review](https://forums.swift.org/t/se-0378-swift-package-registry-authentication/61436)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0378-swift-package-registry-authentication/62556))
 
 ## Introduction
 
