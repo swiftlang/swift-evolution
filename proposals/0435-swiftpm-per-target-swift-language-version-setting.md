@@ -1,9 +1,9 @@
 # Swift Language Version Per Target
 
-* Proposal: [SE-NNNN](NNNN-swiftpm-per-target-swift-language-version-setting.md)
+* Proposal: [SE-0435](0435-swiftpm-per-target-swift-language-version-setting.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
-* Status: **Awaiting Review**
+* Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
+* Status: **Active Review (April 30...May 13, 2024)**
 * Implementation: [apple/swift-package-manager#7439](https://github.com/apple/swift-package-manager/pull/7439)
 * Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-swift-language-version-per-target/71067))
 
