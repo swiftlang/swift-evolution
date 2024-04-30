@@ -17,7 +17,7 @@ In concurrent programs, protecting shared mutable state is one of the core funda
 
 Not all code may be able (or want) to adopt actors. Reasons for this can be very varied, for example code may have to execute synchronously without any potential for other tasks interleaving with it. Or the `async` effect introduced on methods may prevent legacy code which cannot use Swift Concurrency from interacting with the protected state.
 
-Whatever the reason may be, it may not be feasible to use an actor. In such cases, Swift currently is missing standard tools for developers to ensure proper synchronization in their concurrent data-structures. Many Swift programs opt to use ad-hoc implementations of a mutal exclusion lock, or a mutex. A mutex is a simple to use synchronization primitive to help protect shared mutable data by ensuring that a single execution context has exclusive access to the related data. The main issue is that there isn't a single standardized implementation for this synchronization primitive resulting in everyone needing to roll their own.
+Whatever the reason may be, it may not be feasible to use an actor. In such cases, Swift currently is missing standard tools for developers to ensure proper synchronization in their concurrent data-structures. Many Swift programs opt to use ad-hoc implementations of a mutual exclusion lock, or a mutex. A mutex is a simple to use synchronization primitive to help protect shared mutable data by ensuring that a single execution context has exclusive access to the related data. The main issue is that there isn't a single standardized implementation for this synchronization primitive resulting in everyone needing to roll their own.
 
 ## Proposed solution
 
