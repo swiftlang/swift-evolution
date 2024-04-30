@@ -5,7 +5,7 @@
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
 * Status: **Active Review (April 30...May 13, 2024)**
 * Implementation: [apple/swift-package-manager#7439](https://github.com/apple/swift-package-manager/pull/7439)
-* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-swift-language-version-per-target/71067))
+* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-swift-language-version-per-target/71067)) ([review](https://forums.swift.org/t/se-0435-swift-language-version-per-target/71546))
 
 ## Introduction
 
