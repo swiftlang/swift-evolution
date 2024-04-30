@@ -1,293 +1,197 @@
 # Feature name
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
+* Authors: [Dave Lee](https://github.com/kastiglione)
 * Review Manager: TBD
-* Status: **Awaiting implementation** or **Awaiting review**
-* Vision: *if applicable* [Vision Name](https://github.com/apple/swift-evolution/visions/NNNNN.md)
-* Roadmap: *if applicable* [Roadmap Name](https://forums.swift.org/...)
-* Bug: *if applicable* [apple/swift#NNNNN](https://github.com/apple/swift/issues/NNNNN)
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
-* Upcoming Feature Flag: *if applicable* `MyFeatureName`
-* Previous Proposal: *if applicable* [SE-XXXX](XXXX-filename.md)
-* Previous Revision: *if applicable* [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Review: ([pitch](https://forums.swift.org/...))
-
-When filling out this template, you should delete or replace all of
-the text except for the section headers and the header fields above.
-For example, you should delete everything from this paragraph down to
-the Introduction section below.
-
-As a proposal author, you should fill out all of the header fields
-except `Review Manager`.  The review manager will set that field and
-change several others as part of initiating the review.  Delete any
-header fields marked *if applicable* that are not applicable to your
-proposal.
-
-When sharing a link to the proposal while it is still a PR, be sure
-to share a live link to the proposal, not an exact commit, so that
-readers will always see the latest version when you make changes.
-On GitHub, you can find this link by browsing the PR branch: from the
-PR page, click the "username wants to merge ... from username:my-branch-name"
-link and find the proposal file in that branch.
-
-`Status` should reflect the current implementation status while the
-proposal is still a PR.  The proposal cannot be reviewed until an
-implementation is available, but early readers should see the correct
-status.
-
-`Vision` should link to the [vision document](https://forums.swift.org/t/the-role-of-vision-documents-in-swift-evolution/62101)
-for this proposal, if it is part of a vision.  Most proposals are not
-part of a vision.  If a vision has been written but not yet accepted,
-link to the discussion thread for the vision.
-
-`Roadmap` should link to the discussion thread for the roadmap for
-this proposal, if applicable.  When a complex feature is broken down
-into several closely-related proposals to make evolution review easier
-and more focused, it's helpful to make a forum post explaining what's
-going on and detailing how the proposals are expected to be submitted
-to review.  That post is called a "roadmap".  Most proposals don't need
-roadmaps, but if this proposal was part of one, this field should link
-to it.
-
-`Bug` should be used when this proposal is fixing a bug with significant
-discussion in the bug report.  It is not necessary to link bugs that do
-not contain significant discussion or that merely duplicate discussion
-linked somewhere else.  Do not link bugs from private bug trackers.
-
-`Implementation` should link to the PR(s) implementing the feature.
-If the proposal has not been implemented yet, or if it simply codifies
-existing behavior, just say that.  If the implementation has already
-been committed to the main branch (as an experimental feature), say
-that and specify the experimental feature flag.  If the implementation
-is spread across multiple PRs, just link to the most important ones.
-
-`Upcoming Feature Flag` should be the feature name used to identify this
-feature under [SE-0362](https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md#proposals-define-their-own-feature-identifier).
-Not all proposals need an upcoming feature flag.  You should think about
-whether one would be useful for your proposal as part of filling this
-field out.
-
-`Previous Proposal` should be used when there is a specific line of
-succession between this proposal and another proposal.  For example,
-this proposal might have been removed from a previous proposal so
-that it can be reviewed separately, or this proposal might supersede
-a previous proposal in some way that was felt to exceed the scope of
-a "revision".  Include text briefly explaining the relationship,
-such as "Supersedes SE-1234" or "Extracted from SE-01234".  If possible,
-link to a post explaining the relationship, such as a review decision
-that asked for part of the proposal to be split off.  Otherwise, you
-can just link to the previous proposal.
-
-`Previous Revision` should be added after a major substantive revision
-of a proposal that has undergone review.  It links to the previously
-reviewed revision.  It is not necessary to add or update this field
-after minor editorial changes.
-
-`Review` is a history of all discussion threads about this proposal,
-in chronological order.  Use these standardized link names: `pitch`
-`review` `revision` `acceptance` `rejection`.  If there are multiple
-such threads, spell the ordinal out: `first pitch` `second review` etc.
+* Status: **Awaiting review**
+* Implementation: Present in `main` under experimental feature `DebugDescriptionMacro` [apple/swift#69626](https://github.com/apple/swift/pull/69626)
+* Review: ([pitch](https://forums.swift.org/t/pitch-debug-description-macro/67711))
 
 ## Introduction
 
-A short description of what the feature is. Try to keep it to a
-single-paragraph "elevator pitch" so the reader understands what
-problem this proposal is addressing.
+This proposal introduces `@DebugDescription`, a new debugging macro to the standard library, which lets data types specify a custom summary to be presented by the debugger. This macro brings improvements to the debugging experience, and simplifies the maintenance and delivery of debugger type summaries. It can be used in place of `CustomDebugStringConvertible` conformance, or in addition to, for custom use cases.
 
 ## Motivation
 
-Describe the problems that this proposal seeks to address. If the
-problem is that some common pattern is currently hard to express, show
-how one can currently get a similar effect and describe its
-drawbacks. If it's completely new functionality that cannot be
-emulated, motivate why this new functionality would help Swift
-developers create better Swift code.
+Displaying data is a fundamental part of software development. Both the standard library and the debugger offer multiple ways of printing values - Swift's print and dump, and LLDB's p and po commands. These all share the ability to render an arbitrary value into human readable text. Out of the box, both the standard library and the debugger present data as a nested tree of property-value pairs. The similarities run deep, for example the standard library and the debugger provide control over how much of the tree is shown. This functionality requires no action from the developer.
+
+The utility of displaying a complete value depends on the size and complexity of the data type(s), or depends on the context the data is being presented. Displaying the entirety of a small/shallow structure is sufficient, but some data types reach sizes/complexities where the complete tree of data is too large to be useful.
+
+For types that are too large or complex, the standard library and debugger again both provide tools giving us control over how our data is displayed. In the standard library, Swift has the `CustomDebugStringConvertible` protocol, which allows types to represented not as the aforementioned property tree, but as an arbitrary string. Relatedly, Swift has `CustomReflectable`, which lets developers control the contents and structure of the rendered property tree. For brevity and convention, from this point on this document will refer to the `CustomDebugStringConvertible` and `CustomReflectable` protocols via their single properties: `debugDescription` and `customMirror` respectively.
+
+LLDB has analogous features, which are called Type Summaries (~`debugDescription`) and Synthetic Children (~`customMirror`) respectively. However, Swift and the debugger don't share or interoperate these definitions. Implementing these customizing protocols provides limited benefit inside the debugger. Likewise, defining Type Summaries or Synthetic Children in LLDB will have no benefit to Swift.
+
+While LLDB’s po command provides a convenient way to evaluate a `debugDescription` property defined in Swift, there are downsides to expression evaluation: Running arbitrary code can have side effects, be unstable to the application, and is slower. Expression evaluation happens by JIT compiling code, pushing it to the device the application is running on, and executing it in the context of the application, which involves a lot of work. As such, LLDB only does expression evaluation when explicitly requested by a user, most commonly with the po command in the console. Debugger UIs (IDEs) often provide a variable view which is populated using LLDB’s variable inspection which does not perform expression evaluation and is built on top of reflection. In some cases, such as when viewing crashlogs, or working with a core file, expression evaluation is not even possible. For these reasons, rendering values is ideally done without expression evaluation.
+
+This proposal introduces the ability to share a `debugDescription` definition between Swift and the debugger. This has benefits for developers, and for the debugger.
+
+LLDB Type Summaries can be defined using LLDB’s own (non Turing-complete) string interpolation syntax, called [Summary Strings](https://lldb.llvm.org/use/variable.html#summary-strings). While similar to Swift string interpolation, LLDB Summary Strings have restrictions that Swift string interpolation does not have. The primary restriction is that it allows data/property access, but not computation. LLDB Summary Strings cannot evaluate function calls, which includes computed properties. For the purpose of definition sharing, LLDB Type Summaries can be viewed as a lower common denominator of the two. As a result, definition sharing can be achieved only when a `debugDescription` definition meets the criteria imposed by LLDB Summary Strings. The criteria is not overly limiting, LLDB Summary Strings have been in for some time.
+
+Swift macros provide a convenient means to implement automatic translation of compatible `debugDescription` definitions into LLDB Summary Strings. A macro provides benefits that LLDB Summary Strings do not currently offer, including the ability to do compile time static validation to produce typo-free LLDB Summary Strings. The previously mentioned criteria that `debugDescription` must meet in order to be converted to an LLDB Summary String will loosen over time. This will be achieved first through the macro implementation becoming more sophisticated, and second as LLDB’s Summary Strings gain advancements.
 
 ## Proposed solution
 
-Describe your solution to the problem. Provide examples and describe
-how they work. Show how your solution is better than current
-workarounds: is it cleaner, safer, or more efficient?
+Consider this simple example data type:
 
-This section doesn't have to be comprehensive.  Focus on the most
-important parts of the proposal and make arguments about why the
-proposal is better than the status quo.
+```swift
+struct Organization: CustomDebugStringConvertible {
+    var id: String
+    var name: String
+    var manager: Person
+    var members: [Person]
+    // ... and more
+
+    var debugDescription: String {
+        "#\(id) \(name) (\(manager.name))"
+    }
+}
+```
+
+To see the results of `debugDescription` in the debugger, the user has to run po team in the console.
+
+```
+(lldb) po team
+"#15 Shipping (Francis Carlson)
+```
+
+Running the p command, or viewing the value in the Debugger UI (IDE), will show the value’s property tree, which may have arbitrary size/nesting:
+
+```
+(lldb) p team
+(Organization) {
+  id = "..."
+  name = "Shipping"
+  manager = {
+    name = "Francis Carlson"
+    ...
+  }
+  members = {
+    [0] = ...
+  }
+  ...
+}
+```
+
+However, by introducing the `@DebugDescription` macro, we can teach the debugger how to generate a summary without expression evaluation.
+
+```swift
+@DebugDescription
+struct Organization: CustomDebugStringConvertible {
+    var id: String
+    var name: String
+    var manager: Person
+    var members: [Person]
+    var officeAddress: [Address]
+    // ... and more
+
+    var debugDescription: String {
+        "#\(id) \(name) (\(manager.name))"
+    }
+}
+```
+
+The macro expands the body of `debugDescription` into the following LLDB Summary String:
+
+```
+#${var.id} ${var.name} (${var.manage.name})
+```
+
+This summary string is emitted into the binary, where LLDB will load it automatically. Using this definition, LLDB can now present this description in contexts it previously could not, including the variable view and other parts of the debugger UI.
+
+A notable difference between the debugger console and debugger UI is that that UI displays one level at a time. When viewing an Array for example, its children are not expanded. To distinguish between elements of an Array (or any other collection), a user must expand each child. By employing `@DebugDescription`, LLDB will show a summary for each element of a collection, so that users may know – at a glance – exactly which element(s) to expand.
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+```swift
+/// Converts description definitions to a debugger Type Summary.
+///
+/// This macro converts compatible description implementations written in Swift
+/// to an LLDB format known as a Type Summary. A Type Summary is LLDB's
+/// equivalent to debugDescription, with the distinction that it does not
+/// execute code inside the debugged process. By avoiding code execution,
+/// descriptions can be produced faster, without potential side effects, and
+/// shown in situations where code execution is not performed, such as the
+/// variable list of an IDE.
+///
+/// Consider this an example. This Team struct has a debugDescription which
+/// summarizes some key details, such as the team's name. The debugger only
+/// computes this string on demand - typically via the po command. By applying
+/// the DebugDescription macro, a matching Type Summary is constructed. This
+/// allows the user to show a string like "Rams [11-2]", without executing
+/// debugDescription. This improves the usability, performance, and
+/// reliability of the debugging experience.
+///
+///     @DebugDescription
+///     struct Team: CustomDebugStringConvertible {
+///        var name: String
+///        var wins, losses: Int
+///
+///        var debugDescription: String {
+///            "\(name) [\(wins)-\(losses)]"
+///        }
+///     }
+///
+/// The DebugDescription macro supports both debugDescription, description,
+/// as well as a third option: a property named _debugDescription. The first
+/// two are implemented when conforming to the CustomDebugStringConvertible
+/// and CustomStringConvertible protocols. The additional _debugDescription
+/// property is useful when both debugDescription and description are
+/// implemented, but don't meet the requirements of the DebugDescription
+/// macro. If _debugDescription is implemented, DebugDescription choose it
+/// over debugDescription and description. Likewise, debugDescription is
+/// preferred over description.
+///
+/// ### Description Requirements
+///
+/// The description implementation has the following requirements:
+///
+/// * The body of the description implementation must a single string
+///   expression. String concatenation is not supported, use string interpolation
+///   instead.
+/// * String interpolation can reference stored properties only, functions calls
+///   and other arbitrary computation are not supported. Of note, conditional
+///   logic and computed properties are not supported.
+/// * Overloaded string interpolation cannot be used.
+@attached(memberAttribute)
+public macro DebugDescription() =
+  #externalMacro(module: "SwiftMacros", type: "DebugDescriptionMacro")
+
+/// Internal-only macro. See @DebugDescription.
+@attached(peer, names: named(lldb_summary))
+public macro _DebugDescriptionProperty( debugIdentifier: String, _ computedProperties: [String]) =
+  #externalMacro(module: "SwiftMacros", type: "_DebugDescriptionPropertyMacro")
+```
+
+Of note, the work is split between two macros `@DebugDescription` and @_DebugDescriptionProperty. By design, `@DebugDescription` is attached to the type, where it gathers type-level information, including gather a list of stored properties. This macro also determines which description property to attach @_DebugDescriptionProperty to.
+
+@_DebugDescriptionProperty is not intended for direct use by users. This macro is scoped to the inspect a single description property, not the entire type. This approach of splitting the work allows the compiler to avoid unnecessary work.
+
+The support for `_debugDescription` in addition to `debugDescription` and description is to support two different use cases. First, in some cases, the existing `debugDescription`/description cannot be changed (doing so would be a breaking change). In these circumstances, developers can use `_debugDescription` instead. Second, there may be cases where a developer wishes to define an LLDB Summary String directly. Since `_debugDescription` is not coupled to existing protocols, developers can choose to include LLDB Summary String syntax directly in their implementation of `_debugDescription`.
+
+Using both `debugDescription` and `_debugDescription` is an intended use case. The design of this macro allows developers to have both an LLDB compatible  `_debugDescription`, and a more complex `debugDescription`. This allows the debugger to show summary, while providing enabling a more detailed or dynamic `debugDescription`.
 
 ## Source compatibility
 
-Describe the impact of this proposal on source compatibility.  As a
-general rule, all else being equal, Swift code that worked in previous
-releases of the tools should work in new releases.  That means both that
-it should continue to build and that it should continue to behave
-dynamically the same as it did before.  Changes that cannot satisfy
-this must be opt-in, generally by requiring a new language mode.
-
-This is not an absolute guarantee, and the Language Workgroup will
-consider intentional compatibility breaks if their negative impact
-can be shown to be small and the current behavior is causing
-substantial problems in practice.
-
-For proposals that affect parsing, consider whether existing valid
-code might parse differently under the proposal.  Does the proposal
-reserve new keywords that can no longer be used as identifiers?
-
-For proposals that affect type checking, consider whether existing valid
-code might type-check differently under the proposal.  Does it add new
-conversions that might make more overload candidates viable?  Does it
-change how names are looked up in existing code?  Does it make
-type-checking more expensive in ways that might run into implementation
-limits more often?
-
-For proposals that affect the standard library, consider the impact on
-existing clients.  If clients provide a similar API, will type-checking
-find the right one?  If the feature overloads an existing API, is it
-problematic that existing users of that API might start resolving to
-the new API?
+This proposal adds a new macro to the standard library. There are no source compatibility concerns.
 
 ## ABI compatibility
 
-Describe the impact on ABI compatibility.  As a general rule, the ABI
-of existing code must not change between tools releases or language
-modes.  This rule does not apply as often as source compatibility, but
-it is much stricter, and the Language Workgroup generally cannot allow
-exceptions.
-
-The ABI encompasses all aspects of how code is generated for the
-language, how that code interacts with other code that has been
-compiled separately, and how that code interacts with the Swift
-runtime library.  Most ABI changes center around interactions with
-specific declarations.  Proposals that do not affect how code is
-generated to interact with an external declaration usually do not
-have ABI impact.
-
-For proposals that affect general code generation rules, consider
-the impact on code that's already been compiled.  Does the proposal
-affect declarations that haven't explicitly adopted it, and if so,
-does it change ABI details such as symbol names or conventions
-around their use?  Will existing code change its dynamic behavior
-when running against a new version of the language runtime or
-standard library?  Conversely, will code compiled in the new way
-continue to run on old versions of the language runtime or standard
-library?
-
-For proposals that affect the standard library, consider the impact
-on any existing declarations.  As above, does the proposal change symbol
-names, conventions, or dynamic behavior?  Will newly-compiled code work
-on old library versions, and will new library versions work with
-previously-compiled code?
-
-This section will often end up very short.  A proposal that just
-adds a new standard library feature, for example, will usually
-say either "This proposal is purely an extension of the ABI of the
-standard library and does not change any existing features" or
-"This proposal is purely an extension of the standard library which
-can be implemented without any ABI support" (whichever applies).
-Nonetheless, it is important to demonstrate that you've considered
-the ABI implications.
-
-If the design of the feature was significantly constrained by
-the need to maintain ABI compatibility, this section is a reasonable
-place to discuss that.
+The macro implementation emits metadata for the debugger, and does not affect ABI.
 
 ## Implications on adoption
 
-The compatibility sections above are focused on the direct impact
-of the proposal on existing code.  In this section, describe issues
-that intentional adopters of the proposal should be aware of.
-
-For proposals that add features to the language or standard library,
-consider whether the features require ABI support.  Will adopters need
-a new version of the library or language runtime?  Be conservative: if
-you're hoping to support back-deployment, but you can't guarantee it
-at the time of review, just say that the feature requires a new
-version.
-
-Consider also the impact on library adopters of those features.  Can
-adopting this feature in a library break source or ABI compatibility
-for users of the library?  If a library adopts the feature, can it
-be *un*-adopted later without breaking source or ABI compatibility?
-Will package authors be able to selectively adopt this feature depending
-on the tools version available, or will it require bumping the minimum
-tools version required by the package?
-
-If there are no concerns to raise in this section, leave it in with
-text like "This feature can be freely adopted and un-adopted in source
-code with no deployment constraints and without affecting source or ABI
-compatibility."
+The macro can be freely adopted and un-adopted in source code with no deployment constraints and without affecting source or ABI compatibility.
 
 ## Future directions
 
-Describe any interesting proposals that could build on this proposal
-in the future.  This is especially important when these future
-directions inform the design of the proposal, for example by making
-sure an attribute encodes enough information to be used for other
-purposes.
+Future directions include generating Python instead of LLDB Summary Strings. This has the benefit of having fewer restrictions on the `debugDescription` definition. It has the downside of needing security scrutiny not required by LLDB Summary Strings.
 
-The rest of the proposal should generally not talk about future
-directions except by referring to this section.  It is important
-not to confuse reviewers about what is covered by this specific
-proposal.  If there's a larger vision that needs to be explained
-in order to understand this proposal, consider starting a discussion
-thread on the forums to capture your broader thoughts.
-
-Avoid making affirmative statements in this section, such as "we
-will" or even "we should".  Describe the proposals neutrally as
-possibilities to be considered in the future.
-
-Consider whether any of these future directions should really just
-be part of the current proposal.  It's important to make focused,
-self-contained proposals that can be incrementally implemented and
-reviewed, but it's also good when proposals feel "complete" rather
-than leaving significant gaps in their design.  For example, when
-[SE-0193](https://github.com/apple/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md)
-introduced the `@inlinable` attribute, it also included the
-`@usableFromInline` attribute so that declarations used in inlinable
-functions didn't have to be `public`.  This was a relatively small
-addition to the proposal which avoided creating a serious usability
-problem for many adopters of `@inlinable`.
+A similar future direction is to support sharing Swift `customMirror` definitions into LLDB Synthetic Children definitions. Unlike LLDB Type Summaries, LLDB has no "DSL" to expression LLDB Synthetic Children, currently the main option is Python. Given that there are two uses solved by generating Python, it's an approach worth considering in the future. While `customMirror` implementations are less common in Swift than their `debugDescription` counterpart, in LLDB, Synthetic Children are as important, or even more important than Summary Strings. The reason is that Synthetic Children allow data types to express their data "interface" rather than their implementation. Consider types like Array and Dictionary, which often have implementation complexity that provides optimal performance, not for data simplicity.
 
 ## Alternatives considered
 
-Describe alternative approaches to addressing the same problem.
-This is an important part of most proposal documents.  Reviewers
-are often familiar with other approaches prior to review and may
-have reasons to prefer them.  This section is your first opportunity
-to try to convince them that your approach is the right one, and
-even if you don't fully succeed, you can help set the terms of the
-conversation and make the review a much more productive exchange
-of ideas.
-
-You should be fair about other proposals, but you do not have to
-be neutral; after all, you are specifically proposing something
-else.  Describe any advantages these alternatives might have, but
-also be sure to explain the disadvantages that led you to prefer
-the approach in this proposal.
-
-You should update this section during the pitch phase to discuss
-any particularly interesting alternatives raised by the community.
-You do not need to list every idea raised during the pitch, just
-the ones you think raise points that are worth discussing.  Of course,
-if you decide the alternative is more compelling than what's in
-the current proposal, you should change the main proposal; be sure
-to then discuss your previous proposal in this section and explain
-why the new idea is better.
+A simple alternative is a macro that performs no translation and accepts an LLDB Summary String. This was approach requires users to know LLDB Summary String syntax, which while not complex, still presents a burden to adoption. Such a macro would also create redundant definitions which would have to be kept in sync: `debugDescription` and the LLDB Summary String given to the macro.
 
 ## Acknowledgments
 
-If significant changes or improvements suggested by members of the 
-community were incorporated into the proposal as it developed, take a
-moment here to thank them for their contributions. Swift evolution is a 
-collaborative process, and everyone's input should receive recognition!
-
-Generally, you should not acknowledge anyone who is listed as a
-co-author or as the review manager.
+Thank you to Doug Gregor and Alex Hoppen for their generous and helpful macro and swift-syntax guidance and PR reviews. Thank you to Adrian Prantl for many productive discussions and implementation ideas. Thank you to Kuba Mracek for implementing linkage macros which support this work. Thank you to Tony Parker and Steven Canon for their adoption feedback.
