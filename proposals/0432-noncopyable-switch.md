@@ -65,21 +65,6 @@ expression:
   of borrowing.)
 - Otherwise, the baseline mode is *consuming*.
 
-While looking through the patterns:
-
-- if there is a `borrowing` binding subpattern (described below), then the
-  `switch` behavior is at least *borrowing*.
-- if there is a `var` binding subpattern, and the subpattern is of
-  a noncopyable type, then the `switch` behavior is *consuming*. If the
-  subpattern is copyable, then `var` bindings do not affect the behavior
-  of the `switch`, since the binding value can be copied if necessary to
-  form the binding.
-- if there is an `as T` subpattern, and the type of the value being matched
-  is noncopyable, then the `switch` behavior is *consuming*. If the value
-  being matched is copyable, there is no effect on the behavior of the
-  `switch`. This is because some forms of dynamic cast on noncopyable types
-  may require consuming the input value.
-
 For example, given the following copyable definition:
 
 ```
@@ -93,15 +78,8 @@ then the following patterns have ownership behavior as indicated below:
 
 ```
 case let x: // copying
-case borrowing x: // borrowing
-
 case .foo(let x): // copying
-case .foo(borrowing x): // borrowing
-
 case .bar(let x, let y): // copying
-case .bar(borrowing x, let y): // borrowing
-case .bar(let x, borrowing y): // borrowing
-case .bar(borrowing x, borrowing y): // borrowing
 ```
 
 And for a noncopyable enum definition:
@@ -122,26 +100,18 @@ var foo: NoncopyableEnum // stored variable
 
 switch foo {
 case let x: // borrowing
-case borrowing x: // borrowing
 
 case .copyable(let x): // borrowing (because `x: Int` is copyable)
-case .copyable(borrowing x): // borrowing
 
 case .noncopyable(let x): // borrowing
-case .noncopyable(borrowing x): // borrowing
 }
 
 func bar() -> NoncopyableEnum {...} // function returning a temporary
 
 switch bar() {
 case let x: // consuming
-case borrowing x: // borrowing
-
 case .copyable(let x): // borrowing (because `x: Int` is copyable)
-case .copyable(borrowing x): // borrowing
-
 case .noncopyable(let x): // consuming
-case .noncopyable(borrowing x): // borrowing
 }
 ```
 
@@ -229,132 +199,11 @@ including casts that bridge or which wrap the value in an existential
 container, need to consume or copy parts of the input value in order to form
 the result. The cast can still be separated into a check whether the type
 matches, using a borrowing access, followed by constructing the actual cast
-result by consuming if necessary. However, for this to be allowed, the
+result by consuming if necessary. To do this, the switch would have already
+be a consuming switch. But also, for a consuming `as T` pattern to work, the
 subpattern `p` of the `p as T` pattern would need to be irrefutable, and the
 pattern could not have an associated `where` clause, since we would be unable
 to back out of the pattern match once a consuming cast is performed.
-
-### `borrowing` bindings
-
-In order to explicitly declare a binding as `borrowing`,
-we introduce a new `borrowing` binding modifier in patterns. A `borrowing`
-binding references the matched part of the value as it currently exists in the
-value from the pattern match without copying it, instead putting the subject
-under a *borrowing access* in order to access the matched part. Like other
-borrow bindings, the borrowed value cannot be consumed or mutated.
-
-```
-var x: MyNCEnum = ...
-switch x {
-case .foo(borrowing y):
-    // `y` is now borrowed directly out of `x`. This means we can access it
-    // borrowing operations:
-    y.access()
-
-    // and we can still access `x` with borrowing operations as well:
-    x.doStuff()
-
-    // However, we can't consume `y` or extend its lifetime beyond the borrow
-    Task.detached {
-        y.access() // error, can't capture borrow `y` in an escaping closure
-    }
-    y.close() // error, can't consume `y`
-    
-    // And we also can't consume or modify `x` while `y` is borrowed out of it
-    x = .foo(Handle(value: 42)) // error, can't modify x while borrowed
-    x.throwAway() // error, can't consume x while borrowed
-}
-
-// And now `x` was only borrowed by the `switch`, so we can continue using
-// it afterward
-x.doStuff()
-x.throwAway()
-x = .foo(Handle(value: 1738))
-
-// Even if we `consume x` in the switch subject, a `borrowing` binding cannot
-// be locally consumed.
-switch consume x {
-case .foo(borrowing y):
-    y.access()
-
-    x.doStuff()
-
-    // Even though we consumed `x`, `y` is still only a borrow binding so
-    // can't consume or extend its lifetime.
-    Task.detached {
-        y.access() // error, can't capture borrow `y` in an escaping closure
-    }
-    y.close() // error, can't consume `y`
-}
-
-```
-
-`borrowing` bindings can also be formed when the subject of the pattern
-match and/or the subpattern have `Copyable` types. Like `borrowing` parameter
-bindings, a `borrowing` pattern binding is not implicitly copyable in the
-body of the `case`, but can be explicitly copied using the `copy` operator.
-
-```
-var x: MyCopyableEnum = ...
-
-switch x {
-case .foo(borrowing y):
-    // We can use `y` in borrowing ways.
-
-    // But we can't implicitly extend its lifetime or perform consuming
-    // operations on it, since those would need to copy
-    var myString = "hello"
-    myString.append(y) // error, consumes `y`
-    Task.detached {
-        print(y) // error, can't extend lifetime of borrow without copying
-    }
-
-    // Explicit copying makes it ok
-    Task.detached {[y = copy y] in
-        print(y)
-    }
-    myString.append(copy y)
-
-    // `x` is still copyable, so we can update it independently without
-    // disturbing `y`
-    x.doStuff()
-    x = MyEnum.foo("38")
-
-}
-```
-
-To maintain source compatibility, `borrowing` is parsed as a contextual
-keyword only when it appears immediately before an identifier name. In
-other positions, it parses as a declaration reference as before, forming
-an enum case pattern or expression pattern depending on what the name
-`borrowing` refers to.
-
-```
-switch y {
-case borrowing(x): // parses as an expression pattern
-    ...
-case borrowing(let x): // parses as an enum case pattern binding `x` as a let
-    ...
-case borrowing.foo(x): // parses as an expression pattern
-    ...
-case borrowing.foo(let x): // parses as an enum case pattern binding `x` as a let
-    ...
-case borrowing x: // parses as a pattern binding `x` as a borrow
-    ...
-case borrowing(borrowing x) // parses as an enum case pattern binding `x` as a borrow
-    ...
-}
-```
-
-This does mean that, unlike `let` and `var`, `borrowing` cannot be applied
-over a compound pattern to mark all of the identifiers in the subpatterns
-as bindings.
-
-```
-case borrowing .foo(x, y): // parses as `borrowing.foo(x, y)`, a method call expression pattern
-
-case borrowing (x, y): // parses as `borrowing(x, y)`, a function call expression pattern
-```
 
 ### `case` conditions in `if`, `while`, `for`, and `guard`
 
@@ -446,10 +295,21 @@ temporary, as in:
 let x: String? = "hello"
 
 switch borrow x {
-case .some(borrowing y): // ensure y is bound from a borrow of x, no copies
+case .some(let y): // ensure y is bound from a borrow of x, no copies
     ...
 }
 ```
+
+### `borrowing` bindings in patterns
+
+In the future, we want to support `borrowing` and `inout` local bindings
+in functions and potentially even as fields in nonescapable types. It might
+also be useful to specify explicitly `borrowing` bindings within patterns.
+Although the default behavior for a `let` binding within a noncopyable
+borrowing `switch` pattern is to borrow the matched value, an explicitly
+`borrowing` binding could be used to indicate that a copyable binding should
+have its local implicit copyability suppressed, like a `borrowing` parameter
+binding.
 
 ## Alternatives considered
 
