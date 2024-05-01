@@ -25,7 +25,7 @@ Add a new Swift target setting API, similar to `enable{Upcoming, Experimental}Fe
 
 Add a new `swiftLanguageVersion` API to `SwiftSetting` limited to manifests >= 6.0:
 
-```
+```swift
 public struct SwiftSetting {
   // ... other settings
   
