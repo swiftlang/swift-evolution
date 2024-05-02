@@ -48,13 +48,13 @@ This is common and acceptable in a **peer-to-peer system**, where all nodes of a
 The goal of this proposal is to allow the following module approach to sharing distributed actor APIs:
 - **API** module: allow sharing a `DistributedActor` constrained protocol, which only declares the API surface the server is going to expose
 - **Server** module: which depends on API module, and implements the API description using a concrete distributed actor
-- **Client** module: which depends on API module, and `$Greeter` type (synthesized by the `@DistributedProtocol` macro) to resolve a remote actor reference it can then invoke distributed methods on 
+- **Client** module: which depends on API module, and `$Greeter` type (synthesized by the `@Resolvable` macro) to resolve a remote actor reference it can then invoke distributed methods on 
 
 ```swift
                          ┌────────────────────────────────────────┐
                          │                API Module              │
                          │========================================│
-                         │ @DistributedProtocol                   │
+                         │ @Resolvable                            │
                          │ protocol Greeter: DistributedActor {   │
                  ┌───────┤   distributed func greet(name: String) ├───────┐
                  │       │ }                                      │       │
@@ -75,22 +75,22 @@ The goal of this proposal is to allow the following module approach to sharing d
 In this scenario the client module has no knowledge of the concrete distributed actor type or implementation.
 
 In order to achieve this, this proposal improves upon _three_ aspects of distributed actors:
-- introduce the `@DistributedProtocol` macro that can be attached to distributed actor protocols, and enable the use of `resolve(id:using:)` with such types,
+- introduce the `@Resolvable` macro that can be attached to distributed actor protocols, and enable the use of `resolve(id:using:)` with such types,
 - allow distributed actors to be generic over their `ActorSystem`
 - extend the distributed metadata section such that a distributed method which is witness to a distributed requirement, is also recorded using the protocol method's `RemoteCallTarget.identifier` and not only the concrete method's
 
 ## Proposed solution
 
-### The `@DistributedProtocol` macro
+### The `@Resolvable` macro
 
-At the core of this proposal is the `@DistributedProtocol` macro. It is an attached declaration macro, which introduces a number of declarations which allow the protocol, or rather, a "stub" type for the protocol, to be used on a client without knowledge about the server implementation's concrete distributed actor type.
+At the core of this proposal is the `@Resolvable` macro. It is an attached declaration macro, which introduces a number of declarations which allow the protocol, or rather, a "stub" type for the protocol, to be used on a client without knowledge about the server implementation's concrete distributed actor type.
 
 The macro must be attached to the a `protocol` declaration that is a `DistributedActor` constrained protocol, like this:
 
 ```swift
 import Distributed 
 
-@DistributedProtocol
+@Resolvable
 protocol Greeter where ActorSystem: DistributedActorSystem<any Codable> {
   distributed func greet(name: String) -> String
 }
@@ -102,7 +102,7 @@ Checking of distributed functions works as before, and the compiler will check t
 
 It is possible to for a distributed actor protocol to contain non-distributed requirements. However in practice, it will be impossible to ever invoke such methods on a remote distributed actor reference. It is possible to call such methods if one were to obtain a local distributed actor reference implementing such protocol, and use the existing `whenLocal(operation:)` method on it.
 
-The `@DistributedProtocol` macro generates a number of internal declarations necessary for the distributed machinery to work, however the only type users should care about is always a `$`-prefixed concrete distributed actor declaration, that is the "stub" type. This stub type can be used to resolve a remote actor using this protocol stub:
+The `@Resolvable` macro generates a number of internal declarations necessary for the distributed machinery to work, however the only type users should care about is always a `$`-prefixed concrete distributed actor declaration, that is the "stub" type. This stub type can be used to resolve a remote actor using this protocol stub:
 
 E.g. if we knew a remote has a `Greeter` instance for a specific ID we have discovered using some external mechanism, this is how we'd resolve it:
 
@@ -200,9 +200,9 @@ The serialization requirement must be a `protocol` type; This was previously enf
 
 ## Detailed design
 
-The `@DistributedProtocol` macro generates a concrete `distributed actor` declaration as well as an extension which implements the protocol's method requirements with "stub" implementations.
+The `@Resolvable` macro generates a concrete `distributed actor` declaration as well as an extension which implements the protocol's method requirements with "stub" implementations.
 
->  **NOTE:** The exact details of the macro synthesized code are not guaranteed to remain the same, and may change without notice. The existence of the $-prefixed generated type is guaranteed however, as it is the public API how developers resolve and obtain remote references, I.e. for a `protocol Greeter` annotated with the `@DistributedProtocol` macro, developers may rely on the existence of the `distributed actor $Greeter` with the same access level as the protocol.
+>  **NOTE:** The exact details of the macro synthesized code are not guaranteed to remain the same, and may change without notice. The existence of the $-prefixed generated type is guaranteed however, as it is the public API how developers resolve and obtain remote references, I.e. for a `protocol Greeter` annotated with the `@Resolvable` macro, developers may rely on the existence of the `distributed actor $Greeter` with the same access level as the protocol.
 
 This proposal also introduces an empty `DistributedActorStub` protocol:
 
@@ -210,7 +210,7 @@ This proposal also introduces an empty `DistributedActorStub` protocol:
 public protocol DistributedActorStub where Self: DistributedActor {}
 ```
 
-The `@DistributedProtocol` macro synthesizes a concrete distributed actor which accepts a generic `ActorSystem`. The generated actor declaration matches access level with the original declaration, and implements the protocol as well as the `DistributedActorStub` protocol:
+The `@Resolvable` macro synthesizes a concrete distributed actor which accepts a generic `ActorSystem`. The generated actor declaration matches access level with the original declaration, and implements the protocol as well as the `DistributedActorStub` protocol:
 
 ```swift
 protocol Greeter: DistributedActor where ActorSystem: DistributedActorSystem<any Codable> {
@@ -230,9 +230,9 @@ extension Greeter where Self: DistributedActorStub {
 
 Default implementations for all the protocol's requirements (including non-distributed requirements) are provided by extensions utilizing the `DistributedActorStub` protocol.
 
-It is possible for a protocol type to inherit other protocols, in that case the parent protocol must either have default implementations for all its requirements, or it must also apply the `@DistributedProtocol` protocol which generates such default implementations.
+It is possible for a protocol type to inherit other protocols, in that case the parent protocol must either have default implementations for all its requirements, or it must also apply the `@Resolvable` protocol which generates such default implementations.
 
-The default method "stub" implementations provided by the `@DistributedProtocol` simply fatal error if they were to ever be invoked. In practice, invoking those methods is not possible, because resolving a stub will always return a remote reference, and therefore calls on these methods are redirected to `DistributedActorSystem`'s `remoteCall` rather than invoking the "local" methods.  
+The default method "stub" implementations provided by the `@Resolvable` simply fatal error if they were to ever be invoked. In practice, invoking those methods is not possible, because resolving a stub will always return a remote reference, and therefore calls on these methods are redirected to `DistributedActorSystem`'s `remoteCall` rather than invoking the "local" methods.  
 
 It is recommended to use `some Greeter` or `any Greeter` rather than `$Greeter` when passing around resolved instances of a distributed actor protocol. This way none of your code is tied to the fact of using a specific type of proxy, but rather, can accept any greeter, be it local or resolved through a proxy reference. This can come in handy when refactoring a codebase, and merging modules in such way where the greeter may actually be a local instance in some situations.
 
@@ -275,7 +275,7 @@ A shared module introducing the `Capybara` protocol:
 
 ```swift
 // Module "Shared"
-@DistributedProtocol
+@Resolvable
 public protocol Capybara where ActorSystem: DistributedActorSystem<any Codable> {
   distributed var name: String { get }
   distributed func eat()
@@ -378,7 +378,7 @@ We find that the needs of distributed protocol evolution overlap in some parts w
 This could be handled with declaration macros, introducing a peer method with the expected new API:
 
 ```swift
-@DistributedProtocol(deprecatedName: "Greeter")
+@Resolvable(deprecatedName: "Greeter")
 protocol DeprecatedGreeter: DistributedActor { 
   @Distributed.Deprecated(newVersion: greet(name:), defaults: [name: nil])
   distributed func greet() -> String 
