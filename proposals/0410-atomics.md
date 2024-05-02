@@ -580,7 +580,7 @@ Now that we know how to create an atomic value, it's time to introduce some actu
 
 ### Basic Atomic Operations
 
-`Atomic` provides seven basic atomic operations when `Value.AtomicRepresenation` is one of the fundamental atomic storage types on the standard integer types:
+`Atomic` provides seven basic atomic operations when `Value.AtomicRepresentation` is one of the fundamental atomic storage types on the standard integer types:
 
 ```swift
 extension Atomic where Value.AtomicRepresentation == {U}IntNN.AtomicRepresentation {
