@@ -968,74 +968,109 @@ func foo() {
 
 A noncopyable struct or enum may declare a `deinit`, which will run
 implicitly when the lifetime of the value ends (unless explicitly suppressed
-as noted below):
+with `discard` as explained below):
 
 ```swift
-struct FileDescriptor: ~Copyable {
-  private var fd: Int32
+struct File: ~Copyable {
+  var descriptor: Int32
+
+  func write<S: Sequence>(_ values: S) { /*..*/ }
+
+  consuming func close() {
+    print("closing file")
+  }
 
   deinit {
-    close(fd)
+    print("deinitializing file")
+    closeFile(rawDescriptor: descriptor)
   }
 }
 ```
 
-Like a class `deinit`, a struct or enum `deinit` may not propagate any uncaught
-errors. `self` behaves as in a `borrowing` method; it may not be
-modified or consumed by the body of `deinit`. (Allowing for mutation and
-partial invalidation inside a `deinit` is explored as a future direction.)
+Like a class `deinit`, a struct or enum `deinit` may not propagate any
+uncaught errors. Within the body of the `deinit`, `self` behaves as in
+a `borrowing` method; it may not be modified or consumed inside the
+`deinit`. (Allowing for mutation and partial invalidation inside a
+`deinit` is explored as a future direction.)
 
 A value's lifetime ends, and its `deinit` runs if present, in the following
 circumstances:
 
-- For a local `var` or `let` binding, or `consuming` function parameter, that
-  is not itself consumed, `deinit` runs after the last non-consuming use.
-  If, on the other hand, the binding is consumed, then responsibility for
-  deinitialization gets forwarded to the consumer (which may in turn forward
-  it somewhere else).
+- For a local `var` or `let` binding, or `consuming` function parameter, that is
+  not itself consumed, `deinit` runs at the end of the binding's lexical
+  scope. If, on the other hand, the binding is consumed, then responsibility
+  for deinitialization gets forwarded to the consumer (which may in turn forward
+  it somewhere else). As explained later, a `_ = consume` operator with no
+  destination immediately runs the `deinit`.
 
     ```swift
     do {
-      var x = FileDescriptor(42)
-
-      x.close() // consuming use
-      // x's deinit doesn't run here (but might run inside `close`)
-    }
-
-    do {
-      var x = FileDescriptor(42)
-      x.write([1,2,3]) // borrowing use
-      // x's deinit runs here
-
+      let file = File(descriptor: 42)
+      file.close() // consuming use
+      // file's deinit runs inside `close`
       print("done writing")
     }
-    ```
-
-- When a `struct`, `enum`, or `class` contains a member of noncopyable type,
-  the member is destroyed, and its `deinit` is run, after the container's
-  `deinit` if any runs.
-
-    ```swift
-    struct Inner: ~Copyable {
-      deinit { print("destroying inner") }
-    }
-
-    struct Outer: ~Copyable {
-      var inner = Inner()
-      deinit { print("destroying outer") }
-    }
-
+    // Output:
+    //   closing file
+    //   deinitializing file
+    //   done writing
+   
     do {
-      _ = Outer()
+      let file = File(descriptor: 42)
+      file.write([1,2,3]) // borrowing use
+      print("done writing")
+      // file's deinit runs here
     }
+    // Output:
+    //   done writing
+    //   deinitializing file
     ```
 
-    will print:
+    If a noncopyable value is conditionally consumed, then the deinitializer
+    runs as late as possible on any nonconsumed paths:
 
     ```swift
-    destroying outer
-    destroying inner
+    let condition = false
+    do {
+      let file = File(descriptor: 42)
+      file.write([1,2,3]) // borrowing use
+      if condition {
+        file.close()
+      } else {
+        print("not closed")
+        // file's deinit runs here
+      }
+      print("done writing")
+    }
+    // Output:
+    //   not closed
+    //   deinitializing file
+    //   done writing
     ```
+
+- When a struct, enum, or class contains a member of noncopyable type, the member is destroyed, and its deinit is
+run, after the container's deinit runs. For example:
+
+```swift
+struct Inner: ~Copyable {
+  deinit { print("destroying inner") }
+}
+
+struct Outer: ~Copyable {
+  var inner = Inner()
+  deinit { print("destroying outer") }
+}
+
+do {
+  _ = Outer()
+}
+```
+
+will print:
+```
+destroying outer
+destroying inner
+```
 
 ### Suppressing `deinit` in a `consuming` method
 
