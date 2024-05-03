@@ -121,7 +121,7 @@ When using the shorthand syntax for get-only properties, a function body macro c
 
 ### Declaring function body macros
 
-Function body macros are declared with the `body`, which indicate that they can be attached to any kind of function, and can produce the contents of a function body. For example, here are declarations for the macros used above:
+Function body macros are declared with the `body` role, which indicate that they can be attached to any kind of function, and can produce the contents of a function body. For example, here are declarations for the macros used above:
 
 ```swift
 @attached(body) macro Remote() = #externalMacro(...)
