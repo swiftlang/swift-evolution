@@ -5,12 +5,15 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (March 27...April 9, 2024)**
 * Implementation: [apple/swift#71433](https://github.com/apple/swift/pull/71433), [apple/swift#71574](https://github.com/apple/swift/pull/71574), available on `main` with `-enable-experimental-feature IsolatedAny`. 
+* Previous revision: [1](https://github.com/apple/swift-evolution/blob/b35498bf6f198477be50809c0fec3944259e86d0/proposals/0431-isolated-any-functions.md)
 * Review: ([pitch](https://forums.swift.org/t/isolated-any-function-types/70562))([review](https://forums.swift.org/t/se-0431-isolated-any-function-types/70939))
 
 [SE-0316]: https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md
 [SE-0392]: https://github.com/apple/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md
 [isolated-captures]: https://forums.swift.org/t/closure-isolation-control/70378
 [generalized-isolation]: https://github.com/apple/swift-evolution/blob/main/proposals/0420-inheritance-of-actor-isolation.md#generalized-isolation-checking
+[regions]: https://github.com/apple/swift-evolution/blob/main/proposals/0414-region-based-isolation.md
+[region-transfers]: https://github.com/apple/swift-evolution/blob/main/proposals/0430-transferring-parameters-and-results.md
 
 ## Introduction
 
@@ -213,12 +216,6 @@ declare a function *entity* as having `@isolated(any)` isolation,
 because Swift needs to know what the actual isolation is, and
 `@isolated(any)` does not provide a rule for that.
 
-To reduce the number of attributes necessary in typical uses,
-`@isolated(any)` implies `@Sendable`.  It is generally not useful
-to use `@isolated(any)` on a non-`Sendable` function because a
-non-`Sendable` function must be isolated to the current concurrent
-context.
-
 ### Conversions
 
 Let `F` and `G` be function types, and let `F'` and `G'` be the corresponding
@@ -311,7 +308,31 @@ Since the isolation of an `@isolated(any)` function value is
 statically unknown, calls to it typically cross an isolation boundary.
 This means that the call must be `await`ed even if the function is
 synchronous, and the arguments and result must satisfy the usual
-sendability restrictions for cross-isolation calls.
+sendability restrictions for cross-isolation calls.  The function
+value itself must satisfy a slightly less restrictive rule: it must
+be a sendable value only if it is `async` and the current
+context is not statically known to be non-isolated.[^4]
+
+[^4]: The reasoning here is as follows.  All actor-isolated functions
+are inherently `Sendable` because they will only use their captures from
+an isolated context.[^5]  There is only a data-race risk for the
+captures of a non-`Sendable` `@isolated(any)` function in the case
+where the function is dynamically non-isolated.  The sendability
+restrictions therefore boil down to the same restrictions we would
+impose on calling a non-isolated function.  A call to a non-isolated
+function never crosses an isolation boundary if the function is
+synchronous or if the current context is non-isolated.
+
+[^5]: Sending an isolated function value may cause its captures to be
+*destroyed* in a different context from the function's formal isolation.
+Swift pervasively assumes this is okay: copies of non-`Sendable` values
+must still be managed in a thread-safe manner.  This is a significant
+departure from Rust, where non-`Send` values cannot necessarily be safely
+managed concurrently, and it means that `Sendable` is not sufficient
+to enable optimizations like non-atomic reference counting.  Swift
+accepts this in exchange for being more permissive, as long as the code
+avoids "user-visible" data races.  Note that this assumption is not new
+to this proposal.
 
 In order for a call to an `@isolated(any)` function to be treated as
 not crossing an isolation boundary, the caller must be known to have
@@ -320,7 +341,7 @@ the same isolation as the function.  Since the isolation of an
 require the caller to be declared with value-specific isolation.  It
 is currently not possible for a local function or closure to be
 isolated to a specific value that isn't already the isolation of the
-current context.[^4]  The following rules lay out how `@isolated(any)`
+current context.[^6]  The following rules lay out how `@isolated(any)`
 should interact with possible future language support for functions
 that are explicitly isolated to a captured value.  In order to
 present these rules, this proposal uses the syntax currently proposed
@@ -331,7 +352,7 @@ that pitch.  Accepting this proposal will leave most of this
 section "suspended" until a feature with a similar effect is added
 to the language.
 
-[^4]: Technically, it is possible to achieve this effect in Swift
+[^6]: Technically, it is possible to achieve this effect in Swift
 today in a way that Swift could conceivably look through: the caller
 could be a closure with an `isolated` parameter, and that closure
 could be called with an expression like `fn.isolation` as the arugment.
@@ -641,7 +662,7 @@ Swift's concurrency runtime does track the current isolation of a task,
 but outside of a task, arbitrary things can be isolated without Swift
 knowing about them.  It is also needlessly restrictive, because there
 is nothing that is unsafe to do in an isolated context that would be
-safe if done in a non-isolated context.[^5]  The second rule is less
+safe if done in a non-isolated context.[^7]  The second rule is less
 intuitive but more closely matches the safety properties that static
 isolation checking tests for.  It implies that `assumeIsolated(nil)`
 should always succeed.  This is notably good enough for `@isolated(any)`:
@@ -650,7 +671,7 @@ since `assumeIsolated` is a synchronous function, only synchronous
 synchronous non-isolated function always runs immediately without
 changing the current isolation.
 
-[^5]: As far as data-race safety goes, at least.  A specific actor
+[^7]: As far as data-race safety goes, at least.  A specific actor
 could conceivably have important semantic restrictions against doing
 certain operations in its isolated code.  Of course, such an actor should
 generally not be calling arbitrary functions that are handed to it.
@@ -757,7 +778,85 @@ added this proposal first.
 
 ## Alternatives considered
 
-(to be expanded)
+### Other spellings
+
+`isolated` and `nonisolated` are used as bare-word modifiers in several
+places already in Swift: you can declare a parameter as `isolated`, and
+you can declare methods and properties as `nonisolated`.  Using `@isolated`
+as a function type attribute therefore risks confusion about whether
+`isolated` should be written with an `@` sign.
+
+One alternative would be to drop the `@` sign and spell these function
+types as e.g. `isolated(any) () -> ()`.  However, this comes with its own
+problems.  Modifiers typically affect a specific entity without changing
+its type; for example, the `weak` modifier makes a variable or property
+a weak reference, but the type of that reference is unchanged (although
+it is required to be optional).  This wouldn't be too confusing if
+modifiers and types were written in fundamentally different places, but
+it's expected that `@isolated(any)` will usually be used on parameter
+functions, and parameter modifiers are written immediately adjacent to
+the parameter type.  As a result, removing the `@` would create this
+unfortunate situation:
+
+```swift
+// This means `foo` is isolated to the actor passed in as `actor`.
+func foo(actor: isolated MyActor) {}
+
+// This means `operation` is a value of isolated(any) function type;
+// it has no impact on the isolation of `bar`.
+func bar(operation: isolated(any) () -> ())
+```
+
+It is better to preserve the current rule that type modifiers are
+written with an `@` sign.
+
+Another alternative would be to not spell the attribute `@isolated(any)`.
+For example, it could be spelled `@anyIsolated` or `@dynamicallyIsolated`.
+The spelling `@isolated(any)` was chosen because there's an expectation
+that this will be one of a family of related isolation-specifying
+attributes.  For example, if Swift wanted to make it easier to inherit
+actor isolation from one's caller, it could add an `@isolated(caller)`
+attribute.  Another example is the `@isolated(to:)` future direction
+listed above.  There's merit in having these attributes be closely
+related in spelling.  Using a common `Isolated` suffix could serve as
+that connection, but in the author's opinion, `@isolated` is much
+clearer.
+
+If programmers do end up confused about when to use `@` with `isolated`,
+it should be relatively straightforward to provide a good compiler
+experience that corrects misuses.
+
+### Implying `@Sendable`
+
+An earlier version of this proposal made `@isolated(any)` imply `@Sendable`.
+The logic behind this implication was that `@isolated(any)` is only
+really useful if the function is going to be passed to a different
+concurrent context.  If a function cannot be passed to a different
+concurrent context, the reasoning goes, there's really no point in
+it carrying its isolation dynamically, because it can only be used
+if that isolation is compatible with the current context.  There's
+therefore no reason not to eliminate the redundant `@Sendable` attribute.
+
+However, this logic subtly misunderstands the meaning of `Sendable`
+in a world with [region-based isolation][regions].  A type conforming
+to `Sendable` means that its values are intrinsically thread-safe and
+can be used from multiple concurrent contexts *concurrently*.
+Values of non-`Sendable` type are still safe to use from different
+concurrent contexts as long as those uses are well-ordered: if the
+value is properly [transferred][region-transfers] between contexts,
+everything is fine.  Given that, it is sensible for a non-`Sendable`
+function to be `@isolated(any)`: if the function can be transferred
+to a different concurrent context, it's still useful for it to carry
+its isolation dynamically.
+
+In particular, something like a task-creation function ought to declare
+the initial task function as a non-`@Sendable` but still transferrable
+`@isolated(any)` function.  This permits closures passed in to capture
+non-`Sendable` state as long as that state can be transferred into the
+closure.  (Ideally, the initial task function would then be able to
+transfer that captured state out of the closure.  However, this would
+require the compiler to understand that the task function is only
+called once.)
 
 ## Acknowledgments
 
