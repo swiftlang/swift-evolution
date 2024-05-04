@@ -20,7 +20,7 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 
 #### See Also
 
-* **TODO**: **** Forum thread discussing this proposal
+* [Forum discussion of Non-Escapable Types and Lifetime Dependency](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency)
 * [Pitch Thread for Span](https://forums.swift.org/t/pitch-safe-access-to-contiguous-storage/69888)
 * [Forum discussion of BufferView language requirements](https://forums.swift.org/t/roadmap-language-support-for-bufferview)
 * [Proposed Vision document for BufferView language requirements (includes description of ~Escapable)](https://github.com/atrick/swift-evolution/blob/fd63292839808423a5062499f588f557000c5d15/visions/language-support-for-BufferView.md#non-escaping-bufferview) 
