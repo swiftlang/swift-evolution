@@ -3,7 +3,7 @@
 * Proposal: [SE-0301](0301-package-editing-commands.md) 
 * Authors: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted (2021-02-24)**
+* Status: **Implemented (Swift 6.0)**
 * Implementation: [apple/swift-package-manager#3034](https://github.com/apple/swift-package-manager/pull/3034)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0301-package-editor-commands/45069)
 
