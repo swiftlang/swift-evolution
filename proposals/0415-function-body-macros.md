@@ -6,7 +6,7 @@
 * Status: **Returned for revision**
 * Implementation: Available on `main` behind the flag `-enable-experimental-feature BodyMacros`
 * Feature Flag: `BodyMacros`
-* Review: [pitch](https://forums.swift.org/t/function-body-macros/66471), [review](https://forums.swift.org/t/se-0415-function-body-macros/68847), [returned for revision](https://forums.swift.org/t/returned-for-revision-se-0415-function-body-macros/69114)
+* Review: [pitch](https://forums.swift.org/t/function-body-macros/66471), [review](https://forums.swift.org/t/se-0415-function-body-macros/68847), [returned for revision](https://forums.swift.org/t/returned-for-revision-se-0415-function-body-macros/69114), [second review](https://forums.swift.org/t/se-0415-second-review-function-body-macros/71644)
 
 ## Table of contents
 
