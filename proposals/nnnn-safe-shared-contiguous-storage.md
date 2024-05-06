@@ -143,6 +143,7 @@ Here, the public function obtains the `Span` from the type that vends it in inli
 extension Array: ContiguousStorage<Self.Element> {
   // note: this could borrow a temporary copy of the `Array`'s storage
   var storage: Span<Element> { get }
+  // TODO: probably _read, so it can yield a ContigArray if needed
 }
 extension ArraySlice: ContiguousStorage<Self.Element> {
   // note: this could borrow a temporary copy of the `ArraySlice`'s storage
@@ -159,14 +160,17 @@ extension Foundation.Data: ContiguousStorage<UInt8> {
 extension String.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
   // note: this could borrow a temporary copy of the `String`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
+  // TODO: probably _read, so it can yield a ContigArray if needed
 }
 extension Substring.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
   // note: this could borrow a temporary copy of the `Substring`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
+  // TODO: probably _read, so it can yield a ContigArray if needed
 }
 extension Character.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
   // note: this could borrow a temporary copy of the `Character`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
+  // TODO: probably _read, so it can yield a ContigArray if needed
 }
 
 extension SIMD: ContiguousStorage<Self.Scalar> {
@@ -201,14 +205,6 @@ extension UnsafeMutableRawBufferPointer: ContiguousStorage<UInt8> {
 }
 ```
 
-**TODO**: What is the `@_unsafeNonescapableResult` annotation? Would `Slice<UnsafeBufferPointer<UInt8>>` need it?
-
-**TODO**: Do we do a `Sequence.withSpanIfAvailable` API?
-
-**TODO**: What all can we deprecate with this proposal?
-
-**TODO**: Do these needs lifetime annotations on them?
-
 #### Using `Span` with C functions or other unsafe code:
 
 `Span` has an unsafe hatch for use with unsafe code.
@@ -227,7 +223,166 @@ extension Span where Element: BitwiseCopyable {
 }
 ```
 
-#### Complete `Span` API:
+### Index and slicing design considerations
+
+There are 3 potentially-desirable features of `Span`'s `Index` design:
+
+1. `Span` is its own slice type
+2. Indices from a slice can be used on the base collection
+3. Additional reuse-after-free checking
+
+Each of these introduces practical tradeoffs in the design.
+
+#### `Span` is its own slice type
+
+Collections which own their storage have the convention of separate slice types, such as `Array` and `String`. This has the advantage of clearly delineating storage ownership in the programming model and the disadvantage of introducing a second type through which to interact.
+
+`UnsafeBufferPointer` may or may not (unsafely) own its storage, and hence has a separate slice type. It's `baseAddress` has a `deallocate` method for situations in which it does (unsafely) own its storage, and that method should only be called on the `baseAddress` of the original allocation, not the start of a slice. However, many uses of `UnsafeBufferPointer` are unowned use cases, where having a separate slice type is [cumbersome](https://github.com/apple/swift/blob/bcd08c0c9a74974b4757b4b8a2d1796659b1d940/stdlib/public/core/StringComparison.swift#L175).
+
+`Span` does not own its storage and there is no concern about leaking larger allocations. Thus, it would benefit from being its own slice type, even if doing so increases the size of the type from 2 to 3 words (depending on other design tradeoffs discussed below). We propose making `Span` be its own slice type.
+
+#### Indices from a slice can be used on the base collection
+
+There is very strong stdlib precedent that indices from the base collection can be used in a slice and vice-versa. 
+
+```swift
+let myCollection = [0,1,2,3,4,5,6]
+let idx = myCollection.index(myCollection.startIndex, offsetBy: 4)
+myCollection[idx]                   // 4
+let slice = myCollection[idx...]    // [4, 5, 6]
+slice[idx]                          // 4
+myCollection[slice.indices]         // [4, 5, 6]
+```
+
+Code can be written to take advantage of this fact. For example, a simplistic parser can be written as mutating methods on a slice. The slice's indices can be saved for reference into the original collection or another slice. 
+
+```swift
+extension Slice where Base == UnsafeRawBufferPointer {
+  mutating func parse(numBytes: Int) -> Self {
+    let end = index(startIndex, offsetBy: numBytes)
+    defer { self = self[end...] }
+    return self[..<end]
+  }
+  mutating func parseInt() -> Int {
+    parse(numBytes: MemoryLayout<Int>.stride).loadUnaligned(as: Int.self)
+  }
+
+  mutating func parseHeader() -> Self {
+    // Comments show what happens when ran with `myCollection`
+
+    let copy = self
+    parseInt()         // 0
+    parseInt()         // 1
+    parse(numBytes: 8) // [2, 0, 0, 0, 0, 0, 0, 0]
+    parseInt()         // 3
+    parse(numBytes: 7) // [4, 0, 0, 0, 0, 0, 0]
+
+    // self: [0, 5, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0]
+    parseInt()         // 1280 (0x00_00_05_00 little endian)
+    // self: [0, 6, 0, 0, 0, 0, 0, 0, 0]
+
+    return copy[..<self.startIndex]
+  }  
+}
+
+myCollection.withUnsafeBytes {
+  var byteParser = $0[...]
+  let header = byteParser.parseHeader()
+
+  // header:     [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
+  //              2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 
+  //              4, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0]
+  //
+  // byteParser: [0, 6, 0, 0, 0, 0, 0, 0, 0]
+}
+```
+
+Note, however, that parsers tend to become more complex and copying slices for later index extraction becomes more common. At that point, it is better to use a more powerful approach such as the index-advancing or cursor API presented in *Byte parsing helpers*.
+
+That being said, if we had a time machine it's not clear that we would choose a design with index interchange, as it does introduce design tradeoffs and makes some code, especially when the index type is `Int`, troublesome:
+
+```swift
+func getFirst<C: Collection>(
+  _ c: C
+) -> C.Element where C.Index == Int {
+  c[0]
+}
+
+getFirst(myCollection) // 0
+getFirst(slice)        // Fatal error: Index out of bounds
+```
+
+Preserving index interchange across views and the base is a nice-to-have for `Span`, and we propose keeping it. However, we are evaluating the tradeoffs it requires.
+
+
+#### Additional reuse-after-free checking
+
+`Span` bounds-checks its indices, which is important for safety. If the index is based around a pointer (instead of an offset), then bounds checks will also ensure that indices are not used with the wrong span in most situations. However, it is possible for a memory address to be reused after being freed, and using a stale index into this reused memory may introduce safety problems.
+
+```swift
+var idx: Span<T>.Index
+
+let array1: Array<T> = ...
+let span1 = array1.span
+idx = span1.startIndex.advanced(by: ...)
+...
+// array1 is freed
+
+let array2: Array<T> = ...
+let span2 = array2.span
+// array2 happens to be allocated within the same memory of array1
+// but with a different base address whose offset is not an even
+// multiple of `MemoryLayout<T>.stride`.
+
+span2[idx] // unaligned load, what happens?
+```
+
+If `T` is `BitwiseCopyable`, then the unaligned load is not undefined behavior, but the value that is loaded is garbage. Whether the program is well-behaved going forwards depends on whether it is resilient to getting garbage values.
+
+If `T` is not `BitwiseCopyable`, then the unaligned load may introduce undefined behavior. No matter how well-written the rest of the program is, it has a critical safety and security flaw.
+
+When the reused allocation happens to be stride-aligned, there is no undefined behavior from undefined loads, nor are there "garbage" values in the strictest sense, but it is still reflective of a programming bug. The program may be interacting with an unexpected value.
+
+Bounds checks protect against critical programmer errors. It would be nice, pending engineering tradeoffs, to also protect against some reuse after free errors and invalid index reuse, especially those that may lead to undefined behavior.
+
+Future improvements to microarchitecture may make reuse after free checks cheaper, however we need something for the forseeable future. Any validation we can do reduces the need to switch to other mitigation strategies or make other tradeoffs.
+
+#### Design approaches for indices
+
+##### Index is an offset (`Int` or a wrapper around `Int`)
+
+When `Index` is an offset, there is no undefined behavior from unaligned loads because the `Span`'s base address is advanced by `MemoryLayout<T>.stride * offset`. 
+
+However, there is no protection against invalidly using an index derived from a different span, provided the offset is in-bounds.
+
+If `Span` is 2 words (base address and count), then indices cannot be interchanged between slices and the base span. `Span` would need to additionally store a base offset, bringing it up to 3 words in size.
+
+**TODO**: What's the perf impact of having a base offset? Bounds checking would need `(baseOffset..<(count &- baseOffset)).contains(i)`.
+
+##### Index is a pointer (wrapper around `UnsafeRawPointer`)
+
+When Index holds a pointer, `Span` only needs to be 2 words in size, as valid index interchange across slices falls out naturally. Additionally, invalid reuse of an index across spans will typically be caught during bounds checking.
+
+However, in a reuse-after-free situation, unaligned loads (i.e. undefined behavior) are possible. If stride is not a multiple of 2, then alignement checking can be expensive. Alternatively, we could choose not to detect these bugs.
+
+##### Index is a fat pointer (pointer and allocation ID)
+
+We can create a per-allocation ID (e.g. a cryptographic `UInt64`) for both `Span` and `Span.Index` to store. This makes `Span` 3 words in size and `Span.Index` 2 words in size. This provides the most protection possible against all forms of invalid index use, including reuse-after-free.
+
+However, making `Span.Index` be 2 words in size is unfortunate. `Range<Span.Index>` is now 4 words in size, storing the allocation ID twice. Anything built on top of `Span` that wishes to store multiple indices is either bloated or must hand-extract the pointers and hand-manage the allocation ID.
+
+##### Bitpacking an allocation ID hash
+
+As an alternative to the above, we could create a smaller hash value of an allocation ID and use that for checking. 
+
+If index is an offset, it could use e.g. 48 bits for the offset and 16 bits for the hash value. If index is a pointer, it could use **TODO** bits for the hash value.
+
+**TODO**: perf impact of this approach
+
+We recommend going with **TODO**
+
+
+### Complete `Span` API:
 
 ```swift
 public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
@@ -804,6 +959,164 @@ A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homoge
 }
 ```
 
+### Byte parsing helpers
+
+The below (severable) API make `RawSpan` well-suited for use in binary parsers and decoders.
+
+
+#### Out of bounds errors
+
+The stdlib's lowest level (safe) interfaces, direct indexing, trap on error ([Logic failures](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#logic-failures)). Some operations, such as the key-based subcript on `Dictionary`, are expected to fail often and have no useful information to communicate other than to return `nil` ([Simple domain errors](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#simple-domain-errors)). 
+
+Data parsing is generally expected to succeed, but when it doesn't we want an error that we can propagate upwards with enough information in that we can try to recover ([Recoverable errors](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#recoverable-errors)). For example, if our data is provided in chunks of contiguous memory, we might be able to recover by buffering more bytes and trying again.
+
+
+```swift
+/// An error indicating that out-of-bounds access was attempted
+@frozen
+public struct OutOfBoundsError: Error {
+  /// The number of elements expected
+  public var expected: Int
+
+  /// The number of elements found
+  public var has: Int
+
+  @inlinable
+  public init(expected: Int, has: Int)
+}
+```
+
+#### Index-advancing operations
+
+The following parsing primitives 
+
+(most general/powerful, but they require developer to manage indices)
+
+```swift
+extension RawSpan {
+  /// Parse an instance of `T`, advancing `position`.
+  @inlinable
+  public func parse<T: _BitwiseCopyable>(
+    _ position: inout Index, as t: T.Type = T.self
+  ) throws(OutOfBoundsError) -> T
+
+  /// Parse `numBytes` of data, advancing `position`.
+  @inlinable
+  public func parse(
+    _ position: inout Index, numBytes: some FixedWidthInteger
+  ) throws (OutOfBoundsError) -> Self
+}
+```
+
+However, they do require that a developer manage indices.
+
+#### Cursor-mutating operations
+
+`Cursor` provides a more convenient interface to the index-advancing primitives by encapsulating the current position as well as subrange within the input in which to operate.
+
+When parsing data, there are often multiple subranges of the data that we are parsing within. For example, when parsing an entire file, we might treat each line as a separate record, and we might individually parse different fields in each line. Knowing whether we are at the start or end of the file requires checking the file's original bounds and knowing whether we are at the start of a line requires either knowing the line's bounds or peeking-behind the record's current parse range for a newline character.
+
+`Cursor` stores and manages a parsing subrange, which alleviates the developer from managing one layer of slicing.
+
+*Alternative*: If `Cursor` does not store the subrange, it would be 3 words in size rather than 5 words. The developer would have to pre-slice and manage the slice, and future API on cursor could not peek outside of the subrange's bounds (e.g. checking for start-of-line).
+
+
+```swift
+extension RawSpan {
+  @frozen
+  public struct Cursor: Copyable, ~Escapable {
+    public let base: RawSpan
+
+    /// The range within which we parse
+    public let parseRange: Range<RawSpan.Index>
+
+    /// The current parsing position
+    public var position: RawSpan.Index
+
+    @inlinable
+    public init(_ base: RawSpan, in range: Range<RawSpan.Index>)
+
+    @inlinable
+    public init(_ base: RawSpan)
+
+    /// Parse an instance of `T` and advance
+    @inlinable
+    public mutating func parse<T: _BitwiseCopyable>(
+      _ t: T.Type = T.self
+    ) throws(OutOfBoundsError) -> T
+
+    /// Parse `numBytes`and advance
+    @inlinable
+    public mutating func parse(
+      numBytes: some FixedWidthInteger
+    ) throws (OutOfBoundsError) -> RawSpan
+
+    /// The bytes that we've parsed so far
+    @inlinable
+    public var parsedBytes: RawSpan { get }
+
+    /// The number of bytes left to parse
+    @inlinable
+    public var remainingBytes: Int { get }
+  }
+
+  @inlinable
+  public func makeCursor() -> Cursor
+
+  @inlinable
+  public func makeCursor(in range: Range<Index>) -> Cursor
+}
+```
+
+#### Example: Parsing PNG
+
+The below parses [PNG Chunks](https://www.w3.org/TR/png-3/#4Concepts.FormatChunks).
+
+```swift
+struct PNGChunk: ~Escapable {
+  let contents: RawSpan
+
+  public init<Owner: ~Copyable & ~Escapable>(
+    _ contents: RawSpan, _ owner: borrowing Owner
+  ) throws (PNGValidationError) -> dependsOn(owner) Self {
+    self.contents = contents
+    try self._validate()
+  }
+
+  var length: UInt32 {
+    contents.loadUnaligned(as: UInt32.self).bigEndian
+  }
+  var type: UInt32 {
+    contents.loadUnaligned(
+      fromUncheckedByteOffset: 4, as: UInt32.self).bigEndian
+  }
+  var data: RawSpan {
+    contents[uncheckedOffsets: 8..<(contents.count-4)]
+  }
+  var crc: UInt32 {
+    contents.loadUnaligned(
+      fromUncheckedByteOffset: contents.count-4, as: UInt32.self
+    ).bigEndian
+  }
+}
+
+func parsePNGChunk<Owner: ~Copyable & ~Escapable>(
+  _ span: RawSpan,
+  _ owner: borrowing Owner
+) throws -> dependsOn(owner) PNGChunk {
+  var cursor = span.makeCursor()
+
+  let length = try cursor.parse(UInt32.self).bigEndian
+  _ = try cursor.parse(UInt32.self)             // type
+  _ = try cursor.parse(numBytes: length)        // data
+  _ = try cursor.parse(UInt32.self)             // crc
+
+  return PNGChunk(cursor.parsedBytes, owner)
+}
+```
+
+
+
 ## Source compatibility
 
 This proposal is additive and source-compatible with existing code.
@@ -877,6 +1190,9 @@ while let elt = iter.next() {
 
 Non-copyable and non-escapable containers would benefit from a `Collection`-like protocol family to represent a set basic, common operations. This may be `Collection` if we find a way to make it work; it may be something else.
 
+Alongside this work, it may make sense to add a `Span` alternative to `withContiguousStorageIfAvailable()`, `RawSpan` alternative to `withUnsafeBytes`, etc., and seek to deprecate any closure-based API around unsafe pointers.
+
+
 ##### Sharing piecewise-contiguous memory
 
 Some types store their internal representation in a piecewise-contiguous manner, such as trees and ropes. Some operations naturally return information in a piecewise-contiguous manner, such as network operations. These could supply results by iterating through a list of contiguous chunks of memory.
@@ -938,6 +1254,9 @@ This would probably consist of a new type of custom conversion in the language. 
 
 ##### Interopability with C++'s `std::span` and with llvm's `-fbounds-safety`
 The [`std::span`](https://en.cppreference.com/w/cpp/container/span) class template from the C++ standard library is a similar representation of a contiguous range of memory. LLVM may soon have a [bounds-checking mode](https://discourse.llvm.org/t/70854) for C. These are an opportunity for better, safer interoperation with a type such as `Span`.
+
+
+
 
 ## Acknowledgments
 
