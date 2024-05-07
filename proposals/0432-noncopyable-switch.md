@@ -67,7 +67,7 @@ expression:
 
 For example, given the following copyable definition:
 
-```
+```swift
 enum CopyableEnum {
     case foo(Int)
     case bar(Int, String)
@@ -76,7 +76,7 @@ enum CopyableEnum {
 
 then the following patterns have ownership behavior as indicated below:
 
-```
+```swift
 case let x: // copying
 case .foo(let x): // copying
 case .bar(let x, let y): // copying
@@ -84,7 +84,7 @@ case .bar(let x, let y): // copying
 
 And for a noncopyable enum definition:
 
-```
+```swift
 struct NC: ~Copyable {}
 
 enum NoncopyableEnum: ~Copyable {
@@ -95,7 +95,7 @@ enum NoncopyableEnum: ~Copyable {
 
 then the following patterns have ownership behavior as indicated below:
 
-```
+```swift
 var foo: NoncopyableEnum // stored variable
 
 switch foo {
@@ -136,7 +136,7 @@ consuming the value to form variable bindings. Matching enum cases and tuples
 (when noncopyable tuples are supported) for instance is still possible
 even if they contain consuming `let` or `var` bindings as subpatterns:
 
-```
+```swift
 extension Handle {
     var isReady: Bool { ... }
 }
@@ -153,10 +153,10 @@ case .foo(let y):
 ```
 
 However, when a pattern has a `where` clause, variable bindings cannot be
-consumed in the where clause even if the binding is consumable in the case
+consumed in the `where` clause even if the binding is consumable in the `case`
 body:
 
-```
+```swift
 extension Handle {
     consuming func tryClose() -> Bool { ... }
 }
@@ -175,7 +175,7 @@ case .foo(let y):
 Similarly, an expression subpattern whose `~=` operator consumes the subject
 cannot be used to test a noncopyable subpattern.
 
-```
+```swift
 extension Handle {
     static func ~=(identifier: Int, handle: consuming Handle) -> Bool { ... }
 }
@@ -291,7 +291,7 @@ could be used in the future to explicitly mark the subject of a switch as
 being borrowed, even if it is normally copyable or would be a consumable
 temporary, as in:
 
-```
+```swift
 let x: String? = "hello"
 
 switch borrow x {
