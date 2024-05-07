@@ -12,14 +12,16 @@ We would like to propose extensions to Swift's function-declaration syntax that 
 These would also be useable with methods that wish to declare a dependency on `self`.
 To reduce the burden of manually adding such annotations, we also propose inferring lifetime dependencies in certain common cases without requiring any additional annotations.
 
-This is a key requirement for the `StorageView` type (previously called `BufferView`) being discussed elsewhere, and is closely related to the proposal for `~Escapable` types.
+This is a key requirement for the `Span` type (previously called `BufferView`) being discussed elsewhere, and is closely related to the proposal for `~Escapable` types.
 
 **Edited** (Apr 12, 2024): Changed `@dependsOn` to `dependsOn` to match the current implementation.
+
+**Edited** (May 2, 2024): Changed `StorageView` and `BufferReference` to `Span` to match the sibling proposal.
 
 #### See Also
 
 * **TODO**: **** Forum thread discussing this proposal
-* [Pitch Thread for StorageView](https://forums.swift.org/t/pitch-safe-access-to-contiguous-storage/69888)
+* [Pitch Thread for Span](https://forums.swift.org/t/pitch-safe-access-to-contiguous-storage/69888)
 * [Forum discussion of BufferView language requirements](https://forums.swift.org/t/roadmap-language-support-for-bufferview)
 * [Proposed Vision document for BufferView language requirements (includes description of ~Escapable)](https://github.com/atrick/swift-evolution/blob/fd63292839808423a5062499f588f557000c5d15/visions/language-support-for-BufferView.md#non-escaping-bufferview) 
 
@@ -75,12 +77,10 @@ These types are not allowed to escape the local context except in very specific 
 A separate proposal explains the general syntax and semantics of `Escapable` and `~Escapable`.
 
 By themselves, nonescapable types have severe constraints on usage.
-For example, consider a hypothetical `BufferReference` type that is similar to the standard library `UnsafeBufferPointer` or the `StorageView` type that is being proposed for inclusion in the standard library.
-It simply holds a pointer and size and can be used to access data stored in a contiguous block of memory.
-(We are not proposing this type; it is shown here merely for illustrative purposes.)
+For example, consider a hypothetical `Span` type that is similar type that is being proposed for inclusion in the standard library. It simply holds a pointer and size and can be used to access data stored in a contiguous block of memory. (We are not proposing this type; it is shown here merely for illustrative purposes.)
 
 ```swift
-struct BufferReference<T>: ~Escapable {
+struct Span<T>: ~Escapable {
   private var base: UnsafePointer<T>
   private var count: Int
 }
@@ -94,35 +94,35 @@ In the most common cases, these constraints can be inferred automatically.
 
 To make the semantics clearer, we’ll begin by describing how one can explicitly specify a lifetime constraint in cases where the default inference rules do not apply.
 
-Let’s consider adding support for our hypothetical `BufferReference` type to `Array`.
-Our proposal would allow you to declare an `array.bufferReference()` method as follows:
+Let’s consider adding support for our hypothetical `Span` type to `Array`.
+Our proposal would allow you to declare an `array.span()` method as follows:
 
 ```swift
 extension Array {
-  borrowing func bufferReference() -> dependsOn(self) BufferReference<Element> {
-    ... construct a BufferReference ...
+  borrowing func span() -> dependsOn(self) Span<Element> {
+    ... construct a Span ...
   }
 }
 ```
 
 The annotation `dependsOn(self)` here indicates that the returned value must not outlive the array that produced it.
 Conceptually, it is a continuation of the function's borrowing access:
-the array is being borrowed by the function while the function executes and then continues to be borrowed by the `BufferReference` for as long as the return value exists.
+the array is being borrowed by the function while the function executes and then continues to be borrowed by the `Span` for as long as the return value exists.
 Specifically, the `dependsOn(self)` annotation in this example informs the compiler that:
 
-* The array must not be destroyed until after the `BufferReference<Element>` is destroyed.
+* The array must not be destroyed until after the `Span<Element>` is destroyed.
   This ensures that use-after-free cannot occur.
-* The array must not be mutated while the  `BufferReference<Element>` value exists.
+* The array must not be mutated while the  `Span<Element>` value exists.
   This follows the usual Swift exclusivity rules for a borrowing access.
 
 #### Scoped Lifetime Dependency
 
-Let’s consider another hypothetical type: a `MutatingBufferReference<T>` type that could provide indirect mutating access to a block of memory.
+Let’s consider another hypothetical type: a `MutatingSpan<T>` type that could provide indirect mutating access to a block of memory.
 Here's one way such a value might be produced:
 
 ```swift
-func mutatingBufferReference(to: inout Array, count: Int) -> dependsOn(to) MutatingBufferReference<Element> {
-  ... construct a MutatingBufferReference ...
+func mutatingSpan(to: inout Array, count: Int) -> dependsOn(to) MutatingSpan<Element> {
+  ... construct a MutatingSpan ...
 }
 ```
 
@@ -131,21 +131,21 @@ The `dependsOn(to)` annotation indicates that the returned value depends on the 
 Because `count` is not mentioned in the lifetime dependency, that argument does not participate.
 Similar to the previous example:
 
-* The array will not be destroyed until after the `MutatingBufferReference<Element>` is destroyed.
+* The array will not be destroyed until after the `MutatingSpan<Element>` is destroyed.
 * No other read or write access to the array will be allowed for as long as the returned value exists.
 
 In both this and the previous case, the lifetime of the return value is "scoped" to the lifetime of the original value.
 Because lifetime dependencies can only be attached to nonescapable values, types that contain pointers will generally need to be nonescapable in order to provide safe semantics.
-As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as an Array or similar container) is providing a nonescapable value (such as the `BufferReference` or `MutatingBufferReference` in these examples).
+As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as an Array or similar container) is providing a nonescapable value (such as the `Span` or `MutatingSpan` in these examples).
 
 #### Copied Lifetime Dependency
 
 The case where a nonescapable value is used to produce another nonescapable value is somewhat different.
-Here's a typical example that constructs a new `BufferReference` from an existing one:
+Here's a typical example that constructs a new `Span` from an existing one:
 ```swift
-struct BufferReference<T>: ~Escapable {
+struct Span<T>: ~Escapable {
   ...
-  consuming func drop(_: Int) -> dependsOn(self) BufferReference<T> { ... }
+  consuming func drop(_: Int) -> dependsOn(self) Span<T> { ... }
   ...
 }
 ```
@@ -155,12 +155,12 @@ Recall that nonescapable values such as these represent values that are already 
 
 For a `consuming` method, the return value cannot have a scoped lifetime dependency on the original value, since the original value no longer exists when the method returns.
 Instead, the return value must "copy" the lifetime dependency from the original:
-If the original `BufferReference` was borrowing some array, the new `BufferReference` will continue to borrow the same array.
+If the original `Span` was borrowing some array, the new `Span` will continue to borrow the same array.
 
 This supports coding patterns such as this:
 ```swift
 let a: Array<Int>
-let ref1 = a.bufferReference() // ref1 cannot outlive a
+let ref1 = a.span() // ref1 cannot outlive a
 let ref2 = ref1.drop(4) // ref2 also cannot outlive a
 ```
 
@@ -413,21 +413,21 @@ We propose above putting the annotation on the return value, which we believe ma
 It would also be possible to put an annotation on the parameters instead:
 
 ```swift
-func f(@resultDependsOn arg1: Array<Int>) -> BufferReference<Int>
+func f(@resultDependsOn arg1: Array<Int>) -> Span<Int>
 ```
 
 Depending on the exact language in use, it could also be more natural to put the annotation after the return value.
 However, we worry that this hides this critical information in cases where the return type is longer or more complex.
 
 ```swift
-func f(arg1: Array<Int>) -> BufferReference<Int> dependsOn(arg1)
+func f(arg1: Array<Int>) -> Span<Int> dependsOn(arg1)
 ```
 
 ### Different spellings
 
 An earlier version of this proposal advocated using the existing `borrow`/`mutate`/`consume`/`copy` keywords to specify a particular lifetime dependency semantic:
 ```swift
-func f(arg1: borrow Array<Int>) -> borrow(arg1) BufferReference<Int>
+func f(arg1: borrow Array<Int>) -> borrow(arg1) Span<Int>
 ```
 This was changed after we realized that there was in practice almost always a single viable semantic for any given situation, so the additional refinement seemed unnecessary.
 
@@ -483,7 +483,7 @@ We expect to address this in the near future in a separate proposal.
 It should be possible to return containers with collections of lifetime-constrained elements.
 For example, a container may want to return a partition of its contents:
 ```swift
-borrowing func chunks(n: Int) -> dependsOn(self) SomeList<dependsOn(self) StorageView<UInt8>>
+borrowing func chunks(n: Int) -> dependsOn(self) SomeList<dependsOn(self) Span<UInt8>>
 ```
 We're actively looking into ways to support these more involved cases and expect to address this in a future proposal.
 
