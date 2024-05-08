@@ -107,12 +107,26 @@ foo(
 
 This proposal adds support for trailing comma to:
 
+### Tuples
+
+Including tuples and tuple patterns.
+
+```swift
+var (a, b, c,) = (1, 2, 3,)
+```
+
+Trailing comma will be allowed in single-element tuples but not in zero-element tuples.
+
+```swift
+(1,) // OK
+(,) // ❌ expected value in tuple
+```
+
 ### Arguments and Parameters
 
 Including declaration and call of initializers, functions and enum case associated values.
 
 ```swift
-
 func foo(
     a: Int = 0, 
     b: Int = 0, 
@@ -123,13 +137,13 @@ foo(
     a: 1,
     b: 2,
 )
-
 ```
 
-### Tuples
+Likewise tuples, trailing comma will be allowed in single-element arguments/parameters but not in zero-element arguments/parameters.
 
 ```swift
-(1, 2, 3,)
+foo(1,) // OK
+foo(,) // ❌ expected value in function call
 ```
 
 ### Conditions
