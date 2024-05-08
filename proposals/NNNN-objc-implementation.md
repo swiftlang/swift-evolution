@@ -3,8 +3,9 @@
 * Proposal: [SE-NNNN](NNNN-objc-implementation.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: TBD
-* Status: **Awaiting implementation** (but only of resilience support)
-* Implementation: In main and release/6.0, behind the `ObjCImplementation` experimental feature flag
+* Status: **Awaiting review**
+* Implementation: Proposed syntax implemented in [apple/swift#73309](https://github.com/apple/swift/pull/73309); enable using the `ObjCImplementation` experimental feature flag
+* Review: ([first pitch](https://forums.swift.org/t/pitch-objective-c-implementations-in-swift/61907)) ([second pitch](https://forums.swift.org/t/pitch-2-objective-c-implementations-in-swift/68090)) ([third pitch](https://forums.swift.org/t/pitch-3-objective-c-implementations-in-swift/71315))
 
 ## Introduction
 
@@ -194,7 +195,7 @@ Because `@implementation` attributes and member implementations are not printed 
 
 Affected classes are ones whose stored properties contain a non-frozen enum or struct imported from another module that has library evolution enabled. (This property is transitive—if your stored properties contain a struct in your own module, but that struct has a stored property of an affected type, that also limits back deployment.) In practice, it is usually possible to work around this problem by boxing affected values in a class or existential, at the cost of some overhead.
 
-> **Note**: Some of the required runtime changes are in the Objective-C runtime, so even a snapshot toolchain will not be sufficient to actually run modules with affected classes. However, you can test the diagnostics and code generation by compiling with the experimental feature flag `ObjCImplementationWithResilientStorage`; OS version 99.99 will be treated as high enough to have the necessary runtime support.
+> **Note**: Some of the required runtime changes are in the Objective-C runtime, so even a development toolchain will not be sufficient to actually run modules with affected classes. However, you can test the diagnostics and code generation by compiling with the experimental feature flag `ObjCImplementationWithResilientStorage`; OS version 99.99 will be treated as high enough to have the necessary runtime support.
 
 ## Future directions
 
