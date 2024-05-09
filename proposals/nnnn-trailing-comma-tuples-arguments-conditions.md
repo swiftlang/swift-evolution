@@ -162,7 +162,32 @@ if
 
 ## Source compatibility
 
-This change is purely additive and has no impact on existing code.
+Although this change won't impact existing valid code it will change how some invalid codes are parsed. Consider the following:
+
+```swift
+if
+  condition1,
+  condition2,
+{ // ❌ Function produces expected type 'Bool'; did you mean to call it with '()'?
+  return true
+} 
+
+{ print("something") }
+```
+
+Currently the parser uses the last comma to determine that whatever follows is the last condition, so `{ return true }` is a condition and `{ print("something") }` is the if body.
+To allow trailing comma the proposed solution is to change the parser to terminate de condition list before the first block that is a valid if body, so `{ return true }` will the parsed as the if body.
+
+```swift
+if
+  condition1,
+  condition2,
+{
+  return true
+} 
+
+{ print("something") } // ❌ Closure expression is unused
+```
 
 ## Future directions
 
