@@ -308,11 +308,11 @@ Reentrancy means that execution of asynchronous actor-isolated functions may "in
 Interleaving executions still respect the actor's "single-threaded illusion", i.e., no two functions will ever execute *concurrently* on any given actor. However they may *interleave* at suspension points. In broad terms this means that reentrant actors are *thread-safe* but are not automatically protecting from the "high level" kinds of races that may still occur, potentially invalidating invariants upon which an executing asynchronous function may be relying on. To further clarify the implications of this, let us consider the following actor, which thinks of an idea and then returns it, after telling its friend about it.
 
 ```swift
-actor Person {
+actor DecisionMaker {
   let friend: Friend
   
   // actor-isolated opinion
-  var opinion: Judgment = .noIdea
+  var opinion: Decision = .noIdea
 
   func thinkOfGoodIdea() async -> Decision {
     opinion = .goodIdea                       // <1>
@@ -328,13 +328,13 @@ actor Person {
 }
 ```
 
-In the example above the `Person` can think of a good or bad idea, shares that opinion with a friend, and returns that opinion that it stored. Since the actor is reentrant this code is wrong and will return an arbitrary opinion if the actor begins to think of a few ideas at the same time.
+In the example above the `DecisionMaker` can think of a good or bad idea, shares that opinion with a friend, and returns that opinion that it stored. Since the actor is reentrant this code is wrong and will return an arbitrary opinion if the actor begins to think of a few ideas at the same time.
 
 This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
 
 ```swift
-let goodThink = detach { await person.thinkOfGoodIdea() }  // runs async
-let badThink = detach { await person.thinkOfBadIdea() } // runs async
+let goodThink = detach { await decisionMaker.thinkOfGoodIdea() }  // runs async
+let badThink = detach { await decisionMaker.thinkOfBadIdea() } // runs async
 
 let shouldBeGood = await goodThink.get()
 let shouldBeBad = await badThink.get()
@@ -372,7 +372,7 @@ If we take the example from the previous section and use a non-reentrant actor, 
 // assume non-reentrant
 actor DecisionMaker {
   let friend: DecisionMaker
-  var opinion: Judgment = .noIdea
+  var opinion: Decision = .noIdea
 
   func thinkOfGoodIdea() async -> Decision {
     opinion = .goodIdea                                   
@@ -392,7 +392,7 @@ However, non-entrancy can result in deadlock if a task involves calling back int
 
 ```swift
 extension DecisionMaker {
-  func tell(_ opinion: Judgment, heldBy friend: DecisionMaker) async {
+  func tell(_ opinion: Decision, heldBy friend: DecisionMaker) async {
     if opinion == .badIdea {
       await friend.convinceOtherwise(opinion)
     }
