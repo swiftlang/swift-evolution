@@ -116,7 +116,7 @@ actor WorldModelObject {
 }
 ```
 
-This inexpressible case also arises with a partial applicaion of an
+This inexpressible case also arises with a partial application of an
 actor method, such as `myActor.methodName`: the resulting function
 value captures `myActor` and is isolated to it.  For now, these are
 the only two cases of isolated captures.  However, the upcoming
@@ -145,7 +145,7 @@ value must cross an isolation boundary.  And the third is that the
 isolation is completely dynamically erased: there is no way for the
 recipient of the function value to recover what isolation the function
 actually wants, which often puts the recipient in the position of doing
-unnecesary work.
+unnecessary work.
 
 Here's an example of that last problem.  The `Task` initializer receives
 an opaque value of type `() async throws -> ()`.  Because it cannot
@@ -355,7 +355,7 @@ to the language.
 [^6]: Technically, it is possible to achieve this effect in Swift
 today in a way that Swift could conceivably look through: the caller
 could be a closure with an `isolated` parameter, and that closure
-could be called with an expression like `fn.isolation` as the arugment.
+could be called with an expression like `fn.isolation` as the argument.
 Swift could analyze this to see that the parameter has the value of
 `fn.isolation` and then understand the connection between the caller's
 isolation and `fn`.  This would be very cumbersome, though, and it
@@ -753,7 +753,7 @@ argument flows into the second.  This is not something to do lightly,
 and we think Swift is relatively unlikely to ever add such a feature
 as `@isolated(to:)`.
 
-Fortunately, is is unlikely to be necessary.  We believe that
+Fortunately, it is unlikely to be necessary.  We believe that
 `@isolated(any)` function types are superior from a usability perspective
 for all the dominant patterns of higher-order APIs.  The main thing that
 `@isolated(to:)` can express in an API signature that `@isolated(any)`
