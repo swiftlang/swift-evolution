@@ -782,7 +782,7 @@ the future and we can just default it to the current behaviour.
 
 ### Create a custom type for the `Result` of the `onProduceMore` callback
 
-The `onProducerMore` callback takes a `Result<Void, Error>` which is used to
+The `onProduceMore` callback takes a `Result<Void, Error>` which is used to
 indicate if the producer should produce more or if the asynchronous stream
 finished. We could introduce a new type for this but the proposal decided
 against it since it effectively is a result type.

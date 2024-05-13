@@ -160,16 +160,16 @@ The behavior of generic requirements on type parameter packs is mostly unchanged
   struct ImposeRepeatedSameType<T1: P, each T2> where repeat T1.A == each T2 {}
   
   // Infers 'repeat each U: P'
-  func demostrate1<each U>(_: repeat ImposeRequirement<each U>)
+  func demonstrate1<each U>(_: repeat ImposeRequirement<each U>)
   
   // Infers 'Int: P, V: P, repeat each U: P'
-  func demostrate2<each U, V>(_: ImposeRepeatedRequirement<Int, V, repeat each U>)
+  func demonstrate2<each U, V>(_: ImposeRepeatedRequirement<Int, V, repeat each U>)
   
   // Error. Would attempt to infer 'repeat <U' = each U> repeat <V' = each V> U'.A == V' which is not a supported requirement in the language
   func demonstrate3a<each U, each V>(_: repeat ImposeRepeatedSameType<each U, repeat each V>))
   
   // Infers 'Int: P, repeat each V: P'
-  func demostrate3b<each U, each V>(_: repeat (each U, ImposeRepeatedRequirement<Int, repeat each V>))
+  func demonstrate3b<each U, each V>(_: repeat (each U, ImposeRepeatedRequirement<Int, repeat each V>))
 ```
 
 ### Conformances
