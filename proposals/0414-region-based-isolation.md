@@ -172,7 +172,7 @@ the following notation:
 
 * `[(a), {(b), actorInstance}]`: Two values in separate isolation regions. a's
   region is disconnected but b's region is assigned to the isolation domain of
-  the actor instance actorInstance.
+  the actor instance `actorInstance`.
 
 * `[{(x, y), @OtherActor}, (z), (w, t)]`: Five values in three separate
   isolation regions. `x` and `y` are within one isolation region that is
@@ -840,7 +840,7 @@ To achieve a *strong transfer* convention, one can use the *transferring* functi
 parameter annotation. Please see extensions below for more information about
 *transferring*.
 
-Since our transfer convention is a weak, a disconnected isolation region that
+Since our transfer convention is weak, a disconnected isolation region that
 was transferred into an isolation domain can be used again if the isolation
 domain no longer maintains any references to the region. This occurs with
 `nonisolated` asynchronous functions. When we transfer a disconnected value into
@@ -974,8 +974,7 @@ actor-isolated closure argument cannot introduce races by transferring function
 parameters of nonisolated functions into an isolated closure:
 
 ```swift
-@MainActor
-final class ContainsNonSendable {
+actor ContainsNonSendable {
   var ns: NonSendableType = .init()
 
   nonisolated func unsafeSet(_ ns: NonSendableType) {
@@ -987,7 +986,7 @@ final class ContainsNonSendable {
 
 func assumeIsolatedError(actor: ContainsNonSendable) async {
   let x = NonSendableType()
-  actor1.unsafeSet(x)
+  actor.unsafeSet(x)
   useValue(x) // Race is here
 }
 ```
@@ -1130,7 +1129,7 @@ assume that the closure must also be isolated to that global actor:
 ```
 
 If `mainActorUtility` was not called within `closure`'s body then `closure`
-would be disconnected and could be transferred:"
+would be disconnected and could be transferred:
 
 ```swift
 @MainActor func mainActorUtility() {}
@@ -1230,7 +1229,7 @@ func keyPathInDisconnectedRegionDueToCapture() async {
 When an async let binding is initialized with an expression that uses a
 disconnected non-`Sendable` value, the value is treated as being transferred
 into a `nonisolated` asynchronous callee that additionally allows for the value
-to be transferred. If the value is used only be synchronous code and
+to be transferred. If the value is used only by synchronous code and
 `nonisolated` asynchronous functions, we allow for the value to be reused again
 once the async let binding has been awaited upon:
 
@@ -1372,7 +1371,7 @@ transferred to another task by callMethod, it is no longer safe to directly
 access self's memory and thus we emit an error when we access
 `self.nonSendableField`.
 
-deinits as well as inits with one additional rule. Just like with initializers,
+Deinits work just like inits with one additional rule. Just like with initializers,
 self is considered initially to be strongly transferred and non-`Sendable`. One
 is allowed to access the `Sendable` stored properties of self while self is
 non-`Sendable`. One can access the non-`Sendable` fields of self if one knows
@@ -1694,7 +1693,7 @@ reference. If `x` is captured by reference, it is captured mutably implying that
 when accessing `x.f`, we could race against an assignment to `x.f` in the
 closure:
 
-```
+```swift
 struct NonSendableStruct {
   let letSendableField: Sendable
   var varSendableField: Sendable
@@ -1812,7 +1811,7 @@ the value outside of the callee's parameter. The implications of this are:
   ```
   
   if we did not have the strong isolation, then `x` could still be used in the
-  caller of someSynchronousFunction.
+  caller of `someSynchronousFunction`.
 
 * Due to the isolation of a transferring parameter, it is legal to have a
   non-`Sendable` transferring parameter of a synchronous actor designated
