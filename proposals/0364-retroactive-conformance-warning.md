@@ -3,13 +3,14 @@
 * Proposal: [SE-0364](0364-retroactive-conformance-warning.md)
 * Author: [Harlan Haskins](https://github.com/harlanhaskins)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Implemented (Swift 6.0)**
+* Status: **Active Review, May 15...22, 2024**
 * Implementation: [apple/swift#36068](https://github.com/apple/swift/pull/36068)
 * Review: ([first pitch](https://forums.swift.org/t/warning-for-retroactive-conformances-if-library-evolution-is-enabled/45321))
          ([second pitch](https://forums.swift.org/t/pitch-warning-for-retroactive-conformances-of-external-types-in-resilient-libraries/56243))
          ([first review](https://forums.swift.org/t/se-0364-warning-for-retroactive-conformances-of-external-types/58922))
         ([second review](https://forums.swift.org/t/second-review-se-0364-warning-for-retroactive-conformances-of-external-types/64615))
            ([acceptance](https://forums.swift.org/t/accepted-se-0364-warning-for-retroactive-conformances-of-external-types/65015))
+           ([amendment])(https://forums.swift.org/t/amendment-se-0364-allow-same-package-conformances/71877)
 
 ## Introduction
 
