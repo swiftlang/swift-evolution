@@ -5,8 +5,8 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Roadmap: [Improving Swift performance predictability: ARC improvements and ownership control][Roadmap]
-* Implementation: On main and release/6.0, gated behind `-enable-experimental-feature NoncopyableGenerics`
-* Forum threads: [pitch](https://forums.swift.org/t/pitch-noncopyable-standard-library-primitives/71566)
+* Implementation: On main and release/6.0, gated behind `-enable-experimental-feature NoncopyableGenerics`. [FIXME: need to open a PR with the API additions.]
+* Forum thread: [[pitch](https://forums.swift.org/t/pitch-noncopyable-standard-library-primitives/71566)]
 
 [Roadmap]: https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206
 
@@ -60,12 +60,15 @@ Related proposals:
   * [Source compatibility](#source-compatibility)
   * [ABI compatibility](#abi-compatibility)
   * [Alternatives Considered](#alternatives-considered)
+    * [Omitting UnsafeBufferPointer](#omitting-unsafebufferpointer)
+    * [Alternatives to UnsafeBufferPointer\.extracting()](#alternatives-to-unsafebufferpointerextracting)
   * [Future Work](#future-work)
     * [Non\-escapable Optional and Result](#non-escapable-optional-and-result)
     * [Generalizing higher\-order functions](#generalizing-higher-order-functions-1)
     * [Generalizing Optional\.unsafelyUnwrapped](#generalizing-optionalunsafelyunwrapped)
     * [Generalized managed buffer headers](#generalized-managed-buffer-headers)
     * [Additional raw pointer operations](#additional-raw-pointer-operations)
+    * [Protocol generalizations](#protocol-generalizations)
     * [Additional future work](#additional-future-work)
   * [Appendix: struct Hypoarray](#appendix-struct-hypoarray)
 
@@ -1248,13 +1251,63 @@ The `Optional` and `Result` types that shipped in previous versions of the Stand
 
 The primary alternative is to delay this work until it becomes possible to express more of the functionality that is deferred by this proposal. However, this would leave noncopyable types in a limbo state, where the language ships with rich functionality to support them, but the core Standard Library continues to treat them as second class entities.
 
-The inability to apply unsafe pointer APIs to noncopyable types is a particularly severe obstacle to practical adoption -- it is tricky to fully embrace ownership control if we have no way to dynamically allocate storage for noncopyable entities. 
+The inability to apply unsafe pointer APIs to noncopyable types would be a particularly severe obstacle to practical adoption -- it is tricky to fully embrace ownership control if we have no way to dynamically allocate storage for noncopyable entities.
 
 Avoiding the use of `Optional` is a similarly severe API design issue, with no elegant solutions. Forcing adopters of ownership control to define custom `Optional` types has proved impractical beyond simple throwaway prototypes; it's better to have a standard solution.
 
 We do not consider the generalization of `Result` to be anywhere near as important as `Optional`, although it does provide a standard way to implement manual error propagation. However, as it is a close relative to `Optional`, it seems undesirable to defer its generalization.
 
-`UnsafeBufferPointer` conforms to `Collection`, and it relies on the standard `Slice` type for its `SubSequence` concept. Neither `Collection` nor `Slice` can be directly generalized for noncopyable elements, and so these conformances need to continue require copyable elements. Given that buffer pointers are essentially useless without an idea of an index (which comes from `Collection`), we considered omitting them from this proposal, deferring their generalization until we have protocols for noncopyable container types. However, in practice, this would not be acceptable: the buffer pointer is Swift's native way to represent a region of direct memory, and we urgently need to enable dealing with memory regions that contain noncopyable instances. Leaving buffer pointers ungeneralized would strongly encourage Swift code to start passing around base pointers and counts as distinct items, which would be a significant step backwards -- we must avoid training Swift developers to do that. (We'd also lose the ability to generalize the `withUnsafeTemporaryAllocation` function, which is built on top of buffer pointers.) Therefore, this proposal generalizes buffer pointers, including the parts of `Collection` that we strongly believe will directly translate to noncopyable containers (the basic concept of an index, the index navigation members and the indexing subscript).
+### Omitting `UnsafeBufferPointer`
+
+`UnsafeBufferPointer` conforms to `Collection`, and it relies on the standard `Slice` type for its `SubSequence` concept. Neither `Collection` nor `Slice` can be directly generalized for noncopyable elements, and so these conformances need to continue require copyable elements.
+
+Given that buffer pointers are essentially useless without an idea of an index (which comes from `Collection`), we considered omitting them from this proposal, deferring their generalization until we have protocols for noncopyable container types. 
+
+However, in practice, this would not be acceptable: the buffer pointer is Swift's native way to represent a region of direct memory, and we urgently need to enable dealing with memory regions that contain noncopyable instances. Leaving buffer pointers ungeneralized would strongly encourage Swift code to start passing around base pointers and counts as distinct items, which would be a significant step backwards -- we must avoid training Swift developers to do that. (We'd also lose the ability to generalize the `withUnsafeTemporaryAllocation` function, which is built on top of buffer pointers.) 
+
+Therefore, this proposal generalizes buffer pointers, including the parts of `Collection` that we strongly believe will directly translate to noncopyable containers (the basic concept of an index, the index navigation members and the indexing subscript).
+
+### Alternatives to `UnsafeBufferPointer.extracting()`
+
+A different concern arises with buffer pointer slices. Regrettably, it seems we have to give up on the `buffer[i..<j]` notation, as the slicing subscript is unfortunately defined to return `Slice`, and that type is not readily generalizable.
+
+We cannot change the slicing subscript to return a new type, as that would break existing code. Therefore, we're left with the option of introducing a separate operation, distinct from slicing, that targets the same use cases.
+
+Luckily, we have close to a decade's worth Swift code using `UnsafeBufferPointer` to analyze, and a pattern readily emerges: very often, a buffer pointer gets sliced only to immediately rebase it back into a new buffer pointer value:
+
+```swift
+UnsafeMutableBufferPointer(rebasing: buffer[i ..< j])
+```
+
+This combined slicing-and-rebasing operation does directly translate to buffers with noncopyable elements, and so it is an obvious choice for a slicing substitute. We considered providing it as a new initializer:
+
+```swift
+extension Unsafe[Mutable]BufferPointer where Element: ~Copyable {
+  init(rebasing range: some RangeExpression<Int>, in buffer: UnsafeBufferPointer<Element>)
+}
+
+// Usage:
+UnsafeMutableBufferPointer(rebasing: i ..< j, in: buffer)
+```
+
+This easily fits into Swift API design conventions, but it doesn't feel like a good enough solution in practice. Specifically, it suffers from two distinct (but related) problems:
+
+1. It remains just as verbose, inconvenient and non-intuitive as the original rebasing initializer; and we have considered that a significant problem even in the copyable case. 
+
+   <small>
+
+   (Indeed, a large part of [SE-0370][SE-370-Slice] was dedicated to reducing the need to directly invoke this initializer, by cleverly extending the `Slice` type with direct methods that [hide the `init(rebasing:)` call](https://github.com/apple/swift/blob/swift-5.10-RELEASE/stdlib/public/core/UnsafeBufferPointerSlice.swift#L699-L702
+). This is very helpful, but in exchange for simplifying use sites, we've made it more difficult to define custom operations: each operation has to be defined on both the buffer pointer and the slice type, and the latter requires advanced generics trickery. Of course, none of this work helps the noncopyable case, as `Slice` does not translate there -- so we get back to where we started.)
+
+[SE-370-Slice]: https://github.com/apple/swift-evolution/blob/main/proposals/0370-pointer-family-initialization-improvements.md#slices-of-bufferpointer
+
+   </small>
+
+2. The new initializer would also apply to the copyable case, but it would serve no discernible purpose in that context, other than to increase confusion.
+
+The solution we propose is to make the new operation a regular member function. This solves the first problem: `buffer.extracting(i..<j)` is not quite as elegant as `buffer[i..<j]`, but is far more readable at a glance than anything that involves an initializer call. And it also solves the second problem, as the new member function provides a shorthand notation for a very common operation, and that makes it useful even in copyable contexts where slicing continues to remain available.
+
+Of course, we also considered simply omitting providing a substitute for slicing, deferring to tackle it (e.g., in hopes of figuring out some way to generalize `Slice` in the future). However, given its vast importance, this would be a wildly impractical choice. For example, the tiny `Hypoarray` illustration in the appendix is chock full of these operations: it contains six different places where it needs to slice and dice buffers -- in this particular example, `extracting` is in fact _the most frequently mentioned buffer pointer operation_. This underscores the need to not only provide this operation, but also to give it a proper name that reflects its importance.
 
 ## Future Work
 
@@ -1400,20 +1453,29 @@ extension UnsafeMutableRawPointer {
 
 We omitted these, as it is unclear if these would be the best ways to express these. For now, we instead recommend explicitly binding memory and using `Unsafe[Mutable]Pointer` operations.
 
+### Protocol generalizations
+
+[As noted above](#lack-of-protocol-generalizations), this proposal leaves most standard protocols as is, deferring their generalizations to subsequent future work. The single protocol we do generalize is `ExpressibleByNilLiteral` -- the `nil` syntax is so closely associated with the `Optional` type that it would not have been reasonable to omit it.
+
+This of course is not tenable; we expect that many (or even most) of our standard protocols will need to eventually get generalized for noncopyable use.
+
+For some protocols, this work is relatively straightforward. For example, we expect that generalizing `Equatable`, `Hashable` and `Comparable` would not be much of a technical challenge -- however, it will involve overhauling/refining `Equatable`'s semantic requirements, which I do not expect to be an easy process. (`Equatable` currently requires that "equality implies substitutability"; if the two equal instances happen to be noncopyable, such unqualified, absolute statements no longer seem tenable.) The `RawRepresentable` protocol is also in this category.
+
+In other cases, the generalization fundamentally requires additional language enhancements. For example, we may want to consider allowing noncopyable `Error` types -- but that implies that we'll also want to throw and catch noncopyable errors, and that will require a bit more work than adding a `~Copyable` clause on the protocol. It makes sense to defer generalizing the protocol until we decide to do this; if/when we do, the generalizations of `Result` can and should be part of the associated discussion and proposal. Another example is `ExpressibleByArrayLiteral`, which is currently built around an initializer with a variadic parameter -- to generalize it, we need to either figure out how to generalize those, or we need to design some alternative interface.
+
+In a third category of cases, the existing protocols make heavy use of copyability to (implicitly) unify concerns that need stay distinct when we introduce ownership control. Retroactively untangling these concerns is going to be difficult at best -- and sometimes it may in fact prove impractical. For instance, the current `Sequence` protocol is shaped like a consuming construct: `makeIterator` semantically consumes the sequence, and `Iterator.next()` passes ownership of the elements to its caller. However, the documentation of `Sequence` explicitly allows conforming types to implement multipass/nondestructive behavior, and it in fact it _requires_ `Collection` types to do precisely that. By definition, a consuming sequence cannot be multipass; such sequences are borrowing by nature. To support noncopyable elements, we'll need to introduce distinct abstractions for borrowing and consuming sequences. Generalizing the existing `Sequence` in either of these directions seems fraught with peril.
+
+Each of these protocol generalizations will require effort that's _at least_ comparable in complexity to this proposal; so it makes sense to consider them separately, in a series of future proposals.
+
 ### Additional future work
 
-Fully supporting ownership control and noncopyable types will require overhauling much of the existing Standard Library, including topics listed below.
+Fully supporting ownership control and noncopyable types will require overhauling much of the existing Standard Library. 
 
-- Protocol generalizations
-  - Protocols implementing language literals (`ExpressibleBy*Literal`)
-  - `Equatable`, `Comparable`, `Hashable`
-  - `CustomStringConvertible`
-  - Borrowing and consuming sequences to augment the current `Sequence`
-  - Noncopyable container protocols, complementing the `Collection` protocol hierarchy
-- Dynamic runtime operations (isa checks, downcasts, existentials, reflection, key paths, etc.)
-- New variants of the standard container types `Array`, `Set`, `Dictionary`, etc. that provide finer control over performance.
+This includes generalizing dynamic runtime operations -- a huge area that includes facilities such as isa checks, downcasts, existentials, reflection, key paths, etc. (For instance, updating `print()` to fully support printing noncopyable types is likely to require many of these dynamic features to work.)
 
-Many of these depend on future language enhancements, and as such they will be developed in step with those.
+On the way to generalizing the Standard Library's current sequence and collection abstractions, we'll also need to implement a variety of alternatives to the existing copy-on-write collection types, `Array`, `Set`, `Dictionary`, `String`, etc, providing clients direct control over (runtime and memory) performance: consider a fixed-capacity array type, or a stack-allocated dictionary construct.
+
+Many of these depend on future language enhancements, and as such they will be developed alongside those.
 
 ## Appendix: `struct Hypoarray`
 
