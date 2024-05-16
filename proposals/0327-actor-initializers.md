@@ -745,7 +745,7 @@ To fix this problem, we propose to remove any isolation applied to the default-v
 
 For global or static stored properties, the isolation of the default-value expression will continue to match the isolation applied to the property. This isolation is needed to support declarations such as:
 
-```
+```swift
 @MainActor
 var x = 20
 
