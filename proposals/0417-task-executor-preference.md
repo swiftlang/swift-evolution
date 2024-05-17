@@ -158,7 +158,7 @@ Task(executorPreference: executor) {
 ```
 
 In a way, one should think of the `SerialExecutor` of the actor and `TaskExecutor` both being tracked and providing different semantics. 
-The `SerialExecutor` guarntees mutual exclusion, and the `TaskExecutor` provides a source of threads.
+The `SerialExecutor` guarantees mutual exclusion, and the `TaskExecutor` provides a source of threads.
 
 ## Detailed design
 
@@ -273,7 +273,7 @@ Task(executorPreference: specialExecutor) {
       return 12 
     }
     group.addTask(executorPreference: differentExecutor) {
-      // using 'globalConcurrentExecutor', overriden preference
+      // using 'differentExecutor', overriden preference
       return 42 
     }
     group.addTask(executorPreference: nil) {
