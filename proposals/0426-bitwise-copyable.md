@@ -3,7 +3,7 @@
 * Proposal: [SE-0426](0426-bitwise-copyable.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Guillaume Lessard](https://github.com/glessard), [Nate Chandler](https://github.com/nate-chandler), [Tim Kientzle](https://github.com/tbkka)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Implementation: in main branch of compiler ( https://github.com/apple/swift/pull/73235 )
+* Implementation: in main branch of compiler (https://github.com/apple/swift/pull/73235)
 * Status: **Implemented (Swift 6.0)**
 * Review: ([Pitch](https://forums.swift.org/t/pitch-bitwisecopyable-marker-protocol/69943)) ([First review](https://forums.swift.org/t/se-0426-bitwisecopyable/70479)) ([Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0426-bitwisecopyable/70892)) ([Second review](https://forums.swift.org/t/se-0426-second-review-bitwisecopyable/71316)) ([Acceptance](https://forums.swift.org/t/accepted-se-0426-bitwisecopyable/71600))
 
