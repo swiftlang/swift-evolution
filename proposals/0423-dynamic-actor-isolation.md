@@ -83,7 +83,7 @@ This proposal adds dynamic actor isolation checking to:
 
     Similarly to the previous case if a class or its individual synchronous members are actor-isolated and marked as either `@objc` or `@objcMembers`, the thunks, synthesized by the compiler to make them available from Objective-C, would have a new precondition check to make sure that use always happens on the right actor.
 
-  - Synchronous actor isolated function values passed to APIs that erase actor isolation and haven't yet adopted strict concurrency checking.
+  - Synchronous actor-isolated function values passed to APIs that erase actor isolation and haven't yet adopted strict concurrency checking.
 
     When API comes from a module that doesn't have strict concurrency checking enabled it's possible that it could introduce actor isolation violations that would not be surfaced to a client. In such cases actor isolation erasure should be handled defensively by introducing a runtime check at each position for granular protection.
 
@@ -101,7 +101,7 @@ This proposal adds dynamic actor isolation checking to:
     func updateUI(view: MyViewController) {
         NotMyLibrary.track({
             MainActor.assumeIsolated {
-            view.renderToUIEvent()
+                view.renderToUIEvent()
             }
         })
     }
@@ -142,7 +142,7 @@ Runtime checking for actor isolation is not necessary for `async` functions, bec
 
 ### `@preconcurrency` conformances
 
-A `@preconcurrency` protocol conformance is scoped to the implementation of the protocol requirements in the conforming type. A `@preconcurrency` conformance can be written at the primary declartaion or in an extension, and witness checker diagnostics about actor isolation will be suppressed. Like other `@preconcurrency` annotations, if no diagnotsics are suppressed, a warning will be emitted at the `@preconcurrency` annotation stating that the annotation has no effect and it should be removed.
+A `@preconcurrency` protocol conformance is scoped to the implementation of the protocol requirements in the conforming type. A `@preconcurrency` conformance can be written at the primary declaration or in an extension, and witness checker diagnostics about actor isolation will be suppressed. Like other `@preconcurrency` annotations, if no diagnotsics are suppressed, a warning will be emitted at the `@preconcurrency` annotation stating that the annotation has no effect and it should be removed.
 
 ### Disabling dynamic actor isolation checking
 
@@ -170,7 +170,7 @@ The current approach in this proposal has a very desirable property of eliminate
 
 ### `@preconcurrency(unsafe)` to downgrade dynamic actor isolation violations to warnings
 
-If adoption of this feature exposes a bug in existing binaries because actor isolated code from outside the actor, a `@preconcurrency(unsafe)` annotation (or similar) could be provided to downgrade assertion failures to warnings. However, it's not clear whether allowing a known data race exhibited at runtime is the right approach to solving such a problem.
+If adoption of this feature exposes a bug in existing binaries because actor-isolated code is run outside the actor, a `@preconcurrency(unsafe)` annotation (or similar) could be provided to downgrade assertion failures to warnings. However, it's not clear whether allowing a known data race exhibited at runtime is the right approach to solving such a problem.
 
 ## Revision history
 
