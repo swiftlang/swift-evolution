@@ -432,6 +432,9 @@ The following types in the standard library will gain the `BitwiseCopyable` cons
 - `Hasher`
 - `ObjectIdentifier`
 - `Duration`
+- Atomic changes
+  - `AtomicRepresentable.AtomicRepresentation`
+  - `AtomicOptionalRepresentable.AtomicOptionalRepresentation`
 
 ## Appendix: Fluctuating bitwise-copyability<a name="fluctuating-bitwise-copyability"/>
 
