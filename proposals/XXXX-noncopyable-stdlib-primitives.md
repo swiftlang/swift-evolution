@@ -1536,13 +1536,16 @@ When the array is destroyed, we need to properly deinitialize its elements and d
 
 Note the use of the new `extracting` operation to get a buffer pointer that consists of just the slots that have been populated. We cannot call `_storage.deinitialize()` as it isn't necessarily fully initialized; and we also cannot use the classic slicing operation `_storage[..<count]`, as it would need to return a `Slice`, and that type doesn't support noncopyable elements.
 
-Hypoarrays can be declared sendable when their element type is sendable.
+Hypoarrays can be declared sendable when their element type is sendable. 
 
 ```swift
-extension Hypoarray: Sendable where Element: Sendable & ~Copyable {}
+extension Hypoarray: @unchecked Sendable 
+where Element: Sendable & ~Copyable {}
 ```
 
-We need to remember to suppress the copyability of `Element`. If we forgot that, then this conditional sendability would only apply if `Element` happened to be copyable.
+`Hypoarray` relies on unsafe pointer operations and dynamic memory allocation to implement its storage, so the compiler is not able to prove that it'll be correctly sendable. The `@unchecked` attribute acknowledges this and promises that the type is still following the rules of sendability.
+
+We need to remember to suppress the copyability of `Element`. If we forgot that, then this conditional sendability would only apply if `Element` happened to be copyable. 
 
 Of course, an array needs to provide access to its contents, and it also needs operations to add and remove elements. The task of inventing variants of the `Sequence` and `Collection` protocols that allow noncopyable conforming types and element types is deferred to a subsequent proposal, but we can safely expect that even generalized array types will be based on the concept of an integer index, and that the existing indexing operations in `Collection` will largely translate into the noncopyable universe:
 
@@ -1587,7 +1590,7 @@ extension Hypoarray where Element: ~Copyable {
     return try body(_storage[index])
   }
 
-  mutating func modifyElement<E: Error, R: ~Copyable> (
+  mutating func updateElement<E: Error, R: ~Copyable> (
     at index: Int, 
     by body: (inout Element) throws(E) -> R
   ) throws(E) -> R {
@@ -1602,7 +1605,7 @@ These are quite clumsy, but they do work safely, and they provide in-place borro
 ```swift
 // Example usage:
 var array = Hypoarray<Int>(42)
-array.modifyElement(at: 0) { $0 += 1 }
+array.updateElement(at: 0) { $0 += 1 }
 array.borrowElement(at: 0) { print($0) } // Prints "43"
 ```
 
@@ -1613,12 +1616,12 @@ array.borrowElement(at: 0) { print($0) } // Prints "43"
 extension Hypoarray where Element: ~Copyable {
   subscript(position: Int) -> Element {
     read {
-      precondition(index >= 0 && index < _count)
-      try yield _storage[index]
+      precondition(position >= 0 && position < _count)
+      try yield _storage[position]
     }
     modify {
-      precondition(index >= 0 && index < _count)
-      try yield &_storage[index]
+      precondition(position >= 0 && position < _count)
+      try yield &_storage[position]
     }
   }
 }
@@ -1639,13 +1642,13 @@ It would be desirable to allow iteration over `Hypoarray` instances. Unfortunate
 // Example usage:
 var array: Hypoarray<Int> = ...
 for i in array.startIndex ..< array.endIndex { // a.k.a. 0 ..< array.count
-  array.readElement(at: i) { print($0) }
+  array.borrowElement(at: i) { print($0) }
 }
 ```
 
 Not having noncopyable container protocols also means that `Hypoarray` cannot conform to any, so subsequently it will not get any of the standard generic container algorithms for free: there is no `firstIndex(of:)`, there is no `map`, no `filter`, no slicing, no `sort`, no `reverse`. Indeed, many of these standard algorithms expect to work on `Equatable` or `Comparable` items, and those protocols are also yet to be generalized.
 
-Okay, so all we have is `readElement` and `modifyElement`, for borrowing and mutating access. What about consuming access, though? 
+Okay, so all we have is `borrowElement` and `updateElement`, for borrowing and mutating access. What about consuming access, though? 
 
 Consuming an item of an array at a particular index would require either removing the item from the array, or destroying and discarding the rest of the array. Neither of these looks desirable as a primitive operation for accessing an element. However, we do expect arrays to provide a named operation for removing items, `remove(at:)`. This operation is easily implementable on `Hypoarray`:
 
@@ -1693,7 +1696,7 @@ We want insertions to have amortized O(1) complexity, so they need to be careful
 
 ```swift
 extension Hypoarray where Element: ~Copyable {
-  internal func _ensureFreeCapacity(_ minimumCapacity: Int) {
+  mutating func _ensureFreeCapacity(_ minimumCapacity: Int) {
     guard capacity < _count + minimumCapacity else { return }
     reserveCapacity(max(_count + minimumCapacity, 2 * capacity))
   }
