@@ -1,9 +1,9 @@
 # Noncopyable Standard Library Primitives
 
-* Proposal: [SE-NNNN](NNNN-noncopyable-stdlib-primitives.md)
+* Proposal: [SE-0437](0437-noncopyable-stdlib-primitives.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (May 22nd...June 4th, 2024)**
 * Roadmap: [Improving Swift performance predictability: ARC improvements and ownership control][Roadmap]
 * Implementation: 
    - The type/function generalizations are (provisionally) already present on main and release/6.0.
