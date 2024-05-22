@@ -5,10 +5,10 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (May 22nd...June 4th, 2024)**
 * Roadmap: [Improving Swift performance predictability: ARC improvements and ownership control][Roadmap]
-* Implementation: 
+* Implementation:
    - The type/function generalizations are (provisionally) already present on main and release/6.0.
    - The proposed API additions are implemented by PRs [#73807](https://github.com/apple/swift/pull/73807) (main) and [#73810](https://github.com/apple/swift/pull/73810) (release/6.0).
-* Forum thread: [[pitch](https://forums.swift.org/t/pitch-noncopyable-standard-library-primitives/71566)]
+* Review: ([pitch](https://forums.swift.org/t/pitch-noncopyable-standard-library-primitives/71566)) ([review](https://forums.swift.org/t/se-0437-generalizing-standard-library-primitives-for-non-copyable-types/72020))
 
 [Roadmap]: https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206
 
