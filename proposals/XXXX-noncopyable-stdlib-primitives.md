@@ -5,7 +5,9 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Roadmap: [Improving Swift performance predictability: ARC improvements and ownership control][Roadmap]
-* Implementation: On main and release/6.0, gated behind `-enable-experimental-feature NoncopyableGenerics`. [FIXME: need to open a PR with the API additions.]
+* Implementation: 
+   - The type/function generalizations are (provisionally) already present on main and release/6.0.
+   - The proposed API additions are implemented by PRs [#73807](https://github.com/apple/swift/pull/73807) (main) and [#73810](https://github.com/apple/swift/pull/73810) (release/6.0).
 * Forum thread: [[pitch](https://forums.swift.org/t/pitch-noncopyable-standard-library-primitives/71566)]
 
 [Roadmap]: https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206
