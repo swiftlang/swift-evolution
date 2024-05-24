@@ -641,7 +641,7 @@ Examples that should usually not use `@isolated(any)` include:
 It would be convenient in some cases to be able to assert that the
 current synchronous context is already isolated to the isolation of
 an `@isolated(any)` function, allowing the function to be called without
-crossing isoaltion.  Similar functionality is provided by the
+crossing isolation.  Similar functionality is provided by the
 `assumeIsolated` function introduced by [SE-0392][SE-0392].
 Unfortunately, the current `assumeIsolated` function is inadequate
 for this purpose for several reasons.
