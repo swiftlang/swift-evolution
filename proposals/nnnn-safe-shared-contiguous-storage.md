@@ -786,7 +786,7 @@ extension RawSpan {
 
 ```swift
 extension RawSpan {
-  public typealias Index = Span<Element>.Index
+  public typealias Index = RawSpan.Index
   public typealias SubSequence = Self
 
   public var startIndex: Index { get }
@@ -814,8 +814,6 @@ extension RawSpan {
   public func distance(from start: Index, to end: Index) -> Int
 }
 ```
-
-**TODO**: What does `typealias Index = Span<Element>.Index` mean? 
 
 ##### Index validation utiliities:
 
