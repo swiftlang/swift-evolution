@@ -117,16 +117,11 @@ actor Clicker {
 This proposal introduces new runtime function:
 
 ```swift
-// Flags:
-// * copyTaskLocalsOnHop    = 0x1
-// * resetTaskLocalsOnNoHop = 0x2
-
 @_silgen_name("swift_task_deinitOnExecutor")
 @usableFromInline
 internal func _deinitOnExecutor(_ object: __owned AnyObject,
                                 _ work: @convention(thin) (__owned AnyObject) -> Void,
-                                _ executor: UnownedSerialExecutor,
-                                _ flags: Builtin.Word)
+                                _ executor: UnownedSerialExecutor)
 ```
 
 `swift_task_deinitOnExecutor` provides support for isolated synchronous `deinit`. If ensures that `deinit`'s code is running on the correct executor, by wrapping it into a task-less ad hoc job, if needed. It does not do any reference counting and can be safely used even with references that were released for the last time but not deallocated yet.
@@ -343,105 +338,11 @@ Ad-hoc job created for isolated synchronous deinit is executed outside a task, s
 
 ### Task-local values
 
-Copying task-local values is a safe default choice for handling task-local values in isolated or asynchronous `deinit`. It allows code in the deinit to access task-local values at the point of last release, the same way they are available in synchronous nonisolated `deinit`.
+This proposal does not define how Swift runtime should behave when running isolated deinit. It may use task-local values as seen at the point of the last release, reset them to default values, or use some other set of values. Behavior is allowed to change without notice. But future proposals may change specification by defining a specific behavior.
 
-It can be hard to predict where the point of the last release will be, but as long it can be constrained to some broad scope, code in the `deinit` can assume that all task-locals set for the entire scope are available.
+Client code should not depend on behavior of particular implementation of the Swift runtime. Inside isolated `deinit` it is safe to read only the task-local values that were also set inside the `deinit`.
 
-It might be more reliable to instead read task-locals in the initializer, and store them as properties of the object. But it might be not possible if task-locals are tunneled through call stack without being directly accessible.
-
-```swift
-// MyLib
-private class Logger {
-  @TaskLocal
-  static var instance: Logger?
-}
-
-public func withLogger(operation: () async -> Void) {
-  let logger = Logger()
-  Logger.$instance.withValue(logger, operation: operation)
-}
-
-public func log(_ message: String) {
-  Logger.instance?.log(message)
-}
-
-// MyApp
-import MyLib
-
-class MyService {
-  init() {
-    // Cannot capture Logger.instance because it private
-  }
-
-  func getData() async -> Data { ... }
-  func doStuff() async { ... }
-
-  deinit async {
-    do {
-      try await shutdown()
-    } catch {
-      log("\(error)")
-    }
-  }
-}
-
-withLogger {
-  let service = MyService()
-  async let data = service.getData()
-  await service.doStuff()
-  // We don't know if last release happens in async let or in the main task
-  // But we know that it happens inside the closure
-  // So we can assume that all task locals set by the withLogger are available,
-  // even if don't know them
-}
-```
-
-But copying task-locals comes with a cost. For some performance-critical cases this cost might be unacceptable.
-
-It is possible to disable this behavior using new attribute - `@resetTaskLocals`. It affects which flags will be passed to runtime functions.
-
-By default `copyTaskLocalsOnHop` is passed, making task-locals from the point of last release available in the deinit on all code paths.
-
-If `@resetTaskLocals` is specified, `resetTaskLocalsOnNoHop` is passed, making task-locals consistently reset in the deinit.
-
-Inserting a barrier for fast path of the `swift_task_deinitOnExecutor()` has small runtime cost, but consistent behavior simplifies writing unit-tests and debugging, and smoothens learning curve.
-
-Currently there are no attributes that would emit combination of flags that would neither insert a barrier nor copy task-local values. But they can be added in the future without changes in the language runtime.
-
-Attribute is not inherited. Attribute needs to be applied to the most derived class to have effect:
-
-```swift
-private class TL {
-  @TaskLocal
-  static var value: Int = 0
-}
-
-class A {
-  deinit async {
-    print("A: \(TL.value)")
-  }
-}
-class B: A {
-  @resetTaskLocals
-  deinit async {
-    print("B: \(TL.value)")
-  }
-}
-class C: B {
-  deinit async {
-    print("C: \(TL.value)")
-  }
-}
-
-TL.$value.withValue(42) {
-  // prints A: 42
-  _ = A()
-  // prints B: 0, A: 0
-  _ = B()
-  // prints C: 42, B: 42, A: 42
-  _ = C()
-}
-```
+Note that any existing hopping in overridden `retain`/`release` for UIKit classes is unlikely to be aware of task-local values.
 
 ## Source compatibility
 
@@ -619,28 +520,10 @@ a.enqueue { aIsolated in
 
 `UIView` and `UIViewController` implement hopping to the main thread by overriding the `release` method. But in Swift there are no vtable/wvtable slots for releasing, and adding them would also affect a lot of code that does not need isolated deinit.
 
-### Don't copy task-local values when hopping by default
+### Copy task-local values when hopping by default
 
-When switching executors, the current implementation copies priority and task-local values from the task/thread where the last release happened. This minimizes differences after code changes between async/isolated and nonisolated synchronous `deinit`s, and runtime differences between fast and slow paths of isolated deinit. Copying task-locals by default and providing an option to opt-out, follows the precedent of `Task.init` vs `Task.detached` and adheres to the principle of progressive disclosure.
-
-There are no compile-time checks for availability of the non-default task-local values.
-Checking correctness of the code that uses task-local values relies on testing.
-Having different behavior depending on the point of the last release can lead to bugs,
-which are easy to miss during the testing and hard to reproduce once reported.
-
-One can argue that since point of the last release can be racy or simply hard to predict exactly, task-local values have little value in deinit. But even when point of the last release cannot be known exactly, often it can be bound to a scope. If task-local values are set for the entire scope, developers can expect them to be reliably available in the `deinit`.
-
-In some cases it might be a better practice to capture task-local values in the `init()`, store them as object properties and re-inject them into `deinit`. But it is not always possible to know which task-local values are used inside the `deinit`. For example, if it calls functions from closed-source frameworks or hidden behind type-erasure.
-
-It can be easy to miss during testing that task-local values are not injected into code running inside `deinit` if task-local values are accessed only in exceptional situations -  e.g. for logging assertion failures or runtime errors. But those are exactly the use cases where it is critically important for logging to work.
-
-Consistently resetting task-locals is another alternative which gives consistent behavior. But it comes with it's own runtime cost, which needs to be paid on the fast-path of the isolated deinit per object. Assuming that trees of objects are likely to be isolated to the same actor. Cost of copying task-local values needs to be paid only when deinitiazing root object and is proportional to the number of task-locals. While cost of resetting needs to be paid per object and is proportional to the tree size. Assuming that number of task-locals is smaller than number of objects for a typical use case, copying task-local values is actually faster then resetting them.
-
-Note that copying task-local values does not prevent future optimizations for reusing current task for async deinit of the child objects.
-Release of the child objects happens from complier-generated code which does interfere with task-local values.
-And any task-local values added inside the body of the deinit, would be removed inside the body as well.
-So if last release of the child object starts a new async deinit, it would need to be executed with the same set of task-local values as parent deinit,
-and thus can be executed in the same task.
+This comes with a performance cost, which is unlikely to be beneficial to most of the users.
+Leaving behavior of the task-locals undefined allows to potentially change it in the future, after getting more feedback from the users.
 
 ### Implicitly propagate isolation to synchronous `deinit`.
 
