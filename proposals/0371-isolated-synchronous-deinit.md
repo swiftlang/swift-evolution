@@ -13,8 +13,6 @@ This feature allows `deinit`'s of actors and global-actor isolated types (GAITs)
 
 ## Motivation
 
-The combination of automatic reference counting and deterministic deinitialization makes `deinit` in Swift a powerful tool for resource management. It greatly reduces need for `close()`-like methods (`unsubscribe()`, `cancel()`, `shutdown()`, etc.) in the public API. Such methods not only clutter the public API, but also introduce a state where object is already unusable but is still able to be referenced.
-
 Restrictions imposed by [SE-0327](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) reduce the usefulness of explicit `deinit`s in actors and GAITs. Workarounds for these limitations may involve creation of `close()`-like methods, or even manual reference counting if the API should be able to serve several clients.
 
 In cases when `deinit` belongs to a subclass of `UIView` or `UIViewController` which are known to call `dealloc` on the main thread, developers may be tempted to silence the diagnostic by adopting `@unchecked Sendable` in types that are not actually  sendable. This undermines concurrency checking by the compiler, and may lead to data races when using incorrectly marked types in other places.
