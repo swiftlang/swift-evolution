@@ -283,7 +283,7 @@ public func storeBytes<T : BitwiseCopyable>(
 
 This allows for optimal code generation because `memcpy` instead of value witnesses can be used.
 
-Additionally, we propose deprecating the original, unconstrained overloads of `loadUnaligned` and `storeBytes`.
+The pre-existing methods will continue to exist (see [alternatives considered](#deprecation).)
 
 ## Effect on ABI stability
 
@@ -382,6 +382,10 @@ If, in a subsequent proposal, the protocol were redefined as a composition, symb
 ### Alternate Spellings
 
 **Trivial** is widely used within the compiler and Swift evolution discussions to refer to the property of bitwise copyability. `BitwiseCopyable`, on the other hand, is more self-documenting.
+
+### Deprecation of unconstrained functions dependent on `isPOD`<a name="deprecation"></a>
+
+The standard library has a few pre-existing functions that receive a generic bitwise-copyable value as a parameter. These functions work with types for which the `_isPOD()` function returns true, even though they do not have a `BitwiseCopyable` conformance. If we were to deprecate these unconstrained versions, we would add unresolvable warnings to some of the codebases that use them. For example, they might use types that could be conditionally `BitwiseCopyable`, but come from a module whose types have not been conformed to `BitwiseCopyable` by their author. Furthermore, as explained [above](#transient-and-permanent), it is not necessarily the case that a transiently bitwise-copyable type can be permanently annotated as `BitwiseCopyable`.
 
 ## Acknowledgments
 
