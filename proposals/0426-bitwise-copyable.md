@@ -189,7 +189,7 @@ public struct Coordinate3 {
 ```
 to `BitwiseCopyable`.
 
-### Suppressing inferred conformance<a name="suppression"/>
+### Suppressing inferred conformance<a name="suppression"></a>
 
 To suppress the inference of `BitwiseCopyable`, `~BitwiseCopyable` can be added to the type's inheritance list.
 
@@ -199,7 +199,7 @@ struct Coordinate4 : ~BitwiseCopyable {...}
 
 Suppression must be declared on the type declaration itself, not on an extension.
 
-### Transient and permanent notions<a name="transient-and-permanent"/>
+### Transient and permanent notions<a name="transient-and-permanent"></a>
 
 The Swift runtime already describes[^4] whether a type is bitwise-copyable.
 It is surfaced, among other places, in the standard library function `_isPOD`[^5].
@@ -223,7 +223,7 @@ In other words returning true from `_isPOD` is a transient property, and conform
 For this reason, conformance to `BitwiseCopyable` is not inherent.
 Its declaration on a public type provides a guarantee that the compiler cannot infer.
 
-### Limitations of BitwiseCopyable<a name="limitations"/>
+### Limitations of BitwiseCopyable<a name="limitations"></a>
 
 Being declared with `@_marker`, `BitwiseCopyable` is a limited protocol.
 Its limited nature allows the protocol's runtime behavior to be defined later, as needed.
@@ -341,7 +341,7 @@ For example, casting a type which suppressed a conformance to `BitwiseCopyable` 
 If this approach were taken, such casting could be back-deployed as far as the oldest OS in which this runtime representation was added.
 Further back deployment would be possible by adding conformance records to back deployed binaries.
 
-#### Duck typing for BitwiseCopyable<a name="casting-by-duck-typing"/>
+#### Duck typing for BitwiseCopyable<a name="casting-by-duck-typing"></a>
 
 An alternative would be to dynamically treat any type that's bitwise-copyable as if it conformed to `BitwiseCopyable`.
 
@@ -391,7 +391,7 @@ The standard library has a few pre-existing functions that receive a generic bit
 
 This proposal has benefitted from discussions with John McCall, Joe Groff, Andrew Trick, Michael Gottesman, and Arnold Schwaigofer.
 
-## Appendix: Standard library conformers<a name="all-stdlib-conformers"/>
+## Appendix: Standard library conformers<a name="all-stdlib-conformers"></a>
 
 The following protocols in the standard library will gain the `BitwiseCopyable` constraint:
 
@@ -440,7 +440,7 @@ The following types in the standard library will gain the `BitwiseCopyable` cons
   - `AtomicRepresentable.AtomicRepresentation`
   - `AtomicOptionalRepresentable.AtomicOptionalRepresentation`
 
-## Appendix: Fluctuating bitwise-copyability<a name="fluctuating-bitwise-copyability"/>
+## Appendix: Fluctuating bitwise-copyability<a name="fluctuating-bitwise-copyability"></a>
 
 Let's say the following type is defined in a framework built with library evolution.
 
