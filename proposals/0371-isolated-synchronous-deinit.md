@@ -17,6 +17,8 @@ Restrictions imposed by [SE-0327](https://github.com/apple/swift-evolution/blob/
 
 In cases when `deinit` belongs to a subclass of `UIView` or `UIViewController` which are known to call `dealloc` on the main thread, developers may be tempted to silence the diagnostic by adopting `@unchecked Sendable` in types that are not actually  sendable. This undermines concurrency checking by the compiler, and may lead to data races when using incorrectly marked types in other places.
 
+While this proposal introduces additional control over deinit execution semantics that are necessary in some situations, it also introduces a certain amount of non-determinism to deinitializer execution. Because isolated deinits must potentially be enqueued and executed "later" rather than directly inline, this can cause subtle timing issues in resource reclamation. For example, APIs which require quick and predictable resource cleanup, such as scarce resources such as e.g. file descriptors or connections, should not be managed using isolated deinitializers, as the exact timing of when the resource would be released is non-deterministic, which can lead to subtle timing and resource starvation issues. Instead, for types which require tight control over lifetime and cleanup, one should still prefer using "with-style" APIs (`await withResource { resource }`), explicit `await resource.close()` or non-copyable & non-escapable types.
+
 ## Proposed solution
 
 Allow execution of `deinit` and object deallocation to be the scheduled on the executor (either that of the actor itself or that of the relevant global actor), if needed.
