@@ -504,6 +504,12 @@ The compiler must issue a diagnostic if any of the above cannot be satisfied.
 
 ### Grammar
 
+
+TODO:
+
+* dependent parameters
+* 'immortal' keyword
+
 This new syntax adds an optional lifetime modifier just before the return type.
 This modifies *function-result* in the Swift grammar as follows:
 
