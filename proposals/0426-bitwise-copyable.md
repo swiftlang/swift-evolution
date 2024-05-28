@@ -471,7 +471,7 @@ In the next version of the framework, to expose more information to its clients,
 public struct Dish {
   public let substrate: Noodle
   public let toppings: [Topping]
-  public let isTopped: Bool { toppings.count > 0 }
+  public var isTopped: Bool { toppings.count > 0 }
 }
 ```
 
@@ -486,7 +486,7 @@ public struct Dish {
   public let substrate: Noodle
   private let toppingOptions: Topping
   public let toppings: [Topping] { ... }
-  public let isTopped: Bool { toppings.count > 0 }
+  public var isTopped: Bool { toppings.count > 0 }
 }
 ```
 
