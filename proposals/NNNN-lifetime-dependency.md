@@ -796,6 +796,188 @@ This could be exposed as an alternate spelling if there were sufficient demand.
 func f(arg1: Type1, arg2: Type2, arg3: Type3) -> dependsOn(0) ReturnType
 ```
 
+### Value component lifetime
+
+In the current design, aggregating multiple values merges their scopes.
+
+```swift
+struct Container<Element>: ~Escapable {
+  var a: /*dependsOn(self)*/ Element
+  var b: /*dependsOn(self)*/ Element
+
+  init(a: Element, b: Element) -> dependsOn(a, b) Self {...}
+}
+```
+
+This can have the effect of narrowing the lifetime scope of some components:
+
+```swift
+var a = ...
+{
+  let b = ...
+  let c = Container<Element>(a: a, b: b)
+  a = c.a // 🛑 Error: `a` outlives `c.a`, which is constrained by the lifetime of `b`
+}
+```
+
+In the future, the lifetimes of multiple values can be represented independently by attaching a `@lifetime` attribute to a stored property and referring to that property's name inside `dependsOn` annotations:
+
+```swift
+struct Container<Element>: ~Escapable {
+  @lifetime
+  var a: /*dependsOn(self.a)*/ Element
+  @lifetime
+  var b: /*dependsOn(self.b)*/ Element
+
+  init(a: Element, b: Element) -> dependsOn(a -> .a, b -> .b) Self {...}
+}
+```
+
+The nesting level of a component is the inverse of the nesting level of its lifetime. `a` and `b` are nested components of `Container`, but the lifetime of a `Container` instance is nested within both lifetimes of `a` and `b`.
+
+### Abstract lifetime components
+
+Lifetime dependence is not always neatly tied to stored properties. Say that our `Container` now holds multiple elements within its own storage. We can use a top-level `@lifetime` annotation to name an abstract lifetime for all the elements:
+
+```swift
+@lifetime(elements)
+struct Container<Element>: ~Escapable {
+  var storage: UnsafeMutablePointer<Element>
+
+  init(element: Element) -> dependsOn(element -> .elements) Self {...}
+
+  subscript(position: Int) -> dependsOn(self.elements) Element
+}
+```
+
+Note that a subscript setter reverses the dependence: `dependsOn(newValue -> .elements)`.
+
+As before, when `Container` held a single element, it can temporarily take ownership of an element without narrowing its lifetime:
+
+```swift
+var c1: Container<Element>
+{
+  let c2 = Container<Element>(element: c1[i])
+  c1[i] = c2[i] // OK: c2[i] can outlive c2
+}
+```
+
+Now let's consider a `View` type, similar to `Span`, that provides access to a borrowed container's elements. The lifetime of the view depends on the container's storage. Therefore, the view depends on a *borrow* of the container. The container's elements, however, no longer depend on the container's storage once they have been copied. This can be expressed by giving the view an abstract lifetime for its elements, separate from the view's own lifetime:
+
+```swift
+@lifetime(elements)
+struct View<Element>: ~Escapable {
+  var storage: UnsafePointer<Element>
+
+  init(container: Container)
+    -> dependsOn(container.elements -> .elements) // Copy the lifetime associated with container.elements
+    Self {...}
+
+  subscript(position: Int) -> dependsOn(self.elements) Element
+}
+
+@lifetime(elements)
+struct MutableView<Element>: ~Escapable, ~Copyable {
+  var storage: UnsafeMutablePointer<Element>
+  //...
+}
+
+extension Container {
+  // Require a borrow scope in the caller that borrows the container
+  var view: dependsOn(borrow self) View<Element> { get {...} }
+
+  var mutableView: dependsOn(borrow self) MutableView<Element> { mutating get {...} }
+}
+```
+
+Now an element can be copied out of a view `v2` and assigned to another view `v1` whose lifetime exceeds the borrow scope that constrains the lifetime of `v2`.
+
+```swift
+var c1: Container<Element>
+let v1 = c1.mutableView
+{
+  let v2 = c1.view // borrow scope for `v2`
+  v1[i] = v2[i] // OK: v2[i] can outlive v2
+}
+```
+
+To see this more abstractly, rather than directly assigning, `v1[i] = v2[i]`, we can use a generic interface:
+
+```swift
+func transfer(from: Element, to: dependsOn(from) inout Element) {
+  to = from
+}
+
+var c1: Container<Element>
+let v1 = c1.mutableView
+{
+  let v2 = c1.view // borrow scope for `v2`
+  transfer(from: v2[i], to: &v1[i]) // OK: v2[i] can outlive v2
+}
+```
+
+### Protocol lifetime requirements
+
+Value lifetimes are limited because they provide no way to refer to a lifetime without refering to a concrete type that the lifetime is associated with. To support generic interfaces, protocols need to refer to any lifetime requirements that can appear in interface.
+
+Imagine that we want to access view through a protocol. To support returning elements that outlive the view, we need to require an `elements` lifetime requirement:
+
+```swift
+@lifetime(elements)
+protocol ViewProtocol {
+  subscript(position: Int) -> dependsOn(self.elements) Element
+}
+```
+
+Let's return to View's initializer;
+
+```swift
+@lifetime(elements)
+struct View<Element>: ~Escapable {
+  init(container: borrowing Container) ->
+    // Copy the lifetime assoicate with container.elements
+    dependsOn(container.elements -> .elements)
+    Self {...}
+}
+```
+
+This is not a useful initializer, because `View` should not be specific to a concrete `Container` type. Instead, we want `View` to be generic over any container that provides `elements` that can be copied out of the container's storage:
+
+```swift
+@lifetime(elements)
+protocol ElementStorage: ~Escapable {}
+
+@lifetime(elements)
+struct View<Element>: ~Escapable {
+  init(storage: ElementStorage) ->
+    // Copy the lifetime assoicate with storage.elements
+    dependsOn(storage.elements -> .elements)
+    Self {...}
+}
+```
+
+### Structural lifetime dependencies
+
+A scoped dependence normally cannot escape the lexical scope of its source variable. It may, however, be convenient to escape the source of that dependence along with any values that dependent on its lifetime. This could be done by moving the ownership of the source into a structure that preserves any dependence relationships. A function that returns a nonescapable type cannot currently depend on the scope of a consuming parameter. But we could lift that restriction provided that the consumed argument is moved into the return value, and that the return type preserves any dependence on that value:
+
+```swift
+struct OwnedSpan<T>: ~Copyable & ~Escapable{
+  let owner: any ~Copyable
+  let span: dependsOn(scope owner) Span<T>
+
+  init(owner: consuming any ~Copyable, span: dependsOn(scope owner) Span<T>) -> dependsOn(scoped owner) Self {
+    self.owner = owner
+    self.span = span
+  }
+}
+
+func arrayToOwnedSpan<T>(a: consuming [T]) -> OwnedSpan<T> {
+  OwnedSpan(owner: a, span: a.span())
+}
+```
+
+`arrayToOwnedSpan` creates a span with a scoped dependence on an array, then moves both the array and the span into an `OwnedSpan`, which can be returned from the function. This converts the original lexically scoped dependence into a structural dependence.
+
 ## Acknowledgements
 
 Dima Galimzianov provided several examples for Future Directions.
