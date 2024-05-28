@@ -275,6 +275,204 @@ func g(... arg1: borrowing Type1, arg2: NEType, ...) -> NEType
 
 We expect these implicit inferences to cover most cases, with the explicit form only occasionally being necessary in practice.
 
+### Dependent parameters
+
+Normally, lifetime dependence is required when a nonescapable function result depends on an argument to that function. In some rare cases, however, a nonescapable function parameter may depend on another argument to that function. Consider a function with an `inout` parameter. The function body may reassign that parameter to a value that depends on another parameter. This is similar in principle to a result dependence.
+
+```swift
+func mayReassign(span: dependsOn(a) inout [Int], to a: [Int]) {
+  span = a.span()
+}
+```
+
+A `selfDependsOn` keyword is required to indicate that a method's implicit `self` depends on another parameter.
+
+```swift
+extension Span {
+  mutating selfDependsOn(other) func reassign(other: Span<T>) {
+    self = other // ✅ OK: 'self' depends on 'other'
+  }
+}
+```
+
+We've discussed how a nonescapable result must be destroyed before the source of its lifetime dependence. Similarly, a dependent argument must be destroyed before an argument that it depends on. The difference is that the dependent argument may already have a lifetime dependence when it enters the function. The new function argument dependence is additive, because the call does not guarantee reassignment. Instead, passing the 'inout' argument is like a conditional reassignment. After the function call, the dependent argument carries both lifetime dependencies.
+
+```swift
+  let a1: Array<Int> = ...
+  var span = a1.span()
+  let a2: Array<Int> = ...
+  mayReassign(span: &span, to: a2)
+  // 'span' now depends on both 'a1' and 'a2'.
+```
+
+### Dependent properties
+
+Structural composition is an important use case for nonescapable types. Getting or setting a nonescapable property requires lifetime dependence, just like a function result or an 'inout' parameter. There's no need for explicit annotation in these cases, because only one dependence is possible. A getter returns a value that depends on `self`. A setter replaces the current dependence from `self` with a dependence on `newValue`.
+
+```swift
+struct Container<Element>: ~Escapable {
+  var element: Element {
+    /* dependsOn(self) */ get { ... }
+    /* selfDependsOn(newValue) */ set { ... }
+  }
+
+  init(element: Element) /* -> dependsOn(element) Self */ {...}
+}
+```
+
+### Conditional dependencies
+
+Conditionally nonescapable types can contain nonescapable elements:
+
+```swift
+    struct Container<Element>: ~Escapable {
+      var element: /* dependsOn(self) */ Element
+
+      init(element: Element) -> dependsOn(element) Self {...}
+
+      func getElement() -> dependsOn(self) Element { element }
+    }
+
+    extension Container<E> { // OK: conforms to Escapable.
+      // Escapable context...
+    }
+```
+
+Here, `Container` becomes nonescapable only when its element type is nonescapable. When `Container` is nonescapable, it inherits the lifetime of its single element value from the initializer and propagates that lifetime to all uses of its `element` property or the `getElement()` function.
+
+In some contexts, however, `Container` and `Element` both conform to `Escapable`. In those contexts, any `dependsOn` in `Container`'s interface is ignored, whether explicitly annotated or implied. So, when `Container`'s element conforms to `Escapable`, the `-> dependsOn(element) Self` annotation in its initializer is ignored, and the `-> dependsOn(self) Element` in `getElement()` is ignored.
+
+### Immortal lifetimes
+
+In some cases, a nonescapable value must be constructed without any object that can stand in as the source of a dependence. Consider extending the standard library `Optional` or `Result` types to be conditionally escapable:
+
+```swift
+enum Optional<Wrapped: ~Escapable>: ~Escapable {
+  case none, some(Wrapped)
+}
+
+extension Optional: Escapable where Wrapped: Escapable {}
+
+enum Result<Success: ~Escapable, Failure: Error>: ~Escapable {
+  case failure(Failure), success(Success)
+}
+
+extension Result: Escapable where Success: Escapable {}
+```
+
+When constructing an `Optional<NotEscapable>.none` or `Result<NotEscapable>.failure(error)` case, there's no lifetime to assign to the constructed value in isolation, and it wouldn't necessarily need one for safety purposes, because the given instance of the value doesn't store any state with a lifetime dependency. Instead, the initializer for cases like this can be annotated with `dependsOn(immortal)`:
+
+```swift
+extension Optional {
+  init(nilLiteral: ()) dependsOn(immortal) {
+    self = .none
+  }
+}
+```
+
+Once the escapable instance is constructed, it is limited in scope to the caller's function body since the caller only sees the static nonescapable type. If a dynamically escapable value needs to be returned further up the stack, that can be done by chaining multiple `dependsOn(immortal)` functions.
+
+#### Depending on immutable global variables
+
+Another place where immortal lifetimes might come up is with dependencies on global variables. When a value has a scoped dependency on a global let constant, that constant lives for the duration of the process and is effectively perpetually borrowed, so one could say that values dependent on such a constant have an effectively infinite lifetime as well. This will allow returning a value that depends on a global by declaring the function's return type with `dependsOn(immortal)`:
+
+```swift
+let staticBuffer = ...
+
+func getStaticallyAllocated() -> dependsOn(immortal) BufferReference {
+  staticBuffer.bufferReference()
+}
+```
+
+### Depending on an escapable `BitwiseCopyable` value
+
+The source of a lifetime depenence may be an escapable `BitwiseCopyable` value. This is useful in the implementation of data types that internally use `UnsafePointer`:
+
+```swift
+struct Span<T>: ~Escapable {
+  ...
+  // The caller must ensure that `unsafeBaseAddress` is valid over all uses of the result.
+  init(unsafeBaseAddress: UnsafePointer<T>, count: Int) dependsOn(unsafeBaseAddress) { ... }
+  ...
+}
+```
+
+By convention, when the source of a dependence is escapable and `BitwiseCopyable`, it should have an "unsafe" label, such as `unsafeBaseAddress` above. This communicates to anyone who calls the function, that they are reponsibile for ensuring that the value that the result depends on is valid over all uses of the result. The compiler can't guarantee safety because `BitwiseCopyable` types do not have a formal point at which the value is destroyed. Specifically, for `UnsafePointer`, the compiler does not know which object owns the pointed-to storage.
+
+```swift
+var span: Span<T>?
+let buffer: UnsafeBufferPointer<T>
+do {
+  let storage = Storage(...)
+  buffer = storage.buffer
+  span = Span(unsafeBaseAddress: buffer.baseAddress!, count: buffer.count)
+  // 🔥 'storage' may be destroyed
+}
+decode(span!) // 👿 Undefined behavior: dangling pointer
+```
+
+Normally, `UnsafePointer` lifetime guarantees naturally fall out of closure-taking APIs that use `withExtendedLifetime`:
+
+```swift
+extension Storage {
+  public func withUnsafeBufferPointer<R>(
+    _ body: (UnsafeBufferPointer<Element>) throws -> R
+  ) rethrows -> R {
+    withExtendedLifetime (self) { ... }
+  }
+}
+
+let storage = Storage(...)
+storage.withUnsafeBufferPointer { buffer in
+  let span = Span(unsafeBaseAddress: buffer.baseAddress!, count: buffer.count)
+  decode(span!) // ✅ Safe: 'buffer' is always valid within the closure.
+}
+```
+
+### Standard library extensions
+
+#### Conditionally nonescapable types
+
+The following standard library types will become conditionally nonescapable: `Optional`, `ExpressibleByNilLiteral`, and `Result`.
+
+`MemoryLayout` will suppress the escapable constraint on its generic parameter.
+
+#### `unsafeLifetime` helper functions
+
+The following two helper functions will be added for implementing low-level data types:
+
+```swift
+/// Replace the current lifetime dependency of `dependent` with a new copied lifetime dependency on `source`.
+///
+/// Precondition: `dependent` has an independent copy of the dependent state captured by `source`.
+func unsafeLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
+  dependent: consuming T, dependsOn source: borrowing U)
+  -> dependsOn(source) T { ... }
+
+/// Replace the current lifetime dependency of `dependent` with a new scoped lifetime dependency on `source`.
+///
+/// Precondition: `dependent` depends on state that remains valid until either:
+/// (a) `source` is either destroyed if it is immutable,
+/// or (b) exclusive to `source` access ends if it is a mutable variable.
+func unsafeLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
+  dependent: consuming T, scoped source: borrowing U)
+  -> dependsOn(scoped source) T {...}
+```
+
+These are useful for nonescapable data types that are internally represented using escapable types such as `UnsafePointer`. For example, some methods on `Span` will need to derive a new `Span` object that copies the lifetime dependence of `self`:
+
+```swift
+extension Span {
+  consuming func dropFirst() -> Span<T> {
+    let local = Span(base: self.base + 1, count: self.count - 1)
+    // 'local' can persist after 'self' is destroyed.
+    return unsafeLifetime(dependent: local, dependsOn: self)
+  }
+}
+```
+
+Since `self.base` is an escapable value, it does not propagate the lifetime dependence of its container. Without the call to `unsafeLifetime`, `local` would be limited to the local scope of the value retrieved from `self.base`, and could not be returned from the method. In this example, `unsafeLifetime` communicates that all of the dependent state from `self` has been *copied* into `local`, and, therefore, `local` can persist after `self` is destroyed.
+
 ## Detailed design
 
 ### Relation to ~Escapable
