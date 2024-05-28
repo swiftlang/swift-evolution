@@ -387,6 +387,8 @@ If, in a subsequent proposal, the protocol were redefined as a composition, symb
 
 The standard library has a few pre-existing functions that receive a generic bitwise-copyable value as a parameter. These functions work with types for which the `_isPOD()` function returns true, even though they do not have a `BitwiseCopyable` conformance. If we were to deprecate these unconstrained versions, we would add unresolvable warnings to some of the codebases that use them. For example, they might use types that could be conditionally `BitwiseCopyable`, but come from a module whose types have not been conformed to `BitwiseCopyable` by their author. Furthermore, as explained [above](#transient-and-permanent), it is not necessarily the case that a transiently bitwise-copyable type can be permanently annotated as `BitwiseCopyable`.
 
+At present, the unconstrained versions check that `_isPOD()` returns true in debug mode only. We may in the future consider changing them to check at all times, since in general their use in critical sections will have been updated to use the `BitwiseCopyable`-constrained overloads.
+
 ## Acknowledgments
 
 This proposal has benefitted from discussions with John McCall, Joe Groff, Andrew Trick, Michael Gottesman, and Arnold Schwaigofer.
