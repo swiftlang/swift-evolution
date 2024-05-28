@@ -189,7 +189,7 @@ public struct Coordinate3 {
 ```
 to `BitwiseCopyable`.
 
-### Suppressing inferred conformance<a name="suppression"/>
+### Suppressing inferred conformance<a name="suppression"></a>
 
 To suppress the inference of `BitwiseCopyable`, `~BitwiseCopyable` can be added to the type's inheritance list.
 
@@ -199,7 +199,7 @@ struct Coordinate4 : ~BitwiseCopyable {...}
 
 Suppression must be declared on the type declaration itself, not on an extension.
 
-### Transient and permanent notions<a name="transient-and-permanent"/>
+### Transient and permanent notions<a name="transient-and-permanent"></a>
 
 The Swift runtime already describes[^4] whether a type is bitwise-copyable.
 It is surfaced, among other places, in the standard library function `_isPOD`[^5].
@@ -223,7 +223,7 @@ In other words returning true from `_isPOD` is a transient property, and conform
 For this reason, conformance to `BitwiseCopyable` is not inherent.
 Its declaration on a public type provides a guarantee that the compiler cannot infer.
 
-### Limitations of BitwiseCopyable<a name="limitations"/>
+### Limitations of BitwiseCopyable<a name="limitations"></a>
 
 Being declared with `@_marker`, `BitwiseCopyable` is a limited protocol.
 Its limited nature allows the protocol's runtime behavior to be defined later, as needed.
@@ -283,7 +283,7 @@ public func storeBytes<T : BitwiseCopyable>(
 
 This allows for optimal code generation because `memcpy` instead of value witnesses can be used.
 
-Additionally, we propose deprecating the original, unconstrained overloads of `loadUnaligned` and `storeBytes`.
+The existing methods that use a runtime assert instead of a type constraint will still be available (see [alternatives considered](#deprecation)).
 
 ## Effect on ABI stability
 
@@ -341,7 +341,7 @@ For example, casting a type which suppressed a conformance to `BitwiseCopyable` 
 If this approach were taken, such casting could be back-deployed as far as the oldest OS in which this runtime representation was added.
 Further back deployment would be possible by adding conformance records to back deployed binaries.
 
-#### Duck typing for BitwiseCopyable<a name="casting-by-duck-typing"/>
+#### Duck typing for BitwiseCopyable<a name="casting-by-duck-typing"></a>
 
 An alternative would be to dynamically treat any type that's bitwise-copyable as if it conformed to `BitwiseCopyable`.
 
@@ -383,11 +383,17 @@ If, in a subsequent proposal, the protocol were redefined as a composition, symb
 
 **Trivial** is widely used within the compiler and Swift evolution discussions to refer to the property of bitwise copyability. `BitwiseCopyable`, on the other hand, is more self-documenting.
 
+### Deprecation of unconstrained functions dependent on `isPOD`<a name="deprecation"></a>
+
+The standard library has a few pre-existing functions that receive a generic bitwise-copyable value as a parameter. These functions work with types for which the `_isPOD()` function returns true, even though they do not have a `BitwiseCopyable` conformance. If we were to deprecate these unconstrained versions, we would add unresolvable warnings to some of the codebases that use them. For example, they might use types that could be conditionally `BitwiseCopyable`, but come from a module whose types have not been conformed to `BitwiseCopyable` by their author. Furthermore, as explained [above](#transient-and-permanent), it is not necessarily the case that a transiently bitwise-copyable type can be permanently annotated as `BitwiseCopyable`.
+
+At present, the unconstrained versions check that `_isPOD()` returns true in debug mode only. We may in the future consider changing them to check at all times, since in general their use in critical sections will have been updated to use the `BitwiseCopyable`-constrained overloads.
+
 ## Acknowledgments
 
 This proposal has benefitted from discussions with John McCall, Joe Groff, Andrew Trick, Michael Gottesman, and Arnold Schwaigofer.
 
-## Appendix: Standard library conformers<a name="all-stdlib-conformers"/>
+## Appendix: Standard library conformers<a name="all-stdlib-conformers"></a>
 
 The following protocols in the standard library will gain the `BitwiseCopyable` constraint:
 
@@ -436,7 +442,7 @@ The following types in the standard library will gain the `BitwiseCopyable` cons
   - `AtomicRepresentable.AtomicRepresentation`
   - `AtomicOptionalRepresentable.AtomicOptionalRepresentation`
 
-## Appendix: Fluctuating bitwise-copyability<a name="fluctuating-bitwise-copyability"/>
+## Appendix: Fluctuating bitwise-copyability<a name="fluctuating-bitwise-copyability"></a>
 
 Let's say the following type is defined in a framework built with library evolution.
 
@@ -465,7 +471,7 @@ In the next version of the framework, to expose more information to its clients,
 public struct Dish {
   public let substrate: Noodle
   public let toppings: [Topping]
-  public let isTopped: Bool { toppings.count > 0 }
+  public var isTopped: Bool { toppings.count > 0 }
 }
 ```
 
@@ -480,7 +486,7 @@ public struct Dish {
   public let substrate: Noodle
   private let toppingOptions: Topping
   public let toppings: [Topping] { ... }
-  public let isTopped: Bool { toppings.count > 0 }
+  public var isTopped: Bool { toppings.count > 0 }
 }
 ```
 
