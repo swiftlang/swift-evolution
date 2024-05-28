@@ -1,4 +1,4 @@
-# Isolated synchronous deinit and asynchronous deinit
+# Isolated synchronous deinit
 
 * Proposal: [SE-0371](0371-isolated-synchronous-deinit.md)
 * Author: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
@@ -69,7 +69,7 @@ In the case of escaping `self`, the race condition is eliminated but the problem
 actor Clicker {
   var count: Int = 0
 
-  func click(_ times: Int) async {
+  func click(_ times: Int) {
     for _ in 0..<times {
       self.count += 1 
     }
@@ -136,8 +136,6 @@ Destroying `deinit` is not affected by this proposal.
 
 ### Rules for computing isolation
 
-#### Synchronous isolated `deinit`
-
 For backwards compatibility, isolation of the class is not propagated to the synchronous `deinit` by default:
 
 ```swift
@@ -198,7 +196,7 @@ actor Baz {
 }
 ```
 
-For consistency, `nonisolated` attribute also can be used, but for synchronous `deinit` it has no effect, because synchronous deinitializers are nonisolated by default.
+For consistency, `nonisolated` attribute also can be used, but for synchronous `deinit` it has no effect, because deinitializers are nonisolated by default.
 
 ```swift
 @MainActor
@@ -262,13 +260,13 @@ let x: Base = Derived()
 x.foo() // Can we call Derived.foo()?
 ```
 
-Types that don't perform custom actions in `deinit` and only need to release references don't need isolated `deinit`. Releasing child objects can be done from any thread. If those objects are concerned about isolation, they should adopt isolation themselves. Implicit deinitializers cannot opt-in into isolation, so they are synchronous and nonisolated by default.
+Types that don't perform custom actions in `deinit` and only need to release references don't need isolated `deinit`. Releasing child objects can be done from any thread. If those objects are concerned about isolation, they should adopt isolation themselves. Implicit deinitializers cannot opt-in into isolation, so they are nonisolated by default.
 
 ```swift
 class Foo {
   var bar: Bar
 
-  // implicit deinit is synchronous and nonisolated
+  // implicit deinit is nonisolated
   // release of Bar can happen on any thread/task
   // Bar is responsible to its own isolation.
 }
@@ -330,7 +328,7 @@ When deinitializing an instance of default actor, `swift_task_deinitOnExecutor()
 
 ### Interaction with distributed actors
 
-`deinit` declared in the code of the distributed actor applies only to the local actor and can be isolated or marked async as described above. Remote proxy has an implicit compiler-generated synchronous `deinit` which is never isolated.
+`deinit` declared in the code of the distributed actor applies only to the local actor and can be isolated as described above. Remote proxy has an implicit compiler-generated synchronous `deinit` which is never isolated.
 
 ### Interaction with task executor preference
 
@@ -487,7 +485,7 @@ Currently both the `foo()` and `deinit` entry points produce two calls to access
 
 ### Improving extended stack trace support
 
-Developers who put breakpoints in the isolated or async deinit might want to see the call stack that lead to the last release of the object. Currently, if switching of executors was involved, the release call stack won't be shown in the debugger.
+Developers who put breakpoints in the isolated deinit might want to see the call stack that led to the last release of the object. Currently, if switching of executors was involved, the release call stack won't be shown in the debugger.
 
 ### Implementing API for synchronously scheduling arbitrary work on the actor
 
