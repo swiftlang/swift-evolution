@@ -283,7 +283,7 @@ public func storeBytes<T : BitwiseCopyable>(
 
 This allows for optimal code generation because `memcpy` instead of value witnesses can be used.
 
-The pre-existing methods will continue to exist (see [alternatives considered](#deprecation).)
+The existing methods that use a runtime assert instead of a type constraint will still be available (see [alternatives considered](#deprecation)).
 
 ## Effect on ABI stability
 
