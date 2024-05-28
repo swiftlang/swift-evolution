@@ -761,26 +761,7 @@ This was changed after we realized that there was in practice almost always a si
 
 ## Future Directions
 
-#### Lifetime Dependencies for Computed Properties
-
-It would be useful to allow lifetime dependencies between `self` and the value returned by a computed property.
-There is some ambiguity here, since resilience hides the distinction between a computed and stored property.
-In particular, the resilience concern might prevent us from inferring lifetime dependencies for properties across module boundaries.
-The notation for an explicit lifetime dependency on a property might look like the following:
-
-```swift
-struct Container {
-  var view: dependsOn(self) ReturnType { get }
-}
-
-struct Type1: ~Escapable {
-  var childView: dependsOn(self) Type1 { get }
-}
-```
-
-We expect that the lifetime notation would be mandatory for any property that provided a `~Escapable` value.
-
-#### Lifetime Dependencies for Escapable Types
+### Lifetime Dependencies for Escapable Types
 
 This proposal has deliberately limited the application of lifetime dependencies to return types that are nonescapable.
 This simplifies the model by identifying nonescapable types as exactly those types that can carry such dependencies.
@@ -788,16 +769,7 @@ It also helps simplify the enforcement of lifetime constraints by guaranteeing t
 Most importantly, this restriction helps ensure that the new semantics (especially lifetime dependency inference) cannot accidentally break existing code.
 We expect that in the future, additional investigation can reveal a way to relax this restriction.
 
-#### Lifetime Dependencies between arguments
-
-A caller may need assurance that a callee will honor a lifetime dependency between two arguments.
-For example, if a function is going to destroy a container and a reference to that container in the process of computing some result,
-it needs to guarantee that the reference is destroyed before the container:
-```swift
-func f(container: consuming ContainerType, ref: dependsOn(container) consuming RefType) -> ResultType
-```
-
-#### Lifetime Dependencies for Tuples
+### Lifetime Dependencies for Tuples
 
 It should be possible to return a tuple where one part has a lifetime dependency.
 For example:
@@ -806,7 +778,7 @@ func f(a: consume A, b: B) -> (consume(a) C, B)
 ```
 We expect to address this in the near future in a separate proposal.
 
-#### Lifetime Dependencies for containers and their elements
+### Lifetime Dependencies for containers and their elements
 
 It should be possible to return containers with collections of lifetime-constrained elements.
 For example, a container may want to return a partition of its contents:
@@ -815,7 +787,7 @@ borrowing func chunks(n: Int) -> dependsOn(self) SomeList<dependsOn(self) Span<U
 ```
 We're actively looking into ways to support these more involved cases and expect to address this in a future proposal.
 
-#### Parameter index for lifetime dependencies
+### Parameter index for lifetime dependencies
 
 Internally, the implementation records dependencies based on the parameter index.
 This could be exposed as an alternate spelling if there were sufficient demand.
