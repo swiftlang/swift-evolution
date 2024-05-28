@@ -1,4 +1,4 @@
-# Allow trailing comma in tuples, arguments, parameters and if/guard/while conditions
+# Allow trailing comma in comma-separated lists
 
 - Proposal: SE-NNNN
 - Author: Mateus Rodrigues
@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This proposal aims to allow the use of trailing commas, currently restricted to array and dictionary literals, in tuples, arguments, parameters and if/guard/while conditions.
+This proposal aims to allow the use of trailing commas, currently restricted to array and dictionary literals, in more comma-separated lists.
 
 ## Motivation
 
@@ -76,9 +76,12 @@ if
                     
 } ❌ Expected '{' after 'if' condition
 ```
+
+These benefits can be extended to other comma-separated lists found in the Swift language.
+
 ### Code Generation
 
-**Plugins** and **Macros** have made it possible to generate code using swift and trailing comma would allow generate list of arguments and conditions without worrying about a special condition for the last element.
+**Plugins** and **Macros** have made it possible to generate code using swift and trailing comma would allow generate lists without worrying about a special condition for the last element.
 
 ### Code Diff
 
@@ -105,59 +108,132 @@ foo(
 
 ## Proposed solution
 
-This proposal adds support for trailing comma to:
+This proposal adds support for trailing comma to the following comma separated lists:
 
-### Tuples
-
-Including tuples and tuple patterns.
+- Tuples and tuple patterns
 
 ```swift
-var (a, b, c,) = (1, 2, 3,)
+(1, 2,)
+let block: (Int, Int,) -> Void = { (a, b,) in  }
+let (a, b,) = (1, 2,)
+for (a, b,) in zip(s1, s2) { }
 ```
 
-Trailing comma will be allowed in single-element tuples but not in zero-element tuples.
+- Initializers, functions and associated values arguments and parameters
+
+```swift
+
+m[x, y,]
+
+func foo(a: Int, b: Int,) { }
+
+struct S {
+    init(a: Int, b: Int,) { }
+}
+
+enum E {
+    case foo(a: Int, b: Int,)
+}
+```
+- Subscripts
+
+```swift
+let value = m[x, y,]
+```
+
+- `KeyPath` subscripts 
+
+```swift
+let keyPath = \Foo.bar[x,y,]
+          
+f(\.[x,y,])
+```
+
+- Attributes arguments
+
+```swift
+@Foo(1, 2, 3,) struct S { }
+f(_: @foo(1, 2,) Int)
+```
+
+- Macro expansion arguments
+
+```swift
+#foo(1, 2,)
+
+struct S {
+    #foo(1, 2,)
+}
+```
+
+- `if`, `guard` and `while` conditions
+
+```swift
+if a, b, { }
+while a, b, { }
+guard a, b, else { }
+```
+
+- `switch` case labels
+
+```swift
+switch number {
+    case 1, 2,:
+        ...
+    default:
+        ..
+}
+```
+
+- `enum` case labels
+
+```swift
+enum E {
+  case a, b, c,
+}
+```
+
+- Closure capture list
+
+```swift
+{ [a, b,] in }
+```
+
+- inheritance list
+
+```swift
+struct S: P1, P2, P3, { }
+```
+
+- Generic parameters
+
+```swift
+struct S<T1, T2, T3,> { }
+```
+
+- Generic `where` clause list
+
+```swift
+struct S<T1, T2, T3,> where T1: P1, T2: P2, { }
+```
+
+- Availability spec list
+
+```swift
+if #unavailable(iOS 15, watchOS 9,) { }
+```
+
+- String interpolation
+
+```swift
+let s = "\(1, 2,)"
+```
+
+**Trailing comma will be allowed in single-element lists but not in zero-element lists.**
 
 ```swift
 (1,) // OK
 (,) // ❌ expected value in tuple
-```
-
-### Arguments and Parameters
-
-Including declaration and call of initializers, functions and enum case associated values.
-
-```swift
-func foo(
-    a: Int = 0, 
-    b: Int = 0, 
-) {
-}
-
-foo(
-    a: 1,
-    b: 2,
-)
-```
-
-Likewise tuples, trailing comma will be allowed in single-element arguments/parameters but not in zero-element arguments/parameters.
-
-```swift
-foo(1,) // OK
-foo(,) // ❌ expected value in function call
-```
-
-### Conditions
-
-Including `if`, `guard` and `while`.
-
-```swift
-if 
-   condition1,
-   condition2,
-   condition3,
-{
-                    
-}
 ```
 
 ## Source compatibility
@@ -189,34 +265,6 @@ if
 { print("something") } // ❌ Closure expression is unused
 ```
 
-## Future directions
-
-### Allow trailing comma anywhere there's a comma-separated list
-
-Although this proposal focuses on the most requested use cases for trailing comma, there's other places with comma-separated list and the restriction could be consistently lifted for all of these.
-
-#### Subclass and Protocol Conformance
-
-```swift
-class C2: C1, P1, P2, { } 
-```
-
-#### Generics
-
-```swift
-struct S<T1, T2,> where T1: P2, T2: P2, { }
-```
-#### Switch Case
-
-```swift
-switch number {
-    case 1, 2, 3,:
-        ...
-    default:
-        ...
-}
-```
-
 ## Alternatives considered
 
 ### Eliding commas
@@ -233,7 +281,3 @@ print(
 This was even [proposed](https://forums.swift.org/t/se-0257-eliding-commas-from-multiline-expression-lists/22889/188) and returned to revision back in 2019.
 
 Even though both approach are not mutually exclusive, this proposal is about consistently extend an existing behavior in the language while eliding comma is a more serious change to the language.
-
-## Acknowledgments
-
-Thanks to all those who gave feedback during the implementation review, especially Alex Hoppen, who was very patient and helped me a lot during the process.
