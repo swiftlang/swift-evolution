@@ -589,6 +589,136 @@ In this case, the compiler will infer a dependency on the unique argument identi
 **In no other case** will a function, method, or initializer implicitly gain a lifetime dependency.
 If a function, method, or initializer has a nonescapable return value, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
 
+
+### Dependency semantics by example
+
+This section illustrates the semantics of lifetime dependence one example at a time for each interesting variation. The following helper functions will be useful: `Array.span()` creates a scoped dependence to a nonescapable `Span` result, `copySpan()` creates a copied dependence to a `Span` result, and `parse` uses a `Span`.
+
+```swift
+extension Array {
+  // The returned span depends on the scope of Self.
+  borrowing func span() -> /* dependsOn(scoped self) */ Span<Element> { ... }
+}
+
+// The returned span copies dependencies from 'arg'.
+func copySpan<T>(_ arg: Span<T>) -> /* dependsOn(arg) */ Span<T> { arg }
+
+func parse(_ span: Span<Int>) { ... }
+```
+
+#### Scoped dependence on an immutable variable
+
+```swift
+let a: Array<Int> = ...
+let span: Span<Int>
+do {
+  let a2 = a
+  span = a2.span()
+}
+parse(span) // 🛑 Error: 'span' escapes the scope of 'a2'
+```
+
+The call to `span()` creates a scoped dependence on `a2`. A scoped dependence is determined by the lifetime of the variable, not the lifetime of the value assigned to that variable. So the lifetime of `span` cannot extend into the larger lifetime of `a`.
+
+#### Copied dependence on an immutable variable
+
+Let's contrast scoped dependence shown above with copied dependence on a variable. In this case, the value may outlive the variable it is copied from, as long as it is destroyed before the root of its inherited dependence goes out of scope. A chain of copied dependencies is always rooted in a scoped dependence.
+
+An assignment that copies or moves a nonescapable value from one variable into another **copies** any lifetime dependence from the source value to the destination value. Thus, variable assignment has the same lifetime copy semantics as passing an argument using a `dependsOn()` annotation *without* a `scoped` keyword. So, the statement `let temp = span` has identical semantics to `let temp = copySpan(span)`.
+
+```swift
+let a: Array<Int> = arg
+let final: Span<Int>
+do {
+  let span = a.span()
+  let temp = span
+  final = copySpan(temp)
+}
+parse(final) // ✅ Safe: still within lifetime of 'a'
+```
+
+Although the result of `copySpan` depends on `temp`, the result of the copy may be used outside of the `temp`'s lexical scope. Following the source of each copied dependence, up through the call chain if needed, eventually leads to the scoped dependence root. Here, `final` is the end of a lifetime dependence chain rooted at a scoped dependence on `a`:
+`a -> span -> temp -> {copySpan argument} -> final`. `final` is therefore valid within the scope of `a` even if the intermediate copies have been destroyed.
+
+#### Copied dependence on a mutable value
+
+First, let's add a mutable method to `Span`:
+
+```swift
+extension Span {
+  mutating func droppingPrefix(length: Int) -> /* dependsOn(self) */ Span<T> {
+    let result = Span(base: base, count: length)
+    self.base += length
+    self.count -= length
+    return result
+  }
+}
+```
+
+A dependence may be copied from a mutable ('inout') variable. In that case, the dependence is inherited from whatever value the mutable variable holds when it is accessed.
+
+```swift
+let a: Array<Int> = ...
+var prefix: Span<Int>
+do {
+  var temp = a.span()
+  prefix = temp.droppingPrefix(length: 1) // access 'temp' as 'inout'
+  // 'prefix' depends on 'a', not 'temp'
+}
+parse(prefix) // ✅ Safe: still within lifetime of 'a'
+```
+
+#### Scoped dependence on 'inout' access
+
+Now, let's return to scoped dependence, this time on a mutable variable. This is where exclusivity guarantees come into play. A scoped depenendence extends an access of the mutable variable across all uses of the dependent value. If the variable mutates again before the last use of the dependent, then it is an exclusivity violation.
+
+```swift
+let a: Array<Int> = ...
+a[i] = ...
+let span = a1.span()
+parse(span) // ✅ Safe: still within 'span's access on 'a'
+a[i] = ...
+parse(span) // 🛑 Error: simultaneous access of 'a'
+```
+
+Here, `a1.span()` initiates a 'read' access on `a1`. The first call to `parse(span)` safely extends that read access. The read cannot extend to the second call because a mutation of `a1` occurs before it.
+
+#### Dependence reassignment
+
+We've described how a mutable variable can be the source of a lifetime dependence. Now let's look at nonescapable mutable variables. Being nonescapable means they depend on another lifetime. Being mutable means that dependence may change during reassignment. Reassigning a nonescapable 'inout' sets its lifetime dependence from that point on, up to either the end of the variable's lifetime or its next subsequent reassignment.
+
+```swift
+func reassign(_ span: inout Span<Int>) {
+  let a: Array<Int> = ...
+  span = a.span() // 🛑 Error: 'span' escapes the scope of 'a'
+}
+```
+
+#### Reassignment with argument dependence
+
+If a function takes a nonescapable 'inout' argument, it may only reassign that argument if it is marked dependent on another function argument that provies the source of the dependence.
+
+```swift
+func reassignWithArgDependence(_ span: dependsOn(arg) inout [Int], _ arg: [Int]) {
+  span = arg.span() //  ✅ OK: 'span' already depends on 'arg' in the caller's scope.
+}
+```
+
+#### Conditional reassignment creates conjoined dependence
+
+'inout' argument dependence behaves like a conditional reassignment. After the call, the variable passed to the 'inout' argument has both its original dependence along with a new dependence on the argument that is the source of the argument dependence.
+
+```swift
+let a1: Array<Int> = arg
+do {
+  let a2: Array<Int> = arg
+  var span = a1.span()
+  testReassignArgDependence(&span, a2) // creates a conjoined dependence
+  parse(span) // ✅ OK: within the lifetime of 'a1' & 'a2'
+}
+parse(span) // 🛑 Error: 'span' escapes the scope of 'a2'
+```
+
 ## Source compatibility
 
 Everything discussed here is additive to the existing Swift grammar and type system.
