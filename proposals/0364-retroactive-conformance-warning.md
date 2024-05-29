@@ -96,7 +96,7 @@ The following exceptions apply to either the conforming type or the protocol:
 - If it is declared in one module, but uses the `@_originallyDefined(in:)` attribute to
   signify that it has moved from a different module, then this will not warn.
 - If it is declared in a module that is part of the same package as the conformance,
-  this is not considered retroactive.
+  this is not retroactive. Duplicated same-package conformances will be detected at compile time.
 
 For clarification, the following are still valid, safe, and allowed:
 - Conformances of external types to protocols defined within the current module.
