@@ -19,7 +19,7 @@ Metatype keypaths were briefly explored in the pitch for [SE-0254](https://forum
 
 We propose to allow keypath expressions to define a reference to static properties. The following usage, which currently generates a compiler error, will be allowed as valid Swift code.
 
-```
+```swift
 struct Bee {
   static let name = "honeybee"
 }
@@ -33,7 +33,7 @@ let kp = \Bee.Type.name
 
 Keypath expressions where the first component refers to a static property will include `.Type` on their root types stated in the key path contextual type or in the key path literal. For example:
 
-```
+```swift
 struct Bee {
   static let name = "honeybee"
 }
@@ -44,12 +44,12 @@ let kpWithLiteral = \Bee.Type.name // key path literal \Bee.Type
 
 Attempting to write the above metatype keypath without including `.Type will trigger an error diagnostic:
 
-```
+```swift
 let kpWithLiteral = \Bee.name // error: static member 'name' cannot be used on instance of type 'Bee'
 ```
 
 Keypath expressions where the component referencing a static property is not the first component do not require `.Type`:
-```
+```swift
 struct Species {
   static let isNative = true
 }
@@ -63,7 +63,7 @@ let kpSecondComponentIsStatic = \Wasp.species.isNative
 ### Access semantics
 
 Immutable static properties will form the read-only keypaths just like immutable instance properties.
-```
+```swift
 struct Tip {
   static let isIncluded = True
   let isVoluntary = False
@@ -73,7 +73,7 @@ let kpStaticImmutable: KeyPath<Tip.Type, Bool> = \.isIncluded
 let kpInstanceImmutable: KeyPath<Tip, Bool> = \.isVoluntary 
 ```
 However, unlike instance members, keypaths to mutable static properties will always conform to `ReferenceWritableKeyPath` because metatypes are reference types.
-```
+```swift
 struct Tip {
   static var total = 0
   var flatRate = 20
@@ -86,7 +86,7 @@ let kpInstanceMutable: WriteableKeyPath<Tip, Int> = \.flatRate
 
 This feature breaks source compatibility for key path expressions that reference static properties after subscript overloads. For example, the compiler cannot differentiate between subscript keypath components by return type in the following:
 
-```
+```swift
 struct S {
   static var count: Int { 42 }
 }
@@ -101,7 +101,7 @@ let kpViaSubscript = \Test.[42] // fails to typecheck
 
 This keypath does not specify a contextual type, without which the key path value type is unknown. To form a keypath to the metatype subscript and return an `Int`, we can specify a contextual type with a value type of `S.Type` and chain the metatype keypath: 
 
-```
+```swift
 let kpViaSubscript: KeyPath<Test, S.Type> = \Test.[42]
 let kpAppended = kpViaSubscript.appending(path: \.count)
 ```
