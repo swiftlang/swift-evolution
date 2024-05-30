@@ -1,9 +1,9 @@
 # Metatype Keypaths
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0438](0438-metatype-keypath.md)
 * Authors: [Amritpan Kaur](https://github.com/amritpan), [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (May 30th...June 13th, 2024)** 
 * Implementation: [apple/swift#73242](https://github.com/apple/swift/pull/73242)
 * Review: ([Pitch](https://forums.swift.org/t/pitch-metatype-keypaths/70767))
 
