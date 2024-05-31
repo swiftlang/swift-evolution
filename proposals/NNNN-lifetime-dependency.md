@@ -504,29 +504,32 @@ The compiler must issue a diagnostic if any of the above cannot be satisfied.
 
 ### Grammar
 
+This new syntax adds an optional `dependsOn(...)` lifetime modifier just before the return type and parameter types. This modifies *function-result* in the Swift grammar as follows:
 
-TODO:
-
-* dependent parameters
-* 'immortal' keyword
-
-This new syntax adds an optional lifetime modifier just before the return type.
-This modifies *function-result* in the Swift grammar as follows:
-
->
 > *function-signature* → *parameter-clause* **`async`***?* **`throws`***?* *function-result**?* \
 > *function-signature* → *parameter-clause* **`async`***?* **`rethrows`** *function-result**?* \
 > *function-result* → **`->`** *attributes?* *lifetime-modifiers?* *type* \
-> *lifetime-modifiers* → **`->`** *lifetime-modifier* *lifetime-modifiers?* \
-> *lifetime-modifier* → **`->`** **`dependsOn`** **`(`** *lifetime-dependent* **`)`** \
-> *lifetime-dependent* → **`->`** **`self`** | *local-parameter-name* | **`scoped self`** | **`scoped`** *local-parameter-name*
+> *lifetime-modifiers* → *lifetime-modifier* *lifetime-modifiers?* \
+> *lifetime-modifier* → **`dependsOn`** **`(`** *lifetime-dependent-list* **`)`** \
+> *lifetime-dependence-list* → *lifetime-dependent* | *lifetime-dependence-source* **`,`** *lifetime-dependent-list*
+> *lifetime-dependence-source* → **`self`** | *local-parameter-name* | **`scoped self`** | **`scoped`** *local-parameter-name* | **`immortal`**
+>
+> *parameter-type-annotation* → : *attributes?* *lifetime-modifiers?* *parameter-modifier*? *type*
+>
+
+The new syntax also adds an optional `selfDependsOn(...)` lifetime modifier before function declarations. This extends *declaration-modifier* as follows:
+
+>
+> *declaration-modifier* → *self-lifetime-modifier* \
+> *self-lifetime-modifier* → **`selfDependsOn`** **`(`** *lifetime-dependent-list* **`)`**
 >
 
 The *lifetime-dependent* argument to the lifetime modifier is one of the following:
 
 * *local-parameter-name*: the local name of one of the function parameters, or
 * the token **`self`**, or
-* either of the above preceded by the **`scoped`** keyword
+* either of the above preceded by the **`scoped`** keyword, or
+* the token **`immortal`**
 
 This modifier creates a lifetime dependency with the return value used as the dependent value.
 The return value must be nonescapable.
