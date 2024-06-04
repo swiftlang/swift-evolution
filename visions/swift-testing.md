@@ -1,16 +1,16 @@
-# A New API Direction for Testing in Swift
+# A New Direction for Testing in Swift
 
 ## Introduction
 
 A key requirement for the success of any developer platform is a way to use
 automated testing to identify software defects. Better APIs and tools for
-testing can greatly improve a platform’s quality. Below, we propose a new API
+testing can greatly improve a platform’s quality. Below, we propose a new
 direction for testing in Swift.
 
 We start by defining our basic principles and describe specific features that
 embody those principles. We then discuss several design considerations
 in-depth. Finally, we present specific ideas for delivering an all-new testing
-API in Swift, and weigh them against alternatives considered.
+solution for Swift, and weigh them against alternatives considered.
 
 ## Principles
 
@@ -37,28 +37,28 @@ some tests to opt-out. It should be effortless to repeat a test with different
 inputs and see granular results. The library should be lightweight and
 efficient, imposing minimal overhead on the code being tested.
 
-## Features of a great testing API
+## Features of a great testing system
 
 Guided by these principles, there are many specific features we believe are
-important to consider when designing a new testing API.
+important to consider when designing a new testing system.
 
 ### Approachability
 
 * **Be easy to learn and use**: There should be few individual APIs to
   memorize, they should have thorough documentation, and using them to write a
-  new test should be fast and seamless. More tests are likely to be written when
-  there is less friction.
+  new test should be fast and seamless. Its APIs should be egonomic and adhere
+  to Swift’s [design guidelines](https://www.swift.org/documentation/api-design-guidelines/).
 * **Validate expected behaviors or outcomes**: The most important job of any
   testing library is checking that code meets specific expectations—for example,
   by confirming that a function returns an expected result or that two values
   are equal. There are many interesting variations on this, such as comparing
-  whole collections or checking for errors. A robust testing API should cover
-  all these needs, and the APIs themselves should be ergonomic and adhere to
-  Swift’s [API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/).
+  whole collections or checking for errors. A robust testing system should cover
+  all these needs, while using progressive disclosure to remain simple for
+  common cases.
 * **Enable incremental adoption:** It should gracefully coexist with projects
-  that currently use XCTest or other testing libraries and allow incremental
-  adoption so that users can transition at their own pace. This is especially
-  important because this new API may take time to reach feature parity.
+  that use XCTest or other testing libraries and allow incremental adoption so
+  that users can transition at their own pace. This is especially important
+  because this new system may take time to achieve feature parity.
 * **Integrate with tools, IDEs, and CI systems:** A useful testing library
   requires supporting tools for functionality such as listing and selecting
   tests to run, launching runner processes, and collecting results. These
@@ -67,22 +67,22 @@ important to consider when designing a new testing API.
 
 ### Expressivity
 
-* **Include detailed, actionable failure information**: Tests provide the most
- value when they fail and catch bugs, but for a failure to be actionable it
- needs to be sufficiently detailed. When a test fails, it should collect and
- show as much relevant information as reasonably possible, especially since it
- may not reproduce reliably.
-* **Offer flexible naming, comments, and metadata:** Test authors should be
- able to customize the way tests are presented by giving them an informative
- name, comments, or assigning metadata like labels to tests which have things in
- common.
+* **Include actionable failure details**: Tests provide the most value when they
+  fail and catch bugs, but for a failure to be actionable it needs to be
+  sufficiently detailed. When a test fails, it should collect and show as much
+  relevant information as reasonably possible, especially since it may not
+  reproduce reliably.
+* **Offer flexible naming, comments, and metadata:** Test authors should be able
+  to customize the way tests are presented by giving them an informative name,
+  comments, or assigning metadata like labels to tests which have things in
+  common.
 * **Allow customizing behaviors:** Some tests share common set-up or tear-down
- logic, which need to be performed once for each test or group. Other times, a
- test may begin failing for an irrelevant reason and must be temporarily
- disabled. Some tests only make sense to run under certain conditions, such as
- on specific device types or when an external resource is available. A modern
- testing system should be flexible enough to satisfy all these needs, without
- complicating simpler use cases.
+  logic, which need to be performed once for each test or group. Other times, a
+  test may begin failing for an irrelevant reason and must be temporarily
+  disabled. Some tests only make sense to run under certain conditions, such as
+  on specific device types or when an external resource is available. A modern
+  testing system should be flexible enough to satisfy all these needs, without
+  complicating simpler use cases.
 
 ### Flexibility
 
@@ -98,7 +98,7 @@ important to consider when designing a new testing API.
   avoid unexpected dependencies or failures.
 * **Allow observing test events:** Some use cases require an ability to observe
   test events—for example, to perform custom reporting or analysis of results. A
-  testing library should offer API hooks for event handling.
+  testing library should offer hooks for event handling.
 
 ### Scalability
 
@@ -145,7 +145,7 @@ any error was caught while evaluating an expression passed to an expectation,
 that should be included.
 
 Beyond the values of evaluated expressions, there are other pieces of
-information that may be useful to capture and include in expectation APIs:
+information that may be useful to capture and include in expectations:
 
 * The **source code location** of the expectation, typically using the format
   `#file:#line:#column`. This helps test authors jump quickly to the line of
@@ -174,7 +174,7 @@ information that may be useful to capture and include in expectation APIs:
 Since the most important details to include in expectation failure messages are
 the expression(s) being compared and the kind of expression, some testing
 libraries offer a large number of specialized APIs for detailed reporting. Here
-are some expectation APIs from other prominent testing libraries:
+are some examples from other prominent testing libraries:
 
 | | Java (JUnit) | Ruby (RSpec) | XCTest |
 |----|----|----|----|
@@ -185,7 +185,7 @@ are some expectation APIs from other prominent testing libraries:
 | Throws | `assertThrows(E.class, () -> { ... });` | `expect {...}.to raise_error(E)` | `XCTAssertThrowsError(...) { XCTAssert($0 is E) }` |
 
 Offering a large number of specialized expectation APIs is a common practice
-among existing libraries: XCTest has 40+ APIs in its
+among testing libraries: XCTest has 40+ functions in its
 [`XCTAssert` family](https://developer.apple.com/documentation/xctest/boolean_assertions); 
 JUnit has
 [several dozen](https://junit.org/junit5/docs/5.0.1/api/org/junit/jupiter/api/Assertions.html);
@@ -199,7 +199,7 @@ Although this approach allows straightforward reporting, it is not scalable:
   new APIs and remember to use the correct one in each circumstance, or risk
   having unclear test results.
 * More complex use cases may not be supported—for example, if there is no
-  expectation API for testing that a `Sequence` starts with some prefix using
+  expectation for testing that a `Sequence` starts with some prefix using
   `starts(with:)`, the user may need a workaround such as adding a custom
   comment which includes the sequence for the results to be actionable.
 * It requires testing library maintainers add bespoke APIs supporting many use
@@ -209,9 +209,10 @@ Although this approach allows straightforward reporting, it is not scalable:
 
 We believe expectations should strive to be as simple as possible and involve
 few distinct APIs, but be powerful enough to include detailed results for every
-expression. Instead of offering a large number of specialized expectation APIs, 
-the APIs should be general and rely on built-in language operators and APIs to
-cover all use cases.
+expression. Instead of offering a large number of specialized expectations,
+there should only be a few basic expectations and they should rely on ordinary
+expressions, built-in language operators, and the standard library to cover all
+use cases.
 
 #### Evaluation rules
 
@@ -247,15 +248,15 @@ to control on a global, per-test, or per-expectation basis.
 Often, expectation APIs do not preserve raw expression values when reporting a
 failure, and instead generate a string representation of those values for
 reporting purposes. Although a string representation is often sufficient, 
-failure presentation could be improved if an expectation API were able to keep
+failure presentation could be improved if an expectation were able to keep
 values of certain, known data types.
 
 As an example, imagine a hypothetical expectation API call
 `ExpectEqual(image.height, 100)`, where `image` is a value of some well-known
 graphical image type `UILibrary.Image`. Since this uses a known data type, the
-expectation API could potentially keep `image` upon failure and include it in
-test results, and then an IDE or other tool could present the image graphically
-for easier diagnosis. This capability could be extensible and cross-platform by
+expectation could potentially keep `image` upon failure and include it in test
+results, and then an IDE or other tool could present the image graphically for
+easier diagnosis. This capability could be extensible and cross-platform by
 using a protocol to describe how to convert arbitrary values into one of the
 testing library’s known data types, delivering much richer expectation results
 presentation for commonly-used types.
@@ -508,13 +509,13 @@ will likely span several years, and we aim to thoughtfully design and deliver a
 solution that will be even more powerful while bearing in mind the many lessons
 learned from maintaining it over the years.
 
-## A new API direction
+## A new direction
 
 > [!NOTE]
 > The approach described below is not meant to include a solution for _every_
 > consideration or feature discussed in this document. It describes a starting
-> point for this new API direction, and covers many of the topics, but leaves
-> some to be pursued as part of follow-on work.
+> point for this new direction, and covers many of the topics, but leaves some
+> to be pursued as part of follow-on work.
 
 The new direction includes 3 major components exposed via a new module named
 `Testing`:
@@ -751,11 +752,11 @@ trait shown here on `InnerTests` would have the effect of adding the tag
 
 #### Parameterized tests
 
-Parameterized testing is easy to support using this API direction: The `@Test` 
-functions shown earlier do not accept any parameters, making them
-non-parameterized, but if a `@Test` function includes a parameter, then a
-different overload of `Test.init` is used which accepts a `Collection` whose
-associated `Element` type matches the type of the parameter:
+Parameterized testing is easy to support using this API: The `@Test` functions
+shown earlier do not accept any parameters, making them non-parameterized, but
+if a `@Test` function includes a parameter, then a different overload of the
+`@Test` macro can be used which accepts a `Collection` whose associated
+`Element` type matches the type of the parameter:
 
 ```swift
 /// Declare a test function parameterized over a collection of values.
@@ -837,7 +838,7 @@ let b = 4
 
 #### Handling collections
 
-We can also leverage existing language features for yet more expressiveness. 
+We can also leverage built-in language features for yet more expressiveness.
 Consider the following test logic:
 
 ```swift
@@ -852,12 +853,107 @@ leverage
 to capture exactly how these arrays differ and present that information to the
 developer as part of the test output or in the IDE.
 
+### Project governance
+
+For this testing solution to stand the test of time, it needs to be well
+maintained and any new features added to it should be thoughtfully designed and
+undergo community review.
+
+The codebase for this testing system will be open source. Any significant
+additions to its feature set or changes to its API or behavior will follow a
+process inspired by, but separate from,
+[Swift Evolution](https://www.swift.org/swift-evolution/). Changes will be
+described in writing using a standard
+[proposal template](https://github.com/apple/swift-testing/blob/main/Documentation/Proposals/0000-proposal-template.md) and discussed in the
+[swift-testing](https://forums.swift.org/c/related-projects/swift-testing/103)
+category of the Swift Forums.
+
+A new group—tentatively named the _Swift Testing Workgroup_—will be formed to
+act as the primary governing body for this project. The responsibilities of
+members of this workgroup will include:
+
+* defining and approving roadmaps for the project;
+* scheduling proposal reviews;
+* guiding community discussion;
+* making decisions about proposals; and
+* working with members of related workgroups, such as the Ecosystem, Platform,
+  Server, or Documentation workgroups, on topics which intersect with their
+  areas.
+
+The membership of this workgroup and specifics about its role in the project
+will be formalized separately.
+
+### Distribution
+
+As mentioned in [Approachability](#approachability) above, testing should be
+easy to use. The easier it is to write a test, the more tests will be written,
+and software quality generally improves with more automated tests.
+
+Most open source Swift software is distributed as source code and built by
+clients, using tools such as Swift Package Manager. Although this is very common,
+if we took this approach, every client would need to download the source for
+this project and its dependencies. A test target is included in SwiftPM's
+standard New Package template, so if this project became the default testing
+library used by that template, this would mean a newly-created package would
+require internet access to build its tests. In addition to downloading source,
+clients would also need to _build_ this project along with its dependencies.
+Since this project relies on Swift Macros, it depends on
+[swift-syntax](https://github.com/apple/swift-syntax) and that is a large
+project known to have lengthy build times as of this writing.
+
+Due to these practical concerns, this project will be distributed as part of the
+Swift toolchain, at least initially. Being in the toolchain means clients will
+not need to download or build this project or its dependencies, and this
+project's macros can use the copy of swift-syntax in the toolchain. Longer-term,
+if the practical concerns described above are resolved, the library could be
+removed from the toolchain, and doing so could yield other benefits such as more
+explicit dependency tracking and more portable toolchains.
+
+#### Package support
+
+Although the Swift toolchain will be the primary method of distribution, the
+project will support building as a Swift package. This will facilitate
+development of the package itself by its maintainers and outside contributors.
+
+Clients will also have the option of declaring an explicit package dependency on
+this project rather than relying on the built-in copy in the toolchain. If a
+client does this, it will be possible for tools to integrate with the client's
+specified copy of the project, as long as it is a version of the package the
+tool supports.
+
+### Platform support
+
+Testing should be broadly available across platforms. The long-term goal is for
+this project to be available on all platforms Swift itself supports.
+
+Whenever the
+[Swift Platform Steering Group](https://www.swift.org/platform-steering-group/)
+declares intention to support a new platform, this project will be considered
+one of the highest-priority components to get working on the new platform (after
+dependencies such as the standard library) since this project will enable
+qualification of many other components in the stack. The maintainers of this
+project will work with other Swift workgroups or steering groups to help enable
+support on new platforms.
+
+One reason why broad plaform support is important is so that this project can
+eventually support testing the Swift standard library. The standard library
+currently uses a custom library for testing
+([StdlibUnittest](https://github.com/apple/swift/tree/main/stdlib/private/StdlibUnittest))
+but many of this project's benefits would be useful in that context as well, so
+eventually we would like to rebase StdlibUnitTest on this project.
+
+While the goal is for this project to work on every platform Swift does, it
+currently does not work on Embedded Swift due to its reliance on existentials.
+It is possible this limitation may be overcome through project changes, but if
+it cannot be, the project maintainers will work with other Swift work/steering
+groups to identify a solution.
+
 ## Alternatives considered
 
 ### Declarative test definition using Result Builders
 
-While exploring new testing API directions, we considered and thoroughly
-prototyped an approach relying heavily on
+While exploring new testing directions, we considered and thoroughly prototyped
+an approach relying heavily on
 [Result Builders](https://docs.swift.org/swift-book/LanguageGuide/AdvancedOperators.html#ID630).
 At a high level, the idea involved a few pieces:
 
@@ -903,10 +999,9 @@ significant drawbacks:
 Another approach for defining tests is using a builder pattern with an
 imperative style API. A good example of this is Swift’s own
 [StdlibUnittest](https://github.com/apple/swift/tree/main/stdlib/private/StdlibUnittest)
-library which is used to test APIs in the standard library. To define
-tests, a user first creates a `TestSuite` and then calls
-`.test("Some name") { /* body */ }` one or more times to add a closure
-containing each test.
+library which is used to test the standard library. To define tests, a user
+first creates a `TestSuite` and then calls `.test("Some name") { /* body */ }`
+one or more times to add a closure containing each test.
 
 One problem with generalizing this approach is that it doesn’t have a way to
 deterministically discover tests either after a build or while authoring
