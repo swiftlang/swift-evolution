@@ -18,6 +18,23 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 
 **Edited** (May 2, 2024): Changed `StorageView` and `BufferReference` to `Span` to match the sibling proposal.
 
+**Edited** (May 30, 2024): Added the following new sections:
+
+- Dependent parameters
+- Dependent properties
+- Conditional dependencies
+- Immortal lifetimes
+- Depending on immutable global variables
+- Depending on an escapable BitwiseCopyable value
+- Standard library extensions
+- unsafeLifetime helper functions
+- Dependency semantics by example
+- Future directions
+  - Value component lifetime
+  - Abstract lifetime components
+  - Protocol lifetime requirements
+  - Structural lifetime dependencies
+
 #### See Also
 
 * [Forum discussion of Non-Escapable Types and Lifetime Dependency](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency)
