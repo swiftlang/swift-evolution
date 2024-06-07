@@ -978,7 +978,7 @@ struct View<Element>: ~Escapable {
 A scoped dependence normally cannot escape the lexical scope of its source variable. It may, however, be convenient to escape the source of that dependence along with any values that dependent on its lifetime. This could be done by moving the ownership of the source into a structure that preserves any dependence relationships. A function that returns a nonescapable type cannot currently depend on the scope of a consuming parameter. But we could lift that restriction provided that the consumed argument is moved into the return value, and that the return type preserves any dependence on that value:
 
 ```swift
-struct OwnedSpan<T>: ~Copyable & ~Escapable{
+struct OwnedSpan<T>: ~Copyable {
   let owner: any ~Copyable
   let span: dependsOn(scope owner) Span<T>
 
