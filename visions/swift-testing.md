@@ -148,7 +148,7 @@ Beyond the values of evaluated expressions, there are other pieces of
 information that may be useful to capture and include in expectations:
 
 * The **source code location** of the expectation, typically using the format
-  `#file:#line:#column`. This helps test authors jump quickly to the line of
+  `#fileID:#line:#column`. This helps test authors jump quickly to the line of
   code to view context, and lets IDEs present the failure in their UI at that
   location.
 * The **source code text of expression(s)** passed to the expectation. In an
