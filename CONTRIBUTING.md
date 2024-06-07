@@ -1,13 +1,19 @@
-# Contributing to Swift Evolution
+# Welcome to the Swift community! 
 
-<https://www.swift.org/code-of-conduct/>
+Contributions to Swift are welcomed and encouraged! Please see the [Contributing to Swift guide](swift.org/contributing) and check out the [structure of the community](https://www.swift.org/community/#community-structure).
 
-Pull requests that make minor editorial and administrative changes to this repository are always welcome, including fixing typos and grammar mistakes, repairing links, and maintaining document and repository metadata.
+To be a truly great community, Swift needs to welcome developers from all walks of life, with different backgrounds, and with a wide range of experience. A diverse and friendly community will have more great ideas, more unique perspectives, and produce more great code. We will work diligently to make the Swift community welcoming to everyone.
 
-Pull requests that add new proposals must follow the [Swift evolution process](process.md), including the proposal having first been pitched on the [evolution forums](https://forums.swift.org/c/evolution/pitches/5).
+To give clarity of what is expected of our members, Swift has adopted the code of conduct defined by the Contributor Covenant. This document is used across many open source communities, and we think it articulates our values well. For more, see the [Code of Conduct](https://www.swift.org/code-of-conduct/).
 
-Pull requests that make substantive changes to existing proposals should only be made with the permission of the proposal authors.  Substantive changes to a proposal in the Accepted or Rejected states are discouraged and require the approval of the appropriate evolution workgroup.  Substantive changes to a proposal in the Active Review state require the approval of the appropriate evolution workgroup and should be advertised in the review thread.
+## Contributing to Swift Evolution
 
-Pull requests that add or substantively change vision documents require the approval of the appropriate evolution workgroup.
+This repository is not your standard codebase. It houses Swift evolution proposals and related process documents, mostly composed of markdown and text files. We welcome pull requests to this repo that make minor editorial and administrative changes to this repository are always welcome, including fixing typos and grammar mistakes, repairing links, and maintaining document and repository metadata. The majority of the conversation around Swift's evolution happens on the [forums](https://forums.swift.org/c/evolution/18).
 
-Pull requests that substantively change the documented evolution process require the approval of the Core Team.
+### New proposals pull requests or major modifications 
+New proposals that follow the [Swift evolution process](process.md) can be submitted as a pull request after the pitch process in the [evolution forums](https://forums.swift.org/c/evolution/pitches/5).
+
+Substantive changes to:
+- existing proposals should only be made with the permission of the proposal authors.  Substantive changes to a proposal in the Accepted or Rejected states are discouraged and require the approval of the appropriate evolution workgroup.  Substantive changes to a proposal in the Active Review state require the approval of the appropriate evolution workgroup and should be advertised in the review thread.
+- change vision documents require the approval of the appropriate evolution workgroup.
+- documented evolution process require the approval of the Core Team.
