@@ -477,9 +477,10 @@ be unstable and terminate unexpectedly), and another which launches and monitors
 the first process. In this document, we'll refer to this second process as the
 **harness**. A two-process architecture involving a supervisory harness helps
 enable functionality such as relaunching after a crash, live progress reporting,
-or outputting results to a standard format. A modern testing library should
-provide any necessary APIs and runtime support to facilitate integration with a
-harness.
+or outputting results to a standard format. Some cases effectively _require_ a
+harness, such as when launching tests on a remotely-connected device. A modern
+testing library should provide any necessary APIs and runtime support to
+facilitate integration with a harness.
 
 ## Today’s solution: XCTest
 
@@ -549,7 +550,8 @@ public macro Suite(
 )
 ```
 
-Here are some usage examples:
+Then, test authors may attach these macros to functions or types in a test
+target. Here are some usage examples:
 
 ```swift
 import Testing
@@ -618,23 +620,28 @@ actor (such as `@MainActor`), in accordance with standard language and type
 system rules. This allows tests to match the global actor of their subject and
 reduce the need for suspension points.
 
-#### Runtime test discovery
+#### Test discovery
 
-At runtime, tests will be represented as instances of `Test` and be retrieved
-using compiler-emitted metadata. The specifics of this mechanism have not yet
-been designed, but are planned to be covered in revisions to
-[SE-0385](https://github.com/apple/swift-evolution/blob/main/proposals/0385-custom-reflection-metadata.md)
-or a new `@section` attribute (see
-[pitch](https://forums.swift.org/t/pitch-low-level-linkage-control-attributes-used-and-section/65877))
-which will allow annotating properties as having only constant data and placing
-their contents in a special section of the binary.
+To faciliate test discovery, the attached macros above will eventually use a
+feature such as `@linkage`, an attribute for controlling low-level symbol
+linkage (see
+[pitch](https://forums.swift.org/t/pitch-2-low-level-linkage-control/69752)).
+It will allow placing variables and functions in a special section of the binary,
+where they can be retrieved and at runtime or inspected statically at build time.
 
-However, before that support lands, the testing library will use a temporary
+However, before that feature lands, the testing library will use a temporary
 approach of iterating through types conforming to a known protocol and
 gathering their tests by calling a static property. The attached macros will
 emit code which generates the types to be discovered using this mechanism. Once
 more permanent support lands, the attached macros will be adjusted to adopt it
 instead.
+
+Regardless of which technique the attached macros above use to facilitate test
+discovery, the APIs called by their expanded code need not be considered public
+or stable. In particular, code emitted by these macros may call
+underscore-prefixed APIs declared in the `Testing` module, which are marked
+`public` to facilitate use by these macros but are generally considered a
+private implementation detail.
 
 ### Traits
 
@@ -853,6 +860,19 @@ leverage
 to capture exactly how these arrays differ and present that information to the
 developer as part of the test output or in the IDE.
 
+### API and ABI stability
+
+Once this project reaches its first major release, its API will be considered
+stable and will follow the same general rules as the Swift standard library.
+Source-breaking API changes will be considered a last resort and be preceded by
+a generous deprecation period.
+
+However, unlike the standard library, this project will generally not guarantee
+ABI stability. Tests are typically only run during the development cycle and
+aren't distributed to end users, so the runtime testing library will not be
+included in OS distributions and thus its interfaces do not need to maintain
+ABI stability.
+
 ### Project governance
 
 For this testing solution to stand the test of time, it needs to be well
@@ -866,22 +886,29 @@ process inspired by, but separate from,
 described in writing using a standard
 [proposal template](https://github.com/apple/swift-testing/blob/main/Documentation/Proposals/0000-proposal-template.md) and discussed in the
 [swift-testing](https://forums.swift.org/c/related-projects/swift-testing/103)
-category of the Swift Forums.
+category of the Swift Forums. The process for pitching and submitting proposals
+for review will be formalized separately and documented in the project repo.
 
 A new group—tentatively named the _Swift Testing Workgroup_—will be formed to
-act as the primary governing body for this project. The responsibilities of
-members of this workgroup will include:
+act as the primary governing body for this project. This group will be
+considered a sub-group of the planned
+[Ecosystem Steering Group](https://www.swift.org/blog/evolving-swift-project-workgroups/)
+once it has been formed. The group will retroactively assume responsibility for
+the [swift-corelibs-xctest](https://github.com/apple/swift-corelibs-xctest)
+project as well. The responsibilities of members of this workgroup will include:
 
 * defining and approving roadmaps for the project;
 * scheduling proposal reviews;
 * guiding community discussion;
 * making decisions about proposals; and
-* working with members of related workgroups, such as the Ecosystem, Platform,
-  Server, or Documentation workgroups, on topics which intersect with their
-  areas.
+* working with members of related workgroups, such as the
+  [Platform](https://www.swift.org/platform-steering-group/),
+  [Server](https://www.swift.org/sswg/), or
+  [Documentation](https://www.swift.org/documentation-workgroup/) workgroups, on
+  topics which intersect with their areas of focus.
 
-The membership of this workgroup and specifics about its role in the project
-will be formalized separately.
+The membership of this workgroup, its charter, and more specifics about its role
+in the project will be formalized separately.
 
 ### Distribution
 
