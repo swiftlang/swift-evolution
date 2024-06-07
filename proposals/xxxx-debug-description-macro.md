@@ -19,7 +19,7 @@ The utility of displaying a complete value depends on the size and complexity of
 
 For types that are too large or complex, the standard library and debugger again both provide tools giving us control over how our data is displayed. In the standard library, Swift has the `CustomDebugStringConvertible` protocol, which allows types to represented not as the aforementioned property tree, but as an arbitrary string. Relatedly, Swift has `CustomReflectable`, which lets developers control the contents and structure of the rendered property tree. For brevity and convention, from this point on this document will refer to the `CustomDebugStringConvertible` and `CustomReflectable` protocols via their single properties: `debugDescription` and `customMirror` respectively.
 
-LLDB has analogous features, which are called Type Summaries (~`debugDescription`) and Synthetic Children (~`customMirror`) respectively. However, Swift and the debugger don't share or interoperate these definitions. Implementing these customizing protocols provides limited benefit inside the debugger. Likewise, defining Type Summaries or Synthetic Children in LLDB will have no benefit to Swift.
+LLDB has analogous features, which are called Type Summaries (\~`debugDescription`) and Synthetic Children (\\~`customMirror`) respectively. However, Swift and the debugger don't share or interoperate these definitions. Implementing these customizing protocols provides limited benefit inside the debugger. Likewise, defining Type Summaries or Synthetic Children in LLDB will have no benefit to Swift.
 
 While LLDB’s po command provides a convenient way to evaluate a `debugDescription` property defined in Swift, there are downsides to expression evaluation: Running arbitrary code can have side effects, be unstable to the application, and is slower. Expression evaluation happens by JIT compiling code, pushing it to the device the application is running on, and executing it in the context of the application, which involves a lot of work. As such, LLDB only does expression evaluation when explicitly requested by a user, most commonly with the po command in the console. Debugger UIs (IDEs) often provide a variable view which is populated using LLDB’s variable inspection which does not perform expression evaluation and is built on top of reflection. In some cases, such as when viewing crashlogs, or working with a core file, expression evaluation is not even possible. For these reasons, rendering values is ideally done without expression evaluation.
 
@@ -166,7 +166,11 @@ Of note, the work is split between two macros `@DebugDescription` and @_DebugDes
 
 @_DebugDescriptionProperty is not intended for direct use by users. This macro is scoped to the inspect a single description property, not the entire type. This approach of splitting the work allows the compiler to avoid unnecessary work.
 
-The support for `_debugDescription` in addition to `debugDescription` and description is to support two different use cases. First, in some cases, the existing `debugDescription`/description cannot be changed (doing so would be a breaking change). In these circumstances, developers can use `_debugDescription` instead. Second, there may be cases where a developer wishes to define an LLDB Summary String directly. Since `_debugDescription` is not coupled to existing protocols, developers can choose to include LLDB Summary String syntax directly in their implementation of `_debugDescription`.
+The support for `_debugDescription` in addition to `debugDescription` and `description` is to support two different use cases.
+
+First, in some cases, the existing `debugDescription`/`description` cannot be changed (where doing so would be a breaking change to either `String(reflecting:)` or `String(describing:)`). In these circumstances, developers can use `_debugDescription` instead.
+
+Second, there may be cases where a developer wishes to define an LLDB Summary String directly. Since `_debugDescription` is not coupled to existing API, developers can choose to include LLDB Summary String syntax directly in their implementation of `_debugDescription`. Note that the macro does not process LLDB Summary String syntax. Any explicit use of LLDB Summary String syntax is opaque to the macro. Just like any other string literal contents, it's passed through to LLDB.
 
 Using both `debugDescription` and `_debugDescription` is an intended use case. The design of this macro allows developers to have both an LLDB compatible  `_debugDescription`, and a more complex `debugDescription`. This allows the debugger to show summary, while providing enabling a more detailed or dynamic `debugDescription`.
 
@@ -190,7 +194,25 @@ A similar future direction is to support sharing Swift `customMirror` definition
 
 ## Alternatives considered
 
-A simple alternative is a macro that performs no translation and accepts an LLDB Summary String. This was approach requires users to know LLDB Summary String syntax, which while not complex, still presents a burden to adoption. Such a macro would also create redundant definitions which would have to be kept in sync: `debugDescription` and the LLDB Summary String given to the macro.
+### Explicit LLDB Summary Strings
+
+The simplest macro implementation is one that performs no Swift-to-LLDB translation and directly accepts an LLDB Summary String. This approach requires users to know LLDB Summary String syntax, which while not complex, still presents a hinderance to adoption. Such a macro would could create redundancy: `debugDescription` and the separate LLDB Summary String. These would need to be manually kept in sync.
+
+### Independent Property (No `debugDescription` Reuse)
+
+Instead of leveraging existing `debugDescription`/`description` implementations, the `@DebugDescription` macro could use a completely separate property.
+
+Reusing existing `debugDescription` implementations makes a tradeoff that may not be obvious to developers. The benefit is a single definition, and getting more out of a well known idiom. The risk is comes from the requirements imposed by `@DebugDescription`. The requirements could lead to developers changing their existing implementation. Any changes to `debugDescription` will impact `String(reflecting:)`, and similarly changes to `description` will impact `String(describing:)`.
+
+The risk involving String conversion would be avoided by having the macro use an independent property. The macro would not support `debugDescription`/`description`. In this scenario, developers would be required to implement `_debugDescription`, even if the implementation is identical to the existing `debugDescription`.
+
+Our expectation is that mosst code, particularly application code, will not depend on String conversion (especially `String(reflecting:)`). For code that does depend on String conversion, it should have testing in place to catch breaking changes. Inside of an application, authors of code which has behavior that depends on String conversion initializers should already be aware of the consequences of changing `debugDescription`/`description`. Frameworks are a more challenging situation, where its authors are not always aware of if/how its clients depend on String conversion.
+
+The belief is that the benefits of reusing `debugDescription` will outweigh the downsides. Framework authors can make it a policy of their own to not reuse `debugDescription`, if they believe that presents a risk to clients of their framework.
+
+### Contextual Diagnostics
+
+To help address the potential risk around reuse of `debugDescription`, the macro could emit diagnostics that vary by the property being used. Specifically, if the developer implements `_debugDescription`, they will get the full diagnostics available, indicating how to fix its implementation. Conversely, when `debugDescription` is being reused, the diagnostics will not contain details of which requirements were not met, instead the diagnostics would tell the user that `debugDescription` is not compatible, and to define `_debugDescription` instead. This should make it less likely that the macro leads to changes affecting String conversion.
 
 ## Acknowledgments
 
