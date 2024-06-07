@@ -786,14 +786,6 @@ This was changed after we realized that there was in practice almost always a si
 
 ## Future Directions
 
-### Lifetime Dependencies for Escapable Types
-
-This proposal has deliberately limited the application of lifetime dependencies to return types that are nonescapable.
-This simplifies the model by identifying nonescapable types as exactly those types that can carry such dependencies.
-It also helps simplify the enforcement of lifetime constraints by guaranteeing that constrained values cannot escape before being returned.
-Most importantly, this restriction helps ensure that the new semantics (especially lifetime dependency inference) cannot accidentally break existing code.
-We expect that in the future, additional investigation can reveal a way to relax this restriction.
-
 ### Lifetime Dependencies for Tuples
 
 It should be possible to return a tuple where one part has a lifetime dependency.
