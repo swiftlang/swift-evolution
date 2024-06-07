@@ -302,11 +302,11 @@ func mayReassign(span: dependsOn(a) inout [Int], to a: [Int]) {
 }
 ```
 
-A `selfDependsOn` keyword is required to indicate that a method's implicit `self` depends on another parameter.
+The `dependsOn(self:)` keyword is required to indicate that a method's implicit `self` depends on another parameter.
 
 ```swift
 extension Span {
-  mutating selfDependsOn(other) func reassign(other: Span<T>) {
+  mutating dependsOn(self: other) func reassign(other: Span<T>) {
     self = other // ✅ OK: 'self' depends on 'other'
   }
 }
@@ -329,8 +329,8 @@ Structural composition is an important use case for nonescapable types. Getting 
 ```swift
 struct Container<Element>: ~Escapable {
   var element: Element {
-    /* dependsOn(self) */ get { ... }
-    /* selfDependsOn(newValue) */ set { ... }
+    get /* dependsOn(self) */ { ... }
+    /* dependsOn(self: newValue) */ set { ... }
   }
 
   init(element: Element) /* -> dependsOn(element) Self */ {...}
@@ -534,11 +534,10 @@ This new syntax adds an optional `dependsOn(...)` lifetime modifier just before 
 > *parameter-type-annotation* → : *attributes?* *lifetime-modifiers?* *parameter-modifier*? *type*
 >
 
-The new syntax also adds an optional `selfDependsOn(...)` lifetime modifier before function declarations. This extends *declaration-modifier* as follows:
+The new syntax also adds an optional `dependsOn(self:...)` lifetime modifier before function declarations. This extends *declaration-modifier* as follows:
 
 >
-> *declaration-modifier* → *self-lifetime-modifier* \
-> *self-lifetime-modifier* → **`selfDependsOn`** **`(`** *lifetime-dependent-list* **`)`**
+> *declaration-modifier* → **`dependsOn`** **`(`** **`self`** **`:`** *lifetime-dependent-list* **`)`**
 >
 
 The *lifetime-dependent* argument to the lifetime modifier is one of the following:
