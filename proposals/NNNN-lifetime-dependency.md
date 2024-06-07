@@ -181,8 +181,10 @@ let ref1 = a.span() // ref1 cannot outlive a
 let ref2 = ref1.drop(4) // ref2 also cannot outlive a
 ```
 
-After `ref1.drop(4)`, the lifetime of `ref2` does not depend on `ref1`.
-Rather, `ref2` has **inherited** or **copied** `ref1`’s dependency on the lifetime of `a`.
+After `ref1.drop(4)`, the lifetime of `ref2` does not depend on `ref1`, which is consumed within the method. Instead,
+the `drop` method **copies** `ref1`s lifetime depenence onto `ref2`. `ref2` effectively **inherits** a lifetime
+dependency on `a`. We may refer to a lifetime dependence that has been copied from another value as an "inherited"
+dependence.
 
 #### Allowed Lifetime Dependencies
 
