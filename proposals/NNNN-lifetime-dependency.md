@@ -324,6 +324,27 @@ We've discussed how a nonescapable result must be destroyed before the source of
   // 'span' now depends on both 'a1' and 'a2'.
 ```
 
+The general form of the `dependsOn` syntax is:
+
+> **dependsOn**(*target*: *source*)
+
+where `target` can be inferred from context:
+
+- Result modifiers go before the result type (after the `->` sigil)
+
+- Parameter modifiers go before the parameter type
+
+- `self` modifiers always go in front of the `func` declaration.
+
+Although `self` could be inferred, it must be spelled explicitly to avoid confusion with the common case of a result
+dependence.
+
+Example:
+
+```
+  dependsOn(self: arg1) func foo<T, R>(arg1: dependsOn(arg2) T, arg2: T) -> dependsOn(arg2) R
+```
+
 ### Dependent properties
 
 Structural composition is an important use case for nonescapable types. Getting or setting a nonescapable property requires lifetime dependence, just like a function result or an 'inout' parameter. There's no need for explicit annotation in these cases, because only one dependence is possible. A getter returns a value that depends on `self`. A setter replaces the current dependence from `self` with a dependence on `newValue`.
@@ -845,7 +866,7 @@ This was changed after we realized that there was in practice almost always a si
 It should be possible to return a tuple where one part has a lifetime dependency.
 For example:
 ```swift
-func f(a: consume A, b: B) -> (consume(a) C, B)
+func f(a: A, b: B) -> (dependsOn(a) C, B)
 ```
 We expect to address this in the near future in a separate proposal.
 
@@ -867,7 +888,7 @@ This could be exposed as an alternate spelling if there were sufficient demand.
 func f(arg1: Type1, arg2: Type2, arg3: Type3) -> dependsOn(0) ReturnType
 ```
 
-### Value component lifetime
+### Component lifetime
 
 In the current design, aggregating multiple values merges their scopes.
 
@@ -900,11 +921,28 @@ struct Container<Element>: ~Escapable {
   @lifetime
   var b: /*dependsOn(self.b)*/ Element
 
-  init(a: Element, b: Element) -> dependsOn(a -> .a, b -> .b) Self {...}
+  init(arg1: Element, arg2: Element) -> dependsOn(a: arg1, b: arg2) Self {...}
 }
 ```
 
 The nesting level of a component is the inverse of the nesting level of its lifetime. `a` and `b` are nested components of `Container`, but the lifetime of a `Container` instance is nested within both lifetimes of `a` and `b`.
+
+The general form of the `dependsOn` syntax should be thought of as:
+
+> **dependsOn**(*target*.*component*: *source*.*component*)
+
+where the `target` can be inferred from context, but not its component:
+
+Example:
+
+```
+  struct S: ~Escapable {
+    @lifetime
+    let a: T
+
+    dependsOn(self.a: arg1) func foo(arg1: dependsOn(a: arg2) S, arg2: T) -> dependsOn(a: arg2) S
+  }
+```
 
 ### Abstract lifetime components
 
