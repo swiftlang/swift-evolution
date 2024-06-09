@@ -35,6 +35,14 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
   - Protocol lifetime requirements
   - Structural lifetime dependencies
 
+**Edited** (June 9, 2024):
+
+- New section: Immortal requirements
+- New alternative considered: Initializer syntax
+- New alternative considered: dependsOn(unchecked) to disable lifetime dependence checking
+- Updated future direction: component lifetime syntax
+- New example: Escapable properties in a nonescapable type
+
 #### See Also
 
 * [Forum discussion of Non-Escapable Types and Lifetime Dependency](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency)
