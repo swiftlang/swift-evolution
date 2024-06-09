@@ -793,6 +793,27 @@ Removing a lifetime dependency constraint only affects existing source code in t
 
 ## Alternatives considered
 
+### Initializer syntax: result vs. inout syntax
+
+The programming model for initializers is that they return `self` (with an implicit return statement):
+
+`init(arg: ArgType) -> dependsOn(arg) Self`
+
+But some people have criticized this syntax. They prefer to think of an initializer as mutating `self`, which would be
+spelled:
+
+`dependsOn(self: arg) init(arg: ArgType)`
+
+We could adopt either or both of these options.
+
+In a future with component lifetimes the syntax would look like either:
+
+`init(arg1: Element, arg2: Element) -> dependsOn(a: arg1, b: arg2) Self {...}`
+
+or
+
+`dependsOn(self.a: arg1, self.b: arg2) init(arg1: Element, arg2: Element) ->  Self {...}`
+
 ### Different Position
 
 We propose above putting the annotation on the return value, which we believe matches the intuition that the method or property is producing this lifetime dependence alongside the returned value.
