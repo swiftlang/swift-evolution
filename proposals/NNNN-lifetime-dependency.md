@@ -389,7 +389,9 @@ extension Optional {
 }
 ```
 
-Once the escapable instance is constructed, it is limited in scope to the caller's function body since the caller only sees the static nonescapable type. If a dynamically escapable value needs to be returned further up the stack, that can be done by chaining multiple `dependsOn(immortal)` functions.
+The constructed instance is returned to the caller without any lifetime dependence. The caller can pass that instance
+along as an argument to other functions, but those functions cannot escape it. The instance can only be returned further
+up the call stack by chaining multiple `dependsOn(immortal)` functions.
 
 #### Depending on immutable global variables
 
@@ -400,6 +402,35 @@ let staticBuffer = ...
 
 func getStaticallyAllocated() -> dependsOn(immortal) BufferReference {
   staticBuffer.bufferReference()
+}
+```
+
+#### Immortal requirements
+
+`dependsOn(immortal)` requires the programmer to compose the dependent value from something that, in fact, has an immortal lifetime:
+
+```swift
+init() dependsOn(immortal) {
+  self.value = <global constant>
+}
+```
+
+`<global constant>` must be valid over the entire program.
+
+`dependsOn(immortal)` is not a way to suppress dependence in cases where the source value has unknown
+lifetime. Composing the result from a transient value, such as an UnsafePointer, is incorrect:
+
+```swift
+init(pointer: UnsafePointer<T>) dependsOn(immortal) {
+  self.value = pointer // 🛑 Incorrect
+}
+```
+
+We could run into the same problem with any transient value, like a file descriptor, or even a class object:
+
+```swift
+init() dependsOn(immortal) {
+  self.value = Object() // 🛑 Incorrect
 }
 ```
 
