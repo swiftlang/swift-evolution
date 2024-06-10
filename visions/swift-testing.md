@@ -622,7 +622,7 @@ reduce the need for suspension points.
 
 #### Test discovery
 
-To faciliate test discovery, the attached macros above will eventually use a
+To facilitate test discovery, the attached macros above will eventually use a
 feature such as `@linkage`, an attribute for controlling low-level symbol
 linkage (see
 [pitch](https://forums.swift.org/t/pitch-2-low-level-linkage-control/69752)).
@@ -962,7 +962,7 @@ qualification of many other components in the stack. The maintainers of this
 project will work with other Swift workgroups or steering groups to help enable
 support on new platforms.
 
-One reason why broad plaform support is important is so that this project can
+One reason why broad platform support is important is so that this project can
 eventually support testing the Swift standard library. The standard library
 currently uses a custom library for testing
 ([StdlibUnittest](https://github.com/apple/swift/tree/main/stdlib/private/StdlibUnittest))
