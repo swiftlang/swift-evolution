@@ -4,7 +4,6 @@
 * Author: [Alexis Laferrière](https://github.com/xymus)
 * Review Manager: [Frederick Kellison-Linn](https://github.com/Jumhyn)
 * Status: **Implemented (Swift 7.0)**
-* Implementation: Gated behind the frontend flag `-enable-upcoming-feature AccessLevelOnImport`
 * Upcoming Feature Flag: `InternalImportsByDefault`
 * Review: ([pitch](https://forums.swift.org/t/pitch-access-level-on-import-statements/66657)) ([review](https://forums.swift.org/t/se-0409-access-level-modifiers-on-import-declarations/67290)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0409-access-level-modifiers-on-import-declarations/67666))
 
