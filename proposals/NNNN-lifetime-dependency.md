@@ -544,6 +544,15 @@ extension Span {
 
 Since `self.base` is an escapable value, it does not propagate the lifetime dependence of its container. Without the call to `unsafeLifetime`, `local` would be limited to the local scope of the value retrieved from `self.base`, and could not be returned from the method. In this example, `unsafeLifetime` communicates that all of the dependent state from `self` has been *copied* into `local`, and, therefore, `local` can persist after `self` is destroyed.
 
+`unsafeLifetime` can also be used to construct an immortal value where the compiler cannot prove immortality by passing a `Void` value as the source of the dependence:
+
+```swift
+init() dependsOn(immortal) {
+  self.value = getGlobalConstant() // OK: unchecked dependence.
+  self = unsafeLifetime(dependent: self, dependsOn: ())
+}
+```
+
 ## Detailed design
 
 ### Relation to ~Escapable
@@ -858,6 +867,42 @@ An earlier version of this proposal advocated using the existing `borrow`/`mutat
 func f(arg1: borrow Array<Int>) -> borrow(arg1) Span<Int>
 ```
 This was changed after we realized that there was in practice almost always a single viable semantic for any given situation, so the additional refinement seemed unnecessary.
+
+### dependsOn(unchecked) to disable lifetime dependence checking
+
+A `dependsOn(unchecked)` annotation could allow programmers to disable lifetime dependence checking for a function result or argument. For example, the programmer may want to compose a nonescapable result from an immortal value that isn't visible to the compiler:
+
+```swift
+init() dependsOn(immortal) {
+  self.value = getGlobalConstant() // 🛑 ERROR: immortal dependence on a temporary value
+}
+```
+
+To avoid the error, the programmer could disable dependence checking on the function result altogether:
+
+```swift
+init() dependsOn(unchecked) {
+  self.value = getGlobalConstant() // OK: unchecked dependence.
+}
+```
+
+This poses a few problems:
+
+1. Declaring a result "unchecked" only affects checking within the function body; it doesn't affect checking in clients of the API, so really shouldn't be part of the API. In the example above, `dependsOn(immortal)` has the correct semantics at the API level.
+
+2. `dependsOn(unchecked)` is a blunt tool for opting out of safety. Experience shows that such tools are overused as workarounds for compiler errors without fixing the problem. A safety workaround should more precisely identify the source of unsafety.
+
+3. The more kewords we add to `dependsOn`, the more chance they will collide with a parameter name.
+
+`unsafeLifetime` is the propsed tool for disabling dependence checks. Passing `Void` as the dependence source is a reasonable way to convert a nonescaping value to an immortal value:
+
+
+```swift
+init() dependsOn(immortal) {
+  self.value = getGlobalConstant() // OK: unchecked dependence.
+  self = unsafeLifetime(dependent: self, dependsOn: ())
+}
+```
 
 ## Future Directions
 
