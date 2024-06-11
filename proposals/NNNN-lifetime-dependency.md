@@ -915,15 +915,6 @@ func f(a: A, b: B) -> (dependsOn(a) C, B)
 ```
 We expect to address this in the near future in a separate proposal.
 
-### Lifetime Dependencies for containers and their elements
-
-It should be possible to return containers with collections of lifetime-constrained elements.
-For example, a container may want to return a partition of its contents:
-```swift
-borrowing func chunks(n: Int) -> dependsOn(self) SomeList<dependsOn(self) Span<UInt8>>
-```
-We're actively looking into ways to support these more involved cases and expect to address this in a future proposal.
-
 ### Parameter index for lifetime dependencies
 
 Internally, the implementation records dependencies based on the parameter index.
