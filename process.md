@@ -95,7 +95,7 @@ Please state explicitly whether you believe that the proposal should be accepted
 
    1. Expand the rough sketch into a formal proposal using the [proposal template](proposal-templates/0000-swift-template.md).
    1. In the [swift-evolution repository][swift-evolution-repo], open a [draft pull request][draft-pr] that adds your proposal to the [proposals directory](/proposals).
-   1. Anounce the pull request on the forums and edit the root post to link out to the pull request.
+   1. Announce the pull request on the forums and edit the root post to link out to the pull request.
    1. Refine the formal proposal in the open as you receive further feedback on the forums or the pull request.
       A ripe proposal is expected to address commentary from present and past
       discussions of the idea.
