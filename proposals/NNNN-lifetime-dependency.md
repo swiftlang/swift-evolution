@@ -904,6 +904,15 @@ init() dependsOn(immortal) {
 }
 ```
 
+### Parameter index for lifetime dependencies
+
+Internally, the implementation records dependencies based on the parameter index.
+This could be exposed as an alternate spelling if there were sufficient demand.
+
+```swift
+func f(arg1: Type1, arg2: Type2, arg3: Type3) -> dependsOn(0) ReturnType
+```
+
 ## Future Directions
 
 ### Lifetime Dependencies for Tuples
@@ -914,15 +923,6 @@ For example:
 func f(a: A, b: B) -> (dependsOn(a) C, B)
 ```
 We expect to address this in the near future in a separate proposal.
-
-### Parameter index for lifetime dependencies
-
-Internally, the implementation records dependencies based on the parameter index.
-This could be exposed as an alternate spelling if there were sufficient demand.
-
-```swift
-func f(arg1: Type1, arg2: Type2, arg3: Type3) -> dependsOn(0) ReturnType
-```
 
 ### Component lifetime
 
