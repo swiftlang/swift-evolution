@@ -496,7 +496,7 @@ extension Storage {
 let storage = Storage(...)
 storage.withUnsafeBufferPointer { buffer in
   let span = Span(unsafeBaseAddress: buffer.baseAddress!, count: buffer.count)
-  decode(span!) // ✅ Safe: 'buffer' is always valid within the closure.
+  decode(span) // ✅ Safe: 'buffer' is always valid within the closure.
 }
 ```
 
