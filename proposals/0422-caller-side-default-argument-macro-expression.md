@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This proposal aims to lift the restriction afore set in [SE-0382 "Expression macros"](https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md) to allow non-built-in expression macros as caller-side default argument expressions.
+This proposal aims to lift the restriction afore set in [SE-0382 "Expression macros"](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0382-expression-macros.md) to allow non-built-in expression macros as caller-side default argument expressions.
 
 ## Motivation
 
