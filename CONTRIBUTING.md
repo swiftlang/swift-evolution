@@ -15,5 +15,4 @@ This repository is not your standard codebase. It houses Swift evolution proposa
 - Substantive changes to existing proposals require the approval of the appropriate evolution workgroup if the proposal is in an Active Review, Accepted, or Rejected state.
 - New vision documents and substantive changes to existing vision documents require the approval of the appropriate evolution workgroup.
 - Substantive changes to the evolution process require the approval of the Core Team.
-
-Conversations about the substance of a proposal should be held in an appropriate forums thread rather than in PR comments.  This centralizes the discussion and allows more of the community to participate.
+- Conversations about the substance of a proposal should be held in an appropriate forums thread rather than in PR comments.  This centralizes the discussion and allows more of the community to participate.
