@@ -734,11 +734,11 @@ First, let's add a mutable method to `Span`:
 
 ```swift
 extension Span {
-  mutating func droppingPrefix(length: Int) -> /* dependsOn(self) */ Span<T> {
-    let result = Span(base: base, count: length)
+  mutating func removePrefix(length: Int) -> /* dependsOn(self) */ Span<T> {
+    let prefix = Span(base: base, count: length)
     self.base += length
     self.count -= length
-    return result
+    return prefix
   }
 }
 ```
@@ -805,6 +805,29 @@ do {
   parse(span) // ✅ OK: within the lifetime of 'a1' & 'a2'
 }
 parse(span) // 🛑 Error: 'span' escapes the scope of 'a2'
+```
+
+#### Escapable properties in a nonescapable type
+
+An escapable type inevitably contains nonescapable properties. In our `Span` example, the `base` pointer and `count`
+length are both escapable. Accessing an escapable property drops the dependence:
+
+```swift
+  let pointer: UnsafePointer<T>
+  do {
+    let span = Span(unsafeBaseAddress: pointer, count: 1)
+    pointer = span.base
+  }
+  _ = pointer // ✅ OK: pointer has no lifetime dependence
+```
+
+Internal mutation of a nonescapable type does not create any new dependence and does not require any annotation:
+
+```swift
+  mutating /* dependsOn(self: self) */ func skipPrefix(length: Int) {
+    self.base += length  // ✅ OK: assigns `base` to a copy of the temporary value
+    self.count -= length // ✅ OK: assigns `count` to a copy of the temporary value
+  }
 ```
 
 ## Source compatibility
