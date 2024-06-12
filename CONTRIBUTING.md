@@ -8,7 +8,15 @@ To give clarity of what is expected of our members, Swift has adopted the code o
 
 ## Contributing to Swift Evolution
 
-This repository is not your standard codebase. It houses Swift evolution proposals and related process documents, mostly composed of markdown and text files. We welcome pull requests to this repo that make minor editorial and administrative changes to this repository are always welcome, including fixing typos and grammar mistakes, repairing links, and maintaining document and repository metadata. The majority of the conversation around Swift's evolution happens on the [forums](https://forums.swift.org/c/evolution/18).
+This repository is not your standard codebase. It houses Swift evolution proposals and related process documents, mostly composed of markdown and text files. Pull requests that make minor editorial and administrative changes are always welcome, including fixing typos and grammar mistakes, repairing links, and maintaining document and repository metadata. Other pull requests must follow the [Swift evolution process](process.md):
+
+- New proposals and substantive changes to existing proposals should be [pitched on the evolution forums](https://forums.swift.org/c/evolution/pitches/5) before a PR is opened here.
+- Substantive changes to existing proposals require the permission of the proposal authors.
+- Substantive changes to existing proposals require the approval of the appropriate evolution workgroup if the proposal is in an Active Review, Accepted, or Rejected state.
+- New vision documents and substantive changes to existing vision documents require the approval of the appropriate evolution workgroup.
+- Substantive changes to the evolution process require the approval of the Core Team.
+
+Conversations about the substance of a proposal should be held in an appropriate forums thread rather than in PR comments.  This centralizes the discussion and allows more of the community to participate.
 
 ### New proposals pull requests or major modifications 
 New proposals that follow the [Swift evolution process](process.md) can be submitted as a pull request after the pitch process in the [evolution forums](https://forums.swift.org/c/evolution/pitches/5).
