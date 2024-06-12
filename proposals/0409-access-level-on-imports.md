@@ -105,6 +105,8 @@ It marks the dependency as visible to clients.
 @usableFromInline internal import UsableFromInlineInternalDependency
 ```
 
+*Note: Support for @usableFromInline on imports has yet to be implemented.*
+
 ### Type-checking references to imported modules
 
 Current type-checking enforces that declaration respect their respective access levels.
