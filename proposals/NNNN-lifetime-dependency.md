@@ -47,11 +47,11 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 An efficient way to provide one piece of code with temporary access to data stored in some other piece of code is with a pointer to the data in memory.
 Swift's `Unsafe*Pointer` family of types can be used here, but as the name implies, using these types can be error-prone.
 
-For example, suppose `Array` had a property `unsafeBufferPointer` that returned an `UnsafeBufferPointer` to the contents of the array.
+For example, suppose `ContiguousArray` had a property `unsafeBufferPointer` that returned an `UnsafeBufferPointer` to the contents of the array.
 Here's an attempt to use such a property:
 
 ```swift
-let array = getArrayWithData()
+let array = getContiguousArrayWithData()
 let buff = array.unsafeBufferPointer
 parse(buff) // <== 🛑 NOT SAFE!
 ```
@@ -111,11 +111,11 @@ In the most common cases, these constraints can be inferred automatically.
 
 To make the semantics clearer, we’ll begin by describing how one can explicitly specify a lifetime constraint in cases where the default inference rules do not apply.
 
-Let’s consider adding support for our hypothetical `Span` type to `Array`.
+Let’s consider adding support for our hypothetical `Span` type to `ContiguousArray`.
 Our proposal would allow you to declare an `array.span()` method as follows:
 
 ```swift
-extension Array {
+extension ContiguousArray {
   borrowing func span() -> dependsOn(self) Span<Element> {
     ... construct a Span ...
   }
@@ -138,7 +138,7 @@ Let’s consider another hypothetical type: a `MutatingSpan<T>` type that could 
 Here's one way such a value might be produced:
 
 ```swift
-func mutatingSpan(to: inout Array, count: Int) -> dependsOn(to) MutatingSpan<Element> {
+func mutatingSpan(to: inout ContiguousArray, count: Int) -> dependsOn(to) MutatingSpan<Element> {
   ... construct a MutatingSpan ...
 }
 ```
@@ -153,7 +153,7 @@ Similar to the previous example:
 
 In both this and the previous case, the lifetime of the return value is "scoped" to the lifetime of the original value.
 Because lifetime dependencies can only be attached to nonescapable values, types that contain pointers will generally need to be nonescapable in order to provide safe semantics.
-As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as an Array or similar container) is providing a nonescapable value (such as the `Span` or `MutatingSpan` in these examples).
+As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as a ContiguousArray or similar container) is providing a nonescapable value (such as the `Span` or `MutatingSpan` in these examples).
 
 #### Copied Lifetime Dependency
 
@@ -176,7 +176,7 @@ If the original `Span` was borrowing some array, the new `Span` will continue to
 
 This supports coding patterns such as this:
 ```swift
-let a: Array<Int>
+let a: ContiguousArray<Int>
 let ref1 = a.span() // ref1 cannot outlive a
 let ref2 = ref1.drop(4) // ref2 also cannot outlive a
 ```
@@ -317,9 +317,9 @@ extension Span {
 We've discussed how a nonescapable result must be destroyed before the source of its lifetime dependence. Similarly, a dependent argument must be destroyed before an argument that it depends on. The difference is that the dependent argument may already have a lifetime dependence when it enters the function. The new function argument dependence is additive, because the call does not guarantee reassignment. Instead, passing the 'inout' argument is like a conditional reassignment. After the function call, the dependent argument carries both lifetime dependencies.
 
 ```swift
-  let a1: Array<Int> = ...
+  let a1: ContiguousArray<Int> = ...
   var span = a1.span()
-  let a2: Array<Int> = ...
+  let a2: ContiguousArray<Int> = ...
   mayReassign(span: &span, to: a2)
   // 'span' now depends on both 'a1' and 'a2'.
 ```
@@ -680,10 +680,10 @@ If a function, method, or initializer has a nonescapable return value, does not 
 
 ### Dependency semantics by example
 
-This section illustrates the semantics of lifetime dependence one example at a time for each interesting variation. The following helper functions will be useful: `Array.span()` creates a scoped dependence to a nonescapable `Span` result, `copySpan()` creates a copied dependence to a `Span` result, and `parse` uses a `Span`.
+This section illustrates the semantics of lifetime dependence one example at a time for each interesting variation. The following helper functions will be useful: `ContiguousArray.span()` creates a scoped dependence to a nonescapable `Span` result, `copySpan()` creates a copied dependence to a `Span` result, and `parse` uses a `Span`.
 
 ```swift
-extension Array {
+extension ContiguousArray {
   // The returned span depends on the scope of Self.
   borrowing func span() -> /* dependsOn(scoped self) */ Span<Element> { ... }
 }
@@ -697,7 +697,7 @@ func parse(_ span: Span<Int>) { ... }
 #### Scoped dependence on an immutable variable
 
 ```swift
-let a: Array<Int> = ...
+let a: ContiguousArray<Int> = ...
 let span: Span<Int>
 do {
   let a2 = a
@@ -715,7 +715,7 @@ Let's contrast scoped dependence shown above with copied dependence on a variabl
 An assignment that copies or moves a nonescapable value from one variable into another **copies** any lifetime dependence from the source value to the destination value. Thus, variable assignment has the same lifetime copy semantics as passing an argument using a `dependsOn()` annotation *without* a `scoped` keyword. So, the statement `let temp = span` has identical semantics to `let temp = copySpan(span)`.
 
 ```swift
-let a: Array<Int> = arg
+let a: ContiguousArray<Int> = arg
 let final: Span<Int>
 do {
   let span = a.span()
@@ -746,7 +746,7 @@ extension Span {
 A dependence may be copied from a mutable ('inout') variable. In that case, the dependence is inherited from whatever value the mutable variable holds when it is accessed.
 
 ```swift
-let a: Array<Int> = ...
+let a: ContiguousArray<Int> = ...
 var prefix: Span<Int>
 do {
   var temp = a.span()
@@ -761,7 +761,7 @@ parse(prefix) // ✅ Safe: still within lifetime of 'a'
 Now, let's return to scoped dependence, this time on a mutable variable. This is where exclusivity guarantees come into play. A scoped depenendence extends an access of the mutable variable across all uses of the dependent value. If the variable mutates again before the last use of the dependent, then it is an exclusivity violation.
 
 ```swift
-let a: Array<Int> = ...
+let a: ContiguousArray<Int> = ...
 a[i] = ...
 let span = a1.span()
 parse(span) // ✅ Safe: still within 'span's access on 'a'
@@ -777,7 +777,7 @@ We've described how a mutable variable can be the source of a lifetime dependenc
 
 ```swift
 func reassign(_ span: inout Span<Int>) {
-  let a: Array<Int> = ...
+  let a: ContiguousArray<Int> = ...
   span = a.span() // 🛑 Error: 'span' escapes the scope of 'a'
 }
 ```
@@ -797,9 +797,9 @@ func reassignWithArgDependence(_ span: dependsOn(arg) inout [Int], _ arg: [Int])
 'inout' argument dependence behaves like a conditional reassignment. After the call, the variable passed to the 'inout' argument has both its original dependence along with a new dependence on the argument that is the source of the argument dependence.
 
 ```swift
-let a1: Array<Int> = arg
+let a1: ContiguousArray<Int> = arg
 do {
-  let a2: Array<Int> = arg
+  let a2: ContiguousArray<Int> = arg
   var span = a1.span()
   testReassignArgDependence(&span, a2) // creates a conjoined dependence
   parse(span) // ✅ OK: within the lifetime of 'a1' & 'a2'
@@ -850,21 +850,21 @@ We propose above putting the annotation on the return value, which we believe ma
 It would also be possible to put an annotation on the parameters instead:
 
 ```swift
-func f(@resultDependsOn arg1: Array<Int>) -> Span<Int>
+func f(@resultDependsOn arg1: ContiguousArray<Int>) -> Span<Int>
 ```
 
 Depending on the exact language in use, it could also be more natural to put the annotation after the return value.
 However, we worry that this hides this critical information in cases where the return type is longer or more complex.
 
 ```swift
-func f(arg1: Array<Int>) -> Span<Int> dependsOn(arg1)
+func f(arg1: ContiguousArray<Int>) -> Span<Int> dependsOn(arg1)
 ```
 
 ### Different spellings
 
 An earlier version of this proposal advocated using the existing `borrow`/`mutate`/`consume`/`copy` keywords to specify a particular lifetime dependency semantic:
 ```swift
-func f(arg1: borrow Array<Int>) -> borrow(arg1) Span<Int>
+func f(arg1: borrow ContiguousArray<Int>) -> borrow(arg1) Span<Int>
 ```
 This was changed after we realized that there was in practice almost always a single viable semantic for any given situation, so the additional refinement seemed unnecessary.
 
