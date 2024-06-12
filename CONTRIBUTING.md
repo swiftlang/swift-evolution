@@ -17,13 +17,3 @@ This repository is not your standard codebase. It houses Swift evolution proposa
 - Substantive changes to the evolution process require the approval of the Core Team.
 
 Conversations about the substance of a proposal should be held in an appropriate forums thread rather than in PR comments.  This centralizes the discussion and allows more of the community to participate.
-
-### New proposals pull requests or major modifications 
-New proposals that follow the [Swift evolution process](process.md) can be submitted as a pull request after the pitch process in the [evolution forums](https://forums.swift.org/c/evolution/pitches/5).
-
-#### Substantive changes
-- changes to existing proposals should only be made with the permission of the proposal authors.
-- changes to a proposal in the Accepted or Rejected states are discouraged and require the approval of the appropriate evolution workgroup.
-- changes to a proposal in the Active Review state require the approval of the appropriate evolution workgroup and should be advertised in the review thread.
-- changes to vision documents require the approval of the appropriate evolution workgroup.
-- changes to documented evolution process require the approval of the Core Team.
