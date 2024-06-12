@@ -46,7 +46,7 @@ public func publicFunc() -> DatabaseAdapter.Entry {...} // error: function canno
 ```
 
 Additionally, this proposal uses the access level declared on each import declaration in all source files composing a module to determine when clients of a library need to load the library's dependencies or when they can be skipped.
-To balance source compatibility and best practices, the proposed default import has an implicit access level of public in Swift 5 and 6, and of internal in a future language mode.
+To balance source compatibility and best practices, the proposed default import has an implicit access level of public in Swift 5/6 and of internal in a future language mode.
 The attribute `@usableFromInline` on an import allows references from inlinable code.
 
 ## Detailed design
@@ -56,7 +56,7 @@ accept access-level modifiers on import declarations to declare the visibility o
 apply that information when type-checking the source file,
 and determine when indirect clients can skip loading transitive dependencies.
 We then cover other concerns addressed by this proposal:
-the different default access levels of imports in Swift 5 and 6, and a future language mode,
+the different default access levels of imports in Swift 5/6 and a future language mode,
 and the relationship with other attributes on imports.
 
 ### Declaring the access level of an imported module
@@ -204,12 +204,12 @@ Note that a dependency hidden on one import path may still need to be loaded bec
 The module interface associated with a hidden dependency doesn't need to be distributed to clients.
 However, the binary associated to the module still needs to be distributed to execute the resulting program.
 
-### Default import access level in Swift 5 and 6, and a future language mode
+### Default import access level in Swift 5/6 and a future language mode
 
 The access level of a default import declaration without an explicit access-level modifier depends on the language version.
 We list here the implicit access levels and reasoning behind this choice.
 
-In Swift 5 and 6, an import is `public` by default.
+In Swift 5/6, an import is `public` by default.
 This choice preserves source compatibility.
 The only official import previously available in Swift 5 behaves like the public import proposed in this document.
 
@@ -217,7 +217,7 @@ In a future language mode, an import is `internal` by default.
 This will align the behavior of imports with declarations where the implicit access level is internal.
 It should help limit unintentional dependency creep as marking a dependency public will require an explicit modifier.
 
-As a result, the following import is `public` in Swift 5 and 6, and `internal` in a future language mode:
+As a result, the following import is `public` in Swift 5/6 and `internal` in a future language mode:
 ```swift
 import ADependency
 ```
@@ -233,7 +233,7 @@ The upcoming feature flag `InternalImportsByDefault` will enable the future lang
 The `@_exported` attribute is a step above a `public` import,
 as clients see the imported module declarations is if they were part of the local module.
 With this proposal, `@_exported` is accepted only on public import declarations,
-both with the modifier or the default public visibility in Swift 5 and 6 mode.
+both with the modifier or the default public visibility in Swift 5/6 mode.
 
 The `@testable` attribute allows the local module to reference the internal declarations of the imported module.
 The current design even allows to use an imported internal or package type in a public declaration.
@@ -257,7 +257,7 @@ public import struct Foo.Bar
 
 ## Source compatibility
 
-To preserve source compatibility, imports are public by default in Swift 5 and 6.
+To preserve source compatibility, imports are public by default in Swift 5/6.
 This will preserve the current behavior of imports in Swift 5.
 As discussed previously, the future language mode behavior changes the default value and will require code changes.
 
