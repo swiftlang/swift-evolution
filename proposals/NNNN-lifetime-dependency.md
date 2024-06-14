@@ -599,7 +599,7 @@ This new syntax adds an optional `dependsOn(...)` lifetime modifier just before 
 > *function-result* → **`->`** *attributes?* *lifetime-modifiers?* *type* \
 > *lifetime-modifiers* → *lifetime-modifier* *lifetime-modifiers?* \
 > *lifetime-modifier* → **`dependsOn`** **`(`** *lifetime-dependent-list* **`)`** \
-> *lifetime-dependence-list* → *lifetime-dependent* | *lifetime-dependence-source* **`,`** *lifetime-dependent-list*
+> *lifetime-dependence-list* → *lifetime-dependence-source* **`,`** *lifetime-dependent-list*
 > *lifetime-dependence-source* → **`self`** | *local-parameter-name* | **`scoped self`** | **`scoped`** *local-parameter-name* | **`immortal`**
 >
 > *parameter-type-annotation* → : *attributes?* *lifetime-modifiers?* *parameter-modifier*? *type*
