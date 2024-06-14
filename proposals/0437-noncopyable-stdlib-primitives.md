@@ -141,7 +141,7 @@ enum Optional<Wrapped: ~Copyable>: ~Copyable {
   case some(Wrapped)
 }
 
-extension Optional: Copyable /* where Wrapped: Copyable */ {}
+extension Optional: Copyable where Wrapped: Copyable {}
 ```
 
 This is no small matter -- every existing use of `Optional` implicitly assumes its copyability, including all its protocol conformances. We need to lift this assumption without breaking source- and (on some platforms) binary compatibility with existing code that relies on it.
@@ -596,12 +596,12 @@ The standard `Result` type similarly needs to be generalized to allow noncopyabl
 
 ```swift
 @frozen
-enum Result<Success: ~Copyable, Failure: Error> {
+enum Result<Success: ~Copyable, Failure: Error>: ~Copyable {
   case success(Success)
   case failure(Failure)
 }
 
-extension Result: Copyable /* where Success: Copyable */ {}
+extension Result: Copyable where Success: Copyable {}
 extension Result: Sendable where Success: Sendable & ~Copyable {}
 ```
 
@@ -992,11 +992,13 @@ We therefore propose to add the following new member methods for extracting a st
 extension UnsafeBufferPointer where Element: ~Copyable {
   func extracting(_ bounds: Range<Int>) -> Self
   func extracting(_ bounds: some RangeExpression<Int>) -> Self
+  func extracting(_ bounds: UnboundedRange) -> Self
 }
 
 extension UnsafeMutableBufferPointer where Element: ~Copyable {
   func extracting(_ bounds: Range<Int>) -> Self
   func extracting(_ bounds: some RangeExpression<Int>) -> Self
+  func extracting(_ bounds: UnboundedRange) -> Self
 }
 ```
 
@@ -1179,7 +1181,7 @@ func withExtendedLifetime<T: ~Copyable, E: Error, Result: ~Copyable>(
 There exists a second variant of `withExtendedLifetime` whose function argument is passed the entity whose lifetime is being extended. This variant is less frequently used, but it still makes sense to generalize this to pass a borrowed instance:
 
 ```swift
-func withExtendedLifetime<T, E: Error, Result: ~Copyable>(
+func withExtendedLifetime<T: ~Copyable, E: Error, Result: ~Copyable>(
   _ x: borrowing T,
   _ body: (borrowing T) throws(E) -> Result
 ) throws(E) -> Result
