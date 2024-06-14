@@ -3,11 +3,11 @@
 * Proposal: [SE-0432](0432-noncopyable-switch.md)
 * Authors: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (April 9 – April 22, 2024)**
+* Status: **Accepted**
 * Implementation: on `main`, using the `BorrowingSwitch` experimental feature flag and `_borrowing x` binding spelling
 * Experimental Feature Flag: `BorrowingSwitch`
 * Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/86cf6eadcdb35a09eb03330bf5d4f31f2599da02/proposals/ABCD-noncopyable-switch.md)
-* Review: ([review](https://forums.swift.org/t/se-0432-borrowing-and-consuming-pattern-matching-for-noncopyable-types/71158))
+* Review: ([review](https://forums.swift.org/t/se-0432-borrowing-and-consuming-pattern-matching-for-noncopyable-types/71158)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0432-borrowing-and-consuming-pattern-matching-for-noncopyable-types/71656))
 
 ## Introduction
 
