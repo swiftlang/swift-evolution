@@ -399,11 +399,11 @@ We would like `List<Int>` to be `Copyable` since `Int` is, while still being
 able to use a noncopyable element type, like `List<FileDescriptor>`. We do
 this by declaring a _conditional conformance_:
 ```swift
-extension List: Copyable /* where T: Copyable */ {}
+extension List: Copyable where T: Copyable {}
 ```
-Note that no `where` clause needs to be written, because by the rules above,
-the default conformances here will already range over all generic parameters
-of the type.
+Note that the `where` clause needs to be written, because a conformance to
+`Copyable` declared in an extension does _not_ automatically add any other
+requirements, unlike other extensions.
 
 A conditional `Copyable` conformance is not permitted if the
 struct or enum declares a `deinit`. Deterministic destruction requires the
