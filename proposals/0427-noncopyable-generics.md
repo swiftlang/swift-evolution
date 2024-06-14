@@ -296,7 +296,7 @@ extension Horse where Hay: ~Copyable {...}  // error
 ### Protocol extensions
 
 Where possible, we wish to allow the user to change an existing protocol to
-accomodate noncopyable conforming types, without changing the meaning of existing
+accommodate noncopyable conforming types, without changing the meaning of existing
 code.
 
 For this reason, an extension of a `~Copyable` protocol also introduces a default
@@ -594,7 +594,7 @@ The behavior of default `Copyable` conformance on associated types prevents
 existing protocols from adopting `~Copyable` on their associated types in a
 source compatible way.
 
-For example, suppose we attempt to change `IteratorProtocol` to accomodate
+For example, suppose we attempt to change `IteratorProtocol` to accommodate
 noncopyable element types:
 ```swift
 protocol IteratorProtocol: ~Copyable {
