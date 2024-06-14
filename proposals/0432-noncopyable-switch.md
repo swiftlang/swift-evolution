@@ -3,7 +3,7 @@
 * Proposal: [SE-0432](0432-noncopyable-switch.md)
 * Authors: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.0)**
 * Implementation: on `main`, using the `BorrowingSwitch` experimental feature flag and `_borrowing x` binding spelling
 * Experimental Feature Flag: `BorrowingSwitch`
 * Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/86cf6eadcdb35a09eb03330bf5d4f31f2599da02/proposals/ABCD-noncopyable-switch.md)
