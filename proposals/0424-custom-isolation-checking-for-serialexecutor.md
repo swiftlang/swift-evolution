@@ -133,7 +133,7 @@ Specific use-cases of this API include `DispatchSerialQueue`, which would be abl
 // Dispatch 
 
 extension DispatchSerialQueue { 
-  public func checkIsolated(message: String) {
+  public func checkIsolated() {
     dispatchPrecondition(condition: .onQueue(self)) // existing Dispatch API
   }
 }
@@ -192,7 +192,7 @@ The custom heurystics that are today part of the Swift Concurrency runtime to de
 ```swift
 // concurrency runtime pseudo-code
 if expectedExecutor.isMainActor() {
-  expectedExecutor.checkIsolated(message: message)
+  expectedExecutor.checkIsolated()
 }
 ```
 
