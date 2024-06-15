@@ -23,7 +23,7 @@ The following example demonstrates such a situation:
 import Dispatch
 
 actor Caplin {
-  let queue = DispatchSerialQueue(label: "CoolQueue")
+  let queue: DispatchSerialQueue = .init(label: "CoolQueue")
 
   var num: Int // actor isolated state
 
