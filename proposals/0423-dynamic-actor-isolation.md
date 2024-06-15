@@ -3,9 +3,9 @@
 * Proposal: [SE-0423](0423-dynamic-actor-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (April 9 - April 18, 2024)**
+* Status: **Implemented (Swift 6.0)**
 * Upcoming Feature Flag: `DynamicActorIsolation`
-* Review: ([pitch](https://forums.swift.org/t/pitch-dynamic-actor-isolation-enforcement/68354)) ([first review](https://forums.swift.org/t/se-0423-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/70155)) ([second review](https://forums.swift.org/t/se-0423-second-review-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/71159))
+* Review: ([pitch](https://forums.swift.org/t/pitch-dynamic-actor-isolation-enforcement/68354)) ([first review](https://forums.swift.org/t/se-0423-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/70155)) ([second review](https://forums.swift.org/t/se-0423-second-review-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/71159)) ([acceptance](https://forums.swift.org/t/accepted-se-0423-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/71540))
 * Implementation: [apple/swift#70867](https://github.com/apple/swift/pull/70867), [apple/swift#71261](https://github.com/apple/swift/pull/71261), [apple/swift-syntax#2419](https://github.com/apple/swift-syntax/pull/2419)
 
 ## Introduction
