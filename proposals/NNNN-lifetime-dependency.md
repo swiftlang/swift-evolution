@@ -307,7 +307,7 @@ We expect these implicit inferences to cover most cases, with the explicit form 
 Normally, lifetime dependence is required when a nonescapable function result depends on an argument to that function. In some rare cases, however, a nonescapable function parameter may depend on another argument to that function. Consider a function with an `inout` parameter. The function body may reassign that parameter to a value that depends on another parameter. This is similar in principle to a result dependence.
 
 ```swift
-func mayReassign(span: dependsOn(a) inout [Int], to a: [Int]) {
+func mayReassign(span: dependsOn(a) inout Span<Int>, to a: ContiguousArray<Int>) {
   span = a.span()
 }
 ```
@@ -599,7 +599,7 @@ This new syntax adds an optional `dependsOn(...)` lifetime modifier just before 
 > *function-result* → **`->`** *attributes?* *lifetime-modifiers?* *type* \
 > *lifetime-modifiers* → *lifetime-modifier* *lifetime-modifiers?* \
 > *lifetime-modifier* → **`dependsOn`** **`(`** *lifetime-dependent-list* **`)`** \
-> *lifetime-dependence-list* → *lifetime-dependent* | *lifetime-dependence-source* **`,`** *lifetime-dependent-list*
+> *lifetime-dependence-list* → *lifetime-dependence-source* **`,`** *lifetime-dependent-list*
 > *lifetime-dependence-source* → **`self`** | *local-parameter-name* | **`scoped self`** | **`scoped`** *local-parameter-name* | **`immortal`**
 >
 > *parameter-type-annotation* → : *attributes?* *lifetime-modifiers?* *parameter-modifier*? *type*
@@ -795,7 +795,7 @@ func reassign(_ span: inout Span<Int>) {
 If a function takes a nonescapable 'inout' argument, it may only reassign that argument if it is marked dependent on another function argument that provies the source of the dependence.
 
 ```swift
-func reassignWithArgDependence(_ span: dependsOn(arg) inout [Int], _ arg: [Int]) {
+func reassignWithArgDependence(_ span: dependsOn(arg) inout ContiguousArray<Int>, _ arg: ContiguousArray<Int>) {
   span = arg.span() //  ✅ OK: 'span' already depends on 'arg' in the caller's scope.
 }
 ```
