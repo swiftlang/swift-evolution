@@ -9,7 +9,7 @@
 
 ## Introduction
 
-`TaskGroup` and `ThrowingTaskGroup` currently require that one of their two generics (`ChildTaskResult`) always be specified upon creation; can this be simplified by allowing the compiler to infer both of the generics in most cases.
+`TaskGroup` and `ThrowingTaskGroup` currently require that one of their two generics (`ChildTaskResult`) always be specified upon creation; this can be simplified by allowing the compiler to infer both of the generics in most cases.
 
 ## Motivation
 
@@ -47,7 +47,7 @@ Note that the `GroupResult` generic is inferrable via the `= GroupResult.self` d
 
 ```swift
 public func withTaskGroup<ChildTaskResult, GroupResult>(
-    of childTaskResultType: ChildTaskResult.Type = ChildTaskResult.self,
+    of childTaskResultType: ChildTaskResult.Type = ChildTaskResult.self, // <- Updated.
     returning returnType: GroupResult.Type = GroupResult.self,
     body: (inout TaskGroup<ChildTaskResult>) async -> GroupResult
 ) async -> GroupResult where ChildTaskResult : Sendable
@@ -69,7 +69,7 @@ In the above snippet, `ChildTaskResult` is inferred as `Void` and `GroupResult` 
 
 ## Detailed design
 
-Because [SE-0326](0326-extending-multi-statement-closure-inference.md) will look at the first statement to determine the generic for `ChildTaskResult`, it is possible to get a compiler message by creating a task group like so:
+Because [SE-0326](0326-extending-multi-statement-closure-inference.md) will look at the first statement to determine the generic for `ChildTaskResult`, it is possible to get a compiler error by creating a task group like so:
 
 ```swift
 // Expect `ChildTaskResult` to be `Void`...
