@@ -237,7 +237,7 @@ struct Box<T: ~Escapable>: ~Escapable {
 
 // Box gains the ability to escape whenever its
 // generic argument is Escapable
-extension Box: Escapable when T: Escapable { }
+extension Box: Escapable where T: Escapable { }
 ```
 
 This can be used in conjunction with other suppressible protocols.
@@ -322,9 +322,9 @@ The lifetime dependency would ensure that such an iterator could not outlive the
 ```swift
 // Example: Nonescaping iterator
 struct NEIterator {
-  // `borrow(container)` indicates that the constructed value
+  // `dependsOn(container)` indicates that the constructed value
   // cannot outlive the `container` argument.
-  init(over container: MyContainer) -> borrow(container) Self {
+  init(over container: MyContainer) -> dependsOn(container) Self {
     ... initialize an iterator suitable for `MyContainer` ...
   }
 }
@@ -385,7 +385,7 @@ struct Box<T> {
 }
 
 // But if T requires additional checks, so does Box
-extension Box: Nonescapable when T: Nonescapable { }
+extension Box: Nonescapable where T: Nonescapable { }
 ```
 
 However, this would imply that any `Nonescapable` type was a
@@ -431,7 +431,7 @@ In particular, the use cases we’ve so far considered have all been resolvable 
 struct NE: ~Escapable {
   // Proposed lifetime dependency notation;
   // see separate proposal for details.
-  init(from: SomeType) -> borrow(from) Self {}
+  init(from: SomeType) -> dependsOn(from) Self {}
 }
 ```
 
