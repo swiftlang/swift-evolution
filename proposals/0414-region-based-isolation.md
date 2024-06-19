@@ -1722,8 +1722,46 @@ resulting in a race against a write in the closure.
 
 ## Source compatibility
 
-This proposal strictly expands the set of acceptable Swift programs, so all
-Swift code that was previously accepted by the compiler will still be accepted.
+Region-based isolation opens up a new data-race safety hole when using APIs
+change the static isolation in the implementation of a `nonisolated` funciton,
+such as `assumeIsolated`, because values can become referenced by actor-isolated
+state without any indication in the funciton signature:
+
+```swift
+class NonSendable {}
+
+@MainActor var globalNonSendable: NonSendable = .init()
+
+nonisolated func stashIntoMainActor(ns: NonSendable) {
+  MainActor.assumeIsolated {
+    globalNonSendable = ns
+  }
+}
+
+func stashAndTransfer() -> NonSendable {
+  let ns = NonSendable()
+  stashIntoMainActor(ns)
+  Task.detached {
+    print(ns)
+  }
+}
+
+@MainActor func transfer() async {
+  let ns = stashAndTransfer()
+  await sendSomewhereElse(ns)
+}
+```
+
+Without additional restrictions, the above code would be valid under this proposal,
+but it risks a runtime data-race because the value returned from `stashAndTransfer`
+is stored in `MainActor`-isolated state and send to another isolation domain to
+be accessed concurrently. To close this hole, values must be sent into and out of
+`assumeIsolated`. The base region-isolation rules accomplish this by treating
+captures of isolated closures as a region merge, and the standard library annotates
+`assumeIsolated` as requiring the result type `T` to conform to `Sendable`. This
+impacts existing uses of `assumeIsolated`, so the change is staged in as warnings
+under complete concurrency checking, which enables `RegionBasedIsolation` by default,
+and an error in Swift 6 mode.
 
 ## ABI compatibility
 
