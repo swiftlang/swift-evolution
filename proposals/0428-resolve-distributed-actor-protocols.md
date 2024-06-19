@@ -4,7 +4,6 @@
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
 * Status:  **Implemented (Swift 6.0)**
-* Implementation: [PR #70928](https://github.com/apple/swift/pull/70928)
 * Review: ([pitch](https://forums.swift.org/t/pitch-resolve-distributedactor-protocols-for-server-client-apps/69933)) ([review](https://forums.swift.org/t/se-0428-resolve-distributedactor-protocols/70669)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0428-resolve-distributedactor-protocols/71366))
 
 ## Introduction
