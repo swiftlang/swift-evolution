@@ -4,7 +4,7 @@
 * Author: [Richard L Zarth III](https://github.com/rlziii)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Implementation: [apple/swift#74517](https://github.com/apple/swift/pull/74517)
 * Review: ([pitch](https://forums.swift.org/t/allow-taskgroups-childtaskresult-type-to-be-inferred/72175))
 
 ## Introduction
