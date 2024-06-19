@@ -9,7 +9,7 @@
 
 ## Introduction
 
-`TaskGroup` and `ThrowingTaskGroup` currently require that one of their two generics (`ChildTaskResult`) always be specified upon creation; this can be simplified by allowing the compiler to infer both of the generics in most cases.
+`TaskGroup` and `ThrowingTaskGroup` currently require that one of their two generics (`ChildTaskResult`) always be specified upon creation. Due to improvements in closure parameter/result type inference introduced by [SE-0326](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md) this can be simplified by allowing the compiler to infer both of the generics in most cases.
 
 ## Motivation
 
@@ -25,7 +25,7 @@ let s = withTaskGroup(of: Void.self) { group in
 }
 ```
 
-The type of `s` (which is the `GroupResult` generic) is inferred above (as `String`).  However, the return value of the `addTask` closures cannot be inferred and must be supplied via `of childTaskResultType: ChildTaskResult.Type` (above as `Void`).
+The type of `s` (which is the `GroupResult` type) is correctly inferred as `String`.  However, the return value of the `addTask` closures is not inferred and currently must be supplied to the `of:` parameter of the `withTaskGroup(of:returning:body:)` function (e.g. `Void`).
 
 Note that `withDiscardingTaskGroup(returning:body:)` and `withThrowingDiscardingTaskGroup(returning:body:)` do not have `ChildTaskResult` generics since their child tasks must always be of type `Void`.
 
@@ -117,7 +117,7 @@ Omitting the `of childTaskResultType: ChildTaskResult.Type` parameter for both `
 
 ## ABI compatibility
 
-No ABI impact since this is an additive change to default arguments.
+No ABI impact since adding a default argument value is binary compatible change.
 
 ## Implications on adoption
 
@@ -127,7 +127,23 @@ compatibility.
 
 ## Future directions
 
-...
+### TaskGroup APIs Without the "with..." Closures
+
+While not possible without more compiler features to enforce the safety of a task group not escaping a context, and having to await all of its results at the end of a "scope..." it is an interesting future direction to explore a `TaskGroup` API that does not need to resort to "with..." methods, like this:
+
+```swift
+// Potential long-term direction that might be possible:
+func test() async { 
+  let group = TaskGroup<Int>()
+  group.addTask { ... }
+  
+  // Going out of scope would have to imply group.awaitAll()...
+}
+```
+
+If we were to explore such API, the type inference rules would be somewhat different, and a `TaskGroup` would likely be initialized more similarly to a collection: `TaskGroup<Int>`.
+
+This proposal has no impact on this future direction, and can be accepted as is, without precluding future developments in API ergonomics like this.
 
 ## Alternatives considered
 
@@ -135,4 +151,4 @@ The main alternative is to do nothing; as in, leave the `withTaskGroup(of:return
 
 ## Acknowledgments
 
-...
+Thank you to both Konrad Malawski (@ktoso) and Pavel Yaskevich (@xedin) for confirming the viability of this proposal/idea, and for Konrad Malawski (@ktoso) for helping to review the proposal and implementation.
