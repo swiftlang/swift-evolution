@@ -3,7 +3,7 @@
 * Proposal: [SE-0435](0435-swiftpm-per-target-swift-language-version-setting.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.0)**
 * Implementation: [apple/swift-package-manager#7439](https://github.com/apple/swift-package-manager/pull/7439)
 * Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-swift-language-version-per-target/71067)) ([review](https://forums.swift.org/t/se-0435-swift-language-version-per-target/71546)) ([acceptance](https://forums.swift.org/t/accepted-se-0435-swift-language-version-per-target/71846))
 

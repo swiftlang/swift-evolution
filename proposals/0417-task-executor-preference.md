@@ -3,7 +3,7 @@
 * Proposal: [SE-0417](0417-task-executor-preference.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [John McCall](https://github.com/rjmccall), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status:  **Accepted**
+* Status:  **Implemented (Swift 6.0)**
 * Implementation: [PR #68793](https://github.com/apple/swift/pull/68793)
 * Review: ([pitch](https://forums.swift.org/t/pitch-task-executor-preference/68191)), ([review](https://forums.swift.org/t/se-0417-task-executor-preference/68958)), ([acceptance](https://forums.swift.org/t/accepted-se-0417-task-executor-preference/69705))
 
