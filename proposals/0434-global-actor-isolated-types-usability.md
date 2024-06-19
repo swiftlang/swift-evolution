@@ -248,6 +248,10 @@ An alternative choice would be to introduce an upcoming feature flag that's enab
 
 The existing adoption implications of `@Sendable` and global actor isolation adoption apply when making use of the rules in this proposal. For example, `@Sendable` and `@MainActor` can be staged into existing APIs using `@preconcurrency`. See [SE-0337: Incremental migration to concurrency checking](/proposals/0337-support-incremental-migration-to-concurrency-checking.md) for more information.
 
+## Alternatives considered
+
+Instead of implicitly suppressing a `Sendable` conformance on isolated subclasses of non-`Sendable`, non-isolated superclasses, the compiler could instead require an explicit opt-out, such as `~Sendable` in the conformance clause. This would make it obvious that the subclass does not have a `Sendable` conformance. However, the programmer does not need to understand that the class does not conform to `Sendable` until they use the type in a way that requires `Sendable`, and the reason for the class not conforming to `Sendable` can be explained with notes attached to the diagnostic. It is also not always the case that global actor isolation implies `Sendable`. Notably, `@MainActor` on a protocol does not imply that the protocol refines `Sendable`, so requiring more boilerplate for programmers in the isolated subclass case does not leave the programmer with a simple rule to remember about when `@MainActor` implies a conformance to `Sendable`.
+
 ## Acknowledgments
 
 Thank you to Frederick Kellison-Linn for surfacing the problem with global-actor-isolated function types, and to Kabir Oberai for exploring the implications more deeply.
