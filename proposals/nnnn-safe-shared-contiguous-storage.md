@@ -1029,6 +1029,8 @@ Joe Groff, John McCall, Tim Kientzle, Karoy Lorentey contributed to this proposa
 
 ## <a name="Indexing"></a>Appendix: Index and slicing design considerations
 
+Early prototypes of this proposal defined an `Index` type, `Iterator` types, etc. We are proposing `Int`-based API and are deferring defining `Index` and `Iterator` until more of the non-escapable collection story is sorted out. The below is some of our research into different potential designs of an `Index` type.
+
 There are 3 potentially-desirable features of `Span`'s `Index` design:
 
 1. `Span` is its own slice type
@@ -1041,9 +1043,10 @@ Each of these introduces practical tradeoffs in the design.
 
 Collections which own their storage have the convention of separate slice types, such as `Array` and `String`. This has the advantage of clearly delineating storage ownership in the programming model and the disadvantage of introducing a second type through which to interact.
 
-`UnsafeBufferPointer` may or may not (unsafely) own its storage, and hence has a separate slice type. It's `baseAddress` has a `deallocate` method for situations in which it does (unsafely) own its storage, and that method should only be called on the `baseAddress` of the original allocation, not the start of a slice. However, many uses of `UnsafeBufferPointer` are unowned use cases, where having a separate slice type is [cumbersome](https://github.com/apple/swift/blob/bcd08c0c9a74974b4757b4b8a2d1796659b1d940/stdlib/public/core/StringComparison.swift#L175).
+When types do not own their storage, separate slice types can be [cumbersome](https://github.com/apple/swift/blob/bcd08c0c9a74974b4757b4b8a2d1796659b1d940/stdlib/public/core/StringComparison.swift#L175). The reason `UnsafeBufferPointer` has a separate slice type is because it wants to allow indices to be reused across slices and its `Index` is a relative offset from the start (`Int`) rather than an absolute position (such as a pointer).
 
-`Span` does not own its storage and there is no concern about leaking larger allocations. Thus, it would benefit from being its own slice type, even if doing so increases the size of the type from 2 to 3 words (depending on other design tradeoffs discussed below). We propose making `Span` be its own slice type.
+`Span` does not own its storage and there is no concern about leaking larger allocations. It would benefit from being its own slice type.
+
 
 #### Indices from a slice can be used on the base collection
 
@@ -1116,11 +1119,10 @@ getFirst(myCollection) // 0
 getFirst(slice)        // Fatal error: Index out of bounds
 ```
 
-Preserving index interchange across views and the base is a nice-to-have for `Span`, and we propose keeping it. However, we are evaluating the tradeoffs it requires.
 
 #### Additional reuse-after-free checking
 
-`Span` bounds-checks its indices, which is important for safety. If the index is based around a pointer (instead of an offset), then bounds checks will also ensure that indices are not used with the wrong span in most situations. However, it is possible for a memory address to be reused after being freed, and using a stale index into this reused memory may introduce safety problems.
+`Span` bounds-checks its indices, which is important for safety. If the index is based around a pointer (instead of an offset), then bounds checks will also ensure that indices are not used with the wrong span in most situations. However, it is possible for a memory address to be reused after being freed and using a stale index into this reused memory may introduce safety problems.
 
 ```swift
 var idx: Span<T>.Index
@@ -1137,12 +1139,12 @@ let span2 = array2.span
 // but with a different base address whose offset is not an even
 // multiple of `MemoryLayout<T>.stride`.
 
-span2[idx] // unaligned load, what happens?
+span2[idx] // misaligned load, what happens?
 ```
 
-If `T` is `BitwiseCopyable`, then the unaligned load is not undefined behavior, but the value that is loaded is garbage. Whether the program is well-behaved going forwards depends on whether it is resilient to getting garbage values.
+If `T` is `BitwiseCopyable`, then the misaligned load is not undefined behavior, but the value that is loaded is garbage. Whether the program is well-behaved going forwards depends on whether it is resilient to getting garbage values.
 
-If `T` is not `BitwiseCopyable`, then the unaligned load may introduce undefined behavior. No matter how well-written the rest of the program is, it has a critical safety and security flaw.
+If `T` is not `BitwiseCopyable`, then the misaligned load may introduce undefined behavior. No matter how well-written the rest of the program is, it has a critical safety and security flaw.
 
 When the reused allocation happens to be stride-aligned, there is no undefined behavior from undefined loads, nor are there "garbage" values in the strictest sense, but it is still reflective of a programming bug. The program may be interacting with an unexpected value.
 
@@ -1154,32 +1156,24 @@ Future improvements to microarchitecture may make reuse after free checks cheape
 
 ##### Index is an offset (`Int` or a wrapper around `Int`)
 
-When `Index` is an offset, there is no undefined behavior from unaligned loads because the `Span`'s base address is advanced by `MemoryLayout<T>.stride * offset`. 
+When `Index` is an offset, there is no undefined behavior from misaligned loads because the `Span`'s base address is advanced by `MemoryLayout<T>.stride * offset`. 
 
 However, there is no protection against invalidly using an index derived from a different span, provided the offset is in-bounds.
 
-If `Span` is 2 words (base address and count), then indices cannot be interchanged between slices and the base span. `Span` would need to additionally store a base offset, bringing it up to 3 words in size.
-
-**TODO**: What's the perf impact of having a base offset? Bounds checking would need `(baseOffset..<(count &- baseOffset)).contains(i)`.
+Since `Span` is 2 words (base address and count), indices cannot be interchanged between slices and the base span. In order to do so, `Span` would need to additionally store a base offset, bringing it up to 3 words in size.
 
 ##### Index is a pointer (wrapper around `UnsafeRawPointer`)
 
 When Index holds a pointer, `Span` only needs to be 2 words in size, as valid index interchange across slices falls out naturally. Additionally, invalid reuse of an index across spans will typically be caught during bounds checking.
 
-However, in a reuse-after-free situation, unaligned loads (i.e. undefined behavior) are possible. If stride is not a multiple of 2, then alignement checking can be expensive. Alternatively, we could choose not to detect these bugs.
+However, in a reuse-after-free situation, misaligned loads (i.e. undefined behavior) are possible. If stride is not a multiple of 2, then alignment checking can be expensive. Alternatively, we could choose not to detect these bugs.
 
 ##### Index is a fat pointer (pointer and allocation ID)
 
-We can create a per-allocation ID (e.g. a cryptographic `UInt64`) for both `Span` and `Span.Index` to store. This makes `Span` 3 words in size and `Span.Index` 2 words in size. This provides the most protection possible against all forms of invalid index use, including reuse-after-free.
+We can create a per-allocation ID (e.g. a cryptographic `UInt64`) for both `Span` and `Span.Index` to store. This would make `Span` 3 words in size and `Span.Index` 2 words in size. This provides the most protection possible against all forms of invalid index use, including reuse-after-free. However, making `Span` be 3 words and `Span.Index` 2 words for this feature is unfortunate.
 
-However, making `Span.Index` be 2 words in size is unfortunate. `Range<Span.Index>` is now 4 words in size, storing the allocation ID twice. Anything built on top of `Span` that wishes to store multiple indices is either bloated or must hand-extract the pointers and hand-manage the allocation ID.
+We could instead go with 2 word `Span` and 2 word `Span.Index` by storing the span's `baseAddress` in the `Index`'s second word. This will detect invalid reuse of indices across spans in addition to misaligned reuse-after-free errors. However, indices could not be interchanged without a way for the slice type to know the original span's base address (e.g. through a separate slice type or making `Span` 3 words in size).
 
-##### Bitpacking an allocation ID hash
+In either approach, making `Span.Index` be 2 words in size is unfortunate. `Range<Span.Index>` is now 4 words in size, storing the allocation ID twice. Anything built on top of `Span` that wishes to store multiple indices is either bloated or must hand-extract the pointers and hand-manage the allocation ID.
 
-As an alternative to the above, we could create a smaller hash value of an allocation ID and use that for checking. 
 
-If index is an offset, it could use e.g. 48 bits for the offset and 16 bits for the hash value. If index is a pointer, it could use **TODO** bits for the hash value.
-
-**TODO**: perf impact of this approach
-
-We recommend going with **TODO**
