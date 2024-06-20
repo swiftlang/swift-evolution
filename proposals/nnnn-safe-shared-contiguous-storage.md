@@ -33,12 +33,15 @@ We want to take advantage of the features of non-escapable types to replace some
 
 ```swift
 let array = Array("Hello\0".utf8)
+
+// Old
 array.withUnsafeBufferPointer {
   // use `$0` here for direct memory access
 }
+
+// New
 let span: Span<UInt8> = array.storage
 // use `span` in the same scope as `array` for direct memory access
-```
 
 ## Proposed solution
 
@@ -196,7 +199,7 @@ extension Slice: ContiguousStorage where Base: ContiguousStorage {
 }
 ```
 
-In addition to the the safe types above gaining the `storage` property, the `UnsafeBufferPointer` family of types will also gain access to a `storage` property. This enables interoperability if `Span`-taking API. While a `Span` binding created from an `UnsafeBufferPointer` exists, the memory that underlies it must not be deinitialized or deallocated.
+In addition to the the safe types above gaining the `storage` property, the `UnsafeBufferPointer` family of types will also gain access to a `storage` property. This enables interoperability of `Span`-taking API. While a `Span` binding created from an `UnsafeBufferPointer` exists, the memory that underlies it must not be deinitialized or deallocated.
 
 ```swift
 extension UnsafeBufferPointer: ContiguousStorage<Self.Element> {
@@ -248,7 +251,7 @@ public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
 
 ##### Creating a `Span`:
 
-The initialization of a `Span` instance is an unsafe operation. When it is initialized correctly, subsequent uses of the borrowed instance are safe. Typically these initializers will be used internally to a container's implementation of functions or computed properties that return a borrowed `Span`.
+The initialization of a `Span` instance from an unsafe pointer is an unsafe operation. When it is initialized correctly, subsequent uses of the borrowed instance are safe. Typically these initializers will be used internally to a container's implementation of functions or computed properties that return a borrowed `Span`.
 
 ```swift
 extension Span {
@@ -331,7 +334,7 @@ extension Span where Element: BitwiseCopyable {
 
 #####  `Collection`-like API:
 
-The following typealiases, properties, functions and subscripts have direct counterparts in the `Collection` protocol hierarchy. Their semantics shall be as described where they counterpart is declared (in `Collection` or `RandomAccessCollection`). The only difference with their counterpart should be a lifetime dependency annotation where applicable, allowing them to return borrowed nonescapable values or borrowed noncopyable values.
+The following properties, functions and subscripts have direct counterparts in the `Collection` protocol hierarchy. Their semantics shall be as described where they counterpart is declared (in `Collection` or `RandomAccessCollection`). The only difference with their counterpart should be a lifetime dependency annotation where applicable, allowing them to return borrowed nonescapable values or borrowed noncopyable values.
 
 ```swift
 extension Span {
@@ -390,7 +393,7 @@ extension Span {
   ///
   /// - Parameter bounds: A range of the collection's indices. The bounds of
   ///     the range must be valid indices of the collection.
-  public subscript(
+  public func extracting(
     uncheckedBounds bounds: some RangeExpression<Index>
   ) -> dependsOn(self) Span<Element>
 }
@@ -406,7 +409,7 @@ extension Span {
   ///
   /// - Parameters:
   ///   - position: an position to validate
-  public boundsCheckPrecondition(_ position: Index)
+  public boundsCheckPrecondition(_ position: Int)
 
   /// Traps if `bounds` is not a valid range of offsets into this `Span`
   ///
@@ -468,7 +471,7 @@ In addition to `Span<T>`, we propose the addition of `RawSpan`, to represent het
 
 ```swift
 public struct RawSpan: Copyable, ~Escapable {
-  internal var _start: RawSpan.Index
+  internal var _start: UnsafeRawPointer
   internal var _count: Int
 }
 ```
@@ -487,7 +490,7 @@ extension RawSpan {
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `RawSpan`.
   public init?<Owner: ~Copyable & ~Escapable>(
-    unsafeBytes buffer: UnsafeBufferPointer<Element>,
+    unsafeBytes buffer: UnsafeRawBufferPointer,
     owner: borrowing Owner
   ) -> dependsOn(owner) Self?
 
