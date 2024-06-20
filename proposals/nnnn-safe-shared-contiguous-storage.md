@@ -792,60 +792,49 @@ extension RawSpan {
 }
 ```
 
-### Byte parsing helpers
 
-The below (severable) API make `RawSpan` well-suited for use in binary parsers and decoders.
+## Source compatibility
 
-#### Out of bounds errors
+This proposal is additive and source-compatible with existing code.
 
-The stdlib's lowest level (safe) interfaces, direct indexing, trap on error ([Logic failures](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#logic-failures)). Some operations, such as the key-based subcript on `Dictionary`, are expected to fail often and have no useful information to communicate other than to return `nil` ([Simple domain errors](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#simple-domain-errors)). 
+## ABI compatibility
 
-Data parsing is generally expected to succeed, but when it doesn't we want an error that we can propagate upwards with enough information in that we can try to recover ([Recoverable errors](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#recoverable-errors)). For example, if our data is provided in chunks of contiguous memory, we might be able to recover by buffering more bytes and trying again.
+This proposal is additive and ABI-compatible with existing code.
 
-```swift
-/// An error indicating that out-of-bounds access was attempted
-@frozen
-public struct OutOfBoundsError: Error {
-  /// The number of elements expected
-  public var expected: Int
+## Implications on adoption
 
-  /// The number of elements found
-  public var has: Int
+The additions described in this proposal require a new version of the standard library and runtime.
 
-  @inlinable
-  public init(expected: Int, has: Int)
-}
-```
+## Alternatives considered
 
-#### Index-advancing operations
+##### Make `Span` a noncopyable type
+Making `Span` non-copyable was in the early vision of this type. However, we found that would make `Span` a poor match to model borrowing semantics. This realization led to the initial design for non-escapable declarations.
 
-The following parsing primitives provide useful error-reporting wrappers for loading arbitrary types from a `RawSpan`. They advance the passed-in read offset on success, relieving developers of most of the ceremony of managing the index.
+##### A protocol in addition to `ContiguousStorage` for unsafe buffers
+This document proposes adding the `ContiguousStorage` protocol to the standard library's `Unsafe{Mutable,Raw}BufferPointer` types. On the surface this seems like whitewashing the unsafety of these types. The lifetime constraint only applies to the binding used to obtain a `Span`, and the initialization precondition can only be enforced by documentation. Nothing will prevent unsafe code from deinitializing a portion of the storage while a `Span` is alive. There is no safe bridge from `UnsafeBufferPointer` to `ContiguousStorage`. We considered having the unsafe buffer types conforming to a different version of `ContiguousStorage`, which would vend a `Span` through a closure-taking API. Unfortunately such a closure would be perfectly capable of capturing the `UnsafeBufferPointer` binding and be as unsafe as can be. For this reason, the `UnsafeBufferPointer` family will conform to `ContiguousStorage`, with safety being enforced in documentation.
 
-```swift
-extension RawSpan {
-  /// Parse an instance of `T`, advancing `position`.
-  @inlinable
-  public func parse<T: _BitwiseCopyable>(
-    _ position: inout Int, as t: T.Type = T.self
-  ) throws(OutOfBoundsError) -> T
+##### Use a non-escapable index type
+Eventually we want a similar usage pattern for a `MutableSpan` as we are proposing for `Span`. If the index of a `MutableSpan` were to borrow the view, then it becomes impossible to implement a mutating subscript without also requiring an index to be consumed. This seems untenable.
 
-  /// Parse `numBytes` of data, advancing `position`.
-  @inlinable
-  public func parse(
-    _ position: inout Int, numBytes: some FixedWidthInteger
-  ) throws (OutOfBoundsError) -> Self
-}
-```
+##### Naming
 
-#### Cursor-mutating operations
+The ideas in this proposal previously used the name `BufferView`. While the use of the word "buffer" would be consistent with the `UnsafeBufferPointer` type, it is nevertheless not a great name, since "buffer" is usually used in reference to transient storage. On the other hand we already have a nomenclature using the term "Storage" in the `withContiguousStorageIfAvailable()` function, and we tried to allude to that in a previous pitch where we called this type `StorageView`. We also considered the name `StorageSpan`, but that did not add much beyond the name `Span`. `Span` clearly identifies itself as a relative of C++'s `std::span`.
 
-`Cursor` provides a more convenient interface to the index-advancing primitives by encapsulating the current position as well as subrange within the input in which to operate.
+##### Adding `load` and `loadUnaligned` to `Span<UInt8>`on `Span<some BitwiseCopyable>` instead of adding `RawSpan`
 
-When parsing data, there are often multiple subranges of the data that we are parsing within. For example, when parsing an entire file, we might treat each line as a separate record, and we might individually parse different fields in each line. Knowing whether we are at the start or end of the file requires checking the file's original bounds and knowing whether we are at the start of a line requires either knowing the line's bounds or peeking-behind the record's current parse range for a newline character.
+TKTKTK
 
 `Cursor` stores and manages a parsing subrange, which alleviates the developer from managing one layer of slicing.
 
-*Alternative*: If `Cursor` does not store the subrange, it would be 3 words in size rather than 5 words. The developer would have to pre-slice and manage the slice, and future API on cursor could not peek outside of the subrange's bounds (e.g. checking for start-of-line).
+##### A more sophisticated approach to indexing
+
+This is discussed more fully in the [indexing appendix](#Indexing) below.
+
+## Future directions
+
+### Byte parsing helpers
+
+A handful of helper API can make `RawSpan` better suited for binary parsers and decoders.
 
 ```swift
 extension RawSpan {
@@ -853,14 +842,8 @@ extension RawSpan {
   public struct Cursor: Copyable, ~Escapable {
     public let base: RawSpan
 
-    /// The range within which we parse
-    public let parseRange: Range<RawSpan.Index>
-
     /// The current parsing position
     public var position: RawSpan.Index
-
-    @inlinable
-    public init(_ base: RawSpan, in range: Range<RawSpan.Index>)
 
     @inlinable
     public init(_ base: RawSpan)
@@ -881,18 +864,17 @@ extension RawSpan {
     @inlinable
     public var parsedBytes: RawSpan { get }
 
-    /// The number of bytes left to parse
+    /// The remaining bytes left to parse
     @inlinable
-    public var remainingBytes: Int { get }
+    public var remainingBytes: RawSpan { get }
   }
 
   @inlinable
   public func makeCursor() -> Cursor
-
-  @inlinable
-  public func makeCursor(in range: Range<Index>) -> Cursor
 }
 ```
+
+Alternatively, if some future `RawSpan.Iterator` were 3 words in size (start, current position, and end) instead of 2 (current pointer and end), that is it were a "resettable" iterator, it could host this API instead of introducing a new `Cursor` type or concept.
 
 #### Example: Parsing PNG
 
@@ -941,42 +923,10 @@ func parsePNGChunk<Owner: ~Copyable & ~Escapable>(
 }
 ```
 
-## Source compatibility
 
-This proposal is additive and source-compatible with existing code.
 
-## ABI compatibility
 
-This proposal is additive and ABI-compatible with existing code.
-
-## Implications on adoption
-
-The additions described in this proposal require a new version of the standard library and runtime.
-
-## Alternatives considered
-
-##### Make `Span` a noncopyable type
-Making `Span` non-copyable was in the early vision of this type. However, we found that would make `Span` a poor match to model borrowing semantics. This realization led to the initial design for non-escapable declarations.
-
-##### A protocol in addition to `ContiguousStorage` for unsafe buffers
-This document proposes adding the `ContiguousStorage` protocol to the standard library's `Unsafe{Mutable,Raw}BufferPointer` types. On the surface this seems like whitewashing the unsafety of these types. The lifetime constraint only applies to the binding used to obtain a `Span`, and the initialization precondition can only be enforced by documentation. Nothing will prevent unsafe code from deinitializing a portion of the storage while a `Span` is alive. There is no safe bridge from `UnsafeBufferPointer` to `ContiguousStorage`. We considered having the unsafe buffer types conforming to a different version of `ContiguousStorage`, which would vend a `Span` through a closure-taking API. Unfortunately such a closure would be perfectly capable of capturing the `UnsafeBufferPointer` binding and be as unsafe as can be. For this reason, the `UnsafeBufferPointer` family will conform to `ContiguousStorage`, with safety being enforced in documentation.
-
-##### Use a non-escapable index type
-Eventually we want a similar usage pattern for a `MutableSpan` as we are proposing for `Span`. If the index of a `MutableSpan` were to borrow the view, then it becomes impossible to implement a mutating subscript without also requiring an index to be consumed. This seems untenable.
-
-##### Naming
-
-The ideas in this proposal previously used the name `BufferView`. While the use of the word "buffer" would be consistent with the `UnsafeBufferPointer` type, it is nevertheless not a great name, since "buffer" is usually used in reference to transient storage. On the other hand we already have a nomenclature using the term "Storage" in the `withContiguousStorageIfAvailable()` function, and we tried to allude to that in a previous pitch where we called this type `StorageView`. We also considered the name `StorageSpan`, but that did not add much beyond the name `Span`. `Span` clearly identifies itself as a relative of C++'s `std::span`.
-
-##### Adding `load` and `loadUnaligned` to `Span<UInt8>`on `Span<some BitwiseCopyable>` instead of adding `RawSpan`
-
-TKTKTK
-
-##### A more sophisticated approach to indexing
-
-This is discussed more fully in the [indexing appendix](#Indexing) below.
-
-## Future directions
+---
 
 ##### Defining `BorrowingIterator` with support in `for` loops
 This proposal does not define an `IteratorProtocol` conformance, since it would need to be borrowed and non-escapable. This is not compatible with `IteratorProtocol`. As such, `Span`  is not directly usable in `for` loops as currently defined. A `BorrowingIterator` protocol for non-escapable and non-copyable containers must be defined, providing a `for` loop syntax where the element is borrowed through each iteration. Ultimately we should arrive at a way to iterate through borrowed elements from a borrowed view:
