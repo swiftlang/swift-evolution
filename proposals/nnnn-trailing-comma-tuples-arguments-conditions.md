@@ -43,7 +43,7 @@ func frame(
 .frame(
     width: 500,
 //    alignment: .leading
-) ❌ Unexpected ',' separator
+) // ❌ Unexpected ',' separator
 ```
 
 The introduction of [parameter packs](https://github.com/apple/swift-evolution/blob/main/proposals/0393-parameter-packs.md) allows more APIs that are comma-separated lists at call site and would benefit from trailing comma.
@@ -57,7 +57,7 @@ arrayOfS.sorted(
   \.a, 
   \.b,
 //  \.c
-) ❌ Unexpected ',' separator
+) // ❌ Unexpected ',' separator
 ```
 
 Since [#21381](https://github.com/apple/swift/pull/21381) has been merged back in 2019 **enum associated values** supports default values and are a good fit for trailing comma as well.
@@ -72,9 +72,9 @@ if
    condition1,
    condition2,
 //   condition3
-{ ❌ Cannot convert value of type '() -> ()' to expected condition type 'Bool'
+{ // ❌ Cannot convert value of type '() -> ()' to expected condition type 'Bool'
                     
-} ❌ Expected '{' after 'if' condition
+} // ❌ Expected '{' after 'if' condition
 ```
 
 These benefits can be extended to other comma-separated lists found in the Swift language.
@@ -108,9 +108,17 @@ foo(
 
 ## Proposed solution
 
-This proposal adds support for trailing comma to the following comma separated lists:
+This proposal adds support for trailing comma for comma-separated lists, but only when there's a clear terminator. A enum case label list won't support, for example:
 
-- Tuples and tuple patterns
+```swift
+enum E {
+  case a, b, c, // ❌ Expected identifier after comma in enum 'case' declaration
+}
+```
+
+Trailing comma will be allowed in the following comma-separated lists:
+
+- Tuples and tuple patterns 
 
 ```swift
 (1, 2,)
@@ -185,14 +193,6 @@ switch number {
 }
 ```
 
-- `enum` case labels
-
-```swift
-enum E {
-  case a, b, c,
-}
-```
-
 - Closure capture list
 
 ```swift
@@ -205,6 +205,13 @@ enum E {
 struct S: P1, P2, P3, { }
 ```
 
+**Inheritance lists won't support trailing comma when there isn't a clear terminator, such as `associatedtype` in a protocol declaration:**
+```swift
+protocol Foo {
+  associatedtype T: P1, P2, // ❌ Expected type
+}
+```
+
 - Generic parameters
 
 ```swift
@@ -214,7 +221,14 @@ struct S<T1, T2, T3,> { }
 - Generic `where` clause list
 
 ```swift
-struct S<T1, T2, T3,> where T1: P1, T2: P2, { }
+struct S<T1, T2, T3> where T1: P1, T2: P2, { }
+```
+
+**Generic `where` clause lists won't support trailing comma when there isn't a clear terminator, such as functions in protocol declaration:**
+```swift
+protocol Foo {
+  func f<T1, T2>(a: T1, b: T2) where T1: P1, T2: P2, // ❌ Expected type
+}
 ```
 
 - Availability spec list
