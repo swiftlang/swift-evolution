@@ -6,21 +6,20 @@
 * Status: **Awaiting implementation**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Bug: rdar://48132971, rdar://96837923
-* Implementation: (pending)
-* Upcoming Feature Flag: (pending)
-* Review: ([pitch](https://forums.swift.org/t/69888))
+* Implementation: Prototyped in https://github.com/apple/swift-collections (on branch "future")
+* Review: ([pitch 1](https://forums.swift.org/t/69888))([pitch 2]())
 
 ## Introduction
 
-We introduce `Span<T>`, an abstraction for container-agnostic access to contiguous memory. It will expand the expressivity of performant Swift code without giving up on the memory safety properties we rely on: temporal safety, spatial safety, definite initialization and type safety.
+We introduce `Span<T>`, an abstraction for container-agnostic access to contiguous memory. It will expand the expressivity of performant Swift code without comprimising on the memory safety properties we rely on: temporal safety, spatial safety, definite initialization and type safety.
 
-In the C family of programming languages, memory can be shared with any function by using a pointer and (ideally) a length. This allows contiguous memory to be shared with a function that doesn't know the layout of a container being used by the caller. A heap-allocated array, contiguously-stored named fields or even a single stack-allocated instance can all be accessed through a C pointer. We aim to create a similar idiom in Swift, with no compromise to memory safety.
+In the C family of programming languages, memory can be shared with any function by using a pointer and (ideally) a length. This allows contiguous memory to be shared with a function that doesn't know the layout of a container being used by the caller. A heap-allocated array, contiguously-stored named fields or even a single stack-allocated instance can all be accessed through a C pointer. We aim to create a similar idiom in Swift, without compromising Swift's memory safety.
 
-This proposal is related to two other features being proposed along with it: [Nonescapable types](https://github.com/apple/swift-evolution/pull/2304) (`~Escapable`) and [Compile-time Lifetime Dependency Annotations](https://github.com/apple/swift-evolution/pull/2305). This proposal also supersedes the rejected proposal [SE-0256](https://github.com/apple/swift-evolution/blob/main/proposals/0256-contiguous-collection.md). The overall feature of ownership and lifetime constraints has previously been discussed in the [BufferView roadmap](https://forums.swift.org/t/66211) forum thread. Additionally, we refer to the proposals for [`BitwiseCopyable`](https://github.com/apple/swift-evolution/blob/main/proposals/0426-bitwise-copyable.md) and [Non-copyable Generics](https://github.com/apple/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md).
+This proposal is related to two other features being proposed along with it: [Nonescapable types](https://github.com/apple/swift-evolution/pull/2304) (`~Escapable`) and [Compile-time Lifetime Dependency Annotations](https://github.com/apple/swift-evolution/pull/2305). This proposal also supersedes the rejected proposal [SE-0256](https://github.com/apple/swift-evolution/blob/main/proposals/0256-contiguous-collection.md). The overall feature of ownership and lifetime constraints has previously been discussed in the [BufferView roadmap](https://forums.swift.org/t/66211) forum thread.
 
 ## Motivation
 
-Swift needs safe and performant types for local processing over values in contiguous memory. Consider for example a program using multiple libraries, including one for [base64](https://datatracker.ietf.org/doc/html/rfc4648) decoding. The program would obtain encoded data from one or more of its dependencies, which could supply the data in the form of `[UInt8]`, `Foundation.Data` or even `String`, among others. None of these types is necessarily more correct than another, but the base64 decoding library must pick an input format. It could declare its input parameter type to be `some Sequence<UInt8>`, but such a generic function significantly limits performance. This may force the library author to either declare its entry point as inlinable, or to implement an internal fast path using `withContiguousStorageIfAvailable()` and use an unsafe type. The ideal interface would have a combination of the properties of both `some Sequence<UInt8>` and `UnsafeBufferPointer<UInt8>`.
+Swift needs safe and performant types for local processing over values in contiguous memory. Consider for example a program using multiple libraries, including one for [base64](https://datatracker.ietf.org/doc/html/rfc4648) decoding. The program would obtain encoded data from one or more of its dependencies, which could supply the data in the form of `[UInt8]`, `Foundation.Data` or even `String`, among others. None of these types is necessarily more correct than another, but the base64 decoding library must pick an input format. It could declare its input parameter type to be `some Sequence<UInt8>`, but such a generic function significantly limits performance. This may force the library author to either declare its entry point as inlinable, or to implement an internal fast path using `withContiguousStorageIfAvailable()`, forcing them to use an unsafe type. The ideal interface would have a combination of the properties of both `some Sequence<UInt8>` and `UnsafeBufferPointer<UInt8>`.
 
 The `UnsafeBufferPointer` passed to a `withUnsafeXXX` closure-style API, while performant, is unsafe in multiple ways:
 
@@ -28,8 +27,18 @@ The `UnsafeBufferPointer` passed to a `withUnsafeXXX` closure-style API, while p
 2. `subscript` is only bounds-checked in debug builds of client code
 3. It might escape the duration of the closure
 
-Even if the body of the `withUnsafeXXX` call does not escape the pointer, other functions called inside the closure have to be written in terms of unsafe pointers. This requires programmer vigilance across a project and pollutes code that otherwise could be written in terms of safe constructs.
+Even if the body of the `withUnsafeXXX` call does not escape the pointer, other functions called inside the closure have to be written in terms of unsafe pointers. This requires programmer vigilance across a project and potentially spreads the use of unsafe types, even when it could have been written in terms of safe constructs.
 
+We want to take advantage of the features of non-escapable types to replace some closure-taking API with simple properties, resulting in more composable code:
+
+```swift
+let array = Array("Hello\0".utf8)
+array.withUnsafeBufferPointer {
+  // use `$0` here for direct memory access
+}
+let span: Span<UInt8> = array.storage
+// use `span` in the same scope as `array` for direct memory access
+```
 
 ## Proposed solution
 
@@ -51,16 +60,21 @@ extension HypotheticalBase64Decoder {
 }
 ```
 
-**TODO**: But, we don't want to encourage this use. We want to encourage one concrete function taking a `Span<UInt8>`. Advanced libraries might add an inlinable/alwaysEmitIntoClient generic-dispatch interface in addition to this.
+Even better, an interface can be defined in terms of the concrete type `Span<UInt8>`:
+
+```swift
+extension Hypothetical Base64Decoder {
+  public func decode(bytes: Span<UInt8>) -> [UInt8]
+}
+```
+
+Advanced libraries might add use an inlinable generic-dispatch interface in addition to a concrete interface defined in terms of `Span`
 
 ### `RawSpan`
 
-`RawSpan` allows sharing the contiguous internal representation for values which may be heterogenously-typed, such as in decoders. Furthermore, it is a fully concrete type, without a generic parameter, which achieves better performance in debug builds of client code as well as a more straight-forwards unstanding of performance for library code.
+`RawSpan` allows sharing the contiguous internal representation for values which may be heterogenously-typed, such as in decoders. Since it is a fully concrete type, it can achieve better performance in debug builds of client code as well as a more straight-forwards understanding of performance for library code.
 
-All `Span<T>`s have a backing `RawSpan`.
-
-**TODO**: Do we have a (parent) protocol for just raw span? Do we have API to get the raw span from a span?
-
+`Span<some BitwiseCopyable>` can always be converted to `RawSpan`, using a conditionally-available property or a constructor.
 
 ## Detailed design
 
@@ -68,36 +82,34 @@ All `Span<T>`s have a backing `RawSpan`.
 
 ```swift
 public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
-  internal var _start: Span<Element>.Index
+  internal var _start: UnsafePointer<Element>
   internal var _count: Int
 }
 ```
 
-It provides a collection-like interface to the elements stored in that span of memory:
+It provides a buffer-like interface to the elements stored in that span of memory:
 
 ```swift
 extension Span {
-  public typealias SubSequence: Self
-
-  public struct Index: Copyable, Escapable, Strideable { /* ... */ }
-  public var startIndex: Index { get }
-  public var endIndex: Index { get }
-  public var indices: Range<Index> { get }
-
   public var count: Int { get }
   public var isEmpty: Bool { get }
+  public var indices: Range<Int> { get }
 
-  // index-based subscripts
-  subscript(_ position: Index) -> dependsOn(self) Element { get }
-  subscript(_ bounds: Range<Index>) -> dependsOn(self) Span<Element> { get }
-
-  // integer-offset subscripts
-  subscript(offset: Int) -> dependsOn(self) Element { get }
-  subscript(offsets: Range<Int>) -> dependsOn(self) Span<Element> { get }
+  subscript(_ position: Int) -> Element { get }
 }
 ```
 
-Note that `Span` does _not_ conform to `Collection`. This is because `Collection`, as originally conceived and enshrined in existing source code, assumes pervasive copyability and escapability for itself as well as its elements. In particular a subsequence of a `Collection` is semantically a separate value from the instance it was derived from. In the case of `Span`, the slice _must_ have the same lifetime as the view from which it originates. Another proposal will consider collection-like protocols to accommodate different combinations of `~Copyable` and `~Escapable` for the collection and its elements.
+Note that `Span` does _not_ conform to `Collection`. This is because `Collection`, as originally conceived and enshrined in existing source code, assumes pervasive copyability and escapability for itself as well as its elements. In particular a subsequence of a `Collection` is semantically a separate value from the instance it was derived from. In the case of `Span`, a sub-span representing a subrange of its elements _must_ have the same lifetime as the view from which it originates. Another proposal will consider collection-like protocols to accommodate different combinations of `~Copyable` and `~Escapable` for the collection and its elements.
+
+`Span`s representing subsets of consecutive elements can be extracted out of a larger `Span` with an API similar to the recently added `extracting()` functions of `UnsafeBufferPointer`:
+
+```swift
+extension Span {
+  public func extracting(_ bounds: Range<Int>) -> Self
+}
+```
+
+The first element of a given span is _always_ at position zero, and its last it as position `count-1`.
 
 As a side-effect of not conforming to `Collection` or `Sequence`, `Span` is not directly supported by `for` loops at this time. It is, however, easy to use in a `for` loop via indexing:
 
@@ -143,7 +155,6 @@ Here, the public function obtains the `Span` from the type that vends it in inli
 extension Array: ContiguousStorage<Self.Element> {
   // note: this could borrow a temporary copy of the `Array`'s storage
   var storage: Span<Element> { get }
-  // TODO: probably _read, so it can yield a ContigArray if needed
 }
 extension ArraySlice: ContiguousStorage<Self.Element> {
   // note: this could borrow a temporary copy of the `ArraySlice`'s storage
@@ -160,17 +171,14 @@ extension Foundation.Data: ContiguousStorage<UInt8> {
 extension String.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
   // note: this could borrow a temporary copy of the `String`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
-  // TODO: probably _read, so it can yield a ContigArray if needed
 }
 extension Substring.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
   // note: this could borrow a temporary copy of the `Substring`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
-  // TODO: probably _read, so it can yield a ContigArray if needed
 }
 extension Character.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
   // note: this could borrow a temporary copy of the `Character`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
-  // TODO: probably _read, so it can yield a ContigArray if needed
 }
 
 extension SIMD: ContiguousStorage<Self.Scalar> {
@@ -186,22 +194,26 @@ extension CollectionOfOne: ContiguousStorage<Element> {
 extension Slice: ContiguousStorage where Base: ContiguousStorage {
   var storage: Span<Base.Element> { get }
 }
+```
 
+In addition to the the safe types above gaining the `storage` property, the `UnsafeBufferPointer` family of types will also gain access to a `storage` property. This enables interoperability if `Span`-taking API. While a `Span` binding created from an `UnsafeBufferPointer` exists, the memory that underlies it must not be deinitialized or deallocated.
+
+```swift
 extension UnsafeBufferPointer: ContiguousStorage<Self.Element> {
   // note: additional preconditions apply until the end of the scope
-  var storage: Span<Element> { @_unsafeNonescapableResult get }
+  var storage: Span<Element> { get }
 }
 extension UnsafeMutableBufferPointer: ContiguousStorage<Self.Element> {
   // note: additional preconditions apply until the end of the scope
-  var storage: Span<Element> { @_unsafeNonescapableResult get }
+  var storage: Span<Element> { get }
 }
 extension UnsafeRawBufferPointer: ContiguousStorage<UInt8> {
   // note: additional preconditions apply until the end of the scope
-  var storage: Span<UInt8> { @_unsafeNonescapableResult get }
+  var storage: Span<UInt8> { get }
 }
 extension UnsafeMutableRawBufferPointer: ContiguousStorage<UInt8> {
   // note: additional preconditions apply until the end of the scope
-  var storage: Span<UInt8> { @_unsafeNonescapableResult get }
+  var storage: Span<UInt8> { get }
 }
 ```
 
@@ -223,163 +235,6 @@ extension Span where Element: BitwiseCopyable {
 }
 ```
 
-### Index and slicing design considerations
-
-There are 3 potentially-desirable features of `Span`'s `Index` design:
-
-1. `Span` is its own slice type
-2. Indices from a slice can be used on the base collection
-3. Additional reuse-after-free checking
-
-Each of these introduces practical tradeoffs in the design.
-
-#### `Span` is its own slice type
-
-Collections which own their storage have the convention of separate slice types, such as `Array` and `String`. This has the advantage of clearly delineating storage ownership in the programming model and the disadvantage of introducing a second type through which to interact.
-
-`UnsafeBufferPointer` may or may not (unsafely) own its storage, and hence has a separate slice type. It's `baseAddress` has a `deallocate` method for situations in which it does (unsafely) own its storage, and that method should only be called on the `baseAddress` of the original allocation, not the start of a slice. However, many uses of `UnsafeBufferPointer` are unowned use cases, where having a separate slice type is [cumbersome](https://github.com/apple/swift/blob/bcd08c0c9a74974b4757b4b8a2d1796659b1d940/stdlib/public/core/StringComparison.swift#L175).
-
-`Span` does not own its storage and there is no concern about leaking larger allocations. Thus, it would benefit from being its own slice type, even if doing so increases the size of the type from 2 to 3 words (depending on other design tradeoffs discussed below). We propose making `Span` be its own slice type.
-
-#### Indices from a slice can be used on the base collection
-
-There is very strong stdlib precedent that indices from the base collection can be used in a slice and vice-versa. 
-
-```swift
-let myCollection = [0,1,2,3,4,5,6]
-let idx = myCollection.index(myCollection.startIndex, offsetBy: 4)
-myCollection[idx]                   // 4
-let slice = myCollection[idx...]    // [4, 5, 6]
-slice[idx]                          // 4
-myCollection[slice.indices]         // [4, 5, 6]
-```
-
-Code can be written to take advantage of this fact. For example, a simplistic parser can be written as mutating methods on a slice. The slice's indices can be saved for reference into the original collection or another slice. 
-
-```swift
-extension Slice where Base == UnsafeRawBufferPointer {
-  mutating func parse(numBytes: Int) -> Self {
-    let end = index(startIndex, offsetBy: numBytes)
-    defer { self = self[end...] }
-    return self[..<end]
-  }
-  mutating func parseInt() -> Int {
-    parse(numBytes: MemoryLayout<Int>.stride).loadUnaligned(as: Int.self)
-  }
-
-  mutating func parseHeader() -> Self {
-    // Comments show what happens when ran with `myCollection`
-
-    let copy = self
-    parseInt()         // 0
-    parseInt()         // 1
-    parse(numBytes: 8) // [2, 0, 0, 0, 0, 0, 0, 0]
-    parseInt()         // 3
-    parse(numBytes: 7) // [4, 0, 0, 0, 0, 0, 0]
-
-    // self: [0, 5, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0]
-    parseInt()         // 1280 (0x00_00_05_00 little endian)
-    // self: [0, 6, 0, 0, 0, 0, 0, 0, 0]
-
-    return copy[..<self.startIndex]
-  }  
-}
-
-myCollection.withUnsafeBytes {
-  var byteParser = $0[...]
-  let header = byteParser.parseHeader()
-
-  // header:     [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
-  //              2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 
-  //              4, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0]
-  //
-  // byteParser: [0, 6, 0, 0, 0, 0, 0, 0, 0]
-}
-```
-
-Note, however, that parsers tend to become more complex and copying slices for later index extraction becomes more common. At that point, it is better to use a more powerful approach such as the index-advancing or cursor API presented in *Byte parsing helpers*.
-
-That being said, if we had a time machine it's not clear that we would choose a design with index interchange, as it does introduce design tradeoffs and makes some code, especially when the index type is `Int`, troublesome:
-
-```swift
-func getFirst<C: Collection>(
-  _ c: C
-) -> C.Element where C.Index == Int {
-  c[0]
-}
-
-getFirst(myCollection) // 0
-getFirst(slice)        // Fatal error: Index out of bounds
-```
-
-Preserving index interchange across views and the base is a nice-to-have for `Span`, and we propose keeping it. However, we are evaluating the tradeoffs it requires.
-
-
-#### Additional reuse-after-free checking
-
-`Span` bounds-checks its indices, which is important for safety. If the index is based around a pointer (instead of an offset), then bounds checks will also ensure that indices are not used with the wrong span in most situations. However, it is possible for a memory address to be reused after being freed, and using a stale index into this reused memory may introduce safety problems.
-
-```swift
-var idx: Span<T>.Index
-
-let array1: Array<T> = ...
-let span1 = array1.span
-idx = span1.startIndex.advanced(by: ...)
-...
-// array1 is freed
-
-let array2: Array<T> = ...
-let span2 = array2.span
-// array2 happens to be allocated within the same memory of array1
-// but with a different base address whose offset is not an even
-// multiple of `MemoryLayout<T>.stride`.
-
-span2[idx] // unaligned load, what happens?
-```
-
-If `T` is `BitwiseCopyable`, then the unaligned load is not undefined behavior, but the value that is loaded is garbage. Whether the program is well-behaved going forwards depends on whether it is resilient to getting garbage values.
-
-If `T` is not `BitwiseCopyable`, then the unaligned load may introduce undefined behavior. No matter how well-written the rest of the program is, it has a critical safety and security flaw.
-
-When the reused allocation happens to be stride-aligned, there is no undefined behavior from undefined loads, nor are there "garbage" values in the strictest sense, but it is still reflective of a programming bug. The program may be interacting with an unexpected value.
-
-Bounds checks protect against critical programmer errors. It would be nice, pending engineering tradeoffs, to also protect against some reuse after free errors and invalid index reuse, especially those that may lead to undefined behavior.
-
-Future improvements to microarchitecture may make reuse after free checks cheaper, however we need something for the forseeable future. Any validation we can do reduces the need to switch to other mitigation strategies or make other tradeoffs.
-
-#### Design approaches for indices
-
-##### Index is an offset (`Int` or a wrapper around `Int`)
-
-When `Index` is an offset, there is no undefined behavior from unaligned loads because the `Span`'s base address is advanced by `MemoryLayout<T>.stride * offset`. 
-
-However, there is no protection against invalidly using an index derived from a different span, provided the offset is in-bounds.
-
-If `Span` is 2 words (base address and count), then indices cannot be interchanged between slices and the base span. `Span` would need to additionally store a base offset, bringing it up to 3 words in size.
-
-**TODO**: What's the perf impact of having a base offset? Bounds checking would need `(baseOffset..<(count &- baseOffset)).contains(i)`.
-
-##### Index is a pointer (wrapper around `UnsafeRawPointer`)
-
-When Index holds a pointer, `Span` only needs to be 2 words in size, as valid index interchange across slices falls out naturally. Additionally, invalid reuse of an index across spans will typically be caught during bounds checking.
-
-However, in a reuse-after-free situation, unaligned loads (i.e. undefined behavior) are possible. If stride is not a multiple of 2, then alignement checking can be expensive. Alternatively, we could choose not to detect these bugs.
-
-##### Index is a fat pointer (pointer and allocation ID)
-
-We can create a per-allocation ID (e.g. a cryptographic `UInt64`) for both `Span` and `Span.Index` to store. This makes `Span` 3 words in size and `Span.Index` 2 words in size. This provides the most protection possible against all forms of invalid index use, including reuse-after-free.
-
-However, making `Span.Index` be 2 words in size is unfortunate. `Range<Span.Index>` is now 4 words in size, storing the allocation ID twice. Anything built on top of `Span` that wishes to store multiple indices is either bloated or must hand-extract the pointers and hand-manage the allocation ID.
-
-##### Bitpacking an allocation ID hash
-
-As an alternative to the above, we could create a smaller hash value of an allocation ID and use that for checking. 
-
-If index is an offset, it could use e.g. 48 bits for the offset and 16 bits for the hash value. If index is a pointer, it could use **TODO** bits for the hash value.
-
-**TODO**: perf impact of this approach
-
-We recommend going with **TODO**
 
 
 ### Complete `Span` API:
@@ -406,9 +261,9 @@ extension Span {
   /// - Parameters:
   ///   - buffer: an `UnsafeBufferPointer` to initialized elements.
   ///   - owner: a binding whose lifetime must exceed that of
-  ///            the returned `Span`.
+  ///            the newly created `Span`.
   public init?<Owner>(
-    unsafeBufferPointer buffer: UnsafeBufferPointer<Element>,
+    unsafeElements buffer: UnsafeBufferPointer<Element>,
     owner: borrowing Owner
   ) -> dependsOn(owner) Self?
 
@@ -422,9 +277,9 @@ extension Span {
   ///   - pointer: a pointer to the first initialized element.
   ///   - count: the number of initialized elements in the view.
   ///   - owner: a binding whose lifetime must exceed that of
-  ///            the returned `Span`.
+  ///            the newly created `Span`.
   public init<Owner>(
-    unsafePointer pointer: UnsafePointer<Element>,
+    unsafeStart pointer: UnsafePointer<Element>,
     count: Int,
     owner: borrowing Owner
   ) -> dependsOn(owner) Self
@@ -445,10 +300,9 @@ extension Span where Element: BitwiseCopyable {
   ///   - unsafeBytes: a buffer to initialized elements.
   ///   - type: the type to use when interpreting the bytes in memory.
   ///   - owner: a binding whose lifetime must exceed that of
-  ///            the returned `Span`.
+  ///            the newly created `Span`.
   public init<Owner>(
     unsafeBytes buffer: UnsafeRawBufferPointer,
-    as type: Element.Type,
     owner: borrowing Owner
   ) -> dependsOn(owner) Self
 
@@ -466,11 +320,10 @@ extension Span where Element: BitwiseCopyable {
   ///   - type: the type to use when interpreting the bytes in memory.
   ///   - count: the number of initialized elements in the view.
   ///   - owner: a binding whose lifetime must exceed that of
-  ///            the returned `Span`.
+  ///            the newly created `Span`.
   public init<Owner>(
-    unsafeRawPointer pointer: UnsafeRawPointer,
-    as type: Element.Type,
-    count: Int,
+    unsafeStart pointer: UnsafeRawPointer,
+    byteCount: Int,
     owner: borrowing Owner
   ) -> dependsOn(owner) Self
 }
@@ -478,103 +331,37 @@ extension Span where Element: BitwiseCopyable {
 
 #####  `Collection`-like API:
 
-The following typealiases, properties, functions and subscripts have direct counterparts in the `Collection` protocol hierarchy. Their semantics shall be as described where they counterpart is declared (in `Sequence`, `Collection`, `BidirectionalCollection` or `RandomAccessCollection`). The only difference with their counterpart should be a lifetime dependency annotation, allowing them to return borrowed nonescapable values or borrowed noncopyable values.
+The following typealiases, properties, functions and subscripts have direct counterparts in the `Collection` protocol hierarchy. Their semantics shall be as described where they counterpart is declared (in `Collection` or `RandomAccessCollection`). The only difference with their counterpart should be a lifetime dependency annotation where applicable, allowing them to return borrowed nonescapable values or borrowed noncopyable values.
 
 ```swift
 extension Span {
-  public typealias Index = Span<Element>.Index
-  public typealias SubSequence = Self
-
-  public func makeIterator() -> dependsOn(self) Span<Element>.Iterator
-
-  public var startIndex: Index { get }
-  public var endIndex: Index { get }
   public var count: Int { get }
   public var isEmpty: Bool { get }
+  public var indices: Range<Int> { get }
 
-  public var indices: Range<Index> { get }
-
-  // indexing operations
-  public func index(after i: Index) -> Index
-  public func index(before i: Index) -> Index
-  public func index(_ i: Index, offsetBy distance: Int) -> Index
-  public func index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
-  ) -> Index?
-
-  public func formIndex(after i: inout Index)
-  public func formIndex(before i: inout Index)
-  public func formIndex(_ i: inout Index, offsetBy distance: Int)
-  public func formIndex(
-    _ i: inout Index, offsetBy distance: Int, limitedBy limit: Index
-  ) -> Bool
-
-  public func distance(from start: Index, to end: Index) -> Int
-
-  // subscripts
-  public subscript(
-    _ position: Index
-  ) -> dependsOn(self) Element { get }
-  public subscript(
-    _ bounds: Range<Index>
-  ) -> dependsOn(self) Span<Element> { get }
-  public subscript(
-    _ bounds: some RangeExpression<Index>
-  ) -> dependsOn(self) Span<Element> { get }
-  public subscript(
-    x: UnboundedRange
-  ) -> dependsOn(self) Span<Element> { get }
-
-  // utility properties
-  public var first Element? { get }
-  public var last Element? { get }
-
-  // one-sided slicing operations
-  public func prefix(upTo: Index) -> dependsOn(self) Span<Element>
-  public func prefix(through: Index) -> dependsOn(self) Span<Element>
-  public func prefix(_ maxLength: Int) -> dependsOn(self) Span<Element>
-  public func dropLast(_ k: Int = 1) -> dependsOn(self) Span<Element>
-  public func suffix(from: Index) -> dependsOn(self) Span<Element>
-  public func suffix(_ maxLength: Int) -> dependsOn(self) Span<Element>
-  public func dropFirst(_ k: Int = 1) -> dependsOn(self) Span<Element>
+  public subscript(_ position: Int) -> dependsOn(self) Element { get }
 }
 ```
 
-##### Additions not in the `Collection` family API:
+##### Accessing subranges of elements:
+
+In SE-0437, `UnsafeBufferPointer`'s slicing subscript was replaced by the `extracting(_ bounds:)` functions, due to the copyability assumption baked into the standard library's `Slice` type. `Span` has similar requirements as `UnsafeBufferPointer`, in that it must be possible to obtain an instance representing a subrange of the same memory as another `Span`. We therefore follow in the footsteps of SE-0437, and add a family of `extracting()` functions:
 
 ```swift
 extension Span {
-  // Integer-offset subscripts
+  func extracting(_ bounds: Range<Int>) -> dependsOn(self) Self
+  func extracting(_ bounds: some RangeExpression<Int>) -> dependsOn(self) Self
+  func extracting(_: UnboundedRange) -> dependsOn(self) Self
+}
+```
 
-  /// Accesses the element at the specified offset in the `Span`.
-  ///
-  /// - Parameter offset: The offset of the element to access. `offset`
-  ///     must be greater or equal to zero, and less than the `count` property.
-  ///
-  /// - Complexity: O(1)
-  public subscript(offset: Int) -> dependsOn(self) Element { get }
+##### Unchecked access to elements and subranges of elements:
 
-  /// Accesses the contiguous subrange of elements at the specified
-  /// range of offsets in this `Span`.
-  ///
-  /// - Parameter offsets: A range of offsets. The bounds of the range
-  ///     must be greater or equal to zero, and less than the `count` property.
-  ///
-  /// - Complexity: O(1)
-  public subscript(offsets: Range<Int>) -> dependsOn(self) Span<Element> { get }
+The `subscript` and the `extracting()` functions mentioned above all have always-on bounds checking of their parameters, in order to prevent out-of-bounds accesses. We also want to provide unchecked variants as an alternative for cases where bounds-checking is proving costly.
 
-  /// Accesses the contiguous subrange of elements at the specified
-  /// range of offsets in this `Span`.
-  ///
-  /// - Parameter offsets: A range of offsets. The bounds of the range
-  ///     must be greater or equal to zero, and less than the `count` property.
-  ///
-  /// - Complexity: O(1)
-  public subscript(
-    offsets: some RangeExpression<Int>
-  ) -> dependsOn(self) Span<Element> { get }
-
-  // Unchecked subscripts
+```swift
+extension Span {
+  // Unchecked subscripting and extraction
 
   /// Accesses the element at the specified `position`.
   ///
@@ -582,9 +369,9 @@ extension Span {
   ///
   /// - Parameter position: The position of the element to access. `position`
   ///     must be a valid index that is not equal to the `endIndex` property.
-  ///
-  /// - Complexity: O(1)
-  public subscript(unchecked position: Index) -> dependsOn(self) Element { get }
+  public subscript(
+    unchecked position: Index
+  ) -> dependsOn(self) Element { get }
 
   /// Accesses a contiguous subrange of the elements represented by this `Span`
   ///
@@ -592,11 +379,9 @@ extension Span {
   ///
   /// - Parameter bounds: A range of the collection's indices. The bounds of
   ///     the range must be valid indices of the collection.
-  ///
-  /// - Complexity: O(1)
-  public subscript(
+  public extracting(
     uncheckedBounds bounds: Range<Index>
-  ) -> dependsOn(self) Span<Element> { get }
+  ) -> dependsOn(self) Self
 
   /// Accesses the contiguous subrange of the elements represented by
   /// this `Span`, specified by a range expression.
@@ -605,70 +390,29 @@ extension Span {
   ///
   /// - Parameter bounds: A range of the collection's indices. The bounds of
   ///     the range must be valid indices of the collection.
-  ///
-  /// - Complexity: O(1)
   public subscript(
     uncheckedBounds bounds: some RangeExpression<Index>
   ) -> dependsOn(self) Span<Element>
-
-  // Unchecked integer-offset subscripts
-
-  /// Accesses the element at the specified offset in the `Span`.
-  ///
-  /// This subscript does not validate `offset`; this is an unsafe operation.
-  ///
-  /// - Parameter offset: The offset of the element to access. `offset`
-  ///     must be greater or equal to zero, and less than the `count` property.
-  ///
-  /// - Complexity: O(1)
-  public subscript(
-    uncheckedOffset offset: Int
-  ) -> dependsOn(self) Element { get }
-
-  /// Accesses the contiguous subrange of elements at the specified
-  /// range of offsets in this `Span`.
-  ///
-  /// This subscript does not validate `offsets`; this is an unsafe operation.
-  ///
-  /// - Parameter offsets: A range of offsets. The bounds of the range
-  ///     must be greater or equal to zero, and less than the `count` property.
-  ///
-  /// - Complexity: O(1)
-  public subscript(
-    uncheckedOffsets offsets: Range<Int>
-  ) -> dependsOn(self) Span<Element> { get }
 }
 ```
 
 ##### Index validation utilities:
 
-Every time `Span` uses an index or an integer offset, it checks for their validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
+Every time `Span` uses a position parameter, it checks for its validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
 
 ```swift
 extension Span {
-  /// Traps if `position` is not a valid index for this `Span`
+  /// Traps if `position` is not a valid offset into this `Span`
   ///
   /// - Parameters:
-  ///   - position: an Index to validate
+  ///   - position: an position to validate
   public boundsCheckPrecondition(_ position: Index)
 
-  /// Traps if `bounds` is not a valid range of indices for this `Span`
+  /// Traps if `bounds` is not a valid range of offsets into this `Span`
   ///
   /// - Parameters:
-  ///   - position: a range of indices to validate
+  ///   - position: a range of positions to validate
   public boundsCheckPrecondition(_ bounds: Range<Index>)
-
-  /// Traps if `offset` is not a valid offset into this `Span`
-  ///
-  /// - Parameters:
-  ///   - offset: an offset to validate
-  public boundsCheckPrecondition(offset: Int)
-
-  /// Traps if `offsets` is not a valid range of offsets into this `Span`
-  ///
-  /// - Parameters:
-  ///   - offsets: a range of offsets to validate
-  public boundsCheckPrecondition(offsets: Range<Int>)
 }
 ```
 
@@ -716,13 +460,9 @@ extension Span where Element: BitwiseCopyable {
 }
 ```
 
-**TODO**: `public var rawSpan: RawSpan` API, as well a conformance to a raw span protocol if there is one.
-
 ### RawSpan
 
-In addition to `Span<T>`, we propose the addition of `RawSpan` which can represent heterogenously-typed values in contiguous memory. `RawSpan` is similar to `Span<T>`, but represents initialized untyped bytes. Its API supports slicing, along with the operations `load(as:)` and `loadUnaligned(as:)`. 
-
-`RawSpan` is a specialized type supporting parsing and decoding applications in particular, as well as applications where heavily-used code paths require concrete types as much as possible.
+In addition to `Span<T>`, we propose the addition of `RawSpan`, to represent heterogenously-typed values in contiguous memory. `RawSpan` is similar to `Span<T>`, but represents _untyped_ initialized bytes. `RawSpan` is a specialized type that intends to support parsing and decoding applications, as well as applications where heavily-used code paths require concrete types as much as possible. Its API supports extracting sub-spans, along with the operations `load(as:)` and `loadUnaligned(as:)`.
 
 #### Complete `RawSpan` API:
 
@@ -745,9 +485,9 @@ extension RawSpan {
   /// - Parameters:
   ///   - buffer: an `UnsafeRawBufferPointer` to initialized memory.
   ///   - owner: a binding whose lifetime must exceed that of
-  ///            the returned `RawSpan`.
+  ///            the newly created `RawSpan`.
   public init?<Owner: ~Copyable & ~Escapable>(
-    unsafeBufferPointer buffer: UnsafeBufferPointer<Element>,
+    unsafeBytes buffer: UnsafeBufferPointer<Element>,
     owner: borrowing Owner
   ) -> dependsOn(owner) Self?
 
@@ -761,7 +501,7 @@ extension RawSpan {
   ///   - pointer: a pointer to the first initialized element.
   ///   - count: the number of initialized elements in the view.
   ///   - owner: a binding whose lifetime must exceed that of
-  ///            the returned `Span`.
+  ///            the newly created `RawSpan`.
   public init<Owner: ~Copyable & ~Escapable>(
     unsafeRawPointer pointer: UnsafeRawPointer,
     count: Int,
@@ -774,44 +514,129 @@ extension RawSpan {
   ///   - span: An existing `Span<T>`, which will define both this
   ///           `RawSpan`'s lifetime and the memory it represents.
   @inlinable @inline(__always)
-  public init<T: _BitwiseCopyable>(
+  public init<T: BitwiseCopyable>(
     _ span: borrowing Span<T>
   ) -> dependsOn(span) Self
 }
 ```
 
-##### Indexing Operations:
+##### Accessing the memory of a `RawSpan`:
 
-`RawSpan` has these `Collection`-like indexing operations:
+The basic operations to access the contents of the memory underlying a `RawSpan` are `load(as:)` and `loadUnaligned(as:)`.
 
 ```swift
 extension RawSpan {
-  public typealias Index = RawSpan.Index
-  public typealias SubSequence = Self
+  /// Returns a new instance of the given type, constructed from the raw memory
+  /// at the specified offset.
+  ///
+  /// The memory at this pointer plus `offset` must be properly aligned for
+  /// accessing `T` and initialized to `T` or another type that is layout
+  /// compatible with `T`.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset from this pointer, in bytes. `offset` must be
+  ///     nonnegative. The default is zero.
+  ///   - type: The type of the instance to create.
+  /// - Returns: A new instance of type `T`, read from the raw bytes at
+  ///     `offset`. The returned instance is memory-managed and unassociated
+  ///     with the value in the memory referenced by this pointer.
+  public func load<T>(
+    fromByteOffset offset: Int = 0, as: T.Type
+  ) -> T
 
-  public var startIndex: Index { get }
-  public var endIndex: Index { get }
+  /// Returns a new instance of the given type, constructed from the raw memory
+  /// at the specified offset.
+  ///
+  /// The memory at this pointer plus `offset` must be properly aligned for
+  /// accessing `T` and initialized to `T` or another type that is layout
+  /// compatible with `T`.
+  ///
+  /// This function does not validate the bounds of the memory access;
+  /// this is an unsafe operation.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset from this pointer, in bytes. `offset` must be
+  ///     nonnegative. The default is zero.
+  ///   - type: The type of the instance to create.
+  /// - Returns: A new instance of type `T`, read from the raw bytes at
+  ///     `offset`. The returned instance is memory-managed and unassociated
+  ///     with the value in the memory referenced by this pointer.
+  public func load<T>(
+    fromUncheckedByteOffset offset: Int, as: T.Type
+  ) -> T
+
+  /// Returns a new instance of the given type, constructed from the raw memory
+  /// at the specified offset.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset from this pointer, in bytes. `offset` must be
+  ///     nonnegative. The default is zero.
+  ///   - type: The type of the instance to create.
+  /// - Returns: A new instance of type `T`, read from the raw bytes at
+  ///     `offset`. The returned instance isn't associated
+  ///     with the value in the range of memory referenced by this pointer.
+  public func loadUnaligned<T: BitwiseCopyable>(
+    fromByteOffset offset: Int = 0, as: T.Type
+  ) -> T
+
+  /// Returns a new instance of the given type, constructed from the raw memory
+  /// at the specified offset.
+  ///
+  /// This function does not validate the bounds of the memory access;
+  /// this is an unsafe operation.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset from this pointer, in bytes. `offset` must be
+  ///     nonnegative. The default is zero.
+  ///   - type: The type of the instance to create.
+  /// - Returns: A new instance of type `T`, read from the raw bytes at
+  ///     `offset`. The returned instance isn't associated
+  ///     with the value in the range of memory referenced by this pointer.
+  public func loadUnaligned<T: BitwiseCopyable>(
+    fromUncheckedByteOffset offset: Int, as: T.Type
+  ) -> T
+}
+```
+
+A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homogenously as instances of `T`.
+
+```swift
+  /// View the memory span represented by this view as a different type
+  ///
+  /// The memory must be laid out identically to the in-memory representation of `T`.
+  ///
+  /// - Parameters:
+  ///   - type: The type you wish to view the memory as
+  /// - Returns: A new `Span` over elements of type `T`
+  public func view<T: BitwiseCopyable>(as: T.Type) -> dependsOn(self) Span<T>
+}
+```
+
+##### Index-related Operations:
+
+```swift
+extension RawSpan {
+  /// The number of bytes in the span.
   public var count: Int { get }
+
+  /// A Boolean value indicating whether the span is empty.
   public var isEmpty: Bool { get }
 
-  public var indices: Range<Index> { get }
+  /// The indices that are valid for subscripting the span, in ascending
+  /// order.
+  public var indices: Range<Int> { get }
 
-  // indexing operations
-  public func index(after i: Index) -> Index
-  public func index(before i: Index) -> Index
-  public func index(_ i: Index, offsetBy distance: Int) -> Index
-  public func index(
-    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
-  ) -> Index?
+  /// Traps if `offset` is not a valid offset into this `RawSpan`
+  ///
+  /// - Parameters:
+  ///   - position: an offset to validate
+  public func boundsCheckPrecondition(_ offset: Int)
 
-  public func formIndex(after i: inout Index)
-  public func formIndex(before i: inout Index)
-  public func formIndex(_ i: inout Index, offsetBy distance: Int)
-  public func formIndex(
-    _ i: inout Index, offsetBy distance: Int, limitedBy limit: Index
-  ) -> Bool
-
-  public func distance(from start: Index, to end: Index) -> Int
+  /// Traps if `bounds` is not a valid range of offsets into this `RawSpan`
+  ///
+  /// - Parameters:
+  ///   - offsets: a range of offsets to validate
+  public func boundsCheckPrecondition(_ offsets: Range<Int>)
 }
 ```
 
@@ -847,113 +672,120 @@ extension RawSpan {
 }
 ```
 
-##### Slicing of `RawSpan` instances:
+##### Accessing subranges of elements:
 
-`RawSpan` has `Collection`-like slicing operations. Like `Span<T>`, it also has unchecked slicing operations and can be sliced using integer offsets:
-
-```swift
-extension RawSpan {
-  public subscript(bounds: Range<Index>) -> dependsOn(self) Self { get }
-  public subscript(unchecked bounds: Range<Index>) -> dependsOn(self) Self { get }
-
-  public subscript(bounds: some RangeExpression<Index>) -> dependsOn(self) Self { get }
-  public subscript(unchecked bounds: some RangeExpression<Index>) -> dependsOn(self) Self { get }
-  public subscript(x: UnboundedRange) -> dependsOn(self) Self { get }
-
-  public subscript(offsets: Range<Int>) -> dependsOn(self) Self { get }
-  public subscript(uncheckedOffsets offsets: Range<Int>) -> dependsOn(self) Self { get }
-
-  public subscript(offsets: some RangeExpression<Int>) -> dependsOn(self) Self { get }
-  public subscript(uncheckedOffsets offsets: some RangeExpression<Int>) -> dependsOn(self) Self { get }
-}
-```
-
-`RawSpan` has the following functions for loading arbitrary types from the memory it represents:
+Similarly to `Span`, `RawSpan` does not support slicing in the style of `Collection`. It supports a similar set of `extracting()` functions as `Span`:
 
 ```swift
 extension RawSpan {
+  /// Constructs a new span over the bytes within the supplied range of
+  /// positions within this span.
+  ///
+  /// The returned span's first byte is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
+  ///
+  /// - Parameter bounds: A valid range of positions. Every position in
+  ///     this range must be within the bounds of this `RawSpan`.
+  ///
+  /// - Returns: A `Span` over the bytes within `bounds`
+  public func extracting(_ bounds: Range<Int>) -> Self
 
-  /// Returns a new instance of the given type, constructed from the raw memory
-  /// at the specified byte offset.
+  /// Constructs a new span over the bytes within the supplied range of
+  /// positions within this span.
   ///
-  /// The memory at `offset` bytes from the start of this `Span`
-  /// must be properly aligned for accessing `T` and initialized to `T`
-  /// or another type that is layout compatible with `T`.
+  /// The returned span's first byte is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
   ///
-  /// - Parameters:
-  ///   - offset: The offset from the start of this `Span`, in bytes.
-  ///       `offset` must be nonnegative. The default is zero.
-  ///   - type: The type of the instance to create.
-  /// - Returns: A new instance of type `T`, read from the raw bytes at
-  ///   `offset`. The returned instance is memory-managed and unassociated
-  ///   with the value in the memory referenced by this `Span`.
-  public func load<T: BitwiseCopyable>(
-    fromByteOffset: Int = 0, as: T.Type
-  ) -> T
+  /// This function does not validate `bounds`; this is an unsafe operation.
+  ///
+  /// - Parameter bounds: A valid range of positions. Every position in
+  ///     this range must be within the bounds of this `RawSpan`.
+  ///
+  /// - Returns: A `Span` over the bytes within `bounds`
+  public func extracting(uncheckedBounds bounds: Range<Int>) -> Self
 
-  /// Returns a new instance of the given type, constructed from the raw memory
-  /// at the specified index.
+  /// Constructs a new span over the bytes within the supplied range of
+  /// positions within this span.
   ///
-  /// The memory starting at `index` must be properly aligned for accessing `T`
-  /// and initialized to `T` or another type that is layout compatible with `T`.
+  /// The returned span's first byte is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
   ///
-  /// - Parameters:
-  ///   - index: The index into this `Span`
-  ///   - type: The type of the instance to create.
-  /// - Returns: A new instance of type `T`, read from the raw bytes starting at
-  ///   `index`. The returned instance is memory-managed and isn't associated
-  ///   with the value in the memory referenced by this `Span`.
-  public func load<T: BitwiseCopyable>(
-    from index: Index, as: T.Type
-  ) -> T
+  /// - Parameter bounds: A valid range of positions. Every position in
+  ///     this range must be within the bounds of this `RawSpan`.
+  ///
+  /// - Returns: A `Span` over the bytes within `bounds`
+  public func extracting(_ bounds: some RangeExpression<Int>) -> Self
 
-  /// Returns a new instance of the given type, constructed from the raw memory
-  /// at the specified byte offset.
+  /// Constructs a new span over the bytes within the supplied range of
+  /// positions within this span.
   ///
-  /// The memory at `offset` bytes from the start of this `Span`
-  /// must be laid out identically to the in-memory representation of `T`.
+  /// The returned span's first byte is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
   ///
-  /// - Parameters:
-  ///   - offset: The offset from the start of this `Span`, in bytes.
-  ///       `offset` must be nonnegative. The default is zero.
-  ///   - type: The type of the instance to create.
-  /// - Returns: A new instance of type `T`, read from the raw bytes at
-  ///   `offset`. The returned instance isn't associated
-  ///   with the value in the memory referenced by this `Span`.
-  public func loadUnaligned<T: BitwiseCopyable>(
-    fromByteOffset: Int = 0, as: T.Type
-  ) -> T
+  /// This function does not validate `bounds`; this is an unsafe operation.
+  ///
+  /// - Parameter bounds: A valid range of positions. Every position in
+  ///     this range must be within the bounds of this `RawSpan`.
+  ///
+  /// - Returns: A `Span` over the bytes within `bounds`
+  public func extracting(
+    uncheckedBounds bounds: some RangeExpression<Int>
+  ) -> Self
 
-  /// Returns a new instance of the given type, constructed from the raw memory
-  /// at the specified index.
+  /// Constructs a new span over all the bytes of this span.
   ///
-  /// The memory starting at `index` must be laid out identically
-  /// to the in-memory representation of `T`.
+  /// The returned span's first byte is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
   ///
-  /// - Parameters:
-  ///   - index: The index into this `Span`
-  ///   - type: The type of the instance to create.
-  /// - Returns: A new instance of type `T`, read from the raw bytes starting at
-  ///   `index`. The returned instance isn't associated
-  ///   with the value in the memory referenced by this `Span`.
-  public func loadUnaligned<T: BitwiseCopyable>(
-    from index: Index, as: T.Type
-  ) -> T
-```
+  /// - Returns: A `RawSpan` over all the items of this span.
+  public func extracting(_: UnboundedRange) -> Self
 
-**TODO**: What about unchecked variants? Those would/could be the bottom API called by data parsers which have already checked the bounds earlier (e.g. for error-throwing purposes).
-
-A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homogenously as instances of `T`.
-
-```swift
-  /// View the memory span represented by this view as a different type
+  /// Returns a span containing the initial bytes of this span,
+  /// up to the specified maximum byte count.
   ///
-  /// The memory must be laid out identically to the in-memory representation of `T`.
+  /// If the maximum length exceeds the length of this span,
+  /// the result contains all the bytes.
   ///
-  /// - Parameters:
-  ///   - type: The type you wish to view the memory as
-  /// - Returns: A new `Span` over elements of type `T`
-  public func view<T: BitwiseCopyable>(as: T.Type) -> dependsOn(self) Span<T>
+  /// - Parameter maxLength: The maximum number of bytes to return.
+  ///   `maxLength` must be greater than or equal to zero.
+  /// - Returns: A span with at most `maxLength` bytes.
+  public func extracting(first maxLength: Int) -> Self
+
+  /// Returns a span over all but the given number of trailing bytes.
+  ///
+  /// If the number of elements to drop exceeds the number of elements in
+  /// the span, the result is an empty span.
+  ///
+  /// - Parameter k: The number of bytes to drop off the end of
+  ///   the span. `k` must be greater than or equal to zero.
+  /// - Returns: A span leaving off the specified number of bytes at the end.
+  public func extracting(droppingLast k: Int) -> Self
+
+  /// Returns a span containing the trailing bytes of the span,
+  /// up to the given maximum length.
+  ///
+  /// If the maximum length exceeds the length of this span,
+  /// the result contains all the bytes.
+  ///
+  /// - Parameter maxLength: The maximum number of bytes to return.
+  ///   `maxLength` must be greater than or equal to zero.
+  /// - Returns: A span with at most `maxLength` bytes.
+  public func extracting(last maxLength: Int) -> Self
+
+  /// Returns a span over all but the given number of initial bytes.
+  ///
+  /// If the number of elements to drop exceeds the number of bytes in
+  /// the span, the result is an empty span.
+  ///
+  /// - Parameter k: The number of bytes to drop from the beginning of
+  ///   the span. `k` must be greater than or equal to zero.
+  /// - Returns: A span starting after the specified number of bytes.
+  public func extracting(droppingFirst k: Int = 1) -> Self
 }
 ```
 
@@ -961,13 +793,11 @@ A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homoge
 
 The below (severable) API make `RawSpan` well-suited for use in binary parsers and decoders.
 
-
 #### Out of bounds errors
 
 The stdlib's lowest level (safe) interfaces, direct indexing, trap on error ([Logic failures](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#logic-failures)). Some operations, such as the key-based subcript on `Dictionary`, are expected to fail often and have no useful information to communicate other than to return `nil` ([Simple domain errors](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#simple-domain-errors)). 
 
 Data parsing is generally expected to succeed, but when it doesn't we want an error that we can propagate upwards with enough information in that we can try to recover ([Recoverable errors](https://github.com/apple/swift/blob/main/docs/ErrorHandlingRationale.md#recoverable-errors)). For example, if our data is provided in chunks of contiguous memory, we might be able to recover by buffering more bytes and trying again.
-
 
 ```swift
 /// An error indicating that out-of-bounds access was attempted
@@ -986,27 +816,23 @@ public struct OutOfBoundsError: Error {
 
 #### Index-advancing operations
 
-The following parsing primitives 
-
-(most general/powerful, but they require developer to manage indices)
+The following parsing primitives provide useful error-reporting wrappers for loading arbitrary types from a `RawSpan`. They advance the passed-in read offset on success, relieving developers of most of the ceremony of managing the index.
 
 ```swift
 extension RawSpan {
   /// Parse an instance of `T`, advancing `position`.
   @inlinable
   public func parse<T: _BitwiseCopyable>(
-    _ position: inout Index, as t: T.Type = T.self
+    _ position: inout Int, as t: T.Type = T.self
   ) throws(OutOfBoundsError) -> T
 
   /// Parse `numBytes` of data, advancing `position`.
   @inlinable
   public func parse(
-    _ position: inout Index, numBytes: some FixedWidthInteger
+    _ position: inout Int, numBytes: some FixedWidthInteger
   ) throws (OutOfBoundsError) -> Self
 }
 ```
-
-However, they do require that a developer manage indices.
 
 #### Cursor-mutating operations
 
@@ -1017,7 +843,6 @@ When parsing data, there are often multiple subranges of the data that we are pa
 `Cursor` stores and manages a parsing subrange, which alleviates the developer from managing one layer of slicing.
 
 *Alternative*: If `Cursor` does not store the subrange, it would be 3 words in size rather than 5 words. The developer would have to pre-slice and manage the slice, and future API on cursor could not peek outside of the subrange's bounds (e.g. checking for start-of-line).
-
 
 ```swift
 extension RawSpan {
@@ -1113,8 +938,6 @@ func parsePNGChunk<Owner: ~Copyable & ~Escapable>(
 }
 ```
 
-
-
 ## Source compatibility
 
 This proposal is additive and source-compatible with existing code.
@@ -1139,16 +962,21 @@ This document proposes adding the `ContiguousStorage` protocol to the standard l
 Eventually we want a similar usage pattern for a `MutableSpan` as we are proposing for `Span`. If the index of a `MutableSpan` were to borrow the view, then it becomes impossible to implement a mutating subscript without also requiring an index to be consumed. This seems untenable.
 
 ##### Naming
-The ideas in this proposal previously used the name `BufferView`. While the use of the word "buffer" would be consistent with the `UnsafeBufferPointer` type, it is nevertheless not a great name, since "buffer" is usually used in reference to transient storage. On the other hand we already have a nomenclature using the term "Storage" in the `withContiguousStorageIfAvailable()` function, and the term "View" in the API of `String`. A possible alternative name is `StorageSpan`, which mark it as a relative of C++'s `std::span`.
 
-##### Adding `load` and `loadUnaligned` to `Span<UInt8>`on `Span<some BitwiseCopyable>` instead of adding `RawSpan
+The ideas in this proposal previously used the name `BufferView`. While the use of the word "buffer" would be consistent with the `UnsafeBufferPointer` type, it is nevertheless not a great name, since "buffer" is usually used in reference to transient storage. On the other hand we already have a nomenclature using the term "Storage" in the `withContiguousStorageIfAvailable()` function, and we tried to allude to that in a previous pitch where we called this type `StorageView`. We also considered the name `StorageSpan`, but that did not add much beyond the name `Span`. `Span` clearly identifies itself as a relative of C++'s `std::span`.
+
+##### Adding `load` and `loadUnaligned` to `Span<UInt8>`on `Span<some BitwiseCopyable>` instead of adding `RawSpan`
 
 TKTKTK
+
+##### A more sophisticated approach to indexing
+
+This is discussed more fully in the [indexing appendix](#Indexing) below.
 
 ## Future directions
 
 ##### Defining `BorrowingIterator` with support in `for` loops
-This proposal defines a `Span.Iterator` that is borrowed and non-escapable. This is not compatible with `for` loops as currently defined. A `BorrowingIterator` protocol for non-escapable and non-copyable containers must be defined, providing a `for` loop syntax where the element is borrowed through each iteration. Ultimately we should arrive at a way to iterate through borrowed elements from a borrowed view:
+This proposal does not define an `IteratorProtocol` conformance, since it would need to be borrowed and non-escapable. This is not compatible with `IteratorProtocol`. As such, `Span`  is not directly usable in `for` loops as currently defined. A `BorrowingIterator` protocol for non-escapable and non-copyable containers must be defined, providing a `for` loop syntax where the element is borrowed through each iteration. Ultimately we should arrive at a way to iterate through borrowed elements from a borrowed view:
 
 ```swift
 borrowing view: Span<Element> = ...
@@ -1163,8 +991,8 @@ In the meantime, it is possible to loop through a `Span`'s elements by direct in
 func doSomething(_ e: borrowing Element) { ... }
 let view: Span<Element> = ...
 // either:
-var i = view.startIndex
-while i < view.endIndex {
+var i = 0
+while i < view.count {
   doSomething(view[i])
   view.index(after: &i)
 }
@@ -1173,23 +1001,13 @@ while i < view.endIndex {
 for i in 0..<view.indices {
   doSomething(view[i])
 }
-
-// ...or
-var iter = view.makeIterator()
-while let elt = iter.next() {
-  doSomething(elt)
-}
-
 ```
-
-**TODO**: Karoy mentioned that be might not want to even take the name `Iterator` until more of the borrowed iterator design is figured out
 
 ##### Collection-like protocols for non-copyable and non-escapable types
 
 Non-copyable and non-escapable containers would benefit from a `Collection`-like protocol family to represent a set basic, common operations. This may be `Collection` if we find a way to make it work; it may be something else.
 
 Alongside this work, it may make sense to add a `Span` alternative to `withContiguousStorageIfAvailable()`, `RawSpan` alternative to `withUnsafeBytes`, etc., and seek to deprecate any closure-based API around unsafe pointers.
-
 
 ##### Sharing piecewise-contiguous memory
 
@@ -1215,7 +1033,6 @@ A `MutableSpan<T>` should provide a better, safer alternative to mutable memory 
 
 However, it alone does not track initialization state of each address, and that will continue to be the responsibility of the developer.
 
-
 ##### Delegating initialization of memory with `OutputSpan<T>`
 
 Some data structures can delegate initialization of their initial memory representation, and in some cases the initialization of additional memory. In the standard library we have `Array.init(unsafeUninitializedCapacity:initializingWith:)` and `String.init(unsafeUninitializedCapacity:initializingUTF8With:)`. A safer abstraction for initialization would make such initializers less dangerous, and would allow for a greater variety of them.
@@ -1223,8 +1040,6 @@ Some data structures can delegate initialization of their initial memory represe
 `OutputSpan<T>` would need run-time bookkeeping (e.g. a bitvector with a bit per-address) to track initialization state to safely support random access and random-order initialization.
 
 Alternatively, a divide-and-conqueor style initialization order might be solvable via an API layer without run-time bookkeeping, but with more complex ergonomics.
-
-
 
 ##### <a name="Bytes"></a>Resizable, contiguously-stored, untyped collection in the standard library
 
@@ -1251,11 +1066,167 @@ myStrnlen(array) // 8
 This would probably consist of a new type of custom conversion in the language. A type author would provide a way to convert from their type to an owned `Span`, and the compiler would insert that conversion where needed. This would enhance readability and reduce boilerplate.
 
 ##### Interopability with C++'s `std::span` and with llvm's `-fbounds-safety`
-The [`std::span`](https://en.cppreference.com/w/cpp/container/span) class template from the C++ standard library is a similar representation of a contiguous range of memory. LLVM may soon have a [bounds-checking mode](https://discourse.llvm.org/t/70854) for C. These are an opportunity for better, safer interoperation with a type such as `Span`.
-
-
-
+The [`std::span`](https://en.cppreference.com/w/cpp/container/span) class template from the C++ standard library is a similar representation of a contiguous range of memory. LLVM may soon have a [bounds-checking mode](https://discourse.llvm.org/t/70854) for C. These are opportunities for better, safer interoperation with Swift, via a type such as `Span`.
 
 ## Acknowledgments
 
 Joe Groff, John McCall, Tim Kientzle, Karoy Lorentey contributed to this proposal with their clarifying questions and discussions.
+
+
+
+## <a name="Indexing"></a>Appendix: Index and slicing design considerations
+
+There are 3 potentially-desirable features of `Span`'s `Index` design:
+
+1. `Span` is its own slice type
+2. Indices from a slice can be used on the base collection
+3. Additional reuse-after-free checking
+
+Each of these introduces practical tradeoffs in the design.
+
+#### `Span` is its own slice type
+
+Collections which own their storage have the convention of separate slice types, such as `Array` and `String`. This has the advantage of clearly delineating storage ownership in the programming model and the disadvantage of introducing a second type through which to interact.
+
+`UnsafeBufferPointer` may or may not (unsafely) own its storage, and hence has a separate slice type. It's `baseAddress` has a `deallocate` method for situations in which it does (unsafely) own its storage, and that method should only be called on the `baseAddress` of the original allocation, not the start of a slice. However, many uses of `UnsafeBufferPointer` are unowned use cases, where having a separate slice type is [cumbersome](https://github.com/apple/swift/blob/bcd08c0c9a74974b4757b4b8a2d1796659b1d940/stdlib/public/core/StringComparison.swift#L175).
+
+`Span` does not own its storage and there is no concern about leaking larger allocations. Thus, it would benefit from being its own slice type, even if doing so increases the size of the type from 2 to 3 words (depending on other design tradeoffs discussed below). We propose making `Span` be its own slice type.
+
+#### Indices from a slice can be used on the base collection
+
+There is very strong stdlib precedent that indices from the base collection can be used in a slice and vice-versa. 
+
+```swift
+let myCollection = [0,1,2,3,4,5,6]
+let idx = myCollection.index(myCollection.startIndex, offsetBy: 4)
+myCollection[idx]                   // 4
+let slice = myCollection[idx...]    // [4, 5, 6]
+slice[idx]                          // 4
+myCollection[slice.indices]         // [4, 5, 6]
+```
+
+Code can be written to take advantage of this fact. For example, a simplistic parser can be written as mutating methods on a slice. The slice's indices can be saved for reference into the original collection or another slice. 
+
+```swift
+extension Slice where Base == UnsafeRawBufferPointer {
+  mutating func parse(numBytes: Int) -> Self {
+    let end = index(startIndex, offsetBy: numBytes)
+    defer { self = self[end...] }
+    return self[..<end]
+  }
+  mutating func parseInt() -> Int {
+    parse(numBytes: MemoryLayout<Int>.stride).loadUnaligned(as: Int.self)
+  }
+
+  mutating func parseHeader() -> Self {
+    // Comments show what happens when ran with `myCollection`
+
+    let copy = self
+    parseInt()         // 0
+    parseInt()         // 1
+    parse(numBytes: 8) // [2, 0, 0, 0, 0, 0, 0, 0]
+    parseInt()         // 3
+    parse(numBytes: 7) // [4, 0, 0, 0, 0, 0, 0]
+
+    // self: [0, 5, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0]
+    parseInt()         // 1280 (0x00_00_05_00 little endian)
+    // self: [0, 6, 0, 0, 0, 0, 0, 0, 0]
+
+    return copy[..<self.startIndex]
+  }  
+}
+
+myCollection.withUnsafeBytes {
+  var byteParser = $0[...]
+  let header = byteParser.parseHeader()
+
+  // header:     [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
+  //              2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 
+  //              4, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0]
+  //
+  // byteParser: [0, 6, 0, 0, 0, 0, 0, 0, 0]
+}
+```
+
+Note, however, that parsers tend to become more complex and copying slices for later index extraction becomes more common. At that point, it is better to use a more powerful approach such as the index-advancing or cursor API presented in *Byte parsing helpers*.
+
+That being said, if we had a time machine it's not clear that we would choose a design with index interchange, as it does introduce design tradeoffs and makes some code, especially when the index type is `Int`, troublesome:
+
+```swift
+func getFirst<C: Collection>(
+  _ c: C
+) -> C.Element where C.Index == Int {
+  c[0]
+}
+
+getFirst(myCollection) // 0
+getFirst(slice)        // Fatal error: Index out of bounds
+```
+
+Preserving index interchange across views and the base is a nice-to-have for `Span`, and we propose keeping it. However, we are evaluating the tradeoffs it requires.
+
+#### Additional reuse-after-free checking
+
+`Span` bounds-checks its indices, which is important for safety. If the index is based around a pointer (instead of an offset), then bounds checks will also ensure that indices are not used with the wrong span in most situations. However, it is possible for a memory address to be reused after being freed, and using a stale index into this reused memory may introduce safety problems.
+
+```swift
+var idx: Span<T>.Index
+
+let array1: Array<T> = ...
+let span1 = array1.span
+idx = span1.startIndex.advanced(by: ...)
+...
+// array1 is freed
+
+let array2: Array<T> = ...
+let span2 = array2.span
+// array2 happens to be allocated within the same memory of array1
+// but with a different base address whose offset is not an even
+// multiple of `MemoryLayout<T>.stride`.
+
+span2[idx] // unaligned load, what happens?
+```
+
+If `T` is `BitwiseCopyable`, then the unaligned load is not undefined behavior, but the value that is loaded is garbage. Whether the program is well-behaved going forwards depends on whether it is resilient to getting garbage values.
+
+If `T` is not `BitwiseCopyable`, then the unaligned load may introduce undefined behavior. No matter how well-written the rest of the program is, it has a critical safety and security flaw.
+
+When the reused allocation happens to be stride-aligned, there is no undefined behavior from undefined loads, nor are there "garbage" values in the strictest sense, but it is still reflective of a programming bug. The program may be interacting with an unexpected value.
+
+Bounds checks protect against critical programmer errors. It would be nice, pending engineering tradeoffs, to also protect against some reuse after free errors and invalid index reuse, especially those that may lead to undefined behavior.
+
+Future improvements to microarchitecture may make reuse after free checks cheaper, however we need something for the forseeable future. Any validation we can do reduces the need to switch to other mitigation strategies or make other tradeoffs.
+
+#### Design approaches for indices
+
+##### Index is an offset (`Int` or a wrapper around `Int`)
+
+When `Index` is an offset, there is no undefined behavior from unaligned loads because the `Span`'s base address is advanced by `MemoryLayout<T>.stride * offset`. 
+
+However, there is no protection against invalidly using an index derived from a different span, provided the offset is in-bounds.
+
+If `Span` is 2 words (base address and count), then indices cannot be interchanged between slices and the base span. `Span` would need to additionally store a base offset, bringing it up to 3 words in size.
+
+**TODO**: What's the perf impact of having a base offset? Bounds checking would need `(baseOffset..<(count &- baseOffset)).contains(i)`.
+
+##### Index is a pointer (wrapper around `UnsafeRawPointer`)
+
+When Index holds a pointer, `Span` only needs to be 2 words in size, as valid index interchange across slices falls out naturally. Additionally, invalid reuse of an index across spans will typically be caught during bounds checking.
+
+However, in a reuse-after-free situation, unaligned loads (i.e. undefined behavior) are possible. If stride is not a multiple of 2, then alignement checking can be expensive. Alternatively, we could choose not to detect these bugs.
+
+##### Index is a fat pointer (pointer and allocation ID)
+
+We can create a per-allocation ID (e.g. a cryptographic `UInt64`) for both `Span` and `Span.Index` to store. This makes `Span` 3 words in size and `Span.Index` 2 words in size. This provides the most protection possible against all forms of invalid index use, including reuse-after-free.
+
+However, making `Span.Index` be 2 words in size is unfortunate. `Range<Span.Index>` is now 4 words in size, storing the allocation ID twice. Anything built on top of `Span` that wishes to store multiple indices is either bloated or must hand-extract the pointers and hand-manage the allocation ID.
+
+##### Bitpacking an allocation ID hash
+
+As an alternative to the above, we could create a smaller hash value of an allocation ID and use that for checking. 
+
+If index is an offset, it could use e.g. 48 bits for the offset and 16 bits for the hash value. If index is a pointer, it could use **TODO** bits for the hash value.
+
+**TODO**: perf impact of this approach
+
+We recommend going with **TODO**
