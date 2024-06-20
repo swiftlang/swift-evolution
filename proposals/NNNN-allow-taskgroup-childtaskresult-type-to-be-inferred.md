@@ -151,4 +151,4 @@ The main alternative is to do nothing; as in, leave the `withTaskGroup(of:return
 
 ## Acknowledgments
 
-Thank you to both Konrad Malawski (@ktoso) and Pavel Yaskevich (@xedin) for confirming the viability of this proposal/idea, and for Konrad Malawski (@ktoso) for helping to review the proposal and implementation.
+Thank you to both Konrad Malawski ([@ktoso](https://github.com/ktoso)) and Pavel Yaskevich ([@xedin](https://github.com/xedin)) for confirming the viability of this proposal/idea, and for Konrad Malawski ([@ktoso](https://github.com/ktoso)) for helping to review the proposal and implementation.
