@@ -490,13 +490,13 @@ extension Span {
   ///
   /// - Parameters:
   ///   - position: an position to validate
-  public boundsCheckPrecondition(_ position: Int)
+  public func boundsCheckPrecondition(_ position: Int)
 
   /// Traps if `bounds` is not a valid range of offsets into this `Span`
   ///
   /// - Parameters:
   ///   - position: a range of positions to validate
-  public boundsCheckPrecondition(_ bounds: Range<Int>)
+  public func boundsCheckPrecondition(_ bounds: Range<Int>)
 }
 ```
 
