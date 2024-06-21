@@ -42,6 +42,7 @@ array.withUnsafeBufferPointer {
 // New
 let span: Span<UInt8> = array.storage
 // use `span` in the same scope as `array` for direct memory access
+```
 
 ## Proposed solution
 
@@ -71,7 +72,7 @@ extension Hypothetical Base64Decoder {
 }
 ```
 
-Advanced libraries might add use an inlinable generic-dispatch interface in addition to a concrete interface defined in terms of `Span`
+Advanced libraries might add use an inlinable generic-dispatch interface in addition to a concrete interface defined in terms of `Span`, serving as adaptor code for top-level API.
 
 ### `RawSpan`
 
@@ -96,7 +97,6 @@ It provides a buffer-like interface to the elements stored in that span of memor
 extension Span {
   public var count: Int { get }
   public var isEmpty: Bool { get }
-  public var indices: Range<Int> { get }
 
   subscript(_ position: Int) -> Element { get }
 }
@@ -117,7 +117,7 @@ The first element of a given span is _always_ at position zero, and its last it 
 As a side-effect of not conforming to `Collection` or `Sequence`, `Span` is not directly supported by `for` loops at this time. It is, however, easy to use in a `for` loop via indexing:
 
 ```swift
-for i in mySpan.indices {
+for i in 0..<mySpan.count {
   calculation(mySpan[i])
 }
 ```
@@ -244,7 +244,7 @@ extension Span where Element: BitwiseCopyable {
 
 ```swift
 public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
-  internal var _start: Span<Element>.Index
+  internal var _start: UnsafePointer<Element>
   internal var _count: Int
 }
 ```
@@ -265,10 +265,10 @@ extension Span {
   ///   - buffer: an `UnsafeBufferPointer` to initialized elements.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `Span`.
-  public init?<Owner>(
+  public init<Owner>(
     unsafeElements buffer: UnsafeBufferPointer<Element>,
     owner: borrowing Owner
-  ) -> dependsOn(owner) Self?
+  ) -> dependsOn(owner) Self
 
   /// Unsafely create a `Span` over initialized memory.
   ///
@@ -340,7 +340,6 @@ The following properties, functions and subscripts have direct counterparts in t
 extension Span {
   public var count: Int { get }
   public var isEmpty: Bool { get }
-  public var indices: Range<Int> { get }
 
   public subscript(_ position: Int) -> dependsOn(self) Element { get }
 }
@@ -352,9 +351,84 @@ In SE-0437, `UnsafeBufferPointer`'s slicing subscript was replaced by the `extra
 
 ```swift
 extension Span {
-  func extracting(_ bounds: Range<Int>) -> dependsOn(self) Self
-  func extracting(_ bounds: some RangeExpression<Int>) -> dependsOn(self) Self
-  func extracting(_: UnboundedRange) -> dependsOn(self) Self
+  /// Constructs a new span over the items within the supplied range of
+  /// positions within this span.
+  ///
+  /// The returned span's first item is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
+  ///
+  /// - Parameter bounds: A valid range of positions. Every position in
+  ///     this range must be within the bounds of this `Span`.
+  ///
+  /// - Returns: A `Span` over the items within `bounds`
+  func extracting(_ bounds: Range<Int>) -> Self
+
+  /// Constructs a new span over the items within the supplied range of
+  /// positions within this span.
+  ///
+  /// The returned span's first item is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
+  ///
+  /// - Parameter bounds: A valid range of positions. Every position in
+  ///     this range must be within the bounds of this `Span`.
+  ///
+  /// - Returns: A `Span` over the items within `bounds`
+  func extracting(_ bounds: some RangeExpression<Int>) -> Self
+
+  /// Constructs a new span over all the items of this span.
+  ///
+  /// The returned span's first item is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
+  ///
+  /// - Returns: A `Span` over all the items of this span.
+  func extracting(_: UnboundedRange) -> Self
+
+  // extracting prefixes and suffixes
+
+  /// Returns a span containing the initial elements of this span,
+  /// up to the specified maximum length.
+  ///
+  /// If the maximum length exceeds the length of this span,
+  /// the result contains all the elements.
+  ///
+  /// - Parameter maxLength: The maximum number of elements to return.
+  ///   `maxLength` must be greater than or equal to zero.
+  /// - Returns: A span with at most `maxLength` elements.
+  borrowing public func extracting(first maxLength: Int) -> Self
+
+  /// Returns a span over all but the given number of trailing elements.
+  ///
+  /// If the number of elements to drop exceeds the number of elements in
+  /// the span, the result is an empty span.
+  ///
+  /// - Parameter k: The number of elements to drop off the end of
+  ///   the span. `k` must be greater than or equal to zero.
+  /// - Returns: A span leaving off the specified number of elements at the end.
+  borrowing public func extracting(droppingLast k: Int) -> Self
+
+  /// Returns a span containing the final elements of the span,
+  /// up to the given maximum length.
+  ///
+  /// If the maximum length exceeds the length of this span,
+  /// the result contains all the elements.
+  ///
+  /// - Parameter maxLength: The maximum number of elements to return.
+  ///   `maxLength` must be greater than or equal to zero.
+  /// - Returns: A span with at most `maxLength` elements.
+  borrowing public func extracting(last maxLength: Int) -> Self
+
+  /// Returns a span over all but the given number of initial elements.
+  ///
+  /// If the number of elements to drop exceeds the number of elements in
+  /// the span, the result is an empty span.
+  ///
+  /// - Parameter k: The number of elements to drop from the beginning of
+  ///   the span. `k` must be greater than or equal to zero.
+  /// - Returns: A span starting after the specified number of elements.
+  borrowing public func extracting(droppingFirst k: Int = 1) -> Self
 }
 ```
 
@@ -370,32 +444,39 @@ extension Span {
   ///
   /// This subscript does not validate `position`; this is an unsafe operation.
   ///
-  /// - Parameter position: The position of the element to access. `position`
-  ///     must be a valid index that is not equal to the `endIndex` property.
-  public subscript(
-    unchecked position: Index
-  ) -> dependsOn(self) Element { get }
+  /// - Parameter position: The offset of the element to access. `position`
+  ///     must be greater or equal to zero, and less than `count`.
+  public subscript(unchecked position: Int) -> Element { get }
 
-  /// Accesses a contiguous subrange of the elements represented by this `Span`
+  /// Constructs a new span over the items within the supplied range of
+  /// positions within this span.
   ///
-  /// This subscript does not validate `bounds`; this is an unsafe operation.
+  /// The returned span's first item is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
   ///
-  /// - Parameter bounds: A range of the collection's indices. The bounds of
-  ///     the range must be valid indices of the collection.
-  public extracting(
-    uncheckedBounds bounds: Range<Index>
-  ) -> dependsOn(self) Self
+  /// This function does not validate `bounds`; this is an unsafe operation.
+  ///
+  /// - Parameter bounds: A valid range of positions. Every position in
+  ///     this range must be within the bounds of this `Span`.
+  ///
+  /// - Returns: A `Span` over the items within `bounds`
+  public func extracting(uncheckedBounds bounds: Range<Int>) -> Self
 
-  /// Accesses the contiguous subrange of the elements represented by
-  /// this `Span`, specified by a range expression.
+  /// Constructs a new span over the items within the supplied range of
+  /// positions within this span.
   ///
-  /// This subscript does not validate `bounds`; this is an unsafe operation.
+  /// The returned span's first item is always at offset 0; unlike buffer
+  /// slices, extracted spans do not generally share their indices with the
+  /// span from which they are extracted.
   ///
-  /// - Parameter bounds: A range of the collection's indices. The bounds of
-  ///     the range must be valid indices of the collection.
-  public func extracting(
-    uncheckedBounds bounds: some RangeExpression<Index>
-  ) -> dependsOn(self) Span<Element>
+  /// This function does not validate `bounds`; this is an unsafe operation.
+  ///
+  /// - Parameter bounds: A valid range of positions. Every position in
+  ///     this range must be within the bounds of this `Span`.
+  ///
+  /// - Returns: A `Span` over the items within `bounds`
+  public func extracting(uncheckedBounds bounds: some RangeExpression<Int>) -> Self
 }
 ```
 
@@ -415,7 +496,7 @@ extension Span {
   ///
   /// - Parameters:
   ///   - position: a range of positions to validate
-  public boundsCheckPrecondition(_ bounds: Range<Index>)
+  public boundsCheckPrecondition(_ bounds: Range<Int>)
 }
 ```
 
@@ -489,10 +570,10 @@ extension RawSpan {
   ///   - buffer: an `UnsafeRawBufferPointer` to initialized memory.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `RawSpan`.
-  public init?<Owner: ~Copyable & ~Escapable>(
+  public init<Owner: ~Copyable & ~Escapable>(
     unsafeBytes buffer: UnsafeRawBufferPointer,
     owner: borrowing Owner
-  ) -> dependsOn(owner) Self?
+  ) -> dependsOn(owner) Self
 
   /// Unsafely create a `RawSpan` over initialized memory.
   ///
@@ -506,8 +587,8 @@ extension RawSpan {
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `RawSpan`.
   public init<Owner: ~Copyable & ~Escapable>(
-    unsafeRawPointer pointer: UnsafeRawPointer,
-    count: Int,
+    unsafeStart pointer: UnsafeRawPointer,
+    byteCount: Int,
     owner: borrowing Owner
   ) -> dependsOn(owner) Self
 
@@ -604,7 +685,8 @@ extension RawSpan {
 A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homogenously as instances of `T`.
 
 ```swift
-  /// View the memory span represented by this view as a different type
+extension RawSpan {
+	/// View the memory span represented by this view as a different type
   ///
   /// The memory must be laid out identically to the in-memory representation of `T`.
   ///
@@ -620,14 +702,10 @@ A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homoge
 ```swift
 extension RawSpan {
   /// The number of bytes in the span.
-  public var count: Int { get }
+  public var byteCount: Int { get }
 
   /// A Boolean value indicating whether the span is empty.
   public var isEmpty: Bool { get }
-
-  /// The indices that are valid for subscripting the span, in ascending
-  /// order.
-  public var indices: Range<Int> { get }
 
   /// Traps if `offset` is not a valid offset into this `RawSpan`
   ///
@@ -643,41 +721,9 @@ extension RawSpan {
 }
 ```
 
-##### Index validation utiliities:
-
-Every time `RawSpan` uses an index or an integer offset, it checks for their validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
-
-```swift
-extension RawSpan {
-  /// Traps if `position` is not a valid index for this `RawSpan`
-  ///
-  /// - Parameters:
-  ///   - position: an Index to validate
-  public boundsCheckPrecondition(_ position: Index)
-
-  /// Traps if `bounds` is not a valid range of indices for this `RawSpan`
-  ///
-  /// - Parameters:
-  ///   - bounds: a range of indices to validate
-  public boundsCheckPrecondition(_ bounds: Range<Index>)
-
-  /// Traps if `offset` is not a valid offset into this `RawSpan`
-  ///
-  /// - Parameters:
-  ///   - offset: an offset to validate
-  public boundsCheckPrecondition(offset: Int)
-
-  /// Traps if `offsets` is not a valid range of offsets into this `RawSpan`
-  ///
-  /// - Parameters:
-  ///   - offsets: a range of offsets to validate
-  public boundsCheckPrecondition(offsets: Range<Int>)
-}
-```
-
 ##### Accessing subranges of elements:
 
-Similarly to `Span`, `RawSpan` does not support slicing in the style of `Collection`. It supports a similar set of `extracting()` functions as `Span`:
+Similarly to `Span`, `RawSpan` does not support slicing in the style of `Collection`. It supports the same set of `extracting()` functions as `Span`:
 
 ```swift
 extension RawSpan {
@@ -691,7 +737,7 @@ extension RawSpan {
   /// - Parameter bounds: A valid range of positions. Every position in
   ///     this range must be within the bounds of this `RawSpan`.
   ///
-  /// - Returns: A `Span` over the bytes within `bounds`
+  /// - Returns: A span over the bytes within `bounds`
   public func extracting(_ bounds: Range<Int>) -> Self
 
   /// Constructs a new span over the bytes within the supplied range of
@@ -706,7 +752,7 @@ extension RawSpan {
   /// - Parameter bounds: A valid range of positions. Every position in
   ///     this range must be within the bounds of this `RawSpan`.
   ///
-  /// - Returns: A `Span` over the bytes within `bounds`
+  /// - Returns: A span over the bytes within `bounds`
   public func extracting(uncheckedBounds bounds: Range<Int>) -> Self
 
   /// Constructs a new span over the bytes within the supplied range of
@@ -719,7 +765,7 @@ extension RawSpan {
   /// - Parameter bounds: A valid range of positions. Every position in
   ///     this range must be within the bounds of this `RawSpan`.
   ///
-  /// - Returns: A `Span` over the bytes within `bounds`
+  /// - Returns: A span over the bytes within `bounds`
   public func extracting(_ bounds: some RangeExpression<Int>) -> Self
 
   /// Constructs a new span over the bytes within the supplied range of
@@ -734,7 +780,7 @@ extension RawSpan {
   /// - Parameter bounds: A valid range of positions. Every position in
   ///     this range must be within the bounds of this `RawSpan`.
   ///
-  /// - Returns: A `Span` over the bytes within `bounds`
+  /// - Returns: A span over the bytes within `bounds`
   public func extracting(
     uncheckedBounds bounds: some RangeExpression<Int>
   ) -> Self
@@ -745,8 +791,10 @@ extension RawSpan {
   /// slices, extracted spans do not generally share their indices with the
   /// span from which they are extracted.
   ///
-  /// - Returns: A `RawSpan` over all the items of this span.
+  /// - Returns: A span over all the bytes of this span.
   public func extracting(_: UnboundedRange) -> Self
+
+  // extracting prefixes and suffixes
 
   /// Returns a span containing the initial bytes of this span,
   /// up to the specified maximum byte count.
@@ -843,7 +891,7 @@ extension RawSpan {
     public let base: RawSpan
 
     /// The current parsing position
-    public var position: RawSpan.Index
+    public var position: Int
 
     @inlinable
     public init(_ base: RawSpan)
@@ -929,7 +977,7 @@ func parsePNGChunk<Owner: ~Copyable & ~Escapable>(
 ---
 
 ##### Defining `BorrowingIterator` with support in `for` loops
-This proposal does not define an `IteratorProtocol` conformance, since it would need to be borrowed and non-escapable. This is not compatible with `IteratorProtocol`. As such, `Span`  is not directly usable in `for` loops as currently defined. A `BorrowingIterator` protocol for non-escapable and non-copyable containers must be defined, providing a `for` loop syntax where the element is borrowed through each iteration. Ultimately we should arrive at a way to iterate through borrowed elements from a borrowed view:
+This proposal does not define an `IteratorProtocol` conformance, since it would need to be borrowed and non-escapable. This is not compatible with `IteratorProtocol`. As such, `Span`  is not directly usable in `for` loops as currently defined. A `BorrowingIterator` protocol for non-escapable and non-copyable containers must be defined, providing a `for` loop syntax where the element is borrowed through each iteration. Ultimately we should arrive at a way to iterate through borrowed elements from a borrowed view:
 
 ```swift
 borrowing view: Span<Element> = ...
