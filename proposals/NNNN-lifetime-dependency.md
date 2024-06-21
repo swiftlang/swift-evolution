@@ -673,14 +673,11 @@ If there is no explicit lifetime dependency, we will automatically infer one acc
 **For methods where the return value is nonescapable**, we will infer a dependency against self, depending on the mutation type of the function.
 Note that this is not affected by the presence, type, or modifier of any other arguments to the method.
 
-**For a free or static functions or initializers with at least one argument,** we will infer a lifetime dependency when all of the following are true:
+**For a free or static functions or initializers with at least one argument,** we will infer a lifetime dependency when the return value is nonescapable and exactly one argument that satisfies any of the following:
+  - is nonescapable, or
+  - is non-BitwiseCopyable and has an explicit `borrowing`, or `inout` convention
 
-* the return value is nonescapable,
-* there is exactly one argument that satisfies any of the following:
-  - is either noncopyable or nonescapable, or
-  - has an explicit `borrowing`, `consuming`, or `inout` convention specified
-
-In this case, the compiler will infer a dependency on the unique argument identified by this last set of conditions.
+In this case, the compiler will infer a dependency on the unique argument identified by these conditions.
 
 **In no other case** will a function, method, or initializer implicitly gain a lifetime dependency.
 If a function, method, or initializer has a nonescapable return value, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
