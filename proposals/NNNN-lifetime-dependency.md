@@ -952,6 +952,90 @@ func f(a: A, b: B) -> (dependsOn(a) C, B)
 ```
 We expect to address this in the near future in a separate proposal.
 
+### Function type syntax
+
+A function that returns a nonescapable type cannot currently be passed as a nonescaping closure because its dependence information would be lost.
+
+```swift
+func f(arg: ArgType) -> dependsOn(arg) NEType
+
+func g1(closure: (ArgType) -> NEType)
+
+{
+  g1(closure: f) // 🛑 ERROR: function type mismatch 
+}
+```
+
+To address this shortcoming, we plan to extend the `dependsOn(...)` modifier for use in function types. Since function
+types have no parameter names, the parameter position will be identified by an integer literal:
+
+```swift
+func g2(closure: (ArgType) -> dependsOn(0) NE)
+
+{
+  g2(closure: f) // ✅ OK
+}
+```
+
+The parameter index syntax is consistent with how dependencies are already represented internally and in mangled names.
+
+We expect most closures that return nonescapable types to be dependent on the closure context rather than a closure
+parameter--this will be the normal case for passing methods as nonescaping closures. A closure context dependence will
+not affect the spelling of the function type.
+
+### Lifetime dependence for closures
+
+In "Function type syntax", we propose that function types can have explicit `dependsOn` modifiers. When a function type
+returns a nonescapable value but has no explicit `dependsOn` modifier, we plan to infer a dependence on the closure
+context:
+
+```swift
+func g1(closure: () -> NEType) // Inferred: NEType depends on 'closure'
+```
+
+For closure declarations, lifetime dependencies can be inferred on the combined list of captures and closure parameters
+following the same rule as free standing functions. We can infer a lifetime dependence if the closure's return value is
+nonescapable, and exactly one closure capture or closure parameter satisfies any of the following:
+
+  - is nonescapable, or
+  - is non-BitwiseCopyable and has an explicit `borrowing`, or `inout` convention
+
+A dependence can be inferred on a closure capture as follows:
+
+```swift
+func f(arg: borrowing ArgType) -> dependsOn(arg) NEType
+
+func foo(source: borrowing ArgType) {
+  g1 { f(arg: source) } // ✅ Inferred: 'closure' result depends on captured 'source'
+}
+```
+
+An explicit dependence on a closure capture can be spelled:
+
+```swift
+func foo(source: borrowing ArgType) {
+  g1 { () -> dependsOn(source) NEType in f(arg: source) }
+}
+```
+
+Similarly, a dependence can be inferred on a closure parameter:
+
+```swift
+func g2(closure: (borrowing ArgType) -> dependsOn(0) NEType)
+
+{
+  g2 { (source: borrowing ArgType) in f(arg: source) } // ✅ Inferred: 'closure' result depends on 'source' parameter
+}
+```
+
+An explicit dependence on a closure parameter can be spelled:
+
+```swift
+{
+  g2 { (source: borrowing ArgType) -> dependsOn(source) NEType in f(arg: source) } // ✅ Inferred: 'closure' result depends on 'source' parameter
+}
+```
+
 ### Component lifetime
 
 In the current design, aggregating multiple values merges their scopes.
