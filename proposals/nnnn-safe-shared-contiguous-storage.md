@@ -518,9 +518,9 @@ extension Span {
   ///   for the `withUnsafeBufferPointer(_:)` method. The closure's
   ///   parameter is valid only for the duration of its execution.
   /// - Returns: The return value of the `body` closure parameter.
-  func withUnsafeBufferPointer<Result>(
-    _ body: (_ buffer: UnsafeBufferPointer<Element>) -> Result
-  ) -> Result
+  func withUnsafeBufferPointer<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeBufferPointer<Element>) throws(E) -> Result
+  ) throws(E) -> Result
 }
 
 extension Span where Element: BitwiseCopyable {
@@ -538,9 +538,9 @@ extension Span where Element: BitwiseCopyable {
   ///   The closure's parameter is valid only for the duration of
   ///   its execution.
   /// - Returns: The return value of the `body` closure parameter.
-  func withUnsafeBytes<Result>(
-    _ body: (_ buffer: UnsafeRawBufferPointer) -> Result
-  ) -> Result
+  func withUnsafeBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result
 }
 ```
 
@@ -597,7 +597,6 @@ extension RawSpan {
   /// - Parameters:
   ///   - span: An existing `Span<T>`, which will define both this
   ///           `RawSpan`'s lifetime and the memory it represents.
-  @inlinable @inline(__always)
   public init<T: BitwiseCopyable>(
     _ span: borrowing Span<T>
   ) -> dependsOn(span) Self
@@ -747,7 +746,7 @@ extension RawSpan {
   /// slices, extracted spans do not generally share their indices with the
   /// span from which they are extracted.
   ///
-  /// This function does not validate `bounds`; this is an unsafe operation.
+  /// This function may not always validate `bounds`; this is an unsafe operation.
   ///
   /// - Parameter bounds: A valid range of positions. Every position in
   ///     this range must be within the bounds of this `RawSpan`.
@@ -999,7 +998,7 @@ while i < view.count {
 }
 
 // ...or:
-for i in 0..<view.indices {
+for i in 0 ..< view.count {
   doSomething(view[i])
 }
 ```
