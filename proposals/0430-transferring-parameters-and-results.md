@@ -370,12 +370,12 @@ struct Y2: P1 {
 }
 ```
 
-### `sending inout` parameters
+### `inout sending` parameters
 
 A `sending` parameter can also be marked as `inout`, meaning that the argument
 value must be in a disconnected region when passed to the function, and the
 parameter value must be in a disconnected region when the function
-returns. Inside the function, the `sending inout` parameter can be merged with
+returns. Inside the function, the `inout sending` parameter can be merged with
 actor-isolated callees or further sent as long as the parameter is
 re-assigned a value in a disconnected region upon function exit.
 
