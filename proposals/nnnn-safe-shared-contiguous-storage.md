@@ -15,7 +15,16 @@ We introduce `Span<T>`, an abstraction for container-agnostic access to contiguo
 
 In the C family of programming languages, memory can be shared with any function by using a pointer and (ideally) a length. This allows contiguous memory to be shared with a function that doesn't know the layout of a container being used by the caller. A heap-allocated array, contiguously-stored named fields or even a single stack-allocated instance can all be accessed through a C pointer. We aim to create a similar idiom in Swift, without compromising Swift's memory safety.
 
-This proposal is related to two other features being proposed along with it: [Nonescapable types](https://github.com/apple/swift-evolution/pull/2304) (`~Escapable`) and [Compile-time Lifetime Dependency Annotations](https://github.com/apple/swift-evolution/pull/2305). This proposal also supersedes the rejected proposal [SE-0256](https://github.com/apple/swift-evolution/blob/main/proposals/0256-contiguous-collection.md). The overall feature of ownership and lifetime constraints has previously been discussed in the [BufferView roadmap](https://forums.swift.org/t/66211) forum thread.
+This proposal is related to two other features being proposed along with it: [Nonescapable types](https://github.com/apple/swift-evolution/pull/2304) (`~Escapable`) and [Compile-time Lifetime Dependency Annotations](https://github.com/swiftlang/swift-evolution/pull/2305), as well as related to the [BufferView roadmap](https://forums.swift.org/t/66211) forum thread. This proposal is also related to the following proposals:
+- [SE-0426] BitwiseCopyable
+- [SE-0427] Noncopyable generics
+- [SE-0377] `borrowing` and `consuming` parameter ownership modifiers
+- [SE-0256] `{Mutable}ContiguousCollection` protocol (rejected, superseded by this proposal)
+
+[SE-0426]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0426-bitwise-copyable.md
+[SE-0427]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md
+[SE-0377]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md
+[SE-0256]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0256-contiguous-collection.md
 
 ## Motivation
 
@@ -94,11 +103,11 @@ public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
 It provides a buffer-like interface to the elements stored in that span of memory:
 
 ```swift
-extension Span {
+extension Span where Element: ~Copyable & ~Escapable {
   public var count: Int { get }
   public var isEmpty: Bool { get }
 
-  subscript(_ position: Int) -> Element { get }
+  subscript(_ position: Int) -> Element { _read }
 }
 ```
 
@@ -107,7 +116,7 @@ Note that `Span` does _not_ conform to `Collection`. This is because `Collection
 `Span`s representing subsets of consecutive elements can be extracted out of a larger `Span` with an API similar to the recently added `extracting()` functions of `UnsafeBufferPointer`:
 
 ```swift
-extension Span {
+extension Span where Element: ~Copyable & ~Escapable {
   public func extracting(_ bounds: Range<Int>) -> Self
 }
 ```
@@ -225,20 +234,18 @@ extension UnsafeMutableRawBufferPointer: ContiguousStorage<UInt8> {
 `Span` has an unsafe hatch for use with unsafe code.
 
 ```swift
-extension Span {
-  func withUnsafeBufferPointer<Result>(
-    _ body: (_ buffer: UnsafeBufferPointer<Element>) -> Result
-  ) -> Result
+extension Span where Element: ~Copyable & ~Escapable {
+  func withUnsafeBufferPointer<E: Error, Result: ~Copyable & ~Escapable>(
+    _ body: (_ buffer: UnsafeBufferPointer<Element>) throws(E) -> Result
+  ) throws(E) -> Result
 }
 
 extension Span where Element: BitwiseCopyable {
-  func withUnsafeBytes<Result>(
-    _ body: (_ buffer: UnsafeRawBufferPointer) -> Result
-  ) -> Result
+  func withUnsafeBytes<E: Error, Result: ~Copyable & ~Escapable>(
+    _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result
 }
 ```
-
-
 
 ### Complete `Span` API:
 
@@ -254,7 +261,7 @@ public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
 The initialization of a `Span` instance from an unsafe pointer is an unsafe operation. When it is initialized correctly, subsequent uses of the borrowed instance are safe. Typically these initializers will be used internally to a container's implementation of functions or computed properties that return a borrowed `Span`.
 
 ```swift
-extension Span {
+extension Span where Element: ~Copyable & ~Escapable {
 
   /// Unsafely create a `Span` over initialized memory.
   ///
@@ -265,10 +272,10 @@ extension Span {
   ///   - buffer: an `UnsafeBufferPointer` to initialized elements.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `Span`.
-  public init<Owner>(
+  public init<Owner: ~Copyable & ~Escapable>(
     unsafeElements buffer: UnsafeBufferPointer<Element>,
     owner: borrowing Owner
-  ) -> dependsOn(owner) Self
+  )
 
   /// Unsafely create a `Span` over initialized memory.
   ///
@@ -281,11 +288,11 @@ extension Span {
   ///   - count: the number of initialized elements in the view.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `Span`.
-  public init<Owner>(
+  public init<Owner: ~Copyable & ~Escapable>(
     unsafeStart pointer: UnsafePointer<Element>,
     count: Int,
     owner: borrowing Owner
-  ) -> dependsOn(owner) Self
+  )
 }
 
 extension Span where Element: BitwiseCopyable {
@@ -304,10 +311,10 @@ extension Span where Element: BitwiseCopyable {
   ///   - type: the type to use when interpreting the bytes in memory.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `Span`.
-  public init<Owner>(
+  public init<Owner: ~Copyable & ~Escapable>(
     unsafeBytes buffer: UnsafeRawBufferPointer,
     owner: borrowing Owner
-  ) -> dependsOn(owner) Self
+  )
 
   /// Unsafely create a `Span` over a span of initialized memory.
   ///
@@ -324,24 +331,24 @@ extension Span where Element: BitwiseCopyable {
   ///   - count: the number of initialized elements in the view.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `Span`.
-  public init<Owner>(
+  public init<Owner: ~Copyable & ~Escapable>(
     unsafeStart pointer: UnsafeRawPointer,
     byteCount: Int,
     owner: borrowing Owner
-  ) -> dependsOn(owner) Self
+  )
 }
 ```
 
-#####  `Collection`-like API:
+##### Basic API:
 
 The following properties, functions and subscripts have direct counterparts in the `Collection` protocol hierarchy. Their semantics shall be as described where they counterpart is declared (in `Collection` or `RandomAccessCollection`). The only difference with their counterpart should be a lifetime dependency annotation where applicable, allowing them to return borrowed nonescapable values or borrowed noncopyable values.
 
 ```swift
-extension Span {
+extension Span where Element: ~Copyable & ~Escapable {
   public var count: Int { get }
   public var isEmpty: Bool { get }
 
-  public subscript(_ position: Int) -> dependsOn(self) Element { get }
+  public subscript(_ position: Int) -> Element { _read }
 }
 ```
 
@@ -350,7 +357,7 @@ extension Span {
 In SE-0437, `UnsafeBufferPointer`'s slicing subscript was replaced by the `extracting(_ bounds:)` functions, due to the copyability assumption baked into the standard library's `Slice` type. `Span` has similar requirements as `UnsafeBufferPointer`, in that it must be possible to obtain an instance representing a subrange of the same memory as another `Span`. We therefore follow in the footsteps of SE-0437, and add a family of `extracting()` functions:
 
 ```swift
-extension Span {
+extension Span where Element: ~Copyable & ~Escapable {
   /// Constructs a new span over the items within the supplied range of
   /// positions within this span.
   ///
@@ -385,9 +392,11 @@ extension Span {
   ///
   /// - Returns: A `Span` over all the items of this span.
   func extracting(_: UnboundedRange) -> Self
-
-  // extracting prefixes and suffixes
-
+}
+```
+Additionally, we add specialized versions that extract prefixes and suffixes:
+```swift
+extension Span where Element: ~Copyable & ~Escapable {
   /// Returns a span containing the initial elements of this span,
   /// up to the specified maximum length.
   ///
@@ -437,7 +446,7 @@ extension Span {
 The `subscript` and the `extracting()` functions mentioned above all have always-on bounds checking of their parameters, in order to prevent out-of-bounds accesses. We also want to provide unchecked variants as an alternative for cases where bounds-checking is proving costly.
 
 ```swift
-extension Span {
+extension Span where Element: ~Copyable & ~Escapable {
   // Unchecked subscripting and extraction
 
   /// Accesses the element at the specified `position`.
@@ -446,7 +455,7 @@ extension Span {
   ///
   /// - Parameter position: The offset of the element to access. `position`
   ///     must be greater or equal to zero, and less than `count`.
-  public subscript(unchecked position: Int) -> Element { get }
+  public subscript(unchecked position: Int) -> Element { _read }
 
   /// Constructs a new span over the items within the supplied range of
   /// positions within this span.
@@ -485,7 +494,7 @@ extension Span {
 Every time `Span` uses a position parameter, it checks for its validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
 
 ```swift
-extension Span {
+extension Span where Element: ~Copyable & ~Escapable {
   /// Traps if `position` is not a valid offset into this `Span`
   ///
   /// - Parameters:
@@ -505,7 +514,7 @@ extension Span {
 We provide two functions for interoperability with C or other legacy pointer-taking functions.
 
 ```swift
-extension Span {
+extension Span where Element: ~Copyable & ~Escapable {
   /// Calls a closure with a pointer to the viewed contiguous storage.
   ///
   /// The buffer pointer passed as an argument to `body` is valid only
@@ -573,7 +582,7 @@ extension RawSpan {
   public init<Owner: ~Copyable & ~Escapable>(
     unsafeBytes buffer: UnsafeRawBufferPointer,
     owner: borrowing Owner
-  ) -> dependsOn(owner) Self
+  )
 
   /// Unsafely create a `RawSpan` over initialized memory.
   ///
@@ -590,7 +599,7 @@ extension RawSpan {
     unsafeStart pointer: UnsafeRawPointer,
     byteCount: Int,
     owner: borrowing Owner
-  ) -> dependsOn(owner) Self
+  )
 
   /// Create a `RawSpan` over the memory represented by a `Span<T>`
   ///
@@ -599,7 +608,7 @@ extension RawSpan {
   ///           `RawSpan`'s lifetime and the memory it represents.
   public init<T: BitwiseCopyable>(
     _ span: borrowing Span<T>
-  ) -> dependsOn(span) Self
+  )
 }
 ```
 
@@ -692,11 +701,35 @@ extension RawSpan {
   /// - Parameters:
   ///   - type: The type you wish to view the memory as
   /// - Returns: A new `Span` over elements of type `T`
-  public func view<T: BitwiseCopyable>(as: T.Type) -> dependsOn(self) Span<T>
+  public func view<T: BitwiseCopyable>(as: T.Type) -> Span<T>
 }
 ```
 
-##### Index-related Operations:
+`RawSpan` provides `withUnsafeBytes` for interoperability with C or other legacy pointer-taking functions:
+
+```swift
+extension RawSpan {
+  /// Calls the given closure with a pointer to the underlying bytes of
+  /// the viewed contiguous storage.
+  ///
+  /// The buffer pointer passed as an argument to `body` is valid only
+  /// during the execution of `withUnsafeBytes(_:)`.
+  /// Do not store or return the pointer for later use.
+  ///
+  /// - Parameter body: A closure with an `UnsafeRawBufferPointer`
+  ///   parameter that points to the viewed contiguous storage.
+  ///   If `body` has a return value, that value is also
+  ///   used as the return value for the `withUnsafeBytes(_:)` method.
+  ///   The closure's parameter is valid only for the duration of
+  ///   its execution.
+  /// - Returns: The return value of the `body` closure parameter.
+  func withUnsafeBytes<E: Error, Result: ~Copyable & ~Escapable>(
+    _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result
+}
+```
+
+##### Examining `RawSpan` bounds:
 
 ```swift
 extension RawSpan {
@@ -746,7 +779,7 @@ extension RawSpan {
   /// slices, extracted spans do not generally share their indices with the
   /// span from which they are extracted.
   ///
-  /// This function may not always validate `bounds`; this is an unsafe operation.
+  /// This function does not validate `bounds`; this is an unsafe operation.
   ///
   /// - Parameter bounds: A valid range of positions. Every position in
   ///     this range must be within the bounds of this `RawSpan`.
@@ -871,15 +904,17 @@ The ideas in this proposal previously used the name `BufferView`. While the use 
 
 TKTKTK
 
-`Cursor` stores and manages a parsing subrange, which alleviates the developer from managing one layer of slicing.
-
 ##### A more sophisticated approach to indexing
 
 This is discussed more fully in the [indexing appendix](#Indexing) below.
 
 ## Future directions
 
-### Byte parsing helpers
+#### coroutine accessors
+
+This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` will be adapted to the new syntax.
+
+#### Byte parsing helpers
 
 A handful of helper API can make `RawSpan` better suited for binary parsers and decoders.
 
@@ -921,11 +956,13 @@ extension RawSpan {
 }
 ```
 
+`Cursor` stores and manages a parsing subrange, which alleviates the developer from managing one layer of slicing.
+
 Alternatively, if some future `RawSpan.Iterator` were 3 words in size (start, current position, and end) instead of 2 (current pointer and end), that is it were a "resettable" iterator, it could host this API instead of introducing a new `Cursor` type or concept.
 
-#### Example: Parsing PNG
+##### Example: Parsing PNG
 
-The below parses [PNG Chunks](https://www.w3.org/TR/png-3/#4Concepts.FormatChunks).
+The code snippet below parses [PNG Chunks](https://www.w3.org/TR/png-3/#4Concepts.FormatChunks):
 
 ```swift
 struct PNGChunk: ~Escapable {
@@ -933,7 +970,7 @@ struct PNGChunk: ~Escapable {
 
   public init<Owner: ~Copyable & ~Escapable>(
     _ contents: RawSpan, _ owner: borrowing Owner
-  ) throws (PNGValidationError) -> dependsOn(owner) Self {
+  ) throws (PNGValidationError) {
     self.contents = contents
     try self._validate()
   }
@@ -958,7 +995,7 @@ struct PNGChunk: ~Escapable {
 func parsePNGChunk<Owner: ~Copyable & ~Escapable>(
   _ span: RawSpan,
   _ owner: borrowing Owner
-) throws -> dependsOn(owner) PNGChunk {
+) throws -> PNGChunk {
   var cursor = span.makeCursor()
 
   let length = try cursor.parse(UInt32.self).bigEndian
@@ -970,12 +1007,8 @@ func parsePNGChunk<Owner: ~Copyable & ~Escapable>(
 }
 ```
 
+#### Defining `BorrowingIterator` with support in `for` loops
 
-
-
----
-
-##### Defining `BorrowingIterator` with support in `for` loops
 This proposal does not define an `IteratorProtocol` conformance, since it would need to be borrowed and non-escapable. This is not compatible with `IteratorProtocol`. As such, `Span`  is not directly usable in `for` loops as currently defined. A `BorrowingIterator` protocol for non-escapable and non-copyable containers must be defined, providing a `for` loop syntax where the element is borrowed through each iteration. Ultimately we should arrive at a way to iterate through borrowed elements from a borrowed view:
 
 ```swift
@@ -998,22 +1031,22 @@ while i < view.count {
 }
 
 // ...or:
-for i in 0 ..< view.count {
+for i in 0..<view.count {
   doSomething(view[i])
 }
 ```
 
-##### Collection-like protocols for non-copyable and non-escapable types
+#### Collection-like protocols for non-copyable and non-escapable types
 
-Non-copyable and non-escapable containers would benefit from a `Collection`-like protocol family to represent a set basic, common operations. This may be `Collection` if we find a way to make it work; it may be something else.
+Non-copyable and non-escapable containers would benefit from a `Collection`-like protocol family to represent a set of basic, common operations.
 
-Alongside this work, it may make sense to add a `Span` alternative to `withContiguousStorageIfAvailable()`, `RawSpan` alternative to `withUnsafeBytes`, etc., and seek to deprecate any closure-based API around unsafe pointers.
+Alongside this work, it may make sense to add a `Span` alternative to `withContiguousStorageIfAvailable()`, `RawSpan` alternative to `withUnsafeBytes`, etc., and seek to deprecate most remaining closure-based API around unsafe pointers.
 
-##### Sharing piecewise-contiguous memory
+#### Sharing piecewise-contiguous memory
 
 Some types store their internal representation in a piecewise-contiguous manner, such as trees and ropes. Some operations naturally return information in a piecewise-contiguous manner, such as network operations. These could supply results by iterating through a list of contiguous chunks of memory.
 
-##### Safe mutations of memory with `MutableSpan<T>`
+#### Safe mutations of memory with `MutableSpan<T>`
 
 Some data structures can delegate mutations of their owned memory. In the standard library we have `withMutableBufferPointer()`, for example.
 
@@ -1025,7 +1058,7 @@ The `UnsafeMutableBufferPointer` passed to a `withUnsafeMutableXXX` closure-styl
 4. Exclusivity of writes is not enforced
 5. Initialization of any particular memory address is not ensured
 
-I.e., it is unsafe in all the ways `UnsafeBufferPointer`-passing closure APIs are unsafe in addition to being unsafe in exclusivity and in initialization.
+in other words, it is unsafe in all the same ways as `UnsafeBufferPointer`-passing closure APIs, in addition to enforcing neither exclusivity nor initialization state.
 
 Loading an uninitialized non-`BitwiseCopyable` value leads to undefined behavior. Loading an uninitialized `BitwiseCopyable` value does not immediately lead to undefined behavior, but it produces a garbage value which may lead to misbehavior of the program.
 
@@ -1033,21 +1066,20 @@ A `MutableSpan<T>` should provide a better, safer alternative to mutable memory 
 
 However, it alone does not track initialization state of each address, and that will continue to be the responsibility of the developer.
 
-##### Delegating initialization of memory with `OutputSpan<T>`
+#### Delegating initialization of memory with `OutputSpan<T>`
 
-Some data structures can delegate initialization of their initial memory representation, and in some cases the initialization of additional memory. In the standard library we have `Array.init(unsafeUninitializedCapacity:initializingWith:)` and `String.init(unsafeUninitializedCapacity:initializingUTF8With:)`. A safer abstraction for initialization would make such initializers less dangerous, and would allow for a greater variety of them.
+Some data structures can delegate initialization of their initial memory representation, and in some cases the initialization of additional memory. For example, the standard library features the initializer`Array.init(unsafeUninitializedCapacity:initializingWith:)`, which depends on `UnsafeMutableBufferPointer` and is known to be error-prone.  A safer abstraction for initialization would make such initializers less dangerous, and would allow for a greater variety of them.
 
-`OutputSpan<T>` would need run-time bookkeeping (e.g. a bitvector with a bit per-address) to track initialization state to safely support random access and random-order initialization.
+We can define an `OutputSpan<T>` type, which could support appending to the initialized portion of its underlying storage. Such an `OutputSpan<T>` would also be a useful abstraction to pass user-allocated storage to low-level API such as networking calls or file i/o.
 
-Alternatively, a divide-and-conqueor style initialization order might be solvable via an API layer without run-time bookkeeping, but with more complex ergonomics.
-
-##### <a name="Bytes"></a>Resizable, contiguously-stored, untyped collection in the standard library
+#### <a name="Bytes"></a>Resizable, contiguously-stored, untyped collection in the standard library
 
 The example in the [motivation](#motivation) section mentions the `Foundation.Data` type. There has been some discussion of either replacing `Data` or moving it to the standard library. This document proposes neither of those. A major issue is that in the "traditional" form of `Foundation.Data`, namely `NSData` from Objective-C, it was easier to control accidental copies because the semantics of the language did not lead to implicit copying. 
 
 Even if `Span` were to replace all uses of a constant `Data` in API, something like `Data` would still be needed, just as `Array<T>` will: resizing mutations (e.g. `RangeReplaceableCollection` conformance.) We may still want to add an untyped-element equivalent of `Array` at a later time.
 
-##### <a name="Conversions"></a>Syntactic Sugar for Automatic Conversions
+#### <a name="Conversions"></a>Syntactic Sugar for Automatic Conversions
+
 In the context of a resilient library, a generic entry point in terms of `some ContiguousStorage` may add unwanted overhead. As detailed above, an entry point in an evolution-enabled library requires an inlinable  generic public entry point which forwards to a publicly-accessible function defined in terms of `Span`. If `Span` does become a widely-used type to interface between libraries, we could simplify these conversions with a bit of compiler help.
 
 We could provide an automatic way to use a `ContiguousStorage`-conforming type with a function that takes a `Span` of the appropriate element type:
@@ -1065,7 +1097,8 @@ myStrnlen(array) // 8
 
 This would probably consist of a new type of custom conversion in the language. A type author would provide a way to convert from their type to an owned `Span`, and the compiler would insert that conversion where needed. This would enhance readability and reduce boilerplate.
 
-##### Interopability with C++'s `std::span` and with llvm's `-fbounds-safety`
+#### Interopability with C++'s `std::span` and with llvm's `-fbounds-safety`
+
 The [`std::span`](https://en.cppreference.com/w/cpp/container/span) class template from the C++ standard library is a similar representation of a contiguous range of memory. LLVM may soon have a [bounds-checking mode](https://discourse.llvm.org/t/70854) for C. These are opportunities for better, safer interoperation with Swift, via a type such as `Span`.
 
 ## Acknowledgments
@@ -1222,5 +1255,4 @@ We can create a per-allocation ID (e.g. a cryptographic `UInt64`) for both `Span
 We could instead go with 2 word `Span` and 2 word `Span.Index` by storing the span's `baseAddress` in the `Index`'s second word. This will detect invalid reuse of indices across spans in addition to misaligned reuse-after-free errors. However, indices could not be interchanged without a way for the slice type to know the original span's base address (e.g. through a separate slice type or making `Span` 3 words in size).
 
 In either approach, making `Span.Index` be 2 words in size is unfortunate. `Range<Span.Index>` is now 4 words in size, storing the allocation ID twice. Anything built on top of `Span` that wishes to store multiple indices is either bloated or must hand-extract the pointers and hand-manage the allocation ID.
-
 
