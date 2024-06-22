@@ -894,15 +894,11 @@ Making `Span` non-copyable was in the early vision of this type. However, we fou
 This document proposes adding the `ContiguousStorage` protocol to the standard library's `Unsafe{Mutable,Raw}BufferPointer` types. On the surface this seems like whitewashing the unsafety of these types. The lifetime constraint only applies to the binding used to obtain a `Span`, and the initialization precondition can only be enforced by documentation. Nothing will prevent unsafe code from deinitializing a portion of the storage while a `Span` is alive. There is no safe bridge from `UnsafeBufferPointer` to `ContiguousStorage`. We considered having the unsafe buffer types conforming to a different version of `ContiguousStorage`, which would vend a `Span` through a closure-taking API. Unfortunately such a closure would be perfectly capable of capturing the `UnsafeBufferPointer` binding and be as unsafe as can be. For this reason, the `UnsafeBufferPointer` family will conform to `ContiguousStorage`, with safety being enforced in documentation.
 
 ##### Use a non-escapable index type
-Eventually we want a similar usage pattern for a `MutableSpan` as we are proposing for `Span`. If the index of a `MutableSpan` were to borrow the view, then it becomes impossible to implement a mutating subscript without also requiring an index to be consumed. This seems untenable.
+Eventually we want a similar usage pattern for a `MutableSpan` (described [below](#MutableSpan)) as we are proposing for `Span`. If the index of a `MutableSpan` were to borrow the view, then it becomes impossible to implement a mutating subscript without also requiring an index to be consumed. This seems untenable.
 
 ##### Naming
 
 The ideas in this proposal previously used the name `BufferView`. While the use of the word "buffer" would be consistent with the `UnsafeBufferPointer` type, it is nevertheless not a great name, since "buffer" is usually used in reference to transient storage. On the other hand we already have a nomenclature using the term "Storage" in the `withContiguousStorageIfAvailable()` function, and we tried to allude to that in a previous pitch where we called this type `StorageView`. We also considered the name `StorageSpan`, but that did not add much beyond the name `Span`. `Span` clearly identifies itself as a relative of C++'s `std::span`.
-
-##### Adding `load` and `loadUnaligned` to `Span<UInt8>`on `Span<some BitwiseCopyable>` instead of adding `RawSpan`
-
-TKTKTK
 
 ##### A more sophisticated approach to indexing
 
@@ -910,9 +906,9 @@ This is discussed more fully in the [indexing appendix](#Indexing) below.
 
 ## Future directions
 
-#### coroutine accessors
+#### Coroutine Accessors
 
-This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` will be adapted to the new syntax.
+This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language, but are necessary for a type to provide borrowing access to its internal storage. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` will be adapted to the new syntax.
 
 #### Byte parsing helpers
 
@@ -1046,7 +1042,7 @@ Alongside this work, it may make sense to add a `Span` alternative to `withConti
 
 Some types store their internal representation in a piecewise-contiguous manner, such as trees and ropes. Some operations naturally return information in a piecewise-contiguous manner, such as network operations. These could supply results by iterating through a list of contiguous chunks of memory.
 
-#### Safe mutations of memory with `MutableSpan<T>`
+#### <a name="MutableSpan"></a>Safe mutations of memory with `MutableSpan<T>`
 
 Some data structures can delegate mutations of their owned memory. In the standard library we have `withMutableBufferPointer()`, for example.
 
@@ -1062,15 +1058,13 @@ in other words, it is unsafe in all the same ways as `UnsafeBufferPointer`-passi
 
 Loading an uninitialized non-`BitwiseCopyable` value leads to undefined behavior. Loading an uninitialized `BitwiseCopyable` value does not immediately lead to undefined behavior, but it produces a garbage value which may lead to misbehavior of the program.
 
-A `MutableSpan<T>` should provide a better, safer alternative to mutable memory in the same way that `Span<T>` provides a better, safer read-only type. `MutableSpan<T>` would also automatically enforce exclusivity of writes.
+A `MutableSpan<T>` should provide a better, safer alternative to mutable memory in the same way that `Span<T>` provides a better, safer read-only type. `MutableSpan<T>` would apply to initialized memory and would enforce exclusivity of writes, thereby preserving the initialization state of its memory between mutations.
 
-However, it alone does not track initialization state of each address, and that will continue to be the responsibility of the developer.
+#### <a name="OutputSpan"></a>Delegating initialization of memory with `OutputSpan<T>`
 
-#### Delegating initialization of memory with `OutputSpan<T>`
+Some data structures can delegate initialization of their initial memory representation, and in some cases the initialization of additional memory. For example, the standard library features the initializer`Array.init(unsafeUninitializedCapacity:initializingWith:)`, which depends on `UnsafeMutableBufferPointer` and is known to be error-prone.  A safer abstraction for initialization would make such initializers less dangerous, and would allow for a greater variety of them.
 
-Some data structures can delegate initialization of their initial memory representation, and in some cases the initialization of additional memory. For example, the standard library features the initializer`Array.init(unsafeUninitializedCapacity:initializingWith:)`, which depends on `UnsafeMutableBufferPointer` and is known to be error-prone.  A safer abstraction for initialization would make such initializers less dangerous, and would allow for a greater variety of them.
-
-We can define an `OutputSpan<T>` type, which could support appending to the initialized portion of its underlying storage. Such an `OutputSpan<T>` would also be a useful abstraction to pass user-allocated storage to low-level API such as networking calls or file i/o.
+We can define an `OutputSpan<T>` type, which could support appending to the initialized portion of its underlying storage. `OutputSpan<T>` allows for uninitialized memory beyond the last position appended. Such an `OutputSpan<T>` would also be a useful abstraction to pass user-allocated storage to low-level API such as networking calls or file I/O.
 
 #### <a name="Bytes"></a>Resizable, contiguously-stored, untyped collection in the standard library
 
