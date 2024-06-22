@@ -26,7 +26,7 @@ This proposal is related to two other features being proposed along with it: [No
 [SE-0377]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md
 [SE-0256]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0256-contiguous-collection.md
 
-## Motivation
+## <a name="Motivation"></a>Motivation
 
 Swift needs safe and performant types for local processing over values in contiguous memory. Consider for example a program using multiple libraries, including one for [base64](https://datatracker.ietf.org/doc/html/rfc4648) decoding. The program would obtain encoded data from one or more of its dependencies, which could supply the data in the form of `[UInt8]`, `Foundation.Data` or even `String`, among others. None of these types is necessarily more correct than another, but the base64 decoding library must pick an input format. It could declare its input parameter type to be `some Sequence<UInt8>`, but such a generic function significantly limits performance. This may force the library author to either declare its entry point as inlinable, or to implement an internal fast path using `withContiguousStorageIfAvailable()`, forcing them to use an unsafe type. The ideal interface would have a combination of the properties of both `some Sequence<UInt8>` and `UnsafeBufferPointer<UInt8>`.
 
@@ -60,28 +60,6 @@ let span: Span<UInt8> = array.storage
 By relying on borrowing, `Span` can provide simultaneous access to a non-copyable container, and can help avoid unwanted copies of copyable containers. Note that `Span` is not a replacement for a copyable container with owned storage; see the future directions for more details ([Resizable, contiguously-stored, untyped collection in the standard library](#Bytes))
 
 `Span` is the currency type for local processing over values in contiguous memory. It is the replacement for any API currently using `Array`, `UnsafeBufferPointer`, `Foundation.Data`, etc., that does not need to escape the value.
-
-### `ContiguousStorage`
-
-A type can indicate that it can provide a `Span` by conforming to the `ContiguousStorage` protocol. `ContiguousStorage` forms a bridge between multi-type or generically-typed interfaces and a performant concrete implementation.
-
-For example, for the hypothetical base64 decoding library mentioned above, a possible API could be:
-
-```swift
-extension HypotheticalBase64Decoder {
-  public func decode(bytes: some ContiguousStorage<UInt8>) -> [UInt8]
-}
-```
-
-Even better, an interface can be defined in terms of the concrete type `Span<UInt8>`:
-
-```swift
-extension Hypothetical Base64Decoder {
-  public func decode(bytes: Span<UInt8>) -> [UInt8]
-}
-```
-
-Advanced libraries might add use an inlinable generic-dispatch interface in addition to a concrete interface defined in terms of `Span`, serving as adaptor code for top-level API.
 
 ### `RawSpan`
 
@@ -131,75 +109,45 @@ for i in 0..<mySpan.count {
 }
 ```
 
-### `ContiguousStorage`
-
-A type can declare that it can provide access to contiguous storage by conforming to the `ContiguousStorage` protocol:
-
-```swift
-public protocol ContiguousStorage<Element>: ~Copyable, ~Escapable {
-  associatedtype Element: ~Copyable & ~Escapable
-
-  var storage: Span<Element> { get }
-}
-```
-
-The key safety feature is that a `Span` cannot escape to a scope where the value it borrowed no longer exists.
-
-A function that wishes to read from contiguous storage can declare a parameter type of `some ContiguousStorage`. The implementation will internally consist of a brief generic section, followed by business logic implemented in terms of a concrete `Span`. Frameworks that support library evolution (resilient frameworks) have an additional concern. Resilient frameworks have an ABI boundary that may differ from the API proper. Resilient frameworks may wish to adopt a pattern such as the following:
-
-```swift
-extension MyResilientType {
-  // public API
-  @inlinable public func essentialFunction(_ a: some ContiguousStorage<some Any>) -> Int {
-    self.essentialFunction(a.storage)
-  }
-
-  // ABI boundary
-  public func essentialFunction(_ a: Span<some Any>) -> Int { ... }
-}
-```
-
-Here, the public function obtains the `Span` from the type that vends it in inlinable code, then calls a concrete, opaque function defined in terms of `Span`. Inlining the generic shim in the client is often a critical optimization. The need for such a pattern and related improvements are discussed in the future directions below (see [Syntactic Sugar for Automatic Conversions](#Conversions).)
-
 #### Extensions to Standard Library and Foundation types
 
 ```swift
-extension Array: ContiguousStorage<Self.Element> {
+extension Array {
   // note: this could borrow a temporary copy of the `Array`'s storage
-  var storage: Span<Element> { get }
+  var storage: Span<Element> { _read }
 }
-extension ArraySlice: ContiguousStorage<Self.Element> {
+extension ArraySlice {
   // note: this could borrow a temporary copy of the `ArraySlice`'s storage
-  var storage: Span<Element> { get }
+  var storage: Span<Element> { _read }
 }
-extension ContiguousArray: ContiguousStorage<Self.Element> {
+extension ContiguousArray {
   var storage: Span<Element> { get }
 }
 
-extension Foundation.Data: ContiguousStorage<UInt8> {
+extension Foundation.Data {
   var storage: Span<UInt8> { get }
 }
 
-extension String.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
+extension String.UTF8View {
   // note: this could borrow a temporary copy of the `String`'s storage
-  var storage: Span<Unicode.UTF8.CodeUnit> { get }
+  var storage: Span<Unicode.UTF8.CodeUnit> { _read }
 }
-extension Substring.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
+extension Substring.UTF8View {
   // note: this could borrow a temporary copy of the `Substring`'s storage
-  var storage: Span<Unicode.UTF8.CodeUnit> { get }
+  var storage: Span<Unicode.UTF8.CodeUnit> { _read }
 }
-extension Character.UTF8View: ContiguousStorage<Unicode.UTF8.CodeUnit> {
+extension Character.UTF8View {
   // note: this could borrow a temporary copy of the `Character`'s storage
-  var storage: Span<Unicode.UTF8.CodeUnit> { get }
+  var storage: Span<Unicode.UTF8.CodeUnit> { _read }
 }
 
-extension SIMD: ContiguousStorage<Self.Scalar> {
+extension SIMD {
   var storage: Span<Self.Scalar> { get }
 }
-extension KeyValuePairs: ContiguousStorage<(Self.Key, Self.Value)> {
+extension KeyValuePairs {
   var storage: Span<(Self.Key, Self.Value)> { get }
 }
-extension CollectionOfOne: ContiguousStorage<Element> {
+extension CollectionOfOne {
   var storage: Span<Element> { get }
 }
 
@@ -211,19 +159,19 @@ extension Slice: ContiguousStorage where Base: ContiguousStorage {
 In addition to the the safe types above gaining the `storage` property, the `UnsafeBufferPointer` family of types will also gain access to a `storage` property. This enables interoperability of `Span`-taking API. While a `Span` binding created from an `UnsafeBufferPointer` exists, the memory that underlies it must not be deinitialized or deallocated.
 
 ```swift
-extension UnsafeBufferPointer: ContiguousStorage<Self.Element> {
+extension UnsafeBufferPointer {
   // note: additional preconditions apply until the end of the scope
   var storage: Span<Element> { get }
 }
-extension UnsafeMutableBufferPointer: ContiguousStorage<Self.Element> {
+extension UnsafeMutableBufferPointer {
   // note: additional preconditions apply until the end of the scope
   var storage: Span<Element> { get }
 }
-extension UnsafeRawBufferPointer: ContiguousStorage<UInt8> {
+extension UnsafeRawBufferPointer {
   // note: additional preconditions apply until the end of the scope
   var storage: Span<UInt8> { get }
 }
-extension UnsafeMutableRawBufferPointer: ContiguousStorage<UInt8> {
+extension UnsafeMutableRawBufferPointer {
   // note: additional preconditions apply until the end of the scope
   var storage: Span<UInt8> { get }
 }
@@ -1072,9 +1020,32 @@ The example in the [motivation](#motivation) section mentions the `Foundation.Da
 
 Even if `Span` were to replace all uses of a constant `Data` in API, something like `Data` would still be needed, just as `Array<T>` will: resizing mutations (e.g. `RangeReplaceableCollection` conformance.) We may still want to add an untyped-element equivalent of `Array` at a later time.
 
+#### <a name="ContiguousStorage"></a>A `ContiguousStorage` protocol
+
+An earlier version of this proposal proposed a `ContiguousStorage` protocol by which a type could indicate that it can provide a `Span`. `ContiguousStorage` would form a bridge between generically-typed interfaces and a performant concrete implementation.
+
+For example, for the hypothetical base64 decoding library mentioned in the [motivation](#Motivation) section, a possible API could be:
+
+```swift
+extension HypotheticalBase64Decoder {
+  public func decode(bytes: some ContiguousStorage<UInt8>) -> [UInt8]
+}
+```
+
+`ContiguousStorage` would have the following definition:
+
+```swift
+public protocol ContiguousStorage<Element>: ~Copyable, ~Escapable {
+  associatedtype Element: ~Copyable & ~Escapable
+  var storage: Span<Element> { _read }
+}
+```
+
+Two issues prevent us from proposing it at this time: (a) the ability to suppress requirements on `associatedtype` declarations was deferred during the review of [SE-0427], and (b) we cannot declare a `_read` accessor as a protocol requirement, since `_read` is not considered stable.
+
 #### <a name="Conversions"></a>Syntactic Sugar for Automatic Conversions
 
-In the context of a resilient library, a generic entry point in terms of `some ContiguousStorage` may add unwanted overhead. As detailed above, an entry point in an evolution-enabled library requires an inlinable  generic public entry point which forwards to a publicly-accessible function defined in terms of `Span`. If `Span` does become a widely-used type to interface between libraries, we could simplify these conversions with a bit of compiler help.
+Even with a `ContiguousStorage` protocol, a generic entry point in terms of `some ContiguousStorage` may add unwanted overhead to resilient libraries. As detailed above, an entry point in an evolution-enabled library requires an inlinable  generic public entry point which forwards to a publicly-accessible function defined in terms of `Span`. If `Span` does become a widely-used type to interface between libraries, we could simplify these conversions with a bit of compiler help.
 
 We could provide an automatic way to use a `ContiguousStorage`-conforming type with a function that takes a `Span` of the appropriate element type:
 
@@ -1101,7 +1072,7 @@ Joe Groff, John McCall, Tim Kientzle, Karoy Lorentey contributed to this proposa
 
 
 
-## <a name="Indexing"></a>Appendix: Index and slicing design considerations
+### <a name="Indexing"></a>Appendix: Index and slicing design considerations
 
 Early prototypes of this proposal defined an `Index` type, `Iterator` types, etc. We are proposing `Int`-based API and are deferring defining `Index` and `Iterator` until more of the non-escapable collection story is sorted out. The below is some of our research into different potential designs of an `Index` type.
 
