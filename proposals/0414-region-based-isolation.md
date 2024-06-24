@@ -2034,7 +2034,7 @@ also be ascertained by just reading the source.
 
 ## Acknowledgments
 
-This proposal is based on work from the PLDI 2022 paper (A Flexible Type System for Fearless Concurrency)[https://www.cs.cornell.edu/andru/papers/gallifrey-types/].
+This proposal is based on work from the PLDI 2022 paper [A Flexible Type System for Fearless Concurrency](https://www.cs.cornell.edu/andru/papers/gallifrey-types/).
 
 Thanks to Doug Gregor, Kavon Farvardin for early assistance to Joshua during his
 internship.
