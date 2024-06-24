@@ -22,7 +22,7 @@ The following example demonstrates such a situation:
 import Dispatch
 
 actor Caplin {
-  let queue: DispatchSerialQueue(label: "CoolQueue")
+  let queue: DispatchSerialQueue = .init(label: "CoolQueue")
 
   var num: Int // actor isolated state
 
@@ -35,9 +35,9 @@ actor Caplin {
     queue.async {
       // guaranteed to execute on `queue`
       // which is the same as self's serial executor
-      queue.assertIsolated() // CRASH: Incorrect actor executor assumption
-      self.assumeIsolated {  // CRASH: Incorrect actor executor assumption
-        num += 1
+      self.queue.assertIsolated() // CRASH: Incorrect actor executor assumption
+      self.assumeIsolated { caplin in // CRASH: Incorrect actor executor assumption
+        caplin.num += 1
       }
     }
   }
