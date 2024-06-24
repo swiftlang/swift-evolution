@@ -15,7 +15,7 @@ This proposal aims to allow the use of trailing commas, currently restricted to 
 
 ### Development Quality of Life Improvement
 
-A trailing comma is a optional comma after the last item in a series of elements:
+A trailing comma is an optional comma after the last item in a list of elements:
 
 ```swift
 let rank = [
@@ -37,7 +37,7 @@ func frame(
 ) -> some View
 ```
 
-`frame(width:)`, `frame(height:)`, `frame(width:alignment:)`, `frame(height:alignment:)`, `frame(width:height:)`, `frame(width:height:alignment:)` are all valid calls but you can't easily swipe between `frame(width:)` and `frame(width:alignment:)` by commenting in/out `alignment` without add/remove trailing comma.
+`frame(width:)`, `frame(height:)`, `frame(width:alignment:)`, `frame(height:alignment:)`, `frame(width:height:)`, `frame(width:height:alignment:)` are all valid calls but you can't easily switch between `frame(width:)` and `frame(width:alignment:)` by commenting in/out `alignment` without adding/removing the trailing comma.
 
 ```swift
 .frame(
@@ -61,9 +61,6 @@ arrayOfS.sorted(
 ```
 
 Since [#21381](https://github.com/apple/swift/pull/21381) has been merged back in 2019 **enum associated values** supports default values and are a good fit for trailing comma as well.
-
-
-**Tuples** use are very close to arguments list and, although may not be so frequently used, it seems natural that they adopt trailing comma too.
 
 **Multiple conditions** in `if`, `guard` and `while` are also comma-separated list and add, remove, reorder and comment in/out are not uncommon practice during development.
 
@@ -125,6 +122,13 @@ Trailing comma will be allowed in the following comma-separated lists:
 let block: (Int, Int,) -> Void = { (a, b,) in  }
 let (a, b,) = (1, 2,)
 for (a, b,) in zip(s1, s2) { }
+```
+
+**Trailing comma will be allowed in single-element lists but not in zero-element lists.**
+
+```swift
+(1,) // OK
+(,) // ❌ expected value in tuple
 ```
 
 - Initializers, functions and associated values arguments and parameters
@@ -241,13 +245,6 @@ if #unavailable(iOS 15, watchOS 9,) { }
 
 ```swift
 let s = "\(1, 2,)"
-```
-
-**Trailing comma will be allowed in single-element lists but not in zero-element lists.**
-
-```swift
-(1,) // OK
-(,) // ❌ expected value in tuple
 ```
 
 ## Source compatibility
