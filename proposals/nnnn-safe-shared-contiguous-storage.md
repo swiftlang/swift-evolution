@@ -156,30 +156,22 @@ extension Slice: ContiguousStorage where Base: ContiguousStorage {
 }
 ```
 
-In addition to the the safe types above gaining the `storage` property, the `UnsafeBufferPointer` family of types will also gain access to a `storage` property. This enables interoperability of `Span`-taking API. While a `Span` binding created from an `UnsafeBufferPointer` exists, the memory that underlies it must not be deinitialized or deallocated.
+#### Using `Span` with C functions or other unsafe code:
+
+The `UnsafeBufferPointer` family of types can be be adapted for use with `Span`-taking API by using unsafe `Span` initializers. A `Span` instance obtained this way loses a static guarantee of temporal safety, because it is possible to deinitialize or deallocate the source `UnsafeMutableBufferPointer` before the end of the `Span` instance's scope.
 
 ```swift
-extension UnsafeBufferPointer {
-  // note: additional preconditions apply until the end of the scope
-  var storage: Span<Element> { get }
+extension HypotheticalBase64Decoder {
+  public func decode(bytes: Span<UInt8>) -> [UInt8]
 }
-extension UnsafeMutableBufferPointer {
-  // note: additional preconditions apply until the end of the scope
-  var storage: Span<Element> { get }
-}
-extension UnsafeRawBufferPointer {
-  // note: additional preconditions apply until the end of the scope
-  var storage: Span<UInt8> { get }
-}
-extension UnsafeMutableRawBufferPointer {
-  // note: additional preconditions apply until the end of the scope
-  var storage: Span<UInt8> { get }
+
+data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
+  let span = Span<UInt8>(unsafeBytes: buffer, owner: buffer)
+	let decoded = myBase64Decoder.decode(span)
 }
 ```
 
-#### Using `Span` with C functions or other unsafe code:
-
-`Span` has an unsafe hatch for use with unsafe code.
+`Span` has an unsafe hatch for use with functions that take an unsafe argument:
 
 ```swift
 extension Span where Element: ~Copyable & ~Escapable {
@@ -206,7 +198,7 @@ public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
 
 ##### Creating a `Span`:
 
-The initialization of a `Span` instance from an unsafe pointer is an unsafe operation. When it is initialized correctly, subsequent uses of the borrowed instance are safe. Typically these initializers will be used internally to a container's implementation of functions or computed properties that return a borrowed `Span`.
+The initialization of a `Span` instance from an unsafe pointer is an unsafe operation. Typically these initializers will be used internally to a container's implementation and return a borrowed `Span` tied to the container's lifetime. Safe usage relies on a guarantee that the represented storage is managed correctly and outlives the `Span` instance.
 
 ```swift
 extension Span where Element: ~Copyable & ~Escapable {
