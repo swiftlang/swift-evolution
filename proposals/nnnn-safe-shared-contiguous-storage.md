@@ -67,7 +67,7 @@ By relying on borrowing, `Span` can provide simultaneous access to a non-copyabl
 
 `Span<some BitwiseCopyable>` can always be converted to `RawSpan`, using a conditionally-available property or a constructor.
 
-## Detailed design
+## <a name="Design"></a>Detailed design
 
 `Span<Element>` is a simple representation of a span of initialized memory.
 
@@ -198,7 +198,7 @@ public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
 
 ##### Creating a `Span`:
 
-The initialization of a `Span` instance from an unsafe pointer is an unsafe operation. Typically these initializers will be used internally to a container's implementation and return a borrowed `Span` tied to the container's lifetime. Safe usage relies on a guarantee that the represented storage is managed correctly and outlives the `Span` instance.
+The initialization of a `Span` instance from an unsafe pointer is an unsafe operation. Typically these initializers will be used internally to a container's implementation and return a borrowed `Span` tied to the container's lifetime. Safe usage relies on a guarantee that the represented storage is managed correctly and outlives the `Span` instance.
 
 ```swift
 extension Span where Element: ~Copyable & ~Escapable {
@@ -751,7 +751,7 @@ This proposal is additive and ABI-compatible with existing code.
 
 The additions described in this proposal require a new version of the standard library and runtime.
 
-## Alternatives considered
+## <a name="Alternatives"></a>Alternatives considered
 
 ##### Make `Span` a noncopyable type
 Making `Span` non-copyable was in the early vision of this type. However, we found that would make `Span` a poor match to model borrowing semantics. This realization led to the initial design for non-escapable declarations.
@@ -770,7 +770,7 @@ The ideas in this proposal previously used the name `BufferView`. While the use 
 
 This is discussed more fully in the [indexing appendix](#Indexing) below.
 
-## Future directions
+## <a name="Directions"></a>Future directions
 
 #### Coroutine Accessors
 
