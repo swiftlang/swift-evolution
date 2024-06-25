@@ -302,7 +302,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// positions within this span.
   ///
   /// The returned span's first item is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// - Parameter bounds: A valid range of positions. Every position in
@@ -315,7 +315,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// positions within this span.
   ///
   /// The returned span's first item is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// - Parameter bounds: A valid range of positions. Every position in
@@ -327,7 +327,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// Constructs a new span over all the items of this span.
   ///
   /// The returned span's first item is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// - Returns: A `Span` over all the items of this span.
@@ -401,7 +401,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// positions within this span.
   ///
   /// The returned span's first item is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// This function does not validate `bounds`; this is an unsafe operation.
@@ -416,7 +416,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// positions within this span.
   ///
   /// The returned span's first item is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// This function does not validate `bounds`; this is an unsafe operation.
@@ -703,7 +703,7 @@ extension RawSpan {
   /// positions within this span.
   ///
   /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// - Parameter bounds: A valid range of positions. Every position in
@@ -716,7 +716,7 @@ extension RawSpan {
   /// positions within this span.
   ///
   /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// This function does not validate `bounds`; this is an unsafe operation.
@@ -731,7 +731,7 @@ extension RawSpan {
   /// positions within this span.
   ///
   /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// - Parameter bounds: A valid range of positions. Every position in
@@ -744,7 +744,7 @@ extension RawSpan {
   /// positions within this span.
   ///
   /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// This function does not validate `bounds`; this is an unsafe operation.
@@ -760,7 +760,7 @@ extension RawSpan {
   /// Constructs a new span over all the bytes of this span.
   ///
   /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not generally share their indices with the
+  /// slices, extracted spans do not share their indices with the
   /// span from which they are extracted.
   ///
   /// - Returns: A span over all the bytes of this span.
