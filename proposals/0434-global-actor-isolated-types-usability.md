@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 6.0)**
 * Upcoming Feature Flag: `GlobalActorIsolatedTypesUsability`
-* Review: ([pitch](https://forums.swift.org/t/pitch-usability-of-global-actor-isolated-types/70799)) ([review](https://forums.swift.org/t/se-0434-usability-of-global-actor-isolated-types/71187))
+* Review: ([pitch](https://forums.swift.org/t/pitch-usability-of-global-actor-isolated-types/70799)) ([review](https://forums.swift.org/t/se-0434-usability-of-global-actor-isolated-types/71187)) ([acceptance](https://forums.swift.org/t/accepted-se-0434-usability-of-global-actor-isolated-types/72743))
 
 ## Introduction
 
