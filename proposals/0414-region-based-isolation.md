@@ -1723,9 +1723,9 @@ resulting in a race against a write in the closure.
 ## Source compatibility
 
 Region-based isolation opens up a new data-race safety hole when using APIs
-change the static isolation in the implementation of a `nonisolated` funciton,
+change the static isolation in the implementation of a `nonisolated` function,
 such as `assumeIsolated`, because values can become referenced by actor-isolated
-state without any indication in the funciton signature:
+state without any indication in the function signature:
 
 ```swift
 class NonSendable {}
