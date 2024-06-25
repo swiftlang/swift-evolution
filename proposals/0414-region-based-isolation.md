@@ -32,7 +32,7 @@ point of transfer.
 [SE-0302](0302-concurrent-value-and-concurrent-closures.md) states
 that non-`Sendable` values cannot be passed across isolation boundaries. The
 following code demonstrates a `Sendable` violation when passing a
-newly-constructed value into an actor-isolated function:
+newly-initialized value into an actor-isolated function:
 
 ```swift
 // Not Sendable
@@ -58,9 +58,9 @@ func openNewAccount(name: String, initialBalance: Double) async {
 
 This is overly conservative; the program is safe because:
 
-* `client` does not have access to any non-`Sendable` state from its constructor
+* `client` does not have access to any non-`Sendable` state from its initializer
   parameters since Strings and Doubles are `Sendable`.
-* `client` just being constructed implies that `client` cannot have any uses
+* `client` just being initialized implies that `client` cannot have any uses
   outside of `openNewAccount`.
 * `client` is not used within `openNewAccount` beyond `addClient`.
 
@@ -223,7 +223,7 @@ precise regions.
 
 Now lets apply these rules to some specific examples in Swift code:
 
-* **Initializing a let or var binding**. ``let y = x, var y = x``. Initializing
+* **Initializing a `let` or `var` binding**. ``let y = x, var y = x``. Initializing
   a let or var binding `y` with `x` results in `y` being in the same region as
   `x`. This follows from rule `(2)` since formally a copy is equivalent to calling a
   function that accepts `x` and returns a copy of `x`.
@@ -243,7 +243,7 @@ Now lets apply these rules to some specific examples in Swift code:
   change program semantics. A valid program must still obey the no-reuse
   constraints of `consume`.
 
-* **Assigning a var binding**. ``y = x``. Assigning a var binding `y` with `x`
+* **Assigning a `var` binding**. ``y = x``. Assigning a var binding `y` with `x`
   results in `y` being in the same region as `x`. If `y` is not captured by
   reference in a closure, then `y`'s previous assigned region is forgotten due
   to `(3)(b)`:
@@ -1887,7 +1887,7 @@ func example(_ x: NonSendable) async -> NonSendable? {
 }
 ```
 
-In the above, the result of `example` is a newly constructed value that has no
+In the above, the result of `example` is a newly initialized value that has no
 data dependence on the parameter `x`, but as laid out in this proposal, we
 cannot express this. We propose the addition of a new function parameter
 modifier called `returnsIsolated` that causes callers to treat the result of a
