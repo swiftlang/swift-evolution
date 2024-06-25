@@ -709,119 +709,31 @@ extension RawSpan {
 
 ##### Accessing subranges of elements:
 
-Similarly to `Span`, `RawSpan` does not support slicing in the style of `Collection`. It supports the same set of `extracting()` functions as `Span`:
+Similarly to `Span`, `RawSpan` does not support slicing in the style of `Collection`. It supports the same set of `extracting()` functions as `Span`. The documentation is omitted here, as it is substantially the same as for `Span`:
 
 ```swift
 extension RawSpan {
-  /// Constructs a new span over the bytes within the supplied range of
-  /// positions within this span.
-  ///
-  /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not share their indices with the
-  /// span from which they are extracted.
-  ///
-  /// - Parameter bounds: A valid range of positions. Every position in
-  ///     this range must be within the bounds of this `RawSpan`.
-  ///
-  /// - Returns: A span over the bytes within `bounds`
+
   public func extracting(_ bounds: Range<Int>) -> Self
 
-  /// Constructs a new span over the bytes within the supplied range of
-  /// positions within this span.
-  ///
-  /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not share their indices with the
-  /// span from which they are extracted.
-  ///
-  /// This function does not validate `bounds`; this is an unsafe operation.
-  ///
-  /// - Parameter bounds: A valid range of positions. Every position in
-  ///     this range must be within the bounds of this `RawSpan`.
-  ///
-  /// - Returns: A span over the bytes within `bounds`
   public func extracting(uncheckedBounds bounds: Range<Int>) -> Self
-
-  /// Constructs a new span over the bytes within the supplied range of
-  /// positions within this span.
-  ///
-  /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not share their indices with the
-  /// span from which they are extracted.
-  ///
-  /// - Parameter bounds: A valid range of positions. Every position in
-  ///     this range must be within the bounds of this `RawSpan`.
-  ///
-  /// - Returns: A span over the bytes within `bounds`
+  
   public func extracting(_ bounds: some RangeExpression<Int>) -> Self
-
-  /// Constructs a new span over the bytes within the supplied range of
-  /// positions within this span.
-  ///
-  /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not share their indices with the
-  /// span from which they are extracted.
-  ///
-  /// This function does not validate `bounds`; this is an unsafe operation.
-  ///
-  /// - Parameter bounds: A valid range of positions. Every position in
-  ///     this range must be within the bounds of this `RawSpan`.
-  ///
-  /// - Returns: A span over the bytes within `bounds`
+  
   public func extracting(
     uncheckedBounds bounds: some RangeExpression<Int>
   ) -> Self
 
-  /// Constructs a new span over all the bytes of this span.
-  ///
-  /// The returned span's first byte is always at offset 0; unlike buffer
-  /// slices, extracted spans do not share their indices with the
-  /// span from which they are extracted.
-  ///
-  /// - Returns: A span over all the bytes of this span.
   public func extracting(_: UnboundedRange) -> Self
 
   // extracting prefixes and suffixes
 
-  /// Returns a span containing the initial bytes of this span,
-  /// up to the specified maximum byte count.
-  ///
-  /// If the maximum length exceeds the length of this span,
-  /// the result contains all the bytes.
-  ///
-  /// - Parameter maxLength: The maximum number of bytes to return.
-  ///   `maxLength` must be greater than or equal to zero.
-  /// - Returns: A span with at most `maxLength` bytes.
   public func extracting(first maxLength: Int) -> Self
 
-  /// Returns a span over all but the given number of trailing bytes.
-  ///
-  /// If the number of elements to drop exceeds the number of elements in
-  /// the span, the result is an empty span.
-  ///
-  /// - Parameter k: The number of bytes to drop off the end of
-  ///   the span. `k` must be greater than or equal to zero.
-  /// - Returns: A span leaving off the specified number of bytes at the end.
   public func extracting(droppingLast k: Int) -> Self
 
-  /// Returns a span containing the trailing bytes of the span,
-  /// up to the given maximum length.
-  ///
-  /// If the maximum length exceeds the length of this span,
-  /// the result contains all the bytes.
-  ///
-  /// - Parameter maxLength: The maximum number of bytes to return.
-  ///   `maxLength` must be greater than or equal to zero.
-  /// - Returns: A span with at most `maxLength` bytes.
   public func extracting(last maxLength: Int) -> Self
 
-  /// Returns a span over all but the given number of initial bytes.
-  ///
-  /// If the number of elements to drop exceeds the number of bytes in
-  /// the span, the result is an empty span.
-  ///
-  /// - Parameter k: The number of bytes to drop from the beginning of
-  ///   the span. `k` must be greater than or equal to zero.
-  /// - Returns: A span starting after the specified number of bytes.
   public func extracting(droppingFirst k: Int = 1) -> Self
 }
 ```
