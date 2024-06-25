@@ -435,17 +435,31 @@ Every time `Span` uses a position parameter, it checks for its validity, unless 
 
 ```swift
 extension Span where Element: ~Copyable & ~Escapable {
-  /// Traps if `position` is not a valid offset into this `Span`
+  /// Return true if `offset` is a valid offset into this `Span`
   ///
   /// - Parameters:
-  ///   - position: an position to validate
-  public func boundsCheckPrecondition(_ position: Int)
+  ///   - position: an index to validate
+  /// - Returns: true if `offset` is a valid index
+  public func validateBounds(_ offset: Int) -> Bool
 
-  /// Traps if `bounds` is not a valid range of offsets into this `Span`
+  /// Traps if `offset` is not a valid offset into this `Span`
   ///
   /// - Parameters:
-  ///   - position: a range of positions to validate
-  public func boundsCheckPrecondition(_ bounds: Range<Int>)
+  ///   - position: an index to validate
+  public func assertValidity(_ offset: Int)
+
+  /// Return true if `offsets` is a valid range of offsets into this `Span`
+  ///
+  /// - Parameters:
+  ///   - offsets: a range of indices to validate
+  /// - Returns: true if `offsets` is a valid range of indices
+  public func validateBounds(_ offsets: Range<Int>) -> Bool
+
+  /// Traps if `offsets` is not a valid range of offsets into this `Span`
+  ///
+  /// - Parameters:
+  ///   - offsets: a range of indices to validate
+  public func assertValidity(_ offsets: Range<Int>)
 }
 ```
 
@@ -679,17 +693,17 @@ extension RawSpan {
   /// A Boolean value indicating whether the span is empty.
   public var isEmpty: Bool { get }
 
-  /// Traps if `offset` is not a valid offset into this `RawSpan`
-  ///
-  /// - Parameters:
-  ///   - position: an offset to validate
-  public func boundsCheckPrecondition(_ offset: Int)
+  /// Return true if `offset` is a valid offset into this `RawSpan`
+  public func validateBounds(_ offset: Int) -> Bool
 
-  /// Traps if `bounds` is not a valid range of offsets into this `RawSpan`
-  ///
-  /// - Parameters:
-  ///   - offsets: a range of offsets to validate
-  public func boundsCheckPrecondition(_ offsets: Range<Int>)
+  /// Traps if `offset` is not a valid offset into this `RawSpan`
+  public func assertValidity(_ offset: Int)
+
+  /// Return true if `offsets` is a valid range of offsets into this `RawSpan`
+  public func validateBounds(_ offsets: Range<Int>) -> Bool
+
+  /// Traps if `offsets` is not a valid range of offsets into this `RawSpan`
+  public func assertValidity(_ offsets: Range<Int>)
 }
 ```
 
