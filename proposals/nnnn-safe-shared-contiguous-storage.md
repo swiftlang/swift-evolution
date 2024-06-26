@@ -7,7 +7,7 @@
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Bug: rdar://48132971, rdar://96837923
 * Implementation: Prototyped in https://github.com/apple/swift-collections (on branch "future")
-* Review: ([pitch 1](https://forums.swift.org/t/69888))([pitch 2]())
+* Review: ([pitch 1](https://forums.swift.org/t/69888))([pitch 2](https://forums.swift.org/t/72745))
 
 ## Introduction
 
@@ -738,7 +738,6 @@ extension RawSpan {
 }
 ```
 
-
 ## Source compatibility
 
 This proposal is additive and source-compatible with existing code.
@@ -934,7 +933,7 @@ We can define an `OutputSpan<T>` type, which could support appending to the init
 
 #### <a name="Bytes"></a>Resizable, contiguously-stored, untyped collection in the standard library
 
-The example in the [motivation](#motivation) section mentions the `Foundation.Data` type. There has been some discussion of either replacing `Data` or moving it to the standard library. This document proposes neither of those. A major issue is that in the "traditional" form of `Foundation.Data`, namely `NSData` from Objective-C, it was easier to control accidental copies because the semantics of the language did not lead to implicit copying. 
+The example in the [motivation](#Motivation) section mentions the `Foundation.Data` type. There has been some discussion of either replacing `Data` or moving it to the standard library. This document proposes neither of those. A major issue is that in the "traditional" form of `Foundation.Data`, namely `NSData` from Objective-C, it was easier to control accidental copies because the semantics of the language did not lead to implicit copying.
 
 Even if `Span` were to replace all uses of a constant `Data` in API, something like `Data` would still be needed, just as `Array<T>` will: resizing mutations (e.g. `RangeReplaceableCollection` conformance.) We may still want to add an untyped-element equivalent of `Array` at a later time.
 
@@ -988,8 +987,6 @@ The [`std::span`](https://en.cppreference.com/w/cpp/container/span) class templa
 
 Joe Groff, John McCall, Tim Kientzle, Karoy Lorentey contributed to this proposal with their clarifying questions and discussions.
 
-
-
 ### <a name="Indexing"></a>Appendix: Index and slicing design considerations
 
 Early prototypes of this proposal defined an `Index` type, `Iterator` types, etc. We are proposing `Int`-based API and are deferring defining `Index` and `Iterator` until more of the non-escapable collection story is sorted out. The below is some of our research into different potential designs of an `Index` type.
@@ -1010,10 +1007,9 @@ When types do not own their storage, separate slice types can be [cumbersome](ht
 
 `Span` does not own its storage and there is no concern about leaking larger allocations. It would benefit from being its own slice type.
 
-
 #### Indices from a slice can be used on the base collection
 
-There is very strong stdlib precedent that indices from the base collection can be used in a slice and vice-versa. 
+There is very strong stdlib precedent that indices from the base collection can be used in a slice and vice-versa.
 
 ```swift
 let myCollection = [0,1,2,3,4,5,6]
@@ -1024,7 +1020,7 @@ slice[idx]                          // 4
 myCollection[slice.indices]         // [4, 5, 6]
 ```
 
-Code can be written to take advantage of this fact. For example, a simplistic parser can be written as mutating methods on a slice. The slice's indices can be saved for reference into the original collection or another slice. 
+Code can be written to take advantage of this fact. For example, a simplistic parser can be written as mutating methods on a slice. The slice's indices can be saved for reference into the original collection or another slice.
 
 ```swift
 extension Slice where Base == UnsafeRawBufferPointer {
@@ -1082,7 +1078,6 @@ getFirst(myCollection) // 0
 getFirst(slice)        // Fatal error: Index out of bounds
 ```
 
-
 #### Additional reuse-after-free checking
 
 `Span` bounds-checks its indices, which is important for safety. If the index is based around a pointer (instead of an offset), then bounds checks will also ensure that indices are not used with the wrong span in most situations. However, it is possible for a memory address to be reused after being freed and using a stale index into this reused memory may introduce safety problems.
@@ -1119,7 +1114,7 @@ Future improvements to microarchitecture may make reuse after free checks cheape
 
 ##### Index is an offset (`Int` or a wrapper around `Int`)
 
-When `Index` is an offset, there is no undefined behavior from misaligned loads because the `Span`'s base address is advanced by `MemoryLayout<T>.stride * offset`. 
+When `Index` is an offset, there is no undefined behavior from misaligned loads because the `Span`'s base address is advanced by `MemoryLayout<T>.stride * offset`.
 
 However, there is no protection against invalidly using an index derived from a different span, provided the offset is in-bounds.
 
@@ -1138,4 +1133,3 @@ We can create a per-allocation ID (e.g. a cryptographic `UInt64`) for both `Span
 We could instead go with 2 word `Span` and 2 word `Span.Index` by storing the span's `baseAddress` in the `Index`'s second word. This will detect invalid reuse of indices across spans in addition to misaligned reuse-after-free errors. However, indices could not be interchanged without a way for the slice type to know the original span's base address (e.g. through a separate slice type or making `Span` 3 words in size).
 
 In either approach, making `Span.Index` be 2 words in size is unfortunate. `Range<Span.Index>` is now 4 words in size, storing the allocation ID twice. Anything built on top of `Span` that wishes to store multiple indices is either bloated or must hand-extract the pointers and hand-manage the allocation ID.
-
