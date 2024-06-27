@@ -204,7 +204,7 @@ Note that a dependency hidden on one import path may still need to be loaded bec
 The module interface associated with a hidden dependency doesn't need to be distributed to clients.
 However, the binary associated to the module still needs to be distributed to execute the resulting program.
 
-### Default import access level in Swift 5/6 and a future language mode
+### Default import access level
 
 The access level of a default import declaration without an explicit access-level modifier depends on the language version.
 We list here the implicit access levels and reasoning behind this choice.
