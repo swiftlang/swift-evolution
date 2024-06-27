@@ -209,7 +209,7 @@ However, the binary associated to the module still needs to be distributed to ex
 The access level of a default import declaration without an explicit access-level modifier depends on the language version.
 We list here the implicit access levels and reasoning behind this choice.
 
-In Swift 5/6, an import is `public` by default.
+In language modes up to Swift 6, an import is `public` by default.
 This choice preserves source compatibility.
 The only official import previously available in Swift 5 behaves like the public import proposed in this document.
 
