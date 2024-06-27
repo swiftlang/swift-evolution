@@ -56,7 +56,7 @@ accept access-level modifiers on import declarations to declare the visibility o
 apply that information when type-checking the source file,
 and determine when indirect clients can skip loading transitive dependencies.
 We then cover other concerns addressed by this proposal:
-the different default access levels of imports in Swift 5/6 and a future language mode,
+the different default access levels of imports in different language modes,
 and the relationship with other attributes on imports.
 
 ### Declaring the access level of an imported module
