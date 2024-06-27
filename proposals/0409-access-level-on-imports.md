@@ -213,7 +213,7 @@ In language modes up to Swift 6, an import is `public` by default.
 This choice preserves source compatibility.
 The only official import previously available in Swift 5 behaves like the public import proposed in this document.
 
-In a future language mode, an import is `internal` by default.
+In a future language mode, an import will be `internal` by default.
 This will align the behavior of imports with declarations where the implicit access level is internal.
 It should help limit unintentional dependency creep as marking a dependency public will require an explicit modifier.
 
