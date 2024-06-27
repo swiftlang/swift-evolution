@@ -46,7 +46,7 @@ public func publicFunc() -> DatabaseAdapter.Entry {...} // error: function canno
 ```
 
 Additionally, this proposal uses the access level declared on each import declaration in all source files composing a module to determine when clients of a library need to load the library's dependencies or when they can be skipped.
-To balance source compatibility and best practices, the proposed default import has an implicit access level of public in Swift 5/6 and of internal in a future language mode.
+To balance source compatibility and best practices, an import without explicit access level has an implicit access level of `public` in Swift 5 and Swift 6.  It will be `internal` in a future language mode.
 The attribute `@usableFromInline` on an import allows references from inlinable code.
 
 ## Detailed design
