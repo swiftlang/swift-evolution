@@ -257,7 +257,7 @@ public import struct Foo.Bar
 
 ## Source compatibility
 
-To preserve source compatibility, imports are public by default in Swift 5/6.
+To preserve source compatibility, imports are public by default in current language modes, including Swift 6.
 This will preserve the current behavior of imports in Swift 5.
 As discussed previously, the future language mode behavior changes the default value and will require code changes.
 
