@@ -222,7 +222,7 @@ As a result, the following import is `public` in language modes up to Swift 6, b
 import ADependency
 ```
 
-The future language change will likely break source compatibility for libraries.
+The future language change will likely require source changes in code that adopts the new language mode.  It will not break source compatibility for code that remains on current language modes.
 A migration tool could automatically insert the `public` modifier where required.
 Where the tool is unavailable, a simple script can insert a `public` modifier in front of all imports to preserve the Swift 5 behavior.
 
