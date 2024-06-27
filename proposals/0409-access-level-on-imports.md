@@ -217,7 +217,7 @@ In a future language mode, an import will be `internal` by default.
 This will align the behavior of imports with declarations where the implicit access level is internal.
 It should help limit unintentional dependency creep as marking a dependency public will require an explicit modifier.
 
-As a result, the following import is `public` in Swift 5/6 and `internal` in a future language mode:
+As a result, the following import is `public` in language modes up to Swift 6, but it will be `internal` in a future language mode:
 ```swift
 import ADependency
 ```
