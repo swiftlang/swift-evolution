@@ -19,16 +19,6 @@ There are various motivating use-cases where package authors might want to
 express configurable compilation or optional dependencies. This section is going
 to list a few of those use-cases.
 
-### Minimizing build times and binary size
-
-Some packages offer different but adjacent functionality such as the
-`swift-collections` package. To reduce build time and binary size impact
-`swift-collections` offers multiple different products and users can choose
-which one they need. This works however, it comes with the downside that if the
-implementation wants to share code between the different modules it needs to
-create internal targets. Furthermore, the user has to declare a dependency on
-different products and import each product module individually.
-
 ### Pluggable dependencies
 
 Some packages want to make it configurable what underlying technology is used.
@@ -78,31 +68,30 @@ let package = Package(
     name: "Example",
     traits: [
         "Foo",
-        Trait(
+        .trait(
             name: "Bar",
             enabledTraits: [ // Other traits that are enabled when this trait is being enabled
                 "Foo",
             ]
         )
-        Trait(
+        .trait(
             name: "FooBar",
-            isDefault: true,
             enabledTraits: [
                 "Foo",
                 "Bar",
             ]
-        )
+        ),
+        .default(enabledTraits: ["Foo"]), // Defines all the default enabled traits
     ],
     /// ...
 )
 ```
 
-When depending on a package all default traits are enabled. However, the enabled
+When depending on a package the default trait is enabled. However, the enabled
 traits can be customized by passing a set of enabled traits when declaring the
-dependency. When specifying the enabled dependencies the `.defaults` trait can
-be passed which will enable all default traits of the dependency. The below
-example enables all default traits and the additional `SomeTrait` of the
-package.
+dependency. When specifying the enabled traits of the dependencies the
+`.default` trait can be passed which will enable the default trait. The below
+example enables the default trait and the additional `SomeTrait` of the package.
 
 ```swift
 dependencies: [
@@ -110,14 +99,14 @@ dependencies: [
         url: "https://github.com/Org/SomePackage.git",
         from: "1.0.0",
         traits: [
-            .defaults,
+            .default,
             "SomeTrait"
         ]
     ),
 ]
 ```
 
-To disable all traits including the default traits an empty set can be passed.
+To disable all traits including the default trait an empty set can be passed.
 
 ```swift
 dependencies: [
@@ -138,12 +127,9 @@ dependencies: [
     .package(
         url: "https://github.com/Org/SomePackage.git",
         from: "1.0.0",
-        traits: Package.Dependency.Trait(
-            enabledTraits: [
-                "SomeTrait",
-                EnabledTrait("SomeOtherTrait", condition: .when(traits: ["Foo"])),
-            ]
-        )
+        traits:[
+            .trait("SomeOtherTrait", condition: .when(traits: ["Foo"])),
+        ]
     ),
 ]
 ```
@@ -194,16 +180,26 @@ following new `Trait` type.
 /// A struct representing a package's trait.
 ///
 /// Traits can be used for expressing conditional compilation and optional dependencies.
-///
-/// - Important: Traits must be strictly additive and enabling a trait **must not** remove API.
 public struct Trait: Hashable, ExpressibleByStringLiteral {
+    /// Declares the default traits for this package.
+    public static func `default`(enabledTraits: Set<String>) -> Self
+
     /// The trait's canonical name.
     ///
     /// This is used when enabling the trait or when referring to it from other modifiers in the manifest.
+    ///
+    /// The following rules are enforced on trait names:
+    /// - The first character must be a [Unicode XID start character](https://unicode.org/reports/tr31/#Figure_Code_Point_Categories_for_Identifier_Parsing)
+    /// (most letters), a digit, or `_`.
+    /// - Subsequent characters must be a [Unicode XID continue character](https://unicode.org/reports/tr31/#Figure_Code_Point_Categories_for_Identifier_Parsing)
+    /// (a digit, `_`, or most letters), `-`, or `+`.
+    /// - `default` and `defaults` (in any letter casing combination) are not allowed as trait names to avoid confusion with default traits.
     public var name: String
 
-    /// A boolean indicating wether the trail is enabled by default.
-    public var isDefault: Bool
+    /// The trait's description.
+    ///
+    /// Use this to explain what functionality this trait enables.
+    public var description: String?
 
     /// A set of other traits of this package that this trait enables.
     public var enabledTraits: Set<String>
@@ -212,14 +208,30 @@ public struct Trait: Hashable, ExpressibleByStringLiteral {
     ///
     /// - Parameters:
     ///   - name: The trait's canonical name.
-    ///   - isDefault: A boolean indicating wether the trail is enabled by default.
+    ///   - description: The trait's description.
     ///   - enabledTraits: A set of other traits of this package that this trait enables.
-    public init(name: String, isDefault: Bool, enabledTraits: Set<String> = []) 
+    public init(
+        name: String,
+        description: String? = nil,
+        enabledTraits: Set<String> = []
+    )
 
     /// Initializes a new trait.
     ///
     /// This trait is disabled by default and enables no other trait of this package.
     public init(stringLiteral value: StringLiteralType)
+
+    /// Initializes a new trait.
+    ///
+    /// - Parameters:
+    ///   - name: The trait's canonical name.
+    ///   - description: The trait's description.
+    ///   - enabledTraits: A set of other traits of this package that this trait enables.
+    public static func trait(
+        name: String,
+        description: String? = nil,
+        enabledTraits: Set<String> = []
+    ) -> Trait
 }
 ```
 
@@ -265,61 +277,54 @@ public final class Package {
 }
 ```
 
-Furthermore, a new `Package.Dependency.Traits` type is introduced that can be used
+Furthermore, a new `Package.Dependency.Trait` type is introduced that can be used
 to configure the traits of a dependency.
 
 ```swift
 extension Package.Dependency {
-    /// A struct representing the trait configuration of a dependency.
-    public struct Traits {
-        /// A struct representing an enabled trait of a dependency.
-        public struct EnabledTrait: Hashable, ExpressibleByStringLiteral {
-            /// A condition that limits the application of a dependencies trait.
-            public struct Condition: Hashable {
-                /// The set of traits that enable the dependencies trait.
-                let traits: Set<String>?
+    /// A struct representing an enabled trait of a dependency.
+    public struct Trait: Hashable, Sendable, ExpressibleByStringLiteral {
+        /// Enables the default traits of a package.
+        public static let default: Self
 
-                /// Creates a package dependency trait condition.
-                ///
-                /// - Parameter traits: The set of traits that enable the dependencies trait. If any of the traits are enabled on this package
-                /// the dependencies trait will be enabled.
-                @available(_PackageDescription, introduced: 9999)
-                public static func when(
-                    traits: Set<String>
-                ) -> Self?
-            }
-
-            /// Enables all default traits of a package.
-            static var defaults: EnabledTrait
-
-            /// The name of the enabled trait.
-            public var name: String
-
-            /// The condition under which the trait is enabled.
-            public var condition: Condition?
-
-            /// Initializes a new enabled trait.
+        /// A condition that limits the application of a dependencies trait.
+        public struct Condition: Hashable, Sendable {
+            /// Creates a package dependency trait condition.
             ///
-            /// - Parameters:
-            ///   - name: The name of the enabled trait.
-            ///   - condition: The condition under which the trait is enabled.
-            public init(name: String, condition: Condition? = nil)
-
-            public init(stringLiteral value: StringLiteralType)
+            /// - Parameter traits: The set of traits that enable the dependencies trait. If any of the traits are enabled on this package
+            /// the dependencies trait will be enabled.
+            public static func when(
+                traits: Set<String>
+            ) -> Self?
         }
 
-        /// The enabled traits of the dependency.
-        public var enabledTraits: Set<EnabledTrait>
+        /// The name of the enabled trait.
+        public var name: String
 
-        /// Initializes a new traits configuration.
+        /// The condition under which the trait is enabled.
+        public var condition: Condition?
+
+        /// Initializes a new enabled trait.
         ///
         /// - Parameters:
-        ///   - enabledTraits: The enabled traits of the dependency.
-        ///   - disableDefaultTraits: Wether the default traits are disabled. Defaults to `false`.
+        ///   - name: The name of the enabled trait.
+        ///   - condition: The condition under which the trait is enabled.
         public init(
-            enabledTraits: Set<EnabledTrait>,
-            disableDefaultTraits: Bool = false
+            name: String,
+            condition: Condition? = nil
         )
+
+        public init(stringLiteral value: StringLiteralType)
+
+        /// Initializes a new enabled trait.
+        ///
+        /// - Parameters:
+        ///   - name: The name of the enabled trait.
+        ///   - condition: The condition under which the trait is enabled.
+        public static func trait(
+            name: String,
+            condition: Condition? = nil
+        ) -> Trait
     }
 }
 ```
@@ -332,13 +337,13 @@ extension Package.Dependency {
 
     public static func package(
         path: String,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         name: String,
         path: String,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     // MARK: Source repository
@@ -346,37 +351,37 @@ extension Package.Dependency {
     public static func package(
         url: String,
         from version: Version,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         url: String,
         branch: String,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         url: String,
         revision: String,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         url: String,
         _ range: Range<Version>,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         url: String,
         _ range: ClosedRange<Version>,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         url: String,
         exact version: Version,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     // MARK: Registry 
@@ -384,25 +389,25 @@ extension Package.Dependency {
     public static func package(
         id: String,
         from version: Version,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         id: String,
         exact version: Version,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         id: String,
         _ range: Range<Version>,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 
     public static func package(
         id: String,
         _ range: ClosedRange<Version>,
-        traits: Set<String>
+        traits: Set<Package.Dependency.Trait>
     ) -> Package.Dependency
 }
 ```
@@ -435,9 +440,28 @@ per package is calculated. This is then used to determine both the enabled
 optional dependencies and the enabled traits for the compile time checks. Since
 the enabled traits of a dependency are specified on a per package level and not
 from the root of the tree, any combination of enabled traits must be supported.
-A consequence of this is that all traits **must** be additive. Enabling a trait
-**must never** disable functionality i.e. remove API or lead to any other
+A consequence of this is that all traits **should** be _additive_. Enabling a trait
+**should not** disable functionality i.e. remove API or lead to any other
 **SemVer-incompatible** change.
+
+#### Mutally exclusive traits
+
+Some rare use-cases may want mutally exclusive traits which are incompatible to
+be enabled at the same time. This should be avoided if possible because it
+requires the whole dependency graph to coordinate on what trait to enable. In
+the rare case where mutually exclusive traits are used consider adding a
+compiler error to detect this during build time.
+
+```swift
+#if Trait1 && Trait2
+#error("Trait1 and Trait2 are mutuall exclusive")
+#endif
+```
+
+A few options to avoid mutually exclusive traits:
+- Separate the code into multiple packages
+- Choose one trait over the other when possible
+- Use platform checks `#if os(Windows)` when possible
 
 ### Default traits
 
@@ -496,6 +520,11 @@ Hence, the following rules are enforced on trait names:
 - `default` and `defaults` (in any letter casing combination) are not allowed as
   trait names to avoid confusion with default traits.
 
+### swift package dump-package
+
+The `swift package dump-package` command will include information of the trait configuration for the
+package and the dependencies it uses in the JSON output.
+
 ## Impact on existing packages
 
 There is no impact on existing packages. Any package can start adopting package
@@ -503,6 +532,21 @@ traits but in doing so **must not** move existing API behind new traits. Even if
 the trait is a enabled by default any consumer might have already disabled all
 default traits; hence, moving API behind a new default trait could potentially
 break them.
+
+### Impact on other build systems
+
+The initial impact on other build systems should be minimal. Exisiting packages
+must not move exisiting APIs behind a trait. For new APIs that are guarded by a
+trait a build system must pass the correct `SWIFT_ACTIVE_COMPILATION_CONDITIONS`
+when building the modules of the package. Other build systems might want to
+consider to expose a way to model traits in their target description.
+
+### Impact on documentation
+
+Traits are used to conditionally compile code. When building documentation the
+symbol graph extracter will only see the code that is actually compiled. Systems
+that produce documentation for packages should default to building with all
+traits enabled so that all API documentation is visible.
 
 ## Future directions
 
@@ -529,14 +573,13 @@ Rust's `cfg` macro.
 
 Since trait unification is done for every package in the graph during build time
 the information which module enabled which trait of its dependencies is lost.
-Rather the build system start to build from the bottom up while setting all the
-compiler defines for the unified traits. As a consequence it might be that a
-package accidentally uses an API from a dependency which is guarded by a trait
-that another package in the graph has enabled. Since the traits that any one
-package in the graph enables on its dependencies are not considered part of the
-semantic version, it can happen that disabling a trait could result in breaking a
-build. In the future, we could integrate trait checking further into the compiler
-where it understands if an API is only available if a certain trait is set.
+As a consequence it might be that a package accidentally uses an API from a
+dependency which is guarded by a trait that another package in the graph has
+enabled. Since the traits that any one package in the graph enables on its
+dependencies are not considered part of the semantic version, it can happen that
+disabling a trait could result in breaking a build. In the future, we could
+integrate trait checking further into the compiler where it understands if an
+API is only available if a certain trait is set.
 
 > Cargo currently [treats this
 similar](https://users.rust-lang.org/t/is-disabling-features-of-a-dependency-considered-a-breaking-change/94302/2)
@@ -552,6 +595,27 @@ experience. This is left as a future evolution since it intersects interestingly
 with the future direction "Consider traits during dependency resolution". If
 default traits depend on the target build platform then this must be an input to
 the dependency resolution.
+
+### Globally configured traits
+
+One use-case where mutually exclusive traits are used is to configure the
+behaviour of a single package globally. This means that only the final
+executable is deciding what trait to enable. In a future proposal, we could
+introduce a new setting for marking a trait as globally configured and check
+that only executable targets are enabling such a trait.
+
+### Tooling to test different trait combinations
+
+Since a single package should support building with any combination of traits,
+it would be helpful to offer package authors tooling to build and test all
+combinations. A new option `--all-trait-combinations` could be added to
+`swift test/build/run` make testing all combinations easy as possible.
+
+### Surface traits in documentation
+
+If the compiler gains knowledge about package traits in the future, we could
+extract information if a public API is guarded by a trait and surface this in
+the documentation.
 
 ## Alternatives considered
 
@@ -569,6 +633,20 @@ _package traits_ have been considered such as:
 A lot of the other considered names have other meanings in the language already.
 For example `feature` is already used in expressing compiler feature via
 `enable[Upcoming|Experimental]Feature` and the `hasFeature` check.
+
+### Using SPI instead
+
+During the investigation how to solve the optional dependency problem `@_spi`
+was considered; however, the problem with `@_spi` is that the code is still
+compiled and present in the final binary. Optional dependencies can't work like
+this since the symbols potentially aren't present during compile time.
+
+### Enum based traits
+
+Traits could be expressed via an enum in the package description which would
+make sure that they are statically typed. This proposal decided to use `String`
+based trait names instead to align with the other definitions inside the package
+description such as `targets` or `products`.
 
 ## Prior art
 
