@@ -142,17 +142,13 @@ extension Character.UTF8View {
 }
 
 extension SIMD {
-  var storage: Span<Self.Scalar> { get }
+  var storage: Span<Self.Scalar> { _read }
 }
 extension KeyValuePairs {
   var storage: Span<(Self.Key, Self.Value)> { get }
 }
 extension CollectionOfOne {
-  var storage: Span<Element> { get }
-}
-
-extension Slice: ContiguousStorage where Base: ContiguousStorage {
-  var storage: Span<Base.Element> { get }
+  var storage: Span<Element> { _read }
 }
 ```
 
@@ -755,9 +751,6 @@ The additions described in this proposal require a new version of the standard l
 ##### Make `Span` a noncopyable type
 Making `Span` non-copyable was in the early vision of this type. However, we found that would make `Span` a poor match to model borrowing semantics. This realization led to the initial design for non-escapable declarations.
 
-##### A protocol in addition to `ContiguousStorage` for unsafe buffers
-This document proposes adding the `ContiguousStorage` protocol to the standard library's `Unsafe{Mutable,Raw}BufferPointer` types. On the surface this seems like whitewashing the unsafety of these types. The lifetime constraint only applies to the binding used to obtain a `Span`, and the initialization precondition can only be enforced by documentation. Nothing will prevent unsafe code from deinitializing a portion of the storage while a `Span` is alive. There is no safe bridge from `UnsafeBufferPointer` to `ContiguousStorage`. We considered having the unsafe buffer types conforming to a different version of `ContiguousStorage`, which would vend a `Span` through a closure-taking API. Unfortunately such a closure would be perfectly capable of capturing the `UnsafeBufferPointer` binding and be as unsafe as can be. For this reason, the `UnsafeBufferPointer` family will conform to `ContiguousStorage`, with safety being enforced in documentation.
-
 ##### Use a non-escapable index type
 Eventually we want a similar usage pattern for a `MutableSpan` (described [below](#MutableSpan)) as we are proposing for `Span`. If the index of a `MutableSpan` were to borrow the view, then it becomes impossible to implement a mutating subscript without also requiring an index to be consumed. This seems untenable.
 
@@ -897,7 +890,7 @@ for i in 0..<view.count {
 }
 ```
 
-#### Collection-like protocols for non-copyable and non-escapable types
+#### Collection-like protocols for non-copyable and non-escapable container types
 
 Non-copyable and non-escapable containers would benefit from a `Collection`-like protocol family to represent a set of basic, common operations.
 
@@ -959,6 +952,8 @@ public protocol ContiguousStorage<Element>: ~Copyable, ~Escapable {
 ```
 
 Two issues prevent us from proposing it at this time: (a) the ability to suppress requirements on `associatedtype` declarations was deferred during the review of [SE-0427], and (b) we cannot declare a `_read` accessor as a protocol requirement, since `_read` is not considered stable.
+
+Many of the standard library collections could conform to `ContiguousStorage`, but we would not include the `Unsafe{Mutable,Raw}BufferPointer` types among them. Conversion of these will continue to use the explicit `Span(unsafe{Bytes,Elements,Start}:)` initializers.
 
 #### <a name="Conversions"></a>Syntactic Sugar for Automatic Conversions
 
