@@ -163,7 +163,7 @@ extension HypotheticalBase64Decoder {
 
 data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
   let span = Span<UInt8>(unsafeBytes: buffer, owner: buffer)
-	let decoded = myBase64Decoder.decode(span)
+  let decoded = myBase64Decoder.decode(span)
 }
 ```
 
@@ -644,7 +644,7 @@ A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homoge
 
 ```swift
 extension RawSpan {
-	/// View the memory span represented by this view as a different type
+  /// View the memory span represented by this view as a different type
   ///
   /// The memory must be laid out identically to the in-memory representation of `T`.
   ///
@@ -953,7 +953,7 @@ public protocol ContiguousStorage<Element>: ~Copyable, ~Escapable {
 
 Two issues prevent us from proposing it at this time: (a) the ability to suppress requirements on `associatedtype` declarations was deferred during the review of [SE-0427], and (b) we cannot declare a `_read` accessor as a protocol requirement, since `_read` is not considered stable.
 
-Many of the standard library collections could conform to `ContiguousStorage`, but we would not include the `Unsafe{Mutable,Raw}BufferPointer` types among them. Conversion of these will continue to use the explicit `Span(unsafe{Bytes,Elements,Start}:)` initializers.
+Many of the standard library collections could conform to `ContiguousStorage`, but we would not include the `Unsafe{Mutable,Raw}BufferPointer` types among them. Conversion of these will continue to use the explicit `Span(unsafe{Bytes,Elements,Start}:)` initializers.
 
 #### <a name="Conversions"></a>Syntactic Sugar for Automatic Conversions
 
