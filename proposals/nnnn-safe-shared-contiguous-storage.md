@@ -63,7 +63,7 @@ By relying on borrowing, `Span` can provide simultaneous access to a non-copyabl
 
 ### `RawSpan`
 
-`RawSpan` allows sharing the contiguous internal representation for values which may be heterogenously-typed, such as in decoders. Since it is a fully concrete type, it can achieve better performance in debug builds of client code as well as a more straight-forwards understanding of performance for library code.
+`RawSpan` allows sharing the contiguous internal representation for values which may be heterogenously-typed, such as in decoders. Since it is a fully concrete type, it can achieve better performance in debug builds of client code as well as a more straightforward understanding of performance in library code.
 
 `Span<some BitwiseCopyable>` can always be converted to `RawSpan`, using a conditionally-available property or a constructor.
 
