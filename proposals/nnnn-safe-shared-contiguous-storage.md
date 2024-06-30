@@ -55,7 +55,7 @@ let span: Span<UInt8> = array.storage
 
 ## Proposed solution
 
-`Span` will allow sharing the contiguous internal representation of a type, by providing access to a borrowed view of an interval of contiguous memory. A view does not copy the underlying data: it instead relies on a guarantee that the original container cannot be modified or destroyed during the lifetime of the view. `Span`'s lifetime is statically enforced as a lifetime dependency to a binding of the type vending it, preventing its escape from the scope where it is valid for use. This guarantee preserves temporal safety. `Span` also performs bounds-checking on every access to preserve spatial safety. Additionally `Span` always represents initialized memory, preserving the definite initialization guarantee.
+`Span` will allow sharing the contiguous internal representation of a type, by providing access to a borrowed view of an interval of contiguous memory. `Span`view does not copy the underlying data: it instead relies on a guarantee that the original container cannot be modified or destroyed while the `Span` exists. `Span`'s lifetime is statically enforced as a lifetime dependency to a binding of the type vending it, preventing its escape from the scope where it is valid for use. This guarantee preserves temporal safety. `Span` also performs bounds-checking on every access to preserve spatial safety. Additionally `Span` always represents initialized memory, preserving the definite initialization guarantee.
 
 By relying on borrowing, `Span` can provide simultaneous access to a non-copyable container, and can help avoid unwanted copies of copyable containers. Note that `Span` is not a replacement for a copyable container with owned storage; see the future directions for more details ([Resizable, contiguously-stored, untyped collection in the standard library](#Bytes))
 
@@ -89,7 +89,7 @@ extension Span where Element: ~Copyable & ~Escapable {
 }
 ```
 
-Note that `Span` does _not_ conform to `Collection`. This is because `Collection`, as originally conceived and enshrined in existing source code, assumes pervasive copyability and escapability for itself as well as its elements. In particular a subsequence of a `Collection` is semantically a separate value from the instance it was derived from. In the case of `Span`, a sub-span representing a subrange of its elements _must_ have the same lifetime as the view from which it originates. Another proposal will consider collection-like protocols to accommodate different combinations of `~Copyable` and `~Escapable` for the collection and its elements.
+Note that `Span` does _not_ conform to `Collection`. This is because `Collection`, as originally conceived and enshrined in existing source code, assumes pervasive copyability and escapability for itself as well as its elements. In particular a subsequence of a `Collection` is semantically a separate value from the instance it was derived from. In the case of `Span`, a sub-span representing a subrange of its elements _must_ have the same lifetime as the `Span` from which it originates. Another proposal will consider collection-like protocols to accommodate different combinations of `~Copyable` and `~Escapable` for the collection and its elements.
 
 `Span`s representing subsets of consecutive elements can be extracted out of a larger `Span` with an API similar to the recently added `extracting()` functions of `UnsafeBufferPointer`:
 
