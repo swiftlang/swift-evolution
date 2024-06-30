@@ -221,7 +221,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   ///
   /// - Parameters:
   ///   - pointer: a pointer to the first initialized element.
-  ///   - count: the number of initialized elements in the view.
+  ///   - count: the number of initialized elements in the span.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `Span`.
   public init<Owner: ~Copyable & ~Escapable>(
@@ -244,7 +244,6 @@ extension Span where Element: BitwiseCopyable {
   ///
   /// - Parameters:
   ///   - unsafeBytes: a buffer to initialized elements.
-  ///   - type: the type to use when interpreting the bytes in memory.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `Span`.
   public init<Owner: ~Copyable & ~Escapable>(
@@ -263,8 +262,7 @@ extension Span where Element: BitwiseCopyable {
   ///
   /// - Parameters:
   ///   - unsafeRawPointer: a pointer to the first initialized element.
-  ///   - type: the type to use when interpreting the bytes in memory.
-  ///   - count: the number of initialized elements in the view.
+  ///   - byteCount: the number of initialized bytes in the span.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `Span`.
   public init<Owner: ~Copyable & ~Escapable>(
@@ -557,8 +555,8 @@ extension RawSpan {
   /// meaning that as long as `owner` is alive the memory will remain valid.
   ///
   /// - Parameters:
-  ///   - pointer: a pointer to the first initialized element.
-  ///   - count: the number of initialized elements in the view.
+  ///   - pointer: a pointer to the first initialized byte.
+  ///   - byteCount: the number of initialized bytes in the span.
   ///   - owner: a binding whose lifetime must exceed that of
   ///            the newly created `RawSpan`.
   public init<Owner: ~Copyable & ~Escapable>(
