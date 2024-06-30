@@ -589,6 +589,9 @@ extension RawSpan {
   /// accessing `T` and initialized to `T` or another type that is layout
   /// compatible with `T`.
   ///
+  /// This is an unsafe operation. Failure to meet the preconditions
+  /// above may produce an invalid value of `T`.
+  ///
   /// - Parameters:
   ///   - offset: The offset from this pointer, in bytes. `offset` must be
   ///     nonnegative. The default is zero.
@@ -596,7 +599,7 @@ extension RawSpan {
   /// - Returns: A new instance of type `T`, read from the raw bytes at
   ///     `offset`. The returned instance is memory-managed and unassociated
   ///     with the value in the memory referenced by this pointer.
-  public func load<T>(
+  public func unsafeLoad<T>(
     fromByteOffset offset: Int = 0, as: T.Type
   ) -> T
 
@@ -607,8 +610,9 @@ extension RawSpan {
   /// accessing `T` and initialized to `T` or another type that is layout
   /// compatible with `T`.
   ///
-  /// This function does not validate the bounds of the memory access;
-  /// this is an unsafe operation.
+  /// This is an unsafe operation. This function does not validate the bounds
+  /// of the memory access, and failure to meet the preconditions
+  /// above may produce an invalid value of `T`.
   ///
   /// - Parameters:
   ///   - offset: The offset from this pointer, in bytes. `offset` must be
@@ -617,13 +621,19 @@ extension RawSpan {
   /// - Returns: A new instance of type `T`, read from the raw bytes at
   ///     `offset`. The returned instance is memory-managed and unassociated
   ///     with the value in the memory referenced by this pointer.
-  public func load<T>(
+  public func unsafeLoad<T>(
     fromUncheckedByteOffset offset: Int, as: T.Type
   ) -> T
 
   /// Returns a new instance of the given type, constructed from the raw memory
   /// at the specified offset.
   ///
+  /// The memory at this pointer plus `offset` must be initialized to `T`
+  /// or another type that is layout compatible with `T`.
+  ///
+  /// This is an unsafe operation. Failure to meet the preconditions
+  /// above may produce an invalid value of `T`.
+  ///
   /// - Parameters:
   ///   - offset: The offset from this pointer, in bytes. `offset` must be
   ///     nonnegative. The default is zero.
@@ -631,15 +641,19 @@ extension RawSpan {
   /// - Returns: A new instance of type `T`, read from the raw bytes at
   ///     `offset`. The returned instance isn't associated
   ///     with the value in the range of memory referenced by this pointer.
-  public func loadUnaligned<T: BitwiseCopyable>(
+  public func unsafeLoadUnaligned<T: BitwiseCopyable>(
     fromByteOffset offset: Int = 0, as: T.Type
   ) -> T
 
   /// Returns a new instance of the given type, constructed from the raw memory
   /// at the specified offset.
   ///
-  /// This function does not validate the bounds of the memory access;
-  /// this is an unsafe operation.
+  /// The memory at this pointer plus `offset` must be initialized to `T`
+  /// or another type that is layout compatible with `T`.
+  ///
+  /// This is an unsafe operation. This function does not validate the bounds
+  /// of the memory access, and failure to meet the preconditions
+  /// above may produce an invalid value of `T`.
   ///
   /// - Parameters:
   ///   - offset: The offset from this pointer, in bytes. `offset` must be
@@ -648,7 +662,7 @@ extension RawSpan {
   /// - Returns: A new instance of type `T`, read from the raw bytes at
   ///     `offset`. The returned instance isn't associated
   ///     with the value in the range of memory referenced by this pointer.
-  public func loadUnaligned<T: BitwiseCopyable>(
+  public func unsafeLoadUnaligned<T: BitwiseCopyable>(
     fromUncheckedByteOffset offset: Int, as: T.Type
   ) -> T
 }
@@ -658,14 +672,19 @@ A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homoge
 
 ```swift
 extension RawSpan {
-  /// View the memory span represented by this view as a different type
+  /// View the bytes of this span as type `T`
   ///
-  /// The memory must be laid out identically to the in-memory representation of `T`.
+  /// This is the equivalent of `unsafeBitCast(_:to:)`. The
+  /// underlying bytes must be initialized as type `T`, or be
+  /// initialized to a type that is layout-compatible with `T`.
+  ///
+  /// This is an unsafe operation. Failure to meet the preconditions
+  /// above may produce invalid values of `T`.
   ///
   /// - Parameters:
-  ///   - type: The type you wish to view the memory as
-  /// - Returns: A new `Span` over elements of type `T`
-  public func view<T: BitwiseCopyable>(as: T.Type) -> Span<T>
+  ///   - type: The type as which to view the bytes of this span.
+  /// - Returns: A typed span viewing these bytes as instances of `T`.
+  public func unsafeView<T: BitwiseCopyable>(as type: T.Type) -> Span<T>
 }
 ```
 
