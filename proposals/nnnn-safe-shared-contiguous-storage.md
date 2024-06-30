@@ -422,7 +422,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   ///     this range must be within the bounds of this `Span`.
   ///
   /// - Returns: A `Span` over the items within `bounds`
-  public func extracting(uncheckedBounds bounds: Range<Int>) -> Self
+  public func extracting(unchecked bounds: Range<Int>) -> Self
 
   /// Constructs a new span over the items within the supplied range of
   /// positions within this span.
@@ -437,7 +437,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   ///     this range must be within the bounds of this `Span`.
   ///
   /// - Returns: A `Span` over the items within `bounds`
-  public func extracting(uncheckedBounds bounds: some RangeExpression<Int>) -> Self
+  public func extracting(unchecked bounds: some RangeExpression<Int>) -> Self
 }
 ```
 
@@ -728,12 +728,12 @@ extension RawSpan {
 
   public func extracting(_ bounds: Range<Int>) -> Self
 
-  public func extracting(uncheckedBounds bounds: Range<Int>) -> Self
+  public func extracting(unchecked bounds: Range<Int>) -> Self
   
   public func extracting(_ bounds: some RangeExpression<Int>) -> Self
   
   public func extracting(
-    uncheckedBounds bounds: some RangeExpression<Int>
+    unchecked bounds: some RangeExpression<Int>
   ) -> Self
 
   public func extracting(_: UnboundedRange) -> Self
