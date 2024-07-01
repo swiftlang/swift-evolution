@@ -576,9 +576,9 @@ extension RawSpan {
 }
 ```
 
-##### Accessing the memory of a `RawSpan`:
+##### <a name="Load"></a>Accessing the memory of a `RawSpan`:
 
-The basic operations to access the contents of the memory underlying a `RawSpan` are `load(as:)` and `loadUnaligned(as:)`.
+`RawSpan` has basic operations to access the contents of its memory: `unsafeLoad(as:)` and `unsafeLoadUnaligned(as:)`. These operations are not type-safe, in that the loaded value returned by the operation can be invalid. Some types have a property that makes this operation safe, but there is no [formal identification](#SurjectiveBitPattern) for these types at this time.
 
 ```swift
 extension RawSpan {
@@ -606,6 +606,29 @@ extension RawSpan {
   /// Returns a new instance of the given type, constructed from the raw memory
   /// at the specified offset.
   ///
+  /// The memory at this pointer plus `offset` must be initialized to `T`
+  /// or another type that is layout compatible with `T`.
+  ///
+  /// This is an unsafe operation. Failure to meet the preconditions
+  /// above may produce an invalid value of `T`.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset from this pointer, in bytes. `offset` must be
+  ///     nonnegative. The default is zero.
+  ///   - type: The type of the instance to create.
+  /// - Returns: A new instance of type `T`, read from the raw bytes at
+  ///     `offset`. The returned instance isn't associated
+  ///     with the value in the range of memory referenced by this pointer.
+  public func unsafeLoadUnaligned<T: BitwiseCopyable>(
+    fromByteOffset offset: Int = 0, as: T.Type
+  ) -> T
+```
+
+These functions have the following counterparts which omit bounds-checking for cases where redundant checks affect performance:
+```swift
+  /// Returns a new instance of the given type, constructed from the raw memory
+  /// at the specified offset.
+  ///
   /// The memory at this pointer plus `offset` must be properly aligned for
   /// accessing `T` and initialized to `T` or another type that is layout
   /// compatible with `T`.
@@ -623,26 +646,6 @@ extension RawSpan {
   ///     with the value in the memory referenced by this pointer.
   public func unsafeLoad<T>(
     fromUncheckedByteOffset offset: Int, as: T.Type
-  ) -> T
-
-  /// Returns a new instance of the given type, constructed from the raw memory
-  /// at the specified offset.
-  ///
-  /// The memory at this pointer plus `offset` must be initialized to `T`
-  /// or another type that is layout compatible with `T`.
-  ///
-  /// This is an unsafe operation. Failure to meet the preconditions
-  /// above may produce an invalid value of `T`.
-  ///
-  /// - Parameters:
-  ///   - offset: The offset from this pointer, in bytes. `offset` must be
-  ///     nonnegative. The default is zero.
-  ///   - type: The type of the instance to create.
-  /// - Returns: A new instance of type `T`, read from the raw bytes at
-  ///     `offset`. The returned instance isn't associated
-  ///     with the value in the range of memory referenced by this pointer.
-  public func unsafeLoadUnaligned<T: BitwiseCopyable>(
-    fromByteOffset offset: Int = 0, as: T.Type
   ) -> T
 
   /// Returns a new instance of the given type, constructed from the raw memory
@@ -800,6 +803,10 @@ This is discussed more fully in the [indexing appendix](#Indexing) below.
 #### Coroutine Accessors
 
 This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language, but are necessary for a type to provide borrowing access to its internal storage. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` will be adapted to the new syntax.
+
+#### <a name="SurjectiveBitPattern"></a>Layout constraint for surjective mapping of bit patterns
+
+We could add a layout constraint refining`BitwiseCopyable`, specifically for types whose mapping from bit pattern to values is a [surjective function](https://en.wikipedia.org/wiki/Surjective_function). Such types would be safe to [load](#Load) from `RawSpan` instances. 1-byte examples are `Int8` (any of 256 values are valid) and `Bool` (256 bit patterns map to `true` or `false` because only one bit is considered.)
 
 #### Byte parsing helpers
 
