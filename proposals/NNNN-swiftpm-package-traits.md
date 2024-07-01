@@ -3,7 +3,14 @@
 * Proposal: [SE-NNNN](NNNN-swiftpm-package-traits.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch), [Max Desiatov](https://github.com/MaxDesiatov)
 * Review Manager: TBD
-* Status: **Work in progress implementation** https://github.com/apple/swift-package-manager/pull/7392
+* Status: **Implemented**
+
+- https://github.com/swiftlang/swift-package-manager/pull/7704
+- https://github.com/swiftlang/swift-package-manager/pull/7703
+- https://github.com/swiftlang/swift-package-manager/pull/7702
+- https://github.com/swiftlang/swift-package-manager/pull/7701
+- https://github.com/swiftlang/swift-package-manager/pull/7694
+- https://github.com/swiftlang/swift-package-manager/pull/7689
 
 ## Introduction
 
