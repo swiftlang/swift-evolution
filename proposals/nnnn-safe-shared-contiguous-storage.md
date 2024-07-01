@@ -804,9 +804,11 @@ This is discussed more fully in the [indexing appendix](#Indexing) below.
 
 This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language, but are necessary for a type to provide borrowing access to its internal storage. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` will be adapted to the new syntax.
 
-#### <a name="SurjectiveBitPattern"></a>Layout constraint for surjective mapping of bit patterns
+#### <a name="SurjectiveBitPattern"></a>Layout constraint for surjective maps of bit patterns
 
-We could add a layout constraint refining`BitwiseCopyable`, specifically for types whose mapping from bit pattern to values is a [surjective function](https://en.wikipedia.org/wiki/Surjective_function). Such types would be safe to [load](#Load) from `RawSpan` instances. 1-byte examples are `Int8` (any of 256 values are valid) and `Bool` (256 bit patterns map to `true` or `false` because only one bit is considered.)
+We could add a layout constraint refining`BitwiseCopyable`, specifically for types whose mapping from bit pattern to values is a [surjective function](https://en.wikipedia.org/wiki/Surjective_function), `SurjectiveBitPattern`. Such types would be safe to [load](#Load) from `RawSpan` instances. 1-byte examples are `Int8` (any of 256 values are valid) and `Bool` (256 bit patterns map to `true` or `false` because only one bit is considered.)
+
+An alternative to a layout constraint is to add a type validation step to ensure that a loaded bit pattern has resulted in an instance in which all relevant invariants are respected. This alternative would be more flexible, but may have a higher runtime cost.
 
 #### Byte parsing helpers
 
