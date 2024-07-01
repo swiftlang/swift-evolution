@@ -19,12 +19,10 @@ This proposal is related to two other features being proposed along with it: [No
 - [SE-0426] BitwiseCopyable
 - [SE-0427] Noncopyable generics
 - [SE-0377] `borrowing` and `consuming` parameter ownership modifiers
-- [SE-0256] `{Mutable}ContiguousCollection` protocol (rejected, superseded by this proposal)
 
 [SE-0426]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0426-bitwise-copyable.md
 [SE-0427]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md
 [SE-0377]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md
-[SE-0256]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0256-contiguous-collection.md
 
 ## <a name="Motivation"></a>Motivation
 
@@ -974,7 +972,7 @@ Even if `Span` were to replace all uses of a constant `Data` in API, something l
 
 #### <a name="ContiguousStorage"></a>A `ContiguousStorage` protocol
 
-An earlier version of this proposal proposed a `ContiguousStorage` protocol by which a type could indicate that it can provide a `Span`. `ContiguousStorage` would form a bridge between generically-typed interfaces and a performant concrete implementation.
+An earlier version of this proposal proposed a `ContiguousStorage` protocol by which a type could indicate that it can provide a `Span`. `ContiguousStorage` would form a bridge between generically-typed interfaces and a performant concrete implementation. It would supersede the rejected [SE-0256](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0256-contiguous-collection.md).
 
 For example, for the hypothetical base64 decoding library mentioned in the [motivation](#Motivation) section, a possible API could be:
 
