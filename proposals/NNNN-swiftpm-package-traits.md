@@ -27,7 +27,7 @@ for example is capable of running on top of `URLSession`, `AsyncHTTPClient`,
 `Hummingbird` or `Vapor`. To avoid bringing all of those potential dependencies
 into every adopters binary, the project has created individual repositories for
 each transport. This achieves the goal of making the dependencies optional;
-however, it requires users to discovery those adjacent repositories and add
+however, it requires users to discover those adjacent repositories and add
 additional dependencies to their project.
 
 ### Configurable behavior
@@ -87,7 +87,7 @@ let package = Package(
 )
 ```
 
-When depending on a package the default trait is enabled. However, the enabled
+When depending on a package the `default` trait is enabled. However, the enabled
 traits can be customized by passing a set of enabled traits when declaring the
 dependency. When specifying the enabled traits of the dependencies the
 `.default` trait can be passed which will enable the default trait. The below
@@ -633,6 +633,10 @@ _package traits_ have been considered such as:
 A lot of the other considered names have other meanings in the language already.
 For example `feature` is already used in expressing compiler feature via
 `enable[Upcoming|Experimental]Feature` and the `hasFeature` check.
+
+_Package traits_ are also consistent with [the "traits" concept in the
+`swift-testing`
+library](https://github.com/apple/swift-testing/blob/25d0eed9b339de36365ff16deb9a3d9c64322f1c/Sources/Testing/Traits/Trait.swift#L22).
 
 ### Using SPI instead
 
