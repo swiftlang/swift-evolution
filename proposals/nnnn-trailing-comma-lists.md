@@ -27,9 +27,8 @@ let rank = [
 
 Swift's support for trailing commas in array and dictionary literals makes it as easy to append, remove, reorder, or comment out the last element as any other element.
 
-Other comma-separated lists in the language could also benefit from the flexibility enabled by trailing commas. Consider the [split(separator:maxSplits:omittingEmptySubsequences:)](https://swiftpackageindex.com/apple/swift-algorithms/1.2.0/documentation/algorithms/swift/lazysequenceprotocol/split(separator:maxsplits:omittingemptysubsequences:)-4q4x8) function from the [Algorithms](https://github.com/apple/swift-algorithms) package, which has a few overloads due to default values.
+Other comma-separated lists in the language could also benefit from the flexibility enabled by trailing commas. Consider the function [`split(separator:maxSplits:omittingEmptySubsequences:)`](https://swiftpackageindex.com/apple/swift-algorithms/1.2.0/documentation/algorithms/swift/lazysequenceprotocol/split(separator:maxsplits:omittingemptysubsequences:)-4q4x8) from the [Algorithms](https://github.com/apple/swift-algorithms) package, which has a few parameters with default values.
 
-`split(separator)` and `split(separator:maxSplits)` are both valid calls but you can't easily switch between them without adding/removing the trailing comma.
 
 ```swift
 let numbers = [1, 2, 0, 3, 4, 0, 0, 5]
@@ -42,14 +41,15 @@ let subsequences = numbers.split(
 
 ### The Language Evolved
 
-Back in 2016, a similar [proposal](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0084-trailing-commas.md) with a narrower scope was reviewed and rejected for Swift 3 but since that time the language has evolved substantially that changed the basis for rejection. The code style that "puts the terminating right parenthesis on a line following the arguments to that call" has been widely adopted by community, swift standard library codebase, swift-format, docc documentation and Xcode. Therefore, not encouraging or endorsing this code style doesn't hold true anymore.
-The language  has also seen the introduction of [parameter packs](https://github.com/apple/swift-evolution/blob/main/proposals/0393-parameter-packs.md), which allows more APIs that are comma-separated lists at call site and would benefit from trailing comma, and code generation tools like plugins and macros that with trailing comma support wouldn't have to worry about a special condition for the last element when generating comma-separated lists.
+Back in 2016, a similar [proposal](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0084-trailing-commas.md) with a narrower scope was reviewed and rejected for Swift 3. Since that time, the language has evolved substantially that challenges the basis for rejection. The code style that "puts the terminating right parenthesis on a line following the arguments to that call" has been widely adopted by community, Swift standard library codebase, swift-format, docc documentation and Xcode. Therefore, not encouraging or endorsing this code style doesn't hold true anymore.
+
+The language has also seen the introduction of [parameter packs](https://github.com/apple/swift-evolution/blob/main/proposals/0393-parameter-packs.md), which enables APIs that are generic over variable numbers of type parameters, and code generation tools like plugins and macros that, with trailing comma support, wouldn't have to worry about a special condition for the last element when generating comma-separated lists.
 
 ## Proposed solution
 
 This proposal adds support for trailing commas in comma-separated lists when there's a clear terminator, which are the following:
 
-- Tuples and tuple patterns 
+- Tuples and tuple patterns.
 
 ```swift
 (1, 2,)
@@ -58,7 +58,7 @@ let (a, b,) = (1, 2,)
 for (a, b,) in zip(s1, s2) { }
 ```
 
-- Declaration and call site for arguments lists of initializers, functions, associated values, built-in attributes, expression macros, attached macros and availability spec.
+- Parameter and argument lists of initializers, functions, enum associated values, expression macros, attributes, and availability specs.
 
 ```swift
 
@@ -149,7 +149,7 @@ let s = "\(1, 2,)"
 
 ## Detailed Design
 
-Trailing comma will be supported in comma-separated lists whenever there is a terminator clear enough that the parser can determine the end of the list. The terminator can be the symbols like `)`, `]`, `>`, `{` and `:`, a keyword like `where` or a pattern code like the body of a `if`, `guard` and `while` statement.
+Trailing commas will be supported in comma-separated lists whenever there is a terminator clear enough that the parser can determine the end of the list. The terminator can be the symbols like `)`, `]`, `>`, `{` and `:`, a keyword like `where` or a pattern code like the body of a `if`, `guard` and `while` statement.
 
 Note that the requirement for a terminator means that the following cases will not support trailing comma:
 
@@ -161,7 +161,7 @@ enum E {
 }
 ```
 
-Inheritance clauses for associated type in a protocol declaration:
+Inheritance clauses for associated types in a protocol declaration:
 
 ```swift
 protocol Foo {
@@ -169,7 +169,7 @@ protocol Foo {
 }
 ```
 
-Generic `where` clauses for initializers and functions in protocol declaration:
+Generic `where` clauses for initializers and functions in a protocol declaration:
 
 ```swift
 protocol Foo {
@@ -177,7 +177,7 @@ protocol Foo {
 }
 ```
 
-Trailing comma will be allowed in single-element lists but not in zero-element lists, since the trailing comma is actually attached to the last element. Supporting a zero-element list would require supporting _leading_ commas, which isn't what this proposal is about.
+Trailing commas will be allowed in single-element lists but not in zero-element lists, since the trailing comma is actually attached to the last element. Supporting a zero-element list would require supporting _leading_ commas, which isn't what this proposal is about.
 
 ```swift
 (1,) // OK
@@ -201,6 +201,7 @@ if
 ```
 
 Currently the parser uses the last comma to determine that whatever follows is the last condition, so `{ return true }` is a condition and `{ print("something") }` is the `if` body.
+
 With trailing comma support, the parser will terminate the condition list before the first block that is a valid `if` body, so `{ return true }` will be parsed as the `if` body and `{ print("something") }` will be parsed as an unused closure expression.
 
 ```swift
