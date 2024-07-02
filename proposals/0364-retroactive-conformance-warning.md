@@ -10,7 +10,8 @@
          ([first review](https://forums.swift.org/t/se-0364-warning-for-retroactive-conformances-of-external-types/58922))
         ([second review](https://forums.swift.org/t/second-review-se-0364-warning-for-retroactive-conformances-of-external-types/64615))
            ([acceptance](https://forums.swift.org/t/accepted-se-0364-warning-for-retroactive-conformances-of-external-types/65015))
-           ([amendment](https://forums.swift.org/t/amendment-se-0364-allow-same-package-conformances/71877))
+            ([amendment](https://forums.swift.org/t/amendment-se-0364-allow-same-package-conformances/71877))
+           ([acceptance](https://forums.swift.org/t/accepted-amendment-se-0364-allow-same-package-conformances/72880))
 
 ## Introduction
 
