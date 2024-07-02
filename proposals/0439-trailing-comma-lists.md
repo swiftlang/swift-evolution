@@ -35,7 +35,7 @@ let numbers = [1, 2, 0, 3, 4, 0, 0, 5]
     
 let subsequences = numbers.split(
     separator: 0,
-//        maxSplits: 1
+//    maxSplits: 1
 ) ❌ Unexpected ',' separator
 ```
 
@@ -52,36 +52,19 @@ This proposal adds support for trailing commas in comma-separated lists when the
 - Tuples and tuple patterns.
 
 ```swift
-(
-  1,
-  2,
-)
 
-let block: (
-    Int,
-    Int,
-) -> Void = {
-    (
-      a,
-      b,
-    ) in
- }
+let velocity = (
+    1.66007664274403694e-03,
+    7.69901118419740425e-03,
+    6.90460016972063023e-05,
+)
 
 let (
-      a,
-      b,
-) = (
-      1,
-      2,
-)
+    velocityX,
+    velocityY,
+    velocityZ,
+) = velocity
 
-for (
-     a,
-     b,
-) in zip(
-     s1,
-     s2,
-) { }
 ```
 
 - Parameter and argument lists of initializers, functions, enum associated values, expression macros, attributes, and availability specs.
@@ -89,45 +72,47 @@ for (
 ```swift
 
 func foo(
-    a: Int,
-    b: Int,
+    input1: Int = 0,
+    input2: Int = 0,
 ) { }
 
 foo(
-    a: 1,
-    b: 1,
+    input1: 1,
+    input2: 1,
 )
 
 struct S {
     init(
-        a: Int,
-        b: Int,
+        input1: Int = 0,
+        input2: Int = 0,
     ) { }
 }
 
 enum E {
     case foo(
-        a: Int,
-        b: Int,
+        input1: Int = 0,
+        input2: Int = 0,
     )
 }
 
 @Foo(
-    1,
-    2,
-    3,
+    "input 1",
+    "input 2",
+    "input 3",
 ) 
 struct S { }
 
 #foo(
-    1,
-    2,
+    "input 1",
+    "input 2",
+    "input 3",
 )
 
 struct S {
     #foo(
-        1,
-        2,
+        "input 1",
+        "input 2",
+        "input 3",
     )
 }
 
@@ -160,18 +145,18 @@ f(\.[
 
 ```swift
 if
-   a,
-   b,
+    condition1,
+    condition2,
 { }
 
 while
-     a,
-     b,
+    condition1,
+    condition2,
 { }
 
 guard
-    a,
-    b,
+    condition1,
+    condition2,
 else { }
 ```
 
@@ -193,8 +178,8 @@ switch number {
 
 ```swift
 { [
-    a,
-    b,
+    capturedValue1,
+    capturedValue2,
   ] in
 }
 ```
