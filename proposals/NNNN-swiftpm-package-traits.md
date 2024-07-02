@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-swiftpm-package-traits.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch), [Max Desiatov](https://github.com/MaxDesiatov)
 * Review Manager: TBD
-* Status: **Implemented**
+* Status: **Experimental implementation available, gated on `@_spi(ExperimentalTraits)` in package manifests and `--experimental` prefix for CLI options**
 
 - https://github.com/swiftlang/swift-package-manager/pull/7704
 - https://github.com/swiftlang/swift-package-manager/pull/7703
