@@ -34,7 +34,7 @@ Other comma-separated lists in the language could also benefit from the flexibil
 let numbers = [1, 2, 0, 3, 4, 0, 0, 5]
     
 let subsequences = numbers.split(
-	separator: 0,
+    separator: 0,
 //        maxSplits: 1
 ) ❌ Unexpected ',' separator
 ```
@@ -52,65 +52,137 @@ This proposal adds support for trailing commas in comma-separated lists when the
 - Tuples and tuple patterns.
 
 ```swift
-(1, 2,)
-let block: (Int, Int,) -> Void = { (a, b,) in  }
-let (a, b,) = (1, 2,)
-for (a, b,) in zip(s1, s2) { }
+(
+  1,
+  2,
+)
+
+let block: (
+    Int,
+    Int,
+) -> Void = {
+    (
+      a,
+      b,
+    ) in
+ }
+
+let (
+      a,
+      b,
+) = (
+      1,
+      2,
+)
+
+for (
+     a,
+     b,
+) in zip(
+     s1,
+     s2,
+) { }
 ```
 
 - Parameter and argument lists of initializers, functions, enum associated values, expression macros, attributes, and availability specs.
 
 ```swift
 
-func foo(a: Int, b: Int,) { }
+func foo(
+    a: Int,
+    b: Int,
+) { }
 
-foo(a: 1, b: 1,)
+foo(
+    a: 1,
+    b: 1,
+)
 
 struct S {
-    init(a: Int, b: Int,) { }
+    init(
+        a: Int,
+        b: Int,
+    ) { }
 }
 
 enum E {
-    case foo(a: Int, b: Int,)
+    case foo(
+        a: Int,
+        b: Int,
+    )
 }
 
-@Foo(1, 2, 3,) 
+@Foo(
+    1,
+    2,
+    3,
+) 
 struct S { }
 
-f(_: @foo(1, 2,) Int)
-
-#foo(1, 2,)
+#foo(
+    1,
+    2,
+)
 
 struct S {
-    #foo(1, 2,)
+    #foo(
+        1,
+        2,
+    )
 }
 
-if #unavailable(iOS 15, watchOS 9,) { }
+if #unavailable(
+    iOS 15,
+    watchOS 9,
+) { }
 
 ```
 - Subscripts, including key path subscripts.
 
 ```swift
-let value = m[x, y,]
+let value = m[
+    x,
+    y,
+]
 
-let keyPath = \Foo.bar[x,y,]  
+let keyPath = \Foo.bar[
+    x,
+    y,
+]  
 
-f(\.[x,y,])
+f(\.[
+    x,
+    y,
+])
 ```
 
 - `if`, `guard` and `while` condition lists.
 
 ```swift
-if a, b, { }
-while a, b, { }
-guard a, b, else { }
+if
+   a,
+   b,
+{ }
+
+while
+     a,
+     b,
+{ }
+
+guard
+    a,
+    b,
+else { }
 ```
 
 - `switch` case labels.
 
 ```swift
 switch number {
-    case 1, 2,:
+    case
+        1,
+        2,
+    :
         ...
     default:
         ..
@@ -120,25 +192,44 @@ switch number {
 - Closure capture lists.
 
 ```swift
-{ [a, b,] in }
+{ [
+    a,
+    b,
+  ] in
+}
 ```
 
 - Inheritance clauses.
 
 ```swift
-struct S: P1, P2, P3, { }
+struct S:
+    P1,
+    P2,
+    P3,
+{ }
 ```
 
 - Generic parameters.
 
 ```swift
-struct S<T1, T2, T3,> { }
+struct S<
+    T1,
+    T2,
+    T3,
+> { }
 ```
 
 - Generic `where` clauses.
 
 ```swift
-struct S<T1, T2, T3> where T1: P1, T2: P2, { }
+struct S<
+    T1,
+    T2,
+    T3
+> where
+    T1: P1,
+    T2: P2,
+{ }
 ```
 
 - String interpolation
@@ -157,7 +248,10 @@ Enum case label lists:
 
 ```swift
 enum E {
-  case a, b, c, // ❌ Expected identifier after comma in enum 'case' declaration
+  case
+     a,
+     b,
+     c, // ❌ Expected identifier after comma in enum 'case' declaration
 }
 ```
 
@@ -165,7 +259,9 @@ Inheritance clauses for associated types in a protocol declaration:
 
 ```swift
 protocol Foo {
-  associatedtype T: P1, P2, // ❌ Expected type
+  associatedtype T:
+      P1,
+      P2, // ❌ Expected type
 }
 ```
 
@@ -173,11 +269,13 @@ Generic `where` clauses for initializers and functions in a protocol declaration
 
 ```swift
 protocol Foo {
-  func f<T1, T2>(a: T1, b: T2) where T1: P1, T2: P2, // ❌ Expected type
+  func f<T1, T2>(a: T1, b: T2) where
+      T1: P1,
+      T2: P2, // ❌ Expected type
 }
 ```
 
-Trailing commas will be allowed in single-element lists but not in zero-element lists, since the trailing comma is actually attached to the last element. Supporting a zero-element list would require supporting _leading_ commas, which isn't what this proposal is about.
+Trailing commas will be allowed in single-element lists but not in zero-element lists, since the trailing comma is actually attached to the last element. Supporting a zero-element list would require supporting _leading_ commas, which isn't what this proposal is about.
 
 ```swift
 (1,) // OK
