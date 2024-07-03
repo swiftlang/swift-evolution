@@ -800,7 +800,7 @@ This is discussed more fully in the [indexing appendix](#Indexing) below.
 
 #### Coroutine Accessors
 
-This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language, but are necessary for a type to provide borrowing access to its internal storage. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` will be adapted to the new syntax.
+This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language, but are necessary for some types to be able to provide borrowing access to their internal storage. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` will be adapted to the new syntax.
 
 #### <a name="SurjectiveBitPattern"></a>Layout constraint for surjective maps of bit patterns
 
