@@ -1,11 +1,11 @@
-# Feature name
+# DebugDescription Macro
 
 * Proposal: [SE-0440](0440-debug-description-macro.md)
 * Authors: [Dave Lee](https://github.com/kastiglione)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (July 5-July 16, 2024)**
 * Implementation: Present in `main` under experimental feature `DebugDescriptionMacro` [apple/swift#69626](https://github.com/apple/swift/pull/69626)
-* Review: ([pitch](https://forums.swift.org/t/pitch-debug-description-macro/67711))(review)
+* Review: ([pitch](https://forums.swift.org/t/pitch-debug-description-macro/67711))([review](https://forums.swift.org/t/se-0440-debugdescription-macro/72958))
 
 ## Introduction
 
