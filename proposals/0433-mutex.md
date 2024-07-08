@@ -110,7 +110,7 @@ public struct Mutex<State: ~Copyable>: ~Copyable {
 extension Mutex: Sendable where State: ~Copyable {}
   
 extension Mutex where State: ~Copyable {
-  /// Calls the given closure after acquring the lock and then releases
+  /// Calls the given closure after acquiring the lock and then releases
   /// ownership.
   ///
   /// This method is equivalent to the following sequence of code:
