@@ -896,6 +896,18 @@ func f(arg1: borrow ContiguousArray<Int>) -> borrow(arg1) Span<Int>
 ```
 This was changed after we realized that there was in practice almost always a single viable semantic for any given situation, so the additional refinement seemed unnecessary.
 
+The currently proposed `dependsOn` spelling was chosen to convey the direction of the dependence, as in:
+
+    func foo(a: A, b: B) -> dependsOn(a) R
+
+This does, however, introduce compound keyword. Alternatively, we could use a simpler `lifetime` keyword, which better matches the feature description. The general syntax would then be:
+
+> **lifetime**(*target*: [scoped] *source*)
+
+APIs with ambiguous depenencies would then typically be spelled:
+
+    func foo(a: A, b: B) -> lifetime(a) R
+
 ### dependsOn(unchecked) to disable lifetime dependence checking
 
 A `dependsOn(unchecked)` annotation could allow programmers to disable lifetime dependence checking for a function result or argument. For example, the programmer may want to compose a nonescapable result from an immortal value that isn't visible to the compiler:
