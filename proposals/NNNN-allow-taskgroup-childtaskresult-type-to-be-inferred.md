@@ -17,15 +17,15 @@ Currently to create a new task group, there are two generics involved: `ChildTas
 
 ```swift
 let s = withTaskGroup(of: Void.self) { group in
-  group.addTask { /* ... */ }
-  group.addTask { /* ... */ }
-  group.addTask { /* ... */ }
+  group.addTask { someVoidFunction() }
+  group.addTask { someVoidFunction() }
+  group.addTask { someVoidFunction() }
 
   return "Hello, world!"
 }
 ```
 
-The type of `s` (which is the `GroupResult` type) is correctly inferred as `String`.  However, the return value of the `addTask` closures is not inferred and currently must be supplied to the `of:` parameter of the `withTaskGroup(of:returning:body:)` function (e.g. `Void`).
+The type of `s` (which is the `GroupResult` type) is correctly inferred as `String`.  However, the return value of the `addTask` closures is not inferred and currently must be supplied to the `of:` parameter of the `withTaskGroup(of:returning:body:)` function (e.g. `Void`).  The correct value of the generic can be non-intuitive for new users to the task group APIs.
 
 Note that `withDiscardingTaskGroup(returning:body:)` and `withThrowingDiscardingTaskGroup(returning:body:)` do not have `ChildTaskResult` generics since their child tasks must always be of type `Void`.
 
@@ -57,9 +57,9 @@ This allows the original example above to be simplified:
 
 ```swift
 let s = withTaskGroup { group in
-  group.addTask { /* ... */ }
-  group.addTask { /* ... */ }
-  group.addTask { /* ... */ }
+  group.addTask { someVoidFunction() }
+  group.addTask { someVoidFunction() }
+  group.addTask { someVoidFunction() }
 
   return "Hello, world!"
 }
@@ -69,24 +69,24 @@ In the above snippet, `ChildTaskResult` is inferred as `Void` and `GroupResult` 
 
 ## Detailed design
 
-Because [SE-0326](0326-extending-multi-statement-closure-inference.md) will look at the first statement to determine the generic for `ChildTaskResult`, it is possible to get a compiler error by creating a task group like so:
+Because type inference is top-down, it relies on the first statement that uses `group` to infer determine the generic for `ChildTaskResult`.  Therefore, it is possible to get a compiler error by creating a task group where the first use of `group` does not use `addTask(...)`, like so:
 
 ```swift
 // Expect `ChildTaskResult` to be `Void`...
-withTaskGroup { group in // generic parameter 'ChildTaskResult' could not be inferred
-    // Since `addTask` wasn't the first statement, this fails to compile.
+withTaskGroup { group in // Generic parameter 'ChildTaskResult' could not be inferred
+    // Since `addTask(...)` wasn't the first statement, this fails to compile.
     group.cancelAll()
-    group.addTask { /* ... */ }
+    group.addTask { 42 }
 }
 ```
 
 This can be fixed by going back to specifying the generic like before:
 
 ```swift
-// Expect `ChildTaskResult` to be `Void`...
-withTaskGroup(of: Void.self) { group in
+// Expect `ChildTaskResult` to be `Int`...
+withTaskGroup(of: Int.self) { group in
     group.cancelAll()
-    group.addTask { /* ... */ }
+    group.addTask { 42 }
 }
 ```
 
