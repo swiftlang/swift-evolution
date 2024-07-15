@@ -99,7 +99,7 @@ The `-swift-version` option will continue to work as it currently does, preservi
 
 The `-language-mode` option will be presented in the compiler help.
 
-The `-swift-version` option will likely be suppressed from the top-level help of the compiler. More investigation is needed on the details of this.
+The `-swift-version` option will be suppressed from the top-level help of the compiler.
 
 ### Swift Package Manager
 Proposed Swift Package Manager API changes are limited to manifests \>= 6.0:
@@ -174,7 +174,7 @@ For 6.0 and later, that access will be a warning with a fix-it to use the new pr
 See the **Source compatibility** section for more details about this change.
 
 ### Rename `SwiftVersion` enum to `SwiftLanguageMode`
-Rename the existing `SwiftVersion` enum to `SwiftLanguageMode` with `SwiftVersion` added back as a type alias for backwards compatibility.
+Rename the existing `SwiftVersion` enum to `SwiftLanguageMode` with `SwiftVersion` added back as a type alias for backwards compatibility. The type alias will be deprecated in 6.0 with a `renamed` annotation to `SwiftLanguageMode`.
 
 This change will not affect serialization of PackageDescription types. Serialization is handled by converting PackageDescription types into separate, corresponding Codable types. The existing serialization types will remain as-is.
 
@@ -193,7 +193,7 @@ public struct SwiftSetting {
  )
 ```
 
-The name of the function is `swiftLanguageMode()` instead of `languageMode()` to keep naming consistent with the `swiftLanguageModes` parameter of the Package init method. The parameter label `mode` is used to follow the precedent set by `interoperabilityMode()` in `SwiftSetting`.
+The name of the function is `swiftLanguageMode()` instead of `languageMode()` to keep naming consistent with the `swiftLanguageModes` parameter of the Package init method. The parameter label `mode` is used to follow the precedent set by the existing `interoperabilityMode()` method in `SwiftSetting`.
 
 Deprecate the `swiftLanguageVersion()` setting added by SE-0435 with a `renamed` annotation to provide a fix-it for developers who have adopted this API in pre-release versions of Swift 6.0.:
 
@@ -220,7 +220,11 @@ Because the obsoleted `init` method is annotated as `renamed` the compiler will 
 
 Renaming the public `swiftLanguageVersions` property of `Package` preserves backwards compatibility by introducing a computed property with that name. The computed property will be marked as `deprecated` in 6.0 and annotated as `renamed` to provide a fix-it.
 
-Searching manifest files in public repositories suggests that accessing the `swiftLanguageVersions` property directly is not common. Making both breaking changes at once results in applying at most two fix-its to a manifest file instead of one.
+Searching manifest files in public repositories suggests that accessing the `swiftLanguageVersions` property directly is not common.
+
+The `SwiftVersion` type alias will be deprecated in favor of the `SwiftLanguageMode` enum. This also will provide a fix-it.
+
+Finally the `swiftLanguageVersion()` method in `SwiftSetting` added as part of SE-0435 will be deprecated in favor of the `swiftLanguageMode()` method with a fix-it.
 
 ## ABI compatibility
 This proposal has no effect on ABI stability.
