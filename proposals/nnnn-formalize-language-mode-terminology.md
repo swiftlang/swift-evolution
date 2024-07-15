@@ -22,7 +22,7 @@ The **Alternatives Considered** section contains a more detailed discussion of t
 Introduce a `-language-mode` option that has the same behavior as the existing `-swift-version` option, while de-emphasizing the `-swift-version` option in help and documentation.
 
 #### Naming note
-The proposed compiler option uses the term 'language mode' instead of 'Swift language mode' because the context of the usage strongly implies a Swift language mode. The intent is that the `languageMode()` compiler condition described in **Future directions** would also use that naming convention for the same reason.
+The proposed compiler option uses the term 'language mode' instead of 'Swift language mode' because the context strongly implies a Swift language mode. The intent is that the `languageMode()` compiler condition described in **Future directions** would also use that naming convention for the same reason.
 
 ### Swift Package Manager
 Introduce four Swift Package Manager API changes limited to manifests \>= 6.0:
@@ -46,10 +46,10 @@ Package(
 
 Add a new `init` method to `Package` with the following changes from the current `init` method:
 
-- The paramater `swiftLanguageVersions` is renamed to `swiftLanguageModes`
+- The parameter `swiftLanguageVersions` is renamed to `swiftLanguageModes`
 - The parameter type is now an optional array of `SwiftLanguageMode` values instead of `SwiftVersion` values
 
-The existing init method will be marked as obsolete and renamed allowing the compiler to provide a fix-it.
+The existing init method will be marked as `obsoleted` and `renamed` allowing the compiler to provide a fix-it.
 
 #### 2. Rename `swiftLanguageVersions` property to `swiftLanguageModes`
 Rename the public `Package` property `swiftLanguageVersions` to `swiftLanguageModes`. Add a `swiftLanguageVersions` computed property that accesses `swiftLanguageModes` for backwards compatibility. 
@@ -59,7 +59,7 @@ Rename the public `Package` property `swiftLanguageVersions` to `swiftLanguageMo
 Rename the `SwiftVersion` enum to `SwiftLanguageMode`. Add `SwiftVersion` as a type alias for backwards compatibility.
 
 
-#### 4. Update API accepted in [SE-0435: Swift Language Version Per Target](https://github.com/apple/swift-evolution/blob/main/proposals/0435-swiftpm-per-target-swift-language-version-setting.md):
+#### 4. Add `swiftLanguageMode()` to `SwiftSetting`
 
 ```swift
 public struct SwiftSetting {
@@ -72,7 +72,7 @@ public struct SwiftSetting {
  )
 ```
 
-If both proposals are implemented in the same release, the accepted SE-0435 API would be added with the proposed naming change.
+The changes in [SE-0435: Swift Language Version Per Target](https://github.com/apple/swift-evolution/blob/main/proposals/0435-swiftpm-per-target-swift-language-version-setting.md) have been implemented and released in pre-release versions of Swift 6.0. This proposal will add `swiftLanguageMode()` as a `SwiftSetting` and deprecate the `swiftLanguageVersion()` setting added by SE-0435 with a `renamed` annotation.
 
 #### Naming note
 
@@ -99,7 +99,7 @@ The `-swift-version` option will continue to work as it currently does, preservi
 
 The `-language-mode` option will be presented in the compiler help.
 
-The `-swift-version` option will likely be supressed from the top-level help of the compiler. More investigation is needed on the details of this.
+The `-swift-version` option will likely be suppressed from the top-level help of the compiler. More investigation is needed on the details of this.
 
 ### Swift Package Manager
 Proposed Swift Package Manager API changes are limited to manifests \>= 6.0:
@@ -123,7 +123,7 @@ Package(
 ```
 
 
-The existing init method will be marked as obsoleted and renamed, allowing the compiler to provide a fix-it:
+The existing init method will be marked as `obsoleted` and `renamed`, allowing the compiler to provide a fix-it:
 
 ```
 @available(_PackageDescription, introduced: 5.3, obsoleted: 6, renamed:
@@ -157,29 +157,30 @@ See the **Source compatibiity** section for more details about this change.
 ### Rename `swiftLanguageVersions` property to `swiftLanguageModes`
 Rename the `Package` public property `swiftLanguageVersions` to `swiftLanguageModes`. Introduce a computed property named `swiftLanguageModes` that accesses the renamed stored property for backwards compatibility.
 
-The computed property will be annotated as obsoleted in Swift 6, renamed to `swiftLanguageModes`.
+The computed property will be annotated as `deprecated` in Swift 6 and `renamed` to `swiftLanguageModes`.
 
-For packages with swift tools version less than 6.0, accessing the `swiftLanguageModes` property will continue to work.  
-For 6.0 and later, that access will be an error with a fix-it to use the new property name.
+For packages with swift tools version less than 6.0, accessing the `swiftLanguageModes` property will continue to work.
+
+For 6.0 and later, that access will be a warning with a fix-it to use the new property name.
 
 ```swift
-	@available(_PackageDescription, obsoleted: 6, renamed: "swiftLanguageModes")
+	@available(_PackageDescription, deprecated: 6.0, renamed: "swiftLanguageModes")
 	public var swiftLanguageVersions: [SwiftVersion]? {
 		get { swiftLanguageModes }
 		set { swiftLanguageModes = newValue }
 	}
 ```
 
-See the **Source compatibiity** section for more details about this change.
+See the **Source compatibility** section for more details about this change.
 
 ### Rename `SwiftVersion` enum to `SwiftLanguageMode`
 Rename the existing `SwiftVersion` enum to `SwiftLanguageMode` with `SwiftVersion` added back as a type alias for backwards compatibility.
 
-This change will not affect serializaiton of PackageDescription types. Serialization is handled by converting PackageDescription types into separate, corresponding Codable types. The existing serialization types will remain as-is.
+This change will not affect serialization of PackageDescription types. Serialization is handled by converting PackageDescription types into separate, corresponding Codable types. The existing serialization types will remain as-is.
 
 
-### Rename API added in SE-0435
-The API in the newly-accepted [SE-0435](https://github.com/apple/swift-evolution/blob/main/proposals/0435-swiftpm-per-target-swift-language-version-setting.md) will change to use the _language mode_ terminology:
+### Add `swiftLanguageMode()` to `SwiftSetting`
+Add a new `swiftLanguageMode()` static function to `SwiftSetting` with the same behavior of `swiftLanguageBehavior()` added by [SE-0435](https://github.com/apple/swift-evolution/blob/main/proposals/0435-swiftpm-per-target-swift-language-version-setting.md):
 
 ```swift
 public struct SwiftSetting {
@@ -194,6 +195,22 @@ public struct SwiftSetting {
 
 The name of the function is `swiftLanguageMode()` instead of `languageMode()` to keep naming consistent with the `swiftLanguageModes` parameter of the Package init method. The parameter label `mode` is used to follow the precedent set by `interoperabilityMode()` in `SwiftSetting`.
 
+Deprecate the `swiftLanguageVersion()` setting added by SE-0435 with a `renamed` annotation to provide a fix-it for developers who have adopted this API in pre-release versions of Swift 6.0.:
+
+```swift
+public struct SwiftSetting {
+  // ... other settings
+  
+  @available(_PackageDescription, introduced: 6.0, deprecated: 6.0, renamed: "swiftLanguageMode(_:_:)")
+  public static func swiftLanguageVersion(
+	  _ version: SwiftVersion,
+	  _ condition: BuildSettingCondition? = nil
+  ) -> SwiftSetting {
+	 ...
+  }
+}
+```
+
 ## Source compatibility
 The new Package `init` method and obsoleting of the existing `init` method will cause source breakage for package manifests that specify the existing `swiftLanguageVersions` parameter when updating to swift tools version 6.0
 
@@ -201,7 +218,7 @@ A search of manifest files in public repositories suggests that about 10% of man
 
 Because the obsoleted `init` method is annotated as `renamed` the compiler will automatically provide a fix-it to update to the new `init` method.
 
-Renaming the public `swiftLanguageVersions` property of `Package` preserves backwards compatibility by introducing a computed property with that name. Because this proposal already contains a necessary breaking change as detailed above, the computed property will also be marked as obsoleted in 6.0 and annotated as `renamed` to provide a fix-it.
+Renaming the public `swiftLanguageVersions` property of `Package` preserves backwards compatibility by introducing a computed property with that name. The computed property will be marked as `deprecated` in 6.0 and annotated as `renamed` to provide a fix-it.
 
 Searching manifest files in public repositories suggests that accessing the `swiftLanguageVersions` property directly is not common. Making both breaking changes at once results in applying at most two fix-its to a manifest file instead of one.
 
@@ -211,7 +228,7 @@ This proposal has no effect on ABI stability.
 ## Future directions
 This proposal originally included the proposed addition of a `languageMode()` compilation condition to further standardize on the terminology and allow the compiler to check for valid language mode values.
 
-That functionality has been removed from this proposal with the intent to pitch it seperately. Doing so keeps this proposal focused on the tools, including the source breaking API changes. The future direction is purely additive and would focus on the language change. 
+That functionality has been removed from this proposal with the intent to pitch it separately. Doing so keeps this proposal focused on the tools, including the source breaking API changes. The future direction is purely additive and would focus on the language change. 
 
 ## Alternatives considered
 
@@ -223,7 +240,7 @@ The intent of this proposal is to formalize established terminology in tool opti
 
 The term _language mode_ is a long-established term of art in the Swift community to describe this functionality in the compiler.
 
-This includes the [blog post](https://www.swift.org/blog/swift-4.0-released/) annoucing the functionality as part of the release of Swift 4 in 2017 (emphasis added):
+This includes the [blog post](https://www.swift.org/blog/swift-4.0-released/) announcing the functionality as part of the release of Swift 4 in 2017 (emphasis added):
 
 > With Swift 4, you may not need to modify your code to use the new version of the compiler. The compiler supports two _language modes_…
 
@@ -264,3 +281,7 @@ On consideration, this concern is mitigated in two ways:
 >   Pass the `-embedded` compiler flag to compile Embedded Swift.
 
 Considering these alternatives, it seems likely that introducing a new term to replace the long-established term _language mode_ and potentially giving the existing term a new meaning would lead to more ambiguity than keeping and formalizing the existing meaning of _language mode_.
+
+## Acknowledgments
+
+Thank you to Pavel Yaskevich for providing guidance and assistance in the implementation of this proposal.
