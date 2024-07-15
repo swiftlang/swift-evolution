@@ -1,9 +1,9 @@
 # Pitch: Formalize ‘language mode’ terminology
 
-* Proposal: [SE-NNNN](nnnn-formalize-language-mode-terminology.md)
+* Proposal: [SE-0441](0441-formalize-language-mode-terminology.md)
 * Author: [James Dempsey](https://github.com/dempseyatgithub)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (July 15th...29th, 2024)**
 * Implementation: [apple/swift-package-manager#7620](https://github.com/apple/swift-package-manager/pull/7620)
 * Review: ([first pitch](https://forums.swift.org/t/pitch-formalize-swift-language-mode-naming-in-tools-and-api/71733)), ([second pitch](https://forums.swift.org/t/pitch-2-formalize-language-mode-naming-in-tools-and-api/72136))
 
