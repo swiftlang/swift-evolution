@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (July 15th...29th, 2024)**
 * Implementation: [apple/swift-package-manager#7620](https://github.com/apple/swift-package-manager/pull/7620)
-* Review: ([first pitch](https://forums.swift.org/t/pitch-formalize-swift-language-mode-naming-in-tools-and-api/71733)), ([second pitch](https://forums.swift.org/t/pitch-2-formalize-language-mode-naming-in-tools-and-api/72136)) ([review](https://forums.swift.org/t/se-0441-formalize-language-mode-terminology/73182))
+* Review: ([first pitch](https://forums.swift.org/t/pitch-formalize-swift-language-mode-naming-in-tools-and-api/71733)) ([second pitch](https://forums.swift.org/t/pitch-2-formalize-language-mode-naming-in-tools-and-api/72136)) ([review](https://forums.swift.org/t/se-0441-formalize-language-mode-terminology/73182))
 
 ## Introduction
 The term "Swift version” can refer to either the toolchain/compiler version or the language mode. This ambiguity is a consistent source of confusion. This proposal formalizes the term _language mode_ in tool options and APIs.
