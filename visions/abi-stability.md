@@ -98,7 +98,9 @@ based on system versions.
 
 Like Apple platforms, Windows is ABI stable at the API layer; SPIs are
 not officially ABI stable (though in practice they may be), and
-neither is the system call interface itself.
+neither is the system call interface itself.  Note, though, that there
+is a wrinkle here---the C/C++ runtime is _not_ part of the Windows
+API, and does not form part of the ABI boundary.
 
 Windows has a platform-wide exception handling mechanism (Structured
 Exception Handling or SEH), which means that the operating system
@@ -108,7 +110,12 @@ unwinding, but instead relies on knowledge of the standard function
 prologue and epilogue.  This creates problems for tail call
 optimization, which is also needed for Swift Concurrency.  While we
 have *a* solution in place, we need to be convinced that it's the
-*right* solution before declaring ABI stability on Windows.
+*right* solution before declaring ABI stability on Windows.  Also
+unlike other systems, SEH unwinding can be triggered by *asynchronous*
+exceptions, which can occur during the prologue or epilogue, which
+means we can't simply declare that e.g. async functions don't need to
+follow the standard ABI here (since we aren't in charge of when these
+might happen).
 
 Windows DLLs also have some interesting design features that need to
 be borne in mind here.  In particular, symbols exported from DLLs can
@@ -190,6 +197,42 @@ those libraries are themselves ABI stable_.  Python's "manylinux"
 package builds take this approach, but have to restrict themselves as
 a result to a small subset of libraries that are known to be ABI
 stable.
+
+## Declaring ABI Stability
+
+Supported platforms for Swift must have a Platform Owner.  Because a
+declaration of ABI stability for a platform has implications for
+compiler and runtime engineers who do not develop on that platform, we
+intend to set a high bar for declaring ABI stability.  As such, to
+become officially ABI stable:
+
+1. The Platform Owner will raise a Swift Evolution proposal for
+   platform ABI stability.  The actual proposal could come from
+   someone other than the Platform Owner, but if so, the Platform
+   Owner will be asked to indicate their support for the proposal.
+
+2. The proposal should address, at a minimum:
+
+   - Calling conventions, including `async`.
+   - Layout of data structures.
+   - Representations of scalar types (e.g. size of `Int`/`UInt`).
+   - API availability mechanisms.
+   - Linkage issues (particularly regarding dynamic libraries).
+
+   It is acceptable, and indeed encouraged, to refer to other
+   documentation (e.g. the Itanium ABI, documents in the `doc`
+   directory in the Swift repo), as well as to the behaviour of
+   existing ABI stable platforms.
+
+3. The proposal should also address any unique platform features
+   that may be relevant (e.g. Windows DLL behaviour, exception
+   handling concerns and so on).
+
+4. The Platform Steering Group will review the proposal.  If the
+   PSG and the Platform Owner agree that all relevant concerns have
+   been met, the platform will be declared ABI Stable and all future
+   changes to the compiler, runtime or standard library will be
+   expected to maintain ABI stability for that platform.
 
 ## Goals
 
