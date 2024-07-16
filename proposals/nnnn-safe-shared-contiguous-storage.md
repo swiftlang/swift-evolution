@@ -342,7 +342,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// - Parameter maxLength: The maximum number of elements to return.
   ///   `maxLength` must be greater than or equal to zero.
   /// - Returns: A span with at most `maxLength` elements.
-  borrowing public func extracting(first maxLength: Int) -> Self
+  public func extracting(first maxLength: Int) -> Self
 
   /// Returns a span over all but the given number of trailing elements.
   ///
@@ -356,7 +356,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// - Parameter k: The number of elements to drop off the end of
   ///   the span. `k` must be greater than or equal to zero.
   /// - Returns: A span leaving off the specified number of elements at the end.
-  borrowing public func extracting(droppingLast k: Int) -> Self
+  public func extracting(droppingLast k: Int) -> Self
 
   /// Returns a span containing the final elements of the span,
   /// up to the given maximum length.
@@ -371,7 +371,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// - Parameter maxLength: The maximum number of elements to return.
   ///   `maxLength` must be greater than or equal to zero.
   /// - Returns: A span with at most `maxLength` elements.
-  borrowing public func extracting(last maxLength: Int) -> Self
+  public func extracting(last maxLength: Int) -> Self
 
   /// Returns a span over all but the given number of initial elements.
   ///
@@ -385,7 +385,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// - Parameter k: The number of elements to drop from the beginning of
   ///   the span. `k` must be greater than or equal to zero.
   /// - Returns: A span starting after the specified number of elements.
-  borrowing public func extracting(droppingFirst k: Int = 1) -> Self
+  public func extracting(droppingFirst k: Int) -> Self
 }
 ```
 
@@ -764,7 +764,7 @@ extension RawSpan {
 
   public func extracting(last maxLength: Int) -> Self
 
-  public func extracting(droppingFirst k: Int = 1) -> Self
+  public func extracting(droppingFirst k: Int) -> Self
 }
 ```
 
