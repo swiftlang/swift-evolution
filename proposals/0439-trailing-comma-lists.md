@@ -3,9 +3,9 @@
 - Proposal: [SE-0439](0439-trailing-comma-lists.md)
 - Author: [Mateus Rodrigues](https://github.com/mateusrodriguesxyz)
 - Review Manager: [Xiaodi Wu](https://github.com/xwu)
-- Status: **Active review (July 1...July 14, 2024)**
+- Status: **Accepted with modifications**
 - Implementation: https://github.com/swiftlang/swift/pull/74522# gated behind `-enable-experimental-feature TrailingComma`
-- Review: ([pitch](https://forums.swift.org/t/pitch-allow-trailing-comma-in-tuples-arguments-and-if-guard-while-conditions/70170)), ([review](https://forums.swift.org/t/se-0439-allow-trailing-comma-in-comma-separated-lists/72876))
+- Review: ([pitch](https://forums.swift.org/t/pitch-allow-trailing-comma-in-tuples-arguments-and-if-guard-while-conditions/70170)), ([review](https://forums.swift.org/t/se-0439-allow-trailing-comma-in-comma-separated-lists/72876)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0439-allow-trailing-comma-in-comma-separated-lists/73216))
 
 ## Introduction
 
