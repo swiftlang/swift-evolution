@@ -152,7 +152,7 @@ Package (  // Error: Ambiguous use of 'init'
 
 This follows the same approach used by all past revisions of the Package `init` method.
 
-See the **Source compatibiity** section for more details about this change.
+See the **Source compatibility** section for more details about this change.
 
 ### Rename `swiftLanguageVersions` property to `swiftLanguageModes`
 Rename the `Package` public property `swiftLanguageVersions` to `swiftLanguageModes`. Introduce a computed property named `swiftLanguageModes` that accesses the renamed stored property for backwards compatibility.
