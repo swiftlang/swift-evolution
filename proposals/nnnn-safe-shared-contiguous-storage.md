@@ -389,6 +389,32 @@ extension Span where Element: ~Copyable & ~Escapable {
 }
 ```
 
+##### Identifying whether a span is a subrange of another:
+
+When working with multiple `Span` instances, it is often desirable to know whether one is a subrange of another. We include a function to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span:
+
+```swift
+extension Span where Element: ~Copyable & ~Escapable {
+	/// Returns true if the memory represented by `span` is a subrange of
+  /// the memory represented by `self`
+  ///
+  /// Parameters:
+  /// - span: a span of the same type as `self`
+  /// Returns: whether `span` is a subrange of `self`
+  public func contains(_ span: borrowing Self) -> Bool
+  
+	/// Returns the offsets where the memory of `span` is located within
+  /// the memory represented by `self`
+  ///
+  /// Note: `span` must be a subrange of `self`
+  ///
+  /// Parameters:
+  /// - span: a subrange of `self`
+  /// Returns: A range of offsets within `self`
+  public func offsets(of span: borrowing Self) -> Range<Int>
+}
+```
+
 ##### Unchecked access to elements and subranges of elements:
 
 The `subscript` and the `extracting()` functions mentioned above all have always-on bounds checking of their parameters, in order to prevent out-of-bounds accesses. We also want to provide unchecked variants as an alternative for cases where bounds-checking is proving costly.
@@ -739,7 +765,7 @@ extension RawSpan {
 
 ##### Accessing subranges of elements:
 
-Similarly to `Span`, `RawSpan` does not support slicing in the style of `Collection`. It supports the same set of `extracting()` functions as `Span`. The documentation is omitted here, as it is substantially the same as for `Span`:
+Similarly to `Span`, `RawSpan` does not support slicing in the style of `Collection`. It supports the same set of `extracting()` functions as `Span`. The documentation is omitted here, as it is substantially the same as for the equivalent functions on `Span`:
 
 ```swift
 extension RawSpan {
@@ -765,6 +791,18 @@ extension RawSpan {
   public func extracting(last maxLength: Int) -> Self
 
   public func extracting(droppingFirst k: Int) -> Self
+}
+```
+
+##### Identifying whether a span is a subrange of another:
+
+When working with multiple `Span` instances, it is often desirable to know whether one is a subrange of another. We include a function to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span. The documentation is omitted here, as it is substantially the same as for the equivalent functions on `Span`:
+
+```swift
+extension RawSpan {
+  public func contains(_ span: borrowing Self) -> Bool
+  
+  public func offsets(of span: borrowing Self) -> Range<Int>
 }
 ```
 
