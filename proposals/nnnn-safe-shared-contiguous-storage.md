@@ -11,11 +11,11 @@
 
 ## Introduction
 
-We introduce `Span<T>`, an abstraction for container-agnostic access to contiguous memory. It will expand the expressivity of performant Swift code without comprimising on the memory safety properties we rely on: temporal safety, spatial safety, definite initialization and type safety.
+We introduce `Span<T>`, an abstraction for container-agnostic access to contiguous memory. It will expand the expressivity of performant Swift code without compromising on the memory safety properties we rely on: temporal safety, spatial safety, definite initialization and type safety.
 
 In the C family of programming languages, memory can be shared with any function by using a pointer and (ideally) a length. This allows contiguous memory to be shared with a function that doesn't know the layout of a container being used by the caller. A heap-allocated array, contiguously-stored named fields or even a single stack-allocated instance can all be accessed through a C pointer. We aim to create a similar idiom in Swift, without compromising Swift's memory safety.
 
-This proposal is related to two other features being proposed along with it: [Nonescapable types](https://github.com/apple/swift-evolution/pull/2304) (`~Escapable`) and [Compile-time Lifetime Dependency Annotations](https://github.com/swiftlang/swift-evolution/pull/2305), as well as related to the [BufferView roadmap](https://forums.swift.org/t/66211) forum thread. This proposal is also related to the following proposals:
+This proposal is related to two other features being proposed along with it: [Nonescapable types](https://github.com/swiftlang/swift-evolution/pull/2304) (`~Escapable`) and [Compile-time Lifetime Dependency Annotations](https://github.com/swiftlang/swift-evolution/pull/2305), as well as related to the [BufferView roadmap](https://forums.swift.org/t/66211) forum thread. This proposal is also related to the following proposals:
 - [SE-0426] BitwiseCopyable
 - [SE-0427] Noncopyable generics
 - [SE-0377] `borrowing` and `consuming` parameter ownership modifiers
@@ -61,7 +61,7 @@ By relying on borrowing, `Span` can provide simultaneous access to a non-copyabl
 
 ### `RawSpan`
 
-`RawSpan` allows sharing the contiguous internal representation for values which may be heterogenously-typed, such as in decoders. Since it is a fully concrete type, it can achieve better performance in debug builds of client code as well as a more straightforward understanding of performance in library code.
+`RawSpan` allows sharing the contiguous internal representation for values which may be heterogeneously-typed, such as in decoders. Since it is a fully concrete type, it can achieve better performance in debug builds of client code as well as a more straightforward understanding of performance in library code.
 
 `Span<some BitwiseCopyable>` can always be converted to `RawSpan`, using a conditionally-available property or a constructor.
 
@@ -395,7 +395,7 @@ When working with multiple `Span` instances, it is often desirable to know whet
 
 ```swift
 extension Span where Element: ~Copyable & ~Escapable {
-	/// Returns true if the memory represented by `span` is a subrange of
+  /// Returns true if the memory represented by `span` is a subrange of
   /// the memory represented by `self`
   ///
   /// Parameters:
@@ -403,7 +403,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// Returns: whether `span` is a subrange of `self`
   public func contains(_ span: borrowing Self) -> Bool
   
-	/// Returns the offsets where the memory of `span` is located within
+  /// Returns the offsets where the memory of `span` is located within
   /// the memory represented by `self`
   ///
   /// Note: `span` must be a subrange of `self`
@@ -543,7 +543,7 @@ extension Span where Element: BitwiseCopyable {
 
 ### RawSpan
 
-In addition to `Span<T>`, we propose the addition of `RawSpan`, to represent heterogenously-typed values in contiguous memory. `RawSpan` is similar to `Span<T>`, but represents _untyped_ initialized bytes. `RawSpan` is a specialized type that intends to support parsing and decoding applications, as well as applications where heavily-used code paths require concrete types as much as possible. Its API supports extracting sub-spans, along with the operations `load(as:)` and `loadUnaligned(as:)`.
+In addition to `Span<T>`, we propose the addition of `RawSpan`, to represent heterogeneously-typed values in contiguous memory. `RawSpan` is similar to `Span<T>`, but represents _untyped_ initialized bytes. `RawSpan` is a specialized type that intends to support parsing and decoding applications, as well as applications where heavily-used code paths require concrete types as much as possible. Its API supports extracting sub-spans, along with the operations `load(as:)` and `loadUnaligned(as:)`.
 
 #### Complete `RawSpan` API:
 
@@ -695,7 +695,7 @@ These functions have the following counterparts which omit bounds-checking for c
 }
 ```
 
-A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homogenously as instances of `T`.
+A `RawSpan` can be viewed as a `Span<T>`, provided the memory is laid out homogeneously as instances of `T`.
 
 ```swift
 extension RawSpan {
@@ -1052,7 +1052,7 @@ myStrnlen(array) // 8
 
 This would probably consist of a new type of custom conversion in the language. A type author would provide a way to convert from their type to an owned `Span`, and the compiler would insert that conversion where needed. This would enhance readability and reduce boilerplate.
 
-#### Interopability with C++'s `std::span` and with llvm's `-fbounds-safety`
+#### Interoperability with C++'s `std::span` and with llvm's `-fbounds-safety`
 
 The [`std::span`](https://en.cppreference.com/w/cpp/container/span) class template from the C++ standard library is a similar representation of a contiguous range of memory. LLVM may soon have a [bounds-checking mode](https://discourse.llvm.org/t/70854) for C. These are opportunities for better, safer interoperation with Swift, via a type such as `Span`.
 
@@ -1076,7 +1076,7 @@ Each of these introduces practical tradeoffs in the design.
 
 Collections which own their storage have the convention of separate slice types, such as `Array` and `String`. This has the advantage of clearly delineating storage ownership in the programming model and the disadvantage of introducing a second type through which to interact.
 
-When types do not own their storage, separate slice types can be [cumbersome](https://github.com/apple/swift/blob/bcd08c0c9a74974b4757b4b8a2d1796659b1d940/stdlib/public/core/StringComparison.swift#L175). The reason `UnsafeBufferPointer` has a separate slice type is because it wants to allow indices to be reused across slices and its `Index` is a relative offset from the start (`Int`) rather than an absolute position (such as a pointer).
+When types do not own their storage, separate slice types can be [cumbersome](https://github.com/swiftlang/swift/blob/swift-5.10.1-RELEASE/stdlib/public/core/StringComparison.swift#L175). The reason `UnsafeBufferPointer` has a separate slice type is because it wants to allow indices to be reused across slices and its `Index` is a relative offset from the start (`Int`) rather than an absolute position (such as a pointer).
 
 `Span` does not own its storage and there is no concern about leaking larger allocations. It would benefit from being its own slice type.
 
@@ -1181,7 +1181,7 @@ When the reused allocation happens to be stride-aligned, there is no undefined b
 
 Bounds checks protect against critical programmer errors. It would be nice, pending engineering tradeoffs, to also protect against some reuse after free errors and invalid index reuse, especially those that may lead to undefined behavior.
 
-Future improvements to microarchitecture may make reuse after free checks cheaper, however we need something for the forseeable future. Any validation we can do reduces the need to switch to other mitigation strategies or make other tradeoffs.
+Future improvements to microarchitecture may make reuse after free checks cheaper, however we need something for the foreseeable future. Any validation we can do reduces the need to switch to other mitigation strategies or make other tradeoffs.
 
 #### Design approaches for indices
 
