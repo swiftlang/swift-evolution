@@ -146,6 +146,10 @@ Note that there is no guarantee that two systems will produce _the same_ stabili
 
 The guarantees provided by stabilised strings are likely to be attractive to many Swift developers. In addition to normalisation, it makes sense for the standard library to also offer APIs for producing _stable_ normalisations.
 
+#### Stability over ancient versions of Unicode
+
+Early versions of Unicode experienced significant churn and the modern definition of normalization stability was added in version 4.1. When we talk about stability of assigned code points, we are referring to notions of stability from 4.1 onwards. A normalized string is stable from either the version of Unicode in which the latest code point was assigned or Unicode version 4.1 (whichever one is later).
+
 
 ### Existing API
 
@@ -488,6 +492,14 @@ extension Unicode {
       consuming source: inout some IteratorProtocol<Unicode.Scalar>
     ) -> Unicode.Scalar?
 
+
+    /// Returns the next normalized scalar,
+    /// iteratively invoking the scalar producer if necessary
+    ///
+    public mutating func resume(
+      scalarProducer: () -> Unicode.Scalar?
+    ) -> Unicode.Scalar?
+
     /// Marks the end of the logical text stream
     /// and returns remaining data from the normalizer's buffers.
     ///
@@ -607,6 +619,36 @@ func contains(_ key: String) {
 }
 ```
 
+The closure-taking API is useful for situations where an instance of `IteratorProtocol` cannot be formed, such as when it is derived from the contents of a non-escapable type such as `UTF8Span`.
+
+```swift
+extension UTF8Span {
+  func nthNormalizedScalar(
+    _ n: Int
+  ) -> Unicode.Scalar? {
+    var normalizer = NFCNormalizer()
+    var pos = 0
+    var count = 0
+
+    while true {
+      guard let s = normalizer.resume(scalarProducer: {
+        guard pos < count else {
+          return nil
+        }
+        let (scalar, next) = self.decodeNextScalar(
+          uncheckedAssumingAligned: pos)
+        pos = next
+        return scalar
+      }) else {
+        return nil
+      }
+
+      if count == n { return s }
+      count += 1
+    }
+  }
+}
+```
 
 ### Other Additions
 
@@ -726,7 +768,7 @@ We propose adding the following conformances to String's `UTF8View`, `UTF16View`
 These conformances will likely also be useful for embedded applications, where String itself may lack them.
 
 
-#### Creating a String from Scalars
+#### Creating a String or Character from Scalars
 
 
 This is a straightforward gap in String's API.
@@ -734,6 +776,12 @@ This is a straightforward gap in String's API.
 ```swift
 extension String {
   public init(_: some Sequence<Unicode.Scalar>)
+}
+
+extension Character {
+  /// Returns `nil` if more than one extended grapheme cluster
+  /// is present.
+  public init?(_: some Sequence<Unicode.Scalar>)
 }
 ```
 
@@ -816,6 +864,20 @@ for scalar in nfcString.unicodeScalars.normalized.nfc {
 
 `nfcString` may have an internal performance bit set so we know it is NFC. If it does, the streaming normaliser in the `for`-loop detects this and knows it doesn't need to normalise the contents a second time. It would be nice if we could generalise this, or at least take note of a normalised prefix that we can skip.
 
+### Normalizing intializers
+
+We could define initializers similar to `String(decoding:as)`, e.g. `String(normalizing:)`, which decode and transform the contents into the stdlib's preferred normal form without always needing to create an intermediary `String` instance. Such strings will compare much faster to each other, but may have different contents when viewed under the `UnicodeScalarView`, `UTF8View`, or `UTF16View`.
+
+### Normalized code units
+
+Normalization API is presented in terms of `Unicode.Scalar`s, but a lower-level interface might run directly on top of (validated) UTF-8 code units. Many useful normalization fast-paths can be implemented directly on top of UTF-8 without needing to decode. 
+
+For example, any `Unicode.Scalar` that is less than `U+0300` is in NFC and can be skipped over for NFC normalization. In UTF-8, this amounts to skipping until we find a byte that is `0xCC` or larger.
+
+
+### Protocol abstraction
+
+The normalization process itself is an algorithm that is ran over data tables. Future work could include protocols that run the algorithm but allow libraries to provide their own modified or version-specific data tables.
 
 ## Alternatives considered
 
@@ -898,6 +960,30 @@ What this shows is that when matching substrings, we need to match entire normal
 Indeed, this is what Swift's Regex type does. Canonical equivalence requires matching with `Character` semantics, which are naturally aligned on normalisation segment boundaries.
 
 In summary, we feel a lazily-normalising scalar-to-scalar Collection is not the best interface to expose. The public API we _will_ expose is capable enough to allow a basic interface to be built ([example](https://gist.github.com/karwa/863de5648e3b2bdb59bfebd4c1871a82)), but it is not a good fit for the standard library.
+
+### Normal forms and data tables
+
+The stdlib currently ships data tables which support NFC and NFD normal forms. The stdlib does not currently ship NFKC and NFKD data tables. NFKC and NFKD are for purposes other than checking canonical equivalence, and as such it may make sense to relegate those API to another library instead of the stdlib, such as swift-foundation.
+
+### Stability queries instead of stable-string producing API
+
+This pitch proposes `String.stableNormalization(...) -> String?` which will produce a normalized string if the contents are stable under any version of Unicode.
+
+An alternative formulation could be stability queries on String. For example, asking whether the contents are stable in any Unicode version since 4.1, forwards-stable from the processes's current version of Unicode onwards, the latest version of Unicode form which it's contents are stable, etc.
+
+### Swift version instead of Unicode versions
+
+Each version of Swift implements a particular version of Unicode. When we talk about stable, we are referring to stability across versions of Unicode and not necessarily tied to versions of Swift. Swift may fix bugs in its implementation of a particular version of Unicode.
+
+### Codifying the stdlib's preferred normal form
+
+The stdlib internally uses NFC as its normal form of choice. It is significantly more compact than NFD (which is also why content is often already stored in NFC) and has better fast-paths for commonly used scripts. However, this is not currently established publicly. We could establish this in this proposal, whether with different names or in doc comments.
+
+### Init of `NormalizedScalars` instead of extension on Sequence
+
+We pitch an extension on `Sequence<Unicode.Scalar` which can construct a `NormalizedScalars`. Alternatively, we could have an init on `NormalizedScalars` taking the sequence, which would have more constrained visibility. We could also have both.
+
+
 
 
 ## Acknowledgments
