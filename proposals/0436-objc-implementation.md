@@ -279,7 +279,7 @@ Again, that’s something we can flesh out over time.
 
 ### A different attribute spelling
 
-We've chosen the proposed spelling—`@objc(CategoryName) @implementation`—because it makes `@implementation` orthogonal to the specific language being implemented. Everything Objective-C-specific about it is tied to the `@objc` attribute, and it's pretty clear how it would be expanded in the future to support other langauges. Many alternatives—such as the original pitch's `@objcImplementation(CategoryName)` and suggestions like `@implementation(objc, category: CategoryName)`—do not have this property.
+We've chosen the proposed spelling—`@objc(CategoryName) @implementation`—because it makes `@implementation` orthogonal to the specific language being implemented. Everything Objective-C-specific about it is tied to the `@objc` attribute, and it's pretty clear how it would be expanded in the future to support other languages. Many alternatives—such as the original pitch's `@objcImplementation(CategoryName)` and suggestions like `@implementation(objc, category: CategoryName)`—do not have this property.
 
 We chose the word "implementation" rather than "extern" because the attribute marks an implementation of something that was declared elsewhere; in most languages, "extern" works in the opposite direction, marking a declaration of something that is implemented elsewhere. Also, the name suggests a relationship to the `@implementation` keyword in Objective-C, which is appropriate since an `@objc @implementation extension` is a one-to-one drop-in replacement.
 
