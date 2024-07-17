@@ -16,16 +16,20 @@
 Currently to create a new task group, there are two generics involved: `ChildTaskResult` and `GroupResult`.  The latter can often be inferred in many cases, but the former must always be supplied as part of either the `withTaskGroup(of:returning:body:)` or `withThrowingTaskGroup(of:returning:body:)` function.  For example:
 
 ```swift
-let s = withTaskGroup(of: Void.self) { group in
-  group.addTask { someVoidFunction() }
-  group.addTask { someVoidFunction() }
-  group.addTask { someVoidFunction() }
+let messages = await withTaskGroup(of: Message.self) { group in
+  for id in ids {
+    group.addTask { await downloadMessage(for: id) }
+  }
 
-  return "Hello, world!"
+  var messages: [Message] = []
+  for await message in group {
+    messages.append(message)
+  }
+  return messages
 }
 ```
 
-The type of `s` (which is the `GroupResult` type) is correctly inferred as `String`.  However, the return value of the `addTask` closures is not inferred and currently must be supplied to the `of:` parameter of the `withTaskGroup(of:returning:body:)` function (e.g. `Void`).  The correct value of the generic can be non-intuitive for new users to the task group APIs.
+The type of `messages` (which is the `GroupResult` type) is correctly inferred as `[Message]`.  However, the return value of the `addTask(...)` closures is not inferred and currently must be supplied to the `of:` parameter of the `withTaskGroup(of:returning:body:)` function (e.g. `Message`).  The correct value of the generic can be non-intuitive for new users to the task group APIs.
 
 Note that `withDiscardingTaskGroup(returning:body:)` and `withThrowingDiscardingTaskGroup(returning:body:)` do not have `ChildTaskResult` generics since their child tasks must always be of type `Void`.
 
@@ -56,58 +60,91 @@ public func withTaskGroup<ChildTaskResult, GroupResult>(
 This allows the original example above to be simplified:
 
 ```swift
-let s = withTaskGroup { group in
-  group.addTask { someVoidFunction() }
-  group.addTask { someVoidFunction() }
-  group.addTask { someVoidFunction() }
+// No need for `(of: Message.self)` like before.
+let messages = await withTaskGroup { group in
+  for id in ids {
+    group.addTask { await downloadMessage(for: id) }
+  }
 
-  return "Hello, world!"
+  var messages: [Message] = []
+  for await message in group {
+    messages.append(message)
+  }
+  return messages
 }
 ```
 
-In the above snippet, `ChildTaskResult` is inferred as `Void` and `GroupResult` is inferred as `String`.  Not needing to specify the generics explicitly will simplify the API design for these functions and make it easier for new users of these APIs, as it can currently be confusing to understand the differences between `ChildTaskResult` and `GroupResult` (especially when one or both of those is `Void`).
+In the above snippet, `ChildTaskResult` is inferred as `Message` and `GroupResult` is inferred as `[Message]`.  Not needing to specify the generics explicitly will simplify the API design for these functions and make it easier for new users of these APIs, as it can currently be confusing to understand the differences between `ChildTaskResult` and `GroupResult`.  This can be especially true when one or both of those is `Void`.  For example:
+
+```swift
+let logCount = await withTaskGroup(of: Void.self) { group in
+  for id in ids {
+    group.addTask { await logMessageReceived(for: id) }
+  }
+
+  return ids.count
+}
+```
+
+In the above example, it can be confusing (and not intuitive) to know that `Void.self` is needed for `ChildTaskResult` and the compiler does not currently give great hints for what that type should be or steering the user into fixing the generic argument if it is mismatched (for example, if the user swaps `Int.self` for `Void.self` in the above example).  With the proposed solution, the above can become the following example with type inference used for both generic arguments:
+
+```swift
+let logCount = await withTaskGroup { group in
+  for id in ids {
+    group.addTask { await logMessageReceived(for: id) }
+  }
+
+  return ids.count
+}
+```
 
 ## Detailed design
 
-Because type inference is top-down, it relies on the first statement that uses `group` to infer determine the generic for `ChildTaskResult`.  Therefore, it is possible to get a compiler error by creating a task group where the first use of `group` does not use `addTask(...)`, like so:
+Because type inference is top-down, it relies on the first statement that uses `group` to infer the generic arguments for `ChildTaskResult`.  Therefore, it is possible to get a compiler error by creating a task group where the first use of `group` does not use `addTask(...)`, like so:
 
 ```swift
 // Expect `ChildTaskResult` to be `Void`...
-withTaskGroup { group in // Generic parameter 'ChildTaskResult' could not be inferred
+await withTaskGroup { group in // Generic parameter 'ChildTaskResult' could not be inferred
     // Since `addTask(...)` wasn't the first statement, this fails to compile.
     group.cancelAll()
-    group.addTask { 42 }
+
+    for id in ids {
+      group.addTask { await logMessageReceived(for: id) }
+    }
 }
 ```
 
 This can be fixed by going back to specifying the generic like before:
 
 ```swift
-// Expect `ChildTaskResult` to be `Int`...
-withTaskGroup(of: Int.self) { group in
+// Expect `ChildTaskResult` to be `Void`...
+await withTaskGroup(of: Void.self) { group in
     group.cancelAll()
-    group.addTask { 42 }
+
+    for id in ids {
+      group.addTask { await logMessageReceived(for: id) }
+    }
 }
 ```
 
-However, this is a rare case in general since `addTask` is generally the first statement in a task group body.
+However, this is a rare case in general since `addTask(...)` is generally the first `TaskGroup`/`ThrowingTaskGroup` statement in a task group body.
 
-It is also possible to create a compiler error by returning two different values from a `addTask` closure:
+It is also possible to create a compiler error by returning two different values from an `addTask(...)` closure:
 
 ```swift
-withTaskGroup { group in
-    group.addTask { "Hello, world!" }
-    group.addTask { 42 } // Cannot convert value of type 'Int' to closure result type 'String'
+await withTaskGroup { group in
+    group.addTask { await downloadMessage(for: id) }
+    group.addTask { await logMessageReceived(for: id) } // Cannot convert value of type 'Void' to closure result type 'Message'
 }
 ```
 
-The compiler will already give a good error message here, since the first `addTask` statement is what determined (in this case) that the `ChildTaskResult` generic was set to `String`.  If this needs to be made more clear (instead of being inferred), the user can always specify the generic directly as before:
+The compiler will already give a good error message here, since the first `addTask(...)` statement is what determined (in this case) that the `ChildTaskResult` generic was set to `Message`.  If this needs to be made more clear (instead of being inferred), the user can always specify the generic directly as before:
 
 ```swift
-withTaskGroup(of: Int.self) { group in
+await withTaskGroup(of: Void.self) { group in
     // Now the error has moved here since the generic was specified up front...
-    group.addTask { "Hello, world!" } // Cannot convert value of type 'String' to closure result type 'Int'
-    group.addTask { 42 }
+    group.addTask { await downloadMessage(for: id) } // Cannot convert value of type 'Message' to closure result type 'Void'
+    group.addTask { await logMessageReceived(for: id) }
 }
 ```
 
@@ -135,9 +172,9 @@ While not possible without more compiler features to enforce the safety of a tas
 // Potential long-term direction that might be possible:
 func test() async { 
   let group = TaskGroup<Int>()
-  group.addTask { ... }
+  group.addTask { /* ... */ }
   
-  // Going out of scope would have to imply group.awaitAll()...
+  // Going out of scope would have to imply `group.waitForAll()`...
 }
 ```
 
