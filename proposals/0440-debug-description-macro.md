@@ -5,7 +5,8 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (July 5-July 16, 2024)**
 * Implementation: Present in `main` under experimental feature `DebugDescriptionMacro` [apple/swift#69626](https://github.com/apple/swift/pull/69626)
-* Review: ([pitch](https://forums.swift.org/t/pitch-debug-description-macro/67711))([review](https://forums.swift.org/t/se-0440-debugdescription-macro/72958))
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/fda6746506368c8c6d2933ee6d71c87e6ed92f94/proposals/0440-debug-description-macro.md)
+* Review: ([pitch](https://forums.swift.org/t/pitch-debug-description-macro/67711)) ([review](https://forums.swift.org/t/se-0440-debugdescription-macro/72958)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0440-debugdescription-macro/73270))
 
 ## Introduction
 
@@ -13,7 +14,7 @@ This proposal introduces `@DebugDescription`, a new debugging macro to the stand
 
 ## Motivation
 
-Displaying data is a fundamental part of software development. Both the standard library and the debugger offer multiple ways of printing values - Swift's print and dump, and LLDB's p and po commands. These all share the ability to render an arbitrary value into human readable text. Out of the box, both the standard library and the debugger present data as a nested tree of property-value pairs. The similarities run deep, for example the standard library and the debugger provide control over how much of the tree is shown. This functionality requires no action from the developer.
+Displaying data is a fundamental part of software development. Both the standard library and the debugger offer multiple ways of printing values - Swift's print and dump, and LLDB's `p` and `po` commands. These all share the ability to render an arbitrary value into human readable text. Out of the box, both the standard library and the debugger present data as a nested tree of property-value pairs. The similarities run deep, for example the standard library and the debugger provide control over how much of the tree is shown. This functionality requires no action from the developer.
 
 The utility of displaying a complete value depends on the size and complexity of the data type(s), or depends on the context the data is being presented. Displaying the entirety of a small/shallow structure is sufficient, but some data types reach sizes/complexities where the complete tree of data is too large to be useful.
 
@@ -21,7 +22,7 @@ For types that are too large or complex, the standard library and debugger again
 
 LLDB has analogous features, which are called Type Summaries (\~`debugDescription`) and Synthetic Children (\\~`customMirror`) respectively. However, Swift and the debugger don't share or interoperate these definitions. Implementing these customizing protocols provides limited benefit inside the debugger. Likewise, defining Type Summaries or Synthetic Children in LLDB will have no benefit to Swift.
 
-While LLDB’s po command provides a convenient way to evaluate a `debugDescription` property defined in Swift, there are downsides to expression evaluation: Running arbitrary code can have side effects, be unstable to the application, and is slower. Expression evaluation happens by JIT compiling code, pushing it to the device the application is running on, and executing it in the context of the application, which involves a lot of work. As such, LLDB only does expression evaluation when explicitly requested by a user, most commonly with the po command in the console. Debugger UIs (IDEs) often provide a variable view which is populated using LLDB’s variable inspection which does not perform expression evaluation and is built on top of reflection. In some cases, such as when viewing crashlogs, or working with a core file, expression evaluation is not even possible. For these reasons, rendering values is ideally done without expression evaluation.
+While LLDB’s `po` command provides a convenient way to evaluate a `debugDescription` property defined in Swift, there are downsides to expression evaluation: Running arbitrary code can have side effects, be unstable to the application, and is slower. Expression evaluation happens by JIT compiling code, pushing it to the device the application is running on, and executing it in the context of the application, which involves a lot of work. As such, LLDB only does expression evaluation when explicitly requested by a user, most commonly with the `po` command in the console. Debugger UIs (IDEs) often provide a variable view which is populated using LLDB’s variable inspection which does not perform expression evaluation and is built on top of reflection. In some cases, such as when viewing crashlogs, or working with a core file, expression evaluation is not even possible. For these reasons, rendering values is ideally done without expression evaluation.
 
 This proposal introduces the ability to share a `debugDescription` definition between Swift and the debugger. This has benefits for developers, and for the debugger.
 
@@ -47,14 +48,14 @@ struct Organization: CustomDebugStringConvertible {
 }
 ```
 
-To see the results of `debugDescription` in the debugger, the user has to run po team in the console.
+To see the results of `debugDescription` in the debugger, the user has to run `po team` in the console.
 
 ```
 (lldb) po team
 "#15 Shipping (Francis Carlson)
 ```
 
-Running the p command, or viewing the value in the Debugger UI (IDE), will show the value’s property tree, which may have arbitrary size/nesting:
+Running the `p` command, or viewing the value in the Debugger UI (IDE), will show the value’s property tree, which may have arbitrary size/nesting:
 
 ```
 (lldb) p team
@@ -132,12 +133,12 @@ A notable difference between the debugger console and debugger UI is that that U
 ///     }
 ///
 /// The DebugDescription macro supports both debugDescription, description,
-/// as well as a third option: a property named _debugDescription. The first
+/// as well as a third option: a property named lldbDescription. The first
 /// two are implemented when conforming to the CustomDebugStringConvertible
-/// and CustomStringConvertible protocols. The additional _debugDescription
+/// and CustomStringConvertible protocols. The additional lldbDescription
 /// property is useful when both debugDescription and description are
 /// implemented, but don't meet the requirements of the DebugDescription
-/// macro. If _debugDescription is implemented, DebugDescription choose it
+/// macro. If lldbDescription is implemented, DebugDescription choose it
 /// over debugDescription and description. Likewise, debugDescription is
 /// preferred over description.
 ///
@@ -152,27 +153,28 @@ A notable difference between the debugger console and debugger UI is that that U
 ///   and other arbitrary computation are not supported. Of note, conditional
 ///   logic and computed properties are not supported.
 /// * Overloaded string interpolation cannot be used.
+@attached(member)
 @attached(memberAttribute)
 public macro DebugDescription() =
   #externalMacro(module: "SwiftMacros", type: "DebugDescriptionMacro")
 
 /// Internal-only macro. See @DebugDescription.
-@attached(peer, names: named(lldb_summary))
+@attached(peer, names: named(_lldb_summary))
 public macro _DebugDescriptionProperty( debugIdentifier: String, _ computedProperties: [String]) =
   #externalMacro(module: "SwiftMacros", type: "_DebugDescriptionPropertyMacro")
 ```
 
-Of note, the work is split between two macros `@DebugDescription` and @_DebugDescriptionProperty. By design, `@DebugDescription` is attached to the type, where it gathers type-level information, including gather a list of stored properties. This macro also determines which description property to attach @_DebugDescriptionProperty to.
+Of note, the work is split between two macros `@DebugDescription` and `@_DebugDescriptionProperty`. By design, `@DebugDescription` is attached to the type, where it gathers type-level information, including gather a list of stored properties. This macro also determines which description property to attach @_DebugDescriptionProperty to.
 
-@_DebugDescriptionProperty is not intended for direct use by users. This macro is scoped to the inspect a single description property, not the entire type. This approach of splitting the work allows the compiler to avoid unnecessary work.
+`@_DebugDescriptionProperty` is not intended for direct use by users. This macro is scoped to the inspect a single description property, not the entire type. This approach of splitting the work allows the compiler to avoid unnecessary work.
 
-The support for `_debugDescription` in addition to `debugDescription` and `description` is to support two different use cases.
+The additional supported property, `lldbDescription`, is to support two different use cases.
 
-First, in some cases, the existing `debugDescription`/`description` cannot be changed (where doing so would be a breaking change to either `String(reflecting:)` or `String(describing:)`). In these circumstances, developers can use `_debugDescription` instead.
+First, in some cases existing `debugDescription`/`description` cannot be changed, because doing so would be a breaking change to either `String(reflecting:)` or `String(describing:)`. In these circumstances, developers can define `lldbDescription` instead.
 
-Second, there may be cases where a developer wishes to define an LLDB Summary String directly. Since `_debugDescription` is not coupled to existing API, developers can choose to include LLDB Summary String syntax directly in their implementation of `_debugDescription`. Note that the macro does not process LLDB Summary String syntax. Any explicit use of LLDB Summary String syntax is opaque to the macro. Just like any other string literal contents, it's passed through to LLDB.
+Second, in some cases developer may want to use LLDB Summary String syntax directly. Since `lldbDescription` is not coupled to API, developers are free to include Summary String elements in their `lldbDescription`. This is expected to be uncommon, but lets developers have more control over Summary Strings. Since LLDB syntax has no meaning inside `debugDescription`/`description`, the macro performs escaping when translating those definitions.
 
-Using both `debugDescription` and `_debugDescription` is an intended use case. The design of this macro allows developers to have both an LLDB compatible  `_debugDescription`, and a more complex `debugDescription`. This allows the debugger to show summary, while providing enabling a more detailed or dynamic `debugDescription`.
+Using both `debugDescription` and `lldbDescription` is an intended use case. The design of this macro allows developers to have both an LLDB compatible  `lldbDescription`, and a more complex `debugDescription`. This allows the debugger to show a simple summary, while providing enabling a more detailed or dynamic `debugDescription`.
 
 ## Source compatibility
 
@@ -188,6 +190,20 @@ The macro can be freely adopted and un-adopted in source code with no deployment
 
 ## Future directions
 
+### Support for Generics
+
+The `@DebugDescription` macro cannot currently be attached to generic type definitions. This is because the macro's implementation emits a static property into the type, which is a use case not currently supported by the Swift language. To support generic types, Swift will need a separate proposal to enable code such as the following:
+
+```swift
+struct Generic<T> {
+    static let _lldb_summary = (23 as UInt8, 30 as UInt8, ...)
+}
+```
+
+The goal is to allow static properties in generic types, specifically when the property's type is concrete and independent of the generic signature. In the above code, the property's type is a tuple of `UInt8`, which does not depend on `T`.
+
+### Beyond Summary Strings
+
 Future directions include generating Python instead of LLDB Summary Strings. This has the benefit of having fewer restrictions on the `debugDescription` definition. It has the downside of needing security scrutiny not required by LLDB Summary Strings.
 
 A similar future direction is to support sharing Swift `customMirror` definitions into LLDB Synthetic Children definitions. Unlike LLDB Type Summaries, LLDB has no "DSL" to expression LLDB Synthetic Children, currently the main option is Python. Given that there are two uses solved by generating Python, it's an approach worth considering in the future. While `customMirror` implementations are less common in Swift than their `debugDescription` counterpart, in LLDB, Synthetic Children are as important, or even more important than Summary Strings. The reason is that Synthetic Children allow data types to express their data "interface" rather than their implementation. Consider types like Array and Dictionary, which often have implementation complexity that provides optimal performance, not for data simplicity.
@@ -202,18 +218,18 @@ The simplest macro implementation is one that performs no Swift-to-LLDB translat
 
 Instead of leveraging existing `debugDescription`/`description` implementations, the `@DebugDescription` macro could use a completely separate property.
 
-Reusing existing `debugDescription` implementations makes a tradeoff that may not be obvious to developers. The benefit is a single definition, and getting more out of a well known idiom. The risk is comes from the requirements imposed by `@DebugDescription`. The requirements could lead to developers changing their existing implementation. Any changes to `debugDescription` will impact `String(reflecting:)`, and similarly changes to `description` will impact `String(describing:)`.
+Reusing existing `debugDescription` implementations makes a tradeoff that may not be obvious to developers. The benefit is a single definition, and getting more out of a well known idiom. The risk comes from the requirements imposed by `@DebugDescription`. The requirements could lead to developers changing their existing implementation. Any changes to `debugDescription` will impact `String(reflecting:)`, and similarly changes to `description` will impact `String(describing:)`.
 
-The risk involving String conversion would be avoided by having the macro use an independent property. The macro would not support `debugDescription`/`description`. In this scenario, developers would be required to implement `_debugDescription`, even if the implementation is identical to the existing `debugDescription`.
+The risk involving String conversion would be avoided by having the macro use an independent property. The macro would not support `debugDescription`/`description`. In this scenario, developers would be required to implement `lldbDescription`, even if the implementation is identical to the existing `debugDescription`.
 
-Our expectation is that mosst code, particularly application code, will not depend on String conversion (especially `String(reflecting:)`). For code that does depend on String conversion, it should have testing in place to catch breaking changes. Inside of an application, authors of code which has behavior that depends on String conversion initializers should already be aware of the consequences of changing `debugDescription`/`description`. Frameworks are a more challenging situation, where its authors are not always aware of if/how its clients depend on String conversion.
+Our expectation is that most code, particularly application code, will not depend on String conversion (especially `String(reflecting:)`). For code that does depend on String conversion, it should have testing in place to catch breaking changes. Inside of an application, authors of code which has behavior that depends on String conversion initializers should already be aware of the consequences of changing `debugDescription`/`description`. Frameworks are a more challenging situation, where its authors are not always aware of if/how its clients depend on String conversion.
 
 The belief is that the benefits of reusing `debugDescription` will outweigh the downsides. Framework authors can make it a policy of their own to not reuse `debugDescription`, if they believe that presents a risk to clients of their framework.
 
 ### Contextual Diagnostics
 
-To help address the potential risk around reuse of `debugDescription`, the macro could emit diagnostics that vary by the property being used. Specifically, if the developer implements `_debugDescription`, they will get the full diagnostics available, indicating how to fix its implementation. Conversely, when `debugDescription` is being reused, the diagnostics will not contain details of which requirements were not met, instead the diagnostics would tell the user that `debugDescription` is not compatible, and to define `_debugDescription` instead. This should make it less likely that the macro leads to changes affecting String conversion.
+To help address the potential risk around reuse of `debugDescription`, the macro could emit diagnostics that vary by the property being used. Specifically, if the developer implements `lldbDescription`, they will get the full diagnostics available, indicating how to fix its implementation. Conversely, when `debugDescription` is being reused, the diagnostics will not contain details of which requirements were not met, instead the diagnostics would tell the user that `debugDescription` is not compatible, and to define `lldbDescription` instead. This should make it less likely that the macro leads to changes affecting String conversion.
 
 ## Acknowledgments
 
-Thank you to Doug Gregor and Alex Hoppen for their generous and helpful macro and swift-syntax guidance and PR reviews. Thank you to Adrian Prantl for many productive discussions and implementation ideas. Thank you to Kuba Mracek for implementing linkage macros which support this work. Thank you to Tony Parker and Steven Canon for their adoption feedback.
+Thank you to Doug Gregor and Alex Hoppen for their generous guidance, and PR reviews. Adrian Prantl, for the many productive discussions and implementation ideas. To Kuba Mracek, for implementing linkage macros which support this work. Thank you to Tony Parker and Steven Canon for their adoption feedback. To Holly Borla, for timely technical and process support.
