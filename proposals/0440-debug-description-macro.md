@@ -230,6 +230,13 @@ The belief is that the benefits of reusing `debugDescription` will outweigh the 
 
 To help address the potential risk around reuse of `debugDescription`, the macro could emit diagnostics that vary by the property being used. Specifically, if the developer implements `lldbDescription`, they will get the full diagnostics available, indicating how to fix its implementation. Conversely, when `debugDescription` is being reused, the diagnostics will not contain details of which requirements were not met, instead the diagnostics would tell the user that `debugDescription` is not compatible, and to define `lldbDescription` instead. This should make it less likely that the macro leads to changes affecting String conversion.
 
+## Revision history
+
+* Changes from the first review
+  * Document support for generic types as a future direction
+  * Rename `_debugDescription` to `lldbDescription`
+  * Direct use of LLDB Summary String syntax is supported only by `lldbDescription`
+
 ## Acknowledgments
 
 Thank you to Doug Gregor and Alex Hoppen for their generous guidance, and PR reviews. Adrian Prantl, for the many productive discussions and implementation ideas. To Kuba Mracek, for implementing linkage macros which support this work. Thank you to Tony Parker and Steven Canon for their adoption feedback. To Holly Borla, for timely technical and process support.
