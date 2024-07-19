@@ -3,7 +3,7 @@
 * Proposal: [SE-0430](0430-transferring-parameters-and-results.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm), [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Active Review (June 21 ... 28, 2024)** 
+* Status: **Implemented (Swift 6.0)**
 * Implementation: Implemented in Swift 6.0 except for amendment under review
 * Previous Proposal: [SE-0414: Region-based isolation](/proposals/0414-region-based-isolation.md)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/87943205551af43682ef50260816f3ff2ef9b7ea/proposals/0430-transferring-parameters-and-results.md) [2](https://github.com/apple/swift-evolution/blob/4dded8ed382b526a5a301c225a1d45018f8d556b/proposals/0430-transferring-parameters-and-results.md)
