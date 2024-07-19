@@ -239,4 +239,4 @@ To help address the potential risk around reuse of `debugDescription`, the macro
 
 ## Acknowledgments
 
-Thank you to Doug Gregor and Alex Hoppen for their generous guidance, and PR reviews. Adrian Prantl, for the many productive discussions and implementation ideas. To Kuba Mracek, for implementing linkage macros which support this work. Thank you to Tony Parker and Steven Canon for their adoption feedback. To Holly Borla, for timely technical and process support.
+Thank you to Doug Gregor and Alex Hoppen for their generous guidance, and PR reviews. Adrian Prantl, for the many productive discussions and implementation ideas. To Kuba Mracek, for implementing linkage macros which support this work. Thank you to Tony Parker and Steve Canon for their adoption feedback. To Holly Borla, for timely technical and process support.
