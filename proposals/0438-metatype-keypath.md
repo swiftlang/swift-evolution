@@ -3,9 +3,9 @@
 * Proposal: [SE-0438](0438-metatype-keypath.md)
 * Authors: [Amritpan Kaur](https://github.com/amritpan), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (May 30th...June 13th, 2024)** 
+* Status: **Accepted** 
 * Implementation: [apple/swift#73242](https://github.com/apple/swift/pull/73242)
-* Review: ([Pitch](https://forums.swift.org/t/pitch-metatype-keypaths/70767))
+* Review: ([pitch](https://forums.swift.org/t/pitch-metatype-keypaths/70767)) ([review](https://forums.swift.org/t/se-0438-metatype-keypaths/72172)) ([acceptance](https://forums.swift.org/t/accepted-se-0438-metatype-keypaths/72878))
 
 ## Introduction
 
