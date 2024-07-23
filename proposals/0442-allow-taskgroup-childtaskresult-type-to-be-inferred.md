@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (July 23...August 6, 2024)**
 * Implementation: [apple/swift#74517](https://github.com/apple/swift/pull/74517)
-* Review: ([pitch](https://forums.swift.org/t/allow-taskgroups-childtaskresult-type-to-be-inferred/72175))
+* Review: ([pitch](https://forums.swift.org/t/allow-taskgroups-childtaskresult-type-to-be-inferred/72175))([review](https://forums.swift.org/t/se-0442-allow-taskgroups-childtaskresult-type-to-be-inferred/73397))
 
 ## Introduction
 
