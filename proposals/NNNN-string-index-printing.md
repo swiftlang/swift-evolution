@@ -1,0 +1,121 @@
+# Feature name
+
+* Proposal: [SE-NNNN](NNNN-string-index-printing.md)
+* Authors: [Karoy Lorentey](https://github.com/lorentey)
+* Review Manager: TBD
+* Status: **Awaiting review**
+* Implementation: [apple/swift#75433](https://github.com/swiftlang/swift/pull/75433)
+* Review: ([pitch](https://forums.swift.org/t/improving-string-index-s-printed-descriptions/57027))
+
+## Introduction
+
+This proposal conforms `String.Index` to `CustomStringConvertible`.
+
+## Motivation
+
+String indices represent offsets from the start of the string's underlying storage representation, referencing a particular UTF-8 or UTF-16 code unit, depending on the string's encoding. (Most Swift strings are UTF-8 encoded, but strings bridged over from Objective-C may remain in their original UTF-16 encoded form.)
+
+If you ever tried printing a string index, you probably noticed that the output is gobbledygook:
+
+```swift
+let string = "👋🏼 Helló"
+
+print(string.startIndex) // ⟹ Index(_rawBits: 15)
+print(string.endIndex) // ⟹ Index(_rawBits: 983047)
+print(string.utf16.index(after: string.startIndex)) // ⟹ Index(_rawBits: 16388)
+print(string.firstRange(of: "ell")!) // ⟹ Index(_rawBits: 655623)..<Index(_rawBits: 852487)
+```
+
+These displays are generated via the default reflection-based string conversion code path, which fails to produce a comprehensible result. Not being able to print string indices in a sensible way is needlessly complicating their use: it obscures what these things are, and it is an endless source of frustration while working with strings in Swift.
+
+## Proposed solution
+
+This proposal supplies the missing `CustomStringConvertible` conformance on `String.Index`, resolving this long-standing issue.
+
+```swift
+let string = "👋🏼 Helló"
+
+print(string.startIndex) // ⟹ 0[any]
+print(string.endIndex) // ⟹ 15[utf8]
+print(string.utf16.index(after: string.startIndex)) // ⟹ 0[utf8]+1
+print(string.firstRange(of: "ell")!) // ⟹ 10[utf8]..<13[utf8]
+```
+
+The sample description strings shown above are illustrative, not normative. This proposal does not specify the exact format and information content of the string returned by the `description` implementation on `String.Index`. As is the case with most conformances to `CustomStringConvertible`, the purpose of these descriptions is to expose internal implementation details for debugging purposes. As those implementation details evolve, the descriptions may need to be changed to match them. Such changes are not generally expected to be part of the Swift Evolution process; so we need to keep the content of these descriptions unspecified.
+
+(In the example displays shown, indices succinctly display their storage offset, their expected encoding, and an (optional) transcoded offset value. For example, the output `15[utf8]` indicates that the index is addressing the code unit at offset 15 in a UTF-8 encoded `String` value. The `startIndex` is at offset zero, which works the same with _any_ encoding, so it is displayed as `0[any]`. As of Swift 6.0, on some platforms string instances may store their text in UTF-16, and so indices within such strings use `[utf16]` to specify that their offsets are measured in UTF-16 code units.
+
+The `+1` in `0[utf8]+1` is an offset into a _transcoded_ Unicode scalar; this index addresses the trailing surrogate in the UTF-16 transcoding of the first scalar within the string, which has to be outside the Basic Multilingual Plane (or it wouldn't require surrogates). In our particular case, the code point is U+1F44B WAVING HAND SIGN, encoded in UTF-8 as `F0 9F 91 8B`, and in UTF-16 as `D83D DC4B`. The index is addressing the UTF-16 code unit `DC4B`, which does not actually exist anywhere in the string's storage -- it needs to be computed on every access, by transcoding the UTF-8 data for this scalar, and offsetting into the result.)
+
+All of this is really useful information to see while developing or debugging string algorithms, but it is also deeply specific to the particular implementation of `String` that ships in Swift 6.0; therefore it is inherently unstable, and it may change in any Swift release.)
+
+<!--
+```
+Characters: | 👋🏼                        | " " | H  | e  | l  | l  | ó     |
+Scalars:    | 👋          | "\u{1F3FC}" | " " | H  | e  | l  | l  | ó     |
+UTF-8:      | f0 9f 91 8b | f0 9f 8f bc | 20  | 48 | 65 | 6c | 6c | c3 b3 |
+UTF-16:     | d83d dc4b   | d83c dffc   | 20  | 48 | 65 | 6c | 6c | f3    |
+```
+-->
+
+## Detailed design
+
+```
+@available(SwiftStdlib 6.1, *)
+extension String.Index: CustomStringConvertible {}
+
+extension String.Index {
+  @backDeployed(before: SwiftStdlib 6.1)
+  public var description: String {...}
+}
+```
+
+## Source compatibility
+
+The new conformance changes the result of converting a `String.Index` value to a string. This changes observable behavior: code that attempts to parse the result of `String(describing:)` can be mislead by the change of format.
+
+However, `String(describing:)` and `String(reflecting:)` explicitly state that when the input type conforms to none of the standard string conversion protocols, then the result of these operations is unspecified.
+
+Changing the value of an unspecified result is not considered to be a source incompatible change.
+
+## ABI compatibility
+
+The proposal retroactively conforms a previously existing standard type to a previously existing standard protocol. This is technically an ABI breaking change -- on ABI stable platforms, we may have preexisting Swift binaries that assume that `String.Index is CustomStringConvertible` returns `false`, or ones that are implementing this conformance on their own.
+
+We do not expect this to be an issue in practice.
+
+## Implications on adoption
+
+The `String.Index.description` property is defined to be backdeployable, but the conformance itself is not. (It cannot be.)
+
+Code that runs on ABI stable platforms will not get the nicer displays when running on earlier versions of the Swift Standard Library.
+
+```swift
+let str = "🐕 Doggo"
+print(str.firstRange(of: "Dog")!)
+// older stdlib: Index(_rawBits: 327943)..<Index(_rawBits: 524551)
+// newer stdlib: 5[utf8]..<8[utf8]
+```
+
+This can be somewhat mitigated by explicitly invoking the `description` property, but this isn't recommmended as general practice.
+
+```swift
+print(str.endIndex.description) 
+// always: 11[utf8]
+```
+
+## Future directions
+
+Other preexisting types in the Standard Library may also usefully gain `CustomStringConvertible` conformances in the future:
+
+- `Set.Index`, `Dictionary.Index`
+- `Slice`, `DefaultIndices`
+- `PartialRangeFrom`, `PartialRangeUpTo`, `PartialRangeThrough`
+- `CollectionDifference`, `CollectionDifference.Index`
+- `FlattenSequence`, `FlattenSequence.Index`
+- `LazyPrefixWhileSequence`, `LazyPrefixWhileSequence.Index`
+- etc.
+
+## Alternatives considered
+
+None.
