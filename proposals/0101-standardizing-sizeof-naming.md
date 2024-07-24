@@ -1,9 +1,9 @@
 # Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct
 
 * Proposal: [SE-0101](0101-standardizing-sizeof-naming.md)
-* Authors: [Erica Sadun](http://github.com/erica), [Dave Abrahams](https://github.com/dabrahams)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Authors: [Erica Sadun](https://github.com/erica), [Dave Abrahams](https://github.com/dabrahams)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0101-reconfiguring-sizeof-and-related-functions-into-a-unified-memorylayout-struct/3477)
 
 ## Introduction
@@ -13,7 +13,7 @@ This proposal addresses `sizeof`, `sizeofValue`, `strideof`, `strideofValue`, `a
 Review 1: 
 
 * [Swift Evolution Review Thread](https://forums.swift.org/t/review-se-0101-rename-sizeof-and-related-functions-to-comply-with-api-guidelines/3060)
-* [Original Proposal](https://github.com/apple/swift-evolution/blob/26e1e5b546b13fb66ee8877ad7018a7856e467ca/proposals/0101-standardizing-sizeof-naming.md)
+* [Original Proposal](https://github.com/swiftlang/swift-evolution/blob/26e1e5b546b13fb66ee8877ad7018a7856e467ca/proposals/0101-standardizing-sizeof-naming.md)
 
 Prior Discussions:
 

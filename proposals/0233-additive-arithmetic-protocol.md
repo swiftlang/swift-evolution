@@ -3,7 +3,7 @@
 * Proposal: [SE-0233](0233-additive-arithmetic-protocol.md)
 * Author: [Richard Wei](https://github.com/rxwei)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status:  **Implemented (Swift 5)**
+* Status:  **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#20422](https://github.com/apple/swift/pull/20422)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0233-make-numeric-refine-a-new-additivearithmetic-protocol/17751)
 

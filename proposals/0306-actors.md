@@ -4,8 +4,8 @@
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 5.5)**
-* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-with-modification-se-0306-actors/47662), [First Review](https://forums.swift.org/t/se-0306-actors/45734), [Second Review](https://forums.swift.org/t/se-0306-second-review-actors/47291)
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Review: ([first review](https://forums.swift.org/t/se-0306-actors/45734)), ([second review](https://forums.swift.org/t/se-0306-second-review-actors/47291)), ([acceptance](https://forums.swift.org/t/accepted-with-modification-se-0306-actors/47662))
 
 ## Table of Contents
 
@@ -297,7 +297,7 @@ A closure formed within an actor-isolated context is actor-isolated if it is non
 
 ### Actor reentrancy
 
-Actor-isolated functions are [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)). When an actor-isolated function suspends, reentrancy allows other work to execute on the actor before the original actor-isolated function resumes, which we refer to as *interleaving*. Reentrancy eliminates a source of deadlocks, where two actors depend on each other, can improve overall performance by not unnecessarily blocking work on actors, and offers opportunities for better scheduling of (e.g.) higher-priority tasks. However, it means that actor-isolated state can change across an `await` when an interleaved task mutates that state, meaning that developers must be sure not to break invariants across an await. In general, this is the [reason for requiring `await`](https://github.com/apple/swift-evolution/blob/main/proposals/0296-async-await.md#suspension-points) on asynchronous calls, because various state (e.g., global state) can change when a call suspends.
+Actor-isolated functions are [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)). When an actor-isolated function suspends, reentrancy allows other work to execute on the actor before the original actor-isolated function resumes, which we refer to as *interleaving*. Reentrancy eliminates a source of deadlocks, where two actors depend on each other, can improve overall performance by not unnecessarily blocking work on actors, and offers opportunities for better scheduling of (e.g.) higher-priority tasks. However, it means that actor-isolated state can change across an `await` when an interleaved task mutates that state, meaning that developers must be sure not to break invariants across an await. In general, this is the [reason for requiring `await`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0296-async-await.md#suspension-points) on asynchronous calls, because various state (e.g., global state) can change when a call suspends.
 
 This section explores the issue of reentrancy with examples that illustrate both the benefits and problems with both reentrant and non-reentrant actors, and settles on re-entrant actors. Alternatives Considered provides potential future directions to provide more control of re-entrancy, including [non-reentrant actors](#non-reentrancy) and [task-chain reentrancy](#task-chain-reentrancy).
 
@@ -308,11 +308,11 @@ Reentrancy means that execution of asynchronous actor-isolated functions may "in
 Interleaving executions still respect the actor's "single-threaded illusion", i.e., no two functions will ever execute *concurrently* on any given actor. However they may *interleave* at suspension points. In broad terms this means that reentrant actors are *thread-safe* but are not automatically protecting from the "high level" kinds of races that may still occur, potentially invalidating invariants upon which an executing asynchronous function may be relying on. To further clarify the implications of this, let us consider the following actor, which thinks of an idea and then returns it, after telling its friend about it.
 
 ```swift
-actor Person {
+actor DecisionMaker {
   let friend: Friend
   
   // actor-isolated opinion
-  var opinion: Judgment = .noIdea
+  var opinion: Decision = .noIdea
 
   func thinkOfGoodIdea() async -> Decision {
     opinion = .goodIdea                       // <1>
@@ -328,13 +328,13 @@ actor Person {
 }
 ```
 
-In the example above the `Person` can think of a good or bad idea, shares that opinion with a friend, and returns that opinion that it stored. Since the actor is reentrant this code is wrong and will return an arbitrary opinion if the actor begins to think of a few ideas at the same time.
+In the example above the `DecisionMaker` can think of a good or bad idea, shares that opinion with a friend, and returns that opinion that it stored. Since the actor is reentrant this code is wrong and will return an arbitrary opinion if the actor begins to think of a few ideas at the same time.
 
 This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
 
 ```swift
-let goodThink = detach { await person.thinkOfGoodIdea() }  // runs async
-let badThink = detach { await person.thinkOfBadIdea() } // runs async
+let goodThink = detach { await decisionMaker.thinkOfGoodIdea() }  // runs async
+let badThink = detach { await decisionMaker.thinkOfBadIdea() } // runs async
 
 let shouldBeGood = await goodThink.get()
 let shouldBeBad = await badThink.get()
@@ -358,7 +358,7 @@ return opinion                     // <6>
 
 But it _may_ also result in the "naively expected" execution, i.e. without interleaving, meaning that the issue will only show up intermittently, like many race conditions in concurrent code.
 
-The potential for interleaved execution at suspension points is the primary reason for the requirement that every suspension point be [marked by `await`](https://github.com/apple/swift-evolution/blob/main/proposals/0296-async-await.md#suspension-points) in the source code, even though `await` itself has no semantic effect. It is an indicator that any shared state might change across the `await`, so one should avoid breaking invariants across an `await`, or otherwise depending on the state "before" to be identical to the state "after".
+The potential for interleaved execution at suspension points is the primary reason for the requirement that every suspension point be [marked by `await`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0296-async-await.md#suspension-points) in the source code, even though `await` itself has no semantic effect. It is an indicator that any shared state might change across the `await`, so one should avoid breaking invariants across an `await`, or otherwise depending on the state "before" to be identical to the state "after".
 
 Generally speaking, the easiest way to avoid breaking invariants across an `await` is to encapsulate state updates in synchronous actor functions. Effectively, synchronous code in an actor provides a [critical section](https://en.wikipedia.org/wiki/Critical_section), whereas an `await` interrupts a critical section. For our example above, we could effect this change by separating "opinion formation" from "telling a friend your opinion". Indeed, telling your friend your opinion might reasonably cause you to change your opinion!
 
@@ -372,7 +372,7 @@ If we take the example from the previous section and use a non-reentrant actor, 
 // assume non-reentrant
 actor DecisionMaker {
   let friend: DecisionMaker
-  var opinion: Judgment = .noIdea
+  var opinion: Decision = .noIdea
 
   func thinkOfGoodIdea() async -> Decision {
     opinion = .goodIdea                                   
@@ -392,7 +392,7 @@ However, non-entrancy can result in deadlock if a task involves calling back int
 
 ```swift
 extension DecisionMaker {
-  func tell(_ opinion: Judgment, heldBy friend: DecisionMaker) async {
+  func tell(_ opinion: Decision, heldBy friend: DecisionMaker) async {
     if opinion == .badIdea {
       await friend.convinceOtherwise(opinion)
     }
@@ -942,7 +942,7 @@ By allowing synchronous access to actor `let`s within a module, we provide a smo
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
 
 
-[sc]: https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md
-[se302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
+[sc]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md
+[se302]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
 [customexecs]: https://github.com/rjmccall/swift-evolution/blob/custom-executors/proposals/0000-custom-executors.md
-[isolationcontrol]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md
+[isolationcontrol]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md

@@ -3,7 +3,7 @@
 * Proposal: [SE-0136](0136-memory-layout-of-values.md)
 * Author: [Xiaodi Wu](https://github.com/xwu)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0136-memory-layout-of-values/3760)
 * Implementation: [apple/swift#4041](https://github.com/apple/swift/pull/4041)
 

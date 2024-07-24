@@ -3,9 +3,9 @@
 * Proposal: [SE-0161](0161-key-paths.md)
 * Authors: [David Smith](https://github.com/Catfish-Man), [Michael LeHew](https://github.com/mlehew), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0161-smart-keypaths-better-key-value-coding-for-swift/5690)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/55e61f459632eca2face40e571a517919f846cfb/proposals/0161-key-paths.md)
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/55e61f459632eca2face40e571a517919f846cfb/proposals/0161-key-paths.md)
 
 ## Introduction
 We propose a family of concrete _Key Path_ types that represent uninvoked references to properties that can be composed to form paths through many values and directly get/set their underlying values.
@@ -182,9 +182,9 @@ We also explored many different spellings, each with different strengths. We hav
 | Case | `#keyPath` | Function Type Reference | Escape |
 | --- | --- | --- | --- |
 | Fully qualified | `#keyPath(Person, .friends[0].name)` | `Person.friends[0].name` | `\Person.friends[0].name` |
-| Type Inferred| `#keyPath(.friends[0].name)` |`Person.friends[0].name`  | `\.friends[0].name` |
+| Type Inferred | `#keyPath(.friends[0].name)` |`Person.friends[0].name`  | `\.friends[0].name` |
 
-While the crispness of the function-type-reference is appealing, it becomes ambigious when working with type properties.  The escape-sigil variant avoids this, and remains quite readable.
+While the crispness of the function-type-reference is appealing, it becomes ambiguous when working with type properties.  The escape-sigil variant avoids this, and remains quite readable.
 
 #### Why `\`?
 During review many different sigils were considered: 
@@ -199,4 +199,3 @@ During review many different sigils were considered:
 
 #### Function Type References
 We think the disambiguating benefits of the escape-sigil would greatly benefit function type references, but such considerations are outside the scope of this proposal.
-

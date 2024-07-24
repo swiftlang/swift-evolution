@@ -5,7 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0342-statically-link-swift-runtime-libraries-by-default-on-supported-platforms/56517)
-* Implementation: https://github.com/apple/swift-package-manager/pull/3905
+* Implementation: [apple/swift-package-manager#3905](https://github.com/apple/swift-package-manager/pull/3905)
 * Initial discussion: [Forum Thread](https://forums.swift.org/t/pre-pitch-statically-linking-the-swift-runtime-libraries-by-default-on-linux)
 * Pitch: [Forum Thread](https://forums.swift.org/t/pitch-package-manager-statically-link-swift-runtime-libraries-by-default-on-supported-platforms)
 

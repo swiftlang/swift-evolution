@@ -3,7 +3,7 @@
 * Proposal: [SE-0035](0035-limit-inout-capture.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0035-limiting-inout-capture-to-noescape-contexts/1544)
 * Bug: [SR-807](https://bugs.swift.org/browse/SR-807)
 

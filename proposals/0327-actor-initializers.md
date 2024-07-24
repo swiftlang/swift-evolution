@@ -3,7 +3,7 @@
 * Proposal: [SE-0327](0327-actor-initializers.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [John McCall](https://github.com/rjmccall), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.10)**
 * Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0327-on-actors-and-initialization/54587)
 * Previous Discussions:
   * [On Actor Initializers](https://forums.swift.org/t/on-actor-initializers/49001)
@@ -314,8 +314,8 @@ In summary, we propose to _implicitly_ perform suspensions to hop to the actors 
 
 - The finding and continually updating the suspension points is annoying for programmers.
 - The reason _why_ some simple stores to a property can trigger a suspension is an implementation detail that is hard to explain to programmers.
-- The benefits of marking these suspensions is very low. The reference to `self` is known to be unique by the time the suspension  will happen, so it is impossible to create an [actor reentrancy](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md#actor-reentrancy) situation.
-- There is [already precedent](https://github.com/apple/swift-evolution/blob/main/proposals/0317-async-let.md#requiring-an-awaiton-any-execution-path-that-waits-for-an-async-let) in the language for performing implicit suspensions, namely for `async let`, when the benefits outweigh the negatives.
+- The benefits of marking these suspensions is very low. The reference to `self` is known to be unique by the time the suspension  will happen, so it is impossible to create an [actor reentrancy](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0306-actors.md#actor-reentrancy) situation.
+- There is [already precedent](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0317-async-let.md#requiring-an-awaiton-any-execution-path-that-waits-for-an-async-let) in the language for performing implicit suspensions, namely for `async let`, when the benefits outweigh the negatives.
 
 The net effect of these implicit executor-hops is that, for programmers, an `async` initializer does not appear to have any additional rules added to it! That is, programmers can simply view the initializer as being isolated throughout, like any ordinary `async` method would be! The flow-sensitive points where the hop is inserted into the initializer can be safely ignored as an implementation detail for all but the most rare situations. For example:
 
@@ -737,13 +737,15 @@ In the above, the only difference between the `init` and the `deinit` is that th
 
 ### Global-actor isolation and instance members
 
+**Note:** The isolation rules in this section for stored property initial values was never implemented because it was too onerous in existing code patterns that make use of `@MainActor`-isolated types. These rules have been subsumed by [SE-0411: Isolated default values](/proposals/0411-isolated-default-values.md).
+
 The main problem with global-actor isolation on the stored properties of a type is that, if the property is isolated to a global actor, then its default-value expression is also isolated to that actor. Since global-actor isolation can be applied independently to each stored property, an impossible isolation requirement can be constructed. The isolation needed for a type's non-delegating *and* non-async initializers would be the union of all isolation applied to its stored properties that have a default value. That's because a non-async initializer cannot hop to any executor, and a function cannot be isolated to two global actors. Currently, Swift 5.5 accepts programs with these impossible requirements.
 
 To fix this problem, we propose to remove any isolation applied to the default-value expressions of stored properties that are a member of a nominal type. Instead, those expressions will be treated by the type system as being `nonisolated`. If isolation is required to initialize those properties, then an `init` can always be defined and given the appropriate isolation.
 
 For global or static stored properties, the isolation of the default-value expression will continue to match the isolation applied to the property. This isolation is needed to support declarations such as:
 
-```
+```swift
 @MainActor
 var x = 20
 

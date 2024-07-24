@@ -3,7 +3,7 @@
 * Proposal: [SE-0006](0006-apply-api-guidelines-to-the-standard-library.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0006-apply-api-guidelines-to-the-standard-library/1667)
 
 ## Reviewer notes

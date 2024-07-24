@@ -359,7 +359,7 @@ This is different from Swift's optional binding conditions (`if let foo = foo`),
 
 ### Don't permit `if var foo`
 
-Since `if var foo = foo` is significantly less common that `if let foo = foo`, we could potentially choose to _not_ support `var` in this shorthand syntax. 
+Since `if var foo = foo` is significantly less common than `if let foo = foo`, we could potentially choose to _not_ support `var` in this shorthand syntax. 
 
 `var` shadowing has the potential to be more confusing than `let` shadowing -- `var` introduces a new _mutable_ variable, and any mutations to the new variable are not shared with the original optional variable. On the other hand, `if var foo = foo` already exists, and it seems unlikely that `if var foo` would be more confusing / less clear than the existing syntax.
 

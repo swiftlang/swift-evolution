@@ -2,16 +2,14 @@
 
 * Proposal: [SE-0220](0220-count-where.md)
 * Author: [Soroush Khanlou](https://github.com/khanlou)
-* Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted (2018-08-15)**
-* Implementation: [apple/swift#16099](https://github.com/apple/swift/pull/16099), [apple/swift#22289](https://github.com/apple/swift/pull/22289) (revert PR)
-* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0220-count-where/15280), [Additional Commentary](https://forums.swift.org/t/require-parameter-names-when-referencing-to-functions/27048)
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Implemented (Swift 6.0)**
+* Implementation: [apple/swift#72705](https://github.com/apple/swift/pull/72705)
+* Review: ([first pitch](https://forums.swift.org/t/count-where-on-sequence/11186)) ([first review](https://forums.swift.org/t/se-0220-count-where/15048)) ([first acceptance](https://forums.swift.org/t/accepted-se-0220-count-where/15280)) ([second pitch](https://forums.swift.org/t/pitch-restore-count-where-from-se-0220/65859)) ([second review](https://forums.swift.org/t/refresh-review-se-0220-count-where/66235)) ([second acceptance](https://forums.swift.org/t/accepted-again-se-0220-count-where/66659))
 
 ## Introduction
 
 While Swift's `Sequence` models brings a lot of niceties that we didn't have access to in Objective-C, like `map` and `filter`, there are other useful operations on sequences that the standard library doesn't support yet. One current missing operation is  `count(where:)`, which counts the number of elements in a `Sequence` that pass some test.
-
-Swift-evolution thread: [`count(where:)` on Sequence](https://forums.swift.org/t/count-where-on-sequence/11186)
 
 ## Motivation
 

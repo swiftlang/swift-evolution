@@ -3,7 +3,7 @@
 * Proposal: [SE-0048](0048-generic-typealias.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0048-generic-type-aliases/2192)
 
 

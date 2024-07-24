@@ -3,20 +3,19 @@
 * Proposal: [SE-0381](0381-task-group-discard-results.md)
 * Authors: [Cory Benfield](https://github.com/Lukasa), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (December 15...December 29, 2022)**
-* Implementation: https://github.com/apple/swift/pull/62361
+* Status: **Implemented (Swift 5.9)**
+* Implementation: [apple/swift#62361](https://github.com/apple/swift/pull/62361)
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-pools/61703)) ([review](https://forums.swift.org/t/se-0381-discardresults-for-taskgroups/62072)) ([acceptance](https://forums.swift.org/t/accepted-se-0381-discardingtaskgroups/62615))
 
 ### Introduction
 
 We propose to introduce a new type of structured concurrency task group:  `Discarding[Throwing]TaskGroup`. This type of group is similar to `TaskGroup` however it discards results of its child tasks immediately. It is specialized for potentially never-ending task groups, such as top-level loops of http or other kinds of rpc servers.
 
-Pitch thread: [Task Pools](https://forums.swift.org/t/pitch-task-pools/61703).
-
 ## Motivation
 
 Task groups are the building block of structured concurrency, allowing for the Swift runtime to relate groups of tasks together. This enables powerful features such as automatic cancellation propagation, correctly propagating errors, and ensuring well-defined lifetimes, as well as providing diagnostic information to programming tools.
 
-The version of Task Groups introduced in [SE-0304](https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md) provides all of these features. However, it also provides the ability to propagate return values to the user of the task group. This capability provides an unexpected limitation in some use-cases.
+The version of Task Groups introduced in [SE-0304](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md) provides all of these features. However, it also provides the ability to propagate return values to the user of the task group. This capability provides an unexpected limitation in some use-cases.
 
 As users of Task Groups are able to retrieve the return values of child tasks, it implicitly follows that the Task Group preserves at least the `Result` of any completed child task. As a practical matter, the task group actually preseves the entire `Task` object. This data is preserved until the user consumes it via one of the Task Group consumption APIs, whether that is `next()` or by iterating the Task Group.
 

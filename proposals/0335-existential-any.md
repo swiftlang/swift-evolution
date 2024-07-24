@@ -4,6 +4,7 @@
 * Authors: [Holly Borla](https://github.com/hborla)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 5.6)**
+* Upcoming Feature Flag: `ExistentialAny` (implemented in Swift 5.8)
 * Implementation: [apple/swift#40282](https://github.com/apple/swift/pull/40282)
 * Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0335-introduce-existential-any/54504)
 
@@ -94,6 +95,8 @@ let p2: any P = S() // okay
 let pq1: P & Q = S() // error
 let pq2: any P & Q = S() // okay
 ```
+
+The Swift 6 behavior can be enabled in earlier language modes with the [upcoming feature flag](0362-piecemeal-future-features.md) `ExistentialAny`.
 
 ## Detailed design
 
@@ -213,7 +216,7 @@ struct S2: Requirements {
 
 Enforcing that existential types use the `any` keyword will require a source change. To ease the migration, I propose to start allowing existential types to be spelled with `any` with the Swift 5.6 compiler, and require existential types to be spelled with `any` under the Swift 6 language mode. The old existential type syntax will continue to be supported under the Swift 5 language mode, and the transition to the new syntax is mechanical, so it can be performed automatically by a migrator.
 
-[SE-0309 Unlock existentials for all protocols](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md) enables more code to be written using existential types. To minimize the amount of new code written that will become invalid in Swift 6, I propose requiring `any` immediately for protocols with `Self` and associated type requirements. This introduces an inconsistency for protocols under the Swift 5 language mode, but this inconsistency already exists today (because you cannot use certain protocols as existential types at all), and the syntax difference serves two purposes:
+[SE-0309 Unlock existentials for all protocols](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md) enables more code to be written using existential types. To minimize the amount of new code written that will become invalid in Swift 6, I propose requiring `any` immediately for protocols with `Self` and associated type requirements. This introduces an inconsistency for protocols under the Swift 5 language mode, but this inconsistency already exists today (because you cannot use certain protocols as existential types at all), and the syntax difference serves two purposes:
 
 1. It saves programmers time in the long run by preventing them from writing new code that will become invalid later.
 2. It communicates the existence of `any` and encourages programmers to start using it for other existential types before adopting Swift 6.

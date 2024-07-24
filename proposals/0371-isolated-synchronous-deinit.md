@@ -9,11 +9,11 @@
 
 ## Introduction
 
-This feature allows `deinit`'s of actors and global-actor isolated classes to access non-sendable isolated state, lifting restrictions imposed by [SE-0327](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md). This is achieved by providing runtime support for hopping onto the relevant actor's executor before executing the `deinit` body.
+This feature allows `deinit`'s of actors and global-actor isolated classes to access non-sendable isolated state, lifting restrictions imposed by [SE-0327](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0327-actor-initializers.md). This is achieved by providing runtime support for hopping onto the relevant actor's executor before executing the `deinit` body.
 
 ## Motivation
 
-Restrictions imposed by [SE-0327](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md) reduce the usefulness of explicit `deinit`s in actors and GAITs. Workarounds for these limitations may involve creation of `close()`-like methods, or even manual reference counting if the API should be able to serve several clients.
+Restrictions imposed by [SE-0327](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0327-actor-initializers.md) reduce the usefulness of explicit `deinit`s in actors and GAITs. Workarounds for these limitations may involve creation of `close()`-like methods, or even manual reference counting if the API should be able to serve several clients.
 
 In cases when `deinit` belongs to a subclass of `UIView` or `UIViewController` which are known to call `dealloc` on the main thread, developers may be tempted to silence the diagnostic by adopting `@unchecked Sendable` in types that are not actually  sendable. This undermines concurrency checking by the compiler, and may lead to data races when using incorrectly marked types in other places.
 
@@ -23,7 +23,7 @@ While this proposal introduces additional control over deinit execution semantic
 
 Allow users to specify a `deinit` as `isolated deinit`, indicating that the execution of the `deinit` body, destruction of the stored properties and object deallocation should be scheduled on the executor (either that of the actor itself or that of the relevant global actor), if needed.
 
-Let's consider [examples from SE-0327](https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md#data-races-in-deinitializers):
+Let's consider [examples from SE-0327](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0327-actor-initializers.md#data-races-in-deinitializers):
 
 In the case of several instances with shared data isolated on a common actor, the problem is completely eliminated:
 

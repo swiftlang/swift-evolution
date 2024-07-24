@@ -3,9 +3,9 @@
 * Proposal: [SE-0380](0380-if-switch-expressions.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Hamish Knight](https://github.com/hamishknight)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (December 7...December 30, 2022)**
+* Status: **Implemented (Swift 5.9)**
 * Implementation: [apple/swift#612178](https://github.com/apple/swift/pull/62178), including a downloadable toolchain.
-* Review: ([pitch](https://forums.swift.org/t/pitch-if-and-switch-expressions/61149)), ([review](https://forums.swift.org/t/se-0380-if-and-switch-expressions/61899))
+* Review: ([pitch](https://forums.swift.org/t/pitch-if-and-switch-expressions/61149)), ([review](https://forums.swift.org/t/se-0380-if-and-switch-expressions/61899)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0380-if-and-switch-expressions/62695))
 
 ## Introduction
 
@@ -16,7 +16,7 @@ This proposal introduces the ability to use `if` and `switch` statements as expr
 
 ## Motivation
 
-Swift has always had a terse but readable syntax for closures, which allows the `return` to be omitted when the body is a single expression. [SE-0255: Implicit Returns from Single-Expression Functions](https://github.com/apple/swift-evolution/blob/main/proposals/0255-omit-return.md) extended this to functions and properties with a single expression as their body.
+Swift has always had a terse but readable syntax for closures, which allows the `return` to be omitted when the body is a single expression. [SE-0255: Implicit Returns from Single-Expression Functions](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0255-omit-return.md) extended this to functions and properties with a single expression as their body.
 
 This omission of the `return` keyword is in keeping with Swift's low-ceremony approach, and is in common with many of Swift's peer "modern" languages. However, Swift differs from its peers in the lack of support for `if` and `switch` expressions.
 
@@ -110,11 +110,13 @@ For an `if` or `switch` to be used as an expression, it would need to meet these
 
 **Each branch of the `if`, or each `case` of the `switch`, must be a single expression.**
 
-Each of these expressions become the value of the overall expression if the branch is chosen.
+Each of these expressions becomes the value of the overall expression if the branch is chosen.
 
 This does have the downside of requiring fallback to the existing techniques when, for example, a single expression has a log line above it. This is in keeping with the current behavior of `return` omission.
 
-An exception to this rule is if a branch either returns or throws, in which case no value for the overall expression need be produced. In these cases, multiple expressions could be executed on that branch prior to the `throw` or `return`.
+An exception to this rule is if a branch either explicitly throws, or terminates the program (e.g. with `fatalError`), in which case no value for the overall expression needs to be produced. In these cases, multiple expressions could be executed on that branch prior to that point.
+
+In the case where a branch throws, either because a call in the expression throws (which requires a `try`) or with an explicit `throw`, there is no requirement to mark the overall expression with an additional `try` (e.g. before the `if`).
 
 Within a branch, further `if` or `switch` expressions may be nested.
 
@@ -141,7 +143,7 @@ let y: Float = switch x.value {
 }
 ```
 
-This decision is in keeping with other recent proposals such as [SE-0244: Opaque Result Types](https://github.com/apple/swift-evolution/blob/main/proposals/0244-opaque-result-types.md):
+This decision is in keeping with other recent proposals such as [SE-0244: Opaque Result Types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0244-opaque-result-types.md):
 
 ```swift
 // Error: Function declares an opaque return type 'some Numeric', but the
@@ -166,7 +168,7 @@ let x: Double? = if p { nil } else { 2.0 }
 
 Of course, when returning from a function or assigning to an existing variable, this type context is always provided.
 
-It is also in keeping with [SE-0326: Enable multi-statement closure parameter/result type inference]( https://github.com/apple/swift-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md):
+It is also in keeping with [SE-0326: Enable multi-statement closure parameter/result type inference]( https://github.com/swiftlang/swift-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md):
 
 ```swift
 func test<T>(_: (Int?) -> T) {}
@@ -311,10 +313,6 @@ let foo: String = do {
 }
 ```
 
-### Support for `break` and `continue`
-
-Similar to `return`, statements that break or continue to a label, could be permitted in branches. There is likely a larger number of edge cases to consider here, possibly requiring enhancements to DI to ensure variables remain initialized on all paths. 
-
 ### Guard
 
 Often enthusiasm for `guard` leads to requests for `guard` to have parity with `if`. Returning a value from a `guard`'s else is very common, and could potentially be sugared as
@@ -357,7 +355,7 @@ This could be done with `if` expressions outside result builders too, and would 
 
 ### Sticking with the Status Quo
 
-The list of [commonly rejected proposals](https://github.com/apple/swift-evolution/blob/main/commonly_proposed.md) includes the subject of this proposal:
+The list of [commonly rejected proposals](https://github.com/swiftlang/swift-evolution/blob/main/commonly_proposed.md) includes the subject of this proposal:
 
 > **if/else and switch as expressions**: These are conceptually interesting things to support, but many of the problems solved by making these into expressions are already solved in Swift in other ways. Making them expressions introduces significant tradeoffs, and on balance, we haven't found a design that is clearly better than what we have so far.
 
@@ -385,7 +383,7 @@ var response = switch (utterance) {
 
 A similar suggestion was made during [SE-0255: Implicit Returns from Single-Expression Functions](https://forums.swift.org/t/se-0255-implicit-returns-from-single-expression-functions/), where an alternate syntax for single-expression functions was discussed e.g. `func sum() -> Element = reduce(0, +)`. In that case, the core team did not consider introduction of a separate syntax for functions to be sufficiently motivated.
 
-The main benefit to the alternate `->` syntax is to make it more explicit, but comes at the cost of needing to know about two different kinds of switch syntax. Note that this is orthoganal to, and does not solve, the separate goal of providing a way of explicitly "yielding" an expression value in the case of multi-statement branches (also shown here in this java example) versus taking the "last expression" approach.
+The main benefit to the alternate `->` syntax is to make it more explicit, but comes at the cost of needing to know about two different kinds of switch syntax. Note that this is orthogonal to, and does not solve, the separate goal of providing a way of explicitly "yielding" an expression value in the case of multi-statement branches (also shown here in this java example) versus taking the "last expression" approach.
 
 Java did not introduce this syntax for `if` expressions. Since this is a goal for Swift, this implies:
 
@@ -395,7 +393,7 @@ let x =
   else -> fatalError()
 ```
 
-However, this then poses an issue when evolving to multi-statement branches. Unlike with `switch`, these would require introducing braces, leaving a combination of both braces _and_ a "this is an expresion" sigil:
+However, this then poses an issue when evolving to multi-statement branches. Unlike with `switch`, these would require introducing braces, leaving a combination of both braces _and_ a "this is an expression" sigil:
 
 ```swift
 let x = 
@@ -433,9 +431,15 @@ If a future direction of full expressions is considered, the `->` form may not w
 let x = if p -> 1 else -> 2 + 3
 ``` 
 
+### Support for control flow
+
+An earlier version of this proposal allowed use of `return` in a branch. Similar to `return`, statements that `break` or `continue` to a label, were considered a future direction.
+
+Allowing new control flow out of expressions could be unexpected and error-prone. Swift currently only allows control flow out of expressions through thrown errors, which must be explicitly marked with `try` (or, in the case of `if` or `switch` branches, with `throw`) as an indication of the control flow to the programmer. Allowing other control flow out of expressions would undermine this principle. The control flow impact of nested return statements would become more difficult to reason about if we extend SE-0380 to support multiple-statement branches in the future. The use-cases for this functionality presented in the review thread were also fairly niche. Given the weak motivation and the potential problems introduced, the Language Workgroup accepts SE-0380 without this functionality.
+
 ## Source compatibility
 
-As proposed, this addition has one source incompatability, related to unreachable code. The following currently compiles, albeit with a warning that the `if` statement is unreachable (and the values in the branches unused):
+As proposed, this addition has one source incompatibility, related to unreachable code. The following currently compiles, albeit with a warning that the `if` statement is unreachable (and the values in the branches unused):
 
 ```swift
 func foo() {
@@ -469,6 +473,6 @@ This proposal has no impact on ABI stability.
 
 ## Acknowledgments
 
-Much of this implementation layers on top of ground work done by [Pavel Yaskevich](https://github.com/xedin), particularly the work done to allow [multi-statement closure type inference](https://github.com/apple/swift-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md).
+Much of this implementation layers on top of ground work done by [Pavel Yaskevich](https://github.com/xedin), particularly the work done to allow [multi-statement closure type inference](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md).
 
 Both [Nate Cook](https://forums.swift.org/t/if-else-expressions/22366/48) and [Michael Ilseman](https://forums.swift.org/t/omitting-returns-in-string-case-study-of-se-0255/24283) provided analysis of use cases in the standard library and elsewhere. Many community members have made a strong case for this change, most recently [Dave Abrahams](https://forums.swift.org/t/if-else-expressions/22366).

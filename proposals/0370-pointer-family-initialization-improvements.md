@@ -136,8 +136,8 @@ extension UnsafeMutableBufferPointer {
 +++ func update<C>(fromContentsOf source: C) -> Index where C: Collection, C.Element == Element
 +++ func moveInitialize(fromContentsOf source: UnsafeMutableBufferPointer) -> Index
 +++ func moveInitialize(fromContentsOf source: Slice<UnsafeMutableBufferPointer>) -> Index
-+++ func moveUpdate(fromContentsOf source: `Self`) -> Index
-+++ func moveUpdate(fromContentsOf source: Slice<`Self`>) -> Index
++++ func moveUpdate(fromContentsOf source: Self) -> Index
++++ func moveUpdate(fromContentsOf source: Slice<Self>) -> Index
 +++ func deinitialize() -> UnsafeMutableRawBufferPointer
 
 +++ func initializeElement(at index: Index, to value: Element)
@@ -512,7 +512,7 @@ extension UnsafeMutableBufferPointer {
   ///   The memory region underlying `source` must be initialized. The
   ///   memory regions referenced by `source` and this pointer must not overlap.
   /// - Returns: An index one past the index of the last element updated.
-  public func moveUpdate(fromContentsOf source: `Self`) -> Index
+  public func moveUpdate(fromContentsOf source: Self) -> Index
 
   /// Updates this buffer's initialized memory initialized memory by
   /// moving every element from the source buffer slice,
@@ -536,7 +536,7 @@ extension UnsafeMutableBufferPointer {
   ///   The memory region underlying `source` must be initialized. The
   ///   memory regions referenced by `source` and this pointer must not overlap.
   /// - Returns: An index one past the index of the last element updated.
-  public func moveUpdate(fromContentsOf source: Slice<`Self`>) -> Index
+  public func moveUpdate(fromContentsOf source: Slice<Self>) -> Index
 
   /// Deinitializes every instance in this buffer.
   ///
@@ -1758,6 +1758,6 @@ One of the pre-existing returned tuples does not have element labels, and the or
 
 ## Acknowledgments
 
-[Kelvin Ma](https://github.com/kelvin13) (aka [Taylor Swift](https://forums.swift.org/u/taylorswift/summary))'s initial versions of the pitch that became SE-0184 included more functions to manipulate initialization state. These were deferred, but much of the deferred functionality has not been pitched again until now.
+[Dianna Ma](https://github.com/tayloraswift) (aka [Taylor Swift](https://forums.swift.org/u/taylorswift/summary))'s initial versions of the pitch that became SE-0184 included more functions to manipulate initialization state. These were deferred, but much of the deferred functionality has not been pitched again until now.
 
 Members of the Swift Standard Library team for valuable discussions.

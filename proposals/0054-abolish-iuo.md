@@ -1,7 +1,7 @@
 # Abolish `ImplicitlyUnwrappedOptional` type
 
 * Proposal: [SE-0054](0054-abolish-iuo.md)
-* Author: [Chris Willmore](http://github.com/cwillmor)
+* Author: [Chris Willmore](https://github.com/cwillmor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4.2)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-pending-implementation-se-0054-abolish-implicitlyunwrappedoptional-type/2009)

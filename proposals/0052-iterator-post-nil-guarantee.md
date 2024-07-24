@@ -3,7 +3,7 @@
 * Proposal: [SE-0052](0052-iterator-post-nil-guarantee.md)
 * Author: [Patrick Pijnappel](https://github.com/PatrickPijnappel)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0052-change-iteratortype-post-nil-guarantee/2463)
 * Implementation: [apple/swift#1702](https://github.com/apple/swift/pull/1702)
 

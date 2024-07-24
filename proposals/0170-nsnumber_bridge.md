@@ -3,7 +3,7 @@
 * Proposal: [SE-0170](0170-nsnumber_bridge.md)
 * Author: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0170-nsnumber-bridging-and-numeric-types/5801)
 
 ##### Revision history

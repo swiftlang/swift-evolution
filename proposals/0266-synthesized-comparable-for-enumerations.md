@@ -1,7 +1,7 @@
 # Synthesized `Comparable` conformance for `enum` types
 
 * Proposal: [SE-0266](0266-synthesized-comparable-for-enumerations.md)
-* Author: [Kelvin Ma (taylorswift)](https://forums.swift.org/u/taylorswift)
+* Author: [Dianna Ma (taylorswift)](https://github.com/tayloraswift)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#25696](https://github.com/apple/swift/pull/25696)
@@ -9,7 +9,7 @@
 
 ## Introduction
 
-[SE-185](https://github.com/apple/swift-evolution/blob/master/proposals/0185-synthesize-equatable-hashable.md) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sibling protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for `enum` types without raw values or associated values not themselves conforming to `Comparable`, a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases, and then the lexicographic comparison order of the associated values for an `enum` case tie.
+[SE-185](https://github.com/swiftlang/swift-evolution/blob/master/proposals/0185-synthesize-equatable-hashable.md) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sibling protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for `enum` types without raw values or associated values not themselves conforming to `Comparable`, a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases, and then the lexicographic comparison order of the associated values for an `enum` case tie.
 
 ## Motivation
 

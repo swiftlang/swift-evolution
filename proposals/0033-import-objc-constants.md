@@ -3,7 +3,7 @@
 * Proposal: [SE-0033](0033-import-objc-constants.md)
 * Author: [Jeff Kelley](https://github.com/SlaunchaMan)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0033-import-objective-c-constants-as-swift-types/1706)
 
 ## Introduction

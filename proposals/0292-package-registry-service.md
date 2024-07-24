@@ -14,9 +14,9 @@
   [3](https://forums.swift.org/t/se-0292-3rd-review-package-registry-service/)
   [Amendment](https://forums.swift.org/t/amendment-se-0292-package-registry-service/)
 * Previous Revision:
-  [1](https://github.com/apple/swift-evolution/blob/b48527526b5748a60b0b23846d5880e9cc2c4711/proposals/0292-package-registry-service.md)
-  [2](https://github.com/apple/swift-evolution/blob/53bd6d3813c40ebd07701727c8cfb6fedd751e2a/proposals/0292-package-registry-service.md)
-  [3](https://github.com/apple/swift-evolution/blob/971d1f43bce718a45227432782a312cc5de99870/proposals/0292-package-registry-service.md)
+  [1](https://github.com/swiftlang/swift-evolution/blob/b48527526b5748a60b0b23846d5880e9cc2c4711/proposals/0292-package-registry-service.md)
+  [2](https://github.com/swiftlang/swift-evolution/blob/53bd6d3813c40ebd07701727c8cfb6fedd751e2a/proposals/0292-package-registry-service.md)
+  [3](https://github.com/swiftlang/swift-evolution/blob/971d1f43bce718a45227432782a312cc5de99870/proposals/0292-package-registry-service.md)
 
 ## Introduction
 
@@ -125,7 +125,7 @@ and downloading the source archive for a release:
 | `GET`  | `/identifiers{?url}`                                      | Lookup package identifiers registered for a URL |
 
 A formal specification for the package registry interface is provided
-[alongside this proposal](https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md).
+[alongside this proposal](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md).
 In addition,
 an OpenAPI (v3) document
 and a reference implementation written in Swift
@@ -1246,10 +1246,10 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [RubyGems]: https://rubygems.org "RubyGems: The Ruby community’s gem hosting service"
 [Schema.org]: https://schema.org/
 [scp-url]: https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols#_the_ssh_protocol
-[SE-0219]: https://github.com/apple/swift-evolution/blob/main/proposals/0219-package-manager-dependency-mirroring.md "Package Manager Dependency Mirroring"
-[SE-0272]: https://github.com/apple/swift-evolution/blob/main/proposals/0272-swiftpm-binary-dependencies.md "Package Manager Binary Dependencies"
-[SE-0301]: https://github.com/apple/swift-evolution/blob/main/proposals/0301-package-editing-commands.md "Package Editor Commands"
-[SE-0305]: https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md "Package Manager Binary Target Improvements"
+[SE-0219]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0219-package-manager-dependency-mirroring.md "Package Manager Dependency Mirroring"
+[SE-0272]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0272-swiftpm-binary-dependencies.md "Package Manager Binary Dependencies"
+[SE-0301]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0301-package-editing-commands.md "Package Editor Commands"
+[SE-0305]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md "Package Manager Binary Target Improvements"
 [secret scanning]: https://docs.github.com/en/github/administering-a-repository/about-secret-scanning
 [SemVer]: https://semver.org/ "Semantic Versioning"
 [SoftwareSourceCode]: https://schema.org/SoftwareSourceCode

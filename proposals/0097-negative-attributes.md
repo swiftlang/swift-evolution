@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0097](0097-negative-attributes.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0097-normalizing-naming-for-negative-attributes/2854)
 

@@ -4,6 +4,7 @@
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Michael Ilseman](https://github.com/milseman), [David Ewing](https://github.com/DaveEwing)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.7)**
+* Upcoming Feature Flag: `BareSlashRegexLiterals` (implemented in Swift 5.8)
 * Implementation: [apple/swift#42119](https://github.com/apple/swift/pull/42119), [apple/swift#58835](https://github.com/apple/swift/pull/58835)
   * Bare slash syntax `/.../` available with `-enable-bare-slash-regex`
 * Review: ([first pitch](https://forums.swift.org/t/pitch-regular-expression-literals/52820))
@@ -408,7 +409,7 @@ As explored above, the parsing of `/.../` does have potential to break source in
 
 However we expect these cases will be uncommon, and can be disambiguated with parentheses or closures if needed.
 
-To accommodate the cases where source may be broken, `/.../` regex literals will be introduced in Swift 6 mode. However, projects may adopt the syntax earlier by passing the compiler flag `-enable-bare-slash-regex`. Note this does not affect the extended delimiter syntax `#/.../#`, which will be usable immediately.
+To accommodate the cases where source may be broken, `/.../` regex literals will be introduced in Swift 6 mode. However, projects may adopt the syntax earlier by passing the compiler flag `-enable-bare-slash-regex` or the [upcoming feature flag](0362-piecemeal-future-features.md) `BareSlashRegexLiterals`. Note this does not affect the extended delimiter syntax `#/.../#`, which will be usable immediately.
 
 ## Future Directions
 
@@ -650,18 +651,18 @@ Regex literals should not be outright avoided, they should be used well. Artific
 
 
 
-[SE-0168]: https://github.com/apple/swift-evolution/blob/main/proposals/0168-multi-line-string-literals.md
-[SE-0200]: https://github.com/apple/swift-evolution/blob/main/proposals/0200-raw-string-escaping.md
+[SE-0168]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0168-multi-line-string-literals.md
+[SE-0200]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0200-raw-string-escaping.md
 
 [pitch-status]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md
-[regex-type]: https://github.com/apple/swift-evolution/blob/main/proposals/0350-regex-type-overview.md
+[regex-type]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0350-regex-type-overview.md
 [strongly-typed-captures]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/StronglyTypedCaptures.md
 [regex-unicode]: https://github.com/apple/swift-experimental-string-processing/blob/main/Documentation/Evolution/ProposalOverview.md#unicode-for-string-processing
 
-[internal-syntax]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md
-[extended-regex-syntax]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#extended-syntax-modes
+[internal-syntax]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md
+[extended-regex-syntax]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#extended-syntax-modes
 
-[capture-numbering]: https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#group-numbering
+[capture-numbering]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md#group-numbering
 
-[regex-dsl]: https://github.com/apple/swift-evolution/blob/main/proposals/0351-regex-builder.md
-[dsl-captures]: https://github.com/apple/swift-evolution/blob/main/proposals/0351-regex-builder.md#capture-and-reference
+[regex-dsl]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0351-regex-builder.md
+[dsl-captures]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0351-regex-builder.md#capture-and-reference

@@ -1,9 +1,9 @@
 # Swift `run` Command
 
 * Proposal: [SE-0179](0179-swift-run-command.md)
-* Author: [David Hart](http://github.com/hartbit/)
+* Author: [David Hart](https://github.com/hartbit/)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0179-swift-run-command/6031)
 * Implementation: [apple/swift-package-manager#1187](https://github.com/apple/swift-package-manager/pull/1187)
 

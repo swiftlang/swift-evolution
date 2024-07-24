@@ -2,14 +2,14 @@
 
 * Proposal: [SE-0077](0077-operator-precedence.md)
 * Author: [Anton Zhilin](https://github.com/Anton3)
-* Review Manager: [Joe Groff](http://github.com/jckarter)
-* Status: **Implemented (Swift 3)**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0077-v2-improved-operator-declarations/3321)
 
 **Revision history**
 
-- **[v1](https://github.com/apple/swift-evolution/blob/40c2acad241106e1cfe697d0f75e1855dc9e96d5/proposals/0077-operator-precedence.md)** Initial version
-- **[v2](https://github.com/apple/swift-evolution/blob/1f3ae8bfecb2ba70d30767607f0bd3279feeec90/proposals/0077-operator-precedence.md)** After the first review
+- **[v1](https://github.com/swiftlang/swift-evolution/blob/40c2acad241106e1cfe697d0f75e1855dc9e96d5/proposals/0077-operator-precedence.md)** Initial version
+- **[v2](https://github.com/swiftlang/swift-evolution/blob/1f3ae8bfecb2ba70d30767607f0bd3279feeec90/proposals/0077-operator-precedence.md)** After the first review
 - **v3** After the second review
 
 ## Introduction

@@ -3,7 +3,7 @@
 * Proposal: [SE-0066](0066-standardize-function-type-syntax.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0066-standardize-function-type-argument-syntax-to-require-parentheses/2488)
 * Implementation: [apple/swift@3d2b5bc](https://github.com/apple/swift/commit/3d2b5bcc5350e1dea2ed8a0a95cd12ff5c760f24)
 
