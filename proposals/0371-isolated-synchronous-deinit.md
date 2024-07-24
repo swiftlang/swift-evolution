@@ -5,7 +5,7 @@
 * Review Manager: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Status: **Returned for revision**
 * Implementation: [apple/swift#60057](https://github.com/apple/swift/pull/60057)
-* Review: ([pitch](https://forums.swift.org/t/isolated-synchronous-deinit/58177)) ([review](https://forums.swift.org/t/se-0371-isolated-synchronous-deinit/59754)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0371-isolated-synchronous-deinit/60060))
+* Review: ([pitch](https://forums.swift.org/t/isolated-synchronous-deinit/58177)) ([review](https://forums.swift.org/t/se-0371-isolated-synchronous-deinit/59754)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0371-isolated-synchronous-deinit/60060)) ([second review](https://forums.swift.org/t/second-review-se-0371-isolated-synchronous-deinit/73406))
 
 ## Introduction
 
