@@ -48,26 +48,83 @@ let regex = /(?<=a)b/
 With this proposal, this restriction is lifted and the following syntactic forms will be accepted:
 
 ```swift
-// Positive lookabehind
+// Positive lookbehind
 /a(?<=b)c/
 /a(*plb:b)c/
 /a(*positive_lookbehind:b)c/
 
-// Negative lookabehind
+// Negative lookbehind
 /a(?<!b)c/
 /a(*nlb:b)c/
 /a(*negative_lookbehind:b)c/
-
 ```
 
 ### Regex builders
+This proposal adds support for both positive and negative lookbehind assertions when using the Regex builder, for example:
 
-**TODO**: add Regex builders for positive and negative lookbehind
+```swift
+// Positive Lookbehind
+Regex {
+  "a"
+  Lookbehind { "b" }
+  "c"
+}
+
+// Negative lookbehind
+Regex {
+  "a"
+  NegativeLookbehind { "b" }
+  "c"
+}
+```
 
 ### API
 
-**TODO**: Add reverse variants of matching API, e.g. `firstReverseMatch()`.
+```swift
+extension Regex {
+  /// Returns the first match for this regex found in the given string when matching in reverse.
+  public func firstReverseMatch(in string: String) throws -> Regex<Output>.Match?
+  /// Returns the first match for this regex found in the given string when matching in reverse.
+  public func firstReverseMatch(in string: Substring) throws -> Regex<Output>.Match?
 
+  /// Returns a match if this regex matches the given string in its entirety when matching in reverse.
+  public func wholeReverseMatch(in string: String) throws -> Regex<Output>.Match?
+  /// Returns a match if this regex matches the given string in its entirety when matching in reverse.
+  public func wholeReverseMatch(in string: Substring) throws -> Regex<Output>.Match?
+
+  /// Returns a match if this string is matched by the given regex (matching in reverse) at its end.
+  public func suffixMatch(in string: String) throws -> Regex<Output>.Match?
+  /// Returns a match if this string is matched by the given regex (matching in reverse) at its end.
+  public func suffixMatch(in string: Substring) throws -> Regex<Output>.Match?
+}
+
+extension BidirectionalCollection where SubSequence == Substring {
+  /// Returns the first match of the specified regex within the collection when matching in reverse.
+  public func firstReverseMatch<Output>(of r: some RegexComponent<Output>) -> Regex<Output>.Match?
+  /// Returns the first match of the specified regex within the collection when matching in reverse.
+  public func firstReverseMatch<Output>(@RegexComponentBuilder of content: () -> some RegexComponent<Output>) -> Regex<Output>.Match?
+
+  /// Returns a match if this string is matched by the given regex in its entirety when matching in reverse.
+  public func wholeReverseMatch<R: RegexComponent>(of regex: R) -> Regex<R.RegexOutput>.Match?
+  /// Returns a match if this string is matched by the given regex in its entirety when matching in reverse.
+  public func wholeReverseMatch<Output>(@RegexComponentBuilder of content: () -> some RegexComponent<Output>) -> Regex<Output>.Match?
+
+  /// Matches part of the regex, starting at the end.
+  public func suffixMatch<R: RegexComponent>(of regex: R) -> Regex<R.RegexOutput>.Match?
+  /// Matches part of the regex, starting at the end.
+  public func suffixMatch<Output>(@RegexComponentBuilder of content: () -> some RegexComponent<Output>) -> Regex<Output>.Match?
+
+  /// Returns a new collection of the same type by removing the final elements that match the given regex when matching in reverse.
+  public func trimmingSuffix(_ regex: some RegexComponent) -> SubSequence
+  /// Returns a new collection of the same type by removing the final elements that match the given regex when matching in reverse.
+  public func trimmingSuffix(@RegexComponentBuilder _ content: () -> some RegexComponent) -> SubSequence
+
+  /// Returns a Boolean value indicating whether the final elements of the sequence are the same as the elements in the specified regex when matching in reverse.
+  public func ends(with regex: some RegexComponent) -> Bool
+  /// Returns a Boolean value indicating whether the final elements of the sequence are the same as the elements in the specified regex when matching in reverse.
+  public func ends(@RegexComponentBuilder with content: () -> some RegexComponent) -> Bool
+}
+```
 
 ## Source compatibility
 
