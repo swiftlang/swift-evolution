@@ -6,7 +6,7 @@
 * Status: **Active Review (July 20-July 30, 2024)**
 * Implementation: Present in `main` under experimental feature `DebugDescriptionMacro` [apple/swift#69626](https://github.com/apple/swift/pull/69626)
 * Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/fda6746506368c8c6d2933ee6d71c87e6ed92f94/proposals/0440-debug-description-macro.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-debug-description-macro/67711)) ([review](https://forums.swift.org/t/se-0440-debugdescription-macro/72958)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0440-debugdescription-macro/73270))
+* Review: ([pitch](https://forums.swift.org/t/pitch-debug-description-macro/67711)) ([review](https://forums.swift.org/t/se-0440-debugdescription-macro/72958)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0440-debugdescription-macro/73270)) ([second review](https://forums.swift.org/t/second-review-se-0440-debugdescription-macro/73325))
 
 ## Introduction
 
