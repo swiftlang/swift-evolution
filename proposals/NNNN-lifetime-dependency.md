@@ -42,6 +42,11 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 - Updated future direction: component lifetime syntax
 - New example: Escapable properties in a nonescapable type
 
+**Edited** (July 31, 2024)
+
+- New alternative considered: @lifetime annotation
+- New alternative considered: where clause
+
 #### See Also
 
 * [Forum discussion of Non-Escapable Types and Lifetime Dependency](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency)
@@ -878,13 +883,74 @@ The currently proposed `dependsOn` spelling was chosen to convey the direction o
 
     func foo(a: A, b: B) -> dependsOn(a) R
 
-This does, however, introduce compound keyword. Alternatively, we could use a simpler `lifetime` keyword, which better matches the feature description. The general syntax would then be:
+This does, however, introduce a keyword with a compound name. Alternatively, we could use a simpler `lifetime` keyword, which better matches the feature description. The general syntax would then be:
 
 > **lifetime**(*target*: [scoped] *source*)
 
 APIs with ambiguous depenencies would then typically be spelled:
 
     func foo(a: A, b: B) -> lifetime(a) R
+
+### @lifetime annotation
+
+Instead of committing to a final, lightweight syntax, we can start with a single `@lifetime` annotation. It would take this form:
+
+```
+@lifetime(target1.component: [copy|mutate|borrow] source1.component)
+@lifetime(target2.component: [copy|mutate|borrow] source2.component)
+func foo(...)
+```
+
+`target` can be `self`, any parameter name, or, most commonly an empty string which implies the function result. `source` can be `self` or any parameter name. The most common usage would be:
+
+```
+@lifetime(copy arg)
+func foo(arg: Arg1) -> R {}
+```
+
+The `.component` qualifier is only relevant once we have component lifetimes. See the "Component lifetime" section below.
+
+An annotation has some advantages over a lighter-weight type modifier sytax:
+
+The `@` sigil is helpful to distinguish lifetime dependence information from regular function syntax.
+
+A position-independent annotation has an advantage that the fully expressive syntax is more self-evident. This makes it easier to educate reviewers about what is possible with the syntax.
+
+The type modifier can occur in any type position within a function signature, in including before the `func` keyword for the 'self' type. This has potential readability problems when it comes to more complicated cases. Nested parentheses (`dependsOn(...)`) that can occur anywhere in the signature are visually confusing.
+
+In the future, the single `@lifetime` annotation could be a useful modifier for other kinds declarations such as types and properties:
+
+```
+// Allow two components to have distinct lifetimes...
+struct Pair<T: ~Escapable> {
+  @lifetime
+  var x: T
+
+  @lifetime
+  var y: T
+}
+
+// Allow two components to have dependent lifetimes...
+struct Node: ~Escapable {
+  @lifetime
+  var parent: Node
+
+  @lifetime(parent)
+  var child: Node
+}
+
+// Declare an abstract lifetime and alias it with another lifetime.
+@lifetime(elements: storage.elements)
+struct Container {
+  var storage: Storage
+}
+```
+
+### `where` clause
+
+Some have advocated for a `where` clause on the function declaration. The function name could stand-in for its result, and directionality could be indicated with a comparison operator:
+
+`func foo(arg: Arg) -> R where lifetime(foo) < lifetime([copy|borrow|mutate] arg)`
 
 ### dependsOn(unchecked) to disable lifetime dependence checking
 
