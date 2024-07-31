@@ -38,7 +38,6 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 **Edited** (June 9, 2024):
 
 - New section: Immortal requirements
-- New alternative considered: Initializer syntax
 - New alternative considered: dependsOn(unchecked) to disable lifetime dependence checking
 - Updated future direction: component lifetime syntax
 - New example: Escapable properties in a nonescapable type
@@ -850,27 +849,6 @@ Adding a lifetime dependency constraint can cause existing valid source code to 
 Removing a lifetime dependency constraint only affects existing source code in that it may change when deinitializers run, altering the ordering of deinitializer side-effects.
 
 ## Alternatives considered
-
-### Initializer syntax: result vs. inout syntax
-
-The programming model for initializers is that they return `self` (with an implicit return statement):
-
-`init(arg: ArgType) -> dependsOn(arg) Self`
-
-But some people have criticized this syntax. They prefer to think of an initializer as mutating `self`, which would be
-spelled:
-
-`dependsOn(self: arg) init(arg: ArgType)`
-
-We could adopt either or both of these options.
-
-In a future with component lifetimes the syntax would look like either:
-
-`init(arg1: Element, arg2: Element) -> dependsOn(a: arg1, b: arg2) Self {...}`
-
-or
-
-`dependsOn(self.a: arg1, self.b: arg2) init(arg1: Element, arg2: Element) ->  Self {...}`
 
 ### Different Position
 
