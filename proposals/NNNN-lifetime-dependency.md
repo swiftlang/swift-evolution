@@ -46,6 +46,7 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 
 - New alternative considered: @lifetime annotation
 - New alternative considered: where clause
+- Simplified implicit lifetime dependencies and added same-type rule
 
 #### See Also
 
@@ -257,12 +258,11 @@ init(arg: <parameter-convention> ArgType) -> dependsOn(arg) Self
 
 ### Implicit Lifetime Dependencies
 
-The syntax above allows developers to explicitly annotate lifetime dependencies in their code.
-But because the possibilities are limited, we can usually allow the compiler to infer a suitable dependency.
-The detailed rules are below, but generally we require that the return type be nonescapable and that there be one “obvious” source for the dependency.
+The syntax above allows developers to explicitly annotate lifetime dependencies in their code.  But because the possibilities are limited, we can usually allow the compiler to infer a suitable dependency.  The detailed rules are below, but generally we require that the return type be nonescapable and that there be an “obvious” source for the dependency.
 
-In particular, we can infer a lifetime dependency on `self` for any method that returns a nonescapable value.
-As above, the details vary depending on whether `self` is escapable or nonescapable:
+#### Self dependence
+
+We can infer a lifetime dependency on `self` for any method that returns a nonescapable value. As above, the details vary depending on whether `self` is escapable or nonescapable:
 
 ```swift
 struct NonescapableType: ~Escapable { ... }
@@ -286,25 +286,21 @@ struct NEStruct: ~Escapable {
 }
 ```
 
-For free or static functions or initializers, we can infer a lifetime dependency when the return value is nonescapable and there is only one obvious argument that can serve as the source of the dependency.
-For example:
+#### Same-type dependence
 
-```swift
-struct NEType: ~Escapable { ... }
+For any function or method that returns a nonescapable type, we infer a copied lifetime dependency on all parameters of the same type.
 
-// If there is only one argument with an explicit parameter convention:
-func f(..., arg1: borrowing Type1, ...) -> /* dependsOn(arg1) */ NEType
+`func foo<T: ~Escapable, U: ~Escapable, R: ~Escapable>(x: T, y: U) -> R { ... }`
 
-// Or there is only one argument that is `~Escapable`:
-func g(..., arg2: NEType, ...) -> /* dependsOn(arg2) */ NEType
+implies:
 
-// If there are multiple possible arguments that we might depend
-// on, we require an explicit dependency:
-// 🛑 Cannot infer lifetime dependency since `arg1` and `arg2` are both candidates
-func g(... arg1: borrowing Type1, arg2: NEType, ...) -> NEType
+```
+-> dependsOn(x) where R == T
+-> dependsOn(y) where R == U
+-> dependsOn(x, y) where R == T == U
 ```
 
-We expect these implicit inferences to cover most cases, with the explicit form only occasionally being necessary in practice.
+This is particularly helpful for Generic APIs. With this rule, indicating that a generic parameter is `~Escapable` should usually be sufficient to infer the correct lifetime dependence.
 
 ### Dependent parameters
 
@@ -672,20 +668,35 @@ The implications of mutation modifiers and argument type on the resulting lifeti
 
 ### Inference Rules
 
-If there is no explicit lifetime dependency, we will automatically infer one according to the following rules:
+If there is no explicit lifetime dependency on the nonescapable result of a method or function, we will attempt to infer dependencies automatically according the following rules:
 
-**For methods where the return value is nonescapable**, we will infer a dependency against self, depending on the mutation type of the function.
-Note that this is not affected by the presence, type, or modifier of any other arguments to the method.
+1. For methods where the return value is nonescapable, we will infer a dependency against `self`. If `self` is nonescapable, then we infer a copying dependency. If `self` is escapable, and the method is `borrowing` or `mutating`, then we infer a scoped dependency.
 
-**For a free or static functions or initializers with at least one argument,** we will infer a lifetime dependency when the return value is nonescapable and exactly one argument that satisfies any of the following:
-  - is nonescapable, or
-  - is non-BitwiseCopyable and has an explicit `borrowing`, or `inout` convention
+2. For methods, functions, and initializers where the return value is nonescapable, we infer a copied lifetime dependency on all parameters of the same (nonescapable) type, including the implicit `self` parameter.
 
-In this case, the compiler will infer a dependency on the unique argument identified by these conditions.
+3. For functions and initializers that have a nonescapable return value and a single parameter, we infer dependence on that parameter. If the parameter is nonescapable, then we infer a copying dependency; otherwise, we infer a scoped dependency.
+
+For all inference rules, the type of dependence is the same as an explicit `dependsOn(argument)` on the same argument without any `scoped` qualifier based on the argument's type.
 
 **In no other case** will a function, method, or initializer implicitly gain a lifetime dependency.
 If a function, method, or initializer has a nonescapable return value, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
 
+We infer dependencies according to all applicable rules. Here, both rule #1 and #2 apply:
+
+```
+struct NE: ~Escapable { ... }
+struct E {
+  func foo(ne: NE) -> /* dependsOn(self, ne) */ NE
+}
+```
+
+Here, both rule #2 and #3 apply:
+
+```
+struct NE {
+  init(ne: NE) -> /* dependsOn(ne) */ Self
+}
+```
 
 ### Dependency semantics by example
 
