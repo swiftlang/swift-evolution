@@ -42,13 +42,13 @@ func makeDinner() async -> Meal {
   // Create a task group to scope the lifetime of our three child tasks
   return try await withThrowingTaskGroup(of: CookingTask.self) { group in
     // spawn three cooking tasks and execute them in parallel:
-    group.async {
+    group.addTask {
       CookingTask.veggies(try await chopVegetables())
     }
-    group.async {
+    group.addTask {
       CookingTask.meat(await marinateMeat())
     }
-    group.async {
+    group.addTask {
       CookingTask.oven(await preheatOven(temperature: 350))
     }
 
@@ -180,9 +180,9 @@ The child-task created to initialize the `async let` by default runs on the glob
 
 > Customizing the execution context of async lets is a future direction we are likely to explore with the introduction of Custom Executors.
 
-The initializer of the `async let` can be thought of as a closure that runs the code contained within it in a separate task, very much like the explicit `group.async { <work here/> }` API of task groups.
+The initializer of the `async let` can be thought of as a closure that runs the code contained within it in a separate task, very much like the explicit `group.addTask { <work here/> }` API of task groups.
 
-Similarly to the `group.async()` function, the closure is `@Sendable` and `nonisolated`, meaning that it cannot access non-sendable state of the enclosing context. For example, it will result in a compile-time error, preventing a potential race condition, for a `async let` initializer to attempt mutating a closed-over variable:
+Similarly to the `group.addTask()` function, the closure is `@Sendable` and `nonisolated`, meaning that it cannot access non-sendable state of the enclosing context. For example, it will result in a compile-time error, preventing a potential race condition, for a `async let` initializer to attempt mutating a closed-over variable:
 
 ```swift
 var localText: [String] = ...
@@ -372,7 +372,7 @@ This is the same as spawning a number of child-tasks in a task group, and not co
 
 ```swift
 try await withThrowingTaskGroup(of: Int.self) { group in 
-  group.async { throw Boom() }
+  group.addTask { throw Boom() }
                              
   return 0 // we didn't care about the child-task at all(!)
 } // returns 0
@@ -414,7 +414,7 @@ Cancellation propagates recursively through the task hierarchy from parent to ch
 
 Because tasks spawned by `async let` are child tasks, they naturally participate in their parent's cancellation.
 
-Cancellation of the parent task means that the context in which the `async let` declarations exist is cancelled, and any tasks created by those declarations will be cancelled as well. Because cancellation in Swift is co-operative, it does not prevent the spawning of tasks, however tasks spawned from a cancelled context are *immediately* marked as cancelled. This exhibits the same semantics as `TaskGroup.async` which, when used from an already cancelled task, _will_ spawn more child-tasks, however they will be immediately created as cancelled tasks — which they can inspect by calling `Task.isCancelled`.
+Cancellation of the parent task means that the context in which the `async let` declarations exist is cancelled, and any tasks created by those declarations will be cancelled as well. Because cancellation in Swift is co-operative, it does not prevent the spawning of tasks, however tasks spawned from a cancelled context are *immediately* marked as cancelled. This exhibits the same semantics as `TaskGroup.addTask` which, when used from an already cancelled task, _will_ spawn more child-tasks, however they will be immediately created as cancelled tasks — which they can inspect by calling `Task.isCancelled`.
 
 We can observe this in the following example:
 
@@ -459,7 +459,7 @@ func toyParallelMap<A, B>(_ items: [A], f: (A) async -> B) async -> [B] {
     // spawn off processing all `f` mapping functions in parallel
     // in reality, one might want to limit the "width" of these
     for i in items.indices { 
-      group.async { (i, await f(items[i])) }
+      group.addTask { (i, await f(items[i])) }
     }
     
     // collect all results
@@ -494,8 +494,8 @@ For example, the `race(left:right:)` function shown below, runs two child tasks 
 ```swift
 func race(left: () async -> Int, right: () async -> Int) async -> Int {
   await withTaskGroup(of: Int.self) { group in 
-    group.async { left() }
-    group.async { right() }
+    group.addTask { left() }
+    group.addTask { right() }
 
     let first = await group.next()! // !-safe, there is at-least one result to collect
     group.cancelAll() // cancel the other task
