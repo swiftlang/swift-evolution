@@ -3,10 +3,10 @@
 * Proposal: [SE-0427](0427-noncopyable-generics.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Tim Kientzle](https://github.com/tbkka), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [Holly Borla](https://github.com/hborla), [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (July 1 - July 10, 2024)**
+* Status: **Accepted**
 * Implementation: On `main` gated behind `-enable-experimental-feature NoncopyableGenerics`
 * Previous Proposal: [SE-0390: Noncopyable structs and enums](0390-noncopyable-structs-and-enums.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-noncopyable-generics/68180)) ([first review](https://forums.swift.org/t/se-0427-noncopyable-generics/70525))
+* Review: ([pitch](https://forums.swift.org/t/pitch-noncopyable-generics/68180)) ([first review](https://forums.swift.org/t/se-0427-noncopyable-generics/70525)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0427-noncopyable-generics/72039)) ([second review](https://forums.swift.org/t/second-review-se-0427-noncopyable-generics/72881)) ([acceptance](https://forums.swift.org/t/accepted-se-0427-noncopyable-generics/73560))
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
