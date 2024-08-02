@@ -1015,9 +1015,7 @@ This is a mechanical transformation that is applied throughout the standard libr
 
 ## Source compatibility
 
-This proposal has called out a few specific places where the introduction of typed throws into the language could affect source compatibility. However, in those places, we have opted for semantics that ensure that Swift code that does not In both cases, the type inference behavior of the language will differ when there are `throw` statements that throw a specific concrete type.
-
-Note that the source compatibility arguments in this proposal are there to ensure that Swift code that does not use typed throws will continue to work in the same way it always has. Once a function adopts typed throws, the effect of typed throws can then ripple to its callers.
+This proposal has called out a few specific places where the introduction of typed throws into the language could affect source compatibility. However, in those places, we have opted for semantics that ensure that existing Swift code that does not change behavior, to make this proposal act as a purely additive change to the language. Once a function adopts typed throws, the effect of typed throws can then ripple to its callers.
 
 ## Effect on API resilience
 
