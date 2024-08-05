@@ -11,7 +11,7 @@
 The term "Swift version” can refer to either the toolchain/compiler version or the language mode. This ambiguity is a consistent source of confusion. This proposal formalizes the term _language mode_ in tool options and APIs.
 
 ## Proposed Solution
-The proposed solution is to use the term _language mode_ for the appropriate Swift compiler option and Swift Package Manager APIs. Use of "Swift version" to refer to language mode will be deprecated or obsoleted as needed.
+The proposed solution is to use the term _language mode_ for the appropriate Swift compiler option and Swift Package Manager APIs. Use of "Swift version" to refer to language mode will be deprecated.
 
 ### Terminology
 The term _language mode_ has been consistently used to describe this compiler feature since it was introduced with Swift 4.0 and is an established term of art in the Swift community.
@@ -49,7 +49,7 @@ Add a new `init` method to `Package` with the following changes from the current
 - The parameter `swiftLanguageVersions` is renamed to `swiftLanguageModes`
 - The parameter type is now an optional array of `SwiftLanguageMode` values instead of `SwiftVersion` values
 
-The existing init method will be marked as `obsoleted` and `renamed` allowing the compiler to provide a fix-it.
+The existing init method will be marked as `deprecated` and `renamed` allowing the compiler to provide a fix-it. It will also have the @_disfavoredOverload attribute added to allow the compiler to disambiguate.
 
 #### 2. Rename `swiftLanguageVersions` property to `swiftLanguageModes`
 Rename the public `Package` property `swiftLanguageVersions` to `swiftLanguageModes`. Add a `swiftLanguageVersions` computed property that accesses `swiftLanguageModes` for backwards compatibility. 
@@ -104,7 +104,7 @@ The `-swift-version` option will be suppressed from the top-level help of the co
 ### Swift Package Manager
 Proposed Swift Package Manager API changes are limited to manifests \>= 6.0:
 
-### New Package init method and obsoleted init method
+### New Package init method and deprecated init method
 A new `init` method will be added to `Package` that renames the `swiftLanguageVersions` parameter to `swiftLanguageModes` with the type of the parameter being an optional array of `SwiftLanguageMode` values instead of `SwiftVersion` values:
 
 ```swift
@@ -123,10 +123,11 @@ Package(
 ```
 
 
-The existing init method will be marked as `obsoleted` and `renamed`, allowing the compiler to provide a fix-it:
+The existing init method will be marked as `deprecated` and `renamed`, allowing the compiler to provide a fix-it. It will also be annotated with `@_disfavoredOverload` to disambiguate the new and existing init methods:
 
 ```
-@available(_PackageDescription, introduced: 5.3, obsoleted: 6, renamed:
+@_disfavoredOverload
+@available(_PackageDescription, introduced: 5.3, deprecated: 6, renamed:
 "init(name:defaultLocalization:platforms:pkgConfig:providers:products:
 dependencies:targets:swiftLanguageModes:cLanguageStandard:
 cxxLanguageStandard:)")
@@ -139,8 +140,8 @@ cxxLanguageStandard:)")
 	) {
 ```
 
-#### Obsoleting existing init method
-The existing method must be obsoleted because the two methods are ambiguous when the default value for `swiftLanguageVersions` / `swiftLanguageModes` is used:
+#### Deprecating the existing init method by making it a disfavored overload
+In order to deprecate the existing method instead of marking it obsoleted, the existing method needs to be annotated with the `@_disfavoredOverlaod` attribute. This is because the two methods are ambiguous when the default value for `swiftLanguageVersions` / `swiftLanguageModes` is used:
 
 ```
 Package (  // Error: Ambiguous use of 'init'
@@ -150,7 +151,7 @@ Package (  // Error: Ambiguous use of 'init'
 )
 ```
 
-This follows the same approach used by all past revisions of the Package `init` method.
+Adding the `@_disfavoredOverlaod` attribute allows the compiler to disambiguate between the two methods.
 
 See the **Source compatibility** section for more details about this change.
 
@@ -212,11 +213,11 @@ public struct SwiftSetting {
 ```
 
 ## Source compatibility
-The new Package `init` method and obsoleting of the existing `init` method will cause source breakage for package manifests that specify the existing `swiftLanguageVersions` parameter when updating to swift tools version 6.0
+The new Package `init` method and deprecating the existing `init` method will cause a deprecation warning for package manifests that specify the existing `swiftLanguageVersions` parameter when updating to swift tools version 6.0
 
 A search of manifest files in public repositories suggests that about 10% of manifest files will encounter this breakage.
 
-Because the obsoleted `init` method is annotated as `renamed` the compiler will automatically provide a fix-it to update to the new `init` method.
+Because the deprecated `init` method is annotated as `renamed` the compiler will automatically provide a fix-it to update to the new `init` method.
 
 Renaming the public `swiftLanguageVersions` property of `Package` preserves backwards compatibility by introducing a computed property with that name. The computed property will be marked as `deprecated` in 6.0 and annotated as `renamed` to provide a fix-it.
 
