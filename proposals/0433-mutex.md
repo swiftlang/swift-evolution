@@ -3,8 +3,7 @@
 * Proposal: [SE-0433](0433-mutex.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Stephen Canon](https://github.com/stephentyrone)
-* Implementation: [apple/swift#71383](https://github.com/apple/swift/pull/71383)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.0)**
 * Review: ([pitch](https://forums.swift.org/t/pitch-synchronous-mutual-exclusion-lock/69889)), ([review](https://forums.swift.org/t/se-0433-synchronous-mutual-exclusion-lock/71174)), ([acceptance](https://forums.swift.org/t/accepted-se-0433-synchronous-mutual-exclusion-lock/71463))
 
 ## Introduction
@@ -110,7 +109,7 @@ public struct Mutex<State: ~Copyable>: ~Copyable {
 extension Mutex: Sendable where State: ~Copyable {}
   
 extension Mutex where State: ~Copyable {
-  /// Calls the given closure after acquring the lock and then releases
+  /// Calls the given closure after acquiring the lock and then releases
   /// ownership.
   ///
   /// This method is equivalent to the following sequence of code:

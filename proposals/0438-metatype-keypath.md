@@ -3,9 +3,9 @@
 * Proposal: [SE-0438](0438-metatype-keypath.md)
 * Authors: [Amritpan Kaur](https://github.com/amritpan), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (May 30th...June 13th, 2024)** 
+* Status: **Accepted** 
 * Implementation: [apple/swift#73242](https://github.com/apple/swift/pull/73242)
-* Review: ([Pitch](https://forums.swift.org/t/pitch-metatype-keypaths/70767))
+* Review: ([pitch](https://forums.swift.org/t/pitch-metatype-keypaths/70767)) ([review](https://forums.swift.org/t/se-0438-metatype-keypaths/72172)) ([acceptance](https://forums.swift.org/t/accepted-se-0438-metatype-keypaths/72878))
 
 ## Introduction
 
@@ -106,9 +106,22 @@ let kpViaSubscript: KeyPath<Test, S.Type> = \Test.[42]
 let kpAppended = kpViaSubscript.appending(path: \.count)
 ```
 
-## ABI compatibility / Implications on adoption
+## ABI compatibility
 
-This feature does not affect ABI compatibility and has no implications on adoption.
+This feature does not affect ABI compatibility.
+
+## Implications on adoption
+
+This feature is back-deployable but it requires emission of new (property descriptors) symbols for static properties.
+
+The type-checker wouldn't allow to form key paths to static properties of types that come from modules that are built by an older compiler that don't support the feature because dynamic or static library produced for such module won't have all of the required symbols.
+
+Attempting to form a key path to a static property of a type from a module compiled with a complier that doesn't yet support the feature will result in the following error with a note to help the developers:
+
+```swift
+error: cannot form a keypath to a static property <Property> of type <Type>
+note: rebuild <Module> to enable the feature
+```
 
 ## Future directions
 

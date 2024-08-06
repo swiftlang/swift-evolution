@@ -262,7 +262,7 @@ The restrictions on cross-actor references only work so long as we can ensure th
 extension BankAccount {
   func endOfMonth(month: Int, year: Int) {
     // Schedule a task to prepare an end-of-month report.
-    detach {
+    Task.detached {
       let transactions = await self.transactions(month: month, year: year)
       let report = Report(accountNumber: self.accountNumber, transactions: transactions)
       await report.email(to: self.accountOwnerEmailAddress)
@@ -271,7 +271,7 @@ extension BankAccount {
 }
 ```
 
-A task created with `detach` runs concurrently with all other code. If the closure passed to `detach` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `detach` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to asynchronously access any actor-isolated declarations.
+A task created with `Task.detached` runs concurrently with all other code. If the closure passed to `Task.detached` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `Task.detached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to asynchronously access any actor-isolated declarations.
 
 A closure that is not `@Sendable` cannot escape the concurrency domain in which it was formed. Therefore, such a closure will be actor-isolated if it is formed within an actor-isolated context. This is useful, for example, when applying sequence algorithms like `forEach` where the provided closure will be called serially:
 
@@ -292,7 +292,7 @@ extension BankAccount {
 
 A closure formed within an actor-isolated context is actor-isolated if it is non-`@Sendable`, and non-isolated if it is `@Sendable`. For the examples above:
 
-* The closure passed to `detach` is non-isolated because that function requires a `@Sendable` function to be passed to it.
+* The closure passed to `Task.detached` is non-isolated because that function requires a `@Sendable` function to be passed to it.
 * The closure passed to `forEach` is actor-isolated to `self` because it takes a non-`@Sendable` function.
 
 ### Actor reentrancy
@@ -333,8 +333,8 @@ In the example above the `DecisionMaker` can think of a good or bad idea, shares
 This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
 
 ```swift
-let goodThink = detach { await decisionMaker.thinkOfGoodIdea() }  // runs async
-let badThink = detach { await decisionMaker.thinkOfBadIdea() } // runs async
+let goodThink = Task.detached { await decisionMaker.thinkOfGoodIdea() }  // runs async
+let badThink = Task.detached { await decisionMaker.thinkOfBadIdea() } // runs async
 
 let shouldBeGood = await goodThink.get()
 let shouldBeBad = await badThink.get()
@@ -599,7 +599,7 @@ actor A {
   
   func useAF(array: [Int]) {
     array.map(self.f)                     // okay
-    detach(operation: self.g)             // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
+    Task.detached(operation: self.g)      // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
     runLater(self.g)                      // error: cannot convert value of non-sendable function type () -> Double to sendable function type
   }
 }
@@ -612,7 +612,7 @@ These restrictions follow from the actor isolation rules for the "desugaring" of
 extension A {
   func useAFDesugared(a: A, array: [Int]) {
     array.map { f($0) } )      // okay
-    detach { g() }             // error: self is non-isolated, so call to `g` cannot be synchronous
+    Task.detached { g() }      // error: self is non-isolated, so call to `g` cannot be synchronous
     runLater { g() }           // error: self is non-isolated, so the call to `g` cannot be synchronous
   }
 }
@@ -879,7 +879,7 @@ The original accepted version of this proposal required *all* access to immutabl
     let total = 100
     var counter = 0
   
-    asyncDetached {
+    Task.detached {
       print(total) // okay to reference immutable state
       print(counter) // error, cannot reference a `var` from a @Sendable closure
     }
@@ -900,7 +900,7 @@ By allowing synchronous access to actor `let`s within a module, we provide a smo
   * Escaping closures can now be actor-isolated; only `@Sendable` prevents isolation.
   * Removed actor inheritance. It can be considered at some future point.
   * Added "cross-actor lets" to Alternatives Considered. While there is no change to the proposed direction, the issue is explained here for further discussion.
-  * Replaced `Task.runDetached` with `detach` to match updates to the [Structured Concurrency proposal][sc].
+  * Replaced `detach` with `Task.detached` to match updates to the [Structured Concurrency proposal][sc].
 * Changes in the seventh pitch:
   * Removed isolated parameters and `nonisolated` from this proposal. They'll come in a follow-up proposal on [controlling actor isolation][isolationcontrol].
 * Changes in the sixth pitch:

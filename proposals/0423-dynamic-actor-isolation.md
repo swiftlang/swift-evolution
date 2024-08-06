@@ -145,7 +145,7 @@ A `@preconcurrency` protocol conformance is scoped to the implementation of the 
 
 ### Disabling dynamic actor isolation checking
 
-The dynamic actor isolation checks can be disabled using the flag `-disable-dynamic-actor-isolation`. Disabling dynamic actor isolation is discouraged, but it may be necessary if code that you don't control violates actor isolation in a way that causes the program to crash, such as by passing a non-`Sendable` function argument outside of a main actor context. `-disable-dynamic-actor-isolation` is similar to the `-enforce-exclusivity=unchecked` flag, which was a tool provided when staging in dynamic memory exclusivity enforcement under the Swift 5 lanugage mode.
+The dynamic actor isolation checks can be disabled using the flag `-disable-dynamic-actor-isolation`. Disabling dynamic actor isolation is discouraged, but it may be necessary if code that you don't control violates actor isolation in a way that causes the program to crash, such as by passing a non-`Sendable` function argument outside of a main actor context. `-disable-dynamic-actor-isolation` is similar to the `-enforce-exclusivity=unchecked` flag, which was a tool provided when staging in dynamic memory exclusivity enforcement under the Swift 5 language mode.
 
 ## Source compatibility
 

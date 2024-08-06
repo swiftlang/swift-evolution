@@ -1196,13 +1196,6 @@ extension TaskGroup: AsyncSequence {
   ///
   ///     print(await group.next())
   ///     /// Prints "1" OR "2"
-  ///
-  /// ### Errors
-  /// If an operation added to the group throws, that error will be rethrown
-  /// by the next() call corresponding to that operation's completion.
-  ///
-  /// It is possible to directly rethrow such error out of a `withTaskGroup` body
-  /// function's body, causing all remaining tasks to be implicitly cancelled.
   mutating func next() async -> ChildTaskResult? { ... }
 
   /// Wait for all of the child tasks to complete.
