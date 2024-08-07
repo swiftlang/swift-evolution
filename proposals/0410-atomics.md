@@ -7,7 +7,7 @@
 * Implementation: [apple/swift#68857](https://github.com/apple/swift/pull/68857)
 * Version: 2023-12-04
 * Status: **Implemented (Swift 6.0)**
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/d35d6566fe2297f4782bdfac4d5253e0ca96b353/proposals/0410-atomics.md)
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/d35d6566fe2297f4782bdfac4d5253e0ca96b353/proposals/0410-atomics.md)
 * Decision Notes: [pitch](https://forums.swift.org/t/atomics/67350), [first review](https://forums.swift.org/t/se-0410-atomics/68007), [first return for revision](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522), [second review](https://forums.swift.org/t/second-review-se-0410-atomics/68810), [acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0410-atomics/69244)
 
 ## Introduction
@@ -52,11 +52,11 @@ New Swift-evolution thread: [Atomics](https://forums.swift.org/t/atomics/67350)
   * [Detailed Design](#detailed-design)
     * [Atomic Memory Orderings](#atomic-memory-orderings-1)
     * [Atomic Protocols](#atomic-protocols)
-      * [AtomicValue](#atomicvalue)
-      * [AtomicOptionalWrappable](#atomicoptionalwrappable)
+      * [AtomicRepresentable](#atomicrepresentable)
+      * [AtomicOptionalRepresentable](#atomicoptionalrepresentable)
     * [WordPair](#wordpair-1)
     * [Atomic Types](#atomic-types)
-      * [Atomic&lt;Value&gt;](#atomicvalue-1)
+      * [Atomic&lt;Value&gt;](#atomicvalue)
       * [AtomicLazyReference&lt;Instance&gt;](#atomiclazyreferenceinstance)
   * [Source Compatibility](#source-compatibility)
   * [Effect on ABI Stability](#effect-on-abi-stability)
@@ -97,7 +97,7 @@ We want to limit this proposal to constructs that satisfy the following requirem
 
 3. Every atomic operation must compile down to the corresponding CPU instruction (when one is available), with minimal overhead. (Ideally even if the code is compiled without optimizations.) Wait-freedom isn't a requirement -- if no direct instruction is available for an operation, then it must still be implemented, e.g. by mapping it to a compare-exchange loop.
 
-Following the acceptance of [Clarify the Swift memory consistency model (SE-0282)](https://github.com/apple/swift-evolution/blob/main/proposals/0282-atomics.md), the [swift-atomics package](https://github.com/apple/swift-atomics) was shortly created to experiment and design what a standard atomic API would look like. This proposal is relying heavily on some of the ideas that package has spent years developing and designing.
+Following the acceptance of [Clarify the Swift memory consistency model (SE-0282)](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0282-atomics.md), the [swift-atomics package](https://github.com/apple/swift-atomics) was shortly created to experiment and design what a standard atomic API would look like. This proposal is relying heavily on some of the ideas that package has spent years developing and designing.
 
 ## Proposed Solution
 
@@ -138,7 +138,7 @@ The atomic constructs later in this proposal implement concurrent read/write acc
 
 However, this alone does not give us a way to synchronize accesses to regular variables, or between atomic accesses to different memory locations. To support such synchronization, each atomic operation can be configured to also act as a synchronization point for other variable accesses within the same thread, preventing previous accesses from getting executed after the atomic operation, and/or vice versa. Atomic operations on another thread can then synchronize with the same point, establishing a strict (although partial) timeline between accesses performed by both threads. This way, we can reason about the possible ordering of operations across threads, even if we know nothing about how those operations are implemented. (This is how locks or dispatch queues can be used to serialize the execution of arbitrary blocks containing regular accesses to shared variables.) For more details, see \[[C++17], [N2153], [Boehm 2008]].
 
-In order to enable atomic synchronization within Swift, we must first introduce memory orderings that will give us control of the timeline of these operations across threads. Luckily, with the acceptance of [Clarify the Swift memory consistency model (SE-0282)](https://github.com/apple/swift-evolution/blob/main/proposals/0282-atomics.md), Swift already adopts the C/C++ concurrency memory model. In this model, concurrent access to shared state remains undefined behavior unless all such access is forced into a conflict-free timeline through explicit synchronization operations.
+In order to enable atomic synchronization within Swift, we must first introduce memory orderings that will give us control of the timeline of these operations across threads. Luckily, with the acceptance of [Clarify the Swift memory consistency model (SE-0282)](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0282-atomics.md), Swift already adopts the C/C++ concurrency memory model. In this model, concurrent access to shared state remains undefined behavior unless all such access is forced into a conflict-free timeline through explicit synchronization operations.
 
 This proposal introduces five distinct memory orderings, organized into three logical groups, from loosest to strictest:
 
@@ -222,12 +222,12 @@ Fences are slightly more powerful (but even more difficult to use) than ordering
 
 ### The Atomic Protocol Hierarchy
 
-The notion of an atomic type is captured by the `AtomicValue` protocol.
+The notion of an atomic type is captured by the `AtomicRepresentable` protocol.
 
 ```swift
 /// A type that supports atomic operations through a separate atomic storage
 /// representation.
-public protocol AtomicValue {
+public protocol AtomicRepresentable {
   associatedtype AtomicRepresentation
 
   static func encodeAtomicRepresentation(
@@ -240,52 +240,52 @@ public protocol AtomicValue {
 }
 ```
 
-The requirements in `AtomicValue` set up a bidirectional mapping between values of the atomic type and an associated storage representation that implements the actual primitive atomic operations.
+The requirements in `AtomicRepresentable` set up a bidirectional mapping between values of the atomic type and an associated storage representation that implements the actual primitive atomic operations.
 
 `AtomicRepresentation` is intentionally left unconstrained because as you'll see later in the proposal, atomic operations are only available when `AtomicRepresentation` is one of the core atomic storage types found here: [Atomic Storage Types](#atomic-storage-types).
 
-The full set of standard types implementing `AtomicValue` is listed below:
+The full set of standard types implementing `AtomicRepresentable` is listed below:
 
 ```swift
-extension Int: AtomicValue {...}
-extension Int64: AtomicValue {...}
-extension Int32: AtomicValue {...}
-extension Int16: AtomicValue {...}
-extension Int8: AtomicValue {...}
-extension UInt: AtomicValue {...}
-extension UInt64: AtomicValue {...}
-extension UInt32: AtomicValue {...}
-extension UInt16: AtomicValue {...}
-extension UInt8: AtomicValue {...}
+extension Int: AtomicRepresentable {...}
+extension Int64: AtomicRepresentable {...}
+extension Int32: AtomicRepresentable {...}
+extension Int16: AtomicRepresentable {...}
+extension Int8: AtomicRepresentable {...}
+extension UInt: AtomicRepresentable {...}
+extension UInt64: AtomicRepresentable {...}
+extension UInt32: AtomicRepresentable {...}
+extension UInt16: AtomicRepresentable {...}
+extension UInt8: AtomicRepresentable {...}
 
-extension Bool: AtomicValue {...}
+extension Bool: AtomicRepresentable {...}
 
-extension Float16: AtomicValue {...}
-extension Float: AtomicValue {...}
-extension Double: AtomicValue {...}
+extension Float16: AtomicRepresentable {...}
+extension Float: AtomicRepresentable {...}
+extension Double: AtomicRepresentable {...}
 
 /// New type in the standard library discussed
 /// shortly after this.
-extension WordPair: AtomicValue {...}
+extension WordPair: AtomicRepresentable {...}
 
-extension Duration: AtomicValue {...}
+extension Duration: AtomicRepresentable {...}
 
-extension Never: AtomicValue {...}
+extension Never: AtomicRepresentable {...}
 
-extension UnsafeRawPointer: AtomicValue {...}
-extension UnsafeMutableRawPointer: AtomicValue {...}
-extension UnsafePointer: AtomicValue {...}
-extension UnsafeMutablePointer: AtomicValue {...}
-extension Unmanaged: AtomicValue {...}
-extension OpaquePointer: AtomicValue {...}
-extension ObjectIdentifier: AtomicValue {...}
+extension UnsafeRawPointer: AtomicRepresentable {...}
+extension UnsafeMutableRawPointer: AtomicRepresentable {...}
+extension UnsafePointer: AtomicRepresentable {...}
+extension UnsafeMutablePointer: AtomicRepresentable {...}
+extension Unmanaged: AtomicRepresentable {...}
+extension OpaquePointer: AtomicRepresentable {...}
+extension ObjectIdentifier: AtomicRepresentable {...}
 
-extension UnsafeBufferPointer: AtomicValue {...}
-extension UnsafeMutableBufferPointer: AtomicValue {...}
-extension UnsafeRawBufferPointer: AtomicValue {...}
-extension UnsafeMutableRawBufferPointer: AtomicValue {...}
+extension UnsafeBufferPointer: AtomicRepresentable {...}
+extension UnsafeMutableBufferPointer: AtomicRepresentable {...}
+extension UnsafeRawBufferPointer: AtomicRepresentable {...}
+extension UnsafeMutableRawBufferPointer: AtomicRepresentable {...}
 
-extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {...}
+extension Optional: AtomicRepresentable where Wrapped: AtomicOptionalRepresentable {...}
 ```
 
 * On 32 bit platforms that do not support double-word atomics, the following conformances are not available:
@@ -303,14 +303,14 @@ extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {...}
   * `UnsafeRawBufferPointer`
   * `UnsafeMutableRawBufferPointer`
 
-This proposal does not conform `Duration` to `AtomicValue` on any currently supported 32 bit platform. (Not even those where quad-word atomics are technically available, like arm64_32.) 
+This proposal does not conform `Duration` to `AtomicRepresentable` on any currently supported 32 bit platform. (Not even those where quad-word atomics are technically available, like arm64_32.) 
 
 #### Optional Atomics
 
 The standard atomic pointer types and unmanaged references also support atomic operations on their optional-wrapped form. To spell out this optional wrapped, we introduce a new protocol:
 
 ```swift
-public protocol AtomicOptionalWrappable: AtomicValue {
+public protocol AtomicOptionalRepresentable: AtomicRepresentable {
   associatedtype AtomicOptionalRepresentation
 
   static func encodeAtomicOptionalRepresentation(
@@ -323,12 +323,12 @@ public protocol AtomicOptionalWrappable: AtomicValue {
 }
 ```
 
-Similar to `AtomicValue`, `AtomicOptionalWrappable`'s requirements create a bidirectional mapping between an optional value of `Self` to some atomic optional storage representation and vice versa.
+Similar to `AtomicRepresentable`, `AtomicOptionalRepresentable`'s requirements create a bidirectional mapping between an optional value of `Self` to some atomic optional storage representation and vice versa.
 
-`Optional` implements `AtomicValue` through a conditional conformance to this new `AtomicOptionalWrappable` protocol.
+`Optional` implements `AtomicRepresentable` through a conditional conformance to this new `AtomicOptionalRepresentable` protocol.
 
 ```swift
-extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {
+extension Optional: AtomicRepresentable where Wrapped: AtomicOptionalRepresentable {
   ...
 }
 ```
@@ -336,13 +336,13 @@ extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {
 This proposal enables optional-atomics support for the following types:
 
 ```swift
-extension UnsafeRawPointer: AtomicOptionalWrappable {}
-extension UnsafeMutableRawPointer: AtomicOptionalWrappable {}
-extension UnsafePointer: AtomicOptionalWrappable {}
-extension UnsafeMutablePointer: AtomicOptionalWrappable {}
-extension Unmanaged: AtomicOptionalWrappable {}
-extension OpaquePointer: AtomicOptionalWrappable {}
-extension ObjectIdentifier: AtomicOptionalWrappable {}
+extension UnsafeRawPointer: AtomicOptionalRepresentable {}
+extension UnsafeMutableRawPointer: AtomicOptionalRepresentable {}
+extension UnsafePointer: AtomicOptionalRepresentable {}
+extension UnsafeMutablePointer: AtomicOptionalRepresentable {}
+extension Unmanaged: AtomicOptionalRepresentable {}
+extension OpaquePointer: AtomicOptionalRepresentable {}
+extension ObjectIdentifier: AtomicOptionalRepresentable {}
 ```
 
 Atomic optional pointers and references are helpful when building lock-free data structures. (Although this initial set of reference types considerably limits the scope of what can be built; for more details, see the discussion on the [ABA problem](#wordpair) and [memory reclamation](#atomic-strong-references-and-the-problem-of-memory-reclamation).)
@@ -412,20 +412,20 @@ class LockFreeSingleConsumerStack<Element> {
 
 #### Custom Atomic Types
 
-To enable a limited set of user-defined atomic types, `AtomicValue` also provides a full set of default implementations for `RawRepresentable` types whose raw value is itself atomic:
+To enable a limited set of user-defined atomic types, `AtomicRepresentable` also provides a full set of default implementations for `RawRepresentable` types whose raw value is itself atomic:
 
 ```swift
-extension RawRepresentable where Self: AtomicValue, RawValue: AtomicValue {
+extension RawRepresentable where Self: AtomicRepresentable, RawValue: AtomicRepresentable {
   ...
 }
 ```
 
 The default implementations work by forwarding all atomic operations to the raw value's implementation, converting to/from as needed.
 
-This enables code outside of the Standard Library to add new `AtomicValue` conformances without manually implementing any of the requirements. This is especially handy for trivial raw-representable enumerations, such as in simple atomic state machines:
+This enables code outside of the Standard Library to add new `AtomicRepresentable` conformances without manually implementing any of the requirements. This is especially handy for trivial raw-representable enumerations, such as in simple atomic state machines:
 
 ```swift
-enum MyState: Int, AtomicValue {
+enum MyState: Int, AtomicRepresentable {
   case starting
   case running
   case stopped
@@ -444,10 +444,10 @@ if currentState.compareExchange(
 currentState.store(.stopped, ordering: .sequentiallyConsistent)
 ```
 
-We also support the `AtomicOptionalWrappable` defaults for `RawRepresentable` as well:
+We also support the `AtomicOptionalRepresentable` defaults for `RawRepresentable` as well:
 
 ```swift
-extension RawRepresentable where Self: AtomicOptionalWrappable, RawValue: AtomicOptionalWrappable {
+extension RawRepresentable where Self: AtomicOptionalRepresentable, RawValue: AtomicOptionalRepresentable {
   ...
 }
 ```
@@ -455,7 +455,7 @@ extension RawRepresentable where Self: AtomicOptionalWrappable, RawValue: Atomic
 For example, we can use this to add atomic operations over optionals of types whose raw value is a pointer:
 
 ```swift
-struct MyPointer: RawRepresentable, AtomicOptionalWrappable {
+struct MyPointer: RawRepresentable, AtomicOptionalRepresentable {
 	var rawValue: UnsafeRawPointer
   
   init(rawValue: UnsafeRawPointer) {
@@ -476,34 +476,34 @@ if myAtomicPointer.compareExchange(
 myAtomicPointer.store(nil, ordering: .releasing)
 ```
 
-(This gets you an `AtomicValue` conformance for free as well because `AtomicOptionalWrappable` refines `AtomicValue`. So  this also allows non-optional use with `Atomic<MyPointer>`.)
+(This gets you an `AtomicRepresentable` conformance for free as well because `AtomicOptionalRepresentable` refines `AtomicRepresentable`. So  this also allows non-optional use with `Atomic<MyPointer>`.)
 
 ### Atomic Storage Types
 
 Fundamental to working with atomics is knowing that CPUs can only do atomic operations on integers. While we could theoretically do atomic operations with our current list of standard library integer types (`Int8`, `Int16`, ...), some platforms don't ensure that these types have the same alignment as their size. For example, `Int64` and `UInt64` have 4 byte alignment on i386. Atomic operations must occur on correctly aligned types. To ensure this, we need to introduce helper types that all atomic operations will be trafficked through. These types will serve as the `AtomicRepresentation` for all of the standard integer types:
 
 ```swift
-extension Int8: AtomicValue {
+extension Int8: AtomicRepresentable {
   public typealias AtomicRepresentation = ...
 }
 
 ...
 
-extension UInt64: AtomicValue {
+extension UInt64: AtomicRepresentable {
   public typealias AtomicRepresentation = ...
 }
 
 ...
 ```
 
-The actual underlying type is an implementation detail of the standard library. While we generally don't prefer to propose such API, the underlying types themselves are quite useless and only useful for the primitive integers. One can still access the underlying type by using the public name, `Int8.AtomicRepresentation`, for example. An example conformance to `AtomicValue` may look something like the following:
+The actual underlying type is an implementation detail of the standard library. While we generally don't prefer to propose such API, the underlying types themselves are quite useless and only useful for the primitive integers. One can still access the underlying type by using the public name, `Int8.AtomicRepresentation`, for example. An example conformance to `AtomicRepresentable` may look something like the following:
 
 ```swift
 struct MyCoolInt {
   var x: Int
 }
 
-extension MyCoolInt: AtomicValue {
+extension MyCoolInt: AtomicRepresentable {
   typealias AtomicRepresentation = Int.AtomicRepresentation
   
   static func encodeAtomicRepresentation(
@@ -522,7 +522,7 @@ extension MyCoolInt: AtomicValue {
 }
 ```
 
-This works by going through `Int`'s `AtomicValue` conformance and converting our `MyCoolInt` -> `Int` -> `Int.AtomicRepresentation` .
+This works by going through `Int`'s `AtomicRepresentable` conformance and converting our `MyCoolInt` -> `Int` -> `Int.AtomicRepresentation` .
 
 ### `WordPair`
 
@@ -542,7 +542,7 @@ public struct WordPair {
 
 // Not a real compilation conditional
 #if hasDoubleWideAtomics
-extension WordPair: AtomicValue {
+extension WordPair: AtomicRepresentable {
 // Not a real compilation conditional
 #if 64 bit
   public typealias AtomicRepresentaton = ... 128 bit 16 aligned storage
@@ -559,7 +559,7 @@ extension WordPair: AtomicValue {
 
 For example, the second word can be used to augment atomic values with a version counter (sometimes called a "stamp" or a "tag"), which can help resolve the ABA problem by allowing code to reliably verify if a value remained unchanged between two successive loads.
 
-Note that not all CPUs support double-word atomic operations and so if Swift starts supporting such processors, this type's conformance to `AtomicValue` may not always be available. Platforms that cannot support double-word atomics must not make `WordPair`'s `AtomicValue` conformance available for use.
+Note that not all CPUs support double-word atomic operations and so if Swift starts supporting such processors, this type's conformance to `AtomicRepresentable` may not always be available. Platforms that cannot support double-word atomics must not make `WordPair`'s `AtomicRepresentable` conformance available for use.
 
 (If this becomes a real concern, a future proposal could introduce something like a `#if hasDoubleWordAtomics` compile-time condition to let code adapt to more limited environments. However, this is deferred until Swift actually starts supporting such platforms.)
 
@@ -569,7 +569,7 @@ So far, we've introduced memory orderings, giving us control of memory access ar
 
 ```swift
 /// An atomic value.
-public struct Atomic<Value: AtomicValue>: ~Copyable {
+public struct Atomic<Value: AtomicRepresentable>: ~Copyable {
   public init(_ initialValue: consuming Value)
 }
 ```
@@ -580,7 +580,7 @@ Now that we know how to create an atomic value, it's time to introduce some actu
 
 ### Basic Atomic Operations
 
-`Atomic` provides seven basic atomic operations when `Value.AtomicRepresenation` is one of the fundamental atomic storage types on the standard integer types:
+`Atomic` provides seven basic atomic operations when `Value.AtomicRepresentation` is one of the fundamental atomic storage types on the standard integer types:
 
 ```swift
 extension Atomic where Value.AtomicRepresentation == {U}IntNN.AtomicRepresentation {
@@ -1039,7 +1039,7 @@ An ordering expression will be considered constant-evaluable if it's either (1) 
 
 ## Interaction with Existing Language Features
 
-Please refer to the [Clarify the Swift memory consistency model (SE-0282)](https://github.com/apple/swift-evolution/blob/main/proposals/0282-atomics.md#interaction-with-non-instantaneous-accesses) proposal which goes over how atomics interact with the Law of Exclusivity, Non-Instantaneous Accesses, and Implicit Pointer Conversions.
+Please refer to the [Clarify the Swift memory consistency model (SE-0282)](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0282-atomics.md#interaction-with-non-instantaneous-accesses) proposal which goes over how atomics interact with the Law of Exclusivity, Non-Instantaneous Accesses, and Implicit Pointer Conversions.
 
 An additional note with regards to the Law of Exclusivity, atomic values should never be declared with a `var` binding, always prefer a `let` one. Consider the following:
 
@@ -1222,10 +1222,10 @@ public func atomicMemoryFence(ordering: AtomicUpdateOrdering)
 
 ### Atomic Protocols
 
-#### `AtomicValue`
+#### `AtomicRepresentable`
 
 ```swift
-public protocol AtomicValue {
+public protocol AtomicRepresentable {
   associatedtype AtomicRepresentation
 
   static func encodeAtomicRepresentation(
@@ -1243,58 +1243,58 @@ The requirements set up a bidirectional mapping between values of the atomic typ
 Conforming types:
 
 ```swift
-extension Int: AtomicValue {...}
-extension Int64: AtomicValue {...}
-extension Int32: AtomicValue {...}
-extension Int16: AtomicValue {...}
-extension Int8: AtomicValue {...}
-extension UInt: AtomicValue {...}
-extension UInt64: AtomicValue {...}
-extension UInt32: AtomicValue {...}
-extension UInt16: AtomicValue {...}
-extension UInt8: AtomicValue {...}
+extension Int: AtomicRepresentable {...}
+extension Int64: AtomicRepresentable {...}
+extension Int32: AtomicRepresentable {...}
+extension Int16: AtomicRepresentable {...}
+extension Int8: AtomicRepresentable {...}
+extension UInt: AtomicRepresentable {...}
+extension UInt64: AtomicRepresentable {...}
+extension UInt32: AtomicRepresentable {...}
+extension UInt16: AtomicRepresentable {...}
+extension UInt8: AtomicRepresentable {...}
 
-extension Bool: AtomicValue {...}
+extension Bool: AtomicRepresentable {...}
 
-extension Float16: AtomicValue {...}
-extension Float: AtomicValue {...}
-extension Double: AtomicValue {...}
+extension Float16: AtomicRepresentable {...}
+extension Float: AtomicRepresentable {...}
+extension Double: AtomicRepresentable {...}
 
-extension WordPair: AtomicValue {...}
-extension Duration: AtomicValue {...}
+extension WordPair: AtomicRepresentable {...}
+extension Duration: AtomicRepresentable {...}
 
-extension Never: AtomicValue {...}
+extension Never: AtomicRepresentable {...}
 
-extension UnsafeRawPointer: AtomicValue {...}
-extension UnsafeMutableRawPointer: AtomicValue {...}
-extension UnsafePointer: AtomicValue {...}
-extension UnsafeMutablePointer: AtomicValue {...}
-extension Unmanaged: AtomicValue {...}
-extension OpaquePointer: AtomicValue {...}
-extension ObjectIdentifier: AtomicValue {...}
+extension UnsafeRawPointer: AtomicRepresentable {...}
+extension UnsafeMutableRawPointer: AtomicRepresentable {...}
+extension UnsafePointer: AtomicRepresentable {...}
+extension UnsafeMutablePointer: AtomicRepresentable {...}
+extension Unmanaged: AtomicRepresentable {...}
+extension OpaquePointer: AtomicRepresentable {...}
+extension ObjectIdentifier: AtomicRepresentable {...}
 
-extension UnsafeBufferPointer: AtomicValue {...}
-extension UnsafeMutableBufferPointer: AtomicValue {...}
-extension UnsafeRawBufferPointer: AtomicValue {...}
-extension UnsafeMutableRawBufferPointer: AtomicValue {...}
+extension UnsafeBufferPointer: AtomicRepresentable {...}
+extension UnsafeMutableBufferPointer: AtomicRepresentable {...}
+extension UnsafeRawBufferPointer: AtomicRepresentable {...}
+extension UnsafeMutableRawBufferPointer: AtomicRepresentable {...}
 
-extension Optional: AtomicValue where Wrapped: AtomicOptionalWrappable {...}
+extension Optional: AtomicRepresentable where Wrapped: AtomicOptionalRepresentable {...}
 ```
 
-To support custom "atomic-representable" types, `AtomicValue` also comes with default implementations for all its requirements for `RawRepresentable` types whose `RawValue` is also atomic:
+To support custom "atomic-representable" types, `AtomicRepresentable` also comes with default implementations for all its requirements for `RawRepresentable` types whose `RawValue` is also atomic:
 
 ```swift
-extension RawRepresentable where Self: AtomicValue, RawValue: AtomicValue {
+extension RawRepresentable where Self: AtomicRepresentable, RawValue: AtomicRepresentable {
   // Implementations for all requirements.
 }
 ```
 
 The default implementations work by converting values to their `rawValue` form, and forwarding all atomic operations to it.
 
-#### `AtomicOptionalWrappable`
+#### `AtomicOptionalRepresentable`
 
 ```swift
-public protocol AtomicOptionalWrappable: AtomicValue {
+public protocol AtomicOptionalRepresentable: AtomicRepresentable {
   associatedtype AtomicOptionalRepresentation
 
   static func encodeAtomicOptionalRepresentation(
@@ -1310,13 +1310,13 @@ public protocol AtomicOptionalWrappable: AtomicValue {
 Atomic `Optional` operations are currently enabled for the following `Wrapped` types:
 
 ```swift
-extension UnsafeRawPointer: AtomicOptionalWrappable {}
-extension UnsafeMutableRawPointer: AtomicOptionalWrappable {}
-extension UnsafePointer: AtomicOptionalWrappable {}
-extension UnsafeMutablePointer: AtomicOptionalWrappable {}
-extension Unmanaged: AtomicOptionalWrappable {}
-extension OpaquePointer: AtomicOptionalWrappable {}
-extension ObjectIdentifier: AtomicOptionalWrappable {}
+extension UnsafeRawPointer: AtomicOptionalRepresentable {}
+extension UnsafeMutableRawPointer: AtomicOptionalRepresentable {}
+extension UnsafePointer: AtomicOptionalRepresentable {}
+extension UnsafeMutablePointer: AtomicOptionalRepresentable {}
+extension Unmanaged: AtomicOptionalRepresentable {}
+extension OpaquePointer: AtomicOptionalRepresentable {}
+extension ObjectIdentifier: AtomicOptionalRepresentable {}
 ```
 
 ### `WordPair`
@@ -1329,7 +1329,7 @@ public struct WordPair {
   public init(first: UInt, second: UInt)
 }
 
-extension WordPair: AtomicValue {...}
+extension WordPair: AtomicRepresentable {...}
 extension WordPair: Equatable {...}
 extension WordPair: Hashable {...}
 
@@ -1348,7 +1348,7 @@ extension WordPair: Sendable {}
 #### `Atomic<Value>`
 
 ```swift
-public struct Atomic<Value: AtomicValue>: ~Copyable {
+public struct Atomic<Value: AtomicRepresentable>: ~Copyable {
   public init(_ initialValue: consuming Value)
 }
 
@@ -1794,7 +1794,7 @@ While there are some API differences between this proposal and the package, most
 Previous revisions of this proposal named this type `DoubleWord`. This is a good name and is in fact the name used in the `swift-atomics` package. We felt the prefix `Double*` could cause confusion with the pre-existing type in the standard library `Double`. The name `WordPair` has a couple of advantages:
 
 1. Code completion. Because this name starts with an less common letter in the English alphabet, the likelyhood of seeing this type at the top level in code completion is very unlikely and not generally a type used for newer programmers of Swift.
-2. Directly conveys the semantic meaning of the type. This type is not semantically equivalent to something like `{U}Int128` (on 64 bit platforms). While although its layout shares the same size, the meaning we want to drive home with this type is quite simply that it's a pair of `UInt` words. If and when the standard library proposes a `{U}Int128` type, that will add a conformance to `AtomicValue` on 64 bit platforms who support double-words as well. That itself wouldn't deprecate uses of `WordPair` however, because it's much easier to grab both words independently with `WordPair` as well as being a portable name for such semantics on both 32 bit and 64 bit platforms.
+2. Directly conveys the semantic meaning of the type. This type is not semantically equivalent to something like `{U}Int128` (on 64 bit platforms). While although its layout shares the same size, the meaning we want to drive home with this type is quite simply that it's a pair of `UInt` words. If and when the standard library proposes a `{U}Int128` type, that will add a conformance to `AtomicRepresentable` on 64 bit platforms who support double-words as well. That itself wouldn't deprecate uses of `WordPair` however, because it's much easier to grab both words independently with `WordPair` as well as being a portable name for such semantics on both 32 bit and 64 bit platforms.
 
 ### A different name for the `Synchronization` module
 
@@ -1802,14 +1802,10 @@ In its [notes returning the initial version of this proposal for revision](https
 
 We shouldn't be afraid of conflicting module names causing spurious source breaks when introducing a new module to the standard libraries; however, in this case, the direct precursor is prominently using this name, and reusing the same module name would cause significant breakage. We expect this package will need to remain in active use for a number of years, as it will be able to provide reimplementations of the constructs proposed here without the ABI availability constraints that come with Standard Library additions.
 
-### Rename `AtomicValue` to `AtomicWrappable`
-
-Another review note from the [revision notes](https://forums.swift.org/t/returned-for-revision-se-0410-atomics/68522) was the naming of the `AtomicValue` protocol. By API design guidelines it probably makes more sense to name this `AtomicWrappable` with our current design, however this proposal proposes `AtomicValue` because we feel the precedent set by the [swift-atomics](https://github.com/apple/swift-atomics) package will make it easier for folks to migrate their existing atomic code to the standard library's new atomic facilities.
-
 ## References
 
-[Clarify the Swift memory consistency model (SE-0282)]: https://github.com/apple/swift-evolution/blob/main/proposals/0282-atomics.md
-**\[Clarify the Swift memory consistency model (SE-0282)]** Karoy Lorenty. "Clarify the Swift memory consistency model."*Swift Evolution Proposal*, 2020. https://github.com/apple/swift-evolution/blob/main/proposals/0282-atomics.md
+[Clarify the Swift memory consistency model (SE-0282)]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0282-atomics.md
+**\[Clarify the Swift memory consistency model (SE-0282)]** Karoy Lorenty. "Clarify the Swift memory consistency model."*Swift Evolution Proposal*, 2020. https://github.com/swiftlang/swift-evolution/blob/main/proposals/0282-atomics.md
 
 [C++17]: https://isocpp.org/std/the-standard
 **\[C++17]** ISO/IEC. *ISO International Standard ISO/IEC 14882:2017(E) – Programming Language C++.* 2017.

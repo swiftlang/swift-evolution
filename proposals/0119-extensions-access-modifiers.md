@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0119](0119-extensions-access-modifiers.md)
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0119-remove-access-modifiers-from-extensions/3493)
 

@@ -3,10 +3,9 @@
 * Proposal: [SE-0423](0423-dynamic-actor-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (February 20 - March 1, 2024)**
+* Status: **Implemented (Swift 6.0)**
 * Upcoming Feature Flag: `DynamicActorIsolation`
-* Review: ([pitch](https://forums.swift.org/t/pitch-dynamic-actor-isolation-enforcement/68354)) ([review](https://forums.swift.org/t/se-0423-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/70155))
-* Implementation: [apple/swift#70867](https://github.com/apple/swift/pull/70867), [apple/swift#71261](https://github.com/apple/swift/pull/71261), [apple/swift-syntax#2419](https://github.com/apple/swift-syntax/pull/2419)
+* Review: ([pitch](https://forums.swift.org/t/pitch-dynamic-actor-isolation-enforcement/68354)) ([first review](https://forums.swift.org/t/se-0423-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/70155)) ([second review](https://forums.swift.org/t/se-0423-second-review-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/71159)) ([acceptance](https://forums.swift.org/t/accepted-se-0423-dynamic-actor-isolation-enforcement-from-non-strict-concurrency-contexts/71540))
 
 ## Introduction
 
@@ -14,7 +13,7 @@ Many Swift programs need to interoperate with frameworks written in C/C++/Object
 
 ## Motivation
 
-The ecosystem of Swift libraries has a vast surface area of APIs that predate strict concurrency checking, relying on carefully calling APIs from the appropriate thread or dispatch queue to avoid data races. Migrating all of these libraries to strict concurrency checking will happen incrementally, motivating [SE-0337: Incremental migration to concurrency checking](https://github.com/apple/swift-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md) which introduced the `@preconcurrency import` statement to suppress concurrency warnings from APIs that programmers do not control.
+The ecosystem of Swift libraries has a vast surface area of APIs that predate strict concurrency checking, relying on carefully calling APIs from the appropriate thread or dispatch queue to avoid data races. Migrating all of these libraries to strict concurrency checking will happen incrementally, motivating [SE-0337: Incremental migration to concurrency checking](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md) which introduced the `@preconcurrency import` statement to suppress concurrency warnings from APIs that programmers do not control.
 
 If an actor isolation violation exists in the implementation of a preconcurrency library, the bug is only surfaced to clients as hard-to-debug data races on isolated state. `@preconcurrency` also does not apply to protocol conformances; there is no way to suppress concurrency diagnostics when conforming to a protocol from a preconcurrency library. This is unfortunate, because it's common for protocols to have a dynamic invariant that all requirements are called on the main thread or a specific dispatch queue provided by the client.
 
@@ -83,7 +82,7 @@ This proposal adds dynamic actor isolation checking to:
 
     Similarly to the previous case if a class or its individual synchronous members are actor-isolated and marked as either `@objc` or `@objcMembers`, the thunks, synthesized by the compiler to make them available from Objective-C, would have a new precondition check to make sure that use always happens on the right actor.
 
-  - Synchronous actor isolated function values passed to APIs that erase actor isolation and haven't yet adopted strict concurrency checking.
+  - Synchronous actor-isolated function values passed to APIs that erase actor isolation and haven't yet adopted strict concurrency checking.
 
     When API comes from a module that doesn't have strict concurrency checking enabled it's possible that it could introduce actor isolation violations that would not be surfaced to a client. In such cases actor isolation erasure should be handled defensively by introducing a runtime check at each position for granular protection.
 
@@ -101,14 +100,35 @@ This proposal adds dynamic actor isolation checking to:
     func updateUI(view: MyViewController) {
         NotMyLibrary.track({
             MainActor.assumeIsolated {
-            view.renderToUIEvent()
+                view.renderToUIEvent()
             }
         })
     }
     ```
 
+  - Call-sites of synchronous actor-isolated functions imported from Swift 6 libraries.
 
-These are the most common circumstances when loosing actor isolation could be problematic and restricting runtime checking to them significantly limits negative performance impact of the new checks. The strategy of only emitting runtime checks when there’s potential for the function to be called from unchecked code is desirable, because it means the dynamic checks will be eliminated as more of the Swift ecosystem transitions to Swift 6.
+    When importing a module that was compiled with the Swift 6 language mode into code that is not, it's possible to call actor-isolated functions from outside the actor using `@preconcurrency`. For example:
+
+    ```swift
+    // ModuleA built with -swift-version 6
+    @MainActor public func onMain() { ... }
+
+    // ModuleB built with -swift-version 5 -strict-concurrency=minimal
+    import ModuleA
+
+    @preconcurrency @MainActor func callOnMain() {
+      onMain()
+    }
+
+    func notIsolated() {
+      callOnMain()
+    }
+    ```
+
+    In the above code, `onMain` from ModuleA can be called from outside the main actor via a call to `notIsolated()`. To close this safety hole, a dynamic check is inserted at the call-site of `onMain()` when ModuleB is recompiled against ModuleA after ModuleA has migrated to the Swift 6 language mode.
+
+These are the most common circumstances when losing actor isolation could be problematic and restricting runtime checking to them significantly limits negative performance impact of the new checks. The strategy of only emitting runtime checks when there’s potential for the function to be called from unchecked code is desirable, because it means the dynamic checks will be eliminated as more of the Swift ecosystem transitions to Swift 6.
 
 
 ## Detailed design
@@ -121,7 +141,11 @@ Runtime checking for actor isolation is not necessary for `async` functions, bec
 
 ### `@preconcurrency` conformances
 
-A `@preconcurrency` protocol conformance is scoped to the implementation of the protocol requirements in the conforming type. A `@preconcurrency` conformance can be written at the primary declartaion or in an extension, and witness checker diagnostics about actor isolation will be suppressed. Like other `@preconcurrency` annotations, if no diagnotsics are suppressed, a warning will be emitted at the `@preconcurrency` annotation stating that the annotation has no effect and it should be removed.
+A `@preconcurrency` protocol conformance is scoped to the implementation of the protocol requirements in the conforming type. A `@preconcurrency` conformance can be written at the primary declaration or in an extension, and witness checker diagnostics about actor isolation will be suppressed. Like other `@preconcurrency` annotations, if no diagnotsics are suppressed, a warning will be emitted at the `@preconcurrency` annotation stating that the annotation has no effect and it should be removed.
+
+### Disabling dynamic actor isolation checking
+
+The dynamic actor isolation checks can be disabled using the flag `-disable-dynamic-actor-isolation`. Disabling dynamic actor isolation is discouraged, but it may be necessary if code that you don't control violates actor isolation in a way that causes the program to crash, such as by passing a non-`Sendable` function argument outside of a main actor context. `-disable-dynamic-actor-isolation` is similar to the `-enforce-exclusivity=unchecked` flag, which was a tool provided when staging in dynamic memory exclusivity enforcement under the Swift 5 language mode.
 
 ## Source compatibility
 
@@ -145,7 +169,13 @@ The current approach in this proposal has a very desirable property of eliminate
 
 ### `@preconcurrency(unsafe)` to downgrade dynamic actor isolation violations to warnings
 
-If adoption of this feature exposes a bug in existing binaries because actor isolated code from outside the actor, a `@preconcurrency(unsafe)` annotation (or similar) could be provided to downgrade assertion failures to warnings. However, it's not clear whether allowing a known data race exhibited at runtime is the right approach to solving such a problem.
+If adoption of this feature exposes a bug in existing binaries because actor-isolated code is run outside the actor, a `@preconcurrency(unsafe)` annotation (or similar) could be provided to downgrade assertion failures to warnings. However, it's not clear whether allowing a known data race exhibited at runtime is the right approach to solving such a problem.
+
+## Revision history
+
+* Changes from the first review
+  * Insert dynamic checks at direct calls to synchronous actor-isolated functions imported from Swift 6 libraries.
+  * Add a flag to disable all dynamic actor isolation checking.
 
 ## Acknowledgments
 

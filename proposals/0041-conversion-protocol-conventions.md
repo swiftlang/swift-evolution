@@ -1,8 +1,8 @@
 # Updating Protocol Naming Conventions for Conversions
 
 * Proposal: [SE-0041](0041-conversion-protocol-conventions.md)
-* Authors: [Matthew Johnson](https://github.com/anandabits), [Erica Sadun](http://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Authors: [Matthew Johnson](https://github.com/anandabits), [Erica Sadun](https://github.com/erica)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0041-updating-protocol-naming-conventions-for-conversions/2684)
 

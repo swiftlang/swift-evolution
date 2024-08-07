@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0113](0113-rounding-functions-on-floatingpoint.md)
 * Author: [Karl Wagner](https://github.com/karwa)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0113-add-integral-rounding-functions-to-floatingpoint/3308)
 * Bug: [SR-2010](https://bugs.swift.org/browse/SR-2010)

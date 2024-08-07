@@ -1,7 +1,7 @@
 # Defaulting non-Void functions so they warn on unused results
 
 * Proposal: [SE-0047](0047-nonvoid-warn.md)
-* Authors: [Erica Sadun](http://github.com/erica), [Adrian Kashivskyy](https://github.com/akashivskyy)
+* Authors: [Erica Sadun](https://github.com/erica), [Adrian Kashivskyy](https://github.com/akashivskyy)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0047-defaulting-non-void-functions-so-they-warn-on-unused-results/1927)

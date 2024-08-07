@@ -1,7 +1,7 @@
 # Improve Interaction Between `private` Declarations and Extensions
 
 * Proposal: [SE-0169](0169-improve-interaction-between-private-declarations-and-extensions.md)
-* Authors: [David Hart](http://github.com/hartbit), [Chris Lattner](https://github.com/lattner)
+* Authors: [David Hart](https://github.com/hartbit), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0169-improve-interaction-between-private-declarations-and-extensions/5692)
@@ -156,6 +156,6 @@ but broader in other ways (allow access across files) would lead to a more
 confusing and fractured model.
 
 
-[Revision 1]: https://github.com/apple/swift-evolution/blob/e0e04f785dbf5bff138b75e9c47bf94e7db28447/proposals/0169-improve-interaction-between-private-declarations-and-extensions.md
+[Revision 1]: https://github.com/swiftlang/swift-evolution/blob/e0e04f785dbf5bff138b75e9c47bf94e7db28447/proposals/0169-improve-interaction-between-private-declarations-and-extensions.md
 
 

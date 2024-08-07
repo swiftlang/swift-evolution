@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 5.9)**
 * Implementation: in main branch of compiler
 * Review: ([pitch](https://forums.swift.org/t/pitch-noncopyable-or-move-only-structs-and-enums/61903)) ([first review](https://forums.swift.org/t/se-0390-noncopyable-structs-and-enums/63258)) ([second review](https://forums.swift.org/t/second-review-se-0390-noncopyable-structs-and-enums/63866)) ([acceptance](https://forums.swift.org/t/accepted-se-0390-noncopyable-structs-and-enums/65157))
-* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md)
+* Previous Revisions: [1](https://github.com/swiftlang/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md)
 
 ## Introduction
 
@@ -968,74 +968,109 @@ func foo() {
 
 A noncopyable struct or enum may declare a `deinit`, which will run
 implicitly when the lifetime of the value ends (unless explicitly suppressed
-as noted below):
+with `discard` as explained below):
 
 ```swift
-struct FileDescriptor: ~Copyable {
-  private var fd: Int32
+struct File: ~Copyable {
+  var descriptor: Int32
+
+  func write<S: Sequence>(_ values: S) { /*..*/ }
+
+  consuming func close() {
+    print("closing file")
+  }
 
   deinit {
-    close(fd)
+    print("deinitializing file")
+    closeFile(rawDescriptor: descriptor)
   }
 }
 ```
 
-Like a class `deinit`, a struct or enum `deinit` may not propagate any uncaught
-errors. `self` behaves as in a `borrowing` method; it may not be
-modified or consumed by the body of `deinit`. (Allowing for mutation and
-partial invalidation inside a `deinit` is explored as a future direction.)
+Like a class `deinit`, a struct or enum `deinit` may not propagate any
+uncaught errors. Within the body of the `deinit`, `self` behaves as in
+a `borrowing` method; it may not be modified or consumed inside the
+`deinit`. (Allowing for mutation and partial invalidation inside a
+`deinit` is explored as a future direction.)
 
 A value's lifetime ends, and its `deinit` runs if present, in the following
 circumstances:
 
-- For a local `var` or `let` binding, or `consuming` function parameter, that
-  is not itself consumed, `deinit` runs after the last non-consuming use.
-  If, on the other hand, the binding is consumed, then responsibility for
-  deinitialization gets forwarded to the consumer (which may in turn forward
-  it somewhere else).
+- For a local `var` or `let` binding, or `consuming` function parameter, that is
+  not itself consumed, `deinit` runs at the end of the binding's lexical
+  scope. If, on the other hand, the binding is consumed, then responsibility
+  for deinitialization gets forwarded to the consumer (which may in turn forward
+  it somewhere else). As explained later, a `_ = consume` operator with no
+  destination immediately runs the `deinit`.
 
     ```swift
     do {
-      var x = FileDescriptor(42)
-
-      x.close() // consuming use
-      // x's deinit doesn't run here (but might run inside `close`)
-    }
-
-    do {
-      var x = FileDescriptor(42)
-      x.write([1,2,3]) // borrowing use
-      // x's deinit runs here
-
+      let file = File(descriptor: 42)
+      file.close() // consuming use
+      // file's deinit runs inside `close`
       print("done writing")
     }
-    ```
-
-- When a `struct`, `enum`, or `class` contains a member of noncopyable type,
-  the member is destroyed, and its `deinit` is run, after the container's
-  `deinit` if any runs.
-
-    ```swift
-    struct Inner: ~Copyable {
-      deinit { print("destroying inner") }
-    }
-
-    struct Outer: ~Copyable {
-      var inner = Inner()
-      deinit { print("destroying outer") }
-    }
-
+    // Output:
+    //   closing file
+    //   deinitializing file
+    //   done writing
+   
     do {
-      _ = Outer()
+      let file = File(descriptor: 42)
+      file.write([1,2,3]) // borrowing use
+      print("done writing")
+      // file's deinit runs here
     }
+    // Output:
+    //   done writing
+    //   deinitializing file
     ```
 
-    will print:
+    If a noncopyable value is conditionally consumed, then the deinitializer
+    runs as late as possible on any nonconsumed paths:
 
     ```swift
-    destroying outer
-    destroying inner
+    let condition = false
+    do {
+      let file = File(descriptor: 42)
+      file.write([1,2,3]) // borrowing use
+      if condition {
+        file.close()
+      } else {
+        print("not closed")
+        // file's deinit runs here
+      }
+      print("done writing")
+    }
+    // Output:
+    //   not closed
+    //   deinitializing file
+    //   done writing
     ```
+
+- When a struct, enum, or class contains a member of noncopyable type, the member is destroyed, and its deinit is
+run, after the container's deinit runs. For example:
+
+```swift
+struct Inner: ~Copyable {
+  deinit { print("destroying inner") }
+}
+
+struct Outer: ~Copyable {
+  var inner = Inner()
+  deinit { print("destroying outer") }
+}
+
+do {
+  _ = Outer()
+}
+```
+
+will print:
+```
+destroying outer
+destroying inner
+```
 
 ### Suppressing `deinit` in a `consuming` method
 
@@ -1187,7 +1222,7 @@ struct FileDescriptor: ~Copyable {
 }
 ```
 
-The [consume operator](https://github.com/apple/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md)
+The [consume operator](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md)
 must be used to explicitly end the value's lifetime using its `deinit` if
 `discard` is used to conditionally destroy the value on other paths
 through the method.
@@ -1822,7 +1857,7 @@ value is required to provide a non-borrowed value to the underlying function.
 
 ## Revision history
 
-This revision makes the following changes from the [second reviewed revision](https://github.com/apple/swift-evolution/blob/a9e21e3a4eb9526f998915c6554c7c72e5885a91/proposals/0390-noncopyable-structs-and-enums.md)
+This revision makes the following changes from the [second reviewed revision](https://github.com/swiftlang/swift-evolution/blob/a9e21e3a4eb9526f998915c6554c7c72e5885a91/proposals/0390-noncopyable-structs-and-enums.md)
 in response to Language Steering Group review and implementation experience:
 
 - `_ = x` is now a borrowing operation.
@@ -1841,9 +1876,9 @@ in response to Language Steering Group review and implementation experience:
   managing the possibility to accidentally cause recursion into `deinit`
   by implicit destruction.
 
-The [second reviewed revision](https://github.com/apple/swift-evolution/blob/a9e21e3a4eb9526f998915c6554c7c72e5885a91/proposals/0390-noncopyable-structs-and-enums.md)
+The [second reviewed revision](https://github.com/swiftlang/swift-evolution/blob/a9e21e3a4eb9526f998915c6554c7c72e5885a91/proposals/0390-noncopyable-structs-and-enums.md)
 of the proposal made the following changes from the
-[first reviewed revision](https://github.com/apple/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md):
+[first reviewed revision](https://github.com/swiftlang/swift-evolution/blob/5d075b86d57e3436b223199bd314b2642e30045f/proposals/0390-noncopyable-structs-and-enums.md):
 
 - The original revision did not provide a `Copyable` generic constraint, and
   declared types as noncopyable using a `@noncopyable` attribute. The

@@ -3,10 +3,9 @@
 * Proposal: [SE-0414](0414-region-based-isolation.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm) [Joshua Turcotti](https://github.com/jturcotti)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
-* Upcoming Feature Flag: `RegionBasedIsolation` (Enabled in Swift 6 language mode)
-* Implementation: On `main` gated behind `-enable-experimental-feature RegionBasedIsolation`
-* Review: ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0414-region-based-isolation/70051)), ([second review](https://forums.swift.org/t/se-0414-second-review-region-based-isolation/69740)), ([decision notes](https://forums.swift.org/t/returned-for-revision-se-0414-region-based-isolation/69123)), ([review](https://forums.swift.org/t/se-0414-region-based-isolation/68805)), ([pitch 2](https://forums.swift.org/t/pitch-region-based-isolation/67888)), ([pitch 1](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566))
+* Status: **Implemented (Swift 6.0)**
+* Upcoming Feature Flag: `RegionBasedIsolation`
+* Review: ([first pitch](https://forums.swift.org/t/pitch-safely-sending-non-sendable-values-across-isolation-domains/66566)), ([second pitch](https://forums.swift.org/t/pitch-region-based-isolation/67888)), ([first review](https://forums.swift.org/t/se-0414-region-based-isolation/68805)), ([revision](https://forums.swift.org/t/returned-for-revision-se-0414-region-based-isolation/69123)), ([second review](https://forums.swift.org/t/se-0414-second-review-region-based-isolation/69740)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0414-region-based-isolation/70051))
 
 ## Introduction
 
@@ -33,7 +32,7 @@ point of transfer.
 [SE-0302](0302-concurrent-value-and-concurrent-closures.md) states
 that non-`Sendable` values cannot be passed across isolation boundaries. The
 following code demonstrates a `Sendable` violation when passing a
-newly-constructed value into an actor-isolated function:
+newly-initialized value into an actor-isolated function:
 
 ```swift
 // Not Sendable
@@ -59,9 +58,9 @@ func openNewAccount(name: String, initialBalance: Double) async {
 
 This is overly conservative; the program is safe because:
 
-* `client` does not have access to any non-`Sendable` state from its constructor
+* `client` does not have access to any non-`Sendable` state from its initializer
   parameters since Strings and Doubles are `Sendable`.
-* `client` just being constructed implies that `client` cannot have any uses
+* `client` just being initialized implies that `client` cannot have any uses
   outside of `openNewAccount`.
 * `client` is not used within `openNewAccount` beyond `addClient`.
 
@@ -173,7 +172,7 @@ the following notation:
 
 * `[(a), {(b), actorInstance}]`: Two values in separate isolation regions. a's
   region is disconnected but b's region is assigned to the isolation domain of
-  the actor instance actorInstance.
+  the actor instance `actorInstance`.
 
 * `[{(x, y), @OtherActor}, (z), (w, t)]`: Five values in three separate
   isolation regions. `x` and `y` are within one isolation region that is
@@ -224,7 +223,7 @@ precise regions.
 
 Now lets apply these rules to some specific examples in Swift code:
 
-* **Initializing a let or var binding**. ``let y = x, var y = x``. Initializing
+* **Initializing a `let` or `var` binding**. ``let y = x, var y = x``. Initializing
   a let or var binding `y` with `x` results in `y` being in the same region as
   `x`. This follows from rule `(2)` since formally a copy is equivalent to calling a
   function that accepts `x` and returns a copy of `x`.
@@ -244,7 +243,7 @@ Now lets apply these rules to some specific examples in Swift code:
   change program semantics. A valid program must still obey the no-reuse
   constraints of `consume`.
 
-* **Assigning a var binding**. ``y = x``. Assigning a var binding `y` with `x`
+* **Assigning a `var` binding**. ``y = x``. Assigning a var binding `y` with `x`
   results in `y` being in the same region as `x`. If `y` is not captured by
   reference in a closure, then `y`'s previous assigned region is forgotten due
   to `(3)(b)`:
@@ -841,7 +840,7 @@ To achieve a *strong transfer* convention, one can use the *transferring* functi
 parameter annotation. Please see extensions below for more information about
 *transferring*.
 
-Since our transfer convention is a weak, a disconnected isolation region that
+Since our transfer convention is weak, a disconnected isolation region that
 was transferred into an isolation domain can be used again if the isolation
 domain no longer maintains any references to the region. This occurs with
 `nonisolated` asynchronous functions. When we transfer a disconnected value into
@@ -975,8 +974,7 @@ actor-isolated closure argument cannot introduce races by transferring function
 parameters of nonisolated functions into an isolated closure:
 
 ```swift
-@MainActor
-final class ContainsNonSendable {
+actor ContainsNonSendable {
   var ns: NonSendableType = .init()
 
   nonisolated func unsafeSet(_ ns: NonSendableType) {
@@ -988,7 +986,7 @@ final class ContainsNonSendable {
 
 func assumeIsolatedError(actor: ContainsNonSendable) async {
   let x = NonSendableType()
-  actor1.unsafeSet(x)
+  actor.unsafeSet(x)
   useValue(x) // Race is here
 }
 ```
@@ -1131,7 +1129,7 @@ assume that the closure must also be isolated to that global actor:
 ```
 
 If `mainActorUtility` was not called within `closure`'s body then `closure`
-would be disconnected and could be transferred:"
+would be disconnected and could be transferred:
 
 ```swift
 @MainActor func mainActorUtility() {}
@@ -1231,7 +1229,7 @@ func keyPathInDisconnectedRegionDueToCapture() async {
 When an async let binding is initialized with an expression that uses a
 disconnected non-`Sendable` value, the value is treated as being transferred
 into a `nonisolated` asynchronous callee that additionally allows for the value
-to be transferred. If the value is used only be synchronous code and
+to be transferred. If the value is used only by synchronous code and
 `nonisolated` asynchronous functions, we allow for the value to be reused again
 once the async let binding has been awaited upon:
 
@@ -1373,7 +1371,7 @@ transferred to another task by callMethod, it is no longer safe to directly
 access self's memory and thus we emit an error when we access
 `self.nonSendableField`.
 
-deinits as well as inits with one additional rule. Just like with initializers,
+Deinits work just like inits with one additional rule. Just like with initializers,
 self is considered initially to be strongly transferred and non-`Sendable`. One
 is allowed to access the `Sendable` stored properties of self while self is
 non-`Sendable`. One can access the non-`Sendable` fields of self if one knows
@@ -1695,7 +1693,7 @@ reference. If `x` is captured by reference, it is captured mutably implying that
 when accessing `x.f`, we could race against an assignment to `x.f` in the
 closure:
 
-```
+```swift
 struct NonSendableStruct {
   let letSendableField: Sendable
   var varSendableField: Sendable
@@ -1724,8 +1722,46 @@ resulting in a race against a write in the closure.
 
 ## Source compatibility
 
-This proposal strictly expands the set of acceptable Swift programs, so all
-Swift code that was previously accepted by the compiler will still be accepted.
+Region-based isolation opens up a new data-race safety hole when using APIs
+change the static isolation in the implementation of a `nonisolated` function,
+such as `assumeIsolated`, because values can become referenced by actor-isolated
+state without any indication in the function signature:
+
+```swift
+class NonSendable {}
+
+@MainActor var globalNonSendable: NonSendable = .init()
+
+nonisolated func stashIntoMainActor(ns: NonSendable) {
+  MainActor.assumeIsolated {
+    globalNonSendable = ns
+  }
+}
+
+func stashAndTransfer() -> NonSendable {
+  let ns = NonSendable()
+  stashIntoMainActor(ns)
+  Task.detached {
+    print(ns)
+  }
+}
+
+@MainActor func transfer() async {
+  let ns = stashAndTransfer()
+  await sendSomewhereElse(ns)
+}
+```
+
+Without additional restrictions, the above code would be valid under this proposal,
+but it risks a runtime data-race because the value returned from `stashAndTransfer`
+is stored in `MainActor`-isolated state and send to another isolation domain to
+be accessed concurrently. To close this hole, values must be sent into and out of
+`assumeIsolated`. The base region-isolation rules accomplish this by treating
+captures of isolated closures as a region merge, and the standard library annotates
+`assumeIsolated` as requiring the result type `T` to conform to `Sendable`. This
+impacts existing uses of `assumeIsolated`, so the change is staged in as warnings
+under complete concurrency checking, which enables `RegionBasedIsolation` by default,
+and an error in Swift 6 mode.
 
 ## ABI compatibility
 
@@ -1813,7 +1849,7 @@ the value outside of the callee's parameter. The implications of this are:
   ```
   
   if we did not have the strong isolation, then `x` could still be used in the
-  caller of someSynchronousFunction.
+  caller of `someSynchronousFunction`.
 
 * Due to the isolation of a transferring parameter, it is legal to have a
   non-`Sendable` transferring parameter of a synchronous actor designated
@@ -1851,7 +1887,7 @@ func example(_ x: NonSendable) async -> NonSendable? {
 }
 ```
 
-In the above, the result of `example` is a newly constructed value that has no
+In the above, the result of `example` is a newly initialized value that has no
 data dependence on the parameter `x`, but as laid out in this proposal, we
 cannot express this. We propose the addition of a new function parameter
 modifier called `returnsIsolated` that causes callers to treat the result of a
@@ -1998,7 +2034,7 @@ also be ascertained by just reading the source.
 
 ## Acknowledgments
 
-This proposal is based on work from the PLDI 2022 paper (A Flexible Type System for Fearless Concurrency)[https://www.cs.cornell.edu/andru/papers/gallifrey-types/].
+This proposal is based on work from the PLDI 2022 paper [A Flexible Type System for Fearless Concurrency](https://www.cs.cornell.edu/andru/papers/gallifrey-types/).
 
 Thanks to Doug Gregor, Kavon Farvardin for early assistance to Joshua during his
 internship.

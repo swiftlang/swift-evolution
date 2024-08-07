@@ -9,7 +9,7 @@
 
 ## Introduction
 
-[SE-0314](https://github.com/apple/swift-evolution/blob/main/proposals/0314-async-stream.md)
+[SE-0314](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0314-async-stream.md)
 introduced new `Async[Throwing]Stream` types which act as root asynchronous
 sequences. These two types allow bridging from synchronous callbacks such as
 delegates to an asynchronous sequence. This proposal adds a new way of
@@ -782,7 +782,7 @@ the future and we can just default it to the current behaviour.
 
 ### Create a custom type for the `Result` of the `onProduceMore` callback
 
-The `onProducerMore` callback takes a `Result<Void, Error>` which is used to
+The `onProduceMore` callback takes a `Result<Void, Error>` which is used to
 indicate if the producer should produce more or if the asynchronous stream
 finished. We could introduce a new type for this but the proposal decided
 against it since it effectively is a result type.
@@ -792,7 +792,7 @@ against it since it effectively is a result type.
 Instead of providing a `makeStream` factory method we could use an initializer
 approach that takes a closure which gets the `Source` passed into. A similar API
 has been offered with the `Continuation` based approach and
-[SE-0388](https://github.com/apple/swift-evolution/blob/main/proposals/0388-async-stream-factory.md)
+[SE-0388](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0388-async-stream-factory.md)
 introduced new factory methods to solve some of the usability ergonomics with
 the initializer based APIs.
 

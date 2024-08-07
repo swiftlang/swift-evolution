@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0109](0109-remove-boolean.md)
 * Authors: [Anton Zhilin](https://github.com/Anton3), [Chris Lattner](https://github.com/lattner)
-* Review Manager: [Doug Gregor](http://github.com/DougGregor)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0109-remove-the-boolean-protoco/3380)
 * Implementation: [apple/swift@76cf339](https://github.com/apple/swift/commit/76cf339694a41293dbbec9672b6df87a864087f2),

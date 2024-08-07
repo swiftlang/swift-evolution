@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0061](0061-autoreleasepool-signature.md)
 * Author: [Timothy J. Wood](https://github.com/tjw)
-* Review Manager: [Dave Abrahams](http://github.com/dabrahams)
+* Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0061-add-generic-result-and-error-handling-to-autoreleasepool/2425)
 * Bugs: [SR-842](https://bugs.swift.org/browse/SR-842), [SR-1394](https://bugs.swift.org/browse/SR-1394)

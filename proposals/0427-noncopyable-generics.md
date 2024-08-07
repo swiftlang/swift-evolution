@@ -2,11 +2,11 @@
 
 * Proposal: [SE-0427](0427-noncopyable-generics.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Tim Kientzle](https://github.com/tbkka), [Slava Pestov](https://github.com/slavapestov)
-* Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (March 8 - March 22, 2024)**
+* Review Manager: [Holly Borla](https://github.com/hborla), [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Accepted**
 * Implementation: On `main` gated behind `-enable-experimental-feature NoncopyableGenerics`
 * Previous Proposal: [SE-0390: Noncopyable structs and enums](0390-noncopyable-structs-and-enums.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-noncopyable-generics/68180))
+* Review: ([pitch](https://forums.swift.org/t/pitch-noncopyable-generics/68180)) ([first review](https://forums.swift.org/t/se-0427-noncopyable-generics/70525)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0427-noncopyable-generics/72039)) ([second review](https://forums.swift.org/t/second-review-se-0427-noncopyable-generics/72881)) ([acceptance](https://forums.swift.org/t/accepted-se-0427-noncopyable-generics/73560))
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
@@ -23,7 +23,6 @@
     - [Default conformances and suppression](#default-conformances-and-suppression)
     - [Struct, enum and class extensions](#struct-enum-and-class-extensions)
     - [Protocol extensions](#protocol-extensions)
-    - [Associated types](#associated-types)
     - [Protocol inheritance](#protocol-inheritance)
     - [Conformance to `Copyable`](#conformance-to-copyable)
     - [Classes](#classes)
@@ -32,11 +31,13 @@
   - [ABI Compatibility](#abi-compatibility)
   - [Alternatives Considered](#alternatives-considered)
     - [Alternative spellings](#alternative-spellings)
+    - [Associated types without defaulting behavior](#associated-types-without-defaulting-behavior)
     - [Inferred conditional copyability](#inferred-conditional-copyability)
     - [Extension defaults](#extension-defaults)
     - [Recursive `Copyable`](#recursive-copyable)
     - [`~Copyable` as logical negation](#copyable-as-logical-negation)
   - [Future Directions](#future-directions)
+    - [Suppressed associated types](#suppressed-associated-types)
     - [Standard library adoption](#standard-library-adoption)
     - [Tuples and parameter packs](#tuples-and-parameter-packs)
     - [`~Escapable`](#escapable)
@@ -81,7 +82,7 @@ We begin by recalling the restrictions from SE-0390:
 
 1. A noncopyable type could not appear in the generic argument of some other generic type.
 2. A noncopyable type could not conform to protocols.
-3. A noncopyable type could not witness an associated type requirement.
+3. A noncopyable type could not be boxed as an existential.
 
 This proposal builds on the `~Copyable`  notation introduced in SE-0390, and
 introduces three fundamental concepts that together eliminate these
@@ -205,7 +206,7 @@ unless explicitly suppressed:
 1. A struct, enum or class declaration.
 2. A generic parameter declaration.
 3. A protocol declaration.
-4. An associated type declaration.
+4. An associated type declaration; does not support suppression (see Future Directions).
 5. The `Self` type of a protocol extension.
 6. The generic parameters of a concrete extension.
 
@@ -296,7 +297,7 @@ extension Horse where Hay: ~Copyable {...}  // error
 ### Protocol extensions
 
 Where possible, we wish to allow the user to change an existing protocol to
-accomodate noncopyable conforming types, without changing the meaning of existing
+accommodate noncopyable conforming types, without changing the meaning of existing
 code.
 
 For this reason, an extension of a `~Copyable` protocol also introduces a default
@@ -314,47 +315,14 @@ extension EventLog /* where Self: Copyable */ {
 }
 ```
 
-To write a completely unconstrained protocol extension, suppress the conformance
-on `Self`:
+To write an unconstrained protocol extension, suppress the conformance on `Self`:
 ```swift
 extension EventLog where Self: ~Copyable {
   ...
 }
 ```
-
-### Associated types
-
-The default conformance in a protocol extension applies only to `Self`, and not
-the associated types of `Self`. For example, we first declare a protocol with a
-`~Copyable` associated type:
-```swift
-protocol Manager {
-  associatedtype Resource: ~Copyable
-}
-```
-Now, a protocol extension of `Manager` does _not_ carry an implicit
-`Self.Resource: Copyable` requirement:
-```swift
-extension Manager {
-  func f(resource: Resource) {
-    // `resource' cannot be copied here!
-  }
-}
-```
-For this reason, while adding `~Copyable` to the inheritance clause of a protocol
-is a source-compatible change, the same with an _associated type_ is not
-source compatible. The designer of a new protocol must decide which associated
-types are `~Copyable` up-front.
-
-Requirements on associated types can be written in the associated type's
-inheritance clause, or in a `where` clause, or on the protocol itself. As
-with ordinary requirements, all three of the following forms define the same
-protocol:
-```swift
-protocol P { associatedtype A: ~Copyable }
-protocol P { associatedtype A where A: ~Copyable }
-protocol P where A: ~Copyable { associatedtype A }
-```
+Associated types cannot have their `Copyable` requirement suppressed 
+(see Future Directions).
 
 ### Protocol inheritance
 
@@ -367,22 +335,6 @@ protocol CasinoToken: Token, ~Copyable {}
 ```
 Again, because `~Copyable` suppresses a default conformance instead of introducing
 a new kind of requirement, it is not propagated through protocol inheritance.
-
-If a base protocol declares an associated type with a suppressed conformance
-to `Copyable`, and a derived protocol re-states the associated type, a
-default conformance is introduced in the derived protocol, unless it is again
-suppressed:
-```swift
-protocol Base {
-  associatedtype A: ~Copyable
-  func f() -> A
-}
-
-protocol Derived: Base {
-  associatedtype A /* : Copyable */
-  func g() -> A
-}
-```
 
 ### Conformance to `Copyable`
 
@@ -399,11 +351,11 @@ We would like `List<Int>` to be `Copyable` since `Int` is, while still being
 able to use a noncopyable element type, like `List<FileDescriptor>`. We do
 this by declaring a _conditional conformance_:
 ```swift
-extension List: Copyable /* where T: Copyable */ {}
+extension List: Copyable where T: Copyable {}
 ```
-Note that no `where` clause needs to be written, because by the rules above,
-the default conformances here will already range over all generic parameters
-of the type.
+Note that the `where` clause needs to be written, because a conformance to
+`Copyable` declared in an extension does _not_ automatically add any other
+requirements, unlike other extensions.
 
 A conditional `Copyable` conformance is not permitted if the
 struct or enum declares a `deinit`. Deterministic destruction requires the
@@ -447,11 +399,6 @@ of the form `T: Copyable` where `T` is a generic parameter of the type. It is
 not permitted to make `Copyable` conditional on any other kind of requirement:
 ```swift
 extension Pair: Copyable where T == Array<Int> {}  // error
-```
-Nor can `Copyable` be conditional on the copyability of an associated type:
-```swift
-struct ManagerManager<T: Manager>: ~Copyable {}
-extension ManagerManager: Copyable where T.Resource: Copyable {}  // error
 ```
 
 Conditional `Copyable` conformance must be declared in the same source
@@ -528,6 +475,69 @@ require extreme care to use correctly.
 The spelling of `~Copyable` generalizes the existing syntax introduced in
 SE-0390, and changing it is out of scope for this proposal.
 
+### Associated types without defaulting behavior
+
+A simple design for suppressed associated types was considered, where the 
+default conformance in a protocol extension applies only to `Self`, and not
+the associated types of `Self`. For example, we first declare a protocol with a
+`~Copyable` associated type:
+```swift
+protocol Manager {
+  associatedtype Resource: ~Copyable
+}
+```
+Now, a protocol extension of `Manager` does _not_ carry an implicit
+`Self.Resource: Copyable` requirement:
+```swift
+extension Manager {
+  func f(resource: Resource) {
+    // `resource' cannot be copied here!
+  }
+}
+```
+For this reason, while adding `~Copyable` to the inheritance clause of a protocol
+is a source-compatible change, the same with an _associated type_ is not
+source compatible. The designer of a new protocol must decide which associated
+types are `~Copyable` up-front.
+
+Requirements on associated types can be written in the associated type's
+inheritance clause, or in a `where` clause, or on the protocol itself. As
+with ordinary requirements, all three of the following forms define the same
+protocol:
+```swift
+protocol P { associatedtype A: ~Copyable }
+protocol P { associatedtype A where A: ~Copyable }
+protocol P where A: ~Copyable { associatedtype A }
+```
+
+If a base protocol declares an associated type with a suppressed conformance
+to `Copyable`, and a derived protocol re-states the associated type, a
+default conformance is introduced in the derived protocol, unless it is again
+suppressed:
+```swift
+protocol Base {
+  associatedtype A: ~Copyable
+  func f() -> A
+}
+
+protocol Derived: Base {
+  associatedtype A /* : Copyable */
+  func g() -> A
+}
+```
+
+Finally, conformance to `Copyable` cannot be conditional on the copyability of
+an associated type:
+```swift
+struct ManagerManager<T: Manager>: ~Copyable {}
+extension ManagerManager: Copyable where T.Resource: Copyable {}  // error
+```
+
+This design for associated types was initially implemented but ultimately 
+removed from this proposal, because of the source compatibility issues. A more
+comprehensive design that allows for some way of preserving source compatibility
+requires a separate proposal due to the open design issues.
+
 ### Inferred conditional copyability
 
 A struct or enum can opt out of copyability with `~Copyable`, and then possibly
@@ -594,7 +604,7 @@ The behavior of default `Copyable` conformance on associated types prevents
 existing protocols from adopting `~Copyable` on their associated types in a
 source compatible way.
 
-For example, suppose we attempt to change `IteratorProtocol` to accomodate
+For example, suppose we attempt to change `IteratorProtocol` to accommodate
 noncopyable element types:
 ```swift
 protocol IteratorProtocol: ~Copyable {
@@ -656,6 +666,14 @@ represent this negation. It is not apparent how this leads to a sound and
 usable model and we have not explored this further.
 
 ## Future Directions
+
+### Suppressed associated types
+
+Supporting the full generality of associated types with suppressed Copyable 
+requirements, while providing a mechanism to preserve source compatibility is
+a highly desirable goal. At the same time, it is a large, open design problem. 
+A few ideas were considered (see Alternatives Considered) but it was ultimately
+determined to be too complex to tackle in this proposal.
 
 ### Standard library adoption
 

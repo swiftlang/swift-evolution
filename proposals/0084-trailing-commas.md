@@ -1,8 +1,8 @@
 # Allow trailing commas in parameter lists and tuples
 
 * Proposal: [SE-0084](0084-trailing-commas.md)
-* Authors: [Grant Paul](https://github.com/grp), [Erica Sadun](http://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Authors: [Grant Paul](https://github.com/grp), [Erica Sadun](https://github.com/erica)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0084-allow-trailing-commas-in-parameter-lists-and-tuples/2777)
 

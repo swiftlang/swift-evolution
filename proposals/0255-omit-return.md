@@ -5,8 +5,8 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.1)**
 * Implementation: [apple/swift#23251](https://github.com/apple/swift/pull/23251)
-* Decision Notes: [Rationale](https://forums.swift.org/t/se-0255-implicit-returns-from-single-expression-functions/22544/113)
-* Previous Proposal: [SE-NNNN](https://github.com/DevAndArtist/swift-evolution/blob/single_expression_optional_return/proposals/nnnn-single-expression-optional-return.md)
+* Previous Revision: [1](https://github.com/DevAndArtist/swift-evolution/blob/single_expression_optional_return/proposals/nnnn-single-expression-optional-return.md)
+* Review: ([pitch](https://forums.swift.org/t/pitch-implicit-returns-from-single-expression-functions/21898)), ([review](https://forums.swift.org/t/se-0255-implicit-returns-from-single-expression-functions/22544)), ([acceptance](https://forums.swift.org/t/accepted-se-0255-implicit-returns-from-single-expression-functions/23581/1))
 
 ## Introduction
 

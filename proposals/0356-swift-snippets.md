@@ -1,7 +1,7 @@
 # Swift Snippets
 
 * Proposal: [SE-0356](0356-swift-snippets.md)
-* Authors: [Ashley Garland](http://github.com/bitjammer)
+* Authors: [Ashley Garland](https://github.com/bitjammer)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Implemented (Swift 5.7)**
 * Implementation:
@@ -350,7 +350,7 @@ If the `@Snippet` is not a slice:
 
 ### Swift-DocC Plugin
 
-The recently added [Swift DocC Plugin](https://github.com/apple/swift-docc-plugin) is a new [SwiftPM command plugin](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md) that builds documentation for SwiftPM libraries and executables.
+The recently added [Swift DocC Plugin](https://github.com/apple/swift-docc-plugin) is a new [SwiftPM command plugin](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md) that builds documentation for SwiftPM libraries and executables.
 
 In order to forward a package's snippet information to DocC, a new tool, `snippet-build`, is added to convert `.swift` files into Symbol Graph JSON, which the plugin will run before `docc`.
 

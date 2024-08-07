@@ -1,7 +1,7 @@
 # API Design Guidelines
 
 * Proposal: [SE-0023](0023-api-guidelines.md)
-* Authors: [Dave Abrahams](https://github.com/dabrahams), [Doug Gregor](https://github.com/DougGregor), [Dmitri Gribenko](https://github.com/gribozavr), [Ted Kremenek](https://github.com/tkremenek), [Chris Lattner](http://github.com/lattner), Alex Migicovsky, [Max Moiseev](https://github.com/moiseev), Ali Ozer, [Tony Parker](https://github.com/parkera)
+* Authors: [Dave Abrahams](https://github.com/dabrahams), [Doug Gregor](https://github.com/DougGregor), [Dmitri Gribenko](https://github.com/gribozavr), [Ted Kremenek](https://github.com/tkremenek), [Chris Lattner](https://github.com/lattner), Alex Migicovsky, [Max Moiseev](https://github.com/moiseev), Ali Ozer, [Tony Parker](https://github.com/parkera)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0023-api-design-guidelines/1666)

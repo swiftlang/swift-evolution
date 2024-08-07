@@ -1,8 +1,8 @@
 # Package Manager Command Names
 
 * Proposal: [SE-0085](0085-package-manager-command-name.md)
-* Authors: [Rick Ballard](https://github.com/rballard), [Daniel Dunbar](http://github.com/ddunbar)
-* Review Manager: [Daniel Dunbar](http://github.com/ddunbar)
+* Authors: [Rick Ballard](https://github.com/rballard), [Daniel Dunbar](https://github.com/ddunbar)
+* Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/review-se-0085-package-manager-command-names/2530/6)
 * Implementation: [apple/swift-package-manager#364](https://github.com/apple/swift-package-manager/pull/364)

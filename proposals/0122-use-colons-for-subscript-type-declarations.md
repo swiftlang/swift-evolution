@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0122](0122-use-colons-for-subscript-type-declarations.md)
 * Author: [James Froggatt](https://github.com/MutatingFunk)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0122-use-colons-for-subscript-declarations/3545)
 
