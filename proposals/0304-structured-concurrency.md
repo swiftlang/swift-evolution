@@ -1051,7 +1051,6 @@ func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 /// This is achieved in the following way:
 /// - if the body returns normally:
 ///   - the group will await any not yet complete tasks,
-///     - if any of those tasks throws, the remaining tasks will be cancelled,
 ///   - once the `withTaskGroup` returns the group is guaranteed to be empty.
 /// - if the body throws:
 ///   - all tasks remaining in the group will be automatically cancelled.
