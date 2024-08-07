@@ -3,7 +3,7 @@
 * Proposal: [SE-0413](0413-typed-throws.md)
 * Authors: [Jorge Revuelta (@minuscorp)](https://github.com/minuscorp), [Torsten Lehmann](https://github.com/torstenlehmann), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Implemented (Swift 6)**
+* Status: **Implemented (Swift 6.0)**
 * Review: [latest pitch](https://forums.swift.org/t/pitch-n-1-typed-throws/67496), [review](https://forums.swift.org/t/se-0413-typed-throws/68507), [acceptance](https://forums.swift.org/t/accepted-se-0413-typed-throws/69099)
 
 ## Introduction
