@@ -4,7 +4,7 @@
 * Author: [James Dempsey](https://github.com/dempseyatgithub)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted** 
-* Implementation: [apple/swift-package-manager#7620](https://github.com/apple/swift-package-manager/pull/7620)
+* Implementation: [swiftlang/swift-package-manager#7620](https://github.com/swiftlang/swift-package-manager/pull/7620), [swiftlang/swift#75564](https://github.com/swiftlang/swift/pull/75564)
 * Review: ([first pitch](https://forums.swift.org/t/pitch-formalize-swift-language-mode-naming-in-tools-and-api/71733)) ([second pitch](https://forums.swift.org/t/pitch-2-formalize-language-mode-naming-in-tools-and-api/72136)) ([review](https://forums.swift.org/t/se-0441-formalize-language-mode-terminology/73182)) ([acceptance](https://forums.swift.org/t/accepted-se-0441-formalize-language-mode-terminology/73716))
 
 ## Introduction
@@ -49,7 +49,7 @@ Add a new `init` method to `Package` with the following changes from the current
 - The parameter `swiftLanguageVersions` is renamed to `swiftLanguageModes`
 - The parameter type is now an optional array of `SwiftLanguageMode` values instead of `SwiftVersion` values
 
-The existing init method will be marked as `deprecated` and `renamed` allowing the compiler to provide a fix-it. It will also have the @_disfavoredOverload attribute added to allow the compiler to disambiguate.
+The existing init method will be marked as `deprecated` and `renamed` allowing the compiler to provide a fix-it.
 
 #### 2. Rename `swiftLanguageVersions` property to `swiftLanguageModes`
 Rename the public `Package` property `swiftLanguageVersions` to `swiftLanguageModes`. Add a `swiftLanguageVersions` computed property that accesses `swiftLanguageModes` for backwards compatibility. 
@@ -123,7 +123,7 @@ Package(
 ```
 
 
-The existing init method will be marked as `deprecated` and `renamed`, allowing the compiler to provide a fix-it. It will also be annotated with `@_disfavoredOverload` to disambiguate the new and existing init methods:
+The existing init method will be marked as `deprecated` and `renamed`, allowing the compiler to provide a fix-it:
 
 ```
 @_disfavoredOverload
@@ -139,19 +139,6 @@ cxxLanguageStandard:)")
 		cxxLanguageStandard: CXXLanguageStandard? = nil
 	) {
 ```
-
-#### Deprecating the existing init method by making it a disfavored overload
-In order to deprecate the existing method instead of marking it obsoleted, the existing method needs to be annotated with the `@_disfavoredOverlaod` attribute. This is because the two methods are ambiguous when the default value for `swiftLanguageVersions` / `swiftLanguageModes` is used:
-
-```
-Package (  // Error: Ambiguous use of 'init'
-  name: "MyPackage",
-  products: ...,
-  targets: ...
-)
-```
-
-Adding the `@_disfavoredOverlaod` attribute allows the compiler to disambiguate between the two methods.
 
 See the **Source compatibility** section for more details about this change.
 
