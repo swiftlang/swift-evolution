@@ -134,10 +134,6 @@ extension Substring.UTF8View {
   // note: this could borrow a temporary copy of the `Substring`'s storage
   var storage: Span<Unicode.UTF8.CodeUnit> { _read }
 }
-extension Character.UTF8View {
-  // note: this could borrow a temporary copy of the `Character`'s storage
-  var storage: Span<Unicode.UTF8.CodeUnit> { _read }
-}
 
 extension SIMD {
   var storage: Span<Self.Scalar> { _read }
