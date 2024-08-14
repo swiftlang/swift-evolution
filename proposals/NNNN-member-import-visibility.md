@@ -24,7 +24,16 @@ This proposal unifies the behavior of name lookup by changing the rules to bring
 
 ## Motivation
 
-Suppose you have a program depends on a library named `RecipeKit`. The library interface looks like this:
+Suppose you have an app that depends on an external library named `RecipeKit`. To start, your app contains a single source file `main.swift` that imports `RecipeKit`:
+
+```swift
+// main.swift
+import RecipeKit
+
+let recipe = "2 slices of bread, 1.5 tbs peanut butter".parse()
+```
+
+The interface of `RecipeKit` looks like this:
 
 ```swift
 // RecipeKit interface
@@ -37,16 +46,27 @@ extension String {
 }
 ```
 
-To start, your program contains a single source file `main.swift` that imports `RecipeKit`:
+Later, you decide to integrate with a new library named `GroceryKit`. You add a second file to your app that imports `GroceryKit`:
+
+```swift
+// Groceries.swift
+import GroceryKit
+
+var groceries = GroceryList()
+// ...
+```
+
+Surprisingly, after adding the second file there's now a compilation error in `main.swift`:
 
 ```swift
 // main.swift
 import RecipeKit
 
 let recipe = "2 slices of bread, 1.5 tbs peanut butter".parse()
+// error: Ambiguous use of 'parse()'
 ```
 
-Later, you decide to integrate with a new library named `GroceryKit` which happens to also declares its own `parse()` method in an extension on `String`:
+The call to `parse()` is now ambiguous because `GroceryKit` happens to also declares its own `parse()` method in an extension on `String`:
 
 ```swift
 // GroceryKit interface
@@ -59,32 +79,13 @@ extension String {
 
 ```
 
-You add a second file that imports `GroceryKit`:
+Even though `GroceryKit` was not imported in `main.swift`, its `parse()` method is now a candidate in that file. To resolve the ambiguity, you can add a type annotation to the declaration of the variable `recipe` to give the compiler the additional context it needs to disambiguate the call:
 
-```swift
-// Groceries.swift
-import GroceryKit
-
-var groceries = GroceryList()
-// ...
-```
-
-Surprisingly, now that `GroceryKit` is a transitive dependency of `main.swift`, there's a new compilation error:
-
-```swift
-// main.swift
-import RecipeKit
-
-let recipe = "2 slices of bread, 1.5 tbs peanut butter".parse()
-// error: Ambiguous use of 'parse()'
-```
-
-Before the new file was added, `parse()` could only refer to the extension member from `RecipeKit`. Now that it might also reference the extension member in `GroceryKit` the compiler considers the use of `parse()` to be ambiguous. To resolve the ambiguity, the developer must add a type annotation to the declaration of the variable `recipe` to give the compiler the additional context it needs to disambiguate:
 ```swift
 let recipe: Recipe = "2 slices of bread, 1.5 tbs peanut butter".parse() // OK
 ```
 
-This example demonstrates why "leaky" member visibility is undesirable. Although the fix for the new error is relatively simple in this code, providing disambiguation context to the compiler is not always so straightforward. Additionally, the fact that some declarations from `GroceryKit` are now visible in `main.swift` contradicts developer expectations, since visibility rules for top level declarations do not behave this way. This idiosyncrasy in Swift's import visibility rules harms local reasoning and results in confusing errors.
+This example demonstrates why Swift's existing "leaky" member visibility is undesirable. Although the fix for the new error is relatively simple in this code, providing disambiguation context to the compiler is not always so straightforward. Additionally, the fact that some declarations from `GroceryKit` are now visible in `main.swift` contradicts developer expectations, since visibility rules for top level declarations do not behave this way. This idiosyncrasy in Swift's import visibility rules harms local reasoning and results in confusing errors.
 
 ## Proposed solution
 
@@ -98,14 +99,9 @@ A reference to a member in a source file will only be accepted if that member is
 - The module is directly imported from the bridging header.
 - The module is in the set of modules that is re-exported by any module that is either directly imported in the file or directly imported in the bridging header.
 
-A module is considered to be re-exported by the module that imports it when any of the following statements are true:
+A Swift module re-exports any modules that have been imported using the `@_exported` attribute. Clang modules list the modules that they re-export in their modulemap files, and it is common for a Clang module to re-export every module it imports using `export *`. Re-exports are also transitive, so if module `A` re-exports module `B`, and module `B` re-exports module `C`, then declarations from `A`, `B`, and `C` are all in scope in a file that only imports `A` directly.
 
-- The associated import statement has the `@_exported` attribute.
-- The exporting module is a clang module.
-
-Re-exports are transitive, so if module `A` re-exports module `B`, and module `B` re-exports module `C`, then declarations from `A`, `B`, and `C` are all in scope in a file that directly imports `A`.
-
-Note that there are some imports that are added to every source file implicitly by the compiler for normal programs. The implicitly imported modules include the standard library and the module being compiled. As a subtle consequence of the implicit import of the current module, any module that is `@_exported` in any source file of the module is also part of the set of re-exported modules that are visible in the file.
+Note that there are some imports that are added to every source file implicitly by the compiler for normal programs. The implicitly imported modules include the standard library and the module being compiled. As a subtle consequence implicitly importing the current module, any module that is `@_exported` in any source file is also considered visible in every other source file because it is a re-export of a direct import.
 
 ## Source compatibility
 
