@@ -20,7 +20,7 @@ let chained = chain([1], [2]) // error: Cannot find 'chain' in scope
 
 The visibility rules for a member declaration, such as a method declared inside of a struct, are different though. When resolving a name to a member declaration, the member is in scope even if the module introducing the member is only *transitively* imported. A transitively imported module could be imported directly in another source file, or it could be a dependency of some direct dependency of your program. This inconsistency may be best understood as a subtle bug rather than an intentional design decision, and in a lot of Swift code it goes unnoticed. However, the import rules for members become more surprising when you consider the members of extensions, since an extension and its nominal type can be declared in different modules. 
 
-This proposal unifies the behavior of name lookup by changing the rules to consistently require direct module imports in order to bring both top-level declarations and members into scope.
+This proposal unifies the behavior of name lookup by changing the rules to bring both top-level declarations and members into scope using the same criteria.
 
 ## Motivation
 
@@ -88,11 +88,36 @@ This example demonstrates why "leaky" member visibility is undesirable. Although
 
 ## Proposed solution
 
-In a future language version, or whenever the `MemberImportVisibility` feature is enabled, the Swift compiler should only consider members from directly imported modules to be in scope.
+In a future language version, or whenever the `MemberImportVisibility` feature is enabled, both member declarations and top level declarations should be resolved from the same set of visible modules in a given source file.
 
 ## Detailed design
 
-Excluding references to members from transitively imported modules in the local scope will prevent surprising ambiguities like the one detailed earlier. However, this change of behavior will also break some existing code that used to be accepted. The Swift compiler will now emit an error for member references that used to successfully resolve to a declaration in a transitively imported module:
+A reference to a member in a source file will only be accepted if that member is declared in a module that is contained in the set of visible modules for that source file. A module is in the set of visible modules if any of the following statements are true:
+
+- The module is directly imported. In other words, some import statement in the source file names the module explicitly.
+- The module is directly imported from the bridging header.
+- The module is in the set of modules that is re-exported by any module that is either directly imported in the file or directly imported in the bridging header.
+
+A module is considered to be re-exported by the module that imports it when any of the following statements are true:
+
+- The associated import statement has the `@_exported` attribute.
+- The exporting module is a clang module.
+
+Re-exports are transitive, so if module `A` re-exports module `B`, and module `B` re-exports module `C`, then declarations from `A`, `B`, and `C` are all in scope in a file that directly imports `A`.
+
+Note that there are some imports that are added to every source file implicitly by the compiler for normal programs. The implicitly imported modules include the standard library and the module being compiled. As a subtle consequence of the implicit import of the current module, any module that is `@_exported` in any source file of the module is also part of the set of re-exported modules that are visible in the file.
+
+## Source compatibility
+
+The proposed change in behavior is source breaking because it adds stricter requirements to name lookup. There is much existing Swift code that will need to be updated to adhere to these new requirements, either by introducing additional import statements in some source files or by reorganizing code among files. This change in behavior therefore must be opt-in, which is why it should be limited to a future language mode with an upcoming feature identifier that allows opt-in with previous language modes.
+
+## ABI compatibility
+
+This change does not affect ABI.
+
+## Implications on adoption
+
+To make it easier to migrate to the new language mode, the compiler can attempt to identify whether a member reference would resolve to a member declared in a transitively imported module and emit a fix-it to suggest adding a direct import to resolve the errors caused by the stricter look up rules:
 
 ```swift
 // In this example, RecipeKit is imported in another file
@@ -103,20 +128,9 @@ let recipe = "1 scoop ice cream, 1 tbs chocolate syrup".parse()
 // error: instance method 'parse()' is inaccessible due to missing import of defining module 'RecipeKit'
 ```
 
+With these fix-its, the burden of updating source code to be compatible with the new language mode should be significantly reduced.
 
-Rather than simply indicating that the member's name is not in-scope, though, the compiler can identify the declaration you likely meant to use and suggest importing the module that defines it. An IDE may also offer a fix-it to add the missing module import to the file.
-
-## Source compatibility
-
-The suggested change in behavior is source breaking because it adds stricter requirements to name lookup. There is much existing Swift code that will need to be updated to adhere to these new requirements, either by introducing additional import statements in some source files or by reorganizing code among files. This change in behavior therefore must be opt-in, which is why it should be limited to a future language mode with an upcoming feature identifier that allows opt-in with previous language modes. 
-
-## ABI compatibility
-
-This change does not affect ABI.
-
-## Implications on adoption
-
-Adopting this feature ought to be straightforward because the compiler can identify module imports that are missing under the new rules and guide the developer to add an explicit import to resolve the error. Furthermore, although enabling this feature would be source breaking for many packages, it's important to note that source code that conforms to the new import requirements will be backwards compatible with older compilers and language modes that don't enforce this requirement. This feature does not require any new syntax or introduce rules that contradict rules of previous language modes.
+This feature will have some impact on source compatibility with older compilers and previous language modes. Adding new direct imports of modules that were previously only transitively imported is a backward compatible change syntactically. However, if the new language mode is necessary in order to make some source code unambiguous, then the ambiguity will become an issue when compiling the same code using an older language mode so maintaining backward compatibility would require additional measures to be taken.
 
 ## Future directions
 
