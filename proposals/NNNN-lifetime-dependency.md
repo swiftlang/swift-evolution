@@ -923,7 +923,7 @@ func foo(...)
 
 ```
 @lifetime(copy arg)
-func foo(arg: Arg1) -> R {}
+func foo(label arg: Arg1) -> R {}
 ```
 
 The `.component` qualifier is only relevant once we have component lifetimes. See the "Component lifetime" section below.
