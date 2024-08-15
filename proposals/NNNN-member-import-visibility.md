@@ -82,7 +82,7 @@ extension String {
 Even though `GroceryKit` was not imported in `main.swift`, its `parse()` method is now a candidate in that file. To resolve the ambiguity, you can add a type annotation to the declaration of the variable `recipe` to give the compiler the additional context it needs to disambiguate the call:
 
 ```swift
-let recipe: Recipe = "2 slices of bread, 1.5 tbs peanut butter".parse() // OK
+let recipe: Recipe? = "2 slices of bread, 1.5 tbs peanut butter".parse() // OK
 ```
 
 This example demonstrates why Swift's existing "leaky" member visibility is undesirable. Although the fix for the new error is relatively simple in this code, providing disambiguation context to the compiler is not always so straightforward. Additionally, the fact that some declarations from `GroceryKit` are now visible in `main.swift` contradicts developer expectations, since visibility rules for top level declarations do not behave this way. This idiosyncrasy in Swift's import visibility rules harms local reasoning and results in confusing errors.
