@@ -48,6 +48,9 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 - New alternative considered: where clause
 - Simplified implicit lifetime dependencies and added same-type rule
 
+**Edited** (Aug 13, 2024)
+- Revised the same-type rule
+
 #### See Also
 
 * [Forum discussion of Non-Escapable Types and Lifetime Dependency](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency)
@@ -301,6 +304,8 @@ implies:
 ```
 
 This is particularly helpful for Generic APIs. With this rule, indicating that a generic parameter is `~Escapable` should usually be sufficient to infer the correct lifetime dependence.
+
+For methods, if `self` is the same type as the result, the same-type rule also applies, resulting in a copied dependence on `self`. This case overlaps with the aforementioned self dependence rule above and has the same effect.
 
 ### Dependent parameters
 
@@ -668,11 +673,11 @@ The implications of mutation modifiers and argument type on the resulting lifeti
 
 ### Inference Rules
 
-If there is no explicit lifetime dependency on the nonescapable result of a method or function, we will attempt to infer dependencies automatically according the following rules:
+If there is no explicit lifetime dependency on the nonescapable result of a method or function, we will attempt to infer dependencies automatically according these rules in the following order. Subsequent rules are only considered if the prior rules do not generate any inferred dependencies:
 
-1. For methods where the return value is nonescapable, we will infer a dependency against `self`. If `self` is nonescapable, then we infer a copying dependency. If `self` is escapable, and the method is `borrowing` or `mutating`, then we infer a scoped dependency.
+1. For methods, functions, and initializers where the return value is nonescapable, we infer a copied lifetime dependency on all parameters of the same nonescapable type. For methods, this rule applies to the implicit `self` parameter like any other parameter: if `self` has the same type as the nonescapable result, then we infer a copied dependency.
 
-2. For methods, functions, and initializers where the return value is nonescapable, we infer a copied lifetime dependency on all parameters of the same (nonescapable) type, including the implicit `self` parameter.
+2. For methods where the return value is nonescapable, we will infer a dependency against `self`. If `self` is nonescapable, then we infer a copying dependency. If `self` is escapable, and the method is `borrowing` or `mutating`, then we infer a scoped dependency.
 
 3. For functions and initializers that have a nonescapable return value and a single parameter, we infer dependence on that parameter. If the parameter is nonescapable, then we infer a copying dependency; otherwise, we infer a scoped dependency.
 
@@ -681,16 +686,18 @@ For all inference rules, the type of dependence is the same as an explicit `depe
 **In no other case** will a function, method, or initializer implicitly gain a lifetime dependency.
 If a function, method, or initializer has a nonescapable return value, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
 
-We infer dependencies according to all applicable rules. Here, both rule #1 and #2 apply:
+Consider an example that matches both rule #1 and #2:
 
 ```
 struct NE: ~Escapable { ... }
 struct E {
-  func foo(ne: NE) -> /* dependsOn(self, ne) */ NE
+  func foo(ne: NE) -> /* dependsOn(ne) */ NE
 }
 ```
 
-Here, both rule #2 and #3 apply:
+`foo` will not depend on self because rule #1 takes precedence over rule #2.
+
+In this example, both rule #2 and #3 match but are simply redundant:
 
 ```
 struct NE {
@@ -916,7 +923,7 @@ func foo(...)
 
 ```
 @lifetime(copy arg)
-func foo(arg: Arg1) -> R {}
+func foo(label arg: Arg1) -> R {}
 ```
 
 The `.component` qualifier is only relevant once we have component lifetimes. See the "Component lifetime" section below.
