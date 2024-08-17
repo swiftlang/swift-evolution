@@ -841,39 +841,27 @@ A handful of helper API can make `RawSpan` better suited for binary parsers and 
 
 ```swift
 extension RawSpan {
-  @frozen
   public struct Cursor: Copyable, ~Escapable {
     public let base: RawSpan
 
     /// The current parsing position
     public var position: Int
 
-    @inlinable
-    public init(_ base: RawSpan)
-
-    /// Parse an instance of `T` and advance
-    @inlinable
+    /// Parse an instance of `T` and advance.
+    /// Returns `nil` if there are not enough bytes remaining for an instance of `T`.
     public mutating func parse<T: _BitwiseCopyable>(
       _ t: T.Type = T.self
-    ) throws(OutOfBoundsError) -> T
+    ) -> T?
 
-    /// Parse `numBytes`and advance
-    @inlinable
+    /// Parse `numBytes`and advance.
+    /// Returns `nil` if there are fewer than `numBytes` remaining.
     public mutating func parse(
       numBytes: some FixedWidthInteger
-    ) throws (OutOfBoundsError) -> RawSpan
+    ) -> RawSpan?
 
     /// The bytes that we've parsed so far
-    @inlinable
     public var parsedBytes: RawSpan { get }
-
-    /// The remaining bytes left to parse
-    @inlinable
-    public var remainingBytes: RawSpan { get }
   }
-
-  @inlinable
-  public func makeCursor() -> Cursor
 }
 ```
 
@@ -883,49 +871,14 @@ Alternatively, if some future `RawSpan.Iterator` were 3 words in size (start, cu
 
 ##### Example: Parsing PNG
 
-The code snippet below parses [PNG Chunks](https://www.w3.org/TR/png-3/#4Concepts.FormatChunks):
+The code snippet below parses a [PNG Chunk](https://www.w3.org/TR/png-3/#4Concepts.FormatChunks):
 
 ```swift
-struct PNGChunk: ~Escapable {
-  let contents: RawSpan
-
-  public init<Owner: ~Copyable & ~Escapable>(
-    _ contents: RawSpan, _ owner: borrowing Owner
-  ) throws (PNGValidationError) {
-    self.contents = contents
-    try self._validate()
-  }
-
-  var length: UInt32 {
-    contents.loadUnaligned(as: UInt32.self).bigEndian
-  }
-  var type: UInt32 {
-    contents.loadUnaligned(
-      fromUncheckedByteOffset: 4, as: UInt32.self).bigEndian
-  }
-  var data: RawSpan {
-    contents[uncheckedOffsets: 8..<(contents.count-4)]
-  }
-  var crc: UInt32 {
-    contents.loadUnaligned(
-      fromUncheckedByteOffset: contents.count-4, as: UInt32.self
-    ).bigEndian
-  }
-}
-
-func parsePNGChunk<Owner: ~Copyable & ~Escapable>(
-  _ span: RawSpan,
-  _ owner: borrowing Owner
-) throws -> PNGChunk {
-  var cursor = span.makeCursor()
-
-  let length = try cursor.parse(UInt32.self).bigEndian
-  _ = try cursor.parse(UInt32.self)             // type
-  _ = try cursor.parse(numBytes: length)        // data
-  _ = try cursor.parse(UInt32.self)             // crc
-
-  return PNGChunk(cursor.parsedBytes, owner)
-}
+// Parse a PNG chunk
+let length = try cursor.parse(UInt32.self).bigEndian
+let type   = try cursor.parse(UInt32.self).bigEndian
+let data   = try cursor.parse(numBytes: length)
+let crc    = try cursor.parse(UInt32.self).bigEndian
 ```
 
 #### Defining `BorrowingIterator` with support in `for` loops
