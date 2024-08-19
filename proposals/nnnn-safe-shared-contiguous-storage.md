@@ -1,7 +1,7 @@
 # Safe Access to Contiguous Storage
 
 * Proposal: [SE-NNNN](nnnn-safe-shared-contiguous-storage.md)
-* Authors: [Guillaume Lessard](https://github.com/glessard), [Andrew Trick](https://github.com/atrick), [Michael Ilseman](https://github.com/milseman)
+* Authors: [Guillaume Lessard](https://github.com/glessard), [Michael Ilseman](https://github.com/milseman), [Andrew Trick](https://github.com/atrick)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
@@ -43,23 +43,44 @@ Even if the body of the `withUnsafeXXX` call does not escape the pointer, other 
 
 ## Proposed solution
 
+#### `Span`
+
 `Span` will allow sharing the contiguous internal representation of a type, by providing access to a borrowed view of an interval of contiguous memory. `Span` does not copy the underlying data: it instead relies on a guarantee that the original container cannot be modified or destroyed while the `Span` exists. In this first proposal, `Span`s will be constrained to closures from which they structurally cannot escape. Later, we will introduce a lifetime dependency between the `Span` and the binding of the type vending it, preventing its escape from the scope where it is valid for use. This guarantee preserves temporal safety. `Span` also performs bounds-checking on every access to preserve spatial safety. Additionally `Span` always represents initialized memory, preserving the definite initialization guarantee.
 
 A `Span` provided by container represents a borrow of that container. `Span` can therefore provide simultaneous access to a non-copyable container, and can help avoid unwanted copies of copyable containers. Note that `Span` is not a replacement for a copyable container with owned storage; see [future directions](#Directions) for more details ([Resizable, contiguously-stored, untyped collection in the standard library](#Bytes))
 
 `Span` is the currency type for local processing over values in contiguous memory. It is a replacement for many API currently using `Array`, `UnsafeBufferPointer`, `Foundation.Data`, etc., that do not need to escape the owning container.
 
-### `RawSpan`
+#### `RawSpan`
 
-`RawSpan` allows sharing the contiguous internal representation for values which may be heterogeneously-typed, such as in decoders. Since it is a fully concrete type, it can achieve better performance in debug builds of client code as well as a more straightforward understanding of performance in library code.
+`RawSpan` allows sharing the contiguous internal representation for values which may be heterogeneously-typed, as well as representing heteregeneously-typed input to be parsed. Since it is a fully concrete type, it can achieve great performance in debug builds of client code as well as straightforward performance in library code.
 
-`Span<some BitwiseCopyable>` can always be converted to `RawSpan`, using a conditionally-available property.
+A `RawSpan` can be obtained from containers of `BitwiseCopyable` elements, as well as be initialized directly from an instance of `Span<some BitwiseCopyable>`.
+
+#### Extensions to Standard Library and Foundation types
+
+The standard library and Foundation will provide `withSpan()` and `withBytes()` closure-taking functions as safe replacements for the existing `withUnsafeBufferPointer()` and `withUnsafeBytes()` functions. These functions provide  For example, `Array` will be extended as follows:
+
+```swift
+extension Array {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<Element>) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result where Element: BitwiseCopyable
+}
+```
+
+The full list of standard library and Foundation types to be extended in this manner is found in the [detailed design](#Design) section.
 
 ## <a name="Design"></a>Detailed design
 
 `Span<Element>` is a simple representation of a region of initialized memory.
 
 ```swift
+@frozen
 public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
   internal var _start: UnsafePointer<Element>
   internal var _count: Int
@@ -73,7 +94,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   public var count: Int { get }
   public var isEmpty: Bool { get }
 
-  subscript(_ position: Int) -> Element { _read }
+  public subscript(_ position: Int) -> Element { _read }
 }
 ```
 
@@ -96,108 +117,6 @@ for i in 0..<mySpan.count {
   calculation(mySpan[i])
 }
 ```
-
-#### Extensions to Standard Library and Foundation types
-
-The standard library and Foundation will provide `withSpan` and `withBytes` functions as safe replacements for the existing `withUnsafeBufferPointer` and `withUnsafeBytes` functions:
-
-```swift
-extension Array {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<Element>) throws(E) -> Result
-  ) throws(E) -> Result
-  
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result where Element: BitwiseCopyable
-}
-
-extension ArraySlice {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<Element>) throws(E) -> Result
-  ) throws(E) -> Result
-  
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result where Element: BitwiseCopyable
-}
-
-extension ContiguousArray {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<Element>) throws(E) -> Result
-  ) throws(E) -> Result
-  
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result where Element: BitwiseCopyable
-}
-
-extension Foundation.Data {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<UInt8>) throws(E) -> Result
-  ) throws(E) -> Result
-  
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result
-}
-
-extension String.UTF8View {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<UTF8.CodeUnit>) throws(E) -> Result
-  ) throws(E) -> Result
-
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result
-}
-
-extension Substring.UTF8View {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<UTF8.CodeUnit>) throws(E) -> Result
-  ) throws(E) -> Result
-
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result
-}
-
-extension CollectionOfOne {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<Element>) throws(E) -> Result
-  ) throws(E) -> Result
-  
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result where Element: BitwiseCopyable
-}
-
-extension SIMD {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<Self.Scalar>) throws(E) -> Result
-  ) throws(E) -> Result
-
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result where Self.Scalar: BitwiseCopyable
-}
-
-extension KeyValuePairs {
-  public func withSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<(key: Key, value: Value)>) throws(E) -> Result
-  ) throws(E) -> Result {
-    try Array(self).withSpan(body)
-  }
-
-  public func withBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ bytes: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result where Element: BitwiseCopyable {
-    try Array(self).withBytes(body)
-  }
-}
-```
-
-In this proposal, the `withSpan()` and `withBytes()` methods are the only ways to obtain a `Span`. Initializers, required for library adoption, will be proposed alongside (lifetime annotations)[PR-2305]; for further details, see [Initializers](#Initializers) in the [future directions](#Directions) section.
 
 #### Using `Span` with unsafe code:
 
@@ -251,6 +170,8 @@ public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
   internal var _count: Int
 }
 ```
+
+Initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for further details, see "[Initializers](#Initializers)" in the [future directions](#Directions) section.
 
 ##### Basic API:
 
@@ -461,7 +382,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   ///
   /// - Parameters:
   ///   - position: an index to validate
-  public func assertValidity(_ offset: Int)
+  public func ensureValidity(_ offset: Int)
 
   /// Return true if `offsets` is a valid range of offsets into this `Span`
   ///
@@ -474,7 +395,7 @@ extension Span where Element: ~Copyable & ~Escapable {
   ///
   /// - Parameters:
   ///   - offsets: a range of indices to validate
-  public func assertValidity(_ offsets: Range<Int>)
+  public func ensureValidity(_ offsets: Range<Int>)
 }
 ```
 
@@ -537,51 +458,20 @@ public struct RawSpan: Copyable, ~Escapable {
 }
 ```
 
-##### Initializing a `RawSpan`:
+##### Converting a `Span` to a `RawSpan`:
 
 ```swift
 extension RawSpan {
-  /// Unsafely create a `RawSpan` over initialized memory.
-  ///
-  /// The memory in `buffer` must be owned by the instance `owner`,
-  /// meaning that as long as `owner` is alive the memory will remain valid.
-  ///
-  /// - Parameters:
-  ///   - buffer: an `UnsafeRawBufferPointer` to initialized memory.
-  ///   - owner: a binding whose lifetime must exceed that of
-  ///            the newly created `RawSpan`.
-  public init<Owner: ~Copyable & ~Escapable>(
-    unsafeBytes buffer: UnsafeRawBufferPointer,
-    owner: borrowing Owner
-  )
-
-  /// Unsafely create a `RawSpan` over initialized memory.
-  ///
-  /// The memory over `count` bytes starting at
-  /// `pointer` must be owned by the instance `owner`,
-  /// meaning that as long as `owner` is alive the memory will remain valid.
-  ///
-  /// - Parameters:
-  ///   - pointer: a pointer to the first initialized byte.
-  ///   - byteCount: the number of initialized bytes in the span.
-  ///   - owner: a binding whose lifetime must exceed that of
-  ///            the newly created `RawSpan`.
-  public init<Owner: ~Copyable & ~Escapable>(
-    unsafeStart pointer: UnsafeRawPointer,
-    byteCount: Int,
-    owner: borrowing Owner
-  )
-
   /// Create a `RawSpan` over the memory represented by a `Span<T>`
   ///
   /// - Parameters:
   ///   - span: An existing `Span<T>`, which will define both this
   ///           `RawSpan`'s lifetime and the memory it represents.
-  public init<T: BitwiseCopyable>(
-    _ span: borrowing Span<T>
-  )
+  public init<T: BitwiseCopyable>(_ span: borrowing Span<T>)
 }
 ```
+
+Other initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for further details, see "[Initializers](#Initializers)" in the [future directions](#Directions) section.
 
 ##### <a name="Load"></a>Accessing the memory of a `RawSpan`:
 
@@ -736,13 +626,13 @@ extension RawSpan {
   public func validateBounds(_ offset: Int) -> Bool
 
   /// Traps if `offset` is not a valid offset into this `RawSpan`
-  public func assertValidity(_ offset: Int)
+  public func ensureValidity(_ offset: Int)
 
   /// Return true if `offsets` is a valid range of offsets into this `RawSpan`
   public func validateBounds(_ offsets: Range<Int>) -> Bool
 
   /// Traps if `offsets` is not a valid range of offsets into this `RawSpan`
-  public func assertValidity(_ offsets: Range<Int>)
+  public func ensureValidity(_ offsets: Range<Int>)
 }
 ```
 
@@ -789,6 +679,106 @@ extension RawSpan {
 }
 ```
 
+### Extensions to standard library and Foundation types
+
+```swift
+extension Array {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<Element>) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result where Element: BitwiseCopyable
+}
+
+extension ArraySlice {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<Element>) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result where Element: BitwiseCopyable
+}
+
+extension ContiguousArray {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<Element>) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result where Element: BitwiseCopyable
+}
+
+extension Foundation.Data {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<UInt8>) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result
+}
+
+extension String.UTF8View {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<UTF8.CodeUnit>) throws(E) -> Result
+  ) throws(E) -> Result
+
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result
+}
+
+extension Substring.UTF8View {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<UTF8.CodeUnit>) throws(E) -> Result
+  ) throws(E) -> Result
+
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result
+}
+
+extension CollectionOfOne {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<Element>) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result where Element: BitwiseCopyable
+}
+
+extension SIMD {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<Self.Scalar>) throws(E) -> Result
+  ) throws(E) -> Result
+
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result where Self.Scalar: BitwiseCopyable
+}
+
+extension KeyValuePairs {
+  public func withSpan<E: Error, Result: ~Copyable>(
+    _ body: (_ elements: Span<(key: Key, value: Value)>) throws(E) -> Result
+  ) throws(E) -> Result {
+    try Array(self).withSpan(body)
+  }
+
+  public func withBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ bytes: RawSpan) throws(E) -> Result
+  ) throws(E) -> Result where Element: BitwiseCopyable {
+    try Array(self).withBytes(body)
+  }
+}
+```
+
+In this proposal, the `withSpan()` and `withBytes()` methods are the supported ways to obtain a `Span` or `RawSpan`. Initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for further details, see [Initializers](#Initializers) in the [future directions](#Directions) section.
+
 ## Source compatibility
 
 This proposal is additive and source-compatible with existing code.
@@ -821,17 +811,19 @@ This is discussed more fully in the [indexing appendix](#Indexing) below.
 
 #### <a name="Initializers"></a>Initializing and returning `Span` instances
 
-A `Span` represents a region of memory and, as such, must be initialized using unsafe pointers. This is an unsafe operation which will typically be performed internally to a container's implementation. In order to bridge to safe code, these initializers require new annotations that indicate to the compiler how the newly-created `Span` can be used safely.
+A `Span` represents a region of memory and, as such, must be initialized using an unsafe pointer. This is an unsafe operation which will typically be performed internally to a container's implementation. In order to bridge to safe code, these initializers require new annotations that indicate to the compiler how the newly-created `Span` can be used safely.
 
 These annotations have been [pitched][PR-2305-pitch] and are expected to be formally [proposed][PR-2305] soon. `Span` initializers using lifetime annotations will be proposed alongside the annotations themselves.
 
 #### Coroutine Accessors
 
+Once a function can return a `Span`, we may also 
+
 This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language, but are necessary for some types to be able to provide borrowing access to their internal storage. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` will be adapted to the new syntax.
 
 #### <a name="SurjectiveBitPattern"></a>Layout constraint for safe loading of bit patterns
 
-We could add a layout constraint refining`BitwiseCopyable`, specifically for types whose mapping from bit pattern to values is a [surjective function](https://en.wikipedia.org/wiki/Surjective_function), `SurjectiveBitPattern`. Such types would be safe to [load](#Load) from `RawSpan` instances. 1-byte examples are `Int8` (any of 256 values are valid) and `Bool` (256 bit patterns map to `true` or `false` because only one bit is considered.)
+`RawSpan` has unsafe functions that interpret the raw bit patterns it contains as values of arbitrary `BitwiseCopyable` types. In order to have safe alternatives to these, we could add a layout constraint refining`BitwiseCopyable`. Specifically, the refined layout constraint ](https://en.wikipedia.org/wiki/Surjective_function) (e.g. `SurjectiveBitPattern`) would apply to types for which mapping from bit pattern to value is a [surjective function. Such types would be safe to [load](#Load) from `RawSpan` instances. 1-byte examples are `Int8` (any of 256 values are valid) and `Bool` (256 bit patterns map to `true` or `false` because only one bit is considered.)
 
 An alternative to a layout constraint is to add a type validation step to ensure that if a given bit pattern were to be interpreted as a value of type `T`, then all the invariants of type `T` would be respected. This alternative would be more flexible, but may have a higher runtime cost.
 
@@ -973,7 +965,7 @@ public protocol ContiguousStorage<Element>: ~Copyable, ~Escapable {
 
 Two issues prevent us from proposing it at this time: (a) the ability to suppress requirements on `associatedtype` declarations was deferred during the review of [SE-0427], and (b) we cannot declare a `_read` accessor as a protocol requirement, since `_read` is not considered stable.
 
-Many of the standard library collections could conform to `ContiguousStorage`, but we would not include the `Unsafe{Mutable,Raw}BufferPointer` types among them. Conversion of these will continue to use the explicit `Span(unsafe{Bytes,Elements,Start}:)` initializers.
+Many of the standard library collections could conform to `ContiguousStorage`, but we would not include the `Unsafe{Mutable,Raw}BufferPointer` types among them. Conversion of these will continue to use the `withSpan()` and `withBytes()` methods.
 
 #### <a name="Conversions"></a>Syntactic Sugar for Automatic Conversions
 
