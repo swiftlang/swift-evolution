@@ -16,7 +16,7 @@ in inherited class like protocols.
 
 ## Motivation
 
-like pure virtual methods in C++ and abtract classes in Java and C#, frameworks development 
+like pure virtual methods in C++ and abstract classes in Java and C#, frameworks development 
 sometimes required abstract classes facility.
 An abstract class is like a regular class, but some methods/properties are not implemented 
 and must be implemented in one of inherited classes.
@@ -97,7 +97,7 @@ class MyRestServiceClient : RESTClient {
 ```
 
 ## Detailed design
-An abstract class cannot be instanciated. 
+An abstract class cannot be instantiated. 
 
 Abstract method/property cannot have implementation.
 

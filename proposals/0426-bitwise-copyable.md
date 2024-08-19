@@ -351,7 +351,7 @@ This would be visible to the programmer in several ways:
 - different overloads would be selected for a value of concrete type from those selected for a value dynamically cast to `BitwiseCopyable`
 - dynamic casts to `BitwiseCopyable` could fail, then succeed, then fail again in successive OS versions
 
-On the other hand, these behavioral differences may be desireable.
+On the other hand, these behavioral differences may be desirable.
 
 Considering that this approach would just ignore the existence of conformances to `BitwiseCopyable`,
 it would be reasonable to ignore the existence of a suppressed conformance as well.

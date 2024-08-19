@@ -133,7 +133,7 @@ extension FloatingPoint {
     tolerance: Self = Self.ulpOfOne.squareRoot()
   ) -> Bool {
     // tolerances outside of [.ulpOfOne,1) yield well-defined but useless results,
-    // so this is enforced by an assert rathern than a precondition.
+    // so this is enforced by an assert rather than a precondition.
     assert(tolerance >= .ulpOfOne && tolerance < 1, "tolerance should be in [.ulpOfOne, 1).")
     // The simple computation below does not necessarily give sensible
     // results if one of self or other is infinite; we need to rescale

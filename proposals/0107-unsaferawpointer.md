@@ -160,7 +160,7 @@ value argument could result in miscompilation if the inferred type
 ever deviates from the user's original expectations. The type
 parameter also importantly conveys that the raw memory becomes
 accessible via a pointer to that type at the point of the call. The
-type should be explicitly spelled at this point because accesing the
+type should be explicitly spelled at this point because accessing the
 memory via a typed pointer of an unrelated type could also result in
 miscompilation.
 

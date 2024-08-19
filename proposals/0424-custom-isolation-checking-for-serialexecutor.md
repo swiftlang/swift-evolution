@@ -140,7 +140,7 @@ extension DispatchSerialQueue {
 
 An executor that wishes to take advantage of this proposal will need to have some mechanism to identity its active worker thread.  If that's not possible or desired, the executor should leave the default implementation (that unconditionally crashes) in place.
 
-### Impact on async code and isolation assumtions
+### Impact on async code and isolation assumptions
 
 The `assumeIsolated(_:file:line:)` APIs purposefully only accept a **synchronous** closure. This is correct, and it remains correct with these proposed additions.  An isolation check on an executor ensures that any actor using the executor is synchronously isolated, and the closure provided to `assumeIsolated` will execute prior to any possible async suspension.  This is what makes it safe to access actor-isolated state within the closure.
 

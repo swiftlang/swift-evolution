@@ -311,7 +311,7 @@ to want only the first value, so returning a tuple creates noise:
 re-exported in Swift where `lgamma` is ambiguous; it can be either the
 platform shim returning `(T, Int)`, or the C library function returning
 `Double`; we want to deprecate the first and make the second unavailable.
-Simulataneously introducing yet another function with the same name would
+Simultaneously introducing yet another function with the same name would
 create a bit of a mess.
 
 ### Future expansion

@@ -128,7 +128,7 @@ expected.
 ## Not requiring exactly one execution
 
 Assuming that the main goal of this proposal is to relax initialization
-requirements, a unique invocation of the closure is not stricly required.
+requirements, a unique invocation of the closure is not strictly required.
 However the requirement of unique invocation makes the proposal simpler to
 understand.
 

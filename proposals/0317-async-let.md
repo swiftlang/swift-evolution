@@ -783,7 +783,7 @@ func runThrowsOkay() async {
 }
 ```
 
-The rules above attempt to limit the places in which the new `await` syntaxes are required to only those where they are semantically meaningful, i.e., those places where the `async let` child tasks will not already have had their completion explicitly awaited. The rules are complicated enough that we would not expect programmers to be able to correctly write `await` in all of the places where it is required. Rather, the Swift compiler would need to provide error messags with Fix-Its to indicate the places where additional `await` annotations are required, and those `await`s will remain as an artifact for the reader.
+The rules above attempt to limit the places in which the new `await` syntaxes are required to only those where they are semantically meaningful, i.e., those places where the `async let` child tasks will not already have had their completion explicitly awaited. The rules are complicated enough that we would not expect programmers to be able to correctly write `await` in all of the places where it is required. Rather, the Swift compiler would need to provide error messages with Fix-Its to indicate the places where additional `await` annotations are required, and those `await`s will remain as an artifact for the reader.
 
 We feel that the complexity of the solution for marking all suspension points, which includes both the grammar expansion for marking control-flow edges and the flow-sensitive analysis to only require the additional `await` marking when necessary, exceeds the benefits of adding it. Instead, we feel that the presence of `async let` in a block with complicated control flow is sufficient to imply the presence of additional suspension points.
 

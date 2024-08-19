@@ -227,7 +227,7 @@ Issues:
 Issues:
 
 - It seems achievable to teach the typechecker that `IncompleteFoo.Foo` and `CompleteFoo.Foo` can be implicitly converted between one another, but that is not enough
-    - Any typechecking contraint that `CompleteFoo.Foo` satisfies must also be satisfied by `IncompleteFoo.Foo`.
+    - Any typechecking constraint that `CompleteFoo.Foo` satisfies must also be satisfied by `IncompleteFoo.Foo`.
     - It might be possible to "inject" an extension into the REPL's context that adds any required methods, computed properties and protocol conformances to `IncompleteFoo.Foo`. However, it is not possible to add new inheritances. 
 
 We believe that given these issues, it is better to disable the feature in the REPL entirely rather than provide a confusing experience. We believe that this

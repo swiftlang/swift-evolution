@@ -490,7 +490,7 @@ It should also be noted that `#regex(...)` would introduce a syntactic inconsist
 
 ##### On future extensibility to other foreign language snippets
 
-One of the benefits of `#regex(...)` or `re'...'` is the extensibility to other kinds of foreign langauge snippets, such as SQL. Nothing in this proposal precludes a scalable approach to foreign language snippets using `#lang(...)` or `lang'...'`. If or when that happens, regex could participate as well, but the proposed syntax would still be valuable as regex literals *are* unique in their prevalence as fragments passed directly to API, as well as components of a result builder DSL.
+One of the benefits of `#regex(...)` or `re'...'` is the extensibility to other kinds of foreign language snippets, such as SQL. Nothing in this proposal precludes a scalable approach to foreign language snippets using `#lang(...)` or `lang'...'`. If or when that happens, regex could participate as well, but the proposed syntax would still be valuable as regex literals *are* unique in their prevalence as fragments passed directly to API, as well as components of a result builder DSL.
 
 
 #### Shortened magic literal `#(...)`
@@ -647,7 +647,7 @@ The regex builder DSL is unable to provide some of the features presented such a
 
 Similarly, there is no literal equivalent for some of the regex builder features, but that isn't an argument against them. The regex builder DSL has references which serves this role (though not as concisely) and they are useful beyond just naming captures.
 
-Regex literals should not be outright avoided, they should be used well. Artifically hampering their usage doesn't provide any benefit and we wouldn't want to lock these limitations into Swift's ABI.
+Regex literals should not be outright avoided, they should be used well. Artificially hampering their usage doesn't provide any benefit and we wouldn't want to lock these limitations into Swift's ABI.
 
 
 

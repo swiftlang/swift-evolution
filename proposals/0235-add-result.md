@@ -293,7 +293,7 @@ This proposal adds a type to the standard library and so will affect the ABI onc
 
 ## Effect on API resilience
 
-Addition of `Result<Succes, Failure>` should be future proof against additional needs surrounding error handling.
+Addition of `Result<Success, Failure>` should be future proof against additional needs surrounding error handling.
 
 ## Alternatives considered
 

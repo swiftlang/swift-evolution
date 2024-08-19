@@ -664,7 +664,7 @@ This change is additive and does not affect source compatibility.
 ## ABI compatibility
 
 This change is additive and does not affect ABI compatibility. All new methods
-are non-inlineable leaving us flexiblity to change the implementation in the
+are non-inlineable leaving us flexibility to change the implementation in the
 future.
 
 ## Future directions

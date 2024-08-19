@@ -259,7 +259,7 @@ struct DispatchData : RandomAccessCollection, _ObjectiveCBridgeable {
 }
 ```
 
-This proposal will introduce new accessor methods to access the bytes in a Data object. Along with becoming iteratable, several methods will be introduced that replace the ```dispatch_data_create_map``` approach used in C:
+This proposal will introduce new accessor methods to access the bytes in a Data object. Along with becoming iterable, several methods will be introduced that replace the ```dispatch_data_create_map``` approach used in C:
 
 ```swift
 struct DispatchData : RandomAccessCollection, _ObjectiveCBridgeable {

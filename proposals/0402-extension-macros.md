@@ -70,7 +70,7 @@ SE-0389 states that whenever a macro produces declarations that are visible to o
 * The names of protocols that are listed in the extension's conformance clause. These protocols are specified in the `conformances:` list of the `@attached(conformances:)` attribute. Each name that appears in this list must be a conformance constraint, where a conformance constraint is one of:
   * A protocol name
   * A typealias whose underlying type is a conformance constraint
-  * A protocol composition whose entires are each a conformance constraint
+  * A protocol composition whose entries are each a conformance constraint
 
 The following restrictions apply to generated conformances and names listed in `@attached(extension)`:
 

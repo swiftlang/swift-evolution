@@ -233,8 +233,8 @@ let package = Package(
             name: "___NAME_AS_C99___",
             sources: "src",
             dependencies: [
-              .product(name: "NIO", pacakge: "swift-nio"),
-              .product(name: "Crypto", pacakge: "swift-crypto")
+              .product(name: "NIO", package: "swift-nio"),
+              .product(name: "Crypto", package: "swift-crypto")
             ]
         ),
     ]
@@ -279,8 +279,8 @@ let package = Package(
             name: "HelloWorld",
             sources: "src",
             dependencies: [
-              .product(name: "NIO", pacakge: "swift-nio"),
-              .product(name: "Crypto", pacakge: "swift-crypto")
+              .product(name: "NIO", package: "swift-nio"),
+              .product(name: "Crypto", package: "swift-crypto")
             ]
         ),
     ]
@@ -358,7 +358,7 @@ No impact.
 
 The main alternative is to modify the behavior of `swift package init` such that it better caters to the creation of new packages from scratch. The advantage of this alternative is that it maintains the  API surface area. The disadvantages are that any changes to make it better for package creation are likely to make it confusing for transforming existing sources to package. More importantly, changes to the existing command may cause impact on users that have automation tied to the current behavior. 
 
-For templates, the main alternative is to use a data file (e.g. JSON) that describes how the package should be constructed. This would hone in the implementation as it defines a finite set of capabilities driven by configuraiton. This was not selected in order to provide a better user experience, and greater flexibility with respect to including other files in a template.
+For templates, the main alternative is to use a data file (e.g. JSON) that describes how the package should be constructed. This would hone in the implementation as it defines a finite set of capabilities driven by configuration. This was not selected in order to provide a better user experience, and greater flexibility with respect to including other files in a template.
 
 # Future Iterations
 

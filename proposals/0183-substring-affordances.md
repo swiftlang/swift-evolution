@@ -74,7 +74,7 @@ case of `filter`).
 
 ## Effect on ABI stability
 
-The switch from conrete to generic types needs to be made before ABI stability.
+The switch from concrete to generic types needs to be made before ABI stability.
 
 ## Alternatives considered
 

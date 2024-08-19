@@ -56,7 +56,7 @@ This simple access control model also allows us to nest types inside each other 
 
 *Extensions* however behave differently when it comes to their access control:
 
-* The *access modifier* of an *extension* sets the default modifier of its members which do not have their own localy defined modifier.
+* The *access modifier* of an *extension* sets the default modifier of its members which do not have their own locally defined modifier.
 
 	```swift
 	public struct D {}
@@ -234,7 +234,7 @@ I propose to revise the access control on extensions by removing access modifier
 		
 		fileprivate group {
 		
-			// Every group memebr is `fileprivate`
+			// Every group member is `fileprivate`
 			func member1() {}
 			func member2() {}
 			func member3() {}
@@ -286,7 +286,7 @@ Iff the *access-level-modifier* is not present, the access modifier on extension
 ```diff
 - extension SomeType : SomeProtocol {
 + public extension SomeType : SomeProtocol {
-	public func someMemeber()
+	public func someMember()
 }
 ```
 

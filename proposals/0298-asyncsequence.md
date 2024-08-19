@@ -230,7 +230,7 @@ With this extension, our "first long line" example from earlier becomes simply:
 let first = try? await myFile.lines().first(where: { $0.count > 80 })
 ```
 
-Or, if the sequence should be processed asynchonously and used later:
+Or, if the sequence should be processed asynchronously and used later:
 
 ```swift
 async let first = myFile.lines().first(where: { $0.count > 80 })
