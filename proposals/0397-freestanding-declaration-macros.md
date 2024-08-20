@@ -323,7 +323,7 @@ public protocol CodeItemMacro: FreestandingMacro {
   static func expansion(
     of node: some FreestandingMacroExpansionSyntax,
     in context: some MacroExpansionContext
-  ) async throws -> [CodeBlockItemSyntax]
+  ) throws -> [CodeBlockItemSyntax]
 }
 ```
 

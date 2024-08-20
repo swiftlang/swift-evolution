@@ -71,7 +71,7 @@ public PeerMacro: AttachedMacro {
     of node: AttributeSyntax,
     providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
-  ) async throws -> [DeclSyntax]
+  ) throws -> [DeclSyntax]
 }
 ```
 
@@ -163,7 +163,7 @@ protocol MemberMacro: AttachedMacro {
     of node: AttributeSyntax,
     providingMembersOf declaration: some DeclGroupSyntax,
     in context: some MacroExpansionContext
-  ) async throws -> [DeclSyntax]
+  ) throws -> [DeclSyntax]
 }
 ```
 
@@ -232,7 +232,7 @@ protocol AccessorMacro: AttachedMacro {
     of node: AttributeSyntax,
     providingAccessorsOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
-  ) async throws -> [AccessorDeclSyntax]
+  ) throws -> [AccessorDeclSyntax]
 }
 ```
 
@@ -294,7 +294,7 @@ protocol MemberAttributeMacro: AttachedMacro {
     attachedTo declaration: some DeclGroupSyntax,
     providingAttributesOf member: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
-  ) async throws -> [AttributeSyntax]
+  ) throws -> [AttributeSyntax]
 }
 ```
 
@@ -660,6 +660,8 @@ It might be possible to provide a macro implementation API that is expressed in 
 
 ## Revision History
 
+* Revision after acceptance:
+  * Make the `expansion` requirements non-`async`.
 * After the first pitch:
   * Added conformance macros, to produce conformances
   * Moved the discussion of macro-introduced names from the freestanding macros proposal here.
