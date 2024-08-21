@@ -92,7 +92,7 @@ public protocol ExpressionMacro: FreestandingMacro {
   static func expansion(
     of node: some FreestandingMacroExpansionSyntax,
     in context: some MacroExpansionContext
-  ) async throws -> ExprSyntax
+  ) throws -> ExprSyntax
 }
 ```
 
@@ -250,7 +250,7 @@ public protocol ExpressionMacro: FreestandingMacro {
   static func expansion(
     of node: some FreestandingMacroExpansionSyntax,
     in context: some MacroExpansionContext
-  ) async throws -> ExprSyntax
+  ) throws -> ExprSyntax
 }
 ```
 
@@ -259,8 +259,6 @@ The `FreestandingMacroExpansionSyntax` protocol is the `swift-syntax` node descr
 Macro definitions should conform to the `ExpressionMacro` protocol and implement their syntactic transformation via `expansion(of:in:)`, returning the new expression as a syntax node.
 
 If the macro expansion cannot proceed for some reason, the `expansion(of:in:)` operation can throw an error rather than try to produce a new syntax node. The compiler will then report the error to the user. More detailed diagnostics can be provided via the macro expansion context.
-
-The macro expansion operation is asynchronous, to account for potentially-asynchronous operations that will eventually be added to `MacroExpansionContext`. For example, operations that require additional communication with the compiler to get types of subexpressions, access files in the program, and so on.
 
 #### `MacroExpansionContext`
 
@@ -567,6 +565,8 @@ Expressions are just one place in the language where macros could be valuable. O
 
 ## Revision History
 
+* Revision after acceptance:
+  * Make the `ExpressionMacro.expansion(of:in:)` requirement non-`async`.
 * Revisions based on review feedback:
   * Switch `@expression` to `@freestanding(expression)` to align with the other macros proposals and vision document.
   * Make the `ExpressionMacro.expansion(of:in:)` requirement `async`.
