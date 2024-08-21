@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Implemented (Swift 5.9)**
 * Implementation: Implemented on GitHub `main` behind the experimental flag `Macros`. See the [example repository](https://github.com/DougGregor/swift-macro-examples) for more macros.
-* Review: ([pitch #1, under the name "declaration macros"](https://forums.swift.org/t/pitch-declaration-macros/62373)) ([pitch #2](https://forums.swift.org/t/pitch-attached-macros/62812)) ([review](https://forums.swift.org/t/se-0389-attached-macros/63165)) ([acceptance](https://forums.swift.org/t/accepted-se-0389-attached-macros/63593))
+* Review: ([pitch #1, under the name "declaration macros"](https://forums.swift.org/t/pitch-declaration-macros/62373)) ([pitch #2](https://forums.swift.org/t/pitch-attached-macros/62812)) ([review](https://forums.swift.org/t/se-0389-attached-macros/63165)) ([acceptance](https://forums.swift.org/t/accepted-se-0389-attached-macros/63593)) ([post-acceptance update](https://forums.swift.org/t/update-on-se-0382-and-se-0389-expression-macros-and-attached-macros/74094))
 
 ## Introduction
 
