@@ -6,7 +6,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (August 22nd...September 2nd, 2024)**
 * Implementation: [apple/swift#74466](https://github.com/swiftlang/swift/pull/74466)
-* Review: ([pitch](https://forums.swift.org/t/warnings-as-errors-exceptions/72925))
+* Review: ([pitch](https://forums.swift.org/t/warnings-as-errors-exceptions/72925)) ([review](https://forums.swift.org/t/se-0443-precise-control-flags-over-compiler-warnings/74116))
 
 ## Introduction
 
