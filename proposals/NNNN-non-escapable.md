@@ -163,13 +163,13 @@ func f() {
 }
 ```
 
-#### Constraints on nonescapable arguments
+#### Constraints on nonescapable parameters
 
-A value of nonescapable type received as an argument is subject to the same constraints as any other local variable.
-In particular, a nonescapable `consuming` argument (and all direct copies thereof) must actually be destroyed during the execution of the function.
-This is in contrast to an _escapable_ `consuming` argument which can be disposed of by being returned or stored to an instance property or global variable.
+A value of nonescapable type received as an parameter is subject to the same constraints as any other local variable.
+In particular, a nonescapable `consuming` parameter (and all direct copies thereof) must actually be destroyed during the execution of the function.
+This is in contrast to an _escapable_ `consuming` parameter which can be disposed of by being returned or stored to an instance property or global variable.
 
-#### Values that contain nonescapable values must be nonescapable
+#### Types that contain nonescapable values must be nonescapable
 
 Stored struct properties and enum payloads can have nonescapable types if the surrounding type is itself nonescapable.
 Equivalently, an escapable struct or enum can only contain escapable values.
@@ -206,7 +206,7 @@ func f() -> NotEscapable { // 🛑 Cannot return a nonescapable type
 }
 ```
 
-A separate proposal describes “lifetime dependency annotations” that can relax this requirement by tying the lifetime of the returned value to the lifetime of some other object, either an argument to the function or `self` in the case of a method or computed property returning a nonescapable type.
+A separate proposal describes “lifetime dependency annotations” that can relax this requirement by tying the lifetime of the returned value to the lifetime of another binding. The other binding can be a parameter of a function returning a vaule of a nonescapable type, or con be `self` for a method or computed property returning a value of a nonescapable type.
 In particular, struct and enum initializers (which build a new value and return it to the caller) cannot be written without some mechanism similar to that outlined in our companion proposal.
 
 #### Globals and static variables cannot be nonescapable
@@ -223,7 +223,7 @@ Returning a nonescapable value from a closure requires explicit lifetime depende
 
 #### Nonescapable values and concurrency
 
-All of the requirements on use of nonescapable values as function arguments and return values also apply to async functions, including those invoked via `async let`.
+All of the requirements on use of nonescapable values as function parameters and return values also apply to async functions, including those invoked via `async let`.
 
 The closures used in `Task.init`, `Task.detached`, or `TaskGroup.addTask` are escaping closures and therefore cannot capture nonescapable values.
 
