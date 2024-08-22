@@ -16,7 +16,7 @@ This complements the `~Copyable` types added with SE-0390 by introducing another
 
 In addition, these types will support lifetime-dependency constraints (being tracked in a separate proposal), that allow them to safely hold pointers referring to data stored in other types.
 
-This feature is a key requirement for the proposed `StorageView` type.
+This feature is a key requirement for the proposed `Span` type.
 
 **See Also**
 
@@ -24,7 +24,7 @@ This feature is a key requirement for the proposed `StorageView` type.
 * [Language Support for Bufferview](https://forums.swift.org/t/roadmap-language-support-for-bufferview/66211)
 * [Roadmap for improving Swift performance predictability: ARC improvements and ownership control](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206)
 * [Ownership Manifesto](https://forums.swift.org/t/manifesto-ownership/5212)
-* [Draft StorageView Proposal](https://github.com/apple/swift-evolution/pull/2307)
+* [Draft Span Proposal](https://github.com/apple/swift-evolution/pull/2307)
 * [Draft Lifetime Dependency Annotations Proposal](https://github.com/apple/swift-evolution/pull/2305)
 
 ## Motivation
@@ -305,9 +305,9 @@ Retrofitting existing generic types so they can support both escapable and nones
 
 ## Future directions
 
-#### `StorageView` type
+#### `Span` type
 
-This proposal is being driven in large part by the needs of the `StorageView` type that has been discussed elsewhere.
+This proposal is being driven in large part by the needs of the `Span` type that has been discussed elsewhere.
 Briefly, this type would provide an efficient universal “view” of array-like data stored in contiguous memory.
 Since values of this type do not own any data but only refer to data stored elsewhere, their lifetime must be limited to not exceed that of the owning storage.
 We expect to publish a sample implementation and proposal for that type very soon.
@@ -395,9 +395,9 @@ so it cannot be allowed to contain a nonescapable value.
 
 #### Rely on `~Copyable`
 
-As part of the `StorageView` design, we considered whether it would suffice to use `~Copyable` instead of introducing a new type concept.
-Andrew Trick's analysis in [Language Support for Bufferview](https://forums.swift.org/t/roadmap-language-support-for-bufferview/66211) concluded that making `StorageView` be non-copyable would not suffice to provide the full semantics we want for that type.
-Further, introducing `StorageView` as `~Copyable` would actually preclude us from later expanding it to be `~Escapable`.
+As part of the `Span` design, we considered whether it would suffice to use `~Copyable` instead of introducing a new type concept.
+Andrew Trick's analysis in [Language Support for Bufferview](https://forums.swift.org/t/roadmap-language-support-for-bufferview/66211) concluded that making `Span` be non-copyable would not suffice to provide the full semantics we want for that type.
+Further, introducing `Span` as `~Copyable` would actually preclude us from later expanding it to be `~Escapable`.
 
 The iterator example in the beginning of this document provides another motivation:
 Iterators are routinely copied in order to record a particular point in a collection.
