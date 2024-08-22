@@ -1,17 +1,16 @@
 
 # Precise Control Flags over Compiler Warnings
 
-* Proposal: [SE-NNNN](NNNN-warning-control-flags.md)
+* Proposal: [SE-0443](NNNN-warning-control-flags.md)
 * Authors: [Doug Gregor](https://github.com/douggregor), [Dmitrii Galimzianov](https://github.com/DmT021)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (August 22nd...September 2nd, 2024)**
 * Implementation: [apple/swift#74466](https://github.com/swiftlang/swift/pull/74466)
 * Review: ([pitch](https://forums.swift.org/t/warnings-as-errors-exceptions/72925))
 
 ## Introduction
 
 This proposal introduces new compiler options that allow fine-grained control over how the compiler emits certain warnings: as warnings, as errors, or not at all.
-
 
 ## Motivation
 
