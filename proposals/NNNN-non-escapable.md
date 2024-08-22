@@ -30,9 +30,9 @@ This feature is a key requirement for the proposed `Span` type.
 ## Motivation
 
 Swift's current notion of an "iterator" has several weaknesses that become apparent when you try to use it in extremely performance-constrained environments.
-These weaknesses arise from the desire to ensure safety while simultaneously allowing iterator values to be arbitrarily copied to support multi-iterator algorithms.
+These weaknesses arise from the desire to ensure safety while simultaneously allowing iterator values to be arbitrarily copied in support of multi-iterator algorithms.
 
-For example, the standard library iterator for Array logically creates a copy of the Array when it is constructed; this ensures that changes to the array cannot affect the iteration.
+For example, the standard library iterator for Array logically creates a copy of the Array when it is initialized; this ensures that changes to the array cannot affect the iteration.
 This is implemented by having the iterator store a reference-counted pointer to the array storage in order to ensure that the storage cannot be freed while the iterator is active.
 These safety checks all incur runtime overhead.
 
