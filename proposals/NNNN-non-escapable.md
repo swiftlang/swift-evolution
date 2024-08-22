@@ -177,7 +177,7 @@ Nonescapable values cannot be stored as class properties, since classes are alwa
 
 ```swift
 // Example
-struct OuterEscapable {
+struct EscapableStruct {
   // 🛑 Escapable struct cannot have nonescapable stored property
   var nonesc: Nonescapable
 }
@@ -187,7 +187,7 @@ enum EscapableEnum {
   case nonesc(Nonescapable)
 }
 
-struct OuterNonescapable: ~Escapable {
+struct NonescapableStruct: ~Escapable {
   var nonesc: Nonescapable // OK
 }
 
