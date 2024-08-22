@@ -87,6 +87,10 @@ struct NotEscapable: ~Escapable {
 ```
 
 A nonescapable value is not allowed to escape the local context:
+
+- It cannot be assigned to a binding in a larger scope
+- It cannot be returned from the current scope
+
 ```swift
 // Example: Basic limits on ~Escapable types
 func f() -> NotEscapable {
@@ -99,7 +103,6 @@ func f() -> NotEscapable {
 ```
 
 **Note**:
-The section "Returned nonescapable values require lifetime dependency" explains the implications for how you must write initializers.
 
 Without `~Escapable`, the default for any type is to be escapable.  Since `~Escapable` suppresses a capability, you cannot put this in an extension.
 
