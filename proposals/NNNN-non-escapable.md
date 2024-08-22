@@ -172,7 +172,7 @@ This is in contrast to an _escapable_ `consuming` argument which can be disposed
 #### Values that contain nonescapable values must be nonescapable
 
 Stored struct properties and enum payloads can have nonescapable types if the surrounding type is itself nonescapable.
-(Equivalently, an escapable struct or enum can only contain escapable values.)
+Equivalently, an escapable struct or enum can only contain escapable values.
 Nonescapable values cannot be stored as class properties, since classes are always inherently escaping.
 
 ```swift
@@ -217,7 +217,7 @@ This implies that they cannot be stored in global or static variables.
 #### Closures and nonescapable values
 
 Escaping closures cannot capture nonescapable values.
-Nonescaping closures can capture nonescapable values subject only to the usual exclusivity restrictions.
+Nonescaping closures can capture nonescapable values subject to the usual exclusivity restrictions.
 
 Returning a nonescapable value from a closure requires explicit lifetime dependency annotations, as covered in the companion proposal.
 
@@ -245,7 +245,7 @@ extension Box: Escapable where T: Escapable { }
 ```
 
 This can be used in conjunction with other suppressible protocols.
-For example, many general library types will need to be copyable and/or escapable following their contents.
+For example, many general library container types will need to be copyable and/or escapable according to their contents.
 Here's a compact way to declare such a type:
 ```swift
 struct Wrapper<T: ~Copyable & ~Escapable> { ... }
