@@ -1,6 +1,6 @@
-# Regex reverse matching
+# Regex lookbehind assertions
 
-* Proposal: [SE-NNNN](nnnn-regex-reverse-matching.md)
+* Proposal: [SE-NNNN](nnnn-regex-lookbehind-assertions.md)
 * Authors: [Jacob Hearst](https://github.com/JacobHearst) [Michael Ilseman](https://github.com/milseman)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
