@@ -16,7 +16,7 @@ This complements the `~Copyable` types added with SE-0390 by introducing another
 
 In addition, these types will support lifetime-dependency constraints (being tracked in a future proposal), that allow them to safely hold pointers referring to data stored in other types.
 
-This feature is a key requirement for the proposed `Span` type.
+This feature is a key requirement for the proposed `Span` family of types.
 
 **See Also**
 
@@ -58,7 +58,7 @@ A separate proposal will show how we can further improve safety by allowing libr
 These "lifetime dependency" constraints can also be verified at compile time to ensure that the source of the iterator is not modified and that the iterator specifically does not outlive its source.
 
 **Note**: We are using iterators here to illustrate the issues we are considering.
-We are not at this time proposing any changes to Swift's current `IteratorProtocol` construct.
+We are not at this time proposing any changes to Swift's current `IteratorProtocol` protocol.
 
 ## Detailed design
 
@@ -280,9 +280,9 @@ Retrofitting existing generic types so they can support both escapable and nones
 
 ## Future directions
 
-#### `Span` type
+#### `Span` family of types
 
-This proposal is being driven in large part by the needs of the `Span` type that has been discussed elsewhere.
+This proposal is being driven in large part by the needs of the `Span` types that have been discussed elsewhere.
 Briefly, this type would provide an efficient universal “view” of array-like data stored in contiguous memory.
 Since values of this type do not own any data but only refer to data stored elsewhere, their lifetime must be limited to not exceed that of the owning storage.
 We expect to publish a sample implementation and proposal for that type very soon.
