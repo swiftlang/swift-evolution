@@ -16,7 +16,7 @@ This complements the `~Copyable` types added with SE-0390 by introducing another
 
 In addition, these types will support lifetime-dependency constraints (being tracked in a separate proposal), that allow them to safely hold pointers referring to data stored in other types.
 
-This feature is a key requirement for the proposed `StorageView` type.
+This feature is a key requirement for the proposed `Span` type.
 
 **See Also**
 
@@ -24,15 +24,15 @@ This feature is a key requirement for the proposed `StorageView` type.
 * [Language Support for Bufferview](https://forums.swift.org/t/roadmap-language-support-for-bufferview/66211)
 * [Roadmap for improving Swift performance predictability: ARC improvements and ownership control](https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206)
 * [Ownership Manifesto](https://forums.swift.org/t/manifesto-ownership/5212)
-* [Draft StorageView Proposal](https://github.com/apple/swift-evolution/pull/2307)
+* [Draft Span Proposal](https://github.com/apple/swift-evolution/pull/2307)
 * [Draft Lifetime Dependency Annotations Proposal](https://github.com/apple/swift-evolution/pull/2305)
 
 ## Motivation
 
 Swift's current notion of an "iterator" has several weaknesses that become apparent when you try to use it in extremely performance-constrained environments.
-These weaknesses arise from the desire to ensure safety while simultaneously allowing iterator values to be arbitrarily copied to support multi-iterator algorithms.
+These weaknesses arise from the desire to ensure safety while simultaneously allowing iterator values to be arbitrarily copied in support of multi-iterator algorithms.
 
-For example, the standard library iterator for Array logically creates a copy of the Array when it is constructed; this ensures that changes to the array cannot affect the iteration.
+For example, the standard library iterator for Array logically creates a copy of the Array when it is initialized; this ensures that changes to the array cannot affect the iteration.
 This is implemented by having the iterator store a reference-counted pointer to the array storage in order to ensure that the storage cannot be freed while the iterator is active.
 These safety checks all incur runtime overhead.
 
@@ -87,6 +87,10 @@ struct NotEscapable: ~Escapable {
 ```
 
 A nonescapable value is not allowed to escape the local context:
+
+- It cannot be assigned to a binding in a larger scope
+- It cannot be returned from the current scope
+
 ```swift
 // Example: Basic limits on ~Escapable types
 func f() -> NotEscapable {
@@ -99,9 +103,9 @@ func f() -> NotEscapable {
 ```
 
 **Note**:
-The section "Returned nonescapable values require lifetime dependency" explains the implications for how you must write initializers.
+The section ["Returned nonescapable values require lifetime dependency"](#Returns) explains the implications for how you must write initializers.
 
-Without `~Escapable`, the default for any type is to be escapable.  Since `~Escapable` suppresses a capability, you cannot put this in an extension.
+Without `~Escapable`, the default for any type is to be escapable.  Since `~Escapable` suppresses a capability, you cannot declare it with an extension.
 
 ```swift
 // Example: Escapable by default
@@ -159,21 +163,21 @@ func f() {
 }
 ```
 
-#### Constraints on nonescapable arguments
+#### Constraints on nonescapable parameters
 
-A value of nonescapable type received as an argument is subject to the same constraints as any other local variable.
-In particular, a nonescapable `consuming` argument (and all direct copies thereof) must actually be destroyed during the execution of the function.
-This is in contrast to an _escapable_ `consuming` argument which can be disposed of by being returned or stored to an instance property or global variable.
+A value of nonescapable type received as an parameter is subject to the same constraints as any other local variable.
+In particular, a nonescapable `consuming` parameter (and all direct copies thereof) must actually be destroyed during the execution of the function.
+This is in contrast to an _escapable_ `consuming` parameter which can be disposed of by being returned or stored to an instance property or global variable.
 
-#### Values that contain nonescapable values must be nonescapable
+#### Types that contain nonescapable values must be nonescapable
 
 Stored struct properties and enum payloads can have nonescapable types if the surrounding type is itself nonescapable.
-(Equivalently, an escapable struct or enum can only contain escapable values.)
+Equivalently, an escapable struct or enum can only contain escapable values.
 Nonescapable values cannot be stored as class properties, since classes are always inherently escaping.
 
 ```swift
 // Example
-struct OuterEscapable {
+struct EscapableStruct {
   // 🛑 Escapable struct cannot have nonescapable stored property
   var nonesc: Nonescapable
 }
@@ -183,7 +187,7 @@ enum EscapableEnum {
   case nonesc(Nonescapable)
 }
 
-struct OuterNonescapable: ~Escapable {
+struct NonescapableStruct: ~Escapable {
   var nonesc: Nonescapable // OK
 }
 
@@ -192,7 +196,7 @@ enum NonescapableEnum: ~Escapable {
 }
 ```
 
-#### Returned nonescapable values require lifetime dependency
+#### <a name="Returns"></a>Returned nonescapable values require lifetime dependency
 
 As mentioned earlier, a simple return of a nonescapable value is not permitted:
 ```swift
@@ -202,7 +206,7 @@ func f() -> NotEscapable { // 🛑 Cannot return a nonescapable type
 }
 ```
 
-A separate proposal describes “lifetime dependency annotations” that can relax this requirement by tying the lifetime of the returned value to the lifetime of some other object, either an argument to the function or `self` in the case of a method or computed property returning a nonescapable type.
+A separate proposal describes “lifetime dependency annotations” that can relax this requirement by tying the lifetime of the returned value to the lifetime of another binding. The other binding can be a parameter of a function returning a vaule of a nonescapable type, or con be `self` for a method or computed property returning a value of a nonescapable type.
 In particular, struct and enum initializers (which build a new value and return it to the caller) cannot be written without some mechanism similar to that outlined in our companion proposal.
 
 #### Globals and static variables cannot be nonescapable
@@ -213,13 +217,13 @@ This implies that they cannot be stored in global or static variables.
 #### Closures and nonescapable values
 
 Escaping closures cannot capture nonescapable values.
-Nonescaping closures can capture nonescapable values subject only to the usual exclusivity restrictions.
+Nonescaping closures can capture nonescapable values subject to the usual exclusivity restrictions.
 
 Returning a nonescapable value from a closure requires explicit lifetime dependency annotations, as covered in the companion proposal.
 
 #### Nonescapable values and concurrency
 
-All of the requirements on use of nonescapable values as function arguments and return values also apply to async functions, including those invoked via `async let`.
+All of the requirements on use of nonescapable values as function parameters and return values also apply to async functions, including those invoked via `async let`.
 
 The closures used in `Task.init`, `Task.detached`, or `TaskGroup.addTask` are escaping closures and therefore cannot capture nonescapable values.
 
@@ -241,7 +245,7 @@ extension Box: Escapable where T: Escapable { }
 ```
 
 This can be used in conjunction with other suppressible protocols.
-For example, many general library types will need to be copyable and/or escapable following their contents.
+For example, many general library container types will need to be copyable and/or escapable according to their contents.
 Here's a compact way to declare such a type:
 ```swift
 struct Wrapper<T: ~Copyable & ~Escapable> { ... }
@@ -305,9 +309,9 @@ Retrofitting existing generic types so they can support both escapable and nones
 
 ## Future directions
 
-#### `StorageView` type
+#### `Span` type
 
-This proposal is being driven in large part by the needs of the `StorageView` type that has been discussed elsewhere.
+This proposal is being driven in large part by the needs of the `Span` type that has been discussed elsewhere.
 Briefly, this type would provide an efficient universal “view” of array-like data stored in contiguous memory.
 Since values of this type do not own any data but only refer to data stored elsewhere, their lifetime must be limited to not exceed that of the owning storage.
 We expect to publish a sample implementation and proposal for that type very soon.
@@ -395,9 +399,9 @@ so it cannot be allowed to contain a nonescapable value.
 
 #### Rely on `~Copyable`
 
-As part of the `StorageView` design, we considered whether it would suffice to use `~Copyable` instead of introducing a new type concept.
-Andrew Trick's analysis in [Language Support for Bufferview](https://forums.swift.org/t/roadmap-language-support-for-bufferview/66211) concluded that making `StorageView` be non-copyable would not suffice to provide the full semantics we want for that type.
-Further, introducing `StorageView` as `~Copyable` would actually preclude us from later expanding it to be `~Escapable`.
+As part of the `Span` design, we considered whether it would suffice to use `~Copyable` instead of introducing a new type concept.
+Andrew Trick's analysis in [Language Support for Bufferview](https://forums.swift.org/t/roadmap-language-support-for-bufferview/66211) concluded that making `Span` be non-copyable would not suffice to provide the full semantics we want for that type.
+Further, introducing `Span` as `~Copyable` would actually preclude us from later expanding it to be `~Escapable`.
 
 The iterator example in the beginning of this document provides another motivation:
 Iterators are routinely copied in order to record a particular point in a collection.
