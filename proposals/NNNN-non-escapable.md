@@ -289,33 +289,44 @@ We expect to publish a sample implementation and proposal for that type very soo
 
 #### Initializers and Lifetime Dependencies
 
-All values come into existence within the body of some initializer and are returned to the caller of that initializer.
-Since nonescapable types cannot be returned,
-it follows that nonescapable types cannot have initializers without some additional language affordance.
-
-A subsequent proposal will provide such an affordance.
-This will allow values to be returned subject to the requirement that they not outlive some other specific value.
-For example, a nonescapable iterator might be initialized so as to not outlive the container that created it:
+Nonescapable function parameters may not outlive the function scope.
+Consequently, nonescapable values can never be returned from a function.
+Nonescapable values come into existence within the body of the initializer.
+Naturally, the initializer must return its value, and this creates an exception to the rule.
+Without further language support, implementing a nonescapable initializer requires an unsafe construct.
+That unsafe handling is not covered by this proposal because we don't want to surface unnecessary unsafety in the language.
+Instead, a subsequent proposal will support safe initialization by allowing the initializer to specify lifetime dependencies on its parameters.
+The parameters to the initializer typically indicate a lifetime that the nonescapable value cannot outlive.
+An initializer may, for example, create a nonescapable value that depends on a container variable that is bound to an object with its own lifetime:
 ```swift
 struct Iterator: ~Escapable {
-  // ⚠️️  Returned Iterator will not be allowed to outlive `container`
-  // Details in a future proposal: This may involve
-  // additional syntax or default inference rules.
   init(container: borrowing Container) { ... }
 }
 
+let container = ...
+let iterator = Iterator(container)
+consume container
+use(iterator) // 🛑 'iterator' outlives the source of its dependency
+```
+
+Lifetime dependencies will make this use of iterator a compile-time error.
+Or, as part of implementing data type internals, a nonescapable initializer may depend on a variable that is bound to a value that is only valid within that variable's local scope.
+Subsequent uses of the initialized nonescapable object are exactly as safe or unsafe as it would be to use the variable that the initializer depends at the same point:
+
+```swift
 let iterator: Iterator
 do {
   let container = Container(...)
   let buffer = container.buffer
   iterator = Iterator(buffer)
-  // `container` lifetime ends here
+  // `iterator` is safe as long as `buffer` is safe to use.
 }
-use(iterator) // 🛑 'iterator' outlives `container`
+use(iterator) // 🛑 'iterator' outlives the source of its dependency
 ```
 
-These lifetime dependencies will be enforced entirely at compile time without any runtime overhead.
-Invalid uses such as the one above will produce compiler errors.
+Again, lifetime dependencies will make this use of iterator a compile-time error.
+Typically, a pointer is valid for the duration of its variable binding.
+So, in practice, nonescapable value that depends on the pointer to be available within the same scope.
 
 #### Expanding standard library types
 
