@@ -305,28 +305,13 @@ struct Iterator: ~Escapable {
 
 let container = ...
 let iterator = Iterator(container)
-consume container
-use(iterator) // 🛑 'iterator' outlives the source of its dependency
+consume container // `container` lifetime ends here
+use(iterator) // 🛑 'iterator' outlives `container`
 ```
 
-Lifetime dependencies will make this use of iterator a compile-time error.
-Or, as part of implementing data type internals, a nonescapable initializer may depend on a variable that is bound to a value that is only valid within that variable's local scope.
-Subsequent uses of the initialized nonescapable object are exactly as safe or unsafe as it would be to use the variable that the initializer depends at the same point:
-
-```swift
-let iterator: Iterator
-do {
-  let container = Container(...)
-  let buffer = container.buffer
-  iterator = Iterator(buffer)
-  // `iterator` is safe as long as `buffer` is safe to use.
-}
-use(iterator) // 🛑 'iterator' outlives the source of its dependency
-```
-
-Again, lifetime dependencies will make this use of iterator a compile-time error.
-Typically, a pointer is valid for the duration of its variable binding.
-So, in practice, nonescapable value that depends on the pointer to be available within the same scope.
+Lifetime dependencies will make this and similar misuses into compile-time errors.
+This will allow developers to safely define and use values that contain pointers into
+other values, ensuring that the pointers never outlive the underlying storage.
 
 #### Expanding standard library types
 
