@@ -14,7 +14,7 @@
 We propose adding a new type constraint `~Escapable` for types that can be locally copied but cannot be assigned or transferred outside of the immediate context.
 This complements the `~Copyable` types added with SE-0390 by introducing another set of compile-time-enforced lifetime controls that can be used for safe, highly-performant APIs.
 
-In addition, these types will support lifetime-dependency constraints (being tracked in a separate proposal), that allow them to safely hold pointers referring to data stored in other types.
+In addition, these types will support lifetime-dependency constraints (being tracked in a future proposal), that allow them to safely hold pointers referring to data stored in other types.
 
 This feature is a key requirement for the proposed `Span` type.
 
@@ -165,7 +165,7 @@ func f() {
 
 #### Constraints on nonescapable parameters
 
-A value of nonescapable type received as an parameter is subject to the same constraints as any other local variable.
+A value of nonescapable type received as a parameter is subject to the same constraints as any other local variable.
 In particular, a nonescapable `consuming` parameter (and all direct copies thereof) must actually be destroyed during the execution of the function.
 This is in contrast to an _escapable_ `consuming` parameter which can be disposed of by being returned or stored to an instance property or global variable.
 
@@ -206,8 +206,8 @@ func f() -> NotEscapable { // 🛑 Cannot return a nonescapable type
 }
 ```
 
-A separate proposal describes “lifetime dependency annotations” that can relax this requirement by tying the lifetime of the returned value to the lifetime of another binding. The other binding can be a parameter of a function returning a vaule of a nonescapable type, or con be `self` for a method or computed property returning a value of a nonescapable type.
-In particular, struct and enum initializers (which build a new value and return it to the caller) cannot be written without some mechanism similar to that outlined in our companion proposal.
+A future proposal will describe “lifetime dependency annotations” that can relax this requirement by tying the lifetime of the returned value to the lifetime of another binding.
+In particular, struct and enum initializers (which build a new value and return it to the caller) cannot be written without some such mechanism.
 
 #### Globals and static variables cannot be nonescapable
 
@@ -219,7 +219,7 @@ This implies that they cannot be stored in global or static variables.
 Escaping closures cannot capture nonescapable values.
 Nonescaping closures can capture nonescapable values subject to the usual exclusivity restrictions.
 
-Returning a nonescapable value from a closure requires explicit lifetime dependency annotations, as covered in the companion proposal.
+Returning a nonescapable value from a closure will only be possible with explicit lifetime dependency annotations, to be covered in a future proposal.
 
 #### Nonescapable values and concurrency
 
@@ -245,42 +245,13 @@ extension Box: Escapable where T: Escapable { }
 ```
 
 This can be used in conjunction with other suppressible protocols.
-For example, many general library container types will need to be copyable and/or escapable according to their contents.
+For example, many general library container types will need to be copyable and/or escapable depending on their contents.
 Here's a compact way to declare such a type:
 ```swift
-struct Wrapper<T: ~Copyable & ~Escapable> { ... }
-extension Wrapper: Copyable where T: ~Escapable {}
-extension Wrapper: Escapable where T: ~Copyable {}
+struct Wrapper<T: ~Copyable & ~Escapable>: ~Copyable, ~Escapable { ... }
+extension Wrapper: Copyable where T: Copyable {}
+extension Wrapper: Escapable where T: Escapable {}
 ```
-
-The above declarations all in a single source file will result in a type `Wrapper` that is `Escapable` exactly when `T` is `Escapable` and `Copyable` exactly when `T` is `Copyable`.
-To see why, first note that the explicit `extension Wrapper: Escapable` in the same source file implies that the original `struct Wrapper` must be `~Escapable` and similarly for `Copyable`, exactly as if the first line had been
-```swift
-struct Wrapper<T: ~Copyable & ~Escapable>: ~Copyable & ~Escapable {}
-```
-
-Now recall from SE-427 that suppressible protocols must be explicitly suppressed on type parameters in extensions.
-This means that
-```swift
-extension Wrapper: Copyable where T: ~Escapable {}
-```
-is exactly the same as
-```swift
-extension Wrapper: Copyable where T: Copyable & ~Escapable {}
-```
-which implies that `Wrapper` becomes `Copyable` when `T` is `Copyable`.
-Finally, remember that `~Escapable` means that `Escapable` is not required, so
-this condition on `Copyable` applies regardless of whether `T` is `Escapable` or not.
-
-Similarly,
-```swift
-extension Wrapper: Escapable where T: ~Copyable {}
-```
-is exactly the same as
-```swift
-extension Wrapper: Escapable where T: Escapable & ~Copyable {}
-```
-which means that `Wrapper` is `Escapable` whenever `T` is `Escapable` regardless of whether `T` is `Copyable` or not.
 
 ## Source compatibility
 
@@ -316,23 +287,35 @@ Briefly, this type would provide an efficient universal “view” of array-like
 Since values of this type do not own any data but only refer to data stored elsewhere, their lifetime must be limited to not exceed that of the owning storage.
 We expect to publish a sample implementation and proposal for that type very soon.
 
-#### Lifetime dependency annotations
+#### Initializers and Lifetime Dependencies
 
-Nonescapable types have a set of inherent restrictions on how they can be passed as arguments, stored in variables, or returned from functions.
-A companion proposal builds on this by supporting more detailed annotations that link the lifetimes of different objects.
-This would allow, for example, a container to vend an iterator value that held a direct unmanaged pointer to the container's contents.
-The lifetime dependency would ensure that such an iterator could not outlive the container to whose contents it referred.
+All values come into existence within the body of some initializer and are returned to the caller of that initializer.
+Since nonescapable types cannot be returned,
+it follows that nonescapable types cannot have initializers without some additional language affordance.
 
+A subsequent proposal will provide such an affordance.
+This will allow values to be returned subject to the requirement that they not outlive some other specific value.
+For example, a nonescapable iterator might be initialized so as to not outlive the container that created it:
 ```swift
-// Example: Nonescaping iterator
-struct NEIterator {
-  // `dependsOn(container)` indicates that the constructed value
-  // cannot outlive the `container` argument.
-  init(over container: MyContainer) -> dependsOn(container) Self {
-    ... initialize an iterator suitable for `MyContainer` ...
-  }
+struct Iterator: ~Escapable {
+  // ⚠️️  Returned Iterator will not be allowed to outlive `container`
+  // Details in a future proposal: This may involve
+  // additional syntax or default inference rules.
+  init(container: borrowing Container) { ... }
 }
+
+let iterator: Iterator
+do {
+  let container = Container(...)
+  let buffer = container.buffer
+  iterator = Iterator(buffer)
+  // `container` lifetime ends here
+}
+use(iterator) // 🛑 'iterator' outlives `container`
 ```
+
+These lifetime dependencies will be enforced entirely at compile time without any runtime overhead.
+Invalid uses such as the one above will produce compiler errors.
 
 #### Expanding standard library types
 
@@ -349,7 +332,8 @@ For example, this can greatly improve the safety of locking APIs that expect to 
 
 #### Nonescapable classes
 
-We’ve explicitly excluded class types from being nonescapable.  In the future, we could allow class types to be declared nonescapable as a way to avoid most reference-counting operations on class objects.
+We’ve explicitly excluded class types from being nonescapable.
+In the future, we could allow class types to be declared nonescapable as a way to avoid most reference-counting operations on class objects.
 
 #### Concurrency
 
@@ -406,40 +390,6 @@ Further, introducing `Span` as `~Copyable` would actually preclude us from later
 The iterator example in the beginning of this document provides another motivation:
 Iterators are routinely copied in order to record a particular point in a collection.
 Thus we concluded that non-copyable was not the correct lifetime restriction for types of this sort, and it was worthwhile to introduce a new lifetime concept to the language.
-
-#### Returns and initializers
-
-This proposal does not by itself provide any way to initialize a nonescapable value, requiring the additional proposed lifetime dependency annotations to support that mechanism.
-Since those annotations require that the lifetime of the returned value be bound to that of one of the arguments, this implies that our current proposal does not permit nonescapable types to have trivial initializers:
-
-```swift
-struct NE: ~Escapable {
-  init() {} // 🛑 Initializer return must depend on an argument
-}
-```
-
-We considered introducing an annotation that would specifically allow this and related uses:
-
-```swift
-struct NE: ~Escapable {
-  @_unsafeNonescapableResult
-  init() {} // OK because of annotation
-}
-```
-
-We omitted this annotation from our proposal because there is more than one possible interpretation of such a marker. And we did not see a compelling reason for preferring one particular interpretation because we have yet to find a use case that actually requires this.
-
-In particular, the use cases we’ve so far considered have all been resolvable by adding an argument specifically for the purpose of anchoring a lifetime dependency:
-
-```swift
-struct NE: ~Escapable {
-  // Proposed lifetime dependency notation;
-  // see separate proposal for details.
-  init(from: SomeType) -> dependsOn(from) Self {}
-}
-```
-
-We expect that future experience with nonescapable types will clarify whether additional lifetime modifiers of this sort are justified.
 
 ## Acknowledgements
 
