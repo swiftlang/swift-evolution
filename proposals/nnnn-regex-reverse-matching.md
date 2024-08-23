@@ -11,7 +11,7 @@
 
 ## Introduction
 
-Regex supports matching strings forwards, including lookahead assertions, but does not currently support matching in reverse or lookbehind assertions. We propose adding these.
+Regex supports lookahead assertions, but does not currently support lookbehind assertions. We propose adding these.
 
 ## Motivation
 
@@ -19,15 +19,29 @@ Modern regular expression engines support lookbehind assertions, whether fixed l
 
 ## Proposed solution
 
-We propose supporting arbitrary-length lookbehind regexes which can be achieved by performing matching in reverse. We also propose API to run a regex in reverse from the end of a string.
+We propose supporting arbitrary-length lookbehind regexes which can be achieved by performing matching in reverse.
 
-A regex that matches a string going forwards will also match going in reverse, but may produce a different match. For example, in a regex that has multiple eager quantifications:
+Like lookahead assertions, lookbehind assertions are _zero-width_, meaning they do not affect the current match position.
 
+Examples:
+
+
+```swift
+"abc".firstMatch(of: /a(?<=a)bc/)  // matches "abc"
+"abc".firstMatch(of: /a(?<=b)c/)   // no match
+"abc".firstMatch(of: /a(?<=.)./)   // matches "ab"
+"abc".firstMatch(of: /ab(?<=a)c/)  // no match
+"abc".firstMatch(of: /ab(?<=.a)c/) // no match
+"abc".firstMatch(of: /ab(?<=a.)c/) // matches "abc"
 ```
+
+Lookbehind assertions run in reverse, i.e. right-to-left, meaning that right-most eager quantifications have the opportunity to consume more of the input than left-most. This does not affect whether an input matches, but could affect the value of captures inside of a lookbehind assertion:
+
+```swift
 "abcdefg".wholeMatch(of: /(.+)(.+)/)
 // Produces ("abcdefg", "abcdef", "g")
 
-"abcdefg".wholeReverseMatch(of: /(.+)(.+)/)
+"abcdefg".wholeMatch(of: /.*(?<=(.+)(.+)/))
 // Produces ("abcdefg", "a", "bcdefg")
 ```
 
@@ -78,54 +92,6 @@ Regex {
 }
 ```
 
-### API
-
-```swift
-extension Regex {
-  /// Returns the first match for this regex found in the given string when matching in reverse.
-  public func firstReverseMatch(in string: String) throws -> Regex<Output>.Match?
-  /// Returns the first match for this regex found in the given string when matching in reverse.
-  public func firstReverseMatch(in string: Substring) throws -> Regex<Output>.Match?
-
-  /// Returns a match if this regex matches the given string in its entirety when matching in reverse.
-  public func wholeReverseMatch(in string: String) throws -> Regex<Output>.Match?
-  /// Returns a match if this regex matches the given string in its entirety when matching in reverse.
-  public func wholeReverseMatch(in string: Substring) throws -> Regex<Output>.Match?
-
-  /// Returns a match if this string is matched by the given regex (matching in reverse) at its end.
-  public func suffixMatch(in string: String) throws -> Regex<Output>.Match?
-  /// Returns a match if this string is matched by the given regex (matching in reverse) at its end.
-  public func suffixMatch(in string: Substring) throws -> Regex<Output>.Match?
-}
-
-extension BidirectionalCollection where SubSequence == Substring {
-  /// Returns the first match of the specified regex within the collection when matching in reverse.
-  public func firstReverseMatch<Output>(of r: some RegexComponent<Output>) -> Regex<Output>.Match?
-  /// Returns the first match of the specified regex within the collection when matching in reverse.
-  public func firstReverseMatch<Output>(@RegexComponentBuilder of content: () -> some RegexComponent<Output>) -> Regex<Output>.Match?
-
-  /// Returns a match if this string is matched by the given regex in its entirety when matching in reverse.
-  public func wholeReverseMatch<R: RegexComponent>(of regex: R) -> Regex<R.RegexOutput>.Match?
-  /// Returns a match if this string is matched by the given regex in its entirety when matching in reverse.
-  public func wholeReverseMatch<Output>(@RegexComponentBuilder of content: () -> some RegexComponent<Output>) -> Regex<Output>.Match?
-
-  /// Matches part of the regex, starting at the end.
-  public func suffixMatch<R: RegexComponent>(of regex: R) -> Regex<R.RegexOutput>.Match?
-  /// Matches part of the regex, starting at the end.
-  public func suffixMatch<Output>(@RegexComponentBuilder of content: () -> some RegexComponent<Output>) -> Regex<Output>.Match?
-
-  /// Returns a new collection of the same type by removing the final elements that match the given regex when matching in reverse.
-  public func trimmingSuffix(_ regex: some RegexComponent) -> SubSequence
-  /// Returns a new collection of the same type by removing the final elements that match the given regex when matching in reverse.
-  public func trimmingSuffix(@RegexComponentBuilder _ content: () -> some RegexComponent) -> SubSequence
-
-  /// Returns a Boolean value indicating whether the final elements of the sequence are the same as the elements in the specified regex when matching in reverse.
-  public func ends(with regex: some RegexComponent) -> Bool
-  /// Returns a Boolean value indicating whether the final elements of the sequence are the same as the elements in the specified regex when matching in reverse.
-  public func ends(@RegexComponentBuilder with content: () -> some RegexComponent) -> Bool
-}
-```
-
 ## Source compatibility
 
 This proposal is additive and source-compatible with existing code.
@@ -144,6 +110,10 @@ The additions described in this proposal require a new version of the standard l
 
 Future work includes supporting PCRE's `\K`, which resets the current produced match.
 
+### Reverse matching API
+
+Earlier versions of this pitch added API to run regex in reverse from the end of the string. However, we faced difficulties communicating the nuance of reverse matching in API and this is an obscure feature that isn't supported by mainstream languages.
+
 ## Alternatives considered
 
 ### Fixed length lookbehind assertions only
@@ -152,15 +122,11 @@ Fixed-length lookbehind assertions are easier to implement and retrofit onto exi
 
 However, this would limit Swift's expressivity compared to Javascript and .NET, as well as be insufficient for reverse matching API.
 
-### Using the word "last" in API names
-
-Our proposed reverse matching APIs use the word "reverse" to denote the regex is running in reverse from the end of the string. An alternative name to `firstReverseMatch` could be `lastMatch`. We rejected `lastMatch` because reverse matching doesn't necessarily produce the same match as `str.matches(of: regex).last`.
-
-
 
 ## Acknowledgments
 
-cherrycoke, bjhomer, Simulacroton, and rnantes provided use cases and rationale for lookbehind assertions.
+cherrycoke, bjhomer, Simulacroton, and rnantes provided use cases and rationale for lookbehind assertions. xwu provided feedback on the difficulties of communicating reverse matching in API. ksluder, nikolai.ruhe, and pyrtsa surfaced interesting examples and documentation needs.
+
 
 
 
