@@ -58,7 +58,7 @@ A separate proposal will show how we can further improve safety by allowing libr
 These "lifetime dependency" constraints can also be verified at compile time to ensure that the source of the iterator is not modified and that the iterator specifically does not outlive its source.
 
 **Note**: We are using iterators here to illustrate the issues we are considering.
-We are not at this time proposing any changes to Swift's current `Iterator` protocol.
+We are not at this time proposing any changes to Swift's current `IteratorProtocol` construct.
 
 ## Detailed design
 
