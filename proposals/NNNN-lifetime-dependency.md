@@ -51,6 +51,9 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 **Edited** (Aug 13, 2024)
 - Revised the same-type rule
 
+**Edited** (Aug 19, 2024)
+- Update Future Direction: Lifetime dependence for closures
+
 #### See Also
 
 * [Forum discussion of Non-Escapable Types and Lifetime Dependency](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency)
@@ -1068,18 +1071,18 @@ func g1(closure: () -> NEType) // Inferred: NEType depends on 'closure'
 ```
 
 For closure declarations, lifetime dependencies can be inferred on the combined list of captures and closure parameters
-following the same rule as free standing functions. We can infer a lifetime dependence if the closure's return value is
-nonescapable, and exactly one closure capture or closure parameter satisfies any of the following:
+following inference rules similar to those for freestanding functions:
 
-  - is nonescapable, or
-  - is non-BitwiseCopyable and has an explicit `borrowing`, or `inout` convention
+1. For closures where the return value is nonescapable, we infer a copied lifetime dependency on all captures and parameters of the same nonescapable type.
+
+2. For closures that have a nonescapable return value and a single captured value or parameter, we infer dependence on that capture or parameter. If the capture or parameter is nonescapable, then we infer a copying dependency; otherwise, we infer a scoped dependency.
 
 A dependence can be inferred on a closure capture as follows:
 
 ```swift
-func f(arg: borrowing ArgType) -> dependsOn(arg) NEType
+func f(arg: ArgType) -> dependsOn(arg) NEType
 
-func foo(source: borrowing ArgType) {
+func foo(source: ArgType) {
   g1 { f(arg: source) } // ✅ Inferred: 'closure' result depends on captured 'source'
 }
 ```
@@ -1087,7 +1090,7 @@ func foo(source: borrowing ArgType) {
 An explicit dependence on a closure capture can be spelled:
 
 ```swift
-func foo(source: borrowing ArgType) {
+func foo(source: ArgType) {
   g1 { () -> dependsOn(source) NEType in f(arg: source) }
 }
 ```
@@ -1095,10 +1098,10 @@ func foo(source: borrowing ArgType) {
 Similarly, a dependence can be inferred on a closure parameter:
 
 ```swift
-func g2(closure: (borrowing ArgType) -> dependsOn(0) NEType)
+func g2(closure: (ArgType) -> dependsOn(0) NEType)
 
 {
-  g2 { (source: borrowing ArgType) in f(arg: source) } // ✅ Inferred: 'closure' result depends on 'source' parameter
+  g2 { (source: ArgType) in f(arg: source) } // ✅ Inferred: 'closure' result depends on 'source' parameter
 }
 ```
 
@@ -1106,7 +1109,7 @@ An explicit dependence on a closure parameter can be spelled:
 
 ```swift
 {
-  g2 { (source: borrowing ArgType) -> dependsOn(source) NEType in f(arg: source) } // ✅ Inferred: 'closure' result depends on 'source' parameter
+  g2 { (source: ArgType) -> dependsOn(source) NEType in f(arg: source) }
 }
 ```
 
