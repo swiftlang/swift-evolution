@@ -10,7 +10,7 @@
 
 ## Introduction
 
-This proposal introduces new compiler options that allow fine-grained control over how the compiler emits certain warnings: as warnings, as errors, or not at all.
+This proposal introduces new compiler options that allow fine-grained control over how the compiler emits certain warnings: as warnings or as errors.
 
 ## Motivation
 
@@ -25,7 +25,6 @@ This lack of flexibility leads to situations where users who want to use `-warni
 
 This proposal suggests adding new options that will allow the behavior of warnings to be controlled based on their diagnostic group.
 - `-Werror <group>` - upgrades warnings in the specified group to errors
-- `-Wsuppress <group>` - disables the emission of warnings in the specified group
 - `-Wwarning <group>` - indicates that warnings in the specified group should remain warnings, even if they were previously suppressed or upgraded to errors
 
 The `<group>` parameter is a string identifier of the diagnostic group.
@@ -80,28 +79,20 @@ Each warning in the compiler is assigned one of three behaviors: `warning`, `err
 Compiler options for controlling the behavior of groups are now processed as a single list. These options include:
 ```
 -Werror <group>
--Wsuppress <group>
 -Wwarning <group>
 -warnings-as-errors
 -no-warnings-as-errors
--suppress-warnings
 ```
-When these options are passed to the compiler, we sequentially apply the specified behavior to all warnings within the specified group from left to right. For `-warnings-as-errors`, `-no-warnings-as-errors`, and `-suppress-warnings`, we apply the behavior to all warnings.
-
-The `-no-warnings-as-errors` option should be read as "set the behavior to 'warning' for all warnings". Thus, it overrides all previously set behaviors, including if the `-suppress-warnings` option was applied earlier or if a warning was suppressed by default.
+When these options are passed to the compiler, we sequentially apply the specified behavior to all warnings within the specified group from left to right. For `-warnings-as-errors` and `-no-warnings-as-errors`, we apply the behavior to all warnings.
 
 Examples of option combinations:
 - `-warnings-as-errors -Wwarning deprecated`
   
   Warnings from the `deprecated` group will be kept as warnings, but all the rest will be upgraded to errors.
 
-- `-warnings-as-errors -Wwarning deprecated -Wsuppress availability_deprecated`
+- `-Werror deprecated -Wwarning availability_deprecated` 
   
-  Warnings from the `availability_deprecated` group will be suppressed. Other warnings from the `deprecated` group will remain as warnings. All other warnings will be upgraded to errors.
-
-- `-suppress-warnings -Wwarning deprecated` 
-  
-  Warnings from the `deprecated` group will remain as warnings. All others will be suppressed.
+  Warnings from the `availability_deprecated` group will remain as warnings. Other warnings from the `deprecated` group will be upgraded to errors. All others will be kept as warnings.
 
 It’s crucial to understand that the order in which these flags are applied can significantly affect the behavior of diagnostics. The rule is "the last one wins", meaning that if multiple flags apply to the same diagnostic group, the last one specified on the command line will determine the final behavior.
 
@@ -109,6 +100,14 @@ It is also important to note that the order matters even if the specified groups
 For example, as mentioned above, the `unsafe_global_actor_deprecated` group is part of both the `deprecated` and `concurrency` groups. So the order in which options for the `deprecated` and `concurrency` groups are applied will change the final behavior of the `unsafe_global_actor_deprecated` group. Specifically:
 - `-Wwarning deprecated -Werror concurrency` will make it an error,
 - `-Werror concurrency -Wwarning deprecated` will keep it as a warning.
+
+#### Interaction with `-suppress-warnings`
+
+This proposal deliberately excludes `-suppress-warnings` and its group-based counterpart from the new unified model. We retain the behavior of the existing `-suppress-warnings` flag but forbid its usage with the new options. The following rules will be applied:
+
+- It is forbidden to combine `-suppress-warnings` with `-Wwarning` or `-Werror`. The compiler will produce an error if these options are present in the command line together.
+- It is allowed to be combined with `-no-warnings-as-errors`. The current compiler behavior permits the usage of `-no-warnings-as-errors` or `-warnings-as-errors -no-warnings-as-errors` with `-suppress-warnings`. We will maintain this behavior.
+- It remains position-independent. Whenever `-no-warnings-as-errors` and `-suppress-warnings` are combined, `-suppress-warnings` will always take precedence over `-no-warnings-as-errors`, regardless of the order in which they are specified.
 
 ### Usage of `-print-diagnostic-groups` and `-debug-diagnostic-names`
 
@@ -153,7 +152,7 @@ The adoption of diagnostic groups and the new compiler options will provide a fo
 
 ### Support in the language
 
-While diagnostic groups are introduced to support the compiler options, it may be possible in the future to standardize the structure of the group graph itself. This could open up the possibility of using these same identifiers in the language, implementing something analogous to `#pragma diagnostic` or `[[attribute]]` in C++. However, such standardization and the design of new constructs in the language go far beyond the scope of this proposal, and we need to gain more experience with diagnostic groups before proceeding with this.
+While diagnostic groups are introduced to support the compiler options, it may be possible in the future to standardize the structure of the group graph itself. This could open up the possibility of using these same identifiers in the language, implementing something analogous to `#pragma diagnostic` or `[[attribute]]` in C++. It could also address suppressing warnings entirely, which isn't covered by this proposal. However, such standardization and the design of new language constructs go far beyond the scope of this proposal, and we need to gain more experience with diagnostic groups before proceeding with this.
 
 ### Support in SwiftPM
 
@@ -204,18 +203,15 @@ During the design process, other names for the compiler options were considered,
 |--------------------------|--------------------------------|
 | `-warnings-as-errors`    | `-warning-as-error <group>`    |
 | `-no-warnings-as-errors` | `-no-warning-as-error <group>` |
-| `-suppress-warnings`     | `-suppress-warning <group>`    |
-
-However, with this naming, the combination `-suppress-warning deprecated -no-warning-as-error availability_deprecated` might be misleading.
 
 In Clang, diagnostic behavior is controlled through `-W...` options, but the format suffers from inconsistency. We adopt the `-W` prefix while making the format consistent.
 | Clang             | Swift                |
 |-------------------|----------------------|
 | `-W<group>`       | `-Wwarning <group>`  |
-| `-Wno-<group>`    | `-Wsuppress <group>` |
+| `-Wno-<group>`    |                      |
 | `-Werror=<group>` | `-Werror <group>`    |
 
-Additionally, the option name `-Wwarning` is much better suited when it comes to enabling suppressed-by-default warnings. Today we have several of them behind dedicated flags like `-driver-warn-unused-options` and `-warn-concurrency`. It might be worth having a common infrastructure for warnings that are suppressed by default.
+The option name `-Wwarning` is much better suited when it comes to enabling suppressed-by-default warnings. Today we have several of them behind dedicated flags like `-driver-warn-unused-options` and `-warn-concurrency`. It might be worth having a common infrastructure for warnings that are suppressed by default.
 
 ### Alternative format for `-print-diagnostic-groups`
 
@@ -232,3 +228,12 @@ However, even this does not eliminate the possibility of breaking code that pars
 
 Moreover, `-print-diagnostic-groups` provides a formalized version of the same functionality using identifiers suitable for user use. And thus it should supersede the usages of `-debug-diagnostic-names`. Therefore, we believe the best solution would be to use the same format for `-print-diagnostic-groups` and prohibit the simultaneous use of these two options.
 
+## Revision History
+
+- Revisions based on review feedback:
+  - `-Wsuppress` was excluded from the proposal. 
+  - `-suppress-warnings` was excluded from the unified model and addressed separately by forbidding its usage with the new flags.
+
+## Acknowledgments
+
+Thank you to [Frederick Kellison-Linn](https://forums.swift.org/u/Jumhyn) for the idea of addressing the `-suppress-warnings` behavior without incorporating it into the new model.
