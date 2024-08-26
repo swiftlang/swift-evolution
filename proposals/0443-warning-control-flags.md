@@ -7,6 +7,7 @@
 * Status: **Active review (August 22nd...September 2nd, 2024)**
 * Implementation: [apple/swift#74466](https://github.com/swiftlang/swift/pull/74466)
 * Review: ([pitch](https://forums.swift.org/t/warnings-as-errors-exceptions/72925)) ([review](https://forums.swift.org/t/se-0443-precise-control-flags-over-compiler-warnings/74116))
+* Previous revisions: [1](https://github.com/swiftlang/swift-evolution/blob/57fe29d5d55edb85b14c153b7f4cbead6b6539eb/proposals/0443-warning-control-flags.md)
 
 ## Introduction
 
