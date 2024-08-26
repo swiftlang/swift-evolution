@@ -1,7 +1,7 @@
 
 # Precise Control Flags over Compiler Warnings
 
-* Proposal: [SE-0443](NNNN-warning-control-flags.md)
+* Proposal: [SE-0443](0443-warning-control-flags.md)
 * Authors: [Doug Gregor](https://github.com/douggregor), [Dmitrii Galimzianov](https://github.com/DmT021)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (August 22nd...September 2nd, 2024)**
