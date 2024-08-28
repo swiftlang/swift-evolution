@@ -352,7 +352,7 @@ syntax maintains space for this:
 ```swift
 struct MatrixShape { var rows: Int, columns: Int }
 
-struct Matrix<Shape: MatrixShape> {
+struct Matrix<let Shape: MatrixShape> {
     var elements: Vector<Shape.rows, Vector<Shape.columns, Double>>
 }
 ```
