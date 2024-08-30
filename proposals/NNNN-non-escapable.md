@@ -249,8 +249,8 @@ For example, many general library container types will need to be copyable and/o
 Here's a compact way to declare such a type:
 ```swift
 struct Wrapper<T: ~Copyable & ~Escapable>: ~Copyable, ~Escapable { ... }
-extension Wrapper: Copyable where T: Copyable {}
-extension Wrapper: Escapable where T: Escapable {}
+extension Wrapper: Copyable where T: Copyable, T: ~Escapable {}
+extension Wrapper: Escapable where T: Escapable, T: ~Copyable {}
 ```
 
 ## Source compatibility
