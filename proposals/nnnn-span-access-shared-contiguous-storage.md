@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](nnnn-safe-shared-contiguous-storage.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Michael Ilseman](https://github.com/milseman), [Andrew Trick](https://github.com/atrick)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting implementation**, previewed in a [branch](https://github.com/apple/swift-collections/tree/future) of [swift-collections](https://github.com/apple/swift-collections).
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Bug: rdar://48132971, rdar://96837923
 * Implementation: Prototyped in https://github.com/apple/swift-collections (on branch "future")
