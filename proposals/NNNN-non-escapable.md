@@ -293,9 +293,6 @@ Nonescapable function parameters may not outlive the function scope.
 Consequently, nonescapable values can never be returned from a function.
 Nonescapable values come into existence within the body of the initializer.
 Naturally, the initializer must return its value, and this creates an exception to the rule.
-Without further language support, implementing a nonescapable initializer requires an unsafe construct.
-That unsafe handling is not covered by this proposal because we don't want to surface unnecessary unsafety in the language.
-Instead, a subsequent proposal will support safe initialization by allowing the initializer to specify lifetime dependencies on its parameters.
 The parameters to the initializer typically indicate a lifetime that the nonescapable value cannot outlive.
 An initializer may, for example, create a nonescapable value that depends on a container variable that is bound to an object with its own lifetime:
 ```swift
@@ -309,9 +306,10 @@ consume container // `container` lifetime ends here
 use(iterator) // 🛑 'iterator' outlives `container`
 ```
 
-Lifetime dependencies will make this and similar misuses into compile-time errors.
-This will allow developers to safely define and use values that contain pointers into
-other values, ensuring that the pointers never outlive the underlying storage.
+Specifying a dependency from a function parameter to its nonescapable result currently requires an experimental lifetime dependency feature.
+With lifetime dependencies, initialization of nonescapable types is safe: misuses similar to the one shown above are compile-time errors.
+Adopting new syntax for lifetime dependencies merits a separate, focussed review.
+Until then, initialization of nonescapable values remains experimental.
 
 #### Expanding standard library types
 
