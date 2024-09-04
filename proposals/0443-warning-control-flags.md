@@ -7,7 +7,7 @@
 * Status: **Active review (August 22nd...September 2nd, 2024)**
 * Implementation: [apple/swift#74466](https://github.com/swiftlang/swift/pull/74466)
 * Review: ([pitch](https://forums.swift.org/t/warnings-as-errors-exceptions/72925)) ([review](https://forums.swift.org/t/se-0443-precise-control-flags-over-compiler-warnings/74116))
-* Previous revisions: [1](https://github.com/swiftlang/swift-evolution/blob/57fe29d5d55edb85b14c153b7f4cbead6b6539eb/proposals/0443-warning-control-flags.md)
+* Previous revisions: [1](https://github.com/swiftlang/swift-evolution/blob/57fe29d5d55edb85b14c153b7f4cbead6b6539eb/proposals/0443-warning-control-flags.md), [2](https://github.com/swiftlang/swift-evolution/blob/7b12899ad0d96002c793d33ef8109ec47c5d256f/proposals/0443-warning-control-flags.md)
 
 ## Introduction
 
@@ -62,7 +62,7 @@ Diagnostic groups form an acyclic graph with the following properties:
 - A diagnostic group can be included in any number of diagnostic groups. This allows expressing the membership of a group in multiple supergroups, where appropriate. For example, the group `unsafe_global_actor_deprecated` is part of both the `deprecated` and `concurrency` groups.
 
 The internal structure of the graph may change to some extent. However, the set of diagnostics included in a diagnostic group (directly or transitively) should not shrink. There are two typical situations where the graph structure may change:
-- When adding a new diagnostic to the compiler, we also add a new group corresponding to that diagnostic. This new group can also be included in one or more existing groups if it belongs to them. For example, it is expected that the `deprecated` group will continuously include new subgroups.
+- When adding a new diagnostic to the compiler, consider creating a new group corresponding to that diagnostic. If the new group is created it can also be included in one or more existing groups if it belongs to them. For example, it is expected that the `deprecated` group will continuously include new subgroups.
 - If an existing diagnostic is split into more specific versions, and we want to allow users to use the more specific version in compiler options, a separate group is created for it, which **must** be included in the group of the original diagnostic.
 
   For example, suppose we split the `availability_deprecated` warning into a general version and a specialized version `availability_deprecated_same_module`, which the compiler emits if the deprecated symbol is declared in the same module. In this case, the `availability_deprecated_same_module` group must be added to the `availability_deprecated` group to ensure that the overall composition of the `availability_deprecated` group does not change. The final structure should look like this:
@@ -234,6 +234,7 @@ Moreover, `-print-diagnostic-groups` provides a formalized version of the same f
 - Revisions based on review feedback:
   - `-Wsuppress` was excluded from the proposal. 
   - `-suppress-warnings` was excluded from the unified model and addressed separately by forbidding its usage with the new flags.
+  - The guideline in the "Diagnostic Groups" subsection for adding a new diagnostic has been softened to a consideration.
 
 ## Acknowledgments
 
