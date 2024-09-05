@@ -410,46 +410,6 @@ extension RawSpan {
 }
 ```
 
-### Extensions to standard library types:
-
-The `UnsafeBufferPointer` family of types can be be adapted for use with `Span`-taking API through unsafe `Span`-providing functions. A `Span` instance obtained this way loses its static guarantee of temporal safety, because it is possible to deinitialize or deallocate the underlying memory before the end of the closure's scope. While the closure provides a clear signal to not do so, it is not enforceable by the compiler.
-
-```swift
-extension UnsafeBufferPointer {
-  public func withUnsafeSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<Element>) throws(E) -> Result
-  ) throws(E) -> Result
-
-  public func withUnsafeBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result where Element: BitwiseCopyable
-}
-
-extension UnsafeMutableBufferPointer {
-  public func withUnsafeSpan<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: Span<Element>) throws(E) -> Result
-  ) throws(E) -> Result
-
-  public func withUnsafeBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result where Element: BitwiseCopyable
-}
-
-extension UnsafeRawBufferPointer {
-  public func withUnsafeBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result
-}
-
-extension UnsafeMutableRawBufferPointer {
-  public func withUnsafeBytes<E: Error, Result: ~Copyable>(
-    _ body: (_ elements: RawSpan) throws(E) -> Result
-  ) throws(E) -> Result
-}
-```
-
-Safe extensions to safe standard library types will be proposed in a later proposal.
-
 ## Source compatibility
 
 This proposal is additive and source-compatible with existing code.
