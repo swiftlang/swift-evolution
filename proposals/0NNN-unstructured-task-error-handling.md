@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift/pull/74110](https://github.com/swiftlang/swift/pull/74110)
-* Upcoming Feature Flag: *if applicable* `MyFeatureName`
+* Upcoming Feature Flag: `TaskInitTypedThrows`
 * Review: ([pitch](https://forums.swift.org/t/pitch-non-discardable-throwing-tasks/74138))
 
 ## Introduction
@@ -55,11 +55,70 @@ but it not really possible to determine this by looking the code.
 
 ## Proposed solution
 
-TBD
+We propose two changes to the `Task` initialization functions to address these problems:
+
+- adopt typed throws
+- remove the use of `@discardableResult` unless `Failure` is `Never`
 
 ## Detailed design
 
-TBD
+`Task` now has new initializers and matching detached variants. In the case where `Failure` is `Never`, these do not permit a throwing body and preserve the ability to ignore the created `Task` instance.
+
+```swift
+extension Task where Failure == Never {
+  @discardableResult
+  @_alwaysEmitIntoClient
+  public init(
+    priority: TaskPriority? = nil,
+    @_inheritActorContext @_implicitSelfCapture operation: __owned sending @escaping @isolated(any) () async -> Success
+  ) {
+    // ...
+  }
+
+  @discardableResult
+  @_alwaysEmitIntoClient
+  public static func detached(
+    priority: TaskPriority? = nil,
+    operation: __owned sending @escaping @isolated(any) () async -> Success
+  ) -> Task<Success, Never> {
+    // ...
+  }
+}
+```
+
+However, for a non-`Never` `Failure`, the `throws` cause exposes the type and the `@discardableResult` is dropped.
+
+```swift
+extension Task {
+  @_alwaysEmitIntoClient
+  public init(
+    priority: TaskPriority? = nil,
+    @_inheritActorContext @_implicitSelfCapture operation: __owned sending @escaping @isolated(any) () async throws(Failure) -> Success
+  ) {
+    // ...
+  }
+
+  @_alwaysEmitIntoClient
+  public static func detached(
+    priority: TaskPriority? = nil,
+    operation: __owned sending @escaping @isolated(any) () async throws(Failure) -> Success
+  ) -> Task<Success, Failure> {
+    // ...
+  }
+}
+```
+
+The `value` property used a typed throws clause to expose the `Failure` at the site of access.
+
+```swift
+extension Task {
+  public var value: Success {
+    get async throws(Failure) {
+      // ...
+    }
+  }
+}
+```
 
 ## Source compatibility
 
