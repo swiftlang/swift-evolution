@@ -250,6 +250,8 @@ public struct RawSpan: Copyable, ~Escapable {
 }
 ```
 
+Initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for details, see "[Initializers](#Initializers)" in the [future directions](#Directions) section.
+
 ##### <a name="Load"></a>Accessing the memory of a `RawSpan`:
 
 `RawSpan` has basic operations to access the contents of its memory: `unsafeLoad(as:)` and `unsafeLoadUnaligned(as:)`. These operations are not type-safe, in that the loaded value returned by the operation can be invalid. Some types have a property that makes this operation safe, but there we don't have a way to [formally identify](#SurjectiveBitPattern) such types at this time.
