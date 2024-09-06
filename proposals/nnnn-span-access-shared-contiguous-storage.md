@@ -233,7 +233,7 @@ extension Span where Element: BitwiseCopyable {
 }
 ```
 
-These functions use a closure to define the scope of validity of `buffer`, ensuring that the underlying `Span` and the binding it depends on both remain valid through the end of the closure. They have the same shape as the equivalents on `Array` because they fulfill the same function, namely to keep the underlying binding alive.
+These functions use a closure to define the scope of validity of `buffer`, ensuring that the underlying `Span` and the binding it depends on both remain valid through the end of the closure. They have the same shape as the equivalents on `Array` because they fulfill the same function, namely to keep the underlying binding alive.
 
 ### RawSpan
 
