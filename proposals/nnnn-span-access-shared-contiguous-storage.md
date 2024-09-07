@@ -143,12 +143,6 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// - Returns: true if `index` is a valid index
   public func boundsContain(_ index: Int) -> Bool
 
-  /// Traps if `index` is not a valid offset into this `Span`
-  ///
-  /// - Parameters:
-  ///   - index: an index to validate
-  public func boundsPrecondition(_ index: Int)
-
   /// Return true if `indices` is a valid range of offsets into this `Span`
   ///
   /// - Parameters:
@@ -156,11 +150,12 @@ extension Span where Element: ~Copyable & ~Escapable {
   /// - Returns: true if `indices` is a valid range of indices
   public func boundsContain(_ indices: Range<Int>) -> Bool
 
-  /// Traps if `indices` is not a valid range of offsets into this `Span`
+  /// Return true if `indices` is a valid range of offsets into this `Span`
   ///
   /// - Parameters:
   ///   - indices: a range of indices to validate
-  public func boundsPrecondition(_ indices: Range<Int>)
+  /// - Returns: true if `indices` is a valid range of indices
+  public func boundsContain(_ indices: ClosedRange<Int>) -> Bool
 }
 ```
 
@@ -388,17 +383,14 @@ extension RawSpan {
 ##### `RawSpan` bounds checking:
 ```swift
 extension RawSpan {
-  /// Return true if `offset` is a valid offset into this `RawSpan`
+  /// Return true if `offset` is a valid byte offset into this `RawSpan`
   public func boundsContain(_ offset: Int) -> Bool
-
-  /// Traps if `offset` is not a valid offset into this `RawSpan`
-  public func boundsPrecondition(_ offset: Int)
 
   /// Return true if `offsets` is a valid range of offsets into this `RawSpan`
   public func boundsContain(_ offsets: Range<Int>) -> Bool
 
-  /// Traps if `offsets` is not a valid range of offsets into this `RawSpan`
-  public func boundsPrecondition(_ offsets: Range<Int>)
+  /// Return true if `offsets` is a valid range of offsets into this `RawSpan`
+  public func boundsContain(_ offsets: ClosedRange<Int>) -> Bool
 }
 ```
 
