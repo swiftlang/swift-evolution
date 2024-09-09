@@ -468,9 +468,9 @@ extension RawSpan {
 
 We are subsetting these functions of `Span` and `RawSpan` until the lifetime annotations are proposed.
 
-#### <a name="Coroutines"></a>Coroutine Accessors
+#### <a name="Coroutines"></a>Coroutine or Projection Accessors
 
-This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language, but are necessary for some types to be able to provide borrowing access to their internal storage, in particular storage containing non-copyable elements. When a stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` and `RawSpan` will be adapted to the new syntax.
+This proposal includes some `_read` accessors, the coroutine version of the `get` accessor. `_read` accessors are not an official part of the Swift language, but are necessary for some types to be able to provide borrowing access to their internal storage, in particular storage containing non-copyable elements. The correct solution may involve a projection of a different type than is provided by a coroutine. When correct, stable replacement for `_read` accessors is proposed and accepted, the implementation of `Span` and `RawSpan` will be adapted to the new syntax.
 
 #### Extensions to Standard Library and Foundation types
 
