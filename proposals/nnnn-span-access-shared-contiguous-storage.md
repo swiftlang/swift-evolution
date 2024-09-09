@@ -65,10 +65,12 @@ A `RawSpan` can be obtained from containers of `BitwiseCopyable` elements, as we
 ```swift
 @frozen
 public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
-  internal var _start: UnsafePointer<Element>
+  internal var _start: UnsafeRawPointer?
   internal var _count: Int
 }
 ```
+
+We store a `UnsafeRawPointer` value internally in order to explicitly support reinterpreted views of memory as containing different types of `BitwiseCopyable` elements. Note that the the optionality of the pointer does not affect usage of `Span`, since accesses are bounds-checked and the pointer is only dereferenced when the `Span` isn't empty, and the pointer cannot be `nil`.
 
 It provides a buffer-like interface to the elements stored in that span of memory:
 
@@ -110,7 +112,7 @@ extension Span where Element: ~Copyable & ~Escapable {
 }
 ```
 
-Note that we use a `_read` accessor for the subscript, a requirement in order to `yield` a borrowed non-copyable `Element` (see ["Coroutines"](#Coroutines).) This will be updated to a final syntax at a later time.
+Note that we use a `_read` accessor for the subscript, a requirement in order to `yield` a borrowed non-copyable `Element` (see ["Coroutines"](#Coroutines).) This will be updated to a final syntax at a later time, understanding that we intend the replacement to be source-compatible.
 
 ##### Unchecked access to elements:
 
