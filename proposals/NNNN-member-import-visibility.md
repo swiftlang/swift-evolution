@@ -7,7 +7,7 @@
 * Bug: [apple/swift#46493](https://github.com/apple/swift/issues/46493)
 * Implementation: [apple/swift#72974](https://github.com/apple/swift/pull/72974), [apple/swift#73063](https://github.com/apple/swift/pull/73063)
 * Upcoming Feature Flag: `MemberImportVisibility`
-* Review: TBD
+* Pitch: [Forum Thread](https://forums.swift.org/t/pitch-fixing-member-import-visibility/71432)
 
 ## Introduction
 
