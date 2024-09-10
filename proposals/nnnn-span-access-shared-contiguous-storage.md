@@ -75,7 +75,7 @@ We store a `UnsafeRawPointer` value internally in order to explicitly support re
 It provides a buffer-like interface to the elements stored in that span of memory:
 
 ```swift
-extension Span where Element: ~Copyable & ~Escapable {
+extension Span where Element: ~Copyable {
   public var count: Int { get }
   public var isEmpty: Bool { get }
 
@@ -104,7 +104,7 @@ Initializers, required for library adoption, will be proposed alongside [lifetim
 The following properties, functions and subscripts have direct counterparts in the `Collection` protocol hierarchy. Their semantics shall be as described where they counterpart is declared (in `Collection` or `RandomAccessCollection`).
 
 ```swift
-extension Span where Element: ~Copyable & ~Escapable {
+extension Span where Element: ~Copyable {
   public var count: Int { get }
   public var isEmpty: Bool { get }
 
@@ -119,7 +119,7 @@ Note that we use a `_read` accessor for the subscript, a requirement in order to
 The `subscript` mentioned above has always-on bounds checking of its parameter, in order to prevent out-of-bounds accesses. We also want to provide unchecked variants as an alternative for cases where bounds-checking is proving costly, such as in tight loops:
 
 ```swift
-extension Span where Element: ~Copyable & ~Escapable {
+extension Span where Element: ~Copyable {
   // Unchecked subscripting and extraction
 
   /// Accesses the element at the specified `position`.
@@ -137,7 +137,7 @@ extension Span where Element: ~Copyable & ~Escapable {
 Every time `Span` uses a position parameter, it checks for its validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
 
 ```swift
-extension Span where Element: ~Copyable & ~Escapable {
+extension Span where Element: ~Copyable {
   /// Return true if `index` is a valid offset into this `Span`
   ///
   /// - Parameters:
@@ -168,7 +168,7 @@ Note: these function names are not ideal.
 When working with multiple `Span` instances, it is often desirable to know whether one is a subrange of another. We include a function to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span:
 
 ```swift
-extension Span where Element: ~Copyable & ~Escapable {
+extension Span where Element: ~Copyable {
   /// Returns true if the memory represented by `span` is a subrange of
   /// the memory represented by `self`
   ///
@@ -194,7 +194,7 @@ extension Span where Element: ~Copyable & ~Escapable {
 We provide two functions for interoperability with C or other legacy pointer-taking functions.
 
 ```swift
-extension Span where Element: ~Copyable & ~Escapable {
+extension Span where Element: ~Copyable {
   /// Calls a closure with a pointer to the viewed contiguous storage.
   ///
   /// The buffer pointer passed as an argument to `body` is valid only
@@ -449,7 +449,7 @@ These annotations have been [pitched][PR-2305-pitch] and are expected to be form
 `Span`s representing subsets of consecutive elements could be extracted out of a larger `Span` with an API similar to the `extracting()` functions recently added to `UnsafeBufferPointer` in support of non-copyable elements:
 
 ```swift
-extension Span where Element: ~Copyable & ~Escapable {
+extension Span where Element: ~Copyable {
   public func extracting(_ bounds: Range<Int>) -> Self
 }
 ```
