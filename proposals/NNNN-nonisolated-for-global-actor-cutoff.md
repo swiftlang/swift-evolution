@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This proposal allows annotating a set of declarations with `nonisolated` to prevent global actor inference.
+This proposal allows annotating a set of declarations with `nonisolated` to prevent global actor inference. Additionally, it extends the existing rules for when `nonisolated` can be written on a stored property, improving usability.
 
 ## Motivation
 
@@ -78,7 +78,7 @@ protocol RemoveGlobalActor {}
 protocol RefinedProtocol: GloballyIsolated, RemoveGlobalActor {} // 'RefinedProtocol' is non-isolated
 ```
 
-In the above code, the programmer creates a new protocol that is isolated to an actor that nominally is isolated to the global actor. This means that the protocol declaration `RefinedProtocol` refining the `RemoveGlobalActor` protocol will result in a conflicting global actor isolation, one from `GloballyIsolated` that’s isolated to `@MainActor`, and another one from `RemoveGlobalActor` that’s isolated to the `@FakeGlobalActor`. This results in the overall declaration having no global actor isolation, while still refining the protocols it conformed to. 
+In the above code, the programmer creates a new protocol that is isolated to an actor that nominally is isolated to the global actor. This means that the protocol declaration `RefinedProtocol` refining the `RemoveGlobalActor` protocol will result in a conflicting global actor isolation, one from `GloballyIsolated` that’s isolated to `@MainActor`, and another one from `RemoveGlobalActor` that’s isolated to the `@FakeGlobalActor`. This results in the overall declaration having no global actor isolation, while still refining the protocols it conformed to.
 
 
 ## Proposed solution
@@ -97,6 +97,8 @@ nonisolated protocol P: GloballyIsolated {} // 'P' won't inherit isolation of 'G
 
 And in the above code, the protocol `P` refines the `GloballyIsolated` protocol. Because `nonisolated` is applied to it, the global actor isolation coming from the `GloballyIsolated` protocol will not be inferred for protocol `P`.  
 
+In addition to the above, we propose extending existing rules for when `nonisolated` can be applied to stored properties to improve usability. More precisely, we propose `nonisolated` inference from within the module for mutable storage of `Sendable` value types, and annotating such storage with `nonisolated` to allow synchronous access from outside the module. Additionally, we propose explicit spelling of `nonisolated` for stored properties of non-`Sendable` types.
+
 ## Detailed design
 
 Today, there are a number of places where `nonisolated` can be written, as proposed in [SE-0313: Improved control over actor isolation](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md#non-isolated-declarations):
@@ -104,11 +106,13 @@ Today, there are a number of places where `nonisolated` can be written, as propo
 * Functions
 * Stored properties of classes that are `let` and `Sendable`
 
-Additionally, under [SE-0434: Usability of global-actor-isolated types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md), `nonisolated` is allowed to be written on mutable `Sendable` storage of globally-isolated value types. 
+Additionally, under [SE-0434: Usability of global-actor-isolated types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md), `nonisolated` is allowed to be written on mutable `Sendable` storage of globally-isolated value types.
 
-In this proposal, we expand the above rules by allowing annotating the declarations listed below with  `nonisolated`.
+In this proposal, we expand the above rules by allowing annotating more declarations with `nonisolated`. The first batch of these rules is specifically targeting the global actor inference "cut-off", while the second focuses on usability improvements allowing `nonisolated` to be written on more kinds of storage.
 
-### 1. Protocols
+### Allowing `nonisolated` to prevent global actor inference
+
+#### Protocols
 
 This proposal allows `nonisolated` attribute to be applied on protocol declarations:
 
@@ -125,7 +129,7 @@ struct A: Refined {
 
 In the above code,  the protocol `Refined` is refining the `GloballyIsolated` protocol, but is declared non-isolated. This means that the `Refined` still has the same requirements as `GloballyIsolated`, but they are not isolated. Therefore, a struct `A` conforming to it is also non-isolated, which allows the programmer for more flexibility when implementing the requirements of a protocol.
 
-### 2. Extensions
+#### Extensions
 
 This proposal allows for `nonisolated` attribute to be applied on extension declarations:
 
@@ -145,56 +149,7 @@ struct C: GloballyIsolated {
 
 In the code above, the  `nonisolated` attribute is applied to an extension declaration for a `GloballyIsolated` protocol. When applied to an extension, `nonisolated` applies to all of its members. In this case, `implicitlyNonisolated` method and the computed property `x` are both nonisolated, and therefore are able to be accessed from a nonisolated context in the body of `explicitlyNonisolated` method of a globally-isolated struct `C`.
 
-### 3. Stored properties of non-`Sendable` types
-
-Currently, any stored property of a non-`Sendable` type is implicitly treated as non-isolated. This proposal allows for spelling of this behavior:
-
-```swift
-class MyClass {
-  nonisolated var x: NonSendable = NonSendable() // okay
-}
-```
-
-Because `MyClass` is does not conform to `Sendable`, the compiler guarantees mutually exclusive access to references of `MyClass` instance. `nonisolated` on methods and properties of non-`Sendable` types can be safely called from any isolation domain because the base instance can only be accessed by one isolation domain at a time.
-
-### 4. Mutable `Sendable` storage of `Sendable` value types
-
-For global-actor-isolated value types, [SE-0434: Usability of global-actor-isolated types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows accessing `var` stored properties with `Sendable` type from within the module as `nonisolated`. This proposal extends this rule to **all** `Sendable` value types:
-
-```swift
-struct S {
-  var x: Int = 0 // okay ('nonisolated' is inferred within the module)
-}
-
-actor MyActor {
-  func test(s: S) {
-    print(s.x) // synchronous access to 'x' after sending `S` to `MyActor` is okay.
-  }
-}
-```
-
-In the above code, the value type `S` is implicitly `Sendable` within the module and its storage `x` is of `Sendable` type `Int`. When `Sendable` value types are passed between isolation domains, each isolation domain has an independent copy of the value. Accessing properties stored on a value type from across isolation domains is safe as long as the stored property type is also `Sendable`. Even if the stored property is a `var`, assigning to the property will not risk a data race, because the assignment cannot have effects on copies in other isolation domains. Therefore, synchronous access of `x` from within the module is okay.
-
-Additionally, [SE-0434](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows explicitly annotating globally-isolated value types' properties such as `x` in the previous example with `nonisolated` for synchronous access from outside the module. This proposal extends this rule to **all** `Sendable` value types:
-
-```swift
-// In Module A
-public struct S: Sendable {
-  nonisolated public var x: Int = 0 // okay
-  public init() {}
-}
-
-// In Module B
-import A
-
-actor MyActor {
-  func test(s: S) {
-    print(s.x) // synchronous access to 'x' after sending `S` to `MyActor` is okay.
-  }
-}
-```
-
-### 5. Classes, structs, and enums
+#### Classes, structs, and enums
 
 Finally, we propose allowing writing `nonisolated` on class, struct and enum declarations:
 
@@ -242,6 +197,61 @@ The above behavior is semantically consistent with the existing rules around glo
 @MainActor struct S {
   var value: NotSendable // globally-isolated
   struct Nested {} // 'Nested' is not @MainActor-isolated
+}
+```
+
+### Annotating more types of storage with `nonisolated`
+
+This section extends the existing rules for when `nonisolated` can be written on a storage of a user-defined type.
+
+#### Stored properties of non-`Sendable` types
+
+Currently, any stored property of a non-`Sendable` type is implicitly treated as non-isolated. This proposal allows for spelling of this behavior:
+
+```swift
+class MyClass {
+  nonisolated var x: NonSendable = NonSendable() // okay
+}
+```
+
+Because `MyClass` does not conform to `Sendable`, it cannot be accessed from multiple isolation domains at once. Therefore, the compiler guarantees mutually exclusive access to references of `MyClass` instance. The `nonisolated` on methods and properties of non-`Sendable` types can be safely called from any isolation domain because the base instance can only be accessed by one isolation domain at a time. Importantly, `nonisolated` does not impact the number of isolation domains that can reference the `self` value. As long as there is a reference to `self` value in one isolation domain, the `nonisolated` method/property can be safely called from that domain.
+
+#### Mutable `Sendable` storage of `Sendable` value types
+
+For global-actor-isolated value types, [SE-0434: Usability of global-actor-isolated types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows accessing `var` stored properties with `Sendable` type from within the module as `nonisolated`. This proposal extends this rule to **all** `Sendable` value types:
+
+```swift
+struct S {
+  var x: Int = 0 // okay ('nonisolated' is inferred within the module)
+}
+
+actor MyActor {
+  func test(s: S) {
+    print(s.x) // synchronous access to 'x' after sending `S` to `MyActor` is okay.
+  }
+}
+```
+
+In the above code, the value type `S` is implicitly `Sendable` within the module and its storage `x` is of `Sendable` type `Int`. When `Sendable` value types are passed between isolation domains, each isolation domain has an independent copy of the value. Accessing properties stored on a value type from across isolation domains is safe as long as the stored property type is also `Sendable`. Even if the stored property is a `var`, assigning to the property will not risk a data race, because the assignment cannot have effects on copies in other isolation domains. Therefore, synchronous access of `x` from within the module is okay.
+
+Additionally, [SE-0434](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows explicitly annotating globally-isolated value types' properties such as `x` in the previous example with `nonisolated` for synchronous access from outside the module. This proposal extends this rule to **all** `Sendable` value types:
+
+```swift
+// In Module A
+public struct S: Sendable {
+  nonisolated public var x: Int = 0 // okay
+  public init() {}
+}
+```
+
+```swift
+// In Module B
+import A
+
+actor MyActor {
+  func test(s: S) {
+    print(s.x) // synchronous access to 'x' after sending `S` to `MyActor` is okay.
+  }
 }
 ```
 
