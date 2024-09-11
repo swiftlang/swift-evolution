@@ -50,7 +50,9 @@ Even if the body of the `withUnsafeXXX` call does not escape the pointer, other 
 
 `Span` is intended as the currency type for local processing over values in contiguous memory. It is a replacement for many API currently using `Array`, `UnsafeBufferPointer`, `Foundation.Data`, etc., that do not need to escape the owning container.
 
-A `Span` provided by a container represents a borrow of that container. `Span` can therefore provide simultaneous access to a non-copyable container. It can also help avoid unwanted copies of copyable containers. Note that `Span` is not a replacement for a copyable container with owned storage; see [future directions](#Directions) for more details ([Resizable, contiguously-stored, untyped collection in the standard library](#Bytes))
+A `Span` provided by a container represents a borrow of that container. `Span` can therefore provide simultaneous access to a non-copyable container. It can also help avoid unwanted copies of copyable containers. Note that `Span` is not a replacement for a copyable container with owned storage; see [future directions](#Directions) for more details ([Resizable, contiguously-stored, untyped collection in the standard library](#Bytes).)
+
+In this initial proposal, no initializers are proposed for `Span`. Initializers for non-escapable types such as `Span` require a concept of lifetime dependency, which does not exist at this time. The lifetime dependency annotation will indicate to the compiler how a newly-created `Span` can be used safely. See also ["Initializers"](#Initializers) in [future directions](#Directions).
 
 #### `RawSpan`
 
