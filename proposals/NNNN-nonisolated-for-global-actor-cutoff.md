@@ -51,7 +51,7 @@ In the above code, `S` can still conform to the globally-isolated protocol `P` w
 However, the above method would not work for cutting off the global isolation inference on a protocol itself. There is a very nonobvious workaround: when the compiler is inferring global actor isolation, if there are multiple inference sources with conflicting global actors, no global actor is inferred. This is demonstrated by the following example:
 
 ```swift
-class FakeExecutor: FakeGlobalActor {
+final class FakeExecutor: SerialExecutor {
   static let shared: FakeExecutor = .init()
   
   func enqueue(_ job: consuming ExecutorJob) {
@@ -65,7 +65,7 @@ public actor FakeGlobalActor: Sendable {
   
   private init() {}
   public nonisolated var unownedExecutor: UnownedSerialExecutor {
-    FakeGlobalActor.shared.asUnownedSerialExecutor()
+    FakeExecutor.shared.asUnownedSerialExecutor()
   }
 }
 
@@ -73,7 +73,7 @@ public actor FakeGlobalActor: Sendable {
 protocol GloballyIsolated {}
 
 @FakeGlobalActor
-protocol RemoveGlobalActor
+protocol RemoveGlobalActor {}
 
 protocol RefinedProtocol: GloballyIsolated, RemoveGlobalActor {} // 'RefinedProtocol' is non-isolated
 ```
