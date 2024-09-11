@@ -167,27 +167,30 @@ Note: these function names are not ideal.
 
 ##### Identifying whether a `Span` is a subrange of another:
 
-When working with multiple `Span` instances, it is often desirable to know whether one is a subrange of another. We include a function to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span:
+When working with multiple `Span` instances, it is often desirable to know whether one is identical to or a subrange of another. We include functions to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span:
 
 ```swift
 extension Span where Element: ~Copyable {
-  /// Returns true if the memory represented by `span` is a subrange of
-  /// the memory represented by `self`
+  /// Returns true if the other span represents exactly the same memory
+  public func isIdentical(to span: borrowing Self) -> Bool
+  
+  /// Returns true if the memory represented by `self` is a subrange of
+  /// the memory represented by `span`
   ///
   /// Parameters:
   /// - span: a span of the same type as `self`
-  /// Returns: whether `span` is a subrange of `self`
-  public func contains(_ span: borrowing Self) -> Bool
+  /// Returns: whether `self` is a subrange of `span`
+  public func isWithin(_ span: borrowing Self) -> Bool
   
-  /// Returns the offsets where the memory of `span` is located within
-  /// the memory represented by `self`
+  /// Returns the offsets where the memory of `self` is located within
+  /// the memory represented by `span`
   ///
   /// Note: `span` must be a subrange of `self`
   ///
   /// Parameters:
   /// - span: a subrange of `self`
   /// Returns: A range of offsets within `self`
-  public func offsets(of span: borrowing Self) -> Range<Int>
+  public func indicesWithin(_ span: borrowing Self) -> Range<Int>
 }
 ```
 
@@ -400,13 +403,15 @@ extension RawSpan {
 
 ##### Identifying whether a `RawSpan` is a subrange of another:
 
-When working with multiple `RawSpan` instances, it is often desirable to know whether one is a subrange of another. We include a function to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span. The documentation is omitted here, as it is substantially the same as for the equivalent functions on `Span`:
+When working with multiple `RawSpan` instances, it is often desirable to know whether one is identical to or a subrange of another. We include a function to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span. The documentation is omitted here, as it is substantially the same as for the equivalent functions on `Span`:
 
 ```swift
 extension RawSpan {
-  public func contains(_ span: borrowing Self) -> Bool
+  public func isIdentical(to span: borrowing Self) -> Bool
   
-  public func offsets(of span: borrowing Self) -> Range<Int>
+  public func isWithin(_ span: borrowing Self) -> Bool
+  
+  public func byteOffsetsWithin(_ span: borrowing Self) -> Range<Int>
 }
 ```
 
