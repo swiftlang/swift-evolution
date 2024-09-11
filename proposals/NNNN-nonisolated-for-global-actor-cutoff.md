@@ -163,11 +163,36 @@ For global-actor-isolated value types, [SE-0434: Usability of global-actor-isola
 
 ```swift
 struct S {
-  nonisolated var x: Int // okay
+  var x: Int = 0 // okay ('nonisolated' is inferred within the module)
+}
+
+actor MyActor {
+  func test(s: S) {
+    print(s.x) // synchronous access to 'x' after sending `S` to `MyActor` is okay.
+  }
 }
 ```
 
-In the above code, the value type `S` is implicitly `Sendable` because its storage `x` is of `Sendable` type `Int`. When `Sendable` value types are passed between isolation domains, each isolation domain has an independent copy of the value. Accessing stored properties of a value type from across isolation domains is safe as long as the stored property type is also `Sendable`. Even if the stored property is a `var`, assigning to the property will not risk a data race, because the assignment cannot have effects on copies in other isolation domains. Therefore, synchronized access to `x` in the example above is safe.
+In the above code, the value type `S` is implicitly `Sendable` within the module and its storage `x` is of `Sendable` type `Int`. When `Sendable` value types are passed between isolation domains, each isolation domain has an independent copy of the value. Accessing properties stored on a value type from across isolation domains is safe as long as the stored property type is also `Sendable`. Even if the stored property is a `var`, assigning to the property will not risk a data race, because the assignment cannot have effects on copies in other isolation domains. Therefore, synchronous access of `x` from within the module is okay.
+
+Additionally, [SE-0434](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows explicitly annotating globally-isolated value types' properties such as `x` in the previous example with `nonisolated` for synchronous access from outside the module. This proposal extends this rule to **all** `Sendable` value types:
+
+```swift
+// In Module A
+public struct S: Sendable {
+  nonisolated public var x: Int = 0 // okay
+  public init() {}
+}
+
+// In Module B
+import A
+
+actor MyActor {
+  func test(s: S) {
+    print(s.x) // synchronous access to 'x' after sending `S` to `MyActor` is okay.
+  }
+}
+```
 
 ### 5. Classes, structs, and enums
 
@@ -224,23 +249,27 @@ The above behavior is semantically consistent with the existing rules around glo
 
 Additionally, we propose the following set of rules for when the `nonisolated` attribute **cannot** be applied:
 
-* Along with some other isolation such as a global actor or an isolated parameter:
+#### Along with some other isolation such as a global actor or an isolated parameter:
 
 ```swift
 @MainActor
 nonisolated struct Conflict {} // error: 'struct 'Conflict' has multiple actor-isolation attributes ('nonisolated' and 'MainActor')'
 ```
 
-* On a property of a `Sendable` type when the type of the property does not conform to `Sendable`:
+The above code is invalid because the `Conflict` struct cannot simultaneously opt-out of isolation and declare one.
+
+#### On a property of a `Sendable` type when the type of the property does not conform to `Sendable`:
 
 ```swift
 @MainActor
 struct InvalidStruct /* implicitly Sendable */ {
-  nonisolated let test: NonSendable // error: 'nonisolated' can not be applied to variable with non-'Sendable' type 'NonSendable
+  nonisolated let x: NonSendable // error: 'nonisolated' can not be applied to variable with non-'Sendable' type 'NonSendable
 }
 ```
 
-* On a property of a `Sendable` class when the property is a var:
+In the above code, `InvalidStruct` is `Sendable`, allowing it to be sent across the concurrency domains. The property `x` is of `NonSendable` type, and if declared `nonisolated`, it would be allowed to be accessed from outside the main actor domain that `InvalidStruct` is isolated to, thus contradicting its lack of `Sendable` capability.
+
+#### On a property of a `Sendable` class when the property is a var:
 
 ```swift
 @MainActor
@@ -248,6 +277,8 @@ final class InvalidClass /* implicitly Sendable */ {
   nonisolated var test: Int = 1 // error: 'nonisolated' cannot be applied to mutable stored properties
 }
 ```
+
+In this example, `InvalidClass` is a `Sendable` reference type, which allows concurrent synchronous access to `test` since it is `nonisolated`. This introduces a potential data race.
 
 ## Source compatibility
 
