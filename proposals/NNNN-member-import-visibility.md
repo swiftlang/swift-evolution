@@ -93,15 +93,15 @@ In a future language version, or whenever the `MemberImportVisibility` feature i
 
 ## Detailed design
 
-A reference to a member in a source file will only be accepted if that member is declared in a module that is contained in the set of visible modules for that source file. A module is in the set of visible modules if any of the following statements are true:
+A reference to a member in a source file will only be accepted if that member is declared in a module that is contained in the set of visible modules for that source file. According to the existing rules for top level name lookup, a module is visible if any of the following statements are true:
 
 - The module is directly imported. In other words, some import statement in the source file names the module explicitly.
 - The module is directly imported from the bridging header.
 - The module is in the set of modules that is re-exported by any module that is either directly imported in the file or directly imported in the bridging header.
 
-A Swift module re-exports any modules that have been imported using the `@_exported` attribute. Clang modules list the modules that they re-export in their modulemap files, and it is common for a Clang module to re-export every module it imports using `export *`. Re-exports are also transitive, so if module `A` re-exports module `B`, and module `B` re-exports module `C`, then declarations from `A`, `B`, and `C` are all in scope in a file that only imports `A` directly.
+A re-exported module is one that another module makes visible to any client that imports it. Clang modules list the modules that they re-export in their modulemap files, and it is common for a Clang module to re-export every module it imports using `export *`. There is no officially supported way to re-export a module from a Swift module, but the compiler-internal `@_exported` attribute is sometimes used for this purpose. Re-exports are also transitive, so if module `A` re-exports module `B`, and module `B` re-exports module `C`, then declarations from `A`, `B`, and `C` are all in scope in a file that only imports `A` directly.
 
-Note that there are some imports that are added to every source file implicitly by the compiler for normal programs. The implicitly imported modules include the standard library and the module being compiled. As a subtle consequence implicitly importing the current module, any module that is `@_exported` in any source file is also considered visible in every other source file because it is a re-export of a direct import.
+Note that there are some imports that are added to every source file implicitly by the compiler for normal programs. The implicitly imported modules include the standard library and the module being compiled. As a subtle consequence implicitly importing the current module, any module that the current module re-exports in any of its source files will be considered visible in every other source file.
 
 ## Source compatibility
 
@@ -126,7 +126,7 @@ let recipe = "1 scoop ice cream, 1 tbs chocolate syrup".parse()
 
 With these fix-its, the burden of updating source code to be compatible with the new language mode should be significantly reduced.
 
-This feature will have some impact on source compatibility with older compilers and previous language modes. Adding new direct imports of modules that were previously only transitively imported is a backward compatible change syntactically. However, if the new language mode is necessary in order to make some source code unambiguous, then the ambiguity will become an issue when compiling the same code using an older language mode so maintaining backward compatibility would require additional measures to be taken.
+This feature will have some impact on source compatibility with older compilers and previous language modes. Adding new direct imports of modules that were previously only transitively imported is a backward compatible change syntactically. However, it's possible that source code could depend on the new language mode in order to make the code unambiguous. In these cases additional measures, like adding explicit type annotations, might be required to maintain backward compatibility with previous language modes.
 
 ## Future directions
 
@@ -137,6 +137,14 @@ This proposal seeks to give developers explicit control over which members are v
 ```swift
 let recipe = "...".RecipeKit::parse()
 ```
+
+#### Implement rules for retroactive conformance visibility
+
+A typical protocol conformance in Swift is declared in either the module that declares the protocol or the module of the conforming type and this allows the compiler to enforce that conformances are globally unique. However, Swift also allows conformances to be "retroactive", which means that the conformance is declared in some third module and cannot be guaranteed to be unique. Retroactive conformances make it possible for multiple declarations of the same protocol conformance from different dependency modules to be simultaneously visible to the compiler. Currently, there is no defined way to influence which conformance declaration gets chosen when such an ambiguity arises, but a rule similar to the one in this proposal could be implemented for conformance lookup as well. For instance, a direct import of a module could be required in order to bring the conformances from the module into scope in a source file.
+
+#### Improve lookup for operators and precedence groups
+
+Swift has bespoke rules for looking up operators and operator precedence groups that differ in important ways from the rules for both top-level names and members. Documenting the existing rules and reforming them to bring more consistency to name lookup in Swift would be worthy of a future proposal.
 
 ## Alternatives considered
 
