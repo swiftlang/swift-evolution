@@ -1,13 +1,13 @@
 # Member import visibility
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0444](0444-member-import-visibility.md)
 * Authors: [Allan Shortlidge](https://github.com/tshortli)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
+* Status: **Active review (September 11...23, 2024)**
 * Bug: [apple/swift#46493](https://github.com/apple/swift/issues/46493)
 * Implementation: [apple/swift#72974](https://github.com/apple/swift/pull/72974), [apple/swift#73063](https://github.com/apple/swift/pull/73063)
 * Upcoming Feature Flag: `MemberImportVisibility`
-* Pitch: [Forum Thread](https://forums.swift.org/t/pitch-fixing-member-import-visibility/71432)
+* Review: ([pitch](https://forums.swift.org/t/pitch-fixing-member-import-visibility/71432))
 
 ## Introduction
 
