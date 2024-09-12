@@ -117,7 +117,8 @@ The addition of this feature to the language does not break any existing code.
 
 The ABI of existing code is not affected by this proposal. Changing existing
 code to make use of `~Copyable` associated types _can_ break ABI.
-TODO: how (??)
+
+TODO: how, exactly (??)
 
 ## Implications on adoption
 
@@ -182,7 +183,7 @@ This strategy is only appropriate when all users can easily update their code.
 > some sort of ownership annotation. Adding ownership for parameters can break 
 > ABI. See [SE-0377](0377-parameter-ownership-modifiers.md) for details.
 
-### Strategy 2: Introduce a new base protocol instead
+### Strategy 2: Introduce a new base protocol
 
 Rather than annotate the existing `Queue`'s associated type to be noncopyable,
 introduce a new base protocol `BasicQueue` that `Queue` now inherits from:
@@ -221,15 +222,116 @@ This strategy is only appropriate if the new base protocol can stand on its own
 as a useful type to implement and use. 
 
 > NOTE: introducing a new inherited protocol to an existing one will break ABI
-> compatability.
+> compatibility. It is equivalent to adding a new requirement on Self in the 
+> protocol, which can impact the mangling of generic signatures into symbols.
+
+<!-- ### Strategy 3: Introduce a new protocol beside another
+
+To avoid breaking ABI or source compatibility, it's possible to introduce new
+protocols that do not require a Copyable associated type, while providing a
+default conformance to this new protocol for types that only conform to the old
+one:
+
+```swift
+// A new Queue-like protocol that is very mindful to not include requirements
+// like 'peek' cannot be implemented for noncopyable Elements.
+public protocol DemureQueue {
+  associatedtype Element: ~Copyable
+  mutating func pop() throws -> Element
+  mutating func push(_: consuming Element)
+}
+
+// The original Queue that requires Element to be Copyable.
+public protocol Queue {
+  associatedtype Element
+  func peek() -> Element?
+  mutating func pop() throws -> Element
+  mutating func push(_: consuming Element)
+}
+```
+
+FIXME: Delete this. It isn't workable like I thought! See Future Directions. 
+
+ -->
+
 
 ## Future directions
 
-TODO: Describe the typealias idea.
+The future directions for this proposal are machinery to aid in the 
+adoption of noncopyable associated types. This is particularly relevant for 
+Standard Library types like Collection.
 
-## Alternatives considered
+#### Conditional Requirements
 
-TODO: explain the various ideas we've had
+Suppose we could say that a protocol's requirement only needs to be witnessed
+if the associated type were Copyable. Then, we'd have a way to hide specific requirements of an existing protocol if they aren't possible to implement:
+
+```swift
+public protocol Queue {
+  associatedtype Element: ~Copyable
+  
+  // Only require 'peek' if the Element is Copyable.
+  func peek() -> Element? where Element: Copyable
+
+  mutating func pop() throws -> Element
+  mutating func push(_: consuming Element)
+}
+```
+
+This idea is similar optional requirements, which are only available to
+Objective-C protocols. The difference is that you statically know whether a 
+generic type that conforms to the protocol will offer the method. Today, this 
+is not possible at all:
+
+```swift
+protocol Q {}
+
+protocol P {
+  associatedtype A
+  func f() -> A where A: Q
+  // error: instance method requirement 'f()' cannot add constraint 'Self.A: P' on 'Self'
+}
+```
+
+#### Retroactive Protocol Inheritance
+
+Even if the cost of introducing a new protocol is justified, it is still an 
+ABI break to introduce a new inherited protocol to an existing one.
+That's for good reason: a library author may add new requirements that are 
+unfulfilled by existing users, and that should result in a linking error.
+
+However, it might be possible to allow "retroactive" protocol inheritance, which
+adds the inheritance along with default implementations of all inherited
+requirements:
+
+```swift
+protocol NewQueue { 
+  associatedtype Element: ~Copyable
+  // ... push, pop ...
+}
+
+protocol Queue { 
+  associatedtype Element
+  // ... push, pop, peek ...
+}
+
+// A type conforming to Queue also conforms to NewQueue where Element: Copyable.
+extension Queue: NewQueue {
+  typealias Element = Queue.Element
+  mutating func push(_ e: consuming Element) { Queue.push(e) }
+  mutating func pop() -> Element throws { try Queue.pop() }
+}
+```
+
+To make this work, this retroactively inherited protocol:
+  1. Needs to provide default implementations of all requirements.
+  2. Take lower precedence than a conformance to `NewQueue` declared directly on the type that conforms to `Queue`.
+  3. Perhaps needs to be limited to being declared in the same module that defines the extended protocol.
+   
+The biggest benefit of this capability is that it provides a way for all 
+existing types that conform to `Queue` to also work with new APIs that are based
+on `NewQueue`. It is a general mechanism that works for scenarios beyond the 
+adoption of noncopyable associated types.
 
 ## Acknowledgments
 
