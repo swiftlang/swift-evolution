@@ -293,16 +293,15 @@ protocol P {
 }
 ```
 
-#### Retroactive Protocol Inheritance
+#### Bonus Protocol Conformances
 
 Even if the cost of introducing a new protocol is justified, it is still an 
 ABI break to introduce a new inherited protocol to an existing one.
 That's for good reason: a library author may add new requirements that are 
 unfulfilled by existing users, and that should result in a linking error.
 
-However, it might be possible to allow "retroactive" protocol inheritance, which
-adds the inheritance along with default implementations of all inherited
-requirements:
+However, it might be possible to allow "bonus" protocol conformances, which
+adds an extra conformance to any type that conforms to some other protocol:
 
 ```swift
 protocol NewQueue { 
@@ -316,6 +315,7 @@ protocol Queue {
 }
 
 // A type conforming to Queue also conforms to NewQueue where Element: Copyable.
+// This is a "bonus" conformance.
 extension Queue: NewQueue {
   typealias Element = Queue.Element
   mutating func push(_ e: consuming Element) { Queue.push(e) }
@@ -323,8 +323,8 @@ extension Queue: NewQueue {
 }
 ```
 
-To make this work, this retroactively inherited protocol:
-  1. Needs to provide default implementations of all requirements.
+To make this work, this bonus protocol conformance:
+  1. Needs to provide implementations of all requirements in the bonus protocol.
   2. Take lower precedence than a conformance to `NewQueue` declared directly on the type that conforms to `Queue`.
   3. Perhaps needs to be limited to being declared in the same module that defines the extended protocol.
    
