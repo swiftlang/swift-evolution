@@ -183,14 +183,12 @@ extension Span where Element: ~Copyable {
   public func isWithin(_ span: borrowing Self) -> Bool
   
   /// Returns the offsets where the memory of `self` is located within
-  /// the memory represented by `span`
-  ///
-  /// Note: `span` must be a subrange of `self`
+  /// the memory represented by `span`, or `nil`
   ///
   /// Parameters:
   /// - span: a subrange of `self`
-  /// Returns: A range of offsets within `self`
-  public func indicesWithin(_ span: borrowing Self) -> Range<Int>
+  /// Returns: A range of offsets within `self`, or `nil`
+  public func indicesWithin(_ span: borrowing Self) -> Range<Int>?
 }
 ```
 
@@ -411,7 +409,7 @@ extension RawSpan {
   
   public func isWithin(_ span: borrowing Self) -> Bool
   
-  public func byteOffsetsWithin(_ span: borrowing Self) -> Range<Int>
+  public func byteOffsetsWithin(_ span: borrowing Self) -> Range<Int>?
 }
 ```
 
