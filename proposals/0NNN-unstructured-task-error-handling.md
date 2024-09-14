@@ -62,7 +62,10 @@ We propose two changes to the `Task` initialization functions to address these p
 
 ## Detailed design
 
-`Task` now has new initializers and matching detached variants. In the case where `Failure` is `Never`, these do not permit a throwing body and preserve the ability to ignore the created `Task` instance.
+`Task` now has new initializers and matching detached variants.
+In the case where `Failure` is `Never`,
+these do not permit a throwing body and preserve the ability to ignore the
+created `Task` instance.
 
 ```swift
 extension Task where Failure == Never {
@@ -86,7 +89,8 @@ extension Task where Failure == Never {
 }
 ```
 
-However, for a non-`Never` `Failure`, the `throws` cause exposes the type and the `@discardableResult` is dropped.
+However, for a non-`Never` `Failure`, the `throws` cause exposes the type
+and the `@discardableResult` is dropped.
 
 ```swift
 extension Task {
@@ -108,7 +112,8 @@ extension Task {
 }
 ```
 
-The `value` property used a typed throws clause to expose the `Failure` at the site of access.
+The `value` property used a typed throws clause to expose the `Failure` at
+the site of access.
 
 ```swift
 extension Task {
@@ -122,24 +127,46 @@ extension Task {
 
 ## Source compatibility
 
-TBD
+This proposal should not affect the behavior of existing code.
+
+However, it does intentionally introduce a warning into code that is
+ignoring errors produced by a `Task`.
+The developer's intention in this situation is inherently ambigous,
+and one of the purposes of this proposal is to resolve this ambiguity.
+The expectation is this will catch real mistakes.
+
+Explicitly expressing the intention to actually ignore errors is also
+very straightforward:
+
+```swift
+let = Task {
+  throw MyError.somethingBadHappened
+}
+```
 
 ## ABI compatibility
 
-TBD
+This proposal does not change how any existing code is compiled.
 
 ## Implications on adoption
 
-TBD
-
-## Future directions
-
-TBD
+No new types are being introduced, and the APIs that require change are all
+annotated with `@_alwaysEmitIntoClient`.
+This propsoal can be implemented purely in the compiler.
 
 ## Alternatives considered
 
-TBD
+It is completely possible to adopt typed throws for these APIs without
+changing the behavior of the throwing case.
+Further, introducing a warning in cases where ignoring errors is intentionally
+could be an annoyance.
+
+However, choosing a surprising and potentially error-prone behavior as the
+default goes against Swift's general philosophy of safety.
+Changing this default feels like a much better balance, especially since
+re-expressing the existing behavior involves such a familar language pattern.
 
 ## Acknowledgments
 
-TBD
+Thanks to John McCall for engaging with the community on this topic and helping
+to articulate the history and reasoning around the design.
