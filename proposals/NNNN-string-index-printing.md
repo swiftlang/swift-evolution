@@ -43,9 +43,13 @@ print(string.firstRange(of: "ell")!) // ⟹ 10[utf8]..<13[utf8]
 
 The sample description strings shown above are illustrative, not normative. This proposal does not specify the exact format and information content of the string returned by the `description` implementation on `String.Index`. As is the case with most conformances to `CustomStringConvertible`, the purpose of these descriptions is to expose internal implementation details for debugging purposes. As those implementation details evolve, the descriptions may need to be changed to match them. Such changes are not generally expected to be part of the Swift Evolution process; so we need to keep the content of these descriptions unspecified.
 
-(In the example displays shown, indices succinctly display their storage offset, their expected encoding, and an (optional) transcoded offset value. For example, the output `15[utf8]` indicates that the index is addressing the code unit at offset 15 in a UTF-8 encoded `String` value. The `startIndex` is at offset zero, which works the same with _any_ encoding, so it is displayed as `0[any]`. As of Swift 6.0, on some platforms string instances may store their text in UTF-16, and so indices within such strings use `[utf16]` to specify that their offsets are measured in UTF-16 code units.
+(With that said, the example displays shown above are not newly invented -- they have already proved their usefulness in actual use. They were developed while working on subtle string processing problems in Swift 5.7, and [LLDB has been shipping them as built-in data formatters][lldb] since the Swift 5.8 release.
+
+In the displays shown, string indices succinctly display their storage offset, their expected encoding, and an (optional) transcoded offset value. For example, the output `15[utf8]` indicates that the index is addressing the code unit at offset 15 in a UTF-8 encoded `String` value. The `startIndex` is at offset zero, which works the same with _any_ encoding, so it is displayed as `0[any]`. As of Swift 6.0, on some platforms string instances may store their text in UTF-16, and so indices within such strings use `[utf16]` to specify that their offsets are measured in UTF-16 code units.
 
 The `+1` in `0[utf8]+1` is an offset into a _transcoded_ Unicode scalar; this index addresses the trailing surrogate in the UTF-16 transcoding of the first scalar within the string, which has to be outside the Basic Multilingual Plane (or it wouldn't require surrogates). In our particular case, the code point is U+1F44B WAVING HAND SIGN, encoded in UTF-8 as `F0 9F 91 8B`, and in UTF-16 as `D83D DC4B`. The index is addressing the UTF-16 code unit `DC4B`, which does not actually exist anywhere in the string's storage -- it needs to be computed on every access, by transcoding the UTF-8 data for this scalar, and offsetting into the result.)
+
+[lldb]: https://github.com/swiftlang/llvm-project/pull/5515
 
 All of this is really useful information to see while developing or debugging string algorithms, but it is also deeply specific to the particular implementation of `String` that ships in Swift 6.0; therefore it is inherently unstable, and it may change in any Swift release.)
 
@@ -106,6 +110,8 @@ print(str.endIndex.description)
 
 ## Future directions
 
+### Additional `CustomStringConvertible` conformances
+
 Other preexisting types in the Standard Library may also usefully gain `CustomStringConvertible` conformances in the future:
 
 - `Set.Index`, `Dictionary.Index`
@@ -115,6 +121,55 @@ Other preexisting types in the Standard Library may also usefully gain `CustomSt
 - `FlattenSequence`, `FlattenSequence.Index`
 - `LazyPrefixWhileSequence`, `LazyPrefixWhileSequence.Index`
 - etc.
+
+### New String API to expose the information in these descriptions
+
+The information exposed in the index descriptions shown above is mostly retrievable through public APIs, but not entirely: perhaps most importantly, there is no way to get the expected encoding of a string index through the stdlib's public API surface. The lack of such an API may encourage interested Swift developers to try retrieving this information by parsing the unstable `description` string, or by bitcasting indices to peek at the underlying bit patterns -- neither of which would be healthy for the Swift ecosystem overall. It therefore is desirable to eventually expose this information as well, through API additons like the drafts below:
+
+```swift
+extension String {
+  @frozen enum StorageEncoding {
+    case utf8
+    case utf16
+  }
+
+  /// The storage encoding of this string instance. The encoding view
+  /// corresponding to this encoding behaves like a random-access collection.
+  /// 
+  /// - Complexity: O(1)
+  var encoding: StorageEncoding { get }
+}
+
+extension String.Index {
+  /// The encoding of the string that produced this index, or nil if the 
+  /// encoding is not known.
+  /// 
+  /// - Complexity: O(1)
+  var encoding: String.StorageEncoding? { get }
+
+  /// The offset of this position within the UTF-8 storage of the `String`
+  /// instance that produced it. `nil` if the offset is not known to be valid
+  /// in UTF-8 encoded storage.
+  /// 
+  /// - Complexity: O(1)
+  @available(SwiftStdlib 5.7, *)
+  var utf8Offset: Int? { get }
+
+  /// The offset of this position within the UTF-16 storage of the `String`
+  /// instance that produced it.  `nil` if the offset is not known to be valid
+  /// in UTF-16 encoded storage.
+  /// 
+  /// - Complexity: O(1)
+  @available(SwiftStdlib 5.7, *)
+  var utf16Offset: Int? { get }
+}
+```
+
+One major limitation is that string indices don't necessarily know their expected encoding, so the `encoding` property suggested above has to return an optional. (Indices of ASCII strings and the start index of all strings are the same no matter the encoding, and Swift runtimes prior to 5.7 did not track the encoding of string indices at all.) The `utf8Offset` and `utf16Offset` properties would correct and reinstate the functionality that got removed by [SE-0241] with the deprecation of `encodingOffset`.
+
+[SE-0241]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0241-string-index-explicit-encoding-offset.md
+
+Given that these APIs are quite obscure/subtle, and they pose some interesting design challenges on their own, these additions are deferred to a future proposal. The interface suggested above does not include exposing "transcoded offsets"; I expect the eventual proposal would need to cover those, too.
 
 ## Alternatives considered
 
