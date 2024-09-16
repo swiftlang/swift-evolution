@@ -1,9 +1,9 @@
 # Feature name
 
-* Proposal: [SE-NNNN](NNNN-string-index-printing.md)
+* Proposal: [SE-0445](0445-string-index-printing.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (September 16...30, 2024)**
 * Implementation: [apple/swift#75433](https://github.com/swiftlang/swift/pull/75433)
 * Review: ([pitch](https://forums.swift.org/t/improving-string-index-s-printed-descriptions/57027))
 
