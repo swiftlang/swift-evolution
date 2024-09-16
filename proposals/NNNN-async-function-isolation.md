@@ -18,7 +18,8 @@ This proposal changes the behavior of nonisolated async functions to inherit
 the isolation of the caller, and introduces an explicit way to state that an
 async function always switches off of an actor to run. This effectively
 reverses the decision made in
-[SE-0338](/proposals/0338-clarify-execution-non-actor-async.md).
+[SE-0338](/proposals/0338-clarify-execution-non-actor-async.md), in a safe
+manner.
 
 ## Table of Contents
 
@@ -744,6 +745,23 @@ describe the semantics of the function execution. Options that involve a variant
 of the word "isolation" such as `@dropsIsolation` would be easily confused with
 `nonisolated`, and phrases that describe the executor, e.g. `@genericExecutor` or
 similar, are far too formal, and they conflate executor with actor isolation.
+
+### Use `nonisolated` instead of a separate `@concurrent` attribute
+
+It's tempting to not introduce a new attribute to control where an async
+function executes, and instead control this behavior with an explicit
+`nonisolated` annotation. However, this approach falls short for the following
+reasons:
+
+1. It does not accomplish the goal of having consistent semantics for
+   `nonisolated` regardless of whether it's applied to synchronous or
+   async functions.
+2. It's important to have an explicit, easy-to-write spelling for async
+   functions that run on the caller's actor. For example, this is useful to
+   prevent a global actor from being inferred on the function if the global
+   actor is not required.
+3. This approach cuts off the future direction of allowing `@concurrent` on
+   synchronous functions.
 
 ### Don't introduce a type attribute for `@concurrent`
 
