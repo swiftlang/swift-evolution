@@ -5,7 +5,7 @@
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (September 16...30, 2024)**
 * Implementation: [apple/swift#75433](https://github.com/swiftlang/swift/pull/75433)
-* Review: ([pitch](https://forums.swift.org/t/improving-string-index-s-printed-descriptions/57027)) ([review])(https://forums.swift.org/t/se-0445-improving-string-indexs-printed-descriptions/74643)
+* Review: ([pitch](https://forums.swift.org/t/improving-string-index-s-printed-descriptions/57027)) ([review](https://forums.swift.org/t/se-0445-improving-string-indexs-printed-descriptions/74643))
 
 ## Introduction
 
