@@ -25,8 +25,8 @@ reverses the decision made in
 - [Motivation](#motivation)
 - [Proposed solution](#proposed-solution)
 - [Detailed design](#detailed-design)
-  - [Nonisolated function isolation](#nonisolated-function-isolation)
-  - [Concurrent function isolation](#concurrent-function-isolation)
+  - [Nonisolated async functions](#nonisolated-async-functions)
+  - [`@concurrent` async functions](#concurrent-async-functions)
   - [Task isolation inheritance](#task-isolation-inheritance)
   - [`#isolation` macro expansion](#isolation-macro-expansion)
   - [Isolation inference for closures](#isolation-inference-for-closures)
@@ -169,7 +169,7 @@ async functions always running concurrently with actors.
 
 ## Detailed design
 
-### Nonisolated function isolation
+### Nonisolated async functions
 
 Nonisolated async functions inherit the isolation of the caller:
 
@@ -190,14 +190,42 @@ actor MyActor {
 }
 ```
 
-This is done by implicitly passing an isolated parameter to the async function.
+In the above code, the call to `x.performAsync()` continues running on the
+`self` actor instance. The code does not produce a data-race safety error,
+because the `NotSendable` instance `x` does not leave the actor.
 
-`@Sendable` and `sending` closures that are nonisolated still run off of any
-actor's executor. These closures don't face the same usability issues as
-nonisolated async function declarations because they must be able to cross
-isolation boundaries by definition.
+This behavior is accomplished by implicitly passing an optional actor parameter
+to the async function. The function will run on this actor's executor. See the
+[Executor switching](#executor-switching) section for more details on why the
+actor parameter is necessary.
 
-### Concurrent function isolation
+The implicit parameter is not preserved when using a nonisolated async function
+as a value. When referencing a nonisolated async function unapplied in a
+context that expects a nonisolated `@Sendable` or `sending` function type, the
+function will switch off of the caller's actor when the function value is
+called.
+
+> Note: It is not feasible to implicitly add parameters to function values
+> without widespread ABI impact. It's possible to stage in an ABI change for
+> a function declaration itself; see the
+> [ABI Compatibility](#abi-compatibility) section for more information.
+
+For example:
+
+```swift
+func useAsValue() async {}
+
+@MainActor
+func callSendableClosure(closure: @Sendable () async -> Void) {
+  await closure()
+}
+
+callSendableClosure(useAsValue)
+```
+
+In the above code, the call to `useAsValue` runs off of the main actor.
+
+### `@concurrent` async functions
 
 Async functions can be declared to always switch off of an actor to run using
 the `@concurrent` declaration attribute:
@@ -209,7 +237,7 @@ struct S: Sendable {
 ```
 
 The `@concurrent` attribute cannot be applied to synchronous functions. This is
-an artifical limitation that could later be lifted if use cases arise.
+an artificial limitation that could later be lifted if use cases arise.
 
 `@concurrent` is both a declaration attribute and a type attribute. The type
 of an `@concurrent` function declaration is an `@concurrent` function type.
