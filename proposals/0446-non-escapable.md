@@ -1,11 +1,11 @@
 # Nonescapable Types
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0446](0446-non-escapable.md)
 * Authors: [Andrew Trick](https://github.com/atrick), [Tim Kientzle](https://github.com/tbkka)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (September 17...October 1, 2024)**
 * Roadmap: [BufferView Language Requirements](https://forums.swift.org/t/roadmap-language-support-for-bufferview)
-* Implementation: **Pending**
+* Implementation: **Implemented** in `main` branch
 * Upcoming Feature Flag: `NonescapableTypes`
 * Review: ([pitch](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865))
 
