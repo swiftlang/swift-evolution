@@ -1,12 +1,12 @@
 # Span: Safe Access to Contiguous Storage
 
-* Proposal: [SE-NNNN](nnnn-safe-shared-contiguous-storage.md)
+* Proposal: [SE-0447](0447-safe-shared-contiguous-storage.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Michael Ilseman](https://github.com/milseman), [Andrew Trick](https://github.com/atrick)
-* Review Manager: TBD
-* Status: **Awaiting implementation**, previewed in a [branch](https://github.com/apple/swift-collections/tree/future) of [swift-collections](https://github.com/apple/swift-collections).
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (September 17...October 1, 2024)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Bug: rdar://48132971, rdar://96837923
-* Implementation: Prototyped in https://github.com/apple/swift-collections (on branch "future")
+* Implementation: https://github.com/swiftlang/swift/pull/76406
 * Review: ([pitch 1](https://forums.swift.org/t/69888))([pitch 2](https://forums.swift.org/t/72745))
 
 ## Introduction
