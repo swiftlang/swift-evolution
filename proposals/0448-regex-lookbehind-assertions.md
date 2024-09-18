@@ -1,13 +1,10 @@
 # Regex lookbehind assertions
 
-* Proposal: [SE-NNNN](nnnn-regex-lookbehind-assertions.md)
+* Proposal: [SE-0448](0448-regex-lookbehind-assertions.md)
 * Authors: [Jacob Hearst](https://github.com/JacobHearst) [Michael Ilseman](https://github.com/milseman)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
-* Bug: rdar://132158055
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active review (September 17...October 1, 2024)**
 * Implementation: [Prototype](https://github.com/JacobHearst/swift-experimental-string-processing/tree/reverse-matching)
-* Upcoming Feature Flag: (pending)
-
 
 ## Introduction
 
