@@ -5,7 +5,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active review (September 17...October 1, 2024)**
 * Implementation: https://github.com/swiftlang/swift-experimental-string-processing/pull/760
-* Review: ([pitch](https://github.com/swiftlang/swift-evolution/pull/2525))([review])
+* Review: ([pitch](https://github.com/swiftlang/swift-evolution/pull/2525))([review](https://forums.swift.org/t/se-0448-regex-lookbehind-assertions/74672))
 
 
 ## Introduction
