@@ -1,4 +1,4 @@
-# Feature name
+# Improved error handling in unstructured Task initializers
 
 * Proposal: [SE-NNNN](0NNN-unstructured-task-error-handling.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Matt Massicotte](https://github.com/mattmassicotte)
@@ -10,16 +10,19 @@
 
 ## Introduction
 
-This proposal modifies the API of `Task` to adopt typed throws and changes the
-default so it is no longer possible to passively ignore any thrown errors.
+This proposal modifies the API of `Task` to adopt typed throws and makes it easier 
+to spot when an unstructured task is throwing and would have potentially "hidden" a thrown error accidentally.
 
 ## Motivation
 
-The purpose of the `Task` APIs is to capture the outcome of an asynchronous
-operation, either as a resulting value or an error.
-The actual error type, however, is not available to callers that access this
-result via the `value` accessor.
-This is exactly the kind of problem that [typed throws][] can address.
+The purpose of the unstructured tasks is to create a new asynchronous context in which computation may happen.
+Unstructured tasks–unlike their structured cousins (async lets, and task groups)– do not have to be awaited on 
+and their results and thrown errors are simple to discard by just not storing and not awaiting on the created task's `.value`.
+
+Tasks are typed using both the `Success` and `Failure` however, until the recent introduction
+of [typed throws][] to the language, the `Failure` type could only ever have been `Never` or `any Error`.
+
+For example, the following snippet showcases how we lose the error type information when throwing within a task:
 
 ```swift
 let task = Task {
@@ -49,7 +52,8 @@ Task {
 
 Because the creating site has not captured a reference to the task,
 this code is ignoring any failure. This *could* be the author's intention,
-but it not really possible to determine this by looking the code. 
+but it not really possible to determine this by looking the code. The community has frequently 
+requested this to be rectified, such that the error ignoring is 
 
 [typed throws]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md
 
@@ -62,42 +66,56 @@ We propose two changes to the `Task` initialization functions to address these p
 
 ## Detailed design
 
-`Task` now has new initializers and matching detached variants.
-In the case where `Failure` is `Never`,
-these do not permit a throwing body and preserve the ability to ignore the
-created `Task` instance.
+`Task` currently has two initializers and matching detached variants: `.init` and `.detached`.
+
+We propose to adjust these initializers by:
+
+1) Keeping the the the non-throwing overloads of those APIs with their `@discardableResult` annotation.
+
+This is because while it is common to create fire-and-forget tasks, like `Task { await doSomething() }`, 
+while ignoring the result of the task.
 
 ```swift
+// Current signatures
+
 extension Task where Failure == Never {
   @discardableResult
-  @_alwaysEmitIntoClient
   public init(
     priority: TaskPriority? = nil,
-    @_inheritActorContext @_implicitSelfCapture operation: __owned sending @escaping @isolated(any) () async -> Success
+    operation: sending @escaping @isolated(any) () async -> Success
   ) {
     // ...
   }
 
   @discardableResult
-  @_alwaysEmitIntoClient
   public static func detached(
     priority: TaskPriority? = nil,
-    operation: __owned sending @escaping @isolated(any) () async -> Success
+    operation: sending @escaping @isolated(any) () async -> Success
   ) -> Task<Success, Never> {
     // ...
   }
 }
 ```
 
-However, for a non-`Never` `Failure`, the `throws` cause exposes the type
-and the `@discardableResult` is dropped.
+2) Adjust the `throwing` variants of those APIs by:
+
+- removing the `@discardableResult` attribute
+- adopting typed throws
+
+We argue that the fact that accidentally forgetting to handle an error is more common and "risky",
+than forgetting to obtain the result value of an unstructured task. If a task is created and it's 
+result is importand to handle, developers naturally will store and await it. However, ignoring errors
+even in the simple "fire-and-forget" task case, may yield to unexpected and silent dropping of errors.
+
+Therefore we argue that the discardable result behavior need only be dropped from the throwing versions of these APIs.
 
 ```swift
+// Proposed signatures
+
 extension Task {
-  @_alwaysEmitIntoClient
   public init(
     priority: TaskPriority? = nil,
-    @_inheritActorContext @_implicitSelfCapture operation: __owned sending @escaping @isolated(any) () async throws(Failure) -> Success
+    operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
   ) {
     // ...
   }
@@ -127,16 +145,14 @@ extension Task {
 
 ## Source compatibility
 
-This proposal should not affect the behavior of existing code.
+This proposal is source compatible.
 
 However, it does intentionally introduce a warning into code that is
-ignoring errors produced by a `Task`.
-The developer's intention in this situation is inherently ambigous,
-and one of the purposes of this proposal is to resolve this ambiguity.
-The expectation is this will catch real mistakes.
+ignoring errors that may be thrown by awaiting on an unstructured `Task`.
 
-Explicitly expressing the intention to actually ignore errors is also
-very straightforward:
+If the developer's intent was truly to ignore the task handle and potentially thrown error,
+they should explicitly ignore it (which will silence the warning):
+
 
 ```swift
 let = Task {
@@ -144,15 +160,14 @@ let = Task {
 }
 ```
 
+The should imrprove code quality by making it more obvious when potential errors are being ignored.
+
 ## ABI compatibility
 
-This proposal does not change how any existing code is compiled.
+This proposal is ABI additive.
 
-## Implications on adoption
-
-No new types are being introduced, and the APIs that require change are all
-annotated with `@_alwaysEmitIntoClient`.
-This propsoal can be implemented purely in the compiler.
+APIs that require change are all annotated with `@_alwaysEmitIntoClient`,
+so there is no ABI impact on changing them.
 
 ## Alternatives considered
 
