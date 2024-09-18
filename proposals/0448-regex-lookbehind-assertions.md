@@ -4,7 +4,9 @@
 * Authors: [Jacob Hearst](https://github.com/JacobHearst) [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active review (September 17...October 1, 2024)**
-* Implementation: [Prototype](https://github.com/JacobHearst/swift-experimental-string-processing/tree/reverse-matching)
+* Implementation: https://github.com/swiftlang/swift-experimental-string-processing/pull/760
+* Review: ([pitch](https://github.com/swiftlang/swift-evolution/pull/2525))([review])
+
 
 ## Introduction
 
