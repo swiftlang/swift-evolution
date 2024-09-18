@@ -7,7 +7,7 @@
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Bug: rdar://48132971, rdar://96837923
 * Implementation: https://github.com/swiftlang/swift/pull/76406
-* Review: ([pitch 1](https://forums.swift.org/t/69888))([pitch 2](https://forums.swift.org/t/72745))
+* Review: ([pitch 1](https://forums.swift.org/t/69888))([pitch 2](https://forums.swift.org/t/72745))([review](https://forums.swift.org/t/se-0447-span-safe-access-to-contiguous-storage/74676))
 
 ## Introduction
 
