@@ -42,7 +42,7 @@ In addition, the use of reference counting to ensure correctness at runtime make
 
 Currently, the notion of "escapability" appears in the Swift language as a feature of closures.
 Nonescapable closures can use a very efficient stack-based representation;
-closures that are `@escapable` store their captures on the heap.
+closures that are `@escaping` store their captures on the heap.
 
 By allowing Swift developers to mark various types as nonescapable, we provide a mechanism for them to opt into a specific set of usage limitations that:
 
