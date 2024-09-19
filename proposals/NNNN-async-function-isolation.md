@@ -11,8 +11,8 @@
 
 Swift's general philosophy is to prioritize safety and ease-of-use over
 performance, while still providing tools to write more efficient code. The
-current behavior of nonisolated async functions prioritizes performance at the
-expense of usability.
+current behavior of nonisolated async functions prioritizes main actor
+responsiveness at the expense of usability.
 
 This proposal changes the behavior of nonisolated async functions to inherit
 the isolation of the caller, and introduces an explicit way to state that an
@@ -39,6 +39,7 @@ manner.
 - [Implications on adoption](#implications-on-adoption)
 - [Alternatives considered](#alternatives-considered)
   - [Different spelling for `@concurrent`](#different-spelling-for-concurrent)
+  - [Use `nonisolated` instead of a separate `@concurrent` attribute](#use-nonisolated-instead-of-a-separate-concurrent-attribute)
   - [Don't introduce a type attribute for `@concurrent`](#dont-introduce-a-type-attribute-for-concurrent)
 
 ## Motivation
@@ -53,7 +54,7 @@ preventing unexpected overhang on the main actor.
 
 This decision has a number of unfortunate consequences.
 
-**`nonisolated` is difficult to understand.** There is a semantic difference 
+**`nonisolated` is difficult to understand.** There is a semantic difference
 between the isolation behavior of nonisolated synchronous and asynchronous
 functions; nonisolated synchronous functions always stay in the isolation
 domain of the caller, while nonisolated async functions always switch off of
@@ -117,7 +118,7 @@ only manifests when calling the API from an actor.
 
 The concurrency library itself has made this mistake, and many of the async
 APIs in the concurrency library have since transitioned to inheriting the
-isolation of the caller using isolated parameters; see 
+isolation of the caller using isolated parameters; see
 [SE-0421](/proposals/0421-generalize-async-sequence.md) for an example.
 
 **It's difficult to write higher-order async APIs.** Consider the following
@@ -165,8 +166,30 @@ complicated.
 I propose changing nonisolated async functions to inherit the isolation of the
 caller by default. This means that nonisolated functions always have the same
 isolation rules, regardless of whether the function is synchronous or
-asynchronous. The `@concurrent` declaration attribute can be used to opt into
-async functions always running concurrently with actors.
+asynchronous. This makes the following example from the motivation section
+valid, because the call to `x.performAsync()` does not cross an isolation
+boundary:
+
+```swift
+class NotSendable {
+  func performSync() { ... }
+  func performAsync() async { ... }
+}
+
+actor MyActor {
+  let x: NotSendable
+
+  func call() async {
+    x.performSync() // okay
+
+    await x.performAsync() // okay
+  }
+}
+```
+
+This proposal also introduces the `@concurrent` declaration attribute to opt
+out of isolation inheritance, so that the function always switches off of an
+actor to run.
 
 ## Detailed design
 
@@ -204,7 +227,7 @@ The implicit parameter is not preserved when using a nonisolated async function
 as a value. When referencing a nonisolated async function unapplied in a
 context that expects a nonisolated `@Sendable` or `sending` function type, the
 function will switch off of the caller's actor when the function value is
-called.
+called, and sendable checking will be applied to argument and result values.
 
 > Note: It is not feasible to implicitly add parameters to function values
 > without widespread ABI impact. It's possible to stage in an ABI change for
@@ -214,11 +237,18 @@ called.
 For example:
 
 ```swift
-func useAsValue() async {}
+class NotSendable { ... }
+
+func useAsValue(_ ns: NotSendable) async { ... }
+
+@MainActor let global: NotSendable = .init()
 
 @MainActor
-func callSendableClosure(closure: @Sendable () async -> Void) {
-  await closure()
+func callSendableClosure(closure: @Sendable (NotSendable) async -> Void) {
+  let ns = NotSendable()
+  await closure(ns) // okay
+
+  await closure(global) // error
 }
 
 callSendableClosure(useAsValue)
@@ -270,7 +300,8 @@ actor MyActor {
 
 It is an error to use `@concurrent` together with another form of isolation,
 including global actors, isolated parameters, `nonisolated`, and
-`@isolated(any)`.
+`@isolated(any)`. `@concurrent` can be used together with `@Sendable` or
+`sending`.
 
 ### Task isolation inheritance
 
@@ -386,29 +417,70 @@ isolation for a closure depends on two factors:
 2. Whether the contextual type of the closure is `@Sendable` or `sending`.
 
 If the contextual type of the closure is neither `@Sendable` nor `sending`, the
-inferred isolation of the closure is the same as the enclosing context. If
-either the type of the closure is `@Sendable` or the closure is passed to a
-`sending` parameter, the closure is inferred to be nonisolated:
+inferred isolation of the closure is the same as the enclosing context:
 
 ```swift
 class NotSendable { ... }
 
 @MainActor
-func closureOnMain(ns: NotSendable) {
-  let nonSendableClosure: () -> Void = {
+func closureOnMain(ns: NotSendable) async {
+  let syncClosure: () -> Void = {
     // inferred to be @MainActor-isolated
 
     // capturing main-actor state is okay
     print(ns)
   }
 
-  let sendableClosure: @Sendable () -> Void = {
+  // runs on the main actor
+  syncClosure()
+
+  let asyncClosure: (NotSendable) async -> Void = {
+    // inferred to be @MainActor-isolated
+
+    print($0)
+  }
+
+  // runs on the main actor;
+  // passing main-actor state is okay
+  await asyncClosure(ns)
+}
+```
+
+If either the type of the closure is `@Sendable` or the closure is passed to a
+`sending` parameter, the closure is inferred to be `nonisolated`. If the
+closure is `async`, the closure will switch off of the calling actor to run:
+
+```swift
+class NotSendable { ... }
+
+@MainActor
+func closureOnMain(ns: NotSendable) {
+  let syncClosure: @Sendable () -> Void = {
     // inferred to be nonisolated
 
     print(ns) // error
   }
+
+  let asyncClosure: @Sendable (NotSendable) async -> Void = {
+    // inferred to be nonisolated and runs off of the actor
+
+    print($0)
+  }
+
+  await asyncClosure(ns) // error
 }
 ```
+
+**Open question.** The current compiler implementation does not implicitly
+capture the isolation of the enclosing context for async closures formed in a
+method with an isolated parameter; the closure is only isolated to the actor if
+the actor value is explicitly captured. This is done to avoid implicitly
+capturing values that are invisible to the programmer, because this can lead to
+reference cycles. This behavior is surprising with respect to data-race safety,
+but I'm concerned about changes to this behavior causing new memory leaks. One
+potential compromise is to keep the current isolation inference behavior, and
+offer fix-its to capture the actor if there are any data-race safety errors
+from capturing state in the actor's region.
 
 ### Function conversions
 
@@ -659,9 +731,13 @@ class NotSendable { ... }
 ### Executor switching
 
 Async functions switch executors in the implementation when entering the
-function, and after any calls to async functions. Isolated functions switch to
-the isolated parameter or global actor's executor, and `@concurrent` functions
-switch to the generic executor:
+function, and after any calls to other async functions. Note that synchronous
+functions do not have the ability to switch executors, and if a call to a
+synchronous function crosses an isolation boundary, the call must happen in an
+async context and the executor switch happens at the caller.
+
+`@concurrent` async functions switch to the generic executor, and all other
+async functions switch to the isolated actor's executor.
 
 ```swift
 @MainActor func runOnMainExecutor() async {
@@ -675,23 +751,46 @@ switch to the generic executor:
 @concurrent func runOnGenericExecutor() async {
   // switch to generic executor
 
-  await Task { @MainActor in ... }.value
+  await Task { @MainActor in
+    // switch to main actor executor
+
+    ...
+  }.value
 
   // switch to generic executor
 }
 ```
 
-Executor switching behaves the same way in nonisolated async functions:
+Under this proposal, by default, nonisolated async functions will switch to
+the executor of the implicit isolated parameter instead of switching to the
+generic executor:
 
 ```swift
-@MainActor func runOnMainExecutor() { ... }
+@MainActor func runOnMainExecutor() async {
+  // switch to main actor executor
+  ...
+}
 
-nonisolated func inheritIsolation() async {
+class NotSendable {
+  var value = 0
+}
+
+actor MyActor {
+  let ns: NotSendable = .init()
+
+  func callNonisolatedFunction() async {
+    await inheritIsolation(ns)
+  }
+}
+
+nonisolated func inheritIsolation(_ ns: NotSendable) async {
   // switch to isolated parameter's executor
 
   await runOnMainExecutor()
 
   // switch to isolated parameter's executor
+
+  ns.value += 1
 }
 ```
 
