@@ -4,7 +4,7 @@
 * Authors: [Sima Nerush](https://github.com/simanerush), [Holly Borla](https://github.com/hborla)
 * Review Manager: TBD
 * Status: **Implemented**
-* Implementation: [swiftlang/swift#76395](https://github.com/swiftlang/swift/pull/76395)
+* Implementation: On `main` gated behind `-enable-experimental-feature GlobalActorInferenceCutoff`
 * Review: ([pitch](https://forums.swift.org/t/pitch-allow-nonisolated-to-prevent-global-actor-inference/74502))
 
 ## Introduction
