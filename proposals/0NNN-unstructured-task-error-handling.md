@@ -11,7 +11,7 @@
 ## Introduction
 
 This proposal modifies the API of `Task` to adopt typed throws and makes it
-more difficult to ignore thrown errors accidentially.
+more difficult to ignore thrown errors accidentally.
 
 ## Motivation
 
@@ -60,7 +60,7 @@ this code is ignoring any failure.
 This *could* be the author's intention, but it not really possible to
 determine this by looking the code.
 The community has frequently requested this be rectified,
-such that ignoring an error requires a more explict expression of intention.
+such that ignoring an error requires a more explicit expression of intention.
 
 [typed throws]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md
 
@@ -121,7 +121,7 @@ In the cases of a non-`Never` error, the signatures would be adjusted by:
 We argue that the fact that accidentally forgetting to handle an error is
 more common and "risky"
 than forgetting to obtain the result value of an unstructured task.
-If a task is created and it's result is importand to handle,
+If a task is created and it's result is important to handle,
 developers naturally will store and await it.
 However, ignoring errors even in the simple "fire-and-forget" task case,
 may yield to unexpected and silent dropping of errors.
@@ -175,12 +175,12 @@ potentially thrown error,
 they can explicitly ignore it to silence the warning.
 
 ```swift
-let = Task {
+let _ = Task {
   throw MyError.somethingBadHappened
 }
 ```
 
-The should imrprove code quality by making it more obvious when potential
+The should improve code quality by making it more obvious when potential
 errors are being ignored.
 
 ## ABI compatibility
@@ -200,7 +200,7 @@ could be an annoyance.
 However, choosing a surprising and potentially error-prone behavior as the
 default goes against Swift's general philosophy of safety.
 Changing this default feels like a much better balance, especially since
-re-expressing the existing behavior involves such a familar language pattern.
+re-expressing the existing behavior involves such a familiar language pattern.
 
 ## Acknowledgments
 
