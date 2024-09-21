@@ -10,19 +10,24 @@
 
 ## Introduction
 
-This proposal modifies the API of `Task` to adopt typed throws and makes it easier 
-to spot when an unstructured task is throwing and would have potentially "hidden" a thrown error accidentally.
+This proposal modifies the API of `Task` to adopt typed throws and makes it
+more difficult to ignore thrown errors accidentially.
 
 ## Motivation
 
-The purpose of the unstructured tasks is to create a new asynchronous context in which computation may happen.
-Unstructured tasks–unlike their structured cousins (async lets, and task groups)– do not have to be awaited on 
-and their results and thrown errors are simple to discard by just not storing and not awaiting on the created task's `.value`.
+The purpose of unstructured tasks is to create a new asynchronous context in
+which computation may happen.
+Unlike the structured constructs (async lets and task groups),
+unstructured tasks to not have to be awaited.
+Their results and thrown errors are simple to discard by just not storing and
+not awaiting on the created task's `.value`.
 
-Tasks are typed using both the `Success` and `Failure` however, until the recent introduction
-of [typed throws][] to the language, the `Failure` type could only ever have been `Never` or `any Error`.
+Tasks are typed using both the `Success` and `Failure`.
+However, until the recent introduction of [typed throws][] to the language,
+the `Failure` type could only ever have been `Never` or `any Error`.
 
-For example, the following snippet showcases how we lose the error type information when throwing within a task:
+For example, the following snippet showcases how we lose the error type
+information when throwing within a task:
 
 ```swift
 let task = Task {
@@ -51,33 +56,42 @@ Task {
 ```
 
 Because the creating site has not captured a reference to the task,
-this code is ignoring any failure. This *could* be the author's intention,
-but it not really possible to determine this by looking the code. The community has frequently 
-requested this to be rectified, such that the error ignoring is 
+this code is ignoring any failure.
+This *could* be the author's intention, but it not really possible to
+determine this by looking the code.
+The community has frequently requested this be rectified,
+such that ignoring an error requires a more explict expression of intention.
 
 [typed throws]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md
 
 ## Proposed solution
 
-We propose two changes to the `Task` initialization functions to address these problems:
+We propose two changes to the `Task` initialization functions to address
+these problems:
 
 - adopt typed throws
 - remove the use of `@discardableResult` unless `Failure` is `Never`
 
 ## Detailed design
 
-`Task` currently has two initializers and matching detached variants: `.init` and `.detached`.
+`Task` currently has two initializers and matching detached variants:
+`.init` and `.detached`.
 
-We propose to adjust these initializers by:
+We propose to adjust these initializers in two ways.
 
-1) Keeping the the the non-throwing overloads of those APIs with their `@discardableResult` annotation.
+### Non-throwing overloads
 
-This is because while it is common to create fire-and-forget tasks, like `Task { await doSomething() }`, 
-while ignoring the result of the task.
+In these cases, the `@discardableResult` remains useful.
+It is common to create fire-and-forget tasks that do not require access to the
+result at the point of creation.
 
 ```swift
-// Current signatures
+Task { await doSomething() }
+```
 
+These signatures would be unchanged.
+
+```swift
 extension Task where Failure == Never {
   @discardableResult
   public init(
@@ -97,21 +111,27 @@ extension Task where Failure == Never {
 }
 ```
 
-2) Adjust the `throwing` variants of those APIs by:
+### Throwing overloads
+
+In the cases of a non-`Never` error, the signatures would be adjusted by:
 
 - removing the `@discardableResult` attribute
 - adopting typed throws
 
-We argue that the fact that accidentally forgetting to handle an error is more common and "risky",
-than forgetting to obtain the result value of an unstructured task. If a task is created and it's 
-result is importand to handle, developers naturally will store and await it. However, ignoring errors
-even in the simple "fire-and-forget" task case, may yield to unexpected and silent dropping of errors.
+We argue that the fact that accidentally forgetting to handle an error is
+more common and "risky"
+than forgetting to obtain the result value of an unstructured task.
+If a task is created and it's result is importand to handle,
+developers naturally will store and await it.
+However, ignoring errors even in the simple "fire-and-forget" task case,
+may yield to unexpected and silent dropping of errors.
 
-Therefore we argue that the discardable result behavior need only be dropped from the throwing versions of these APIs.
+Therefore we argue that the discardable result behavior need only be dropped
+from the throwing versions of these APIs.
+
+These signatures would be modified:
 
 ```swift
-// Proposed signatures
-
 extension Task {
   public init(
     priority: TaskPriority? = nil,
@@ -150,9 +170,9 @@ This proposal is source compatible.
 However, it does intentionally introduce a warning into code that is
 ignoring errors that may be thrown by awaiting on an unstructured `Task`.
 
-If the developer's intent was truly to ignore the task handle and potentially thrown error,
-they should explicitly ignore it (which will silence the warning):
-
+If the developer's intent was truly to ignore the task handle and the
+potentially thrown error,
+they can explicitly ignore it to silence the warning.
 
 ```swift
 let = Task {
@@ -160,7 +180,8 @@ let = Task {
 }
 ```
 
-The should imrprove code quality by making it more obvious when potential errors are being ignored.
+The should imrprove code quality by making it more obvious when potential
+errors are being ignored.
 
 ## ABI compatibility
 
