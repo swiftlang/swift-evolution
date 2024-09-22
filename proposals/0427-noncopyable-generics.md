@@ -362,7 +362,7 @@ struct or enum declares a `deinit`. Deterministic destruction requires the
 type to be unconditionally noncopyable.
 
 A conformance to `Copyable` is checked by verifying that every stored property
-(of a struct) or associated value (or an enum) itself conforms to `Copyable`.
+(of a struct) or associated value (of an enum) itself conforms to `Copyable`.
 For a conditional `Copyable` conformance, the conditional requirements must be
 sufficient to ensure this is the case. For example, the following is rejected,
 because the struct cannot unconditionally conform to `Copyable`, having a
