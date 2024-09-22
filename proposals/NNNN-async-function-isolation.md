@@ -818,11 +818,35 @@ TBD
 
 ## ABI compatibility
 
-TBD: I'm still figuring out whether this change can be staged in while
-preserving ABI for existing nonisolated async functions. A number of APIs
-in the concurrency library have transitioned to inheriting the isolation of
-the caller using isolated parameters and `#isolation`, and it may be possible
-to do this transformation automatically.
+**Open question.** I'm still figuring out whether this change can be staged in
+while preserving ABI for existing nonisolated async functions while also
+preserving source compatibility. A number of APIs in the concurrency library
+have transitioned to inheriting the isolation of the caller using isolated
+parameters and `#isolation`, and it may be possible to do this transformation
+automatically for resilient libraries.
+
+For example, if a nonisolated async function is ABI-public and is available
+earlier than a version of the Swift runtime that includes this change, the
+compiler could emit two separate entry points for the function:
+
+```swift
+@_alwaysEmitIntoClient
+public func myAsyncFunc() async {
+  // original implementation
+}
+
+@concurrent
+@_silgen_name(...) // to preserve the original symbol name
+@usableFromInline
+internal func abi_myAsyncFunc() async {
+  // existing compiled code will continue to always run calls to this function
+  // on the generic executor.
+  await myAsyncFunc()
+}
+```
+
+However, this transformation only works if the original function implementation
+can be made inlinable.
 
 ## Implications on adoption
 
