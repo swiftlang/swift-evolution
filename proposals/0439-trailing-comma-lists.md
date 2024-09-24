@@ -32,7 +32,7 @@ Other comma-separated lists in the language could also benefit from the flexibil
 
 ```swift
 let numbers = [1, 2, 0, 3, 4, 0, 0, 5]
-    
+
 let subsequences = numbers.split(
     separator: 0,
 //    maxSplits: 1
@@ -51,177 +51,174 @@ This proposal adds support for trailing commas in comma-separated lists when the
 
 - Tuples and tuple patterns.
 
-```swift
+    ```swift
+    let velocity = (
+        1.66007664274403694e-03,
+        7.69901118419740425e-03,
+        6.90460016972063023e-05,
+    )
 
-let velocity = (
-    1.66007664274403694e-03,
-    7.69901118419740425e-03,
-    6.90460016972063023e-05,
-)
-
-let (
-    velocityX,
-    velocityY,
-    velocityZ,
-) = velocity
-
-```
+    let (
+        velocityX,
+        velocityY,
+        velocityZ,
+    ) = velocity
+    ```
 
 - Parameter and argument lists of initializers, functions, enum associated values, expression macros, attributes, and availability specs.
 
-```swift
-
-func foo(
-    input1: Int = 0,
-    input2: Int = 0,
-) { }
-
-foo(
-    input1: 1,
-    input2: 1,
-)
-
-struct S {
-    init(
+    ```swift
+    func foo(
         input1: Int = 0,
         input2: Int = 0,
     ) { }
-}
 
-enum E {
-    case foo(
-        input1: Int = 0,
-        input2: Int = 0,
+    foo(
+        input1: 1,
+        input2: 1,
     )
-}
 
-@Foo(
-    "input 1",
-    "input 2",
-    "input 3",
-) 
-struct S { }
+    struct S {
+        init(
+            input1: Int = 0,
+            input2: Int = 0,
+        ) { }
+    }
 
-#foo(
-    "input 1",
-    "input 2",
-    "input 3",
-)
+    enum E {
+        case foo(
+            input1: Int = 0,
+            input2: Int = 0,
+        )
+    }
 
-struct S {
+    @Foo(
+        "input 1",
+        "input 2",
+        "input 3",
+    )
+    struct S { }
+
     #foo(
         "input 1",
         "input 2",
         "input 3",
     )
-}
 
-if #unavailable(
-    iOS 15,
-    watchOS 9,
-) { }
+    struct S {
+        #foo(
+            "input 1",
+            "input 2",
+            "input 3",
+        )
+    }
 
-```
+    if #unavailable(
+        iOS 15,
+        watchOS 9,
+    ) { }
+    ```
+
 - Subscripts, including key path subscripts.
 
-```swift
-let value = m[
-    x,
-    y,
-]
+    ```swift
+    let value = m[
+        x,
+        y,
+    ]
 
-let keyPath = \Foo.bar[
-    x,
-    y,
-]  
+    let keyPath = \Foo.bar[
+        x,
+        y,
+    ]
 
-f(\.[
-    x,
-    y,
-])
-```
+    f(\.[
+        x,
+        y,
+    ])
+    ```
 
 - `if`, `guard` and `while` condition lists.
 
-```swift
-if
-    condition1,
-    condition2,
-{ }
+    ```swift
+    if
+        condition1,
+        condition2,
+    { }
 
-while
-    condition1,
-    condition2,
-{ }
+    while
+        condition1,
+        condition2,
+    { }
 
-guard
-    condition1,
-    condition2,
-else { }
-```
+    guard
+        condition1,
+        condition2,
+    else { }
+    ```
 
 - `switch` case labels.
 
-```swift
-switch number {
-    case
-        1,
-        2,
-    :
-        ...
-    default:
-        ..
-}
-```
+    ```swift
+    switch number {
+        case
+            1,
+            2,
+        :
+            ...
+        default:
+            ..
+    }
+    ```
 
 - Closure capture lists.
 
-```swift
-{ [
-    capturedValue1,
-    capturedValue2,
-  ] in
-}
-```
+    ```swift
+    { [
+        capturedValue1,
+        capturedValue2,
+    ] in
+    }
+    ```
 
 - Inheritance clauses.
 
-```swift
-struct S:
-    P1,
-    P2,
-    P3,
-{ }
-```
+    ```swift
+    struct S:
+        P1,
+        P2,
+        P3,
+    { }
+    ```
 
 - Generic parameters.
 
-```swift
-struct S<
-    T1,
-    T2,
-    T3,
-> { }
-```
+    ```swift
+    struct S<
+        T1,
+        T2,
+        T3,
+    > { }
+    ```
 
 - Generic `where` clauses.
 
-```swift
-struct S<
-    T1,
-    T2,
-    T3
-> where
-    T1: P1,
-    T2: P2,
-{ }
-```
+    ```swift
+    struct S<
+        T1,
+        T2,
+        T3
+    > where
+        T1: P1,
+        T2: P2,
+    { }
+    ```
 
 - String interpolation
 
-```swift
-let s = "\(1, 2,)"
-```
+    ```swift
+    let s = "\(1, 2,)"
+    ```
 
 ## Detailed Design
 
@@ -278,7 +275,7 @@ if
   condition2,
 { // ❌ Function produces expected type 'Bool'; did you mean to call it with '()'?
   return true
-} 
+}
 
 { print("something") }
 ```
@@ -293,7 +290,7 @@ if
   condition2,
 {
   return true
-} 
+}
 
 { print("something") } // ❌ Closure expression is unused
 ```
