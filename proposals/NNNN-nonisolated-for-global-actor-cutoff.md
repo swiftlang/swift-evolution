@@ -221,26 +221,29 @@ Because `MyClass` does not conform to `Sendable`, it cannot be accessed from mul
 For global-actor-isolated value types, [SE-0434: Usability of global-actor-isolated types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows accessing `var` stored properties with `Sendable` type from within the module as `nonisolated`. This proposal extends this rule to **all** `Sendable` value types:
 
 ```swift
-struct S {
-  var x: Int = 0 // okay ('nonisolated' is inferred within the module)
+protocol P {
+  @MainActor var x: Int { get }
 }
 
-actor MyActor {
-  func test(s: S) {
-    print(s.x) // synchronous access to 'x' after sending `S` to `MyActor` is okay.
+struct S: P {
+  var x: Int // 'nonisolated' is inferred within the module
+
+  init(x: Int) {
+    self.x = x // nonisolated access of x is okay
   }
 }
 ```
 
-In the above code, the value type `S` is implicitly `Sendable` within the module and its storage `x` is of `Sendable` type `Int`. When `Sendable` value types are passed between isolation domains, each isolation domain has an independent copy of the value. Accessing properties stored on a value type from across isolation domains is safe as long as the stored property type is also `Sendable`. Even if the stored property is a `var`, assigning to the property will not risk a data race, because the assignment cannot have effects on copies in other isolation domains. Therefore, synchronous access of `x` from within the module is okay.
+In the above code, the value type `S` is implicitly `Sendable` and its protocol requirement stored property `x` is of `Sendable` type `Int`. While the protocol `P` requires `x` to be globally isolated,
+under this proposal, the witness `x` is treated as non-isolated within the module.
+When `Sendable` value types are passed between isolation domains, each isolation domain has an independent copy of the value. Accessing properties stored on a value type from across isolation domains is safe as long as the stored property type is also `Sendable`. Even if the stored property is a `var`, assigning to the property will not risk a data race, because the assignment cannot have effects on copies in other isolation domains. Therefore, synchronous access of `x` is okay.
 
-Additionally, [SE-0434](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows explicitly annotating globally-isolated value types' properties such as `x` in the previous example with `nonisolated` for synchronous access from outside the module. This proposal extends this rule to **all** `Sendable` value types:
+Additionally, [SE-0434](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows explicitly annotating globally-isolated value types' properties such as `x` in the previous example with `nonisolated` for enabling synchronous access from outside the module. This proposal extends this rule to **all** `Sendable` value types:
 
 ```swift
 // In Module A
-public struct S: Sendable {
-  nonisolated public var x: Int = 0 // okay
-  public init() {}
+public protocol P {
+  @MainActor var x: Int { get }
 }
 ```
 
@@ -248,9 +251,11 @@ public struct S: Sendable {
 // In Module B
 import A
 
-actor MyActor {
-  func test(s: S) {
-    print(s.x) // synchronous access to 'x' after sending `S` to `MyActor` is okay.
+struct S: P {
+  nonisolated var x: Int // 'nonisolated' is explicitly spelled
+
+  init(x: Int) {
+    self.x = x // x is non-isolated
   }
 }
 ```
