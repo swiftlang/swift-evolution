@@ -127,9 +127,26 @@ struct A: Refined {
 }
 ```
 
-In the above code,  the protocol `Refined` is refining the `GloballyIsolated` protocol, but is declared non-isolated. This means that the `Refined` still has the same requirements as `GloballyIsolated`, but they are not isolated. Therefore, a struct `A` conforming to it is also non-isolated, which allows the programmer for more flexibility when implementing the requirements of a protocol.
+In the above code, the protocol `Refined` is refining the `GloballyIsolated` protocol, but is declared non-isolated. This means that the `Refined` still has the same requirements as `GloballyIsolated`, but they are not isolated. Therefore, a struct `A` conforming to it is also non-isolated, which allows the programmer for more flexibility when implementing the requirements of a protocol.
 
 #### Extensions
+
+Today, it is possible for extensions to be globally-isolated:
+
+```swift
+struct X {}
+
+@MainActor extension X {
+  func f() {} // implicitly globally-isolated
+  var x: Int { get { 1 } } // implicitly globally-isolated
+}
+```
+
+In the above code, `X` is a non-isolated struct, and extension members
+`f()` and `x` are globally-isolated.
+
+However, if `X` was globally-isolated, before this proposal, the only way to stop extension members from inferring the global actor would be to mark every extension member with
+`nonisolated`.
 
 This proposal allows for `nonisolated` attribute to be applied on extension declarations:
 
@@ -147,7 +164,7 @@ struct C: GloballyIsolated {
 }
 ```
 
-In the code above, the  `nonisolated` attribute is applied to an extension declaration for a `GloballyIsolated` protocol. When applied to an extension, `nonisolated` applies to all of its members. In this case, `implicitlyNonisolated` method and the computed property `x` are both nonisolated, and therefore are able to be accessed from a nonisolated context in the body of `explicitlyNonisolated` method of a globally-isolated struct `C`.
+In the code above, the `nonisolated` attribute is applied to an extension declaration for a `GloballyIsolated` protocol. When applied to an extension, `nonisolated` applies to all of its members. In this case, `implicitlyNonisolated` method and the computed property `x` are both nonisolated, and therefore are able to be accessed from a nonisolated context in the body of `explicitlyNonisolated` method of a globally-isolated struct `C`.
 
 #### Classes, structs, and enums
 
@@ -222,14 +239,16 @@ For global-actor-isolated value types, [SE-0434: Usability of global-actor-isola
 
 ```swift
 protocol P {
-  @MainActor var x: Int { get }
+  @MainActor var y: Int { get }
 }
 
 struct S: P {
-  var x: Int // 'nonisolated' is inferred within the module
+  var y: Int // 'nonisolated' is inferred within the module
+}
 
-  init(x: Int) {
-    self.x = x // nonisolated access of x is okay
+struct F {
+  nonisolated func getS(_ s: S) {
+    let x = s.y // okay
   }
 }
 ```
@@ -243,7 +262,11 @@ Additionally, [SE-0434](https://github.com/swiftlang/swift-evolution/blob/main/p
 ```swift
 // In Module A
 public protocol P {
-  @MainActor var x: Int { get }
+  @MainActor var y: Int { get }
+}
+
+public struct S: P {
+  public nonisolated var y: Int // 'y' is explicitly non-isolated
 }
 ```
 
@@ -251,11 +274,34 @@ public protocol P {
 // In Module B
 import A
 
-struct S: P {
-  nonisolated var x: Int // 'nonisolated' is explicitly spelled
+struct F {
+  nonisolated func getS(_ s: S) {
+    let x = s.y // okay
+  }
+}
+```
 
-  init(x: Int) {
-    self.x = x // x is non-isolated
+In contrast, `y` is still treated as globally-isolated without the explicit
+`nonisolated` attribute:
+
+```swift
+// In Module A
+public protocol P {
+  @MainActor var y: Int { get }
+}
+
+public struct S: P {
+  public var y: Int // globally-isolated outside of the module
+}
+```
+
+```swift
+// In Module B
+import A
+
+struct F {
+  nonisolated func getS(_ s: S) {
+    let x = s.y // error: main actor-isolated property 'y' can not be referenced from a nonisolated context
   }
 }
 ```
