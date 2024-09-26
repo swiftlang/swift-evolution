@@ -114,7 +114,7 @@ extension Span where Element: ~Copyable {
 }
 ```
 
-Note that we use a `_read` accessor for the subscript, a requirement in order to `yield` a borrowed non-copyable `Element` (see ["Coroutines"](#Coroutines).) This will be updated to a final syntax at a later time, understanding that we intend the replacement to be source-compatible.
+Note that we use a `_read` accessor for the subscript, a requirement in order to `yield` a borrowed non-copyable `Element` (see ["Coroutines"](#Coroutines).) This yields an element whose lifetime is scoped around this particular access, as opposed to matching the lifetime dependency of the `Span` itself. This is a language limitation we expect to resolve with a followup proposal introducing a new accessor model. The subscript will then be updated to use the new accessor semantics. We expect the updated accessor to be source-compatible, as it will provide a borrowed element with a wider lifetime than a `_read` accessor can provide.
 
 ##### Unchecked access to elements:
 
