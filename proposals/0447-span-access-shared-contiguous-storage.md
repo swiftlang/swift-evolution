@@ -172,21 +172,13 @@ extension Span where Element: ~Copyable {
   /// Returns true if the other span represents exactly the same memory
   public func isIdentical(to span: borrowing Self) -> Bool
   
-  /// Returns true if the memory represented by `self` is a subrange of
-  /// the memory represented by `span`
+  /// Returns the indices within `self` where the memory represented by `span`
+  /// is located, or `nil` if `span` is not located within `self`.
   ///
   /// Parameters:
-  /// - span: a span of the same type as `self`
-  /// Returns: whether `self` is a subrange of `span`
-  public func isWithin(_ span: borrowing Self) -> Bool
-  
-  /// Returns the offsets where the memory of `self` is located within
-  /// the memory represented by `span`, or `nil`
-  ///
-  /// Parameters:
-  /// - span: a subrange of `self`
+  /// - span: a span that may be a subrange of `self`
   /// Returns: A range of offsets within `self`, or `nil`
-  public func indicesWithin(_ span: borrowing Self) -> Range<Int>?
+  public func indices(of span: borrowing Self) -> Range<Int>?
 }
 ```
 
@@ -405,9 +397,7 @@ When working with multiple `RawSpan` instances, it is often desirable to know wh
 extension RawSpan {
   public func isIdentical(to span: borrowing Self) -> Bool
   
-  public func isWithin(_ span: borrowing Self) -> Bool
-  
-  public func byteOffsetsWithin(_ span: borrowing Self) -> Range<Int>?
+  public func byteOffsets(of span: borrowing Self) -> Range<Int>?
 }
 ```
 
