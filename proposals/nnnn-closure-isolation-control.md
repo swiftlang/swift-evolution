@@ -94,11 +94,11 @@ Provide a formal replacement of the experimental parameter attribute `@_inheritA
 
 ```swift
 class Old {
-  public init(@_inheritActorContext operation: () async)
+  public init(@_inheritActorContext operation: () async -> Void)
 }
 
 class New {
-  public init(@inheritsIsolation operation: () async)
+  public init(@inheritsIsolation operation: () async -> Void)
 }
 
 class C {
