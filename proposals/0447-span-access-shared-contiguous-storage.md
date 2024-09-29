@@ -163,8 +163,6 @@ extension Span where Element: ~Copyable {
 }
 ```
 
-Note: these function names are not ideal.
-
 ##### Identifying whether a `Span` is a subrange of another:
 
 When working with multiple `Span` instances, it is often desirable to know whether one is identical to or a subrange of another. We include functions to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span:
