@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active Review (October 2...16, 2024)**
 * Implementation: On `main` gated behind `-enable-experimental-feature GlobalActorInferenceCutoff`
-* Review: ([pitch](https://forums.swift.org/t/pitch-allow-nonisolated-to-prevent-global-actor-inference/74502))
+* Review: ([pitch](https://forums.swift.org/t/pitch-allow-nonisolated-to-prevent-global-actor-inference/74502)) ([review](https://forums.swift.org/t/se-0449-allow-nonisolated-to-prevent-global-actor-inference/75116))
 
 ## Introduction
 
