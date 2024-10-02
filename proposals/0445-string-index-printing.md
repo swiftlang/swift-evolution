@@ -6,6 +6,7 @@
 * Status: **Accepted with modifications**
 * Implementation: [apple/swift#75433](https://github.com/swiftlang/swift/pull/75433)
 * Review: ([pitch](https://forums.swift.org/t/improving-string-index-s-printed-descriptions/57027)) ([review](https://forums.swift.org/t/se-0445-improving-string-indexs-printed-descriptions/74643)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0445-improving-string-index-s-printed-descriptions/75108))
+
 ## Introduction
 
 This proposal conforms `String.Index` to `CustomStringConvertible`.
