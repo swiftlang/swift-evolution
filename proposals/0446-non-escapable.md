@@ -103,7 +103,7 @@ func f() -> NotEscapable {
 ```
 
 **Note**:
-The section ["Returned nonescapable values require lifetime dependency"](#Returns) explains the implications for how you must write initializers.
+The section ["Returned nonescapable values require lifetime dependency"](#returned-nonescapable-values-require-lifetime-dependency) explains the implications for how you must write initializers.
 
 Without `~Escapable`, the default for any type is to be escapable.  Since `~Escapable` suppresses a capability, you cannot declare it with an extension.
 
@@ -196,7 +196,7 @@ enum NonescapableEnum: ~Escapable {
 }
 ```
 
-#### <a name="Returns"></a>Returned nonescapable values require lifetime dependency
+#### Returned nonescapable values require lifetime dependency
 
 As mentioned earlier, a simple return of a nonescapable value is not permitted:
 ```swift
