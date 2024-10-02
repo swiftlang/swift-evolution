@@ -1,9 +1,9 @@
 # Allow `nonisolated` to prevent global actor inference
 
-* Proposal: [SE-NNNN](NNNN-nonisolated-for-global-actor-cutoff.md)
+* Proposal: [SE-0449](0449-nonisolated-for-global-actor-cutoff.md)
 * Authors: [Sima Nerush](https://github.com/simanerush), [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Implemented**
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active Review (October 2...16, 2024)**
 * Implementation: On `main` gated behind `-enable-experimental-feature GlobalActorInferenceCutoff`
 * Review: ([pitch](https://forums.swift.org/t/pitch-allow-nonisolated-to-prevent-global-actor-inference/74502))
 
