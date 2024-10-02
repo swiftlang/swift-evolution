@@ -3,9 +3,12 @@
 * Proposal: [SE-0448](0448-regex-lookbehind-assertions.md)
 * Authors: [Jacob Hearst](https://github.com/JacobHearst) [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active review (September 17...October 1, 2024)**
+* Status: **Accepted**
 * Implementation: https://github.com/swiftlang/swift-experimental-string-processing/pull/760
-* Review: ([pitch](https://forums.swift.org/t/pitch-regex-reverse-matching/73482)) ([review](https://forums.swift.org/t/se-0448-regex-lookbehind-assertions/74672))
+* Review:
+  ([pitch](https://forums.swift.org/t/pitch-regex-reverse-matching/73482))
+  ([review](https://forums.swift.org/t/se-0448-regex-lookbehind-assertions/74672))
+  ([acceptance](https://forums.swift.org/t/accepted-se-0448-regex-lookbehind-assertions/75111))
 
 
 ## Introduction
