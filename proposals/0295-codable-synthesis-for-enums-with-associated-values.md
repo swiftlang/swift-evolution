@@ -196,7 +196,7 @@ public init(from decoder: Decoder) throws {
 
 ### User customization
 
-For the existing cases, users can customize which properties are included in the encoded respresentation
+For the existing cases, users can customize which properties are included in the encoded representation
 and map the property name to a custom name for the encoded representation by providing a custom `CodingKeys`
 declaration, instead of having the compiler generate one. The same should apply to the enum case.
 

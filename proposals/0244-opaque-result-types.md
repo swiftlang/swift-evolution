@@ -634,7 +634,7 @@ The one using opaque typealiases requires an intermediate name, which one must r
 
 ## Future Directions
 
-As noted in the introduction, this proposal is the first part of a group of changes we're considering in a [design document for improving the UI of the generics model](https://forums.swift.org/t/improving-the-ui-of-generics/22814). That design document lays out a number of related directions we can go based on the foundation establised by this proposal, including:
+As noted in the introduction, this proposal is the first part of a group of changes we're considering in a [design document for improving the UI of the generics model](https://forums.swift.org/t/improving-the-ui-of-generics/22814). That design document lays out a number of related directions we can go based on the foundation established by this proposal, including:
 
 - allowing [fully generalized reverse generics](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--reverse-generics)
 - [generalizing the `some` syntax](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints) as shorthand for generic arguments, and allowing structural use in generic returns

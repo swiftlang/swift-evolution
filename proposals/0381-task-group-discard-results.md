@@ -17,7 +17,7 @@ Task groups are the building block of structured concurrency, allowing for the S
 
 The version of Task Groups introduced in [SE-0304](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md) provides all of these features. However, it also provides the ability to propagate return values to the user of the task group. This capability provides an unexpected limitation in some use-cases.
 
-As users of Task Groups are able to retrieve the return values of child tasks, it implicitly follows that the Task Group preserves at least the `Result` of any completed child task. As a practical matter, the task group actually preseves the entire `Task` object. This data is preserved until the user consumes it via one of the Task Group consumption APIs, whether that is `next()` or by iterating the Task Group.
+As users of Task Groups are able to retrieve the return values of child tasks, it implicitly follows that the Task Group preserves at least the `Result` of any completed child task. As a practical matter, the task group actually preserves the entire `Task` object. This data is preserved until the user consumes it via one of the Task Group consumption APIs, whether that is `next()` or by iterating the Task Group.
 
 The result of this is that Task Groups are ill-suited to running for a potentially unbounded amount of time. An example of such a use-case is managing connections accepted from a listening socket. A simplified example of such a workload might be:
 
@@ -103,7 +103,7 @@ public func withThrowingDiscardingTaskGroup<GroupResult>(
 ) async throws -> GroupResult { ... }
 ```
 
-And the types themselfes, mostly mirroring the APIs of `TaskGroup`, except that they're missing `next()` and related functionality:
+And the types themselves, mostly mirroring the APIs of `TaskGroup`, except that they're missing `next()` and related functionality:
 
 ```swift
 public struct DiscardingTaskGroup {

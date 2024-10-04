@@ -70,7 +70,7 @@ They may be be relying on an array being returned (albeit often in order to
 then transform it back into the original type), but this version will still
 be available (via the extension on `Sequence`) and will be called if forced
 through type context. The only code that will break is if this operation spans
-multple lines:
+multiple lines:
 
 ```swift
 // filtered used to be [Character], now String

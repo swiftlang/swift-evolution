@@ -64,7 +64,7 @@ extension BidirectionalCollection {
     ///   - areEquivalent: A closure that returns whether the two
     ///     parameters are equivalent.
     ///
-    /// - Returns: The difference needed to produce the reciever's state from
+    /// - Returns: The difference needed to produce the receiver's state from
     ///   the parameter's state.
     ///
     /// - Complexity: For pathological inputs, worst case performance is
@@ -87,7 +87,7 @@ extension BidirectionalCollection where Element: Equatable {
     /// - Parameters:
     ///   - other: The base state.
     ///
-    /// - Returns: The difference needed to produce the reciever's state from
+    /// - Returns: The difference needed to produce the receiver's state from
     ///   the parameter's state.
     ///
     /// - Complexity: For pathological inputs, worst case performance is

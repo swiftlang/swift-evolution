@@ -47,7 +47,7 @@ public func withTaskGroup<ChildTaskResult, GroupResult>(
 
 The function signature of `withThrowingTaskGroup(of:returning:body:)` is nearly identical, so only `withTaskGroup(of:returning:body:)` will be used as an example throughout this proposal.
 
-Note that the `GroupResult` generic is inferrable via the `= GroupResult.self` default argument.  This can also be applied to `ChildTaskResult` as of [SE-0326](0326-extending-multi-statement-closure-inference.md).  As in:
+Note that the `GroupResult` generic is inferable via the `= GroupResult.self` default argument.  This can also be applied to `ChildTaskResult` as of [SE-0326](0326-extending-multi-statement-closure-inference.md).  As in:
 
 ```swift
 public func withTaskGroup<ChildTaskResult, GroupResult>(

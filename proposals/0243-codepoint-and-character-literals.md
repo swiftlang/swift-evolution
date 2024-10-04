@@ -154,7 +154,7 @@ In Swift 1.0, single quotes were reserved for some yet-to-be determined syntacti
 
 - In current discussions around [regex literals](https://forums.swift.org/t/string-update/7398/6), most people seem to prefer slashes (`/`).
 
-Given that, and the desire for lightweight syntax for single chararcter syntax, and the precedent in other languages for characters, it is natural to use single quotes for this purpose.
+Given that, and the desire for lightweight syntax for single character syntax, and the precedent in other languages for characters, it is natural to use single quotes for this purpose.
 
 ### Existing double quote initializers for characters
 

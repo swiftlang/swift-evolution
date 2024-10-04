@@ -276,7 +276,7 @@ When binding a generic parameter `T` to an opened existential, `T`, `T` and `T`-
 
 will be type-erased to their upper bounds as per the generic signature of the existential that is used to access the member. The upper bounds can be either a class, protocol, protocol composition, or `Any`, depending on the *presence* and *kind* of generic constraints on the associated type. 
 
-When `T` or a `T`-rooted associated type appears in a non-covariant position in the result type, `T` cannot be bound to the underlying type of an existential value because there would be no way to represent the type-erased result. This is essentially the same property as descibed for the parameter types that prevents opening of existentials, as described above. For example:
+When `T` or a `T`-rooted associated type appears in a non-covariant position in the result type, `T` cannot be bound to the underlying type of an existential value because there would be no way to represent the type-erased result. This is essentially the same property as described for the parameter types that prevents opening of existentials, as described above. For example:
 
 ```swift
 func cannotOpen7<T: P>(_ value: T) -> X<T> { /*...*/ }

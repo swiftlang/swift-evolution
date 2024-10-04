@@ -87,7 +87,7 @@ This proposal introduces all core API for creating and composing regexes that ec
 
 ## Motivation
 
-Regex is a fundemental and powerful tool for textual pattern matching. It is a domain-specific language often expressed as text. For example, given the following bank statement:
+Regex is a fundamental and powerful tool for textual pattern matching. It is a domain-specific language often expressed as text. For example, given the following bank statement:
 
 ```
 CREDIT    04062020    PayPal transfer    $4.99
@@ -370,7 +370,7 @@ public enum RegexComponentBuilder {
 
 Before Swift supports variadic generics, `buildPartialBlock(accumulated:next:)` must be overloaded to support concatenating regexes of supported capture quantities (arities). It is overloaded up to `arity^2` times to account for all possible pairs of regexes that make up 10 captures.
 
-In the initial version of the DSL, we plan to support regexes with up to 10 captures, as 10 captures are sufficient for most use cases. These overloads can be superceded by variadic versions of `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` in a future release.
+In the initial version of the DSL, we plan to support regexes with up to 10 captures, as 10 captures are sufficient for most use cases. These overloads can be superseded by variadic versions of `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` in a future release.
 
 ```swift
 extension RegexComponentBuilder {
@@ -1576,7 +1576,7 @@ The proposed feature does not change the ABI of existing features.
 
 ## Effect on API resilience
 
-The proposed feature relies heavily upon overloads of `buildBlock` and `buildPartialBlock(accumulated:next:)` to work for different capture arities. In the fullness of time, we are hoping for variadic generics to supercede existing overloads. Such a change should not involve ABI-breaking modifications as it is merely a change of overload resolution.
+The proposed feature relies heavily upon overloads of `buildBlock` and `buildPartialBlock(accumulated:next:)` to work for different capture arities. In the fullness of time, we are hoping for variadic generics to supersede existing overloads. Such a change should not involve ABI-breaking modifications as it is merely a change of overload resolution.
 
 ## Future directions
 
@@ -1907,7 +1907,7 @@ extension Capture {
 }
 ```
 
-In this case, since the argument label will not be specfied for the first trailing closure, using `Capture` where the component is a non-builder-closure may cause type-checking ambiguity.
+In this case, since the argument label will not be specified for the first trailing closure, using `Capture` where the component is a non-builder-closure may cause type-checking ambiguity.
 
 ```swift
 Regex {
