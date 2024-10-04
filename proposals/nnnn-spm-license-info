@@ -1,0 +1,144 @@
+# License Information in Swift Package Manager
+
+* Proposal: [SE-NNNN](NNNN-spm-license-info.md)
+* Authors: [flexlixrup](https://github.com/flexlixrup)
+* Review Manager: TBD
+* Status: **Awaiting Review**
+
+## Introduction
+
+This feature proposal aims to enhance Swift Package Manager by integrating license information directly within the Package.swift file. By allowing developers to specify acceptable licenses and set license "filters," this feature ensures that all dependencies within a project's graph comply with the chosen license criteria. If any package violates these filters—meaning it uses a license not deemed valid—a warning will be triggered, alerting developers to potential licensing conflicts before they become an issue. This ensures legal compliance and reduces the risk of integrating incompatible or undesirable licenses into a project.
+
+Swift-evolution thread: [Discussion thread topic for that
+proposal](https://forums.swift.org/t/add-license-information-to-swift-package-manager-and-expose-it-to-dependent-projects/)
+
+## Motivation
+
+This proposal addresses several key issues related to license management in Swift projects:
+
+1. **Lack of License Visibility:** Currently, Swift Package Manager does not provide a straightforward way to view or manage the licenses of dependencies. Developers must manually check the licenses of each dependency, which is time-consuming and error-prone, especially as the number of dependencies grows. This lack of visibility can lead to the inadvertent inclusion of packages with licenses that are incompatible with a project's legal requirements or business policies.
+
+2. **Manual Compliance Management:** Without an automated way to enforce license compliance, developers are forced to rely on external tools or manual reviews to ensure that all dependencies adhere to acceptable licensing terms. This process is inefficient and prone to oversight, increasing the risk of legal issues arising from the use of non-compliant licenses.
+
+3. **No Automated Alerts for License Conflicts:** Currently, Swift Package Manager does not provide any warnings or alerts if a package dependency introduces a license that conflicts with the project's requirements. This means that developers may only discover licensing issues late in the development process, potentially leading to costly refactoring or legal challenges.
+
+## Proposed solution
+
+### Solution Overview with Examples:
+
+This solution integrates license management directly into the Swift Package Manager by using a `License` enum in the `Package.swift` file. This allows developers to define the package's own license and set acceptable licenses for dependencies, each with an associated link to the full license text. Below are examples demonstrating how this solution works.
+
+### Example 1: Defining the Package’s Own License
+
+In this example, the developer is creating a Swift package and needs to define the license under which the package is distributed. The license is specified using the `License` enum within the `Package.swift` file.
+
+```swift
+// swift-tools-version:6.0
+import PackageDescription
+
+let package = Package(
+    name: "MySwiftPackage",
+    products: [
+        .library(
+            name: "MyLibrary",
+            targets: ["MyTarget"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/example/SomeDependency", from: "1.0.0"),
+    ],
+    targets: [
+        .target(
+            name: "MyTarget",
+            dependencies: ["SomeDependency"]),
+    ],
+    license: .mit(url: "https://exmaple.com/license")  // Define the package's own license here
+)
+```
+
+**Explanation**: 
+In this example, the `license` field is set to `.mit`, meaning the package is licensed under the MIT license. The associated URL provides the full license text.
+
+### Example 2: Using a Custom License
+
+Here, the developer wants to use a custom proprietary license for their package. They specify this using the `custom` case in the `License` enum.
+
+```swift
+let package = Package(
+    name: "MyCustomLicensedPackage",
+    products: [
+        .library(
+            name: "MyCustomLibrary",
+            targets: ["MyCustomTarget"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/example/SomeDependency", from: "1.0.0"),
+    ],
+    targets: [
+        .target(
+            name: "MyCustomTarget",
+            dependencies: ["SomeDependency"]),
+    ],
+    license: .custom(url: "https://example.com/my-custom-license")  // Custom license URL
+)
+```
+
+**Explanation**: 
+The `ownLicense` field is set to `.custom`, with a URL pointing to the custom license text (`https://example.com/my-custom-license`). This approach provides flexibility for packages with unique licensing needs.
+
+### Example 3: Specifying Acceptable Licenses for Dependencies
+
+In this scenario, the developer wants to ensure that all dependencies adhere to specific license types. They define acceptable licenses using the `licenses` array, which also uses the `License` enum.
+
+```swift
+let package = Package(
+    name: "MyFilteredPackage",
+    products: [
+        .library(
+            name: "MyFilteredLibrary",
+            targets: ["MyFilteredTarget"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/example/SomeDependency", from: "1.0.0"),
+    ],
+    targets: [
+        .target(
+            name: "MyFilteredTarget",
+            dependencies: ["SomeDependency"]),
+    ],
+    license: .apache2_0,
+    acceptableLicenses: [
+        .mit,              // MIT license is acceptable
+        .apache2_0,        // Apache 2.0 license is acceptable
+        .custom(url: "https://example.com/another-custom-license")  // Another custom license
+    ]
+)
+```
+
+**Explanation**: 
+The `acceptableLicenses` array specifies that only dependencies with MIT, Apache 2.0, or a specific custom license are acceptable. If any dependency uses a license not listed here, Swift Package Manager would issue a warning, helping the developer maintain compliance.
+
+### Why This Solution Is Better:
+
+- **Cleaner**: License management is now an integrated part of the Swift package configuration, eliminating the need for external tools or manual checks.
+  
+- **Easier**: Developers can specify their package's license and acceptable dependency licenses directly in the `Package.swift` file, with clear links to the license texts.
+
+- **More Efficient**: By automating license checks and providing immediate feedback, this solution reduces the risk of legal issues and streamlines the development process.
+
+These examples demonstrate how this solution provides a more structured, clear, and automated approach to managing licenses in Swift projects, ensuring both compliance and efficiency.
+
+## Detailed design
+
+TBD
+
+## Security
+
+This propsal does not change any security/safety/privacy aspects of the SPM code itself, but helps the developer with code compliance.
+
+## Impact on existing packages
+
+This proposal would also warn of packages with no license information added to the `Package.swift` file. This warnings can be overcome by setting the `acceptableLicenses` to `.none`. This disables warnings for all packages with no license information provided. If `acceptableLicenses` is not defined at all, there will be no checks on the license information.
+
+## Alternatives considered
+
+My initial idea was reaching even further by auto-generating license information as Swift code and making it accessible as `public`. This would have provided the possibility to put end-user license information for 3rd party Packages in your code. This approach would have been mich more complicated to implement and would be subject to legal risks if there ws an issue in license text generation.
