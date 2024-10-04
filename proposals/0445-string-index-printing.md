@@ -6,10 +6,11 @@
 * Status: **Accepted with modifications**
 * Implementation: [apple/swift#75433](https://github.com/swiftlang/swift/pull/75433)
 * Review: ([pitch](https://forums.swift.org/t/improving-string-index-s-printed-descriptions/57027)) ([review](https://forums.swift.org/t/se-0445-improving-string-indexs-printed-descriptions/74643)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0445-improving-string-index-s-printed-descriptions/75108))
+* Previous Revision: [v1](https://github.com/swiftlang/swift-evolution/blob/682f7c293a3a05bff3e619c3b479bfb68541fb6e/proposals/0445-string-index-printing.md)
 
 ## Introduction
 
-This proposal conforms `String.Index` to `CustomStringConvertible`.
+This proposal conforms `String.Index` to `CustomDebugStringConvertible`.
 
 ## Motivation
 
@@ -30,7 +31,7 @@ These displays are generated via the default reflection-based string conversion 
 
 ## Proposed solution
 
-This proposal supplies the missing `CustomStringConvertible` conformance on `String.Index`, resolving this long-standing issue.
+This proposal supplies the missing `CustomDebugStringConvertible` conformance on `String.Index`, resolving this long-standing issue.
 
 ```swift
 let string = "👋🏼 Helló"
@@ -41,9 +42,9 @@ print(string.utf16.index(after: string.startIndex)) // ⟹ 0[utf8]+1
 print(string.firstRange(of: "ell")!) // ⟹ 10[utf8]..<13[utf8]
 ```
 
-The sample description strings shown above are illustrative, not normative. This proposal does not specify the exact format and information content of the string returned by the `description` implementation on `String.Index`. As is the case with most conformances to `CustomStringConvertible`, the purpose of these descriptions is to expose internal implementation details for debugging purposes. As those implementation details evolve, the descriptions may need to be changed to match them. Such changes are not generally expected to be part of the Swift Evolution process; so we need to keep the content of these descriptions unspecified.
+The sample output strings shown above are illustrative, not normative. This proposal does not specify the exact format and information content of the string returned by the `debugDescription` implementation on `String.Index`. As is the case with most conformances to `CustomDebugStringConvertible`, the purpose of these descriptions is to expose internal implementation details for debugging purposes. As those implementation details evolve, the descriptions may need to be changed to match them. Such changes are not generally expected to be part of the Swift Evolution process; so we need to keep the content of these descriptions unspecified.
 
-(With that said, the example displays shown above are not newly invented -- they have already proved their usefulness in actual use. They were developed while working on subtle string processing problems in Swift 5.7, and [LLDB has been shipping them as built-in data formatters][lldb] since the Swift 5.8 release.
+(With that said, the example displays shown above are not newly invented -- they have already proven their usefulness in actual use. They were developed while working on subtle string processing problems in Swift 5.7, and [LLDB has been shipping them as built-in data formatters][lldb] since the Swift 5.8 release.
 
 In the displays shown, string indices succinctly display their storage offset, their expected encoding, and an (optional) transcoded offset value. For example, the output `15[utf8]` indicates that the index is addressing the code unit at offset 15 in a UTF-8 encoded `String` value. The `startIndex` is at offset zero, which works the same with _any_ encoding, so it is displayed as `0[any]`. As of Swift 6.0, on some platforms string instances may store their text in UTF-16, and so indices within such strings use `[utf16]` to specify that their offsets are measured in UTF-16 code units.
 
@@ -53,44 +54,42 @@ The `+1` in `0[utf8]+1` is an offset into a _transcoded_ Unicode scalar; this in
 
 All of this is really useful information to see while developing or debugging string algorithms, but it is also deeply specific to the particular implementation of `String` that ships in Swift 6.0; therefore it is inherently unstable, and it may change in any Swift release.)
 
-<!--
-```
-Characters: | 👋🏼                        | " " | H  | e  | l  | l  | ó     |
-Scalars:    | 👋          | "\u{1F3FC}" | " " | H  | e  | l  | l  | ó     |
-UTF-8:      | f0 9f 91 8b | f0 9f 8f bc | 20  | 48 | 65 | 6c | 6c | c3 b3 |
-UTF-16:     | d83d dc4b   | d83c dffc   | 20  | 48 | 65 | 6c | 6c | f3    |
-```
--->
+<!-- ``` -->
+<!-- Characters: | 👋🏼                        | " " | H  | e  | l  | l  | ó     | -->
+<!-- Scalars:    | 👋          | "\u{1F3FC}" | " " | H  | e  | l  | l  | ó     | -->
+<!-- UTF-8:      | f0 9f 91 8b | f0 9f 8f bc | 20  | 48 | 65 | 6c | 6c | c3 b3 | -->
+<!-- UTF-16:     | d83d dc4b   | d83c dffc   | 20  | 48 | 65 | 6c | 6c | f3    | -->
+<!-- ``` -->
 
 ## Detailed design
 
 ```
 @available(SwiftStdlib 6.1, *)
-extension String.Index: CustomStringConvertible {}
+extension String.Index: CustomDebugStringConvertible {}
 
 extension String.Index {
   @backDeployed(before: SwiftStdlib 6.1)
-  public var description: String {...}
+  public var debugDescription: String {...}
 }
 ```
 
 ## Source compatibility
 
-The new conformance changes the result of converting a `String.Index` value to a string. This changes observable behavior: code that attempts to parse the result of `String(describing:)` can be mislead by the change of format.
+The new conformance changes the result of converting a `String.Index` value to a string. This changes observable behavior: code that attempts to parse the result of `String(describing:)` or `String(reflecting:)` can be mislead by the change of format.
 
-However, `String(describing:)` and `String(reflecting:)` explicitly state that when the input type conforms to none of the standard string conversion protocols, then the result of these operations is unspecified.
+However, the documentation of these interfaces explicitly state that when the input type conforms to none of the standard string conversion protocols, then the result of these operations is unspecified.
 
 Changing the value of an unspecified result is not considered to be a source incompatible change.
 
 ## ABI compatibility
 
-The proposal retroactively conforms a previously existing standard type to a previously existing standard protocol. This is technically an ABI breaking change -- on ABI stable platforms, we may have preexisting Swift binaries that assume that `String.Index is CustomStringConvertible` returns `false`, or ones that are implementing this conformance on their own.
+The proposal retroactively conforms a previously existing standard type to a previously existing standard protocol. This is technically an ABI breaking change -- on ABI stable platforms, we may have preexisting Swift binaries that assume that `String.Index is CustomDebugStringConvertible` returns `false`, or ones that are implementing this conformance on their own.
 
 We do not expect this to be an issue in practice.
 
 ## Implications on adoption
 
-The `String.Index.description` property is defined to be backdeployable, but the conformance itself is not. (It cannot be.)
+The `String.Index.debugDescription` property is defined to be backdeployable, but the conformance itself is not. (It cannot be.)
 
 Code that runs on ABI stable platforms will not get the nicer displays when running on earlier versions of the Swift Standard Library.
 
@@ -101,18 +100,18 @@ print(str.firstRange(of: "Dog")!)
 // newer stdlib: 5[utf8]..<8[utf8]
 ```
 
-This can be somewhat mitigated by explicitly invoking the `description` property, but this isn't recommmended as general practice.
+This can be somewhat mitigated by explicitly invoking the `debugDescription` property, but this isn't recommmended as general practice.
 
 ```swift
-print(str.endIndex.description) 
+print(str.endIndex.debugDescription) 
 // always: 11[utf8]
 ```
 
 ## Future directions
 
-### Additional `CustomStringConvertible` conformances
+### Additional `CustomStringConvertible` or `CustomDebugStringConvertible` conformances
 
-Other preexisting types in the Standard Library may also usefully gain `CustomStringConvertible` conformances in the future:
+Other preexisting types in the Standard Library may also usefully gain custom string conversions in the future:
 
 - `Set.Index`, `Dictionary.Index`
 - `Slice`, `DefaultIndices`
@@ -124,7 +123,7 @@ Other preexisting types in the Standard Library may also usefully gain `CustomSt
 
 ### New String API to expose the information in these descriptions
 
-The information exposed in the index descriptions shown above is mostly retrievable through public APIs, but not entirely: perhaps most importantly, there is no way to get the expected encoding of a string index through the stdlib's public API surface. The lack of such an API may encourage interested Swift developers to try retrieving this information by parsing the unstable `description` string, or by bitcasting indices to peek at the underlying bit patterns -- neither of which would be healthy for the Swift ecosystem overall. It therefore is desirable to eventually expose this information as well, through API additons like the drafts below:
+The information exposed in the index descriptions shown above is mostly retrievable through public APIs, but not entirely: perhaps most importantly, there is no way to get the expected encoding of a string index through the stdlib's public API surface. The lack of such an API may encourage interested Swift developers to try retrieving this information by parsing the unstable `debugDescription` string, or by bitcasting indices to peek at the underlying bit patterns -- neither of which would be healthy for the Swift ecosystem overall. It therefore is desirable to eventually expose this information as well, through API additons like the drafts below:
 
 ```swift
 extension String {
@@ -173,4 +172,9 @@ Given that these APIs are quite obscure/subtle, and they pose some interesting d
 
 ## Alternatives considered
 
-None.
+The original version of this proposal suggested conforming `String.Index` to `CustomStringConvertible`, not `CustomDebugStringConvertible`. The change to the debug-flavored protocol emphasizes that the new descriptions aren't intended to be used outside debugging contexts.
+
+
+## Acknowledgements
+
+We'd like to express our appreciation to Jordan Rose and Ben Rimmington for scratching at the `CustomStringConvertible` vs `CustomDebugStringConvertible` distinction during the review discussion.
