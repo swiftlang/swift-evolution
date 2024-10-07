@@ -140,21 +140,21 @@ Every time `Span` uses a position parameter, it checks for its validity, unless 
 
 ```swift
 extension Span where Element: ~Copyable {
-  /// Return true if `index` is a valid offset into this `Span`
+  /// Return true if `index` is valid for this `Span`
   ///
   /// - Parameters:
   ///   - index: an index to validate
   /// - Returns: true if `index` is a valid index
   public func boundsContain(_ index: Int) -> Bool
 
-  /// Return true if `indices` is a valid range of offsets into this `Span`
+  /// Return true if `indices` are all valid for this `Span`
   ///
   /// - Parameters:
   ///   - indices: a range of indices to validate
   /// - Returns: true if `indices` is a valid range of indices
   public func boundsContain(_ indices: Range<Int>) -> Bool
 
-  /// Return true if `indices` is a valid range of offsets into this `Span`
+  /// Return true if `indices` are all valid for this `Span`
   ///
   /// - Parameters:
   ///   - indices: a range of indices to validate
