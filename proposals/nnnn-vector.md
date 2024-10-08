@@ -524,7 +524,54 @@ Given the name of this type however, we foresee this clashing with existing user
 defined types named `Vector`. This isn't a particular issue though because the
 standard library has special shadowing rules which prefer user defined types by
 default. Which means in user code with a custom `Vector` type, that type will
-always be preferred over the standard library's `Swift.Vector`.
+always be preferred over the standard library's `Swift.Vector`. By always I
+truly mean _always_.
+
+Given the following two scenarios:
+
+```swift
+// MyLib
+public struct Vector<T> {
+
+}
+
+print(Vector<Int>.self)
+
+// error: generic type 'Vector' specialized with too many type parameters
+//        (got 2, but expected 1)
+print(Vector<3, Int>.self)
+```
+
+Here, we're exercising the fact that this `MyLib.Vector` has a different generic
+signature than `Swift.Vector`, but regardless of that we will prefer `MyLib`'s
+version even if we supply more generic arguments than it supports.
+
+```swift
+// MyLib
+public struct Vector<T> {
+
+}
+
+// MyExecutable main.swift
+import MyLib
+
+print(Vector<Int>.self) // OK
+
+// error: generic type 'Vector' specialized with too many type parameters
+//        (got 2, but expected 1)
+print(Vector<3, Int>.self)
+
+// MyExecutable test.swift
+
+// error: generic type 'Vector' specialized with too few type parameters
+//        (got 1, but expected 2)
+print(Vector<Int>.self)
+```
+
+And here, we exercise that a module with its own `Vector`, like `MyLib`, will
+always prefer its own definition within the module, but even for dependents
+who import `MyLib` it will prefer `MyLib.Vector`. For files that don't
+explicitly `MyLib`, it will prefer `Swift.Vector`.
 
 ## ABI compatibility
 
