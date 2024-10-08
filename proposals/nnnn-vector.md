@@ -562,7 +562,7 @@ extension Vector: Equatable where Element: ~Copyable & Equatable
 
 Suddenly, this availability isn't quite right because the conformance that
 shipped in Swift X.Y doesn't support noncopyable elements. To prevent the
-headache of this an any potential new availability feature, we're holding off on
+headache of this and any potential new availability feature, we're holding off on
 these conformances until they are fully generalized.
 
 ### Noncopyable `Sequence` and `Collection` protocols
