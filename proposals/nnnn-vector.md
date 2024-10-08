@@ -669,7 +669,7 @@ print(numbers.capacity) // 4
 print(numbers.count) // 2
 numbers.append(3)
 print(numbers.count) // 3
-numers.append(4)
+numbers.append(4)
 print(numbers.count) // 4
 numbers.append(5) // error: not enough space
 ```
