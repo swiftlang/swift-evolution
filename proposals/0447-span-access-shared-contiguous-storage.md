@@ -81,7 +81,10 @@ extension Span where Element: ~Copyable {
   public var count: Int { get }
   public var isEmpty: Bool { get }
 
-  public subscript(_ position: Int) -> Element { _read }
+  public typealias Index = Int
+  public var indices: Range<Index> { get }
+  
+  public subscript(_ index: Index) -> Element { _read }
 }
 ```
 
@@ -107,10 +110,20 @@ The following properties, functions and subscripts have direct counterparts in t
 
 ```swift
 extension Span where Element: ~Copyable {
+  /// The number of initialized elements in the span.
   public var count: Int { get }
-  public var isEmpty: Bool { get }
 
-  public subscript(_ position: Int) -> Element { _read }
+  /// A Boolean value indicating whether the span is empty.
+	public var isEmpty: Bool { get }
+
+  /// The type that represents a position in `Span`.
+  public typealias Index = Int
+
+  /// The range of indices valid for this `Span`
+  public var indices: Range<Index> { get }
+
+  /// Accesses the element at the specified position.
+  public subscript(_ position: Index) -> Element { _read }
 }
 ```
 
@@ -122,7 +135,6 @@ The `subscript` mentioned above has always-on bounds checking of its parameter, 
 
 ```swift
 extension Span where Element: ~Copyable {
-  // Unchecked subscripting and extraction
 
   /// Accesses the element at the specified `position`.
   ///
@@ -130,7 +142,7 @@ extension Span where Element: ~Copyable {
   ///
   /// - Parameter position: The offset of the element to access. `position`
   ///     must be greater or equal to zero, and less than `count`.
-  public subscript(unchecked position: Int) -> Element { _read }
+  public subscript(unchecked position: Index) -> Element { _read }
 }
 ```
 
@@ -151,7 +163,7 @@ extension Span where Element: ~Copyable {
   /// Parameters:
   /// - span: a span that may be a subrange of `self`
   /// Returns: A range of offsets within `self`, or `nil`
-  public func indices(of span: borrowing Self) -> Range<Int>?
+  public func indices(of span: borrowing Self) -> Range<Index>?
 }
 ```
 
