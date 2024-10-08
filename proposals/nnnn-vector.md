@@ -75,7 +75,7 @@ always heap allocated, automatically resizable, and introduces retain/release
 traffic. These implicit allocations are becoming more and more of a bottleneck,
 especially in embedded domains where there might not be a lot of memory for many
 allocations or even heap allocations at all. Swift should be able to provide
-developers a safe API to have an ordered list of homogenous items on the stack,
+developers a safe API to have an ordered list of homogeneous items on the stack,
 allowing for things like indexing, iteration, and many other collection
 utilities.
 
@@ -132,7 +132,7 @@ for i in ints.indices {
 
 ## Detailed design
 
-`Vector` will be a simple noncopyable struct capable of storing other potentialy
+`Vector` will be a simple noncopyable struct capable of storing other potentially
 noncopyable elements. It will be conditionally copyable only when its elements
 are.
 
@@ -147,7 +147,7 @@ extension Vector: Sendable where Element: Sendable {}
 ### MemoryLayout
 
 The memory layout of a `Vector` is defined by taking its `Element`'s stride and
-multiplying that by its `Count` for its size and stride. It's alignment is equal
+multiplying that by its `Count` for its size and stride. Its alignment is equal
 to that of its `Element`:
 
 ```swift
@@ -520,7 +520,7 @@ or dependents to use the old behavior with the same C interface.
 `Vector` is a brand new type in the standard library, so source should still be
 compatible.
 
-Given the name of this type however, we forsee this clashing with existing user
+Given the name of this type however, we foresee this clashing with existing user
 defined types named `Vector`. This isn't a particular issue though because the
 standard library has special shadowing rules which prefer user defined types by
 default. Which means in user code with a custom `Vector` type, that type will
@@ -569,7 +569,7 @@ these conformances until they are fully generalized.
 
 Similarly, while we aren't conforming to a lot of protocols that we envision
 we'll generalize one day, we are conforming to `Sequence`, `Collection`,
-`RandomAccessCollection`, and `MutableCollection`. We don't forsee that we'll
+`RandomAccessCollection`, and `MutableCollection`. We don't foresee that we'll
 ever generalize these protocols because they have a deep design for implicitly
 copying their elements, but even the collection itself.
 [SE-0437 Noncopyable Standard Library Primitives](0437-noncopyable-stdlib-primitives.md)
@@ -732,7 +732,7 @@ discuss this more in depth in [Reorder the generic arguments](#reorder-the-gener
 
 For obvious reasons, we cannot name this type `Swift.Array` to match the
 "term of art" that other languages like C, C++, and Rust are using for this
-exact type. However, while this name is the defacto for other languages, it
+exact type. However, while this name is the de facto for other languages, it
 actually mischaracterizes the properties and behaviors of this type considering
 existing terminology in mathematics. A. Stepanov mentions in his book, "From
 Mathematics to Generic Programming", that using the name `std::vector` for their
