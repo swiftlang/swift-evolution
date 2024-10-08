@@ -231,7 +231,7 @@ Initializers, required for library adoption, will be proposed alongside [lifetim
 
 ##### <a name="Load"></a>Accessing the memory of a `RawSpan`:
 
-`RawSpan` has basic operations to access the contents of its memory: `unsafeLoad(as:)` and `unsafeLoadUnaligned(as:)`. These operations are not type-safe, in that the loaded value returned by the operation can be invalid. Some types have a property that makes this operation safe, but there we don't have a way to [formally identify](#SurjectiveBitPattern) such types at this time.
+`RawSpan` has basic operations to access the contents of its memory: `unsafeLoad(as:)` and `unsafeLoadUnaligned(as:)`:
 
 ```swift
 extension RawSpan {
@@ -277,7 +277,10 @@ extension RawSpan {
   ) -> T
 ```
 
-These functions have counterparts which omit bounds-checking for cases where redundant checks affect performance:
+These operations are not type-safe, in that the loaded value returned by the operation can be invalid, and violate type invariants. Some types have a property that makes the `unsafeLoad(as:)` function safe, but we don't have a way to [formally identify](#SurjectiveBitPattern) such types at this time.
+
+The `unsafeLoad` functions have counterparts which omit bounds-checking for cases where redundant checks affect performance:
+
 ```swift
   /// Returns a new instance of the given type, constructed from the raw memory
   /// at the specified offset.
