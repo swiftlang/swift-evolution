@@ -451,31 +451,15 @@ arrays is not something a memory safe language like Swift should be in the
 business of. `Vector` allows us to clean up this sore spot in a very elegant and
 much more importantly, safe way.
 
-To preserve source compatibility, we will be introducing a new imported field
-for C structs that contain C arrays. This field will be named according to the
-imported C array field's name by appending `Vector` to the end of it:
-`<C name>Vector`.
-
-```c
-struct section_64 {
-  char sectname[16];
-  char segname[16];
-  uint64_t addr;
-  uint64_t size;
-  uint32_t offset;
-  uint32_t align;
-  ...
-};
-```
-
-Would be imported as:
+We plan to introduce a new _upcoming_ feature that folks can enable whenever
+they'd like to via `-enable-upcoming-feature CArrayVector`. This will change the
+current behavior of importing C arrays as tuples, to instead import them as
+`Vector`. For the previous example, we'd instead generate the following:
 
 ```swift
 struct section_64 {
-  let sectname: (CChar, CChar, CChar, CChar, CChar, CChar, ... 10 more times)
-  let sectnameVector: Vector<16, CChar>
-  let segname: (CChar, CChar, CChar, CChar, CChar, CChar, ... 10 more times)
-  let segnameVector: Vector<16, CChar>
+  let sectname: Vector<16, CChar>
+  let segname: Vector<16, CChar>
   let addr: UInt64
   let size: UInt64
   let offset: UInt32
@@ -484,36 +468,15 @@ struct section_64 {
 }
 ```
 
-If the C struct already contained a field named `sectnameVector`, then we
-wouldn't generate a `Vector` field for `sectname`. However, one should be able
-to mitigate this by annotating the C field directly with `swift_vector_name`:
+By introducing an upcoming feature, it lets folks who are ready to migrate their
+codebase using a C interface to use `Vector` entirely, while still allowing
+dependencies or dependents to use the old behavior with the same C interface.
 
-```c
-#define SWIFT_VECTOR_NAME(X) __attribute__((__swift_vector_name__(#X)))
-
-struct section_64 {
-  SWIFT_VECTOR_NAME(sectname_vector)
-  char sectname[16];
-
-  SWIFT_VECTOR_NAME(segname_vector)
-  char segname[16];
-
-  uint64_t addr;
-  uint64_t size;
-  uint32_t offset;
-  uint32_t align;
-  ...
-};
-```
-
-Note, that while the imported C struct looks like it has more members, its
-memory layout will be unaffected.
-
-In a future Swift language mode, we plan to disable this behavior and drop
-importing C array fields as tuples and only as `Vector` with the same name from
-the C struct. This approach lets folks who are ready to migrate their codebase
-using a C interface to use `Vector` entirely, while still allowing dependencies
-or dependents to use the old behavior with the same C interface.
+In a future Swift language mode, we plan to make this behavior the default and
+drop importing C array fields as tuples and only as `Vector`. This approach
+allows developers to get the new behavior early if they'd like to use it, which
+will make the language mode transition much smoother because there would be no
+source break with regards to this feature.
 
 ## Source compatibility
 
