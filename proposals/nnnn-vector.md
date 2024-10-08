@@ -4,8 +4,8 @@
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Roadmap: [Approaches for fixed-size arrays](https://forums.swift.org/t/keypath-equality-issue-where-root-is-a-generic-type/14865/12)
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Roadmap: [Approaches for fixed-size arrays](https://forums.swift.org/t/approaches-for-fixed-size-arrays/58894)
+* Implementation: [swiftlang/swift#76438](https://github.com/swiftlang/swift/pull/76438)
 * Review: ([pitch](https://forums.swift.org/...))
 
 ## Introduction
