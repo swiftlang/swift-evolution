@@ -134,34 +134,7 @@ extension Span where Element: ~Copyable {
 }
 ```
 
-##### Index validation utilities:
-
-Every time `Span` uses a position parameter, it checks for its validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
-
-```swift
-extension Span where Element: ~Copyable {
-  /// Return true if `index` is valid for this `Span`
-  ///
-  /// - Parameters:
-  ///   - index: an index to validate
-  /// - Returns: true if `index` is a valid index
-  public func boundsContain(_ index: Int) -> Bool
-
-  /// Return true if `indices` are all valid for this `Span`
-  ///
-  /// - Parameters:
-  ///   - indices: a range of indices to validate
-  /// - Returns: true if `indices` is a valid range of indices
-  public func boundsContain(_ indices: Range<Int>) -> Bool
-
-  /// Return true if `indices` are all valid for this `Span`
-  ///
-  /// - Parameters:
-  ///   - indices: a range of indices to validate
-  /// - Returns: true if `indices` is a valid range of indices
-  public func boundsContain(_ indices: ClosedRange<Int>) -> Bool
-}
-```
+When using the unchecked subscript, the index must be known to be valid. While we are not proposing explicit index validation API on `Span` itself, its `indices` property can be use to validate a single index, in the form of the function `Range<Int>.contains(_: Int) -> Bool`. We expect that `Range` will also add efficient containment checking of a subrange's endpoints, which should be generally useful for index range validation in this and other contexts.
 
 ##### Identifying whether a `Span` is a subrange of another:
 
@@ -375,20 +348,6 @@ extension RawSpan {
 }
 ```
 
-##### `RawSpan` bounds checking:
-```swift
-extension RawSpan {
-  /// Return true if `offset` is a valid byte offset into this `RawSpan`
-  public func boundsContain(_ offset: Int) -> Bool
-
-  /// Return true if `offsets` is a valid range of offsets into this `RawSpan`
-  public func boundsContain(_ offsets: Range<Int>) -> Bool
-
-  /// Return true if `offsets` is a valid range of offsets into this `RawSpan`
-  public func boundsContain(_ offsets: ClosedRange<Int>) -> Bool
-}
-```
-
 ##### Identifying whether a `RawSpan` is a subrange of another:
 
 When working with multiple `RawSpan` instances, it is often desirable to know whether one is identical to or a subrange of another. We include a function to determine whether this is the case, as well as a function to obtain the valid offsets of the subrange within the larger span. The documentation is omitted here, as it is substantially the same as for the equivalent functions on `Span`:
@@ -488,6 +447,10 @@ extension Array where Element: BitwiseCopyable {
 ```
 
 Of these, the closure-taking functions can be implemented now, but it is unclear whether they are desirable. The lifetime-dependent computed properties require lifetime annotations, as initializers do. We are deferring proposing these extensions until the lifetime annotations are proposed.
+
+#### Index Validation Utilities 
+
+This proposal originally included index validation utilities for `Span`. such as `boundsContain(_: Index) -> Bool` and `boundsContain(_: Range<Index>) -> Bool`. After review feedback, we believe that the utilities proposed would also be useful for index validation on `UnsafeBufferPointer`, `Array`, and other similar `RandomAccessCollection` types. `Range` already a single-element `contains(_: Bound) -> Bool` function which can be made even more efficient. We should add an additional function that identifies whether a `Range` contains the _endpoints_ of another `Range`. Note that this is not the same as the existing `contains(_: some Collection<Bound>) -> Bool`, which is about the _elements_ of the collection. This semantic difference can lead to different results when examing empty `Range` instances.
 
 #### <a name="ContiguousStorage"></a>A `ContiguousStorage` protocol
 
