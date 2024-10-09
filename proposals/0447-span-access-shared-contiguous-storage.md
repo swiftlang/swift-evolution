@@ -81,7 +81,10 @@ extension Span where Element: ~Copyable {
   public var count: Int { get }
   public var isEmpty: Bool { get }
 
-  public subscript(_ position: Int) -> Element { _read }
+  public typealias Index = Int
+  public var indices: Range<Index> { get }
+  
+  public subscript(_ index: Index) -> Element { _read }
 }
 ```
 
@@ -107,14 +110,24 @@ The following properties, functions and subscripts have direct counterparts in t
 
 ```swift
 extension Span where Element: ~Copyable {
+  /// The number of initialized elements in the span.
   public var count: Int { get }
-  public var isEmpty: Bool { get }
 
-  public subscript(_ position: Int) -> Element { _read }
+  /// A Boolean value indicating whether the span is empty.
+	public var isEmpty: Bool { get }
+
+  /// The type that represents a position in `Span`.
+  public typealias Index = Int
+
+  /// The range of indices valid for this `Span`
+  public var indices: Range<Index> { get }
+
+  /// Accesses the element at the specified position.
+  public subscript(_ position: Index) -> Element { _read }
 }
 ```
 
-Note that we use a `_read` accessor for the subscript, a requirement in order to `yield` a borrowed non-copyable `Element` (see ["Coroutines"](#Coroutines).) This will be updated to a final syntax at a later time, understanding that we intend the replacement to be source-compatible.
+Note that we use a `_read` accessor for the subscript, a requirement in order to `yield` a borrowed non-copyable `Element` (see ["Coroutines"](#Coroutines).) This yields an element whose lifetime is scoped around this particular access, as opposed to matching the lifetime dependency of the `Span` itself. This is a language limitation we expect to resolve with a followup proposal introducing a new accessor model. The subscript will then be updated to use the new accessor semantics. We expect the updated accessor to be source-compatible, as it will provide a borrowed element with a wider lifetime than a `_read` accessor can provide.
 
 ##### Unchecked access to elements:
 
@@ -122,7 +135,6 @@ The `subscript` mentioned above has always-on bounds checking of its parameter, 
 
 ```swift
 extension Span where Element: ~Copyable {
-  // Unchecked subscripting and extraction
 
   /// Accesses the element at the specified `position`.
   ///
@@ -130,40 +142,11 @@ extension Span where Element: ~Copyable {
   ///
   /// - Parameter position: The offset of the element to access. `position`
   ///     must be greater or equal to zero, and less than `count`.
-  public subscript(unchecked position: Int) -> Element { _read }
+  public subscript(unchecked position: Index) -> Element { _read }
 }
 ```
 
-##### Index validation utilities:
-
-Every time `Span` uses a position parameter, it checks for its validity, unless the parameter is marked with the word "unchecked". The validation is performed with these functions:
-
-```swift
-extension Span where Element: ~Copyable {
-  /// Return true if `index` is a valid offset into this `Span`
-  ///
-  /// - Parameters:
-  ///   - index: an index to validate
-  /// - Returns: true if `index` is a valid index
-  public func boundsContain(_ index: Int) -> Bool
-
-  /// Return true if `indices` is a valid range of offsets into this `Span`
-  ///
-  /// - Parameters:
-  ///   - indices: a range of indices to validate
-  /// - Returns: true if `indices` is a valid range of indices
-  public func boundsContain(_ indices: Range<Int>) -> Bool
-
-  /// Return true if `indices` is a valid range of offsets into this `Span`
-  ///
-  /// - Parameters:
-  ///   - indices: a range of indices to validate
-  /// - Returns: true if `indices` is a valid range of indices
-  public func boundsContain(_ indices: ClosedRange<Int>) -> Bool
-}
-```
-
-Note: these function names are not ideal.
+When using the unchecked subscript, the index must be known to be valid. While we are not proposing explicit index validation API on `Span` itself, its `indices` property can be use to validate a single index, in the form of the function `Range<Int>.contains(_: Int) -> Bool`. We expect that `Range` will also add efficient containment checking of a subrange's endpoints, which should be generally useful for index range validation in this and other contexts.
 
 ##### Identifying whether a `Span` is a subrange of another:
 
@@ -174,21 +157,13 @@ extension Span where Element: ~Copyable {
   /// Returns true if the other span represents exactly the same memory
   public func isIdentical(to span: borrowing Self) -> Bool
   
-  /// Returns true if the memory represented by `self` is a subrange of
-  /// the memory represented by `span`
+  /// Returns the indices within `self` where the memory represented by `span`
+  /// is located, or `nil` if `span` is not located within `self`.
   ///
   /// Parameters:
-  /// - span: a span of the same type as `self`
-  /// Returns: whether `self` is a subrange of `span`
-  public func isWithin(_ span: borrowing Self) -> Bool
-  
-  /// Returns the offsets where the memory of `self` is located within
-  /// the memory represented by `span`, or `nil`
-  ///
-  /// Parameters:
-  /// - span: a subrange of `self`
+  /// - span: a span that may be a subrange of `self`
   /// Returns: A range of offsets within `self`, or `nil`
-  public func indicesWithin(_ span: borrowing Self) -> Range<Int>?
+  public func indices(of span: borrowing Self) -> Range<Index>?
 }
 ```
 
@@ -256,7 +231,7 @@ Initializers, required for library adoption, will be proposed alongside [lifetim
 
 ##### <a name="Load"></a>Accessing the memory of a `RawSpan`:
 
-`RawSpan` has basic operations to access the contents of its memory: `unsafeLoad(as:)` and `unsafeLoadUnaligned(as:)`. These operations are not type-safe, in that the loaded value returned by the operation can be invalid. Some types have a property that makes this operation safe, but there we don't have a way to [formally identify](#SurjectiveBitPattern) such types at this time.
+`RawSpan` has basic operations to access the contents of its memory: `unsafeLoad(as:)` and `unsafeLoadUnaligned(as:)`:
 
 ```swift
 extension RawSpan {
@@ -302,7 +277,10 @@ extension RawSpan {
   ) -> T
 ```
 
-These functions have counterparts which omit bounds-checking for cases where redundant checks affect performance:
+These operations are not type-safe, in that the loaded value returned by the operation can be invalid, and violate type invariants. Some types have a property that makes the `unsafeLoad(as:)` function safe, but we don't have a way to [formally identify](#SurjectiveBitPattern) such types at this time.
+
+The `unsafeLoad` functions have counterparts which omit bounds-checking for cases where redundant checks affect performance:
+
 ```swift
   /// Returns a new instance of the given type, constructed from the raw memory
   /// at the specified offset.
@@ -382,20 +360,9 @@ extension RawSpan {
 
   /// A Boolean value indicating whether the span is empty.
   public var isEmpty: Bool { get }
-}
-```
-
-##### `RawSpan` bounds checking:
-```swift
-extension RawSpan {
-  /// Return true if `offset` is a valid byte offset into this `RawSpan`
-  public func boundsContain(_ offset: Int) -> Bool
-
-  /// Return true if `offsets` is a valid range of offsets into this `RawSpan`
-  public func boundsContain(_ offsets: Range<Int>) -> Bool
-
-  /// Return true if `offsets` is a valid range of offsets into this `RawSpan`
-  public func boundsContain(_ offsets: ClosedRange<Int>) -> Bool
+  
+  /// The range of valid byte offsets into this `RawSpan`
+  public var byteOffsets: Range<Int> { get }
 }
 ```
 
@@ -407,9 +374,7 @@ When working with multiple `RawSpan` instances, it is often desirable to know wh
 extension RawSpan {
   public func isIdentical(to span: borrowing Self) -> Bool
   
-  public func isWithin(_ span: borrowing Self) -> Bool
-  
-  public func byteOffsetsWithin(_ span: borrowing Self) -> Range<Int>?
+  public func byteOffsets(of span: borrowing Self) -> Range<Int>?
 }
 ```
 
@@ -500,6 +465,10 @@ extension Array where Element: BitwiseCopyable {
 ```
 
 Of these, the closure-taking functions can be implemented now, but it is unclear whether they are desirable. The lifetime-dependent computed properties require lifetime annotations, as initializers do. We are deferring proposing these extensions until the lifetime annotations are proposed.
+
+#### Index Validation Utilities 
+
+This proposal originally included index validation utilities for `Span`. such as `boundsContain(_: Index) -> Bool` and `boundsContain(_: Range<Index>) -> Bool`. After review feedback, we believe that the utilities proposed would also be useful for index validation on `UnsafeBufferPointer`, `Array`, and other similar `RandomAccessCollection` types. `Range` already a single-element `contains(_: Bound) -> Bool` function which can be made even more efficient. We should add an additional function that identifies whether a `Range` contains the _endpoints_ of another `Range`. Note that this is not the same as the existing `contains(_: some Collection<Bound>) -> Bool`, which is about the _elements_ of the collection. This semantic difference can lead to different results when examing empty `Range` instances.
 
 #### <a name="ContiguousStorage"></a>A `ContiguousStorage` protocol
 
