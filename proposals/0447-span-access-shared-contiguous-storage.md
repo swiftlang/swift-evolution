@@ -95,7 +95,7 @@ Like `UnsafeBufferPointer`, `Span` uses a simple offset-based indexing. The firs
 As a side-effect of not conforming to `Collection` or `Sequence`, `Span` is not directly supported by `for` loops at this time. It is, however, easy to use in a `for` loop via indexing:
 
 ```swift
-for i in 0..<mySpan.count {
+for i in mySpan.indices {
   calculation(mySpan[i])
 }
 ```
