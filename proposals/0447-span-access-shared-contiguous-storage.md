@@ -114,7 +114,7 @@ extension Span where Element: ~Copyable {
   public var count: Int { get }
 
   /// A Boolean value indicating whether the span is empty.
-	public var isEmpty: Bool { get }
+  public var isEmpty: Bool { get }
 
   /// The type that represents a position in `Span`.
   public typealias Index = Int
@@ -146,7 +146,7 @@ extension Span where Element: ~Copyable {
 }
 ```
 
-When using the unchecked subscript, the index must be known to be valid. While we are not proposing explicit index validation API on `Span` itself, its `indices` property can be use to validate a single index, in the form of the function `Range<Int>.contains(_: Int) -> Bool`. We expect that `Range` will also add efficient containment checking of a subrange's endpoints, which should be generally useful for index range validation in this and other contexts.
+When using the unchecked subscript, the index must be known to be valid. While we are not proposing explicit index validation API on `Span` itself, its `indices` property can be use to validate a single index, in the form of the function `Range<Int>.contains(_: Int) -> Bool`. We expect that `Range` will also add efficient containment checking of a subrange's endpoints, which should be generally useful for index range validation in this and other contexts.
 
 ##### Identifying whether a `Span` is a subrange of another:
 
@@ -468,7 +468,7 @@ Of these, the closure-taking functions can be implemented now, but it is unclear
 
 #### Index Validation Utilities 
 
-This proposal originally included index validation utilities for `Span`. such as `boundsContain(_: Index) -> Bool` and `boundsContain(_: Range<Index>) -> Bool`. After review feedback, we believe that the utilities proposed would also be useful for index validation on `UnsafeBufferPointer`, `Array`, and other similar `RandomAccessCollection` types. `Range` already a single-element `contains(_: Bound) -> Bool` function which can be made even more efficient. We should add an additional function that identifies whether a `Range` contains the _endpoints_ of another `Range`. Note that this is not the same as the existing `contains(_: some Collection<Bound>) -> Bool`, which is about the _elements_ of the collection. This semantic difference can lead to different results when examing empty `Range` instances.
+This proposal originally included index validation utilities for `Span`. such as `boundsContain(_: Index) -> Bool` and `boundsContain(_: Range<Index>) -> Bool`. After review feedback, we believe that the utilities proposed would also be useful for index validation on `UnsafeBufferPointer`, `Array`, and other similar `RandomAccessCollection` types. `Range` already a single-element `contains(_: Bound) -> Bool` function which can be made even more efficient. We should add an additional function that identifies whether a `Range` contains the _endpoints_ of another `Range`. Note that this is not the same as the existing `contains(_: some Collection<Bound>) -> Bool`, which is about the _elements_ of the collection. This semantic difference can lead to different results when examing empty `Range` instances.
 
 #### <a name="ContiguousStorage"></a>A `ContiguousStorage` protocol
 
