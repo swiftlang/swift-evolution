@@ -360,6 +360,9 @@ extension RawSpan {
 
   /// A Boolean value indicating whether the span is empty.
   public var isEmpty: Bool { get }
+  
+  /// The range of valid byte offsets into this `RawSpan`
+  public var byteOffsets: Range<Int> { get }
 }
 ```
 
