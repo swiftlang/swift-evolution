@@ -20,7 +20,7 @@ When designing initializers for a type we are currently faced with the unfortuna
 
 Underlying this problem is the fact that initialization scales with M x N complexity (M members, N initializers).  We need as much help from the compiler as we can get!
 
-Flexible and concise initialization for both type authors and consumers will encourages using immutability where possible and removes the need for boilerplate from the concerns one must consider when designing the intializers for a type.
+Flexible and concise initialization for both type authors and consumers will encourages using immutability where possible and removes the need for boilerplate from the concerns one must consider when designing the initializers for a type.
 
 Quoting [Chris Lattner](https://forums.swift.org/t/proposal-helpers-for-initializing-properties-of-same-name-as-parameters/129/8):
 
@@ -31,9 +31,9 @@ Quoting [Chris Lattner](https://forums.swift.org/t/proposal-helpers-for-initiali
 	4) var properties with default initializers should have their parameter to the synthesized initializer defaulted.
 	5) lazy properties with memberwise initializers have problems (the memberwise init eagerly touches it).
 
-Add to the list “all or nothing”.  The compiler generates the entire initializer and does not help to eliminate boilerplate for any other initializers where it may be desirable to use memberwise intialization for a subset of members and initialize others manually.
+Add to the list “all or nothing”.  The compiler generates the entire initializer and does not help to eliminate boilerplate for any other initializers where it may be desirable to use memberwise initialization for a subset of members and initialize others manually.
 
-It is common to have a type with a number of public members that are intended to be configured by clients, but also with some private state comprising implementation details of the type.  This is especially prevalent in UI code which may expose many properties for configuring visual appearance, etc.  Flexibile memberwise initialization can provide great benefit in these use cases, but it immediately becomes useless if it is "all or nothing".  
+It is common to have a type with a number of public members that are intended to be configured by clients, but also with some private state comprising implementation details of the type.  This is especially prevalent in UI code which may expose many properties for configuring visual appearance, etc.  Flexible memberwise initialization can provide great benefit in these use cases, but it immediately becomes useless if it is "all or nothing".  
 
 We need a flexible solution that can synthesize memberwise initialization for some members while allowing the type author full control over initialization of implementation details.
 
@@ -47,7 +47,7 @@ The two approaches are not mutually exclusive: it is possible to use the *automa
 
 The *automatic* model of the current proposal determines the set of properties that receive memberwise initialization parameters by considering *only* the initializer declaration and the declarations for all properties that are *at least* as visible as the initializer (including any behaviors attached to the properties).  The rules are as follows:
 
-1. The access level of the property is *at least* as visible as the memberwise initializer.  The visiblity of the **setter** is used for `var` properties.
+1. The access level of the property is *at least* as visible as the memberwise initializer.  The visibility of the **setter** is used for `var` properties.
 2. They do not have a behavior which prohibits memberwise initialization (e.g. the 'lazy' behavior).
 3. If the property is a `let` property it *may not* have an initial value.
 
@@ -192,7 +192,7 @@ Throughout this design the term **memberwise initialization parameter** is used 
 
 1. Determine the set of properties eligible for memberwise initialization synthesis.  Properties are eligible for memberwise initialization synthesis if:
 
-	1. The access level of the property is *at least* as visible as the memberwise initializer.  The visiblity of the **setter** is used for `var` properties.
+	1. The access level of the property is *at least* as visible as the memberwise initializer.  The visibility of the **setter** is used for `var` properties.
 	2. They do not have a behavior which prohibits memberwise initialization.
 	3. If the property is a `let` property it *may not* have an initial value.
 
@@ -216,7 +216,7 @@ This proposal will also support generating an *implicit* memberwise initializer 
 2. The type is:
 	1. a struct
 	2. a root class
-	3. a class whose superclass has a designated intializer requiring no arguments
+	3. a class whose superclass has a designated initializer requiring no arguments
 
 The implicitly generated memberwise initializer will have the highest access level possible while still allowing all stored properties to be eligible for memberwise parameter synthesis, but will have at most `internal` visibility.  Currently this means its visibility will be `internal` when all stored properties of the type have setters with *at least* `internal` visibility, and `private` otherwise (when one or more stored properties are `private` or `private(set)`).
 
@@ -228,7 +228,7 @@ The changes described in this proposal are *almost* entirely additive.  The only
 
 1. If the implicitly synthesized memberwise initializer was only used *within* the same source file no change is necessary.  An implicit `private` memberwise initializer will still be synthesized by the compiler.
 2. A mechanical migration could generate the explicit code necessary to declare the previously implicit initializer.  This would be an `internal` memberwise initializer with *explicit* parameters used to manually initialize the stored properties with `private` setters.
-3. If the "Access control for init" enhancement were accepted the `private` members could have their access control modified to `private internal(init)` which would allow the implicit memberwise intializer to continue to have `internal` visibility as all stored properties would be eligible for parameter synthesis by an `internal` memberwise initializer.
+3. If the "Access control for init" enhancement were accepted the `private` members could have their access control modified to `private internal(init)` which would allow the implicit memberwise initializer to continue to have `internal` visibility as all stored properties would be eligible for parameter synthesis by an `internal` memberwise initializer.
 
 The only other impact on existing code is that memberwise parameters corresponding to `var` properties with initial values will now have default values.  This will be a change in the behavior of the implicit memberwise initializer but will not break any code.  The change will simply allow new code to use that initializer without providing an argument for such parameters.
 
@@ -293,7 +293,7 @@ The rules of the current proposal are designed to synthesize memberwise paramete
 
 Introducing a `memberwise` declaration modifier for properties would allow programmers to specify exactly which properties should participate in memberwise initialization synthesis.  It allows full control and has the clarity afforded by being explicit.
 
-Specifc use cases this feature would support include allowing `private` properties to receive synthesized memberwise parameters in a `public` initializer, or allow `public` properties to be omitted from parameter synthesis.
+Specific use cases this feature would support include allowing `private` properties to receive synthesized memberwise parameters in a `public` initializer, or allow `public` properties to be omitted from parameter synthesis.
 
 An example of this
 
@@ -348,7 +348,7 @@ struct S {
 
 If this enhancement were submitted the first property eligibility rule would be updates as follows:
 
-1. Their **init** access level is *at least* as visible as the memberwise initializer.  If the property does not have an **init** acccess level, the access level of its **setter** must be *at least* as visible as the memberwise initializer.
+1. Their **init** access level is *at least* as visible as the memberwise initializer.  If the property does not have an **init** access level, the access level of its **setter** must be *at least* as visible as the memberwise initializer.
 
 ### @nomemberwise
 
@@ -400,7 +400,7 @@ struct S {
 	init(s: String) {
 		/* synthesized */ self.s = s
 		
-		// body of the user's intializer remains
+		// body of the user's initializer remains
 		i = 42
 	}
 }
@@ -408,7 +408,7 @@ struct S {
 
 ### Memberwise initializer chaining / parameter forwarding
 
-Ideally it would be possible to define convenience and delegating initializers without requiring them to manually declare parameters and pass arguments to the designated initializer for memberwise intialized properties.  It would also be ideal if designated initializers also did not have to the same for memberwise intialization parmaeters of super.
+Ideally it would be possible to define convenience and delegating initializers without requiring them to manually declare parameters and pass arguments to the designated initializer for memberwise initialized properties.  It would also be ideal if designated initializers also did not have to the same for memberwise initialization parameters of super.
 
 A general solution for parameter forwarding would solve this problem.  A future parameter forwarding proposal to support this use case and others is likely to be pursued.
 
@@ -435,7 +435,7 @@ Obviously supporting memberwise initialization with Cocoa classes would require 
 This is a reasonable option and and I expect a healthy debate about which default is better.  The decision to adopt the *automatic* model by default was made for several reasons:
 
 1. The memberwise initializer for structs does not currently require an annotation for properties to opt-in.  Requiring an annotation for a mechanism designed to supersede that mechanism may be viewed as boilerplate.
-2. Stored properties with public visibility are often intialized directly with a value provided by the caller.
+2. Stored properties with public visibility are often initialized directly with a value provided by the caller.
 3. Stored properties with **less visibility** than a memberwise initializer are not eligible for memberwise initialization.  No annotation is required to indicate that and it is usually not desired.
 4. The *automatic* model cannot exist unless it is the default.  The *opt-in* model can exist alongside the *automatic* model and itself be opted-into simply by specifying the `memberwise` declaration modifier on one or more properties.
 
@@ -462,7 +462,7 @@ Reasons to limit memberwise parameter synthesis to members which are *at least* 
 5. If a proposal for `@nomemberwise` is put forward and adopted that would allow us to prevent synthesis of parameters for members as desired.  Unfortunately `@nomemberwise` would need to be used much more heavily than it otherwise would (i.e. to prevent synthesis of memberwise parameters for more-private members).  It would be better if `@nomemberwise` was not necessary most of the time.
 6. If callers must be able to provide memberwise arguments for more-private members directly it is still possible to allow that while taking advantage of memberwise initialization for same-or-less-private members.  You just need to declare a `memberwise init` with explicitly declared parameters for the more-private members and initialize them manually in the body.  If the "Access control for init" enhancement is accepted another option would be upgrading the visibility of `init` for the more-private member while retaining its access level for the getter and setter.  Requiring the programmer to explicitly expose a more-private member either via `init` access control or by writing code that it directly is arguably a very good thing.
 
-Reasons we might want to allow memberwise parameter synthesis for members with lower visiblity than the initializer:
+Reasons we might want to allow memberwise parameter synthesis for members with lower visibility than the initializer:
 
 1. Not doing so puts tension between access control for stored properties and memberwise inits.  You have to choose between narrower access control or getting the benefit of a memberwise init.  Another way to say it: this design means that narrow access control leads to boilerplate.
 
@@ -470,7 +470,7 @@ NOTE: The tension mentioned here is lessened by #6 above: memberwise initializat
 
 ### Require initializers to explicitly specify memberwise initialization parameters
 
-The thread "[helpers for initializing properties of the same name as parameters](https://forums.swift.org/t/proposal-helpers-for-initializing-properties-of-same-name-as-parameters/129/3)" discussed an idea for synthesizing property initialization in the body of the initializer while requiring the parameters to be declard explicitly.  
+The thread "[helpers for initializing properties of the same name as parameters](https://forums.swift.org/t/proposal-helpers-for-initializing-properties-of-same-name-as-parameters/129/3)" discussed an idea for synthesizing property initialization in the body of the initializer while requiring the parameters to be declared explicitly.  
 
 ```swift
 struct Foo {
@@ -494,7 +494,7 @@ Under the current proposal full control is still available.  It requires initial
 
 I believe the `memberwise` declaration modifier on the initializer and the placeholder in the parameter list make it clear that the compiler will synthesize additional parameters.  Furthermore, IDEs and generated documentation will contain the full, synthesized signature of the initializer.  
 
-Finally, this idea is not mutually exclusive with the current proposal.  It could even work in the declaration of a memberwise initializer, so long the corresponding property was made ineligible for memberwise intialization synthesis.
+Finally, this idea is not mutually exclusive with the current proposal.  It could even work in the declaration of a memberwise initializer, so long the corresponding property was made ineligible for memberwise initialization synthesis.
 
 ### Adopt "type parameter list" syntax like Kotlin and Scala
 
@@ -540,7 +540,7 @@ Responses to these points follow:
 
 1. If the expansion of this syntax does not supply initial values to the synthesized properties and only uses the default value for parameters of the synthesized initializer this is true.  The downside of doing this is that `var` properties no longer have an initial value which may be desirable if you write additional initializers for the type.
 	I believe we should continue the discussion about default values for `let` properties.  Ideally we can find an acceptable solution that will work with the current proposal, as well as any additional syntactic sugar we add in the future.
-2. I don't believe allowing parameter labels for memberwise initialization parameters is a good idea.  Callers are directly initializing a property and are best served by a label that matches the name of the property.  If you really need to provide a different name you can still do so by writing your initializer manually.  With future enhancements to the current proposal you may be able to use memberwise intialization for properties that do not require a custom label while manually initialzing properties that do need one.
+2. I don't believe allowing parameter labels for memberwise initialization parameters is a good idea.  Callers are directly initializing a property and are best served by a label that matches the name of the property.  If you really need to provide a different name you can still do so by writing your initializer manually.  With future enhancements to the current proposal you may be able to use memberwise initialization for properties that do not require a custom label while manually initializing properties that do need one.
 3. The Scala / Kotlin syntax is indeed more concise in some cases, but not in all cases.  Under this proposal the example given above is actually more concise than it is with that syntax:
 
 ```swift

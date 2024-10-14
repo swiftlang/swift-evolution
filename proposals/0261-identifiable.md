@@ -101,7 +101,7 @@ doesn't move to the standard library Swift programmers
 will need to continue using their own variation of this protocol and will need
 to ensure it is able co-exist with other similar definitions found in other frameworks higher 
 up the dependency stack. Unfortunately none these variations 
-are likey to be compatible with one another.
+are likely to be compatible with one another.
 
 ## Proposed solution
 

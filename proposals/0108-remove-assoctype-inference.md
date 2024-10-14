@@ -165,7 +165,7 @@ There are some advantages to this approach. Brevity is slightly improved. A type
 
 As well, Dave Abrahams expresses a [potential issue](https://forums.swift.org/t/pitch-remove-type-inference-for-associated-types/3135/17):
 
-> Finally, I am very concerned that there are protocols such as `Collection`, with many inferrable associated types, and that conforming to these protocols could become *much* uglier.
+> Finally, I am very concerned that there are protocols such as `Collection`, with many inferable associated types, and that conforming to these protocols could become *much* uglier.
 
 As with many proposals, there is a tradeoff between the status quo and the proposed behavior. As *Completing Generics* puts it,
 

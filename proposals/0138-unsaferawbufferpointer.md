@@ -32,7 +32,7 @@ for binding memory to a type for subsequent normal typed
 access. However, migration is not always straightforward because
 SE-0107 provided only minimal support for raw pointers. Extending raw
 pointer support to the `UnsafeBufferPointer` type will fill in this
-funcionality gap. This is especially important for code that currently
+functionality gap. This is especially important for code that currently
 views "raw" bytes of memory as
 `UnsafeBufferPointer<UInt8>`. Converting between `UInt8` and the
 client's element type at every API transition is difficult to do
@@ -69,7 +69,7 @@ is natural for the same type that encapsulates a raw pointer and
 length to also allow clients to view that memory as raw bytes without the
 need to explicitly bind the memory type each time memory is
 accessed. This would also improve performance in some cases that I've
-encoutered by avoiding array copies. Let's call this new type
+encountered by avoiding array copies. Let's call this new type
 `Unsafe[Mutable]RawBufferPointer`.
 
 Any array could be viewed as `UnsafeRawBufferPointer`, and that raw
@@ -488,7 +488,7 @@ collection of bytes, so there's no loss in functionality:
 ```swift
 public final class BufferedOutputByteStream: OutputByteStream {
     // FIXME: For inmemory implementation we should be share this buffer with OutputByteStream.
-    // One way to do this is by allowing OuputByteStream to install external buffers.
+    // One way to do this is by allowing OutputByteStream to install external buffers.
     private var contents = [UInt8]()
 
   override final func writeImpl(_ bytes: UnsafeRawBufferPointer) {

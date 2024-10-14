@@ -98,7 +98,7 @@ Objective-C class methods with the same selectors as instance subscript methods 
 
 ## Source compatibility
 
-This proposal is purely additive; it does not change any prevously existing behavior. All syntax it will add support for was previously illegal.
+This proposal is purely additive; it does not change any previously existing behavior. All syntax it will add support for was previously illegal.
 
 ## ABI compatibility and backwards deployment
 

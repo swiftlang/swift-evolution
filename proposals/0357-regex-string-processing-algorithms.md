@@ -594,7 +594,7 @@ extension Collection where SubSequence == Substring {
     /// Returns a collection containing all matches of the specified regex.
     /// - Parameter regex: The regex to search for.
     /// - Returns: A collection of matches of `regex`.
-    public func matches<R: RegexComponent>(of regex: R) -> some Collection<Regex<R.RegexOuput>.Match>
+    public func matches<R: RegexComponent>(of regex: R) -> some Collection<Regex<R.RegexOutput>.Match>
 }
 
 // In RegexBuilder module
@@ -613,7 +613,7 @@ extension Collection where SubSequence == Substring {
 
 #### Replace
 
-We propose generic collection algorithms that will replace all occurences of a given subsequence:
+We propose generic collection algorithms that will replace all occurrences of a given subsequence:
 
 ```swift
 extension RangeReplaceableCollection where Element: Equatable {
@@ -788,7 +788,7 @@ extension RangeReplaceableCollection where SubSequence == Substring {
     public func replacing<R: RegexComponent, Replacement: Collection>(
         _ regex: R,
         maxReplacements: Int = .max,
-        with replacement: (Regex<R.RegexOuput>.Match) throws -> Replacement
+        with replacement: (Regex<R.RegexOutput>.Match) throws -> Replacement
     ) rethrows -> Self where Replacement.Element == Element
 
     /// Replaces all occurrences of the sequence matching the given regex with
@@ -1124,7 +1124,7 @@ This protocol customizes the basic consume-from-the-front functionality. A proto
 
 ### Why `where SubSequence == Substring`?
 
-A `Substring` slice requirement allows the regex engine to produce indicies in the original collection by operating over a portion of the input. Unfortunately, this is not one of the requirements of `StringProtocol`.
+A `Substring` slice requirement allows the regex engine to produce indices in the original collection by operating over a portion of the input. Unfortunately, this is not one of the requirements of `StringProtocol`.
 
 A new protocol for types that can produce a `Substring` on request (e.g. from UTF-8 contents) would have to eagerly produce a `String` copy first and would need requirements to translate indices. When higher-level algorithms are implemented via multiple calls to the lower-level algorithms, these copies could happen many times. Shared strings are future work but a much better solution to this.
    

@@ -373,7 +373,7 @@ When matching with *grapheme cluster semantics* (the default), metacharacters li
 
 When matching with *Unicode scalar semantics*, metacharacters and character classes match a single Unicode scalar value, even if that scalar comprises part of a grapheme cluster. Canonical representations are _not_ used, corresponding with the way comparison would work when using a string's `UnicodeScalarView`.
 
-These specific levels of matching, and the options to switch between them, are unique to Swift, but not unprecedented in other regular expression engines. Several engines, including Perl, Java, and ICU-based engines like `NSRegularExpression`, support the `\X` metacharacter for matching a grapheme cluster within otherwise Unicode scalar semantic matching. Rust has a related concept in its [`regex::bytes` type][regexbytes], which matches over abitrary bytes by default but allows switching into Unicode mode for segments of the regular expression.
+These specific levels of matching, and the options to switch between them, are unique to Swift, but not unprecedented in other regular expression engines. Several engines, including Perl, Java, and ICU-based engines like `NSRegularExpression`, support the `\X` metacharacter for matching a grapheme cluster within otherwise Unicode scalar semantic matching. Rust has a related concept in its [`regex::bytes` type][regexbytes], which matches over arbitrary bytes by default but allows switching into Unicode mode for segments of the regular expression.
 
 These semantic levels lead to different results when working with strings that have characters made up of multiple Unicode scalar values, such as Emoji or decomposed characters. In the following example, `queRegex` matches any 3-character string that begins with `"q"`.
 
@@ -1273,7 +1273,7 @@ Instead, we could use this opportunity to choose default options that are more e
 
 ### Include `\O` and `CharacterClass.anyUnicodeScalar`
 
-An earlier draft of this proposal included a metacharacter and `CharacterClass` API for matching an individual Unicode scalar value, regardless of the current matching level, as a counterpart to `\X`/`.anyGraphemeCluster`. The behavior of this character class, particularly when matching with grapheme cluster semantics, is still unclear at this time, however. For example, when matching the expression `\O*`, does the implict grapheme boundary assertion apply between the `\O` and the quantification operator, or should we treat the two as a single unit and apply the assertion after the `*`?
+An earlier draft of this proposal included a metacharacter and `CharacterClass` API for matching an individual Unicode scalar value, regardless of the current matching level, as a counterpart to `\X`/`.anyGraphemeCluster`. The behavior of this character class, particularly when matching with grapheme cluster semantics, is still unclear at this time, however. For example, when matching the expression `\O*`, does the implicit grapheme boundary assertion apply between the `\O` and the quantification operator, or should we treat the two as a single unit and apply the assertion after the `*`?
 
 At the present time, we prefer to allow authors to write regexes that explicitly shift into and out of Unicode scalar mode, where those kinds of decisions are handled by the explicit scope of the setting. If common patterns emerge that indicate some version of `\O` would be useful, we can add it in the future.
 

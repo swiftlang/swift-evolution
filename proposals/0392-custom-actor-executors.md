@@ -63,7 +63,7 @@ Nonetheless, it is sometimes useful to more finely control how code is executed:
 
   For example, some libraries maintain state in thread-local variables, and running code on the wrong thread will lead to broken assumptions in the library.
 
-  For another example, not all execution environments are homogenous; some threads may be pinned to processors with extra capabilities.
+  For another example, not all execution environments are homogeneous; some threads may be pinned to processors with extra capabilities.
 
 - The code's performance may benefit from the programmer being more explicit about where code should run.
 
@@ -73,11 +73,11 @@ Nonetheless, it is sometimes useful to more finely control how code is executed:
 
 This is the first proposal discussing custom executors and customization points in the Swift Concurrency runtime, and while it introduces only the most basic customization points, we are certain that it already provides significant value to users seeking tighter control over their actor's execution semantics.
 
-Along with introducing ways to customize where code executes, this proposal also introduces ways to assert and assume the apropriate executor is used. This allows for more confidence when migrating away from other concurrency models to Swift Concurrency.
+Along with introducing ways to customize where code executes, this proposal also introduces ways to assert and assume the appropriate executor is used. This allows for more confidence when migrating away from other concurrency models to Swift Concurrency.
 
 ## Proposed solution
 
-We propose to give developers the ability to implement simple serial executors, which then can be used with actors in order to ensure that any code executoring on such "actor with custom serial executor" runs on the apropriate thread or context. Implementing a naive executor takes the shape of:
+We propose to give developers the ability to implement simple serial executors, which then can be used with actors in order to ensure that any code executoring on such "actor with custom serial executor" runs on the appropriate thread or context. Implementing a naive executor takes the shape of:
 
 ```swift
 final class SpecificThreadExecutor: SerialExecutor {
@@ -114,9 +114,9 @@ actor Worker {
 }
 ```
 
-And lastly, in order to increase the confidence during moves from other concurrency models to Swift Concurrency with custom executors, we also provide ways to assert that a piece of code is executing on the apropriate executor. These methods should be used only if there is not better way to express the requirement statically. For example by expressing the code as a method on a specific actor, or annotating it with a `@GlobalActor`, should be preferred to asserting when possible, however sometimes this is not possible due to the old code fulfilling synchronous protocol requirements that still have these threading requirements. 
+And lastly, in order to increase the confidence during moves from other concurrency models to Swift Concurrency with custom executors, we also provide ways to assert that a piece of code is executing on the appropriate executor. These methods should be used only if there is not better way to express the requirement statically. For example by expressing the code as a method on a specific actor, or annotating it with a `@GlobalActor`, should be preferred to asserting when possible, however sometimes this is not possible due to the old code fulfilling synchronous protocol requirements that still have these threading requirements. 
 
-Asserting the apropriate executor is used in a synchronous piece of code looks like this:
+Asserting the appropriate executor is used in a synchronous piece of code looks like this:
 
 ````swift
 func synchronousButNeedsMainActorContext() {
@@ -128,7 +128,7 @@ func synchronousButNeedsMainActorContext() {
 }
 ````
 
-Furthermore, we also offer a new API to safely "assume" an actor's execution context. For example, a synchronous function may know that it always will be invoked by the `MainActor` however for some reason it cannot be marked using `@MainActor`, this new API allows to assume (or crash if called from another execution context) the apropriate execution context, including the safety of synchronously accessing any state protected by the main actor executor:
+Furthermore, we also offer a new API to safely "assume" an actor's execution context. For example, a synchronous function may know that it always will be invoked by the `MainActor` however for some reason it cannot be marked using `@MainActor`, this new API allows to assume (or crash if called from another execution context) the appropriate execution context, including the safety of synchronously accessing any state protected by the main actor executor:
 
 ```swift
 @MainActor func example() {}
@@ -407,7 +407,7 @@ public protocol DistributedActor: AnyActor {
 
 > Note: It is not possible to express this protocol requirement on `AnyActor` directly because `AnyActor` is a "marker protocol" which are not present at runtime, and cannot have protocol requirements.
 
-The compiler synthesizes an implementation for this requirement for every `(distributed) actor` declaration, unless an explicit implementation is provided.  The default implementation synthesized by the compiler uses the default `SerialExecutor`, that uses tha apropriate mechanism for the platform (e.g. Dispatch). Actors using this default synthesized implementation are referred to as "Default Actors", i.e. actors using the default serial executor implementation.
+The compiler synthesizes an implementation for this requirement for every `(distributed) actor` declaration, unless an explicit implementation is provided.  The default implementation synthesized by the compiler uses the default `SerialExecutor`, that uses tha appropriate mechanism for the platform (e.g. Dispatch). Actors using this default synthesized implementation are referred to as "Default Actors", i.e. actors using the default serial executor implementation.
 
 Developers can customize the executor used by an actor on a declaration-by-declaration basis, by implementing this protocol requirement in an actor. For example, thanks to the `sharedUnownedExecutor` static property on `MainActor` it is possible to declare other actors which are also guaranteed to use the same serial executor (i.e. "the main thread").
 
@@ -439,10 +439,10 @@ It is also possible for libraries to offer protocols where a default, library sp
 
 ```swift
 protocol WithSpecifiedExecutor: Actor {
-  nonisolated var executor: LibrarySecificExecutor { get }
+  nonisolated var executor: LibrarySpecificExecutor { get }
 }
 
-protocol LibrarySecificExecutor: SerialExecutor {}
+protocol LibrarySpecificExecutor: SerialExecutor {}
 
 extension LibrarySpecificActor {
   /// Establishes the WithSpecifiedExecutorExecutor as the serial
@@ -480,7 +480,7 @@ A library could also provide a default implementation of such executor as well.
 
 ### Asserting on executors
 
-A common pattern in event-loop heavy code–not yet using Swift Concurrency–is to ensure/verify that a synchronous piece of code is executed on the exected event-loop. Since one of the goals of making executors customizable is to allow such libraries to adopt Swift Concurrency by making such event-loops conform to `SerialExecutor`, it is useful to allow the checking if code is indeed executing on the apropriate executor, for the library to gain confidence while it is moving towards fully embracing actors and Swift concurrency.
+A common pattern in event-loop heavy code–not yet using Swift Concurrency–is to ensure/verify that a synchronous piece of code is executed on the exected event-loop. Since one of the goals of making executors customizable is to allow such libraries to adopt Swift Concurrency by making such event-loops conform to `SerialExecutor`, it is useful to allow the checking if code is indeed executing on the appropriate executor, for the library to gain confidence while it is moving towards fully embracing actors and Swift concurrency.
 
 For example, Swift NIO intentionally avoids synchronization checks in some synchronous methods, in order to avoid the overhead of doing so, however in DEBUG mode it performs assertions that given code is running on the expected event-loop:
 
@@ -579,7 +579,7 @@ MainActor.preconditionIsolated()
 // Precondition failed: Incorrect actor executor assumption; Expected 'MainActorExecutor' executor, but was executing on 'Sample.InlineExecutor'.
 ````
 
-It should be noted that this API will return true whenever two actors share an executor. Semantically sharing a serial executor means running in the same isolation domain, however this is only known dynamically and `await`s are stil necessary for calls between such actors:
+It should be noted that this API will return true whenever two actors share an executor. Semantically sharing a serial executor means running in the same isolation domain, however this is only known dynamically and `await`s are still necessary for calls between such actors:
 
 ```swift
 actor A {
@@ -635,7 +635,7 @@ extension MainActor {
 }
 ```
 
-Similarily to the `preconditionIsolated` API, the executor check is performed against the target actor's executor, so if multiple actors are run on the same executor, this check will succeed in synchronous code invoked by such actors as well. In other words, the following code is also correct:
+Similarly to the `preconditionIsolated` API, the executor check is performed against the target actor's executor, so if multiple actors are run on the same executor, this check will succeed in synchronous code invoked by such actors as well. In other words, the following code is also correct:
 
 ```swift
 func check(values: MainActorValues) /* synchronous! */ {
@@ -894,7 +894,7 @@ actor Friend {
 
 Note that the raw type of the MainActor executor is never exposed, but we merely get unowned wrappers for it. This allows the Swift runtime to pick various specific implementations depending on the runtime environment. 
 
-The default global concurrent executor is not accessible direcly from code, however it is the executor that handles all the tasks which do not have a specific executor requirement, or are explicitly required to run on that executor, e.g. like top-level async functions.
+The default global concurrent executor is not accessible directly from code, however it is the executor that handles all the tasks which do not have a specific executor requirement, or are explicitly required to run on that executor, e.g. like top-level async functions.
 
 ## Source compatibility
 
@@ -908,7 +908,7 @@ Swift's concurrency runtime has already been using executors, jobs and tasks sin
 
 The design of `SerialExecutor` currently does not support non-reentrant actors, and it does not support executors for which dispatch is always synchronous (e.g. that just acquire a traditional mutex).
 
-Some of the APIs discussed in this proposal existed from the first introduction of Swift Concurrency, so making any breaking changes to them is not possible. Some APIs were carefully renamed and polished up though. We encourage discussion of all the types and methods present in this proposal, however changing some of them may prove to be challanging or impossible due to ABI impact.
+Some of the APIs discussed in this proposal existed from the first introduction of Swift Concurrency, so making any breaking changes to them is not possible. Some APIs were carefully renamed and polished up though. We encourage discussion of all the types and methods present in this proposal, however changing some of them may prove to be challenging or impossible due to ABI impact.
 
 ## Effect on API resilience
 
@@ -987,7 +987,7 @@ We will consider adding these, or similar, APIs to enable custom executors to pa
 
 ### Specifying Task executors
 
-Specifying executors to tasks has a suprising number of tricky questions it has to answer, so for the time being we are not introducing such capability. Specifically, passing an executor to `Task(startingOn: someExecutor) { ... }` would make the Task _start_ on the specified executor, but detailed semantics about if the _all_ of this Task's body is expected to execute on `someExecutor` (i.e. we have to hop-back to it every time after an `await`), or if it is enough to just start on it and then continue avoiding scheduling more jobs if possible (i.e. allow for aggressive switching).
+Specifying executors to tasks has a surprising number of tricky questions it has to answer, so for the time being we are not introducing such capability. Specifically, passing an executor to `Task(startingOn: someExecutor) { ... }` would make the Task _start_ on the specified executor, but detailed semantics about if the _all_ of this Task's body is expected to execute on `someExecutor` (i.e. we have to hop-back to it every time after an `await`), or if it is enough to just start on it and then continue avoiding scheduling more jobs if possible (i.e. allow for aggressive switching).
 
 ### DelegateActor property
 

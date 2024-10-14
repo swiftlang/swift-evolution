@@ -77,7 +77,7 @@ public protocol ObjectiveCBridgeable {
     /// Objective-C thunk or when calling Objective-C code.
     ///
     /// - note: This initializer should eagerly perform the
-    /// conversion without defering any work for later,
+    /// conversion without deferring any work for later,
     /// returning `nil` if the conversion fails.
     init?(bridgedFromObjectiveC: ObjectiveCType)
 
@@ -144,7 +144,7 @@ The compiler generates automatic thunks only when there is no ambiguity, while e
     3. Bridged collection types will still observe the protocol conformance if cast to a Swift type (eg: `NSArray as? [Int]` will call the `ObjectiveCBridgeable` implementation on `Array`, which itself will call the implementation on `Int` for the elements)
 2. A Swift type may bridge to an Objective-C base class then provide different subclass instances at runtime, but no other Swift type may bridge to that base class or any of its subclasses.
     1. The compiler should emit a diagnostic when it detects two Swift types attempting to bridge to the same `ObjectiveCType`.
-3. An exception to these rules exists for trivially convertable built-in types like `NSInteger` &lt;--&gt; `Int` when specified outside of a bridged collection type. In those cases the compiler will continue the existing behavior, bypassing the `ObjectiveCBridgeable` protocol. The effect is that types like `Int` will not bridge to `NSNumber` unless contained inside a collection type (see `BuiltInBridgeable below`).
+3. An exception to these rules exists for trivially convertible built-in types like `NSInteger` &lt;--&gt; `Int` when specified outside of a bridged collection type. In those cases the compiler will continue the existing behavior, bypassing the `ObjectiveCBridgeable` protocol. The effect is that types like `Int` will not bridge to `NSNumber` unless contained inside a collection type (see `BuiltInBridgeable below`).
 
 ### Resiliance
 

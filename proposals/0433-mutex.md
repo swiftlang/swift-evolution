@@ -86,7 +86,7 @@ Below is the complete API design for the new `Mutex` type:
 ///     class Manager {
 ///       let cache = Mutex<[Key: Resource]>([:])
 ///
-///       func saveResouce(_ resource: Resouce, as key: Key) {
+///       func saveResource(_ resource: Resource, as key: Key) {
 ///         cache.withLock {
 ///           $0[key] = resource
 ///         }
@@ -177,7 +177,7 @@ extension Mutex where State: ~Copyable {
 
 ## Interaction with Existing Language Features
 
-`Mutex` will be decorated with the `@_staticExclusiveOnly` attribute, meaning you will not be able to declare a variable of type `Mutex` as `var`. These are the same restrictions imposed on the recently accepted `Atomic` and `AtomicLazyReference` types. Please refer to the [Atomics proposal](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0410-atomics.md) for a more in-depth discussion on what is allowed and not allowed. These restrictions are enabled for `Mutex` for all of the same reasons why it was resticted for `Atomic`. We do not want to introduce dynamic exclusivity checking when accessing a value of `Mutex` as a class stored property for instance.
+`Mutex` will be decorated with the `@_staticExclusiveOnly` attribute, meaning you will not be able to declare a variable of type `Mutex` as `var`. These are the same restrictions imposed on the recently accepted `Atomic` and `AtomicLazyReference` types. Please refer to the [Atomics proposal](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0410-atomics.md) for a more in-depth discussion on what is allowed and not allowed. These restrictions are enabled for `Mutex` for all of the same reasons why it was restricted for `Atomic`. We do not want to introduce dynamic exclusivity checking when accessing a value of `Mutex` as a class stored property for instance.
 
 ### Interactions with Swift Concurrency
 
@@ -224,7 +224,7 @@ By marking the closure as such, we've effectively declared that the mutex is in 
 
 The mutex type we're proposing is a synchronous lock. This means when other participants want to acquire the lock to access the protected shared data, they will halt execution until they are able to do so. Threads that are waiting to acquire the lock will not be able to make forward progress until their request to acquire the lock has completed. This can lead to thread contention if the acquired thread's critical section is not able to be executed relatively quickly exhausting resources for the rest of the system to continue making forward progress. Synchronous locks are also prone to deadlocks (which Swift's actors cannot currently encounter due to their re-entrant nature) and live-locks which can leave a process in an unrecoverable state. These scenarios can occur when there is a complex hierarchy of different locks that manage to depend on the acquisition of each other.
 
-Actors work very differently. Typical use of an actor doesn't request access to underlying shared data, but rather instruct the actor to perform some operation or service that has exclusive access to that data. An execution context making this request may need to await on the return value of that operation, but with Swift's `async`/`await` model it can immediately start doing other work allowing it to make forward progress on other tasks. The actor executes requests in a serial fashion in the order they are made. This ensures that the shared mutable state is only accessed by the actor. Deadlocks are not possible with the actor model. Asynchronous code that is dependent on a specific operation and resouce from an actor can be later resumed once the actor has serviced that request. While deadlocking is not possible, there are other problems actors have such as the actor reentrancy problem where the state of the actor has changed when the executing operation got resumed after a suspension point.
+Actors work very differently. Typical use of an actor doesn't request access to underlying shared data, but rather instruct the actor to perform some operation or service that has exclusive access to that data. An execution context making this request may need to await on the return value of that operation, but with Swift's `async`/`await` model it can immediately start doing other work allowing it to make forward progress on other tasks. The actor executes requests in a serial fashion in the order they are made. This ensures that the shared mutable state is only accessed by the actor. Deadlocks are not possible with the actor model. Asynchronous code that is dependent on a specific operation and resource from an actor can be later resumed once the actor has serviced that request. While deadlocking is not possible, there are other problems actors have such as the actor reentrancy problem where the state of the actor has changed when the executing operation got resumed after a suspension point.
 
 Mutexes and actors are very different synchronization tools that help protect shared mutable state. While they can both achieve synchronization of that data access, they do so in varying ways that may be desirable for some and undesirable for others. The proposed `Mutex` is yet another primitive that Swift should expose to help those achieve concurrency safe programs in cases where actors aren't suitable.
 

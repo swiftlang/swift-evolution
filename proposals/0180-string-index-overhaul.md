@@ -129,7 +129,7 @@ let tagEnd = html.utf16[tagStart...].index(of: close)
 let tag = html[tagStart...tagEnd]
 ```
 
-A property and an intializer will be added to `String.Index`, exposing
+A property and an initializer will be added to `String.Index`, exposing
 the offset of the index in code units (currently only UTF-16) from the
 beginning of the string:
 
