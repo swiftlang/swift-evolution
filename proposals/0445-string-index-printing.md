@@ -3,7 +3,7 @@
 * Proposal: [SE-0445](0445-string-index-printing.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Implemented** (main development branch)
+* Status: **Implemented (Swift 6.1)**
 * Implementation: [apple/swift#75433](https://github.com/swiftlang/swift/pull/75433)
 * Review: ([pitch](https://forums.swift.org/t/improving-string-index-s-printed-descriptions/57027)) ([review](https://forums.swift.org/t/se-0445-improving-string-indexs-printed-descriptions/74643)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0445-improving-string-index-s-printed-descriptions/75108))
 * Previous Revision: [v1](https://github.com/swiftlang/swift-evolution/blob/682f7c293a3a05bff3e619c3b479bfb68541fb6e/proposals/0445-string-index-printing.md)
