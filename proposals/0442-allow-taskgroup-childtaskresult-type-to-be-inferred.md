@@ -3,7 +3,7 @@
 * Proposal: [SE-0442](0442-allow-taskgroup-childtaskresult-type-to-be-inferred.md)
 * Author: [Richard L Zarth III](https://github.com/rlziii)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift Next)**
+* Status: **Implemented (Swift 6.1)**
 * Implementation: [apple/swift#74517](https://github.com/apple/swift/pull/74517)
 * Review: ([pitch](https://forums.swift.org/t/allow-taskgroups-childtaskresult-type-to-be-inferred/72175))([review](https://forums.swift.org/t/se-0442-allow-taskgroups-childtaskresult-type-to-be-inferred/73397))([acceptance](https://forums.swift.org/t/accepted-se-0422-allow-taskgroups-childtaskresult-type-to-be-inferred/73747))
 
