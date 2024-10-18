@@ -46,7 +46,7 @@ buffer.
 The new initializer takes a closure that operates on an
 `UnsafeMutableBufferPointer` and an `inout` count of initialized elements. This
 closure has access to the uninitialized contents of the newly created array's
-storage, and must set the intialized count of the array before exiting.
+storage, and must set the initialized count of the array before exiting.
 
 ```swift
 var myArray = Array<Int>(unsafeUninitializedCapacity: 10) { buffer, initializedCount in

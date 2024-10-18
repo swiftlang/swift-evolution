@@ -54,7 +54,7 @@ Therefore:
 - Over-allocating the destination buffer relative to `underestimatedCount` is valid and simply results in sequence underflow with potentially uninitialized buffer memory (a likely case with arrays that reserve more than they need).
 - The source sequence's actual count may exceed both `underestimatedCount` and the destination buffer size, resulting in sequence overflow. This is also valid and handled by returning an iterator to the uncopied elements as an overflow sequence.
 
-A matching change should also be made to `UnsafeRawBufferPointer.initializeMemory(from:)`. The one difference is that for convenience this should return an `UnsafeMutableBufferPointer` of the (typed) intialized elements instead of an index into the raw buffer.
+A matching change should also be made to `UnsafeRawBufferPointer.initializeMemory(from:)`. The one difference is that for convenience this should return an `UnsafeMutableBufferPointer` of the (typed) initialized elements instead of an index into the raw buffer.
 
 ## Detailed design
 

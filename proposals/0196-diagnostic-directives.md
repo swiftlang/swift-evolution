@@ -155,7 +155,7 @@ On February 1, 2018 the Core Team decided to **accept** this proposal with
 slight revision over the [original proposal](https://github.com/swiftlang/swift-evolution/blob/ab0c22a2340be9bfcb82e6f237752b4d959a93b7/proposals/0196-diagnostic-directives.md).
 
 The only revision over the original proposal is to change the syntax to use
-`#warning(<Message>)` instead of `#warning <Messsage>`.  This fits well with
+`#warning(<Message>)` instead of `#warning <Message>`.  This fits well with
 most of Swift's existing compiler directives, and was strongly supported in
 the [review discussion](https://forums.swift.org/t/se-0196-compiler-diagnostic-directives/8734).
 

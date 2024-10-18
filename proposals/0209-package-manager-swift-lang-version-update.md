@@ -17,7 +17,7 @@ array.
 
 The Swift compiler now allows `4.2` as an accepted value of Swift version flag
 (`-swift-version`). The `swiftLanguageVersions` API in `Package.swift` currently
-accepts an interger array and we need to update this API in order for packages
+accepts an integer array and we need to update this API in order for packages
 to declare this language version if required.
 
 ## Proposed solution

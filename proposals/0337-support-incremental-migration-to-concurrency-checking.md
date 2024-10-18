@@ -73,7 +73,7 @@ Achieving this will require several features working in tandem:
 
 * When applied to a nominal declaration, the `@preconcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 mode that violate concurrency checking, and generate code that interoperates with pre-concurrency binaries.
 
-* When applied to an `import` statement, the `@preconcurrency` attribute tells the compiler that it should only diagnose `Sendable`-requiring uses of non-`Sendable` types from that module if the type explicitly declares a `Sendable` conformance that is unavailable or has constraints that are not satisifed; even then, this will only be a warning, not an error.
+* When applied to an `import` statement, the `@preconcurrency` attribute tells the compiler that it should only diagnose `Sendable`-requiring uses of non-`Sendable` types from that module if the type explicitly declares a `Sendable` conformance that is unavailable or has constraints that are not satisfied; even then, this will only be a warning, not an error.
 
 
 ## Detailed design

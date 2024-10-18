@@ -91,7 +91,7 @@ remember.
       consider upgrading this to its own type to allow per-file build settings.
       The new type would conform to `CustomStringConvertible`, so existing
       declarations would continue to work (except where the strings were
-      constructed programatically).
+      constructed programmatically).
 
     * `exclude`: This property can be used to exclude certain files and
       directories from being picked up as sources. Exclude paths are relative

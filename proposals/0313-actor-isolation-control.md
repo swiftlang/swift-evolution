@@ -322,7 +322,7 @@ At a high level, isolated parameters and isolated conformances are similar to pa
       }
     }  
     ```
-  Generally speaking, a variable in Swift has the same type when it's captured in a nested context as it does in its enclosing context, which provides a level of predictability that would be lost with `@sync` types. In the example above, type inference for the call to `f` differs significantly whether you're in the closure or not. A [recent discussion on the forums](https://forums.swift.org/t/implicit-casts-for-verified-type-information/41035) about narrowing types showed resistence to the idea of changing the type of a variable in a nested context, even when doing so could eliminate additional boilerplate. 
+  Generally speaking, a variable in Swift has the same type when it's captured in a nested context as it does in its enclosing context, which provides a level of predictability that would be lost with `@sync` types. In the example above, type inference for the call to `f` differs significantly whether you're in the closure or not. A [recent discussion on the forums](https://forums.swift.org/t/implicit-casts-for-verified-type-information/41035) about narrowing types showed resistance to the idea of changing the type of a variable in a nested context, even when doing so could eliminate additional boilerplate. 
 
 * The design relies heavily on the implicit conversion from `@sync MyActor` to `MyActor`, e.g.,
 

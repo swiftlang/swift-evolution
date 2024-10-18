@@ -268,7 +268,7 @@ Such features would greatly complicate the type system.
 
 #### Overload `buildBlock` method name
 
-Because the proposed feature overlaps `buildBlock`, one could argue for reusing `buildBlock` as the method base name instead of `buildPartialBlock` and using arguemnt labels to distinguish whether it is the pairwise version, e.g. `buildBlock(partiallyAccumulated:next:)` or `buildBlock(combining:into:)`.
+Because the proposed feature overlaps `buildBlock`, one could argue for reusing `buildBlock` as the method base name instead of `buildPartialBlock` and using argument labels to distinguish whether it is the pairwise version, e.g. `buildBlock(partiallyAccumulated:next:)` or `buildBlock(combining:into:)`.
 
 ```swift
 extension Builder {

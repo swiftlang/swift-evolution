@@ -1144,7 +1144,7 @@ public struct OpaquePointer : ... {
 -    allowedCharacters: NSCharacterSet
 -  ) -> String?
 +  public func addingPercentEncoding(
-+    withAllowedCharaters allowedCharacters: NSCharacterSet
++    withAllowedCharacters allowedCharacters: NSCharacterSet
 +  ) -> String?
 
 -  public func stringByAddingPercentEscapesUsingEncoding(
