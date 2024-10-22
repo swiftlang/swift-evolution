@@ -455,7 +455,7 @@ the public headers directory:
 The compiler assumes that the above path can be resolved relative to the public
 header directory. Instead of forcing package authors to structure their
 packages around that constraint, the Swift compiler's interop header generation
-logic will be ammended to do the following in such cases where the target
+logic will be amended to do the following in such cases where the target
 does not have the public headers directory structure of an xcframework:
 
 - If an umbrella header that is modularized by the Clang module exists, the
@@ -536,11 +536,11 @@ feature will continue to [throw an error][mixed-target-error].
 ## Future Directions
 
 - Enable package authors to expose non-public headers to their mixed
-  target's Swift implemention.
+  target's Swift implementation.
 - Extend mixed language target support to currently unsupported types of
   targets (e.g. executables).
 - Extend this solution so that all targets are mixed language targets by
-  default. This could simplify the implemention as language-specific types
+  default. This could simplify the implementation as language-specific types
   like `ClangTarget`, `SwiftTarget`, and `MixedTarget` could be consolidated
   into a single type. This approach was avoided in the initial implementation
   of this feature to reduce the risk of introducing a regression.

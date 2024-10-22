@@ -27,7 +27,7 @@ _Note: this proposal will use the word "field" to mean "stored instance property
 
 As of Swift 5, libraries are able to declare a stable ABI, allowing a  library binary to be replaced with a newer version without requiring client programs to be recompiled. 
 
-What consitutes the ABI of a library differs from language to language. In C and C++, the public ABI for a library includes information that ideally would be kept purely as an implementation detail. For example, the _size_ of a struct is fixed as part of the ABI, and is known to the library user at compile time. This prevents adding new fields to that type in later releases once the ABI is declared stable. If direct access to fields is allowed, the _layout_ of the struct can also become part of the ABI, so fields cannot then be reordered.
+What constitutes the ABI of a library differs from language to language. In C and C++, the public ABI for a library includes information that ideally would be kept purely as an implementation detail. For example, the _size_ of a struct is fixed as part of the ABI, and is known to the library user at compile time. This prevents adding new fields to that type in later releases once the ABI is declared stable. If direct access to fields is allowed, the _layout_ of the struct can also become part of the ABI, so fields cannot then be reordered.
 
 This often leads to manual workarounds. A common technique is to have the struct hold only a pointer to an "impl" type, which holds the actual stored properties. All access to these properties is made via function calls, which can be updated to handle changes to the layout of the "impl" type. This has some obvious downsides:
 

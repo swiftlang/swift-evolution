@@ -261,7 +261,7 @@ support the replacement of `CustomPlaygroundQuickLookable` with
 `CustomPlaygroundDisplayConvertible`. Instead, we intend for Swift 4.1 to be a
 deprecation period for these APIs, allowing any code bases which implement
 `CustomPlaygroundQuickLookable` to manually switch to the new protocol. While
-this migration may not be trivial programatically, it should -- in most cases --
+this migration may not be trivial programmatically, it should -- in most cases --
 be fairly trivial for someone to hand-migrate to
 `CustomPlaygroundDisplayConvertible`. During the deprecation period, the
 PlaygroundLogger framework will continue to honor implementations of

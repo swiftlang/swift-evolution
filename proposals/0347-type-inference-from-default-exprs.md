@@ -202,7 +202,7 @@ struct Box<F: Flags> {
 ```swift
 enum Box<D: Dimensions, F: Flags> {
 case flatRate(dimensions: D = [...], flags: F = DefaultFlags())
-case overnight(dimentions: D = [...], flags: F = DefaultFlags())
+case overnight(dimensions: D = [...], flags: F = DefaultFlags())
 ...
 }
 ```

@@ -171,7 +171,7 @@ The closest analogue in C to `@usableFromInline` is a non-`static` function that
 
 ## Alternatives considered
 
-One possible alterative would be to add a new compiler mode where _all_ declarations become implicitly `@inlinable`, and _all_ private and internal declarations become `@usableFromInline`.
+One possible alternative would be to add a new compiler mode where _all_ declarations become implicitly `@inlinable`, and _all_ private and internal declarations become `@usableFromInline`.
 
 However, such a compilation mode would not solve the problem of delivering a stable ABI and standard library which can be deployed separately from user code. We _don't want_ all declaration bodies in the standard library to be available to the optimizer when building user code.
 

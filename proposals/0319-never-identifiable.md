@@ -18,7 +18,7 @@ With the acceptance of [SE-0215](https://github.com/swiftlang/swift-evolution/bl
 
 The conformance of `Never` to `Equatable` and `Hashable` in SE-0215 was motivated by examples like using `Never` as a generic constraint in types like `Result` and in enumerations. These same use cases motivate the conformance of `Never` to `Identifiable`, which is pervasive in commonly used frameworks like SwiftUI.
 
-For example, the new `TableRowContent` protocol in SwiftUI follows a "recursive type pattern" and has the need for a primitive bottom type with an `Identifiable` assocated type:
+For example, the new `TableRowContent` protocol in SwiftUI follows a "recursive type pattern" and has the need for a primitive bottom type with an `Identifiable` associated type:
 
 ```swift
 extension Never: TableRowContent {

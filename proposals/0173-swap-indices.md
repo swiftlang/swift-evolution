@@ -82,7 +82,7 @@ protocol MutableCollection {
 The current `swap` is required to `fatalError` on attempts to swap an element
 with itself for implementation reasons. This pushes the burden to check this
 first onto the caller. While swapping an element with itself is often a logic
-errror (for example, in a `sort` algorithm where you have a fenceposts bug), it
+error (for example, in a `sort` algorithm where you have a fenceposts bug), it
 is occasionally a valid situation (for example, it can occur easily in an
 implementation of `shuffle`). This implementation removes the precondition.
 

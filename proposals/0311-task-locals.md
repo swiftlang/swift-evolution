@@ -116,7 +116,7 @@ Each task-local declaration represents its own, independent task-local storage. 
 
 Because of those pitfalls with creating multiple instances of the same task local identifier, we propose to diagnose and fail at compile time if the `@TaskLocal` property wrapper is not defined on a static or global property. 
 
-> In order to do so, we will extend the internal `public static subscript<T>(_enclosingInstance object: T, ...)` subscript mechanism to require "no enclosing instance", which will cause the apropriate compile time error reporting to be triggered if such wrapper is used on a non-static or non-global property.
+> In order to do so, we will extend the internal `public static subscript<T>(_enclosingInstance object: T, ...)` subscript mechanism to require "no enclosing instance", which will cause the appropriate compile time error reporting to be triggered if such wrapper is used on a non-static or non-global property.
 
 The diagnosed error would look like this:
 
@@ -499,7 +499,7 @@ await withTaskGroup(...) { group in
 
 ### Task-local value lifecycle
 
-Task-local values are retained until `withValue`'s `operation` scope exits. Effectively this means that the value is kept alive until all child tasks created in such scope exit as well. This is important because child tasks may be refering to this specific value in the parent task, so it cannot be released earlier. 
+Task-local values are retained until `withValue`'s `operation` scope exits. Effectively this means that the value is kept alive until all child tasks created in such scope exit as well. This is important because child tasks may be referring to this specific value in the parent task, so it cannot be released earlier. 
 
 Both value and reference types are allowed to be stored in task-local storage, using their expected respective semantics: 
 
@@ -951,7 +951,7 @@ Dispatch offers APIs that allow setting values that are _specific to a dispatch 
 These APIs serve their purpose well, however they are incompatible with Swift Concurrency's task-focused model. Even if actors and asynchronous functions execute on dispatch queues, no capability to carry values over multiple queues is given, which is necessary to work well with Swift Concurrency, as execution may hop back and forth between queues.
 
 ## Intended use-cases
-It is important to keep in mind the intended use case of this API. Task-local values are not intended to replace passing parameters where doing so explicitly is the right tool for the job. Please note that task local storage is more expensive to access than parameters passed explicitly. They also are "invisible" in API, so take care to avoid accidentally building APIs which absolutely must have some task local value set when they are called as this is very suprising and hard to debug behavior.
+It is important to keep in mind the intended use case of this API. Task-local values are not intended to replace passing parameters where doing so explicitly is the right tool for the job. Please note that task local storage is more expensive to access than parameters passed explicitly. They also are "invisible" in API, so take care to avoid accidentally building APIs which absolutely must have some task local value set when they are called as this is very surprising and hard to debug behavior.
 
 Only use task local storage for auxiliary _metadata_ or "_execution scoped configuration_", like mocking out some runtime bits for the duration of a _specific call_ but not globally, etc.
 
@@ -1195,7 +1195,7 @@ Some, specialized use-cases however can declare more specific inheritance semant
 
 A `TaskLocal` type may declare an inheritance semantics by defining the static `inherit` parameter when declaring the variable: `TaskLocal(inherit: .never)`.
 
-The semantics default to `.default`, which are what one would expect normally — that child tasks are able to lookup values defined in their parents, unless overriden in that specific child. We will discuss the exact semantics of lookups in depth in [Reading task-local values](#reading-task-local-values).
+The semantics default to `.default`, which are what one would expect normally — that child tasks are able to lookup values defined in their parents, unless overridden in that specific child. We will discuss the exact semantics of lookups in depth in [Reading task-local values](#reading-task-local-values).
 
 In this proposal, we introduce two additional inheritance semantics: `.never` and `.alwaysBestEffort`:
 

@@ -287,7 +287,7 @@ func myMath(a: Int, b: Int) -> Int {
 }
 ```
 
-The advantage of this approach over allowing a `body` macro to replace a body is that we can type-check the  function body as it was written, and only need to do so once---then it becomes a value of function type that's passed along to the underying macro. Also like preamble macros, this approach can compose, because the result of one macro could produce another value of function type that can be passed along to another macro. [Python decorators](https://www.datacamp.com/tutorial/decorators-python) have been successful in that language for customizing the behavior of functions in a similar manner.
+The advantage of this approach over allowing a `body` macro to replace a body is that we can type-check the  function body as it was written, and only need to do so once---then it becomes a value of function type that's passed along to the underlying macro. Also like preamble macros, this approach can compose, because the result of one macro could produce another value of function type that can be passed along to another macro. [Python decorators](https://www.datacamp.com/tutorial/decorators-python) have been successful in that language for customizing the behavior of functions in a similar manner.
 
 ## Alternatives considered
 

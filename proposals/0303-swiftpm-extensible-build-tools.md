@@ -431,7 +431,7 @@ struct Diagnostics {
     static func remark(_ message: String, file: Path? = #file, line: Int? = #line)
 
     /// Emits a diagnostic with the specified severity and descriptive message.
-    static func emit(_ severity: Serverity, _ message: String, file: Path? = #file, line: Int? = #line)
+    static func emit(_ severity: Severity, _ message: String, file: Path? = #file, line: Int? = #line)
     
     /// The seriousness with which the diagnostic is treated. An error causes
     /// SwiftPM to consider the plugin to have failed to run.
@@ -547,11 +547,11 @@ Prebuild commands should be used when the tool being invoked can produce outputs
 
 ##### Build Commands
 
-Commands of type `.buildCommand` that are retured by the plugin are incorporated into the build system's dependency graph, so that they run as needed during the build, based on their declared inputs and outputs. This requires that the paths of any outputs can be known before the command is run. This is usually done by forming the names of the outputs based on some combination of the output directory and the name of the input file.
+Commands of type `.buildCommand` that are returned by the plugin are incorporated into the build system's dependency graph, so that they run as needed during the build, based on their declared inputs and outputs. This requires that the paths of any outputs can be known before the command is run. This is usually done by forming the names of the outputs based on some combination of the output directory and the name of the input file.
 
 Examples of plugins that can use regular build commands include compiler-like translators such as Protobuf and other tools that take a fixed set of inputs and produce a fixed set of outputs. (note that one nuance with Protobuf in particular is that it is actually up to the source generator invoked by `protoc` to determine the output paths — however, the relevant source generators for Swift and C do produce output files with predictable names).
 
-Other examples include translators that "compile" data files in JSON or other editable formats to a suitable binary runtime respresentation.
+Other examples include translators that "compile" data files in JSON or other editable formats to a suitable binary runtime representation.
 
 Regular build commands with defined outputs are preferable whenever possible, because such commands don't have to run unless their outputs are missing or their inputs have changed since the last time they ran.
 
@@ -867,7 +867,7 @@ import Foundation
         // Create a module mappings file. This is something that the Swift source
         // generator `protoc` plug-in we are using requires. The details are not
         // important for this proposal, except that it needs to be able to be con-
-        // structed from the information in the context given to the plugin, and
+        // structured from the information in the context given to the plugin, and
         // to be written out to the intermediates directory.
         let moduleMappingsFile = otherFilesDir.appending("module-mappings")
         let outputString = ". . . module mappings file . . ."

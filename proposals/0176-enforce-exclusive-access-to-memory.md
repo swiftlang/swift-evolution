@@ -740,7 +740,7 @@ automatically to avoid source-compatibility problems.
 
 ## Effect on ABI stability and resilience
 
-In order to gain the performance and language-desing benefits of
+In order to gain the performance and language-design benefits of
 exclusivity, we must be able to assume that it is followed faithfully
 in various places throughout the ABI.  Therefore, exclusivity must be
 enforced before we commit to a stable ABI, or else we'll be stuck with
