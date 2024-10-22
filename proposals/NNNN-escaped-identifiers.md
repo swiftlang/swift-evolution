@@ -206,11 +206,16 @@ In [Zig](https://ziglang.org/documentation/master/#Identifiers), an identifier t
 A raw identifier may contain any valid Unicode characters except for the following:
 
 * The backtick (`` ` ``) itself, which termintes the identifier.
+* The backslash (`\`), which is reserved for potential future escape sequences.
 * Carriage return (`U+000D`) or newline (`U+000A`); identifiers must be written on a single line.
 * The NUL character (`U+0000`), which already emits a warning if present in Swift source but would be disallowed completely in a raw identifier.
 * All other non-printable ASCII code units that are also forbidden in single-line Swift string literals (`U+0001...U+001F`, `U+007F`).
 
 In addition to these rules, some specific combinations that require special handling are discussed below.
+
+#### Whitespace
+
+A raw identifier may have leading, trailing, or internal whitespace; however, it may not consist of *only* whitespace. "Whitespace" is defined here to mean characters satisfying the Unicode `White_Space` property, exposed in Swift by `Unicode.Scalar.Properties.isWhitespace`.
 
 #### Operator characters
 
@@ -437,6 +442,10 @@ let fifteen = ```
 ~~~
 
 At this time, however, we do not believe there are any compelling use cases for such identifiers.
+
+### Escape sequences inside raw identifiers
+
+Raw identifiers follow similar parsing rules as string literals with respect to unprintable characters, which raises the question of how to handle backslashes. The use cases served by many backslash escapes—such as writing unprintable characters—are not desirable for identifiers, so we could choose to treat backslashes as regular literal characters. For example, `` `hello\now` `` would mean the identifier `hello\now`. This could be confusing for users though, who might expect the `\n` to be interpreted the same way that it would be in a string literal. Treating backslashes as literal characters today would also close the door on a viable method of escaping characters inside raw identifiers if we decide that it is needed later. For these reasons, we currently forbid backslashes and leave their purpose to be defined in the future.
 
 ## Source compatibility
 
