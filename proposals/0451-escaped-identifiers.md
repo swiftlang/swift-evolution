@@ -205,7 +205,7 @@ In [Zig](https://ziglang.org/documentation/master/#Identifiers), an identifier t
 
 A raw identifier may contain any valid Unicode characters except for the following:
 
-* The backtick (`` ` ``) itself, which termintes the identifier.
+* The backtick (`` ` ``) itself, which terminates the identifier.
 * The backslash (`\`), which is reserved for potential future escape sequences.
 * Carriage return (`U+000D`) or newline (`U+000A`); identifiers must be written on a single line.
 * The NUL character (`U+0000`), which already emits a warning if present in Swift source but would be disallowed completely in a raw identifier.
