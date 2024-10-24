@@ -5,6 +5,7 @@
 * Review Manager: [Mishal Shah](https://github.com/shahmishal)
 * Status: **Active Review (October 24th...November 7th, 2024**)
 * Experimental Implementation: Gated on `@_spi(ExperimentalTraits)` in package manifests and `--experimental` prefix for CLI options
+* Review: ([pitch](https://forums.swift.org/t/pitch-package-traits/72191)) ([review](https://forums.swift.org/t/se-0450-package-traits/75598))
 
 - https://github.com/swiftlang/swift-package-manager/pull/7704
 - https://github.com/swiftlang/swift-package-manager/pull/7703
