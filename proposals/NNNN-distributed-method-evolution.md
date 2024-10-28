@@ -15,7 +15,7 @@ Distributed actors offer a way for Swift programs to communicate with other (pri
 
 The use of the Swift language to express these network protocols is a powerful abstraction which removes users of distributed actor systems from the specific details of networking and serializing data as it crosses the process boundary. The serialization and IO mechanisms used by a distributed actor system are entirely pluggable, and system developers are free to use any mechanism they see fit.
 
-One place where the abstraction falls short is in how the remote calls are _identified_. While remote calls can be mede using any IO and any serialization system, the accessor to the target function to be invoked is using Swift's normal mangling mechanism. This un-necessarily ties the distributed actor system to Swift's internal implementation details, and makes API evolution more difficult.
+One place where the abstraction falls short is in how the remote calls are _identified_. While remote calls can be made using any IO and any serialization system, the accessor to the target function to be invoked is using Swift's normal mangling mechanism. This un-necessarily ties the distributed actor system to Swift's internal implementation details, and makes API evolution more difficult.
 
 Another implication of using plain Swift protocols for API boundary declarations is that they are now the source of truth for which methods a remote peer can accept. This is both a feature, and a challenge. By design Swift distributed actors enable the use of plain Swift to express these API contracts – instead of reaching for external Interface Definition Languages – like some other RPC systems do. This means that evolution of these APIs became un-necessarily entangled with Swift's strict ABI needs which don't necessarily apply equally for a distributed system where only the wire compatibility of sent messages should actually matter.
 
@@ -96,6 +96,8 @@ We'd prefer to be able to have one "latest" version of a distributed method, and
 
 In order to facilitate easier API evolution, we introduce a new **`@Evolving(...)`** attribute in the Distributed module, which can be used with a `distributed` function or property declaration:
 
+**TODO: The baseline needs to be explained** 
+
 ```swift
 import Distributed
 
@@ -118,7 +120,7 @@ Every call on a `distributed` method which was made on a _remote_ actor referenc
 ```swift
 protocol Greeter: DistributedActor where ActorSystem: DistributedActorSystem<any Codable> {
     
-    @Evolving(baseline: distributed func greet(greeting: Greeting) -> String)
+    @Evolving(distributed func greet(greeting: Greeting) -> String)
     distributed func greet(name: String, greeting: Greeting) -> String
     
 }
@@ -128,7 +130,9 @@ protocol Greeter: DistributedActor where ActorSystem: DistributedActorSystem<any
 
 Backwards compatibility means that a new "v2" distributed method must be possible to be invoked by clients which have its previous signature. Similar to other RPC systems, distributed method evolution achieves this by making changes only additive and non-destructive to the base signature.
 
-#### Adding defaulted parameters
+#### Adding parameters
+
+**TODO: Optional OR DEFAULTED**
 
 The primary way to evolve APIs is to add new parameters to them, this should be possible in a non-breaking fashion, where the "new" method serves as the single implementation handling all legacy calls as well as the current API.
 
@@ -197,6 +201,8 @@ let greeting try await greeter.greet(name: "Caplin")
 ```
 
 #### @Evolving matching rules
+
+**TODO: Do we want to drop the `distributed func` part?**
 
 The evolving attribute must spell out a full signature of the "baseline" method it is evolving from. The attached to method must therefore "match" this baseline, and only add (or make compatible changes) to the baseline signature. This section explains what matching rules are applied, and therefore what kinds of changes can be made to the method interface.
 
@@ -270,6 +276,10 @@ It is also not allowed to change the constraints of a given parameter
 
 Maybe it can work since we require a default value so we know the "default" to use when no was provided...
 
+**TODO: :white_check_mark: Allow move from String to String? in preparation for removal in the future**
+
+
+
 #### Evolving distributed computed properties
 
 Distributed computed (get-only) properties may also be subject to evolution, and may even be evolved into methods accepting parameters.
@@ -319,12 +329,14 @@ distributed func tpoInName() -> String { ... }
 
 ### Multi-release long evolution
 
+**TODO: Forward compatiblity in general?**
+
 In real systems, APIs evolve not only between a "first" and "next" version, but over multiple iterations/releases and the @Evolving atribute must handle this _ongoing_ journey of an API over multiple releases.
 
 For example, a first release of a service may have the following declaration:
 
 ```swift
-protocol Greeter: DistributedActor where { 
+protocol Greeter: DistributedActor ... { 
   distributed func greet(name: String) -> String // "v1"
 }
 ```
@@ -332,7 +344,7 @@ protocol Greeter: DistributedActor where {
 Then, we added an `lastName` parameter in an subsequent release.
 
 ```swift
-protocol Greeter: DistributedActor where { 
+protocol Greeter: DistributedActor ... { 
   @Evolving(distributed greet(name: String) -> String)
   distributed func greet(name: String, lastName: String) -> String // ✅ "v2"
 }
@@ -340,11 +352,34 @@ protocol Greeter: DistributedActor where {
 
 Next, in a subsquent release wanted to add another parameter, let's say `age: Int`. Since the `name:lastName:` API was released and has clients using it, we have to be careful to not break it from this revision as well.
 
+**TODO: Do we need version numbers on the Evolving "versions" of the signatures?**
+
+**TODO: Does including version number, and a client OMITTS it, makes it worse or better when we make a call to an old server?**
+
+**TODO: @evolving overrides, do they need to be banned; JUST evolve in protocols**
+
+```swift
+protocol Greeter: DistributedActor ... { 
+  @Evolving(distributed greet(name: String) -> String)
+  @Evolving(distributed greet(name: String, lastName: String) -> String) // HELPFUL but nor REQUIRED
+  // TODO: Unless we infer versions from this; because of the forward compat thigns?
+  distributed func greet(name: String, lastName: String, age: Int?) -> String
+}
+
+distributed actor PoliteGreeter: Greeter { 
+  @Evolving(distributed greet(name: String, BLA: String) -> String) <<<<<<<<<<<<<<<
+  distributed func greet(name: String, lastName: String = "<Unknown>", age: Int? = nil) -> String
+}
+```
+
+
+
 We could try to just add the new parameter to the latest API:
 
 ```swift
 protocol Greeter: DistributedActor where { 
   @Evolving(distributed greet(name: String) -> String)
+  @Evolving(distributed greet(name: String, lastName: String) -> String)
   distributed func greet(name: String, lastName: String, age: Int?) -> String // ✅ "v3"
 }
 
@@ -396,6 +431,10 @@ Which allows for a natural way of expressing the usual OS based availability of 
 
 ### Forward-compatibility
 
+**TODO: This is scary to clients, maybe we need to allow this via opt in on the server to forward compat some specific methods**
+
+**TODO: We need param indicies probably anyway.**
+
 Forward compatibility in distributed calls means that a distributed actor must be able to receive calls from "future" client versions.
 
 We can analyze this using our familiar Greeter example:
@@ -443,6 +482,16 @@ try await executeDistributedTarget(on: actor, target, invocation, ...)
 ```
 
 TODO DEEP DIVE INTO THE CODING HOW TO 
+
+```
+RemoteCallContext.with(invocation) { 
+  try await executeDistributedTarget(on: actor, target, invocation, ...)
+}
+
+distributed func hello() { 
+  assert(RemoteCallContext.droppedValues.count == 0)
+}
+```
 
 
 
@@ -650,6 +699,28 @@ distributed func hello(name: String, surname: String, age: Int = 23)
 ```
 
 This is similar to Thrift's versioning style, without the ability to remove fields and being order sensitive.
+
+### Tagged fields
+
+Some RPC systems choose to "tag" fields which are then used to transfer the numbered identifiers rather than names of fields. A number may not be repeated and fields may be removed if they were optional. For forward compatibility, it is possible to ignore incoming parameters if their ID are not known, such are simply discarded.
+
+In idea would result in the following syntax:
+
+```swift
+@Evolving
+distributed func hello(
+  name: @FieldID(1) String, 
+  surname: @FieldID(2) String
+) -> String
+```
+
+Functions without tags cannot be backwards compatible, so you'd have to opt-in immediately expecting future evolution of an API which is a problematic downside of this approach.
+
+### Server-side distributed method resolution
+
+In this way we send over all labels and types, and based that we perform RUNTIME overload resolution...
+
+Seems too hardcore and overhead on the wire protocol.
 
 ### Version negotiation and versioned feature @availability
 
