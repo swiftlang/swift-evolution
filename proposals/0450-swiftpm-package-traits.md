@@ -614,7 +614,7 @@ it would be helpful to offer package authors tooling to build and test all
 combinations. A new option `--all-trait-combinations` could be added to
 `swift test/build/run` make testing all combinations easy as possible.
 
-### Surface traits in documentation
+### Surface traits in documentation
 
 If the compiler gains knowledge about package traits in the future, we could
 extract information if a public API is guarded by a trait and surface this in
