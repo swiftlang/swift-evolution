@@ -474,9 +474,9 @@ default traits or adding a new default trait it is important to consider that
 removing a default trait is a **SemVer-incompatible** change since it can potentially
 remove APIs.
 
-### Trait specific command line options for `swift build/run`
+### Trait specific command line options for `swift test/build/run`
 
-When executing one of `swift build/run` options can be passed to control which
+When executing one of `swift test/build/run` options can be passed to control which
 traits for the root package are enabled:
 
 - `--traits` _TRAITS_: Enables the passed traits of the package. Multiple traits
