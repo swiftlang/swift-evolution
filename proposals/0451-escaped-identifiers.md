@@ -156,7 +156,7 @@ Using raw identifiers for test naming fits very well with Swift's philosophy of 
 Raw identifiers would provide a clean solution to the cases where the most natural name for an identifier is numeric. Considering the color design system again, we could write:
 
 ```swift
-case ColorVariant {
+enum ColorVariant {
   case `50`
   case `100`
   case `200`
