@@ -36,7 +36,7 @@ Generic types can now be parameterized by integer parameters, declared using
 the syntax `let <Name>: Int` inside of the generic parameter angle brackets:
 
 ```swift
-struct Vector<let N: Int, T> {
+struct Vector<let count: Int, Element> {
     /*implementation TBD*/
 }
 ```
@@ -54,8 +54,8 @@ Or it can be instantiated using integer generic parameters from the surrounding
 generic environment:
 
 ```swift
-struct Matrix<let N: Int, let M: Int> {
-    var matrix: Vector<N, Vector<M, Double>>
+struct Matrix<let n: Int, let m: Int> {
+    var matrix: Vector<n, Vector<m, Double>>
 }
 ```
 
@@ -65,15 +65,15 @@ arguments for a call are inferred from the types of the argument values
 provided to the call:
 
 ```swift
-func matmul<let A: Int, let B: Int, let C: Int>(
-    _ l: Matrix<A, B>,
-    _ r: Matrix<B, C>
-) -> Matrix<A, C> { ... }
+func matmul<let a: Int, let b: Int, let c: Int>(
+    _ l: Matrix<a, b>,
+    _ r: Matrix<b, c>
+) -> Matrix<a, c> { ... }
 
 let m1 = Matrix<4, 2>(...)
 let m2 = Matrix<2, 5>(...)
 
-let m3 = matmul(m1, m2) // A = 4, B = 2, C = 5, result type is Matrix<4, 5>
+let m3 = matmul(m1, m2) // a = 4, b = 2, c = 5, result type is Matrix<4, 5>
 ```
 
 Within an expression, a reference to an integer generic parameter evaluates
@@ -81,10 +81,10 @@ the parameter as a value of type `Int`:
 
 ```swift
 extension Vector {
-    subscript(i: Int) -> T {
+    subscript(i: Int) -> Element {
         get {
-            if i < 0 || i >= N {
-                fatalError("index \(i) out of bounds [0, \(N))")
+            if i < 0 || i >= count {
+                fatalError("index \(i) out of bounds [0, \(count))")
             }
             return element(i)
         }
@@ -122,9 +122,9 @@ Likewise, integer generic parameters cannot be used as standalone types in their
 generic context.
 
 ```swift
-struct Foo<let X: Int> {
-    let x: X // Error, X is not a type
-    let metax: X.Type // Error, X has no member `.Type`
+struct Foo<let x: Int> {
+    let y: x // Error, x is not a type
+    let metax: x.Type // Error, x has no member `.Type`
 }
 ```
 
@@ -133,26 +133,26 @@ the `Swift.Int` standard library type. (Allowing other types of value generic
 parameter is a future direction.)
 
 ```swift
-struct Foo<let X: Int> { } // OK (assuming no shadowing `Int` declaration)
-struct Foo2<let X: Swift.Int> { } // also OK
+struct Foo<let x: Int> { } // OK (assuming no shadowing `Int` declaration)
+struct Foo2<let x: Swift.Int> { } // also OK
 
 struct BadFoo<let x: Float> { } // Error, generic parameters of type Float not supported
 
 typealias MyInt = Swift.Int
-struct Bar<let X: MyInt> { } // OK
+struct Bar<let x: MyInt> { } // OK
 
 struct Baz: P {
     typealias A = Int
 }
 
-struct Zim<let X: Baz.A> { } // OK
+struct Zim<let x: Baz.A> { } // OK
 
 func contrived() {
     struct Int { }
 
-    struct BadFoo<let X: Int> { } // Error, local Int not supported
+    struct BadFoo<let x: Int> { } // Error, local Int not supported
 
-    struct Foo<let X: Swift.Int> { } // OK
+    struct Foo<let x: Swift.Int> { } // OK
 }
 ```
 
@@ -165,13 +165,13 @@ or more elaborate constant expressions, as generic parameters is a future
 direction.)
 
 ```swift
-struct IntParam<let X: Int> { }
+struct IntParam<let x: Int> { }
 
 let a: IntParam<2> // OK
 let b: IntParam<-2> // OK
 
-struct AlsoIntParam<let X: Int, T, each U> {
-    let c: IntParam<X> // OK
+struct AlsoIntParam<let x: Int, T, each U> {
+    let c: IntParam<x> // OK
 
     static let someIntegerConstant = 42
     let d: IntParam<someIntegerConstant> // Error, not an Int generic parameter
@@ -185,8 +185,8 @@ Conversely, using an integer generic parameter as an argument for a type
 generic parameter is also an error.
 
 ```swift
-struct IntAndTypeParam<let X: Int, T> {
-    let x: Array<X> // Error, X is an integer type parameter
+struct IntAndTypeParam<let x: Int, T> {
+    let xs: Array<x> // Error, x is an integer type parameter
 }
 ```
 
@@ -196,13 +196,13 @@ same-type constraint. Two integer generic parameters can also be constrained
 to be equal to each other.
 
 ```swift
-struct TwoIntParams<T, let N: Int, let M: Int> {}
+struct TwoIntParams<T, let n: Int, let m: Int> {}
 
-extension TwoIntParams where N == 2 {
+extension TwoIntParams where n == 2 {
     func foo() { ... }
 }
 
-extension TwoIntParams where N == M {
+extension TwoIntParams where n == m {
     func bar() { ... }
 }
 
@@ -220,14 +220,14 @@ parameters, concrete types, or to declarations other than generic parameters.
 Integer generic parameters also cannot be constrained to conform to protocols.
 
 ```swift
-extension TwoIntParams where N == T {} // error
-extension TwoIntParams where T == N {} // error
-extension TwoIntParams where N == Int {} // error
+extension TwoIntParams where n == T {} // error
+extension TwoIntParams where T == n {} // error
+extension TwoIntParams where n == Int {} // error
 
 let globalConstant = 42
-extension TwoIntParams where N == globalConstant {} // error
+extension TwoIntParams where n == globalConstant {} // error
 
-extension TwoIntParams where N: Collection // error
+extension TwoIntParams where n: Collection // error
 ```
 
 (In the same way overload resolution already works in Swift, extensions or
@@ -236,7 +236,7 @@ for call sites at which those constraints always hold; we won't "dispatch"
 based on the value of an argument from a less-constrained call site.)
 
 ```swift
-struct Foo<let N: Int> {
+struct Foo<let n: Int> {
     func foo() { print("foo #1") }
 
     func bar() {
@@ -245,7 +245,7 @@ struct Foo<let N: Int> {
     } 
 }
 
-extension Foo where N == 2 {
+extension Foo where n == 2 {
     func foo() { print("foo #2") }
 }
 
@@ -255,7 +255,7 @@ Foo<2>().foo() // prints "foo #2"
 
 ## Source compatibility
 
-This proposal is a pure extension of the existing language. The `let N: Type`
+This proposal is a strict extension of the existing language. The `let n: Type`
 syntax should ensure source compatibility if we expand the feature to allow
 value generic parameters of other types in the future.
 
@@ -274,10 +274,19 @@ same-value constraints are all ABI-breaking changes.
 
 ## Implications on adoption
 
+### Back-deployment limitations
+
 On platforms where the vendor ships the Swift runtime with the operating
 system, there may be limitations on using integer generic parameters in
 programs that want to target earlier versions of those platforms that don't
 have the necessary runtime support.
+
+### Naming conventions
+
+Integer generic parameters are a new kind of declaration in Swift, and
+conventions need to be established as to how they should be named. This
+proposal recommends that integer generic parameters follow the convention
+of other value bindings and be named using `lowerCamelCase` identifiers.
 
 ## Future directions
 
@@ -306,10 +315,29 @@ var buffer = Vector<bufferSize, UInt8>(...)
 ```
 
 This should be possible as long as the bindings referenced are known to be
-constant (like `let` bindings are). However, the type checker will likely
-be unable to reason about the value of these bindings, since constant
-evaluation occurs after type checking is complete, so they would be treated
-as opaque values.
+constant (like `let` bindings are).
+
+A likely-fundamental limitation to this feature, as well as related
+constant evaluation features explored below, is that the type checker will
+likely be unable to reason about the value of these bindings.
+Type checking influences overload resolution and the overall meaning of
+expressions, so cannot rely on the evaluation of those expressions without
+creating circularities. We may be able understand that two terms spelled
+exactly the same way are equivalent, but we wouldn't recognize two different
+expressions with the same result are the same type statically:
+
+```
+let fourShorts = 4 * MemoryLayout<Int16>.size
+let eightBytes = 8 * MemoryLayout<Int8>.size
+
+var v1: Vector<fourShorts, UInt8> = [...]
+var v2: Vector<eightBytes, UInt8> = [...]
+v1 = v2 // Error, different types
+```
+
+This is similar to how opaque result types for different declarations are
+type-checked as if they are potentially different types even when their
+underlying types dynamically resolve to the same type.
 
 ### Arithmetic in generic parameters
 
@@ -319,9 +347,9 @@ fixed-sized arrays would give an array whose length is the sum of the input
 lengths:
 
 ```swift
-func concat<let N: Int, let M: Int, T>(
-    _ a: Vector<N, T>, _ b: Vector<M, T>
-) -> Vector<N + M, T>
+func concat<let n: Int, let m: Int, T>(
+    _ a: Vector<n, T>, _ b: Vector<m, T>
+) -> Vector<n + m, T>
 ```
 
 Due to the bidirectional nature of Swift's type-checking, there would be
@@ -336,10 +364,10 @@ so.  Among other things, this might allow for a variadic API to express that it
 takes as many arguments as one of its integer generic parameters indicates:
 
 ```swift
-struct Vector<let N: Int, T> {
+struct Vector<let n: Int, T> {
     // the initializer for a Vector takes one argument
     // for every element
-    init(_ values: repeat each N * T)
+    init(_ values: repeat each n * T)
 }
 ```
 
@@ -352,8 +380,8 @@ syntax maintains space for this:
 ```swift
 struct MatrixShape { var rows: Int, columns: Int }
 
-struct Matrix<let Shape: MatrixShape> {
-    var elements: Vector<Shape.rows, Vector<Shape.columns, Double>>
+struct Matrix<let shape: MatrixShape> {
+    var elements: Vector<shape.rows, Vector<shape.columns, Double>>
 }
 ```
 
@@ -375,7 +403,7 @@ For instance, it might be a way of representing arbitrary multidimensional
 matrices of values:
 
 ```swift
-struct MDMatrix<let each N: Int> { ... }
+struct MDMatrix<let each n: Int> { ... }
 
 let mat2d: MDMatrix<4, 4> = ...
 let mat4d: MDMatrix<120, 24, 6, 2> = ...
@@ -421,7 +449,7 @@ that they lead to an overall simpler language design.
 
 One could argue that, since `Int` clearly isn't a protocol constraint, that
 it should be sufficient to declare integer generic parameters with the
-syntax `<T: Int>` without an introducer like `let`. There are at least
+syntax `<n: Int>` without an introducer like `let`. There are at least
 a couple of reasons we choose to adopt the `let` introducer:
 
 - It makes it clear to the reader (and the compiler) what parameters are
@@ -436,7 +464,7 @@ a couple of reasons we choose to adopt the `let` introducer:
   whether it declares a type parameter constrained to `T` or a value
   parameter of type `any P`. (There are perhaps other ways of dealing with that
   ambiguity, such as requiring the value parameter form to be written
-  explicitly with `T: any P`.)
+  explicitly with `t: any P`.)
 
 ### Arbitrary-precision integer generic parameters
 
@@ -484,6 +512,49 @@ refuse to initialize values of types with negative parameters, so that a
 type like `Vector<-1, Int>` is uninhabited. Given the restrictions in this
 initial proposal, without type-level arithmetic, it is unlikely that
 developers would intentionally form such a type with a negative size explicitly.
+
+### Alternative naming conventions
+
+We propose recommending a `lowerCamelCase` naming convention for integer
+generic parameters, following the recommended convention for other value
+declarations such as property and function declarations. This allows for
+integer generic parameters to appear consistent with other value references
+in expressions. If we add the ability to instantiate generics using value
+constants or expressions as integer generic arguments in the future, this will
+also maintain consistency between existing generic parameters and other value
+declarations used as arguments:
+
+```
+struct Foo<let n: Int> {
+    static let nSquared = n * n
+
+    // These both consistently use lowerCamelCase
+    var vector: Vector<n, Double>
+    var matrix: Vector<nSquared, Double>
+}
+```
+
+Alternatively, we could recommend that integer generic parameters use
+`UpperCamelCase`, following the convention of type generic parameters. We
+believe that the distinction between values and types is better to prioritize
+than the distinction between type-level and value-level parameters.
+
+### Syntactic separation of value and type parameters
+
+The angle brackets that enclose generic arguments have to be syntactically
+disambiguated from the `<` and `>` operators. This disambiguation relies on
+parsing ahead to determine whether the source code following a `<` is parsable
+as a list of types followed by a closing `>` and a member access or initializer
+call. This lookahead rule has worked well up to this point, but it could impose
+constraints on our ability to allow for expressions to be used as generic
+arguments, since allowing more expression productions to appear in generic
+argument lists will lead to more potentially ambiguous parsing situations.
+
+It may be worth considering a design that separates value generic parameters
+by putting them in a different set of brackets separate from the type
+generic parameters, like `Vector[count]<Element>`. This would avoid the need
+for disambiguation if an arbitrary expression can be used as a `count` in
+the future.
 
 ## Acknowledgments
 
