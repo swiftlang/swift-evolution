@@ -71,7 +71,7 @@ protocol Greeter: DistributedActor where ActorSystem: DistributedActorSystem<any
   // available since v1
   distributed func greet(_: Greeting) -> String { ... }
   
-    // available since v2
+  // available since v2
   distributed func greet(name: String, _: Greeting) -> String { ... }
 }
 ```
@@ -649,6 +649,16 @@ Callers of the "new" version
 
 ## Alternatives considered
 
+### Use @abi rather than introduce a new attribute
+
+We can we allow only `Optional` and **defaulted** parameters for API evolution and instead of `@Evolving`, and we just use @abi with with initial declaration. 
+
+The decl checker we could detect the situation when `@abi` is used on a `distributed` member and use the solver to check whether initial version is callable through the current spelling. This would mean that we always guarantee backward compatibility and clients don't need to deal with #available checks in their code (can gradually add new parameters as their are re-compiled against newer libraries). 
+
+#### Forward compatibility
+
+The only rough edge of this is using "new" client to call "old" server (i.e. that rolling update scenario I was talking about). I think we can approach this problem by "versioning" the actor system instead individual actors, so that it won't be possible to either establish connections to "old" servers in the scenario I described above or calling anything on it would produce a compatibility error.
+
 ### Force "Request/Response" message style as only way of evolving remote calls
 
 We could do nothing and just document how very fragile the remote call identifiers are. Once published, a distributed can never change in any way.
@@ -722,62 +732,153 @@ In this way we send over all labels and types, and based that we perform RUNTIME
 
 Seems too hardcore and overhead on the wire protocol.
 
-### Version negotiation and versioned feature @availability
+### Version and per-instance-#availability
 
 Some form of negotiating library version along with metadata on every distributed method would be possible, but after considering the implications we find that it does not help in actual evolution of APIs.
 
-If we were to extend availability with feature (library names) version numbers, we could "version" APIs like this:
+If we were to extend availability with feature to allow arbitrary version numbers, we could "version" APIs like this:
 
 ```swift
-protocol Greeter: DistributedActor where ... {
-  
+protocol Greeter: DistributedActor where ActorSystem: DistributedActorSystem<any Codable> {
   // "always available if you have the Greeter protocol"
+  // Implicitly "version 1" / "baseline"
   distributed func greet() -> String
 
-  @available(feature: "Greetings", version: 2)
+  @available(version: 2)
   distributed func greet(name: String) -> String
 }
 ```
 
-While we could do this, and perhaps might even independently arrive at such availability extensions, it does not help API evolution in any meaningful way. It _prevents_ calling things rather than _enabling_ calling things that can evolve.
+This approach attempts to prevent calling "not found" methods, and comes at a large cost of pre-exchanging information about available versions.
 
-Clients would have to write the following code:
+Client code utilize an extended version of availability checking that is instance specific:
 
 ```swift
-// mock of an idea of per-actor version availability version checking
-if #available(greeter, feature: "Greetings", version: 2) {
-  try await greeter.greet(name: "Caplin")
+if #available(greeter, version: 2) { // problematic (!)
+  try await greeter.greet(name: "Caplin") // was available from "v2"
 } else {
   // fallback
-  try await greeter.greet()
+  try await greeter.greet() // baseline / "v1" is always available
 }
 ```
 
-Which is a pattern familiar to anyone who has worked with _platform availability_ (i.e. "if on macOS version higher than ...").
+Which is a pattern familiar to anyone who has worked with _platform availability_ (i.e. "if on macOS version higher than ..."). Implementing such check, however, is most difficult in a distributed system: it assumes prior knowledge **before** we attempt to send the message (!). This requires us to pre-exchange information between the server and the client. 
 
-This solves a different problem of offering new APIs and making them optionally available, depending on some runtime version, to clients. In practice though, this isn't all that helpful: if the client has a `Greeter` declaration with the `Greetings@v2` declaration they generally may try to call it, or an actor system may just perform version negotiation at initialization time and fail if missing some capabilities. 
+This is problematic in practice, because how and *when* would we obtain this "available versions" information?
 
-Even if a call were to be made from a client with a `v2` interface, towards a server which hosts only the `v1` interface -- the semantics are similar to a plain old "not found" and the method can error out as expected with normal distributed calls. This avoids doing pre-flight calls which un-necessarily slow down interactions. Since we are not interested in pre-flight checks due to the latency impact they may have, there is not much value in the version checks unless we make them asynchronously _eagerly_ before calls are made.
+#### Option 1) During actor system start and connection establishment exchange _all_ available version information
 
-This becomes complicated very fast, and doesn't really help evolving APIs all that much. It is more of a different beast, like capability testing a remote peer and could perhaps be used for that instead.
-
-One could imagine the system working as follows:
+We could, in theory, force an actor system which intends to use versioning in this scheme, to eagerly send all information about available actors and versions upon first connection. A naive implementation could be entirely eager during actor system creation:
 
 ```swift
-let system: SomeDistributedActorSystem = ...
+let system = try await MyActorSystem("localhost:7337") // forced to eagerly connect
+//  [client] ----------------------> [server]
+//           HELLO
+//           <---------------------- ACK HELLO
+//           Greeter @ v2
+//           Another @ v3
+//           SomethingElse @ v1
+//           AnotherSomethingElse @ v4
+//           ...
 
-let id1: SomeDistributedActorSystem.ActorID = ...
-let lazyConnected = try $Greeter.resolve(id1, using: system) // connection is lazy
-if try? await #available(lazyConnected, feature: "Greetings", version: 2) ?? false {
-  // force an try await greeter.isAvailable(feature: "Greetings", version: 2) pre-flight call
-  // - cache the feature list for this actor OR entire system
-  try await lazyConnected.greet(name: "Caplin") // already connected at this point
+let resolved = try $Greeter.resolve(id, using: system) // create proxy
+```
+
+This approach would effectively force implementations into a "heavy handshake" before any communication can take place. And this would be forced to transfer _all_ distributed actor versions it knows about in the server (!). Aside from the tricky implementation: we'd have to offer an API to the system that effectively inspects runtime information and offers this information back to the system, for it to include it in the handshake (this is possible to implement).
+
+A heavy handshake is something many systems are actively working to avoid – it adds an extra roundtrip and therefore delays time-to-interactive of the network communication. For some systems, which aim to minimize the time-to-interactive initial delay of communication such additional handshake might be unacceptable.
+
+For some systems this might not be possible to implement. because connections are established *lazily* dependin on identifiers. A typical identifier can include the host or process identifier of the target we want to communicate with:
+
+```swift
+let resolved = try $Greeter.resolve(id: "<host|pid>/Greeter", using: system) // create proxy
+try await resolved.test() // connection established HERE, lazily (!)
+```
+
+Connections are frequently established lazily, on first message exchange, and such systems do not even know the number of connections they will maintain until the IDs are resolved, in other words: not during ActorSystem creation time. This is on purpose, to keep system setup "light" and only activate resource usage once they are required.
+
+This means that the following check this alternative would rely on, cannot be reliably implemented unless we force it to be asynchronous:
+
+```swift
+// ❌ cannot reliably work, we may not have enough information to answer this question *synchronously*
+if #available(greeter, version: 2) { 
+  try await greeter.greet(name: "Caplin") // connection establishment COULD happen here
 }
 ```
 
-So it would be possible to support, but in discussions we found this to be adding not enough value and being a separate discussion from the API evolution story. It may be still interesting to explore as a separate feature in the future if enough need for it appears in real world situations.
+#### Option 2) Asynchronous per-instance #available
 
-This feature would compose with the being proposed evolution of existing methods, because it could be used to guard some methods with pre-flight or on-connection feature checking, but does not really handle method evolution.
+We could make this model work if we made the `#available` asynchronous, and it would work as follows:
+
+```swift
+// works, but forces pre-flight message
+if try await #available(greeter, version: 2) { // forces connection, and pre-flight message on "first time" per actor type
+  try await greeter.greet(name: "Caplin")
+}
+```
+
+For completeness, the `#available` effectively would be a macro that takes the shape of something like:
+
+```swift
+protocol PerInstanceAvailabilityChecking { 
+  associatedtype Base: DistributedActor
+  // FIXME: 🫣 Our friend the problematic "protocol requirement with associatedtype"
+  func checkAvailability<Instance: Base>(instance: Base, version: Int) async throws -> Bool
+}
+
+extension MyActorSystem { 
+  func checkAvailability<Instance: Base>(instance: Instance, version: Int) async throws -> Bool {
+    if let connection = self.connections(instance) {
+      if let remoteVersion = self.versionsCache[(connection, Base.self)] {
+        return version <= remoteVersion
+      } else {
+        // need to make a remote roundtrip to get the information
+        let v = try await connection.getVersion(Base.self) // ⚠️ distributed call
+        self.versionsCache[(connection, Base.self)] = v
+        return version <= remoteVersion
+      }
+    } else {
+      let connection = try await self.connect(instance.id) // force connection establishment
+      // need to make a remote roundtrip to get the information (could be in handshake)
+      let v = try await connection.getVersion(Base.self) // ⚠️ distributed call
+      self.versionsCache[(connection, Base.self)] = v
+      return version <= remoteVersion
+    }
+  }
+}
+```
+
+So it is implementable, however again, we'd be forcing first-message per connection/type to make an roundtrip to just check if we're able to communicate at all – in order to complete the `#available()` check.
+
+#### Semantics Discussion
+
+We should discuss if this provides enough value, and how it relates to versioning and protocol evolution to decide if it's worth implementing or not.
+
+This feature would **not** provide any support in evolving APIs. It only extends availability guards to remote calls, and effectively can prevent calls to not-implemented on remote side methods. In distributed systems, RPC or just plain HTTP in general, making a call and getting a "404 Not Found" equivalent respose is not uncommon, nor is it catastrophic. Unlike guarding @availability within the same address space, attempting to call a non existent method is not a dramatic problem that _must_ be avoided at any cost. 
+
+Implementation aproaches to enable this compiler assisted "is this method available?" semantics would necessarily force before-remote-call message exchanges, which forces additional roundtrip messages (which may, depending on transport and network conditions account for hundreds od milliseconds of delays). Such additional delays are often not acceptable for many systems, where most effort is spent on minimizing the number of round trips (RTT, Round Trip Time) in order to minimize time-to-interative delays. 
+
+We conclude that *forcing* systems into additional round trips is not a viable direction.
+
+#### Necessary features for this approach are enabling Server Reflection, but not Evolution
+
+This feature however does seem more similar to a different useful but optional capability of RPC systems which is "server reflection" (e.g. [gRPC Reflection](https://grpc.io/docs/guides/reflection/)), which gives a client the ability to inspect the capabilities of a server. The Option 1) approach effectively requires a server to be able to list all distributed actors and their versions; this is a building block for server reflection.
+
+Reflection is useful in debugging services, but cannot be used in public facing APIs, quoting gRPC:
+
+> Reflection is *not* automatically enabled on a gRPC server. The server author must call a few additional functions to add a reflection service. 
+>
+> If your gRPC API is accessible to public users, you may *not* want to expose the reflection service, as you may consider this a security issue. 
+
+#### Compatibility Analysis Table
+
+| Client    | API                                                          | Server                                                       | Compatibility |
+| --------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------- |
+| Client@v1 | v1: <br />greeter(name: String)                              | API@v1: greeter(name: String)                                | ✅ Baseline    |
+|           | v2: <br />greeter(name: String)<br />greeter(name: String, surname: String) | greeter(name: String)<br />@available(2) greeter(name: String) |               |
+|           |                                                              |                                                              |               |
+
+
 
 ## Revisions
 
