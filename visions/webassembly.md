@@ -83,13 +83,13 @@ overhead of new process setup and IPC infrastructure.
 
 ## Goals
 
-As of March 2024 all patches necessary for basic Wasm and WASI support have been merged to the Swift toolchain and
+As of March 2024 all patches necessary for basic Wasm and WASI Preview 1 support have been merged to the Swift toolchain and
 core libraries. Based on this, we propose a high-level roadmap for WebAssembly support and adoption in the Swift
 ecosystem:
 
 1. Make it easier to evaluate and adopt Wasm with increased API coverage for this platform in the Swift core libraries.
 As a virtualized embeddable platform, not all system APIs are always available or easy to port to WASI. For example,
-multi-threading, file system access, and localization need special support in Wasm runtimes and a certain amount of
+multi-threading, file system access, networking and localization need special support in Wasm runtimes and a certain amount of
 consideration from a developer adopting these APIs.
 
 2. Improve support for cross-compilation in Swift and SwiftPM. We can simplify versioning, installation, and overall
@@ -100,7 +100,7 @@ platforms.
 that future versions of WASI are available to Swift developers targeting Wasm.
 
 4. Make interoperability with Wasm components as smooth as C and C++ interop already is for Swift. With a formal
-specification for Canonical ABI progressing, this will become more achievable with time.
+specification for Canonical ABI progressing, this will become more achievable with time. This includes consuming components from, and building components with Swift.
 
 ### Proposed Language Features
 
