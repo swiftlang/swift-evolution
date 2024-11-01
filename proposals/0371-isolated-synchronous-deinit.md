@@ -326,9 +326,16 @@ Ad-hoc job created for isolated synchronous deinit is executed outside a task, s
 
 ### Task-local values
 
-This proposal does not define how Swift runtime should behave when running isolated deinit. It may use task-local values as seen at the point of the last release, reset them to default values, or use some other set of values. Behavior is allowed to change without notice. But future proposals may change specification by defining a specific behavior.
+Task-local values set by the task/thread that performed last release are blocked inside isolated deinit.
+Attempting to read such task-local inside isolated deinit will return a default value without any runtime warnings.
+Task-local values set inside the body of the isolated deinit are visible for the corresponding scope.
 
-Client code should not depend on behavior of particular implementation of the Swift runtime. Inside isolated `deinit` it is safe to read only the task-local values that were also set inside the `deinit`.
+This behavior ensures that isolated deinit behaves the same way both when running inline and when hopping, without high runtime costs for copying task-local values.
+
+The point of the last release of the object can be hard to predict and can be changed by optimizations, leading to different behavior between debug and release builds.
+Because of this, developers are discouraged from depending on the set of task-local values available at the point of the last release.
+Instead of using task-local values, developers are advised to inject dependencies into deinit using the object's stored properties.
+This advice applies to non-isolated deinit as well, but this proposal does not change the behavior of the non-isolated deinit.
 
 Note that any existing hopping in overridden `retain`/`release` for UIKit classes is unlikely to be aware of task-local values.
 
@@ -512,6 +519,10 @@ a.enqueue { aIsolated in
 
 This comes with a performance cost, which is unlikely to be beneficial to most of the users.
 Leaving behavior of the task-locals undefined allows to potentially change it in the future, after getting more feedback from the users.
+
+### Keeping behavior of task-local values undefined
+
+Approach of 'make no promises' is likely to result in users inadvertently relying on implementation details which would turn out to be difficult to change later. 
 
 ### Implicitly propagate isolation to synchronous `deinit`.
 
