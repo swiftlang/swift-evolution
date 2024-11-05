@@ -1,9 +1,9 @@
 # Integer Generic Parameters
 
-* Proposal: [SE-ABCD](ABCD-integer-generic-parameters.md)
+* Proposal: [SE-0452](0452-integer-generic-parameters.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy), [Joe Groff](https://github.com/jckarter)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (Nov 5-19 2024)**
 * Implementation: [apple/swift#75518](https://github.com/apple/swift/pull/75518)
 * Upcoming Feature Flag: `ValueGenerics`
 
