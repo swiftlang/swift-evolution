@@ -184,7 +184,7 @@ Note that under region isolation in SE-0414, capturing a non-`Sendable` value in
 class NonSendable {}
 
 func test(ns: NonSendable) async {
-  let closure { @MainActor in
+  let closure = { @MainActor in
     print(ns) // error: task-isolated value 'ns' can't become isolated to the main actor
   }
 
