@@ -166,7 +166,7 @@ class NonSendable {}
 func test() {
   let ns = NonSendable()
 
-  let closure { @MainActor in
+  let closure = { @MainActor in
     print(ns)
   }
 
