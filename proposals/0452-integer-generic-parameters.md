@@ -6,7 +6,6 @@
 * Status: **Active Review (Nov 5-19 2024)**
 * Implementation: [apple/swift#75518](https://github.com/apple/swift/pull/75518)
 * Forum Threads: [Review](https://forums.swift.org/t/se-0452-integer-generic-parameters/75844)
-* Upcoming Feature Flag: `ValueGenerics`
 
 ## Introduction
 
