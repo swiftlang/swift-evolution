@@ -213,7 +213,7 @@ func h() async {
   // This is a `sending` value.
   let ns = Nonsending()
 
-  // This also a `sending value.
+  // This also a `sending` value.
   let ns2 = NonSendable()
 
   // Since both ns and ns2 are disconnected, the region associated with
@@ -221,7 +221,7 @@ func h() async {
   let t = (ns, ns2)
 
   // ... that can be sent across a concurrency boundary safely.
-  await sendToMain(ns)
+  await sendToMain(t)
 }
 ```
 
