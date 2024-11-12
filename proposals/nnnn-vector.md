@@ -130,6 +130,30 @@ for i in ints.indices {
 }
 ```
 
+Vectors of noncopyable values will be possible by using any of the closure based
+taking initializers or the literal initializer:
+
+```swift
+// [Atomic(0), Atomic(1), Atomic(2), Atomic(3)]
+let incrementingAtomics = Vector<4, Atomic<Int>> { i in
+  Atomic(i)
+} // [Atomic(0), Atomic(1), Atomic(2), Atomic(3)]
+
+// [Atomic(337523057234), Atomic(8726493873498347), Atomic(98573472834767364),
+//  Atomic(72394735763974)] (maybe)
+let randomAtomics = Vector<4, _>(expand: RNG()) { Atomic($0.next()) }
+
+// [Sprite(), Sprite(), Sprite(), Sprite()]
+// Where the 2nd, 3rd, and 4th elements are all copies of the initial first
+// value
+let copiedSprites = Vector<4, _>(unfold: Sprite()) { $0.copy() }
+
+// Inferred to be Vector<3, Mutex<Int>>
+let literalMutexes: Vector = [Mutex(0), Mutex(1), Mutex(2)]
+```
+
+These closure based initializers are not limited to noncopyable values however!
+
 ## Detailed design
 
 `Vector` will be a simple noncopyable struct capable of storing other potentially
@@ -137,7 +161,7 @@ noncopyable elements. It will be conditionally copyable only when its elements
 are.
 
 ```swift
-public struct Vector<let Count: Int, Element: ~Copyable>: ~Copyable {}
+public struct Vector<let count: Int, Element: ~Copyable>: ~Copyable {}
 
 extension Vector: Copyable where Element: Copyable {}
 extension Vector: BitwiseCopyable where Element: BitwiseCopyable {}
@@ -147,7 +171,7 @@ extension Vector: Sendable where Element: Sendable {}
 ### MemoryLayout
 
 The memory layout of a `Vector` is defined by taking its `Element`'s stride and
-multiplying that by its `Count` for its size and stride. Its alignment is equal
+multiplying that by its `count` for its size and stride. Its alignment is equal
 to that of its `Element`:
 
 ```swift
@@ -242,27 +266,95 @@ vector([1, 2, 3] as [Int]) // error: 'Array<Int>' is not convertible to 'Vector<
 I discuss later about a hypothetical `ExpressibleByVectorLiteral` and the design
 challenges there in [Future Directions](#expressiblebyvectorliteral).
 
+The literal initialization allows for more type inference just like the current
+literal syntax does by inferring not only the element type, but also the count
+as well:
+
+```swift
+let a: Vector<_, Int> = [1, 2, 3] // Vector<3, Int>
+let b: Vector<3, _> = [1, 2, 3] // Vector<3, Int>
+let c: Vector<_, _> = [1, 2, 3] // Vector<3, Int>
+let d: Vector = [1, 2, 3] // Vector<3, Int>
+
+func takesGenericVector<let N: Int>(_: Vector<N, Int>) {}
+
+takesGenericVector([1, 2, 3]) // Ok, N is inferred to be '3'.
+```
+
+A compiler diagnostic will occur if the number of elements within the literal
+do not match the desired count (as well as element with the usual diagnostic):
+
+```swift
+// error: expected '2' elements in vector literal, but got '3'
+let x: Vector<2, Int> = [1, 2, 3]
+
+func takesVector(_: Vector<2, Int>) {}
+
+// error: expected '2' elements in vector literal, but got '3'
+takesVector([1, 2, 3])
+```
+
 ### Initialization
 
-In addition to literal initialization, `Vector` offers two other forms of
-initialization; a closure based one for all element types and a repeating based
-one for copyable elements.
+In addition to literal initialization, `Vector` offers a few others forms of
+initialization:
 
 ```swift
 extension Vector where Element: ~Copyable {
   /// Initializes every element in this vector running the given closure value
   /// that returns the element to emplace at the given index.
   ///
-  /// This will call the closure `Count` times, where `Count` is the static
+  /// This will call the closure `count` times, where `count` is the static
   /// count of the vector, to initialize every element by passing the closure
   /// the index of the current element being initialized. The closure is allowed
   /// to throw an error at any point during initialization at which point the
   /// vector will stop initialization, deinitialize every currently initialized
   /// element, and throw the given error back out to the caller.
   ///
-  /// - Parameter body: A closure that returns an owned `Element` to emplace at
+  /// - Parameter next: A closure that returns an owned `Element` to emplace at
   ///                   the passed in index.
-  public init<E: Error>(_ body: (Int) throws(E) -> Element) throws(E)
+  public init<E: Error>(with next: (Int) throws(E) -> Element) throws(E)
+
+  /// Initializes every element in this vector by running the closure with the
+  /// passed in mutable state.
+  ///
+  /// This will call the closure 'count' times, where 'count' is the static
+  /// count of the vector, to initialize every element by passing the closure
+  /// an inout reference to the passed state. The closure is allowed to throw
+  /// an error at any point during initialization at which point the vector will
+  /// stop initialization, deinitialize every currently initialized element, and
+  /// throw the given error back out to the caller.
+  ///
+  /// - Parameter state: The mutable state that can be altered during each
+  ///                    iteration of the closure initializing the vector.
+  /// - Parameter next: A closure that passes in an inout reference to the
+  ///                   user given mutable state which returns an owned
+  ///                   `Element` instance to insert into the vector.
+  public init<State: ~Copyable, E: Error>(
+    expand state: consuming State,
+    with next: (inout State) throws(E) -> Element
+  ) throws(E)
+
+  /// Initializes every element in this vector by running the closure with the
+  /// passed in first element.
+  ///
+  /// This will call the closure 'count' times, where 'count' is the static
+  /// count of the vector, to initialize every element by passing the closure
+  /// an immutable borrow reference to the first element given to the
+  /// initializer. The closure is allowed to throw an error at any point during
+  /// initialization at which point the vector will stop initialization,
+  /// deinitialize every currently initialized element, and throw the given
+  /// error back out to the caller.
+  ///
+  /// - Parameter first: The first value to insert into the vector which will be
+  ///                    passed to the closure as a borrow.
+  /// - Parameter next: A closure that passes in an immutable borrow reference
+  ///                   of the given first element of the vector which returns
+  ///                   an owned `Element` instance to insert into the vector.
+  public init<E: Error>(
+    unfold first: consuming Element,
+    with next: (borrowing Element) throws(E) -> Element
+  ) throws(E)
 }
 
 extension Vector where Element: Copyable {
@@ -277,34 +369,13 @@ extension Vector where Element: Copyable {
 
 Once a vector is no longer used, the compiler will implicitly destroy its value.
 This means that it will do an element by element deinitialization, releasing any
-class references or calling any `deinit`s on noncopyable types. Doing
-deinitialization this way will lose all access to every element. If one is done
-with the vector value but would like retain one or more of its elements, then a
-call to the `consume` method will grant access to the owned element value for
-retention.
+class references or calling any `deinit`s on noncopyable elements.
 
-```swift
-extension Vector where Element: ~Copyable {
-  /// Consumes the vector by running the given closure value over each element
-  /// passing in the element's index as well as the owned element value.
-  ///
-  /// This will call the closure `Count` times, where `Count` is the static
-  /// count of the vector, to deinitialize every element by passing the closure
-  /// the index of the current element being deinitialized and the owned element
-  /// value. The closure is allowed to throw an error at any point during
-  /// deinitialization at which point the vector will eagerly deinitialize the
-  /// remaining elements and throw the given error back out to the caller.
-  ///
-  /// - Parameter body: A closure given the current deinitialized element's
-  ///                   index and the owned element value.
-  /// - Returns: The return value, if any, of the `body` closure parameter.
-  public consuming func consume<Result: ~Copyable, E: Error>(
-    _ body: (Int, consuming Element) throws(E) -> Result
-  ) throws(E) -> Result
-}
-```
+### Generalized `Sequence` and `Collection` APIs
 
-### Generalized `Collection` APIs
+While we aren't conforming `Vector` to `Collection` (more information in future
+directions), we do want to generalize a lot of APIs that will make this a usable
+collection type.
 
 ```swift
 extension Vector where Element: ~Copyable {
@@ -312,80 +383,29 @@ extension Vector where Element: ~Copyable {
   public typealias Index = Int
   public typealias Indices = Range<Int>
 
-  public var count: Int { Count }
-  public var indices: Range<Int> { 0 ..< Count }
-  public var isEmpty: Bool { Count == 0 }
+  /// Provides the count of the collection statically without an instance.
+  public static var count: Int { count }
+
+  public var count: Int { count }
+  public var indices: Range<Int> { 0 ..< count }
+  public var isEmpty: Bool { count == 0 }
   public var startIndex: Int { 0 }
-  public var endIndex: Int { Count }
+  public var endIndex: Int { count }
 
   public borrowing func index(after i: Int) -> Int
   public borrowing func index(before i: Int) -> Int
 
-  public subscript(_ index: Int) -> Element
-}
-```
+  public borrowing func reduce<Result: ~Copyable, E: Error>(
+    into initialResult: consuming Result,
+    _ updateAccumulatingResult: (inout Result, borrowing Element) throws(E) -> ()
+  ) throws(E) -> Result
 
-### `Collection` conformances for copyable elements
-
-Here, we define our basic collection conformances to `RandomAccessCollection`,
-`MutableCollection`, and `BidirectionalCollection` but only when the element is
-known to be copyable. This is an unfortunate limitation, but the current
-collection protocols make a deep assumption about element copyability as well
-as the copyability of the collection itself. I discuss about this more in depth
-in [Future Directions](#noncopyable-sequence-and-collection-protocols).
-
-```swift
-extension Vector: RandomAccessCollection where Element: Copyable {}
-extension Vector: MutableCollection where Element: Copyable {}
-extension Vector: BidirectionalCollection where Element: Copyable {}
-```
-
-These conformances allow us to iterate vectors, but only when the element is
-copyable right now. Noncopyable elements need to fallback to index iteration:
-
-```swift
-let numbers: Vector<3, Int> = [1, 2, 3]
-
-for number in numbers {
-  print(number)
-}
-
-let atomicInts: Vector<3, Atomic<Int>> = [Atomic(1), Atomic(2), Atomic(3)]
-
-for i in atomicInts.indices {
-  print(atomicInts[i].load(ordering: .relaxed))
-}
-```
-
-### Swapping elements
-
-```swift
-extension Vector where Element: ~Copyable {
-  /// Replaces an existing vector entry with a new value, returning the value
-  /// that was replaced.
-  ///
-  /// - Parameters:
-  ///   - i: The index of the element to be swapped with.
-  ///   - newValue: The new value to swap with the current element.
-  /// - Returns: The old swapped value.
-  public borrowing func swapAt(
-    _ i: Int,
-    with newValue: consuming Element
-  ) -> Element
-
-  /// Exchanges the values at the specified indices of the vector.
-  ///
-  /// Both parameters must be valid indices of the vector that are not
-  /// equal to `endIndex`. Calling `swapAt(_:_:)` with the same index as both
-  /// `i` and `j` has no effect.
-  ///
-  /// - Parameters:
-  ///   - i: The index of the first value to swap.
-  ///   - j: The index of the second value to swap.
-  public borrowing func swapAt(
+  public mutating func swapAt(
     _ i: Int,
     _ j: Int
   )
+
+  public subscript(_ index: Int) -> Element
 }
 ```
 
@@ -452,9 +472,9 @@ business of. `Vector` allows us to clean up this sore spot in a very elegant and
 much more importantly, safe way.
 
 We plan to introduce a new _upcoming_ feature that folks can enable whenever
-they'd like to via `-enable-upcoming-feature CArrayVector`. This will change the
-current behavior of importing C arrays as tuples, to instead import them as
-`Vector`. For the previous example, we'd instead generate the following:
+they'd like to via `-enable-upcoming-feature ImportCArraysAsVectors`. This will
+change the current behavior of importing C arrays as tuples, to instead import
+them as `Vector`. For the previous example, we'd instead generate the following:
 
 ```swift
 struct section_64 {
@@ -575,22 +595,41 @@ shipped in Swift X.Y doesn't support noncopyable elements. To prevent the
 headache of this and any potential new availability feature, we're holding off on
 these conformances until they are fully generalized.
 
-### Noncopyable `Sequence` and `Collection` protocols
+### `Sequence` and `Collection`
 
-Similarly, while we aren't conforming to a lot of protocols that we envision
-we'll generalize one day, we are conforming to `Sequence`, `Collection`,
-`RandomAccessCollection`, and `MutableCollection`. We don't foresee that we'll
-ever generalize these protocols because they have a deep design for implicitly
-copying their elements, but even the collection itself.
+Similarly, we aren't conforming to `Sequence` or `Collection` either.
+While we could conform to these protocols when the element is copyable, `Vector`
+is unlike `Array` in that there are no copy-on-write semantics; it is eagerly
+copied. Conforming to these protocols would potentially open doors to lots of
+implicit copies of the underlying vector instance which could be problematic
+given the prevalence of generic collection algorithms and slicing behavior. To
+avoid this potential performance pitfall, we're explicitly not opting into
+conforming this type to `Sequence` or `Collection`.
+
+We do plan to propose new protocols that look like `Sequence` and `Collection`
+that avoid implicit copying making them suitable for types like `Vector` and
+containers of noncopyble elements.
 [SE-0437 Noncopyable Standard Library Primitives](0437-noncopyable-stdlib-primitives.md)
 goes into more depth about this rationale and mentions that creating new
 protocols to support noncopyable containers with potentially noncopyable
 elements are all marked as future work.
 
-Much of the `Collection` API that we're generalizing here for this type are all
+Much of the `Collection` API that we are generalizing here for this type are all
 API we feel confident will be included in any future container protocol. Even if
 we find that to not be the case, they are still useful API outside of generic
 collection contexts in their own right.
+
+Remember, one can still iterate a `Vector` instance with the usual `indices`
+property (which is what noncopyable vector instances would have had to deal with
+regardless until new container protocols have been proposed):
+
+```swift
+let atomicInts: Vector<3, Atomic<Int>> = [Atomic(1), Atomic(2), Atomic(3)]
+
+for i in atomicInts.indices {
+  print(atomicInts[i].load(ordering: .relaxed))
+}
+```
 
 ### `Span` APIs
 
@@ -638,7 +677,7 @@ generic count and can allocate just enough space to hold all of those elements.
 However, this shape doesn't quite work for `Vector` itself because initializing
 a `Vector<4, Int>` should require that the literal has exactly 4 elements. Note
 that we wouldn't be able to impose a new constraint just for the conformer, so
-`Vector` couldn't require that `N == Count` and still have this witness the
+`Vector` couldn't require that `N == count` and still have this witness the
 requirement. Similarly, a `Pair` type could be vector initialized, but only if
 the vector has exactly 2 elements. If we had the ability to define
 `associatedvalue`, then this makes the conformance pretty trivial for both of
@@ -647,13 +686,13 @@ these types:
 ```swift
 public protocol ExpressibleByVectorLiteral: ~Copyable {
   associatedtype Element: ~Copyable
-  associatedvalue Count: Int
+  associatedvalue count: Int
 
-  init(vectorLiteral: consuming Vector<Count, Element>)
+  init(vectorLiteral: consuming Vector<count, Element>)
 }
 
 extension Vector: ExpressibleByVectorLiteral {
-  init(vectorLiteral: consuming Vector<Count, Element>) { ... }
+  init(vectorLiteral: consuming Vector<count, Element>) { ... }
 }
 
 extension Pair: ExpressibleByVectorLiteral {
