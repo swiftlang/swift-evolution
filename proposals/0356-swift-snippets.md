@@ -361,7 +361,7 @@ USAGE: snippet-build <snippet directory> <output directory> <module name>
 
 ARGUMENTS:
     <snippet directory> - The directory containing Swift snippets
-    <output directory> - The diretory in which to place Symbol Graph JSON file(s) representing the snippets
+    <output directory> - The directory in which to place Symbol Graph JSON file(s) representing the snippets
     <module name> - The module name to use for the Symbol Graph (typically should be the package name)
 ```
 

@@ -24,7 +24,7 @@ Separately to this proposal, it would also be useful to define custom actions th
 
 ## Proposed Solution
 
-This proposal defines a new plugin capability called `command` that allows packages to augment the set of package-related commands availabile in the SwiftPM CLI and in IDEs that support packages. A command plugin specifies the semantic intent of the command — this might be one of the predefined intents such “documentation generation” or “source code formatting”, or it might be a custom intent with a specialized verb that can be passed to the `swift` `package` command. A command plugin can also specify any special permissions it needs (such as the permission to modify the files under the package directory).
+This proposal defines a new plugin capability called `command` that allows packages to augment the set of package-related commands available in the SwiftPM CLI and in IDEs that support packages. A command plugin specifies the semantic intent of the command — this might be one of the predefined intents such “documentation generation” or “source code formatting”, or it might be a custom intent with a specialized verb that can be passed to the `swift` `package` command. A command plugin can also specify any special permissions it needs (such as the permission to modify the files under the package directory).
 
 The command's intent declaration provides a way of grouping command plugins by their functional categories, so that SwiftPM — or an IDE that supports SwiftPM packages — can show the commands that are available for a particular purpose. For example, this approach supports having different command plugins for generating documentation for a package, while still allowing those different commands to be grouped and discovered by intent.
 

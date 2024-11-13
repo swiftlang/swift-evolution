@@ -853,7 +853,7 @@ longer isolated to the function since:
   own that the non-`Sendable` value could escape into.
 
 * Parameters in a task isolated isolation region cannot be transferred into a
-  different isolation domain that does have persistant isolated state.
+  different isolation domain that does have persistent isolated state.
 
 Thus the value in the caller's region again becomes disconnected once more and
 thus can be used after the function returns and be transferred again:
@@ -1649,7 +1649,7 @@ because:
    other value will not cause `x`'s fields to point to different values.
 
 2. When `x` is transferred to a callee, `x` will be passed by value. Thus the
-   callee will recieve a completely new value type albeit with copied
+   callee will receive a completely new value type albeit with copied
    fields. This means that if the callee attempts to modify the value, it will
    be modifying the new value instead of our caller value implying that we
    cannot race against any assignment when accessing the field in our

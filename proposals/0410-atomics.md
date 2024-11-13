@@ -130,7 +130,7 @@ That said, it seems highly undesirable to add low-level atomics to the default n
 import Synchronization
 ```
 
-We expect that most Swift projects will use atomic operations only indirectly, through higher-level synchronization constructs. Therefore, importing the `Synchronization` module will be a relatively rare occurrance, mostly limited to projects that implement such tools.
+We expect that most Swift projects will use atomic operations only indirectly, through higher-level synchronization constructs. Therefore, importing the `Synchronization` module will be a relatively rare occurrence, mostly limited to projects that implement such tools.
 
 ### Atomic Memory Orderings
 
@@ -296,7 +296,7 @@ extension Optional: AtomicRepresentable where Wrapped: AtomicOptionalRepresentab
   * `UnsafeMutableBufferPointer`
   * `UnsafeRawBufferPointer`
   * `UnsafeMutableRawBufferPointer`
-* On 64 bit plaforms that do not support double-word atomics, the following conformances are not available:
+* On 64 bit platforms that do not support double-word atomics, the following conformances are not available:
   * `Duration`
   * `UnsafeBufferPointer`
   * `UnsafeMutableBufferPointer`
@@ -1082,7 +1082,7 @@ let myAtomic = makeAnAtomic()
 
 
 
-In the same vein, these types must never be passed as `inout` parameters as that declares that the callee has exclusive access to the atomic, which would make the access no longer atomic. Attemping to create an `inout` binding for an atomic variable is also a compile-time error. Parameters that are used to pass `Atomic` values must either be `borrowing` or `consuming`. (Passing a variable as `consuming` is also an exclusive access, but it's destroying the original variable, so we no longer need to care for its atomicity.)
+In the same vein, these types must never be passed as `inout` parameters as that declares that the callee has exclusive access to the atomic, which would make the access no longer atomic. Attempting to create an `inout` binding for an atomic variable is also a compile-time error. Parameters that are used to pass `Atomic` values must either be `borrowing` or `consuming`. (Passing a variable as `consuming` is also an exclusive access, but it's destroying the original variable, so we no longer need to care for its atomicity.)
 
 ```swift
 // error: parameter of type 'Atomic<Int>' must be declared as either 'borrowing' or 'consuming'
@@ -1793,7 +1793,7 @@ While there are some API differences between this proposal and the package, most
 
 Previous revisions of this proposal named this type `DoubleWord`. This is a good name and is in fact the name used in the `swift-atomics` package. We felt the prefix `Double*` could cause confusion with the pre-existing type in the standard library `Double`. The name `WordPair` has a couple of advantages:
 
-1. Code completion. Because this name starts with an less common letter in the English alphabet, the likelyhood of seeing this type at the top level in code completion is very unlikely and not generally a type used for newer programmers of Swift.
+1. Code completion. Because this name starts with an less common letter in the English alphabet, the likelihood of seeing this type at the top level in code completion is very unlikely and not generally a type used for newer programmers of Swift.
 2. Directly conveys the semantic meaning of the type. This type is not semantically equivalent to something like `{U}Int128` (on 64 bit platforms). While although its layout shares the same size, the meaning we want to drive home with this type is quite simply that it's a pair of `UInt` words. If and when the standard library proposes a `{U}Int128` type, that will add a conformance to `AtomicRepresentable` on 64 bit platforms who support double-words as well. That itself wouldn't deprecate uses of `WordPair` however, because it's much easier to grab both words independently with `WordPair` as well as being a portable name for such semantics on both 32 bit and 64 bit platforms.
 
 ### A different name for the `Synchronization` module

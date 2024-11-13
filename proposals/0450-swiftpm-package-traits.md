@@ -457,7 +457,7 @@ compiler error to detect this during build time.
 
 ```swift
 #if Trait1 && Trait2
-#error("Trait1 and Trait2 are mutuall exclusive")
+#error("Trait1 and Trait2 are mutually exclusive")
 #endif
 ```
 
@@ -474,9 +474,9 @@ default traits or adding a new default trait it is important to consider that
 removing a default trait is a **SemVer-incompatible** change since it can potentially
 remove APIs.
 
-### Trait specific command line options for `swift build/run`
+### Trait specific command line options for `swift test/build/run`
 
-When executing one of `swift build/run` options can be passed to control which
+When executing one of `swift test/build/run` options can be passed to control which
 traits for the root package are enabled:
 
 - `--traits` _TRAITS_: Enables the passed traits of the package. Multiple traits
@@ -614,7 +614,7 @@ it would be helpful to offer package authors tooling to build and test all
 combinations. A new option `--all-trait-combinations` could be added to
 `swift test/build/run` make testing all combinations easy as possible.
 
-### Surface traits in documentation
+### Surface traits in documentation
 
 If the compiler gains knowledge about package traits in the future, we could
 extract information if a public API is guarded by a trait and surface this in

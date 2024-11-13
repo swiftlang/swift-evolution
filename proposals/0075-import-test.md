@@ -33,7 +33,7 @@ Swift's existing set of build configurations specify platform differences, not m
 #endif
 ```
 
-Guarding code with operating system tests can be less future-proofed than testing for module support.  Excluding OS X to use UIColor creates code that might eventually find its way to a Linux plaform. Targeting Apple platforms by inverting a test for Linux essentially broke after the introduction of `Windows` and `FreeBSD` build configurations:
+Guarding code with operating system tests can be less future-proofed than testing for module support.  Excluding OS X to use UIColor creates code that might eventually find its way to a Linux platform. Targeting Apple platforms by inverting a test for Linux essentially broke after the introduction of `Windows` and `FreeBSD` build configurations:
 
 ```swift
 // Exclusive os tests are brittle

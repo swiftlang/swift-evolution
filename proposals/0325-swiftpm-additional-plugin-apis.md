@@ -181,7 +181,7 @@ public protocol Product {
     
     /// The targets that directly comprise the product, in the order in which
     /// they are declared in the package manifest. The product will contain the
-    /// transitive closure of the these targets and their depdendencies.
+    /// transitive closure of the these targets and their dependencies.
     var targets: [Target] { get }
 }
 
@@ -419,7 +419,7 @@ This proposal also adds the first of what is expected to be a toolbox of APIs to
 
 ```swift
 extension Target {
-    /// The transitive closure of all the targets on which the reciver depends,
+    /// The transitive closure of all the targets on which the receiver depends,
     /// ordered such that every dependency appears before any other target that
     /// depends on it (i.e. in "topological sort order").
     public var recursiveTargetDependencies: [Target]
@@ -509,7 +509,7 @@ struct MyPlugin: BuildToolPlugin {
         // Create a module mappings file. This is something that the Swift source
         // generator `protoc` plug-in we are using requires. The details are not
         // important for this proposal, except that it needs to be able to be con-
-        // structed from the information in the context given to the plugin, and
+        // structured from the information in the context given to the plugin, and
         // to be written out to the intermediates directory.
         let moduleMappingsFile = otherFilesDir.appending("module-mappings")
         let outputString = ". . . module mappings file . . ."

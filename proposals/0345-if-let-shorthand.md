@@ -253,7 +253,7 @@ if foo == true, bar == true {
 }
 ```
 
-To avoid this abiguity, we need some sort of distinct syntax for optional bindings.
+To avoid this ambiguity, we need some sort of distinct syntax for optional bindings.
 
 ### `if unwrap foo`
 
@@ -295,7 +295,7 @@ Once borrow introducers are added to the language, seeing `ref x` or `inout x` a
 
 Borrow introducers will be very useful, but adopting them is a tradeoff between performance and conceptual overhead. Borrows are cheap but come with high conceptual overhead. Copies can be expensive but always work as expected without much extra thought. Given this tradeoff, it likely makes sense for this shorthand syntax to provide a way for users to choose between performing a copy or performing a borrow, rather than limiting users to one or the other.
 
-Additionally, for consistency with existing optional binding conditions, this new shorthand should support the distinction between immutable and mutable variables. Combined with the disctinction between copies and borrows, that would give us the same set of options as normal variables:
+Additionally, for consistency with existing optional binding conditions, this new shorthand should support the distinction between immutable and mutable variables. Combined with the distinction between copies and borrows, that would give us the same set of options as normal variables:
 
 ```swift
 // Included in this proposal:
@@ -363,7 +363,7 @@ Since `if var foo = foo` is significantly less common than `if let foo = foo`, w
 
 `var` shadowing has the potential to be more confusing than `let` shadowing -- `var` introduces a new _mutable_ variable, and any mutations to the new variable are not shared with the original optional variable. On the other hand, `if var foo = foo` already exists, and it seems unlikely that `if var foo` would be more confusing / less clear than the existing syntax.
 
-Since `let` and `var` are interchangable elsewhere in the language, that should also be the case here -- disallowing `if var foo` would be inconsistent with existing optional binding condition syntax. If we were using an alternative spelling that _did not_ use `let`, it may be reasonable to exclude `var` -- but since we are using `let` here, `var` should also be allowed.
+Since `let` and `var` are interchangeable elsewhere in the language, that should also be the case here -- disallowing `if var foo` would be inconsistent with existing optional binding condition syntax. If we were using an alternative spelling that _did not_ use `let`, it may be reasonable to exclude `var` -- but since we are using `let` here, `var` should also be allowed.
 
 ## Acknowledgments
 

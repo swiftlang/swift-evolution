@@ -366,7 +366,7 @@ specification in the manifest (which is the "requirement"). The meaning of pin
 connotes this transient relationship between the pin action and the underlying
 dependency.
 
-In constrast, not only does lock have the wrong connotation, but it also is a
+In contrast, not only does lock have the wrong connotation, but it also is a
 heavily overloaded word which can lead to confusion. For example, if the package
 manager used POSIX file locking to prevent concurrent manipulation of packages
 (a feature we intend to implement), and we also referred to the pinning files as

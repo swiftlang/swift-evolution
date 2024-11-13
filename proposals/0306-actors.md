@@ -544,7 +544,7 @@ We'll describe each scenario in detail.
 
 An actor-isolated non-`async` declaration can only be synchronously accessed from another declaration that is isolated to the same actor. For synchronous access to an actor-isolated function, the function must be called from another actor-isolated function. For synchronous access to an actor-isolated instance property or instance subscript, the instance itself must be actor-isolated.
 
-An actor-isolated declaration can be asynchronously accessed from any declaration, whether it is isolated to another actor or is non-isolated. Such accesses are asynchronous operations, and therefore must be annotated with `await`. Semantically, the progam will switch to the actor to perform the synchronous operation, and then switch back to the caller's executor afterward.
+An actor-isolated declaration can be asynchronously accessed from any declaration, whether it is isolated to another actor or is non-isolated. Such accesses are asynchronous operations, and therefore must be annotated with `await`. Semantically, the program will switch to the actor to perform the synchronous operation, and then switch back to the caller's executor afterward.
 
 For example:
 

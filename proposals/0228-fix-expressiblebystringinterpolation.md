@@ -508,7 +508,7 @@ String(stringInterpolation:
   .literal("!"))
 ```
 
-However, this requires that conformers expose a homogenous return value, which has expressibility and/or efficiency drawbacks. The proposed approach, which is statement based, keeps this as a detail internal to the conformer.
+However, this requires that conformers expose a homogeneous return value, which has expressibility and/or efficiency drawbacks. The proposed approach, which is statement based, keeps this as a detail internal to the conformer.
 
 ### Have a formal `appendInterpolation(_:)` requirement
 
