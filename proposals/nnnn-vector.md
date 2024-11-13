@@ -42,19 +42,11 @@ dynamic indexing or iteration:
 func complexAlgorithm() {
   let elements = (first, second, third, fourth)
 
-  // error: for-in loop requires '(Int, Int, Int, Int)' to conform to 'Sequence'
-  for element in elements {
-    compute(element)
-  }
-
-  var i = 0
-
-  while i != elements.indices {
+  // Have to manually know the tuple has N elements...
+  for i in 0 ..< 4 {
     // error: cannot access element using subscript for tuple type
     //        '(Int, Int, Int, Int)'; use '.' notation instead
-    let element = elements[i]
-
-    compute(element)
+    compute(elements[i])
   }
 }
 ```
@@ -94,17 +86,8 @@ func complexAlgorithm() -> Int {
   // This is a stack allocation, no 'malloc's or reference counting here!
   let elements: Vector<4, Int> = [1, 2, 3, 4]
 
-  // OK
-  for element in elements {
-    compute(element)
-  }
-
-  var i = 0
-
-  while i != elements.indices {
-    let element = elements[i] // OK
-
-    compute(element)
+  for i in elements.indices {
+    compute(elements[i]) // OK
   }
 }
 ```
