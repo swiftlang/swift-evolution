@@ -3,9 +3,9 @@
 * Proposal: [SE-0452](0452-integer-generic-parameters.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (Nov 5-19 2024)**
+* Status: **Active review (November 5-19 2024)**
 * Implementation: [apple/swift#75518](https://github.com/apple/swift/pull/75518)
-* Forum Threads: [Review](https://forums.swift.org/t/se-0452-integer-generic-parameters/75844)
+* Review: ([pitch](https://forums.swift.org/t/integer-generic-parameters/74181)) ([review](https://forums.swift.org/t/se-0452-integer-generic-parameters/75844))
 * Upcoming Feature Flag: `ValueGenerics`
 
 ## Introduction
