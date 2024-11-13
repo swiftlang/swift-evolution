@@ -457,7 +457,7 @@ compiler error to detect this during build time.
 
 ```swift
 #if Trait1 && Trait2
-#error("Trait1 and Trait2 are mutuall exclusive")
+#error("Trait1 and Trait2 are mutually exclusive")
 #endif
 ```
 
