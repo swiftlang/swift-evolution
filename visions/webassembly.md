@@ -88,21 +88,25 @@ toolchain and core libraries. Based on this, we propose a high-level roadmap for
 ecosystem:
 
 1. Make it easier to evaluate and adopt Wasm with increased API coverage for this platform in the Swift core libraries.
-Main prerequisite for that is setting up CI jobs for those libraries that run tests for WASI and also Embedded Wasm, where
-possible. As a virtualized embeddable platform, not all system APIs are always available or easy to port to WASI. For example,
-multi-threading, file system access, networking and localization need special support in Wasm runtimes and a certain amount of
-consideration from a developer adopting these APIs.
+   Main prerequisite for that is setting up CI jobs for those libraries that run tests for WASI and also Embedded Wasm, where
+   possible. As a virtualized embeddable platform, not all system APIs are always available or easy to port to WASI. For example,
+   multi-threading, file system access, networking and localization need special support in Wasm runtimes and a certain amount of
+   consideration from a developer adopting these APIs.
 
 2. Improve support for cross-compilation in Swift and SwiftPM. We can simplify versioning, installation, and overall
-management of Swift SDKs for cross-compilation in general, which is beneficial not only for WebAssembly, but for all
-platforms.
+   management of Swift SDKs for cross-compilation in general, which is beneficial not only for WebAssembly, but for all
+   platforms.
 
 3. Continue work on Wasm Component Model support in Swift as the Component Model proposal is stabilized. Ensure
-that future versions of WASI are available to Swift developers targeting Wasm.
+   that future versions of WASI are available to Swift developers targeting Wasm.
 
 4. Make interoperability with Wasm components as smooth as C and C++ interop already is for Swift. With a formal
-specification for Canonical ABI progressing, this will become more achievable with time. This includes consuming
-components from, and building components with Swift.
+   specification for Canonical ABI progressing, this will become more achievable with time. This includes consuming
+   components from, and building components with Swift.
+
+5. Improve debugging experience of Swift code compiled to Wasm. While rudimentary support for debugging
+   exists in some Wasm runtimes, we aim to improve it and, where possible, make it as good as debugging Swift code
+   compiled to other platforms.
 
 ### Proposed Language Features
 
