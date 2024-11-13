@@ -212,7 +212,7 @@ A similar future direction is to support sharing Swift `customMirror` definition
 
 ### Explicit LLDB Summary Strings
 
-The simplest macro implementation is one that performs no Swift-to-LLDB translation and directly accepts an LLDB Summary String. This approach requires users to know LLDB Summary String syntax, which while not complex, still presents a hinderance to adoption. Such a macro would could create redundancy: `debugDescription` and the separate LLDB Summary String. These would need to be manually kept in sync.
+The simplest macro implementation is one that performs no Swift-to-LLDB translation and directly accepts an LLDB Summary String. This approach requires users to know LLDB Summary String syntax, which while not complex, still presents a hindrance to adoption. Such a macro would could create redundancy: `debugDescription` and the separate LLDB Summary String. These would need to be manually kept in sync.
 
 ### Independent Property (No `debugDescription` Reuse)
 

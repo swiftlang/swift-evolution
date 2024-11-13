@@ -190,7 +190,7 @@ let myViewController = MyViewController()
 myViewController.setup(UIViewController())
 ```
 
-The previous code continues to compile but still crashs if the Objective-C code calls a method of `UITableViewDataSource` or `UITableViewDelegate`. But if this proposal is accepted and implemented as-is, the Objective-C code will be imported in Swift 4 mode as:
+The previous code continues to compile but still crashes if the Objective-C code calls a method of `UITableViewDataSource` or `UITableViewDelegate`. But if this proposal is accepted and implemented as-is, the Objective-C code will be imported in Swift 4 mode as:
 
 ```swift
 class MyViewController {

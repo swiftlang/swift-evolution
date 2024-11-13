@@ -595,7 +595,7 @@ struct Adder {
 We feel this approach is not ideal because a marker type attribute is not
 particularly meaningful. The call-syntax delegate methods of a type are what
 make values of that type callable - a type attribute means nothing by itself.
-There's also an unforunate edge case that must be explicitly handled: if a
+There's also an unfortunate edge case that must be explicitly handled: if a
 `@staticCallable` type defines no call-syntax delegate methods, an error must be
 produced.
 

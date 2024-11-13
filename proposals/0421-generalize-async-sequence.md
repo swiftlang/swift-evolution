@@ -103,7 +103,7 @@ The new `next(isolation:)` has a default implementation so that conformances wil
 
 ### Adopting typed throws
 
-Concrete `AsyncSequence` and `AsyncIteratorProtocol` types determine whether calling `next()` can `throw`. This can be described in each protocol with a `Failure` associated type that is thrown by the `AsyncIteratorProtcol.next(isolation:)` requirement. Describing the thrown error with an associated type allows conformances to fulfill the requirement with a type parameter, which means that libraries do not need to expose separate throwing and non-throwing concrete types that otherwise have the same async iteration functionality.
+Concrete `AsyncSequence` and `AsyncIteratorProtocol` types determine whether calling `next()` can `throw`. This can be described in each protocol with a `Failure` associated type that is thrown by the `AsyncIteratorProtocol.next(isolation:)` requirement. Describing the thrown error with an associated type allows conformances to fulfill the requirement with a type parameter, which means that libraries do not need to expose separate throwing and non-throwing concrete types that otherwise have the same async iteration functionality.
 
 #### Error type inference from `for try await` loops
 
@@ -213,7 +213,7 @@ Both function requirements of `AsyncIteratorProtocol` have default implementatio
 
 To avoid silently allowing conformances that implement neither requirement, and to facilitate the transition of conformances from `next()` to `next(isolation:)`, we add a new availability rule where the witness checker diagnoses a protocol conformance that uses an deprecated, obsoleted, or unavailable default witness implementation. Deprecated implementations will produce a warning, while obsoleted and unavailable implementations will produce an error.
 
-Because the default implementation of `next(isolation:)` is deprecated, conformances that do not provide a direct implementation will produce a warning. This is desirable because the default implementation of `next(isolation:)` violates `Sendable` checking, so while it's necessary for source compatibilty, it's important to aggressively suggest that conforming types implement the new method.
+Because the default implementation of `next(isolation:)` is deprecated, conformances that do not provide a direct implementation will produce a warning. This is desirable because the default implementation of `next(isolation:)` violates `Sendable` checking, so while it's necessary for source compatibility, it's important to aggressively suggest that conforming types implement the new method.
 
 ### Associated type inference for `AsyncIteratorProtocol` conformances
 

@@ -93,7 +93,7 @@ This solution is intended to directly address the desired behaviors of the
 package manager:
 
 * By hiding the sources by default, we minimize the distractions in the common
-  case where a user is programming against a known, well-establised, library
+  case where a user is programming against a known, well-established, library
   they do not need to modify.
 
 * By adding a new, explicit workflow for switching to an "editable" package, we

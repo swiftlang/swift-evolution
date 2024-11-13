@@ -412,7 +412,7 @@ extension Greeter {
 
 This simplified snippet does not solve the problem about introducing the new protocol requirement in a binary compatible way, and we'd have to come up with some pattern for it -- however the general direction of allowing introducing new versions of APIs with easier deprecation of old ones is something we'd like to explore in the future.
 
-Support for renaming methods could also be provided, such that the legacy method can be called `__deprecated_greet()` for example, while maintaining the "legacy name" of "`greet()`". Overall, we believe that the protocol evolution story here is somethign we will have to flesh out in the near future, anf feel we have the tools to do so.
+Support for renaming methods could also be provided, such that the legacy method can be called `__deprecated_greet()` for example, while maintaining the "legacy name" of "`greet()`". Overall, we believe that the protocol evolution story here is something we will have to flesh out in the near future, anf feel we have the tools to do so.
 
 ### Consider customization points for distributed call target metadata assignment
 

@@ -302,7 +302,7 @@ The `expansion` operation accepts the attribute syntax `node` for the spelling o
 
 #### Conformance macros
 
-Conformance macros allow one to introduce new protocol conformances to a type. This would often be paired with other macros whose purpose is to help satisfy the protocol conformance. For example, one could imagine an extended version of the `OptionSetMembers` attributed shown earlier that also adds the `OptionSet` conformance. With it, the mimimal implementation of an option set could be:
+Conformance macros allow one to introduce new protocol conformances to a type. This would often be paired with other macros whose purpose is to help satisfy the protocol conformance. For example, one could imagine an extended version of the `OptionSetMembers` attributed shown earlier that also adds the `OptionSet` conformance. With it, the minimal implementation of an option set could be:
 
 ```swift
 @OptionSet

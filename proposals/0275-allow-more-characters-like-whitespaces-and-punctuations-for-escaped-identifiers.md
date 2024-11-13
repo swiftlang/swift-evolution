@@ -107,10 +107,10 @@ It was considered to extend the grammars for methods declaration only, this was 
 It was suggested, as an alternative, for the testing method names use case to add a method attribute:
 ```
 @test("test validation should succeed when input is less than ten")
-func testValidationShouldSuccedWhenInputIsLessThanTen() {}
+func testValidationShouldSucceedWhenInputIsLessThanTen() {}
 ```
 It was not considered a valid option for few reasons:
-* it introduces information redudancy
+* it introduces information redundancy
 * it is not applicable for the rest of the issues mentioned above
 * adding a new attribute would likely to introduce more complexity to the compiler and to the test runner
 

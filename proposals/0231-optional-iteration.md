@@ -27,7 +27,7 @@ default: print()
 }
 ```
 
-Optional patterns bring a succint way of handling the `.some` case when optional binding is unavailable:
+Optional patterns bring a succinct way of handling the `.some` case when optional binding is unavailable:
 
 ```swift
 for case let unwrapped? in sequence { ... }
@@ -86,7 +86,7 @@ if let unwrappedArray = array {
 }
 ```
 
-The `?` notation here is a semantic emphasis rather than a functional unit: there is no `for!`. Syntactically marking an optional iteration is redundant, however, in constrast to `switch`, nil values are *skipped silently*. Swift strives to follow a style where silent handling of `nil` is acknowledged via the `?` sigil, distinctly reflected in optional chaining syntax. This decision was primarily based on inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). 
+The `?` notation here is a semantic emphasis rather than a functional unit: there is no `for!`. Syntactically marking an optional iteration is redundant, however, in contrast to `switch`, nil values are *skipped silently*. Swift strives to follow a style where silent handling of `nil` is acknowledged via the `?` sigil, distinctly reflected in optional chaining syntax. This decision was primarily based on inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). 
 
 ``` swift
 for element in optionalArray { ... } // Silently handling optionals implicitly is a style that Swift prefers to eschew.

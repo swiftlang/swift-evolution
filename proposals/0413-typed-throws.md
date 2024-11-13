@@ -1102,7 +1102,7 @@ With the `rethrows` formulation of the `last(where:)` function, `getLast` will h
 let getLast: ((Int) -> Bool) -> Int? = primes.last(where:) // okay, E is inferred to Never
 ```
 
-Note that one would have to do the same thing with the `rethrows` formulation to produce a non-throwing `getLast`, because `rethrows` is not a part of the formal type system. Given that most `rethrows` operations are already generic in other parameters (unlike `last(where:)`), and most uses of such APIs are either calls or have type context, it is expected that the actual source compatibilty impact of replacing `rethrows` with typed errors will be small.
+Note that one would have to do the same thing with the `rethrows` formulation to produce a non-throwing `getLast`, because `rethrows` is not a part of the formal type system. Given that most `rethrows` operations are already generic in other parameters (unlike `last(where:)`), and most uses of such APIs are either calls or have type context, it is expected that the actual source compatibility impact of replacing `rethrows` with typed errors will be small.
 
 ## Effect on ABI stability
 
@@ -1356,7 +1356,7 @@ This function will only throw when `f` or `g` throw, and in both cases will tran
 * `rethrows` correctly communicates that this function throws only when the arguments for `f` or `g` do, but the thrown error type is treated as `any Error`.
 * `throws(SimpleError)` correctly communicates that this function throws errors of type `SimpleError`, but not that it throws when the argument for `f` or `g` do.
 
-One way to address this would be to allow `rethrows` to specify the thrown error type, e.g., `rethrows(SimpleError)`, which captures both of the aspects of how this function behavies---when it throws, and what specific error type it `throws`.  
+One way to address this would be to allow `rethrows` to specify the thrown error type, e.g., `rethrows(SimpleError)`, which captures both of the aspects of how this function behaves---when it throws, and what specific error type it `throws`.  
 
 With typed `rethrows`, a bare `rethrows` could be treated as syntactic sugar for `rethrows(any Error)`, similarly to how `throws` is syntactic sugar for `throws(any Error)`. This extension is source-compatible and allows one to express more specific error types with throwing behavior.
 

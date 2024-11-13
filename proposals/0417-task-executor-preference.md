@@ -272,7 +272,7 @@ Task(executorPreference: specialExecutor) {
       return 12 
     }
     group.addTask(executorPreference: differentExecutor) {
-      // using 'differentExecutor', overriden preference
+      // using 'differentExecutor', overridden preference
       return 42 
     }
     group.addTask(executorPreference: nil) {

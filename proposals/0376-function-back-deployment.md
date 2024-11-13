@@ -89,7 +89,7 @@ extension Temperature {
   @available(toasterOS 1.0, ovenOS 1.0, *)
   @backDeployed(before: toasterOS 2.0, ovenOS 2.0)
   public var degreesFahrenheit: Double {
-    return (degreesCelcius * 9 / 5) + 32
+    return (degreesCelsius * 9 / 5) + 32
   }
 }
 
