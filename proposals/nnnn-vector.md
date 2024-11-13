@@ -608,7 +608,7 @@ conforming this type to `Sequence` or `Collection`.
 
 We do plan to propose new protocols that look like `Sequence` and `Collection`
 that avoid implicit copying making them suitable for types like `Vector` and
-containers of noncopyble elements.
+containers of noncopyable elements.
 [SE-0437 Noncopyable Standard Library Primitives](0437-noncopyable-stdlib-primitives.md)
 goes into more depth about this rationale and mentions that creating new
 protocols to support noncopyable containers with potentially noncopyable
