@@ -6,8 +6,8 @@
 * Status: **Awaiting implementation** or **Awaiting review**
 * Vision: *if applicable* [Vision Name](https://github.com/swiftlang/swift-evolution/visions/NNNNN.md)
 * Roadmap: *if applicable* [Roadmap Name](https://forums.swift.org/...)
-* Bug: *if applicable* [apple/swift#NNNNN](https://github.com/apple/swift/issues/NNNNN)
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [swiftlang/swift-evolution-staging#NNNNN](https://github.com/swiftlang/swift-evolution-staging/pull/NNNNN)
+* Bug: *if applicable* [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/issues/NNNNN)
+* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN) or [swiftlang/swift-evolution-staging#NNNNN](https://github.com/swiftlang/swift-evolution-staging/pull/NNNNN)
 * Upcoming Feature Flag: *if applicable* `MyFeatureName`
 * Previous Proposal: *if applicable* [SE-XXXX](XXXX-filename.md)
 * Previous Revision: *if applicable* [1](https://github.com/swiftlang/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
