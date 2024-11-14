@@ -1,12 +1,12 @@
 # Vector, a fixed-size array
 
-* Proposal: [SE-NNNN](NNNN-vector.md)
+* Proposal: [SE-0453](0453-vector.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
+* Status: **Active review (November 13...November 27, 2024)**
 * Roadmap: [Approaches for fixed-size arrays](https://forums.swift.org/t/approaches-for-fixed-size-arrays/58894)
 * Implementation: [swiftlang/swift#76438](https://github.com/swiftlang/swift/pull/76438)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/vector-a-fixed-size-array/75264))
 
 ## Introduction
 
