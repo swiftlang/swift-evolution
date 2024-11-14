@@ -41,11 +41,11 @@ For each kind of access, there are multiple ways that the access might be provid
 
 Combining the possibilities above gives us a 3x3 matrix of possible accessors:
 
-|           |Read   |Write  |Update |
-|---        |---    |---    |---    |
-|Copying    |       |       |✗      |
-|Borrowing  |       |✗      |       |
-|Yielding   |       |✗      |       |
+|              |Read   |Write  |Update |
+|---           |---    |---    |---    |
+|**Copying**   |       |       |✗      |
+|**Borrowing** |       |✗      |       |
+|**Yielding**  |       |✗      |       |
 
 Three of these combinations turn out to be either impossible or not useful:
 
@@ -56,11 +56,11 @@ Three of these combinations turn out to be either impossible or not useful:
 
 Based on the discussion above, we are left with six combinations that are both possible and useful.  The following table gives each one a name:
 
-|          |Read   |Write |Update |
-|---       |---    |---   |---    |
-|Copying   |get    |set   |✗      |
-|Borrowing |borrow |✗     |mutate |
-|Yielding  |read   |✗     |modify |
+|              |Read   |Write |Update |
+|---           |---    |---   |---    |
+|**Copying**   |get    |set   |✗      |
+|**Borrowing** |borrow |✗     |mutate |
+|**Yielding**  |read   |✗     |modify |
 
 Some of the above exist in the current Swift language, others we expect to be proposed in the near future.  Here is a slightly more detailed explanation of each one:
 
