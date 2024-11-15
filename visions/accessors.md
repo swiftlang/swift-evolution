@@ -29,25 +29,24 @@ There are a wide variety of theoretically possible accessors, varying in what ki
 * Write or “set” access.
 * Update access.
 
-Write and update access differ in that write access can create a value that did not exist before, while update access requires there be a pre-existing value.  For example, consider how the dictionary write operation `myDictionary["newKey"] = value` can create a value that did not exist before. In contrast, `myDictionary["existingKey"] += 1` modifies a value that must necessarily already exist.
+Write and update access differ in that write access can create a value that did not exist before, while update access requires there be a pre-existing value.  For example, consider how the write operation on an expandable collection `someCollection["newKey"] = 17` can create a value that did not exist before. In contrast, an update such as `someCollection["existingKey"] += 1` is modifying a value that must necessarily already exist.
 
 For each kind of access, there are multiple ways that the access might be provided.  The Swift implementation today supports three different possible mechanisms, although not all of these are currently supported by accessors:
 
 * Copying.  The value might be copied between the caller and the callee.
-* Borrowing.  The callee might provide access to the value without actually copying it.  This can be implemented by having the callee provide a pointer or reference to the value *in situ.*
+* Borrowing.  The callee might provide access to the value without actually copying it.  This can be implemented by having the callee provide a pointer or reference to an existing, initialized storage location for the value -- the caller can then use this reference to read and/or write the value.
 * Yielding.  Each of the above is typically provided by calling a function.  The value or pointer is passed as an argument or return value from that function.  It’s also possible for the callee to start a *coroutine* whose execution is interleaved with that of the caller.  This allows the callee to resume after the caller is finished, which is not possible for a function- or method-based accessor.
 
 ## Six of Nine Fundamental Accessors
 
-Combining the possibilities above gives us a 3x3 matrix of possible accessors:
+Combining the possibilities above gives us a 3x3 matrix of possible accessors.
+Three of these combinations, however, turn out to be either impossible or not useful:
 
 |              |Read   |Write  |Update |
 |---           |---    |---    |---    |
 |**Copying**   |       |       |✗      |
 |**Borrowing** |       |✗      |       |
 |**Yielding**  |       |✗      |       |
-
-Three of these combinations turn out to be either impossible or not useful:
 
 * “Copying Update” is unnecessary.  A copying update would by definition copy the value into the caller and then copy the updated value back, which is easily achieved by using a “Copying Read” followed by a “Copying Write”
 * “Borrowing Write” and “Yielding Write” are simply impossible.  Both borrowing and yielding require an existing value.  As such, they provide “update” access.
@@ -100,7 +99,7 @@ Another example:  Providing a `Span` over the contents of a String will require 
 
 The `get`/`set` accessors conceptually represent “instantaneous” access of the value.  After the `get` accessor returns, there is no relation between the returned copy of the property value and the containing value.  Each of the other accessors implies that the containing value must continue to exist for some period.  This period is generally fairly short, but optimization can extend this interval in order to simplify other operations:
 
-* `unsafe*Address` accessors return pointers into the containing value.  This is safe for the caller of these accessors because the compiler knows about this relationship and can extend the lifetime of the containing value as needed.  (These accessors are nominally “unsafe” because their implementation requires constructing an unsafe pointer and there are no checks to ensure that the pointer so constructed is in fact valid.)
+* `unsafe*Address` accessors return pointers into the containing value.  This is safe for the caller of these accessors because the compiler knows about this relationship and can extend the lifetime of the containing value as needed.  (These accessors are nominally “unsafe” because their implementation requires constructing an unsafe pointer and there are no checks to ensure that the pointer so constructed is in fact valid.  For example, there is no check on the pointee lifetime.))
 * `read`/`modify` expose a value for the lifetime of a coroutine. Coroutines enforce that the containing value remains alive for the duration of the coroutine.  Note that in current Swift, the coroutines are generally quite short-lived and the compiler copies the value into or out of the coroutine fairly aggressively.  In the future, the compiler will likely become more adept at expanding the coroutine lifetime to reduce such copying.
 * `borrow`/`mutate` return a borrow of the property value.  This borrow has an implied dependence on the containing value, and the compiler must guarantee that the containing value outlives the property access.
 
