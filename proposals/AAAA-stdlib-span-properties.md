@@ -1,4 +1,4 @@
-# Provide Span Properties on Standard Library Types
+# Add `Span`-providing Properties to Standard Library Types
 
 * Proposal: (link tbd)
 * Author: [Guillaume Lessard](https://github.com/glessard)
