@@ -207,7 +207,7 @@ extension Foundation.Data {
 }
 ```
 
-#### Performance of the `storage` and `bytes` properties
+#### <a name="performance"></a>Performance
 
 The `storage` and `bytes` properties should be performant and return their `Span` or `RawSpan` with very little work, in O(1) time. This is the case for all native standard library types. There is a performance wrinkle for bridged `Array` and `String` instances on Darwin-based platforms, where they can be bridged to Objective-C types that do not guarantee contiguous storage. In such cases the implementation will eagerly copy the underlying data to the native Swift form, and return a `Span` or `RawSpan` pointing to that copy.
 
