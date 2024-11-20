@@ -55,7 +55,7 @@ A computed property getter of an `Escapable` type returning a non-escapable and 
 
 By allowing the language to define lifetime dependencies in this limited way, we can add `Span`-providing properties to standard library types.
 
-#### Extensions to Standard Library types
+#### <a name="extensions"></a>Extensions to Standard Library types
 
 The standard library and Foundation will provide `storage` and `bytes` computed properties. These computed properties are the safe and composable replacements for the existing `withUnsafeBufferPointer` and `withUnsafeBytes` closure-taking functions.
 
