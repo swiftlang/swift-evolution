@@ -1,13 +1,13 @@
 # Add `Span`-providing Properties to Standard Library Types
 
-* Proposal: (link tbd)
+* Proposal: [PR-2620](https://github.com/swiftlang/swift-evolution/pull/2620)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: (tbd)
 * Status: **Pitch**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Bug: rdar://137710901
 * Implementation: (tbd)
-* Review:
+* Review: [pitch](https://forums.swift.org/t/76138)
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
