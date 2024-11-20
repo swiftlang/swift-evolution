@@ -263,3 +263,11 @@ We chose the names `storage` and `bytes` because those reflect _what_ they repre
 
 #### Allowing the definition of non-escapable properties of non-escapable types
 The particular case of the lifetime dependence created by a property of a non-escapable type is not as simple as when the parent type is escapable. There are two possible ways to define the lifetime of the new instance: it can either depend on the lifetime of the original instance, or it can acquire the lifetime of the original instance and be otherwise independent. We believe that both these cases can be useful, and therefore defer allowing either until there is a language annotation to differentiate between them.
+
+## <a name="directions"></a>Future directions
+
+Note: The future directions stated in [SE-0447](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md#Directions) apply here as well.
+
+#### <a name="MutableSpan"></a>Safe mutations via `MutableSpan<T>` properties
+
+Some data structures can delegate mutations of their owned memory. In the standard library the function `withMutableBufferPointer()` provides this functionality in an unsafe manner. We expect to add a `MutableSpan` type to support delegating mutations of initialized memory. Standard library types will then add a way to vend `MutableSpan` instances. This could be with a closure-taking `withMutableSpan()` function, or a new property, such as `var mutableStorage`. Note that a computed property providing mutable access needs to have a different name than the `storage` properties proposed here, because we cannot overload the return type of computed properties based on whether mutation is desired.
