@@ -814,16 +814,51 @@ Objective-C header for a function to be imported as an `@concurrent` function.
 
 ## Source compatibility
 
-TBD
+This proposal changes the semantics of existing nonisolated async functions.
+Adopting the semantics to run on the caller's actor for an existing nonisolated
+async function also has minor source compatibility impact if the implementation
+calls an `@concurrent` function and passes non-Sendable state in the actor's
+region.
+
+To avoid breaking source compatibility or silently changing behavior of
+existing code, this change will be gated behind an upcoming feature flag.
+However, unlike most other changes gated behind upcoming feature flags, this
+change allows writing code that is valid with and without the upcoming feature
+flag, but means something different. Many programmers have internalized the
+SE-0338 semantics, and making this change several years after SE-0338 was
+accepted creates an unforuntate intermediate state where it's difficult to
+understand the semantics of a nonisolated async function without understanding
+the build settings of the module you're writing code in. To mitigate these
+consequences, we can introduce an explicit attribute for running an async
+function on the caller's actor, and start emitting warnings in all language
+modes that do not enable this upcoming feature to explicitly specify the
+execution semantics of a nonisolated or unspecified async function.
+
+For example, the attribute could be spelled `@execution(concurrent)` or
+`@execution(caller)`. Without the upcoming feature enabled, the compiler
+will warn if neither attribute is specified on a nonisolated or unspecified
+async function. With the upcoming feature enabled, the default for a
+nonisolated or unspecified async function is `@execution(caller)`. Packages
+that must support older Swift tools versions can use
+`#if hasAttribute(execution)` to silence the warning while maintaining
+compatibility with tools versions back to Swift 5.8 when `hasAttribute` was
+introduced:
+
+```swift
+#if hasAttribute(execution)
+@execution(concurrent)
+#endif
+public func myAsyncAPI() async { ... }
+```
 
 ## ABI compatibility
 
-**Open question.** I'm still figuring out whether this change can be staged in
-while preserving ABI for existing nonisolated async functions while also
-preserving source compatibility. A number of APIs in the concurrency library
-have transitioned to inheriting the isolation of the caller using isolated
-parameters and `#isolation`, and it may be possible to do this transformation
-automatically for resilient libraries.
+Adopting the semantics to run on the caller's actor for an existing nonisolated
+async function is an ABI change, because the caller's actor must be passed as
+a parameter. However, a number of APIs in the concurrency library have staged
+in similar changes using isolated parameters and `#isolation`, and it may be
+possible to offer tools to do this transformation automatically for resilient
+libraries that want to adopt this behavior.
 
 For example, if a nonisolated async function is ABI-public and is available
 earlier than a version of the Swift runtime that includes this change, the
@@ -845,7 +880,7 @@ internal func abi_myAsyncFunc() async {
 }
 ```
 
-However, this transformation only works if the original function implementation
+This transformation only works if the original function implementation
 can be made inlinable.
 
 ## Implications on adoption
