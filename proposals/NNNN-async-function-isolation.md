@@ -244,7 +244,7 @@ func useAsValue(_ ns: NotSendable) async { ... }
 @MainActor let global: NotSendable = .init()
 
 @MainActor
-func callSendableClosure(closure: @Sendable (NotSendable) async -> Void) {
+func callSendableClosure(closure: @Sendable (NotSendable) async -> Void) async {
   let ns = NotSendable()
   await closure(ns) // okay
 
