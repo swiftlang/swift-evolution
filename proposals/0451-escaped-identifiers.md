@@ -1,10 +1,11 @@
 # Raw identifiers
 
 * Proposal: [SE-0451](0451-escaped-identifiers.md)
-* Author: [Tony Allevato](https://github.com/allevato); based on [SE-0275](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0275-allow-more-characters-like-whitespaces-and-punctuations-for-escaped-identifiers.md) by [Alfredo Delli Bovi](https://github.com/adellibovi)
+* Author: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (October 24...November 7, 2024)**
 * Implementation: [swiftlang/swift#76636](https://github.com/swiftlang/swift/pull/76636), [swiftlang/swift-syntax#2857](https://github.com/swiftlang/swift-syntax/pull/2857)
+* Previous Proposal: [SE-0275](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0275-allow-more-characters-like-whitespaces-and-punctuations-for-escaped-identifiers.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-revisiting-backtick-delimited-identifiers-that-allow-more-non-identifier-characters/74432))
 
 ## Introduction
