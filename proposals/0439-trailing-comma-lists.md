@@ -4,13 +4,13 @@
 * Author: [Mateus Rodrigues](https://github.com/mateusrodriguesxyz)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Accepted with modifications**
-* Implementation: https://github.com/swiftlang/swift/pull/74522# gated behind `-enable-experimental-feature TrailingComma`
+* Implementation: `main` https://github.com/swiftlang/swift/pull/74522#
 * Previous Proposal: [SE-0084](0084-trailing-commas.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-allow-trailing-comma-in-tuples-arguments-and-if-guard-while-conditions/70170)), ([review](https://forums.swift.org/t/se-0439-allow-trailing-comma-in-comma-separated-lists/72876)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0439-allow-trailing-comma-in-comma-separated-lists/73216))
 
 ## Introduction
 
-This proposal aims to allow the use of trailing commas, currently restricted to array and dictionary literals, in comma-separated lists whenever there are terminators that enable unambiguous parsing.
+This proposal aims to allow the use of trailing commas, currently restricted to array and dictionary literals, in symmetric delimited comma-separated lists.
 
 ## Motivation
 
@@ -26,7 +26,7 @@ let rank = [
 ]
 ```
 
-Swift's support for trailing commas in array and dictionary literals makes it as easy to append, remove, reorder, or comment out the last element as any other element.
+Swift's support for trailing commas in array and dictionary literals makes easier to append, remove, reorder, or comment out the last element as any other element.
 
 Other comma-separated lists in the language could also benefit from the flexibility enabled by trailing commas. Consider the function [`split(separator:maxSplits:omittingEmptySubsequences:)`](https://swiftpackageindex.com/apple/swift-algorithms/1.2.0/documentation/algorithms/swift/lazysequenceprotocol/split(separator:maxsplits:omittingemptysubsequences:)-4q4x8) from the [Algorithms](https://github.com/apple/swift-algorithms) package, which has a few parameters with default values.
 
@@ -48,7 +48,7 @@ The language has also seen the introduction of [parameter packs](https://github.
 
 ## Proposed solution
 
-This proposal adds support for trailing commas in comma-separated lists when there's a clear terminator, which are the following:
+This proposal adds support for trailing commas in symmetric delimited comma-separated lists, which are the following:
 
 - Tuples and tuple patterns.
 
@@ -66,7 +66,7 @@ This proposal adds support for trailing commas in comma-separated lists when the
     ) = velocity
     ```
 
-- Parameter and argument lists of initializers, functions, enum associated values, expression macros, attributes, and availability specs.
+- Parameter and argument lists of initializers, functions, enum associated values, expression macros and attributes.
 
     ```swift
     func foo(
@@ -114,10 +114,6 @@ This proposal adds support for trailing commas in comma-separated lists when the
         )
     }
 
-    if #unavailable(
-        iOS 15,
-        watchOS 9,
-    ) { }
     ```
 
 - Subscripts, including key path subscripts.
@@ -139,39 +135,6 @@ This proposal adds support for trailing commas in comma-separated lists when the
     ])
     ```
 
-- `if`, `guard` and `while` condition lists.
-
-    ```swift
-    if
-        condition1,
-        condition2,
-    { }
-
-    while
-        condition1,
-        condition2,
-    { }
-
-    guard
-        condition1,
-        condition2,
-    else { }
-    ```
-
-- `switch` case labels.
-
-    ```swift
-    switch number {
-        case
-            1,
-            2,
-        :
-            ...
-        default:
-            ..
-    }
-    ```
-
 - Closure capture lists.
 
     ```swift
@@ -180,16 +143,6 @@ This proposal adds support for trailing commas in comma-separated lists when the
         capturedValue2,
     ] in
     }
-    ```
-
-- Inheritance clauses.
-
-    ```swift
-    struct S:
-        P1,
-        P2,
-        P3,
-    { }
     ```
 
 - Generic parameters.
@@ -202,19 +155,6 @@ This proposal adds support for trailing commas in comma-separated lists when the
     > { }
     ```
 
-- Generic `where` clauses.
-
-    ```swift
-    struct S<
-        T1,
-        T2,
-        T3
-    > where
-        T1: P1,
-        T2: P2,
-    { }
-    ```
-
 - String interpolation
 
     ```swift
@@ -223,80 +163,132 @@ This proposal adds support for trailing commas in comma-separated lists when the
 
 ## Detailed Design
 
-Trailing commas will be supported in comma-separated lists whenever there is a terminator clear enough that the parser can determine the end of the list. The terminator can be the symbols like `)`, `]`, `>`, `{` and `:`, a keyword like `where` or a pattern code like the body of a `if`, `guard` and `while` statement.
+Trailing commas will be supported in comma-separated lists when symmetric delimiters (including `(...)`, `[...]`, and `<...>`) enables unambiguous parsing.
 
-Note that the requirement for a terminator means that the following cases will not support trailing comma:
+Note that the requirement of symmetric delimiters means that the following cases will not support trailing comma:
 
-Enum case label lists:
+- `if`, `guard` and `while` condition lists.
 
-```swift
-enum E {
-  case
-     a,
-     b,
-     c, // ❌ Expected identifier after comma in enum 'case' declaration
-}
-```
+    ```swift
+    if
+        condition1,
+        condition2, ❌
+    { }
 
-Inheritance clauses for associated types in a protocol declaration:
+    while
+        condition1,
+        condition2, ❌
+    { }
 
-```swift
-protocol Foo {
-  associatedtype T:
-      P1,
-      P2, // ❌ Expected type
-}
-```
+    guard
+        condition1,
+        condition2, ❌
+    else { }
+    ```
+    
+- Enum case label lists:
 
-Generic `where` clauses for initializers and functions in a protocol declaration:
+    ```swift
+    enum E {
+      case
+         a,
+         b,
+         c, ❌
+    }
+    ```
 
-```swift
-protocol Foo {
-  func f<T1, T2>(a: T1, b: T2) where
-      T1: P1,
-      T2: P2, // ❌ Expected type
-}
-```
+- `switch` case labels.
 
-Trailing commas will be allowed in single-element lists but not in zero-element lists, since the trailing comma is actually attached to the last element. Supporting a zero-element list would require supporting _leading_ commas, which isn't what this proposal is about.
+    ```swift
+    switch number {
+        case
+            1,
+            2, ❌
+        :
+            ...
+        default:
+            ..
+    }
+    ```
+    
+- Inheritance clauses.
+
+    ```swift
+    struct S:
+        P1,
+        P2,
+        P3, ❌
+    { }
+    ```
+
+- Generic `where` clauses.
+
+    ```swift
+    struct S<
+        T1,
+        T2,
+        T3,
+    > where
+        T1: P1,
+        T2: P2, ❌
+    { }
+    ```
+
+Trailing commas will be allowed in single-element lists but not in zero-element lists, since the trailing comma is actually attached to the last element. 
+Supporting a zero-element list would require supporting _leading_ commas, which isn't what this proposal is about.
 
 ```swift
 (1,) // OK
-(,) // ❌ expected value in tuple
+(,) ❌ expected value in tuple
 ```
 
 
 ## Source compatibility
 
-Although this change won't impact existing valid code it will change how some invalid code is parsed. Consider the following:
-
-```swift
-if
-  condition1,
-  condition2,
-{ // ❌ Function produces expected type 'Bool'; did you mean to call it with '()'?
-  return true
-}
-
-{ print("something") }
-```
-
-Currently the parser uses the last comma to determine that whatever follows is the last condition, so `{ return true }` is a condition and `{ print("something") }` is the `if` body.
-
-With trailing comma support, the parser will terminate the condition list before the first block that is a valid `if` body, so `{ return true }` will be parsed as the `if` body and `{ print("something") }` will be parsed as an unused closure expression.
-
-```swift
-if
-  condition1,
-  condition2,
-{
-  return true
-}
-
-{ print("something") } // ❌ Closure expression is unused
-```
+This is a purely additive change with no source compatibility impact.
 
 ## Alternatives considered
+
+### Allow trailing comma in all comma-separated lists
+
+Comma-separated lists that are not symmetric delimited could also benefit from trailing comma, condition lists, for example, which reordering is fairly common. 
+However, these lists currently rely on the penultimate element trailing comma to determine that what comes next is the last element, and some of them present challenges to rely on open/close delimiters instead.
+
+At first sight, `{` may seem a reasonable close delimiter for `if` and `while` conditions lists, but conditions can have a `{` themselves.
+
+```swift
+if
+    condition1,
+    condition2,
+    { true }(),
+{ }
+```
+
+This particular case can be somehow handled but given how complex conditions can be it's hard to conclude that there's absolutely no corner case where ambiguity can arise in currently valid code.
+
+Inheritance lists and generic `where` clauses lists can appear in protocol definitons where there's no clear delimiter, making it harder to disambiguate where the list ends. 
+
+```swift
+protocol Foo {
+  associatedtype T:
+      P1,
+      P2, ❌ Expected type
+  ...
+}
+```
+
+```swift
+protocol Foo {
+  associatedtype T:
+      P1,
+      P2, ❌ Expected type
+  ...
+}
+```
+
+Although some comma-separated lists without symmetric delimiters may have a clear terminator in some case, this proposal restrict trailing comma to symmetric delimited ones where it's clear that the presence of a trailing comma will not cause parsing ambiguity.
+
+Because of these problems this proposal focus solely on symmetric delimited comma-separated lists.
 
 ### Eliding commas
 
@@ -312,3 +304,11 @@ print(
 This was even [proposed](https://forums.swift.org/t/se-0257-eliding-commas-from-multiline-expression-lists/22889/188) and returned for revision back in 2019.
 
 The two approaches are not mutually exclusive. There remain unresolved questions about how the language can accommodate elided commas, and adopting this proposal does not prevent that approach from being considered in the future.
+
+## Revision History
+
+- Update to address acceptance decision of restrict trailing comma in the case of of symmetric delimiters.
+
+## Acknowledgments
+
+Thanks to Alex Hoppen, Xiaodi Wu and others for their help on the proposal text and implementation.
