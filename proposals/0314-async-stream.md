@@ -135,7 +135,7 @@ Alternatively if a source is just an async function (one that represents a backp
 
 ### Creating an `AsyncThrowingStream`
 
-Along with the potentially infinite sequence in the example above, `AsyncSeries` can also adapt APIs like the slightly contrived one below. The `findVegetables` function uses callback closures that are called with each retrieved vegetable, as well as when the vegetables have all been returned or an error occurs.
+Along with the potentially infinite sequence in the example above, `AsyncThrowingStream` can also adapt APIs like the slightly contrived one below. The `findVegetables` function uses callback closures that are called with each retrieved vegetable, as well as when the vegetables have all been returned or an error occurs.
 
 ```swift
 func buyVegetables(
