@@ -92,27 +92,6 @@ func complexAlgorithm() -> Int {
 }
 ```
 
-This type also serves as a safer replacement to `withUnsafeTemporaryAllocation`
-when the amount of things to reserve is known statically:
-
-```swift
-// Previously
-withUnsafeTemporaryAllocation(of: Int.self, capacity: 16) {
-  $0.initialize(repeating: 0)
-
-  for i in $0.indices {
-    $0[i] = compute()
-  }
-}
-
-// Now
-var ints = Vector<16, Int>(repeating: 0)
-
-for i in ints.indices {
-  ints[i] = compute()
-}
-```
-
 Vectors of noncopyable values will be possible by using any of the closure based
 taking initializers or the literal initializer:
 
@@ -120,16 +99,12 @@ taking initializers or the literal initializer:
 // [Atomic(0), Atomic(1), Atomic(2), Atomic(3)]
 let incrementingAtomics = Vector<4, Atomic<Int>> { i in
   Atomic(i)
-} // [Atomic(0), Atomic(1), Atomic(2), Atomic(3)]
-
-// [Atomic(337523057234), Atomic(8726493873498347), Atomic(98573472834767364),
-//  Atomic(72394735763974)] (maybe)
-let randomAtomics = Vector<4, _>(expand: RNG()) { Atomic($0.next()) }
+}
 
 // [Sprite(), Sprite(), Sprite(), Sprite()]
-// Where the 2nd, 3rd, and 4th elements are all copies of the initial first
-// value
-let copiedSprites = Vector<4, _>(unfold: Sprite()) { $0.copy() }
+// Where the 2nd, 3rd, and 4th elements are all copies of their previous
+// element.
+let copiedSprites = Vector<4, _>(first: Sprite()) { $0.copy() }
 
 // Inferred to be Vector<3, Mutex<Int>>
 let literalMutexes: Vector = [Mutex(0), Mutex(1), Mutex(2)]
@@ -299,26 +274,6 @@ extension Vector where Element: ~Copyable {
   public init<E: Error>(with next: (Int) throws(E) -> Element) throws(E)
 
   /// Initializes every element in this vector by running the closure with the
-  /// passed in mutable state.
-  ///
-  /// This will call the closure 'count' times, where 'count' is the static
-  /// count of the vector, to initialize every element by passing the closure
-  /// an inout reference to the passed state. The closure is allowed to throw
-  /// an error at any point during initialization at which point the vector will
-  /// stop initialization, deinitialize every currently initialized element, and
-  /// throw the given error back out to the caller.
-  ///
-  /// - Parameter state: The mutable state that can be altered during each
-  ///                    iteration of the closure initializing the vector.
-  /// - Parameter next: A closure that passes in an inout reference to the
-  ///                   user given mutable state which returns an owned
-  ///                   `Element` instance to insert into the vector.
-  public init<State: ~Copyable, E: Error>(
-    expand state: consuming State,
-    with next: (inout State) throws(E) -> Element
-  ) throws(E)
-
-  /// Initializes every element in this vector by running the closure with the
   /// passed in first element.
   ///
   /// This will call the closure 'count' times, where 'count' is the static
@@ -335,8 +290,8 @@ extension Vector where Element: ~Copyable {
   ///                   of the given first element of the vector which returns
   ///                   an owned `Element` instance to insert into the vector.
   public init<E: Error>(
-    unfold first: consuming Element,
-    with next: (borrowing Element) throws(E) -> Element
+    first: consuming Element,
+    next: (borrowing Element) throws(E) -> Element
   ) throws(E)
 }
 
@@ -364,7 +319,6 @@ collection type.
 extension Vector where Element: ~Copyable {
   public typealias Element = Element
   public typealias Index = Int
-  public typealias Indices = Range<Int>
 
   /// Provides the count of the collection statically without an instance.
   public static var count: Int { count }
@@ -378,11 +332,6 @@ extension Vector where Element: ~Copyable {
   public borrowing func index(after i: Int) -> Int
   public borrowing func index(before i: Int) -> Int
 
-  public borrowing func reduce<Result: ~Copyable, E: Error>(
-    into initialResult: consuming Result,
-    _ updateAccumulatingResult: (inout Result, borrowing Element) throws(E) -> ()
-  ) throws(E) -> Result
-
   public mutating func swapAt(
     _ i: Int,
     _ j: Int
@@ -392,94 +341,32 @@ extension Vector where Element: ~Copyable {
 }
 ```
 
-### C Interop changes
+### Syntax sugar
 
-With the introduction of `Vector`, we have a unique opportunity to fix another
-pain point within the language with regards to C interop. Currently, the Swift
-compiler imports a C array of type `T[24]` as a tuple of `T` with 24 elements.
-Previously, this was really the only representation that the compiler could pick
-to allow interfacing with C arrays. It was a real challenge working with these
-fields from C in Swift. Consider the following C struct:
-
-```c
-struct section_64 {
-  char sectname[16];
-  char segname[16];
-  uint64_t addr;
-  uint64_t size;
-  uint32_t offset;
-  uint32_t align;
-  ...
-};
-```
-
-Today, this gets imported as the following Swift struct:
+We feel that this type will become as fundamental as `Array` and `Dictionary`
+both of which have syntactic sugar for declaring a type of them, `[T]` for
+`Array` and `[K: V]` for `Dictionary`. As such, we're proposing a new type sugar
+for `Vector` which is `[N * T]` where `N` is an integer generic and `T` is a
+regular type parameter:
 
 ```swift
-struct section_64 {
-  let sectname: (CChar, CChar, CChar, CChar, CChar, CChar, ... 10 more times)
-  let segname: (CChar, CChar, CChar, CChar, CChar, CChar, ... 10 more times)
-  let addr: UInt64
-  let size: UInt64
-  let offset: UInt32
-  let align: UInt32
-  ...
-}
+let a: [4 * Int] = [1, 2, 3, 4]
+
+// Inferred as '[3 * Int]'
+let b: [_ * Int] = [1, 2, 3]
+
+// Inferred as '[2 * String]'
+let c: [2 * _] = ["hello", "world"]
+
+// Equivalent to: let d: Vector = ...
+// Inferred as '[2 * (Int, Int)]'
+let d: [_ * _] = [(1, 2), (3, 4)]
+
+func genericCount<let n: Int>(_ v: [n * String]) {}
+
+// Inferred as '[4 * Int]'
+let e = [4 * _](first: 1) { $0 + 5 }
 ```
-
-Using an instance of `section_64` in Swift for the most part is really easy.
-Accessing things like `addr` or `size` are simple and easy to use, but using the
-`sectname` property introduces a level of complexity that isn't so fun to use.
-
-```swift
-func getSectionName(_ section: section_64) -> String {
-  withUnsafePointer(to: section.sectname) {
-    // This is unsafe! 'sectname' isn't guaranteed to have a null byte
-    // indicating the end of the C string!
-    String(cString: $0)
-  }
-}
-
-func iterateSectionNameBytes(_ section: section_64) {
-  withUnsafeBytes(to: section.sectname) {
-    for byte in $0 {
-      ...
-    }
-  }
-}
-```
-
-Having to resort to using very unsafe API to do anything useful with imported C
-arrays is not something a memory safe language like Swift should be in the
-business of. `Vector` allows us to clean up this sore spot in a very elegant and
-much more importantly, safe way.
-
-We plan to introduce a new _upcoming_ feature that folks can enable whenever
-they'd like to via `-enable-upcoming-feature ImportCArraysAsVectors`. This will
-change the current behavior of importing C arrays as tuples, to instead import
-them as `Vector`. For the previous example, we'd instead generate the following:
-
-```swift
-struct section_64 {
-  let sectname: Vector<16, CChar>
-  let segname: Vector<16, CChar>
-  let addr: UInt64
-  let size: UInt64
-  let offset: UInt32
-  let align: UInt32
-  ...
-}
-```
-
-By introducing an upcoming feature, it lets folks who are ready to migrate their
-codebase using a C interface to use `Vector` entirely, while still allowing
-dependencies or dependents to use the old behavior with the same C interface.
-
-In a future Swift language mode, we plan to make this behavior the default and
-drop importing C array fields as tuples and only as `Vector`. This approach
-allows developers to get the new behavior early if they'd like to use it, which
-will make the language mode transition much smoother because there would be no
-source break with regards to this feature.
 
 ## Source compatibility
 
@@ -736,27 +623,84 @@ public enum SmallArray<let Capacity: Int, Element: ~Copyable>: ~Copyable {
 which would act as an inline allocated array until one out grew the inline
 capacity and would fall back to a dynamic heap allocation.
 
-### Syntax sugar
+### C Interop changes
 
-We feel that this type will become as fundamental as `Array` and `Dictionary`
-both of which have syntactic sugar for declaring a type of them, `[T]` for
-`Array` and `[K: V]` for `Dictionary`. It may make sense to define something
-similar for `Vector`, however we leave that as a future direction as the
-spelling for such syntax is not critical to landing this type.
+With the introduction of `Vector`, we have a unique opportunity to fix another
+pain point within the language with regards to C interop. Currently, the Swift
+compiler imports a C array of type `T[24]` as a tuple of `T` with 24 elements.
+Previously, this was really the only representation that the compiler could pick
+to allow interfacing with C arrays. It was a real challenge working with these
+fields from C in Swift. Consider the following C struct:
 
-It should be fairly trivial to propose such a syntax in the future either via a
-new proposal, or as an amendment to this one. Such a change should only require
-a newer compiler that supports the syntax and nothing more.
+```c
+struct section_64 {
+  char sectname[16];
+  char segname[16];
+  uint64_t addr;
+  uint64_t size;
+  uint32_t offset;
+  uint32_t align;
+  ...
+};
+```
 
-Some syntax suggestions:
+Today, this gets imported as the following Swift struct:
 
-* `[N x T]` or `[T x N]`
-* `[N * T]` or `[T * N]`
-* `T[N]` (from C)
-* `[T; N]` (from Rust)
+```swift
+struct section_64 {
+  let sectname: (CChar, CChar, CChar, CChar, CChar, CChar, ... 10 more times)
+  let segname: (CChar, CChar, CChar, CChar, CChar, CChar, ... 10 more times)
+  let addr: UInt64
+  let size: UInt64
+  let offset: UInt32
+  let align: UInt32
+  ...
+}
+```
 
-Note that it may make more sense to have the length appear before the type. I
-discuss this more in depth in [Reorder the generic arguments](#reorder-the-generic-arguments-vectort-n-instead-of-vectorn-t).
+Using an instance of `section_64` in Swift for the most part is really easy.
+Accessing things like `addr` or `size` are simple and easy to use, but using the
+`sectname` property introduces a level of complexity that isn't so fun to use.
+
+```swift
+func getSectionName(_ section: section_64) -> String {
+  withUnsafePointer(to: section.sectname) {
+    // This is unsafe! 'sectname' isn't guaranteed to have a null byte
+    // indicating the end of the C string!
+    String(cString: $0)
+  }
+}
+
+func iterateSectionNameBytes(_ section: section_64) {
+  withUnsafeBytes(to: section.sectname) {
+    for byte in $0 {
+      ...
+    }
+  }
+}
+```
+
+Having to resort to using very unsafe API to do anything useful with imported C
+arrays is not something a memory safe language like Swift should be in the
+business of.
+
+Ideally we could migrate the importer from using tuples to this new `Vector`
+type, however that would be massively source breaking. A previous revision of
+this proposal proposed an _upcoming_ feature flag that modules can opt into,
+but this poses issues with the current importer implementation with regards to
+inlinable code.
+
+Another idea was to import struct fields with C array types twice, one with the
+existing name with a tuple type (as to not break source) and another with some
+`Vector` suffix in the name with the `Vector` type. This works pretty well for
+struct fields and globals, but it leaves fields and functions who have pointers
+to C arrays in question as well (spelt `char (*x)[4]`). Do we import such
+functions twice using a similar method of giving it a different name? Such a
+solution would also incur a longer deprecation period to eventually having just
+`Vector` be imported and no more tuples.
+
+We're holding off on any C interop changes here as there are still lots of open
+questions as to what the best path forward is.
 
 ## Alternatives considered
 
@@ -813,6 +757,22 @@ potential sugared form. `[M * [N * T]]` would be indexed directly as it is spelt
 out in the sugared form, `[m][n]`. In light of that, we wouldn't want the sugar
 form to have a different ordering than the generic type itself leading us to
 believe that the length must be before the element type.
+
+### Different Syntax Sugar
+
+The proposed solution proposes `[N * T]` as the sugar syntax for `Vector`. There
+are of course several alternatives considered:
+
+* `[N x T]` or `[T x N]`
+* `T[N]` (from C)
+* `[T; N]` (from Rust)
+* `[N, T]`
+* `[T ^ N]`
+* `[N T]`
+
+Note that it may make more sense to have the length appear before the type, so
+options like C's are out of the question. I discuss this more in depth in
+[Reorder the generic arguments](#reorder-the-generic-arguments-vectort-n-instead-of-vectorn-t).
 
 ## Acknowledgments
 
