@@ -274,21 +274,22 @@ extension Vector where Element: ~Copyable {
   public init<E: Error>(with next: (Int) throws(E) -> Element) throws(E)
 
   /// Initializes every element in this vector by running the closure with the
-  /// passed in first element.
+  /// previously initialized element.
   ///
   /// This will call the closure 'count' times, where 'count' is the static
   /// count of the vector, to initialize every element by passing the closure
-  /// an immutable borrow reference to the first element given to the
-  /// initializer. The closure is allowed to throw an error at any point during
-  /// initialization at which point the vector will stop initialization,
-  /// deinitialize every currently initialized element, and throw the given
-  /// error back out to the caller.
+  /// an immutable borrow reference to the previously initialized element. The
+  /// closure is allowed to throw an error at any point during initialization at
+  /// which point the vector will stop initialization, deinitialize every
+  /// currently initialized element, and throw the given error back out to the
+  /// caller.
   ///
   /// - Parameter first: The first value to insert into the vector which will be
   ///                    passed to the closure as a borrow.
   /// - Parameter next: A closure that passes in an immutable borrow reference
-  ///                   of the given first element of the vector which returns
-  ///                   an owned `Element` instance to insert into the vector.
+  ///                   of the previously initialized element of the vector
+  ///                   which returns an owned `Element` instance to insert into
+  ///                   the vector.
   public init<E: Error>(
     first: consuming Element,
     next: (borrowing Element) throws(E) -> Element
