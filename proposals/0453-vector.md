@@ -6,7 +6,7 @@
 * Status: **Active review (November 13...November 27, 2024)**
 * Roadmap: [Approaches for fixed-size arrays](https://forums.swift.org/t/approaches-for-fixed-size-arrays/58894)
 * Implementation: [swiftlang/swift#76438](https://github.com/swiftlang/swift/pull/76438)
-* Review: ([pitch](https://forums.swift.org/t/vector-a-fixed-size-array/75264)) ([review](https://forums.swift.org/t/se-0453-vector-a-fixed-size-array/76004))
+* Review: ([pitch](https://forums.swift.org/t/vector-a-fixed-size-array/75264)) ([review](https://forums.swift.org/t/se-0453-vector-a-fixed-size-array/76004)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0453-vector-a-fixed-size-array/76411))
 
 ## Introduction
 
