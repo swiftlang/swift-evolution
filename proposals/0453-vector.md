@@ -342,33 +342,6 @@ extension Vector where Element: ~Copyable {
 }
 ```
 
-### Syntax sugar
-
-We feel that this type will become as fundamental as `Array` and `Dictionary`
-both of which have syntactic sugar for declaring a type of them, `[T]` for
-`Array` and `[K: V]` for `Dictionary`. As such, we're proposing a new type sugar
-for `Vector` which is `[N * T]` where `N` is an integer generic and `T` is a
-regular type parameter:
-
-```swift
-let a: [4 * Int] = [1, 2, 3, 4]
-
-// Inferred as '[3 * Int]'
-let b: [_ * Int] = [1, 2, 3]
-
-// Inferred as '[2 * String]'
-let c: [2 * _] = ["hello", "world"]
-
-// Equivalent to: let d: Vector = ...
-// Inferred as '[2 * (Int, Int)]'
-let d: [_ * _] = [(1, 2), (3, 4)]
-
-func genericCount<let n: Int>(_ v: [n * String]) {}
-
-// Inferred as '[4 * Int]'
-let e = [4 * _](first: 1) { $0 + 5 }
-```
-
 ## Source compatibility
 
 `Vector` is a brand new type in the standard library, so source should still be
@@ -624,6 +597,28 @@ public enum SmallArray<let Capacity: Int, Element: ~Copyable>: ~Copyable {
 which would act as an inline allocated array until one out grew the inline
 capacity and would fall back to a dynamic heap allocation.
 
+### Syntax sugar
+
+We feel that this type will become as fundamental as `Array` and `Dictionary`
+both of which have syntactic sugar for declaring a type of them, `[T]` for
+`Array` and `[K: V]` for `Dictionary`. It may make sense to define something
+similar for `Vector`, however we leave that as a future direction as the
+spelling for such syntax is not critical to landing this type.
+
+It should be fairly trivial to propose such a syntax in the future either via a
+new proposal, or as an amendment to this one. Such a change should only require
+a newer compiler that supports the syntax and nothing more.
+
+Some syntax suggestions:
+
+* `[N x T]` or `[T x N]`
+* `[N * T]` or `[T * N]`
+* `T[N]` (from C)
+* `[T; N]` (from Rust)
+
+Note that it may make more sense to have the length appear before the type. I
+discuss this more in depth in [Reorder the generic arguments](#reorder-the-generic-arguments-vectort-n-instead-of-vectorn-t).
+
 ### C Interop changes
 
 With the introduction of `Vector`, we have a unique opportunity to fix another
@@ -758,22 +753,6 @@ potential sugared form. `[M * [N * T]]` would be indexed directly as it is spelt
 out in the sugared form, `[m][n]`. In light of that, we wouldn't want the sugar
 form to have a different ordering than the generic type itself leading us to
 believe that the length must be before the element type.
-
-### Different Syntax Sugar
-
-The proposed solution proposes `[N * T]` as the sugar syntax for `Vector`. There
-are of course several alternatives considered:
-
-* `[N x T]` or `[T x N]`
-* `T[N]` (from C)
-* `[T; N]` (from Rust)
-* `[N, T]`
-* `[T ^ N]`
-* `[N T]`
-
-Note that it may make more sense to have the length appear before the type, so
-options like C's are out of the question. I discuss this more in depth in
-[Reorder the generic arguments](#reorder-the-generic-arguments-vectort-n-instead-of-vectorn-t).
 
 ## Acknowledgments
 
