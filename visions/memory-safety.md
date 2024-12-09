@@ -87,17 +87,17 @@ One of the primary places where this doesn’t hold is with low-level access to 
 * **Lifetime safety**: the unsafe buffer pointer should only be used within the closure, but there is no checking to establish that the pointer does not escape the closure. If it does escape, it could be used after the closure has returned and the pointer could have effectively been “freed.”
 * **Bounds safety**: the unsafe buffer pointer types do not perform bounds checking in release builds.
 
-[Non-escapable types](https://github.com/swiftlang/swift-evolution/pull/2304) provide the ability to create types whose instances cannot escape out of the context in which they were created with no runtime overhead. Non-escapable types allow the creation of a [memory-safe counterpart to the unsafe buffer types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md), proposed under the name `Span` . With `Span` , it becomes possible to access contiguous memory in an array in a manner that maintains memory safety. For example:
+[Non-escapable types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md) provide the ability to create types whose instances cannot escape out of the context in which they were created with no runtime overhead. Non-escapable types allow the creation of a [memory-safe counterpart to the unsafe buffer types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md), `Span` . With `Span` , it becomes possible to access contiguous memory in an array in a manner that maintains memory safety. For example:
 
 ```swift
-myInts.withSpan { span in
-  globalSpan = span // error: span value cannot escape the closure
-  print(span[myArray.count]) // runtime error: out-of-bounds access
-  return span.first ?? 0
-}
+let span = myInts.storage
+
+globalSpan = span // error: span value cannot escape the scope of myInts
+print(span[myArray.count]) // runtime error: out-of-bounds access
+print(span.first ?? 0)
 ```
 
-[Lifetime dependencies](https://github.com/swiftlang/swift-evolution/pull/2305) can greatly improve the expressiveness of non-escaping types, providing the ability to work with types like `Span` without requiring deeply-nested `with` blocks. Additionally, they make it possible to build more complex data structures out of non-escaping types, extending Swift’s capabilities while maintaining memory safety.
+[Lifetime dependencies](https://github.com/swiftlang/swift-evolution/pull/2305) can greatly improve the expressiveness of non-escaping types, making it possible to build more complex data structures while maintaining memory safety.
 
 ## Expressing memory-safe interfaces for the C family of languages
 
