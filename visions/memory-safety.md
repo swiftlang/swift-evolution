@@ -101,14 +101,14 @@ print(span.first ?? 0)
 
 ## Expressing memory-safe interfaces for the C family of languages
 
-The C family of languages do not provide memory safety along any of the dimensions described in this document. As such, a Swift program that makes use of C APIs is never fully “memory safe” in the strict sense, because any C code called from Swift could undermine the memory safety guarantees Swift is trying to provide. Requiring that all such C code be rewritten in Swift would go against Swift’s general philosophy of incremental adoption into existing ecosystems. Therefore, this document proposes a different strategy: code written in Swift will be auditably memory-safe so long as the C APIs it uses follow reasonable conventions with respect to memory safety. As such, writing new code (or incrementally rewriting code from the C family) will not introduce new memory safety bugs, so that adopting Swift in an existing code base will incrementally improve on memory safety.
+The C family of languages do not provide memory safety along any of the dimensions described in this document. As such, a Swift program that makes use of C APIs is never fully “memory safe” in the strict sense, because any C code called from Swift could undermine the memory safety guarantees Swift is trying to provide. Requiring that all such C code be rewritten in Swift would go against Swift’s general philosophy of incremental adoption into existing ecosystems. Therefore, this document proposes a different strategy: code written in Swift will be auditably memory-safe so long as the C APIs it uses follow reasonable conventions with respect to memory safety. As such, writing new code (or incrementally rewriting code from the C family) will not introduce new memory safety bugs, so that adopting Swift in an existing code base will incrementally improve on memory safety. This approach is complementary to any improvements made to memory safety within the C family of languages, such as [bounds-safety checks for C](https://clang.llvm.org/docs/BoundsSafety.html) or [C++ standard library hardening](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3471r0.html).
 
 In the C family of languages, the primary memory safety issue for APIs is the widespread use of pointers that have neither lifetime annotations (who owns the pointer?) nor bounds annotations (how many elements does it point to?). As such, the pointers used in C APIs are reflected in Swift as unsafe pointer types, as shown above with `memcpy` .
 
 Despite the lack of this information, C APIs often follow a reasonable set of conventions that make them usable in Swift without causing memory-safety problems. Swift has a long history of utilizing annotations in C headers to describe these conventions and improve the projection of C APIs into Swift, including:
 
 * Nullability annotations (`_Nullable`, `_Nonnull`) that describe what values can be NULL, and affects whether a C type is reflected as optional in Swift.
-* Non-escaping annotations (e.g., `__attribute__((noescape))`) on function/block pointer parameters, which results in them being imported as non-escaping function parameters.
+* Non-escaping annotations (e.g., `__attribute__((noescape))`) on block pointer parameters, which results in them being imported as non-escaping function parameters.
 * `@MainActor` and `Sendable` annotations on C APIs that support Swift 6’s data-race safety model.
 
 To provide safer interoperability with C APIs, additional annotations can be provided in C that Swift can use to project those C APIs into Swift APIs without any use of unsafe pointers. For example, the Clang [bounds-safety attributes](https://clang.llvm.org/docs/BoundsSafety.html) allow one to express when a C pointer’s size is described by another value:
@@ -148,18 +148,45 @@ The `average` function is now expressing that it takes in a `double` pointer ref
 func average(_ ptr: Span<Double>) -> Double
 ```
 
-More expressive Swift lifetime features can also have corresponding C annotations, allowing more C semantics to be reflected into safe APIs in Swift. For example, consider a C function that finds the minimal element in an array and returns a pointer to it:
+More expressive Swift lifetime features can also have corresponding C annotations, allowing more C APIs to be reflected into safe APIs in Swift. For example, consider a C function that finds the minimal element in an array and returns a pointer to it:
 
 ```cpp
 const double *min_element(const double *__counted_by(N) __attribute__((noescape)) ptr, int N);
 ```
 
-The returned pointer will point into the buffer passed in, so its lifetime is tied to that of the pointer argument. The aforementioned [lifetime dependencies proposal](https://github.com/swiftlang/swift-evolution/pull/2305) allows this kind of dependency to be expressed in Swift, where the resulting non-escaping value (e.g., a `Span` containing one element) has its lifetime tied to the input argument.
+The returned pointer will point into the buffer passed in, so its lifetime is tied to that of the pointer argument. The aforementioned [lifetime dependencies proposal](https://github.com/swiftlang/swift-evolution/pull/2305) allows this kind of dependency to be expressed in Swift, where the resulting non-escaping value (e.g., a `Span` containing one element) has its lifetime tied to the input argument. Clang provides a [`lifetimebound`](https://clang.llvm.org/docs/AttributeReference.html#id11) attribute that expresses when a return value refers into memory associated with one of the parameters, which offers one way to express this lifetime relationship for C APIs:
 
-C++ offers a number of further opportunities for improved safety by modeling lifetimes. For example, `std::list<T>` has a `front()` method that returns a reference to the element at the front of the list:
-
-```cpp
-T& front();
+```c
+const double * _Nullable __counted_by(1)
+min_element(const double *__counted_by(N) __attribute__((noescape)) __attribute__((lifetimebound)) ptr, int N);
 ```
 
-The returned reference is valid so long as the list is valid, i.e., its lifetime depends on the `this` parameter. Describing that lifetime dependency in C++ can lead to a safe mapping of this API into Swift without the need to introduce an extra copy of the element.
+The result coudl be the following memory-safe Swift API:
+
+```swift
+@lifetime(ptr) func min_element(_ ptr: Span<Double>) -> Span<Double>?
+```
+
+### Affordances for C++
+
+C++ offers a number of further opportunities for improved safety by modeling lifetimes. For example, `std::vector<T>` has a `front()` method that returns a reference to the element at the front of the vector:
+
+```cpp
+const T& front() const;
+```
+
+The returned reference is valid so long as the vector instance still exists and has not been modified since the call to `front()`. Describing that lifetime dependency in C++ (for example, with the aforementioned `lifetimebound` attribute) would lead to a safe mapping of this API into Swift without the need to introduce an extra copy of the returned element, improving both safety and, potentially, performance.
+
+The C++ [`std::span`](https://en.cppreference.com/w/cpp/container/span) type is similar to the Swift `Span` type, in that it also carries both a pointer and bounds to describe a region of memory. However, `std::span` doesn't provide lifetime safety, so it is essentially an unsafe type from the Swift perspective. The same C attributes that provide lifetime safety for C pointers and references could be applied to `std::span` instances to provide safe Swift projections of C++ APIs. For example, the following annotated C++ API:
+
+```c++
+std::span<char> substring_match(std::span<char> sequence [[clang::lifetimebound]], std::span<char> subsequence [[clang::noescape]]);
+```
+
+could be imported into Swift as:
+
+```swift
+@lifetime(sequence)
+func substring_match(_ sequence: Span<CChar>, _ subsequence: Span<CChar>) -> Span<CChar>
+```
+
