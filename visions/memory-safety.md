@@ -74,11 +74,53 @@ func memcpy(
 
 The rules described above make it possible to detect and report the use of unsafe constructs in Swift.
 
-An `@unsafe` function should be allowed to use other unsafe constructs without emitting any diagnostics. However, there are also library functions that encapsulate unsafe behavior in a safe API, such as the standard library’s `Array` and [`Span`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md)that are necessarily built from unsafe primitives. Such functions need some way to acknowledge the unsafe behavior while still being considered safe from the outside, such as an `unsafe { ... }` code block or a `@safe(unchecked)` attribute.
+An `@unsafe` function is allowed to use other unsafe constructs. As such, a Swift module compiled in the strictly-safe subset can contain both safe and unsafe code, but all unsafe code is marked by `@unsafe`. A client of the module can opt to use only the safe parts of that module, potentially using the strict safety checking to ensure this.
+
+### Wrapping unsafe behavior in safe APIs
+
+There should also be a way to wrap unsafe behavior into safe APIs. For example, the standard library's `Array` and [`Span`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md) are necessarily implemented from unsafe primitives, such as `UnsafeRawPointer`, but expose primarily safe APIs. For example, the `Span` type could be defined like this:
+
+```swift
+public struct Span<Element: ~Copyable & ~Escapable>: ~Escapable, Copyable, BitwiseCopyable {
+  internal let buffer: UnsafeBufferPointer<Element>
+}
+```
+
+The subscript operation is safe, but necessarily uses `buffer`, which has an `@unsafe` type. Its implementation must acknowledge that it is using unsafe constructs internally, but that it does so in a manner that preserves safety for clients. There are several potential syntaxes, including an `unsafe { ... }` code block, which could look like this:
+
+```swift
+public subscript(_ position: Int) -> Element {
+  get {
+    unsafe {
+      precondition(position >= 0 && position < buffer.count)
+      return buffer[position]
+    }
+  }
+}
+```
+
+Alternatively, Swift could provide a `@safe(unchecked)` attribute that states that a particular API is safe, but that its safety cannot be checked by the compiler, akin to `@unchecked Sendable` conformances:
+
+```swift
+public subscript(_ position: Int) -> Element {
+  @safe(unchecked) get {
+    precondition(position >= 0 && position < buffer.count)
+    return buffer[position]
+  }
+}
+```
+
+The specific syntax chosen will be the subject of a specific proposal, and need not be determined by this vision document. Regardless, a Swift module that enables strict safety checking must limit its use of unsafe constructs to `@unsafe` declarations or those parts of the code that have acknowledged local use of unsafe constructs.
+
+### Auditability
+
+The aim of optional strict memory safety for Swift is to make it possible to write Swift that avoids unintentional use of unsafe constructs while not preventing their use entirely. To aid projects that wish to set a higher bar for memory safety, such as permitting no unsafe constructs outside of the standard library or requiring additional code review for any uses of unsafe constructs, Swift tooling should provide a way to audit the uses of unsafe constructs within an entire project (including its dependencies). An auditing tool should be able to identify and report Swift modules that were compiled without strict memory safety as well as all of the places where the opt-out mechanism (e.g., `unsafe { ... }` blocks or `@safe(unchecked)`) is used in modules that do opt in to strict memory safety.
+
+## Improving the expressibility of strictly-safe Swift
 
 The following sections describe language features and library constructs that improve on what can be expressed within the strictly-safe subset of Swift. These improvements will also benefit Swift in general, making it easier to correctly work with contiguous memory and interoperate with APIs from the C-family on languages.
 
-## Accessing contiguous memory
+### Accessing contiguous memory
 
 Nearly every “unsafe” language feature and standard library API described in the previous section already has safe counterparts in the language: safe concurrency patterns via actors and `Mutex` , safe casting via `as?` , runtime-checked access to optionals (via `!` ) and continuations (`withChecked(Throwing)Continuation` ), and so on.
 
@@ -99,7 +141,7 @@ print(span.first ?? 0)
 
 [Lifetime dependencies](https://github.com/swiftlang/swift-evolution/pull/2305) can greatly improve the expressiveness of non-escaping types, making it possible to build more complex data structures while maintaining memory safety.
 
-## Expressing memory-safe interfaces for the C family of languages
+### Expressing memory-safe interfaces for the C family of languages
 
 The C family of languages do not provide memory safety along any of the dimensions described in this document. As such, a Swift program that makes use of C APIs is never fully “memory safe” in the strict sense, because any C code called from Swift could undermine the memory safety guarantees Swift is trying to provide. Requiring that all such C code be rewritten in Swift would go against Swift’s general philosophy of incremental adoption into existing ecosystems. Therefore, this document proposes a different strategy: code written in Swift will be auditably memory-safe so long as the C APIs it uses follow reasonable conventions with respect to memory safety. As such, writing new code (or incrementally rewriting code from the C family) will not introduce new memory safety bugs, so that adopting Swift in an existing code base will incrementally improve on memory safety. This approach is complementary to any improvements made to memory safety within the C family of languages, such as [bounds-safety checks for C](https://clang.llvm.org/docs/BoundsSafety.html) or [C++ standard library hardening](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3471r0.html).
 
@@ -167,7 +209,7 @@ The result coudl be the following memory-safe Swift API:
 @lifetime(ptr) func min_element(_ ptr: Span<Double>) -> Span<Double>?
 ```
 
-### Affordances for C++
+### Affordances for C++ interoperability
 
 C++ offers a number of further opportunities for improved safety by modeling lifetimes. For example, `std::vector<T>` has a `front()` method that returns a reference to the element at the front of the vector:
 
@@ -189,4 +231,3 @@ could be imported into Swift as:
 @lifetime(sequence)
 func substring_match(_ sequence: Span<CChar>, _ subsequence: Span<CChar>) -> Span<CChar>
 ```
-
