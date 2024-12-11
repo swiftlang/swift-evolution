@@ -18,7 +18,7 @@ While there are a number of potential definitions for memory safety, the one pro
 
 Since its inception, Swift has provided memory safety for the first four dimensions. Lifetime safety is provided for reference types by automatic reference counting and for value types via [memory exclusivity](https://www.swift.org/blog/swift-5-exclusivity/); bounds safety is provided by bounds-checking on `Array` and other collections; type safety is provided by safe features for casting (`as?` , `is` ) and `enum` s; and initialization safety is provided by “definite initialization”, which doesn’t allow a variable to be accessed until it has been defined. Swift 6’s strict concurrency checking extends Swift’s memory safety guarantees to the last dimension.
 
-Providing memory safety does not imply the absence of run-time failures. Good language design often means defining away runtime failures in the type system. However, memory safely requires only that an error in the program cannot be escalated into a violation of one of the safety properties. For example, having reference types by non-nullable by default defines away most problems with NULL pointers. With explicit optional types, the force-unwrap operator (postfix `!` ) meets the definition of memory safety by trapping at runtime if the unwrapped optional is `nil` . The standard library also provides the [`unsafelyUnwrapped` property](https://developer.apple.com/documentation/swift/optional/unsafelyunwrapped) that does not check for `nil` in release builds: this does not meet the definition of memory safety because it admits violations of initialization and lifetime safety that could be exploited.
+Providing memory safety does not imply the absence of run-time failures. Good language design often means defining away runtime failures in the type system. However, memory safely requires only that an error in the program cannot be escalated into a violation of one of the safety properties. For example, having reference types be non-nullable by default defines away most problems with NULL pointers. With explicit optional types, the force-unwrap operator (postfix `!` ) meets the definition of memory safety by trapping at runtime if the unwrapped optional is `nil` . The standard library also provides the [`unsafelyUnwrapped` property](https://developer.apple.com/documentation/swift/optional/unsafelyunwrapped) that does not check for `nil` in release builds: this does not meet the definition of memory safety because it admits violations of initialization and lifetime safety that could be exploited.
 
 ### Unsafe code
 
@@ -203,7 +203,7 @@ const double * _Nullable __counted_by(1)
 min_element(const double *__counted_by(N) __attribute__((noescape)) __attribute__((lifetimebound)) ptr, int N);
 ```
 
-The result coudl be the following memory-safe Swift API:
+The result could be the following memory-safe Swift API:
 
 ```swift
 @lifetime(ptr) func min_element(_ ptr: Span<Double>) -> Span<Double>?
@@ -222,7 +222,10 @@ The returned reference is valid so long as the vector instance still exists and 
 The C++ [`std::span`](https://en.cppreference.com/w/cpp/container/span) type is similar to the Swift `Span` type, in that it also carries both a pointer and bounds to describe a region of memory. However, `std::span` doesn't provide lifetime safety, so it is essentially an unsafe type from the Swift perspective. The same C attributes that provide lifetime safety for C pointers and references could be applied to `std::span` instances to provide safe Swift projections of C++ APIs. For example, the following annotated C++ API:
 
 ```c++
-std::span<char> substring_match(std::span<char> sequence [[clang::lifetimebound]], std::span<char> subsequence [[clang::noescape]]);
+std::span<char> substring_match(
+    std::span<char> sequence [[clang::lifetimebound]],
+    std::span<char> subsequence [[clang::noescape]]
+);
 ```
 
 could be imported into Swift as:
@@ -231,3 +234,9 @@ could be imported into Swift as:
 @lifetime(sequence)
 func substring_match(_ sequence: Span<CChar>, _ subsequence: Span<CChar>) -> Span<CChar>
 ```
+
+## Incremental adoption
+
+The introduction of any kind of additional checking into Swift requires a strategy that accounts for the practicalities of adoption within the Swift ecosystem. Different developers adopt new features on their own schedules, and some Swift code will never enable new checking features. Therefore, it is important that a given Swift module can adopt the proposed strict safety checking without requiring any module it depends on to have already done so, and without breaking any of its own clients that have not enabled strict safety checking.
+
+The optional strict memory safety model proposed by this vision lends itself naturally to incremental adoption. The proposed `@unsafe` attribute is not part of the type of the declaration it is applied to, and therefore does not propagate through the type system in any manner. Additionally, any use of an unsafe construct can be addressed locally, either by encapsulating it (e.g., via `@safe(unchecked)`) or propagating it (with `@unsafe`). This means that a module that has not adopted strict safety checking will not see any diagnostics related to this checking, even when modules it depends on adopt strict safety checking.
