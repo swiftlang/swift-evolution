@@ -241,6 +241,8 @@ The introduction of any kind of additional checking into Swift requires a strate
 
 The optional strict memory safety model proposed by this vision lends itself naturally to incremental adoption. The proposed `@unsafe` attribute is not part of the type of the declaration it is applied to, and therefore does not propagate through the type system in any manner. Additionally, any use of an unsafe construct can be addressed locally, either by encapsulating it (e.g., via `@safe(unchecked)`) or propagating it (with `@unsafe`). This means that a module that has not adopted strict safety checking will not see any diagnostics related to this checking, even when modules it depends on adopt strict safety checking.
 
+The strict memory safety checking does not require any changes to the binary interface of a module, so it can be retroactively enabled (including `@unsafe` annotations) with no ABI or back-deployment concerns. Additionally, it is independent of other language subsetting approaches, such as Embedded Swift.
+
 ## Should strict memory safety checking become the default?
 
 This vision proposes that the strict safety checking described be an opt-in feature with no path toward becoming the default behavior in some future language mode. There are several reasons why this checking should remain an opt-in feature for the foreseeable future:
