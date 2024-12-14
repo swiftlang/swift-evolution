@@ -264,10 +264,23 @@ We chose the names `storage` and `bytes` because those reflect _what_ they repre
 #### Allowing the definition of non-escapable properties of non-escapable types
 The particular case of the lifetime dependence created by a property of a non-escapable type is not as simple as when the parent type is escapable. There are two possible ways to define the lifetime of the new instance: it can either depend on the lifetime of the original instance, or it can acquire the lifetime of the original instance and be otherwise independent. We believe that both these cases can be useful, and therefore defer allowing either until there is a language annotation to differentiate between them.
 
+As a consequence of not allowing either of these cases, we cannot define a `bytes` property on a `Span` when its `Element` is `BitwiseCopyable`. This means that we must add the `bytes` properties on each individual type, rather than relying on a conditional property of `Span`.
+
 ## <a name="directions"></a>Future directions
 
 Note: The future directions stated in [SE-0447](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md#Directions) apply here as well.
 
-#### <a name="MutableSpan"></a>Safe mutations via `MutableSpan<T>` properties
+#### <a name="MutableSpan"></a>Safe mutations with `MutableSpan<T>`
 
 Some data structures can delegate mutations of their owned memory. In the standard library the function `withMutableBufferPointer()` provides this functionality in an unsafe manner. We expect to add a `MutableSpan` type to support delegating mutations of initialized memory. Standard library types will then add a way to vend `MutableSpan` instances. This could be with a closure-taking `withMutableSpan()` function, or a new property, such as `var mutableStorage`. Note that a computed property providing mutable access needs to have a different name than the `storage` properties proposed here, because we cannot overload the return type of computed properties based on whether mutation is desired.
+
+#### <a name="ContiguousStorage"></a>A `ContiguousStorage` protocol
+
+An early version of the `Span` proposal ( [SE-0447][SE-0447] ) proposed a `ContiguousStorage` protocol by which a type could indicate that it can provide a `Span`. `ContiguousStorage` would form a bridge between generically-typed interfaces and a performant concrete implementation. It would supersede the rejected [SE-0256](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0256-contiguous-collection.md), and many of the standard library collections could conform to `ContiguousStorage`.
+
+The properties added by this proposal are largely the concrete implementations of `ContiguousStorage`. As such, it seems like an obvious enhancement to this proposal.
+
+Unfortunately, a major issue prevents us from proposing it at this time: the ability to suppress requirements on `associatedtype` declarations was deferred during the review of [SE-0427](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md). Once this restriction is lifted, then we could propose a `ContiguousStorage` protocol.
+
+The other limitation stated in [SE-0447][SE-0447]'s section about `ContiguousStorage` is "the inability to declare a `_read` acessor as a protocol requirement." This proposal's addition to enable defining a borrowing relationship via a computed property is a solution to that, as long as we don't need to use a coroutine accessor to produce a `Span`. While allowing the return of `Span`s through coroutine accessors may be undesirable, whether it is undesirable is unclear until coroutine accessors are formalized in the language.
+
