@@ -65,8 +65,8 @@ the same visibility as the type itself:
 ```swift 
 public struct Matrix<let columns: Int, let rows: Int> {
     // implicitly has these members:
-    //  public static let columns: Int
-    //  public static let row: Int
+    //  public static var columns: Int { get }
+    //  public static var rows: Int { get }
 }
 
 // From another module:
