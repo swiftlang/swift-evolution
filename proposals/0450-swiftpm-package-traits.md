@@ -512,14 +512,8 @@ Since traits can show up both in the `Package.swift` and in source code when
 checking if a trait is enabled, the allowed characters for a trait name are
 restricted to [legal Swift
 identifier](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/summaryofthegrammar/).
-Hence, the following rules are enforced on trait names:
+Additional, the following rules are enforced on trait names:
 
-- The first character must be a [Unicode XID start
-  character](https://unicode.org/reports/tr31/#Figure_Code_Point_Categories_for_Identifier_Parsing)
-  (most letters), a digit, or `_`.
-- Subsequent characters must be a [Unicode XID continue
-  character](https://unicode.org/reports/tr31/#Figure_Code_Point_Categories_for_Identifier_Parsing)
-  (a digit, `_`, or most letters), `-`, or `+`.
 - `default` and `defaults` (in any letter casing combination) are not allowed as
   trait names to avoid confusion with default traits.
 
