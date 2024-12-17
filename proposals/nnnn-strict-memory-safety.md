@@ -27,7 +27,7 @@ While there are a number of potential definitions for memory safety, the one pro
 * **Lifetime safety** : all accesses to a value are guaranteed to occur during its lifetime. Violations of this property, such as accessing a value after its lifetime has ended, are often called use-after-free errors.
 * **Bounds safety**: all accesses to memory are within the intended bounds of the memory allocation, such as accessing elements in an array. Violations of this property are called out-of-bounds accesses.
 * **Type safety** : all accesses to a value use the type to which it was initialized, or a type that is compatible with that type. For example, one cannot access a `String` value as if it were an `Array`. Violations of this property are called type confusions.
-* **Initialization safety** : all values are initialized properly to being used, so they cannot contain unexpected data. Violations of this property often lead to information disclosures (where data that should be invisible becomes available) or even other memory-safety issues like use-after-frees or type confusions.
+* **Initialization safety** : all values are initialized properly prior to being used, so they cannot contain unexpected data. Violations of this property often lead to information disclosures (where data that should be invisible becomes available) or even other memory-safety issues like use-after-frees or type confusions.
 * **Thread safety:** all values are accessed concurrently in a manner that is synchronized sufficiently to maintain their invariants. Violations of this property are typically called data races, and can lead to any of the other memory safety problems.
 
 ### Memory safety in Swift
@@ -240,6 +240,56 @@ All of these APIs will be marked `@unsafe`. For all of the types that are `@unsa
 ### Unsafe compiler flags
 
 The `-Ounchecked` compiler flag disables some checking in the standard library, including (for example) bounds checking on array accesses. It is generally discouraged in all Swift code, but is particularly problematic in conjunction with strict memory safety because it removes the checking that makes certain standard library APIs safe. Therefore, the compiler will produce a diagnostic when the two features are combined.
+
+### Unsafe overrides
+
+Overriding a safe method within an `@unsafe` one could introduce unsafety, so it will produce a diagnostic in the strict safety mode:
+
+```swift
+class Super {
+  func f() { }
+}
+
+class Sub: Super {
+  @unsafe func f() { ... } // warning: override of safe instance method with unsafe instance method
+}
+```
+
+to suppress this warning, the `Sub` class itself can be marked as `@unsafe`, e.g.,
+
+```swift
+@unsafe
+class Sub: Super {
+  func f() { ... } // warning: override of safe instance method with unsafe instance method
+}
+```
+
+The `@unsafe` annotation is at the class level because any use of the `Sub` type can now introduce unsafe behavior, and any indication of that unsafe behavior will be lost once that `Sub` is converted to a `Super` instance.
+
+### Unsafe conformances
+
+Implementing a protocol requirement that is not `@unsafe` (and not part of an `@unsafe` protocol) within an `@unsafe` declaration introduces unsafety, so it will produce a diagnostic in the strict safety mode:
+
+```swift
+protocol P {
+  func f()
+}
+
+struct ConformsToP { }
+
+extension ConformsToP: P {
+  @unsafe func f() { } // warning: unsafe instance method 'f()' cannot satisfy safe requirement
+}
+```
+
+To suppress this warning, one can place `@unsafe` on the extension (or type) where the conformance to `P` is supplied. This notes that the conformance itself is unsafe:
+
+```swift
+@unsafe
+extension ConformsToP: P {
+  @unsafe func f() { }
+}
+```
 
 ### Strict safety mode and escalatable warnings
 
