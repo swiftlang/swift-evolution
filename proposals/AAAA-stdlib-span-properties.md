@@ -78,11 +78,11 @@ In this version, code evolution is not constrained by a closure. Incorrect escap
 
 Computed properties returning non-escapable and copyable types (`~Escapable & Copyable`) become possible, requiring no additional annotations. The lifetime of their returned value depends on the type vending them. A `~Escapable & Copyable` value borrows another binding. In terms of the law of exclusivity, a borrow is a read-only access. Multiple borrows are allowed to overlap, but cannot overlap with any mutation.
 
-A computed property getter of an `Escapable` type returning a `~Escapable & Copyable` value establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding remains borrowed.
+A computed property getter defined on an `Escapable` type and returning a `~Escapable & Copyable` value establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding remains borrowed.
 
-A computed property getter of an `~Escapable & Copyable` type returning a `~Escapable & Copyable` value copies the lifetime dependency of the callee. The returned value becomes an additional borrow of the callee's dependency, but is otherwise independent from the callee.
+A computed property getter defined on a non-escapable and copyable (`~Escapable & Copyable`) type and returning a `~Escapable & Copyable` value copies the lifetime dependency of the callee. The returned value becomes an additional borrow of the callee's dependency, but is otherwise independent from the callee.
 
-A computed property getter of an `~Escapable & ~Copyable` type returning a `~Escapable & Copyable` value establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding remains borrowed.
+A computed property getter defined on a non-escapable and non-copyable (`~Escapable & ~Copyable`) type returning a `~Escapable & Copyable` value establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding remains borrowed.
 
 By allowing the language to define lifetime dependencies in these limited ways, we can add `Span`-providing properties to standard library types.
 
