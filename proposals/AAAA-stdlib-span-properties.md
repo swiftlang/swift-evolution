@@ -49,6 +49,31 @@ If we were to attempt using `b` again after the call to `modify(&a)`, the compil
 
 Given this, we propose to enable the definition of a borrowing relationship via a computed property. With this feature we then propose to add `storage` computed properties to standard library types that can share their internal typed storage, as well as `bytes` computed properties to those standard library types that can safely share their internal storage as untyped memory.
 
+One of the purposes of `Span` is to provide a safer alternative to `UnsafeBufferPointer`. This proposal builds on it and allows us to rewrite code reliant on `withUnsafeBufferPointer()` to use `storage` properties instead. Eventually, code that requires access to contiguous memory can be rewritten to use `Span`, gaining better composability in the process. For example:
+
+```swift
+let result = try myArray.withUnsafeBufferPointer { buffer in
+  let indices = findElements(buffer)
+  var myResult = MyResult()
+  for i in indices {
+    try myResult.modify(buffer[i])
+  }
+}
+```
+
+This closure-based call is difficult to evolve, such as making `result` have a non-copyable type, adding a concurrent task, or adding typed throws. An alternative based on a vended `Span` property would look like this:
+
+```swift
+let span = myArray.storage
+let indices = findElements(span)
+var myResult = MyResult()
+for i in indices {
+  try myResult.modify(span[i])
+}
+```
+
+In this version, code evolution is not constrained by a closure. Incorrect escapes of `span` will be diagnosed by the compiler, and the `modify()` function can be updated with typed throws, concurrency or other features as necessary.
+
 ## Detailed Design
 
 A computed property getter of an `Escapable` type returning a non-escapable and copyable type (`~Escapable & Copyable`) establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding is being borrowed. In terms of the law of exclusivity, a borrow is a read-only access. Multiple borrows are allowed to overlap, but cannot overlap with any mutation.
