@@ -76,13 +76,19 @@ In this version, code evolution is not constrained by a closure. Incorrect escap
 
 ## Detailed Design
 
-A computed property getter of an `Escapable` type returning a non-escapable and copyable type (`~Escapable & Copyable`) establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding is being borrowed. In terms of the law of exclusivity, a borrow is a read-only access. Multiple borrows are allowed to overlap, but cannot overlap with any mutation.
+Computed properties returning non-escapable and copyable types (`~Escapable & Copyable`) become possible, requiring no additional annotations. The lifetime of their returned value depends on the type vending them. A `~Escapable & Copyable` value borrows another binding. In terms of the law of exclusivity, a borrow is a read-only access. Multiple borrows are allowed to overlap, but cannot overlap with any mutation.
 
-By allowing the language to define lifetime dependencies in this limited way, we can add `Span`-providing properties to standard library types.
+A computed property getter of an `Escapable` type returning a `~Escapable & Copyable` value establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding remains borrowed.
+
+A computed property getter of an `~Escapable & Copyable` type returning a `~Escapable & Copyable` value copies the lifetime dependency of the callee. The returned value becomes an additional borrow of the callee's dependency, but is otherwise independent from the callee.
+
+A computed property getter of an `~Escapable & ~Copyable` type returning a `~Escapable & Copyable` value establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding remains borrowed.
+
+By allowing the language to define lifetime dependencies in these limited ways, we can add `Span`-providing properties to standard library types.
 
 #### <a name="extensions"></a>Extensions to Standard Library types
 
-The standard library and Foundation will provide `storage` and `bytes` computed properties. These computed properties are the safe and composable replacements for the existing `withUnsafeBufferPointer` and `withUnsafeBytes` closure-taking functions.
+The standard library and Foundation will provide `storage` and computed properties, returning lifetime-dependent `Span` instances. These computed properties are the safe and composable replacements for the existing `withUnsafeBufferPointer` closure-taking functions.
 
 ```swift
 extension Array {
@@ -90,19 +96,9 @@ extension Array {
   var storage: Span<Element> { get }
 }
 
-extension Array where Element: BitwiseCopyable {
-  /// Share the bytes of this `Array`'s elements as a `RawSpan`
-  var bytes: RawSpan { get }
-}
-
 extension ArraySlice {
   /// Share this `Array`'s elements as a `Span`
   var storage: Span<Element> { get }
-}
-
-extension ArraySlice where Element: BitwiseCopyable {
-  /// Share the bytes of this `Array`'s elements as a `RawSpan`
-  var bytes: RawSpan { get }
 }
 
 extension ContiguousArray {
@@ -110,25 +106,14 @@ extension ContiguousArray {
   var storage: Span<Element> { get }
 }
 
-extension ContiguousArray where Element: BitwiseCopyable {
-  /// Share the bytes of this `Array`'s elements as a `RawSpan`
-  var bytes: RawSpan { get }
-}
-
 extension String.UTF8View {
   /// Share this `UTF8View`'s code units as a `Span`
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
-
-  /// Share this `UTF8View`'s code units as a `RawSpan`
-  var bytes: RawSpan { get }
 }
 
 extension Substring.UTF8View {
   /// Share this `UTF8View`'s code units as a `Span`
   var storage: Span<Unicode.UTF8.CodeUnit> { get }
-
-  /// Share this `UTF8View`'s code units as a `RawSpan`
-  var bytes: RawSpan { get }
 }
 
 extension CollectionOfOne {
@@ -136,27 +121,14 @@ extension CollectionOfOne {
   var storage: Span<Element> { get }
 }
 
-extension CollectionOfOne where Element: BitwiseCopyable {
-  /// Share the bytes of this `Collection`'s element as a `RawSpan`
-  var bytes: RawSpan { get }
-}
-
 extension SIMD where Scalar: BitwiseCopyable {
   /// Share this vector's elements as a `Span`
   var storage: Span<Scalar> { get }
-
-  /// Share this vector's underlying bytes as a `RawSpan`
-  var bytes: RawSpan { get }
 }
 
 extension KeyValuePairs {
   /// Share this `Collection`'s elements as a `Span`
   var storage: Span<(Key, Value)> { get }
-}
-
-extension KeyValuePairs where Element: BitwiseCopyable {
-  /// Share the underlying bytes of this `Collection`'s elements as a `RawSpan`
-  var bytes: RawSpan { get }
 }
 ```
 
@@ -167,12 +139,20 @@ extension Vector where Element: ~Copyable {
   /// Share this vector's elements as a `Span`
   var storage: Span<Element> { get }
 }
+```
 
-extension Vector where Element: BitwiseCopyable {
-  /// Share the underlying bytes of vector's elements as a `RawSpan`
+#### Accessing the raw bytes of a `Span`
+
+When a `Span`'s element is `BitwiseCopyable`, we allow viewing the underlying storage as raw bytes with `RawSpan`:
+
+```swift
+extension Span where Element: BitwiseCopyable {
+  /// Share the raw bytes of this `Span`'s elements
   var bytes: RawSpan { get }
 }
 ```
+
+The returned `RawSpan` instance will borrow the same binding as is borrowed by the `Span`.
 
 #### Extensions to unsafe buffer types
 
@@ -189,28 +169,12 @@ extension UnsafeMutableBufferPointer {
   var storage: Span<Element> { get }
 }
 
-extension UnsafeBufferPointer where Element: BitwiseCopyable {
-  /// Unsafely view this buffer as a `RawSpan`
-  var bytes: RawSpan { get }
-}
-
-extension UnsafeMutableBufferPointer where Element: BitwiseCopyable {
-  /// Unsafely view this buffer as a `RawSpan`
-  var bytes: RawSpan { get }
-}
-
 extension UnsafeRawBufferPointer {
-  /// Unsafely view this buffer as a `Span`
-  var storage: Span<Element> { get }
-
   /// Unsafely view this raw buffer as a `RawSpan`
   var bytes: RawSpan { get }
 }
 
 extension UnsafeMutableRawBufferPointer {
-  /// Unsafely view this buffer as a `Span`
-  var storage: Span<Element> { get }
-
   /// Unsafely view this raw buffer as a `RawSpan`
   var bytes: RawSpan { get }
 }
@@ -218,7 +182,7 @@ extension UnsafeMutableRawBufferPointer {
 
 All of these unsafe conversions return a value whose lifetime is dependent on the _binding_ of the UnsafeBufferPointer. Note that this does not keep the underlying memory alive, as usual where the `UnsafePointer` family of types is involved. The programmer must ensure that the underlying memory is valid for as long as the `Span` or `RawSpan` are valid.
 
-#### Extensions to `Foundation.Data`
+#### Extension to `Foundation.Data`
 
 While the `swift-foundation` package and the `Foundation` framework are not governed by the Swift evolution process, `Data` is similar in use to standard library types, and the project acknowledges that it is desirable for it to have similar API when appropriate. Accordingly, we would add the following properties to `Foundation.Data`:
 
@@ -226,9 +190,6 @@ While the `swift-foundation` package and the `Foundation` framework are not gove
 extension Foundation.Data {
   // Share this `Data`'s bytes as a `Span`
   var storage: Span<UInt8> { get }
-
-  // Share this `Data`'s bytes as a `RawSpan`
-  var bytes: RawSpan { get }
 }
 ```
 
@@ -286,12 +247,14 @@ a.append(8)
 During the evolution of Swift, we have learned that closure-based API are difficult to compose, especially with one another. They can also require alterations to support new language features. For example, the generalization of closure-taking API for non-copyable values as well as typed throws is ongoing; adding more closure-taking API may make future feature evolution more labor-intensive. By instead relying on returned values, whether from computed properties or functions, we build for greater composability. Use cases where this approach falls short should be reported as enhancement requests or bugs.
 
 #### Giving the properties different names
+
 We chose the names `storage` and `bytes` because those reflect _what_ they represent. Another option would be to name the properties after _how_ they represent what they do, which would be `span` and `rawSpan`. It is possible the name `storage` would be deemed to clash too much with existing properties of types that would like to provide views of their internal storage with `Span`-providing properties. For example, the Standard Library's concrete `SIMD`-conforming types have a property `var _storage`. The current proposal means that making this property of `SIMD` types into public API would entail a name change more significant than simply removing its leading underscore.
 
-#### Allowing the definition of non-escapable properties of non-escapable types
-The particular case of the lifetime dependence created by a property of a non-escapable type is not as simple as when the parent type is escapable. There are two possible ways to define the lifetime of the new instance: it can either depend on the lifetime of the original instance, or it can acquire the lifetime of the original instance and be otherwise independent. We believe that both these cases can be useful, and therefore defer allowing either until there is a language annotation to differentiate between them.
+#### Disallowing the definition of non-escapable properties of non-escapable types
 
-As a consequence of not allowing either of these cases, we cannot define a `bytes` property on a `Span` when its `Element` is `BitwiseCopyable`. This means that we must add the `bytes` properties on each individual type, rather than relying on a conditional property of `Span`.
+The particular case of the lifetime dependence created by a property of a copyable non-escapable type is not as simple as when the parent type is escapable. There are two possible ways to define the lifetime of the new instance: it can either depend on the lifetime of the original instance, or it can acquire the lifetime of the original instance and be otherwise independent. We believe that both these cases can be useful, but that in the majority of cases the desired behaviour will be to have an independent return value, where the newly returned value borrows the same binding as the callee. Therefore we believe that is reasonable to reserve the unannotated spelling for this more common case.
+
+The original version of this pitch disallowed this. As a consequence, the `bytes` property had to be added on each individual type, rather than having `bytes` as a conditional property of `Span`.
 
 ## <a name="directions"></a>Future directions
 
