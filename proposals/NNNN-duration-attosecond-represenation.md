@@ -1,6 +1,6 @@
-# Add `Int128` support to `Duration`
+# Expose attosecond representation of `Duration`
 
-* Proposal: [SE-NNNN](NNNN-duration-and-int128.md)
+* Proposal: [SE-NNNN](NNNN-duration-attosecond-represenation.md)
 * Authors: [Philipp Gabriel](https://github.com/ph1ps)
 * Review Manager: TBD
 * Status: **Awaiting review**
