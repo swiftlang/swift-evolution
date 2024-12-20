@@ -76,7 +76,7 @@ In this version, code evolution is not constrained by a closure. Incorrect escap
 
 ## Detailed Design
 
-Computed properties returning non-escapable and copyable types (`~Escapable & Copyable`) become possible, requiring no additional annotations. The lifetime of their returned value depends on the type vending them. A `~Escapable & Copyable` value borrows another binding. In terms of the law of exclusivity, a borrow is a read-only access. Multiple borrows are allowed to overlap, but cannot overlap with any mutation.
+Computed property getters returning non-escapable and copyable types (`~Escapable & Copyable`) become possible, requiring no additional annotations. The lifetime of their returned value depends on the type vending them. A `~Escapable & Copyable` value borrows another binding. In terms of the law of exclusivity, a borrow is a read-only access. Multiple borrows are allowed to overlap, but cannot overlap with any mutation.
 
 A computed property getter defined on an `Escapable` type and returning a `~Escapable & Copyable` value establishes a borrowing lifetime relationship of the returned value on the callee's binding. As long as the returned value exists (including local copies,) then the callee's binding remains borrowed.
 
@@ -169,6 +169,16 @@ extension UnsafeMutableBufferPointer {
   var storage: Span<Element> { get }
 }
 
+extension Slice where Base == UnsafeBufferPointer<Element> {
+  /// Unsafely view this buffer as a `Span`
+  var storage: Span<Element> { get }
+}
+
+extension Slice where Base == UnsafeMutableBufferPointer<Element> {
+  /// Unsafely view this buffer as a `Span`
+  var storage: Span<Element> { get }
+}
+
 extension UnsafeRawBufferPointer {
   /// Unsafely view this raw buffer as a `RawSpan`
   var bytes: RawSpan { get }
@@ -178,11 +188,26 @@ extension UnsafeMutableRawBufferPointer {
   /// Unsafely view this raw buffer as a `RawSpan`
   var bytes: RawSpan { get }
 }
+
+extension Slice where Base == UnsafeRawBufferPointer {
+  /// Unsafely view this raw buffer as a `RawSpan`
+  var bytes: RawSpan { get }
+}
+
+extension Slice where Base == UnsafeMutableRawBufferPointer {
+  /// Unsafely view this raw buffer as a `RawSpan`
+  var bytes: RawSpan { get }
+}
 ```
 
-All of these unsafe conversions return a value whose lifetime is dependent on the _binding_ of the UnsafeBufferPointer. Note that this does not keep the underlying memory alive, as usual where the `UnsafePointer` family of types is involved. The programmer must ensure that the underlying memory is valid for as long as the `Span` or `RawSpan` are valid.
+All of these unsafe conversions return a value whose lifetime is dependent on the _binding_ of the UnsafeBufferPointer. Note that this does not keep the underlying memory alive, as usual where the `UnsafePointer` family of types is involved. The programmer must ensure the following invariants for as long as the `Span` or `RawSpan` binding is valid:
 
-#### Extension to `Foundation.Data`
+	- The underlying memory remains initialized.
+	- The underlying memory is not mutated.
+
+Failure to keep these invariants results in undefined behaviour.
+
+#### Extensions to `Foundation.Data`
 
 While the `swift-foundation` package and the `Foundation` framework are not governed by the Swift evolution process, `Data` is similar in use to standard library types, and the project acknowledges that it is desirable for it to have similar API when appropriate. Accordingly, we would add the following properties to `Foundation.Data`:
 
@@ -190,14 +215,21 @@ While the `swift-foundation` package and the `Foundation` framework are not gove
 extension Foundation.Data {
   // Share this `Data`'s bytes as a `Span`
   var storage: Span<UInt8> { get }
+  
+  // Share this `Data`'s bytes as a `RawSpan`
+  var bytes: RawSpan { get }
 }
 ```
+
+Unlike with the standard library types, we plan to have a `bytes` property on `Foundation.Data` directly. This type conceptually consists of untyped bytes, and `bytes` is likely to be the primary way to directly access its memory. As `Data`'s API presents its storage as a collection of `UInt8` elements, we provide both `bytes` and `storage`. Types similar to `Data` may choose to provide both typed and untyped `Span` properties.
 
 #### <a name="performance"></a>Performance
 
 The `storage` and `bytes` properties should be performant and return their `Span` or `RawSpan` with very little work, in O(1) time. This is the case for all native standard library types. There is a performance wrinkle for bridged `Array` and `String` instances on Darwin-based platforms, where they can be bridged to Objective-C types that do not guarantee contiguous storage. In such cases the implementation will eagerly copy the underlying data to the native Swift form, and return a `Span` or `RawSpan` pointing to that copy.
 
-This eager copy behaviour will be specific to the `storage` and `bytes` properties, and therefore the memory usage behaviour of existing unchanged code will remain the same. New code that adopts the `storage` and `bytes` properties will occasionally have higher memory usage due to the eager copies, but we believe this performance compromise is the right approach for the standard library. The alternative is to compromise the design for all platforms supported by Swift.
+This eager copy behaviour will be specific to the `storage` and `bytes` properties, and therefore the memory usage behaviour of existing unchanged code will remain the same. New code that adopts the `storage` and `bytes` properties will occasionally have higher memory usage due to the eager copies, but we believe this performance compromise is the right approach for the standard library. The alternative is to compromise the design for all platforms supported by Swift, and we consider that a non-starter.
+
+As a result of the eager copy behaviour for bridged `String.UTF8View` and `Array` instances, the `storage` property for these types will have a documented performance characteristic of "amortized constant time performance."
 
 ## Source compatibility
 
@@ -255,6 +287,10 @@ We chose the names `storage` and `bytes` because those reflect _what_ they repre
 The particular case of the lifetime dependence created by a property of a copyable non-escapable type is not as simple as when the parent type is escapable. There are two possible ways to define the lifetime of the new instance: it can either depend on the lifetime of the original instance, or it can acquire the lifetime of the original instance and be otherwise independent. We believe that both these cases can be useful, but that in the majority of cases the desired behaviour will be to have an independent return value, where the newly returned value borrows the same binding as the callee. Therefore we believe that is reasonable to reserve the unannotated spelling for this more common case.
 
 The original version of this pitch disallowed this. As a consequence, the `bytes` property had to be added on each individual type, rather than having `bytes` as a conditional property of `Span`.
+
+#### Omitting extensions to `UnsafeBufferPointer` and related types
+
+We could omit the extensions to `UnsafeBufferPointer` and related types, and rely instead of future `Span` and `RawSpan` initializers. The initializers can have the advantage of being able to communicate semantics (somewhat) through their parameter labels. However, they also have a very different shape than the `storage` computed properties we are proposing. We believe that the adding the same API on both safe and unsafe types is advantageous, even if the preconditions for the properties cannot be statically enforced.
 
 ## <a name="directions"></a>Future directions
 
