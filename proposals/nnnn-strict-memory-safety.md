@@ -282,14 +282,15 @@ extension ConformsToP: P {
 }
 ```
 
-To suppress this warning, one can place `@unsafe` on the extension (or type) where the conformance to `P` is supplied. This notes that the conformance itself is unsafe:
+To suppress this warning, one can place `@unsafe` on the conformance to `P` is supplied. This notes that the conformance itself is unsafe:
 
 ```swift
-@unsafe
-extension ConformsToP: P {
+extension ConformsToP: @unsafe P {
   @unsafe func f() { }
 }
 ```
+
+Use of an `@unsafe` conformance for any reason (e.g., when that conformance is needed to call a generic function with a `ConformsToP` requirement) is diagnosed as an unsafe use, much like use of an `@unsafe` declaration.
 
 ### Strict safety mode and escalatable warnings
 
