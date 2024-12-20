@@ -310,3 +310,6 @@ Unfortunately, a major issue prevents us from proposing it at this time: the abi
 
 The other limitation stated in [SE-0447][SE-0447]'s section about `ContiguousStorage` is "the inability to declare a `_read` acessor as a protocol requirement." This proposal's addition to enable defining a borrowing relationship via a computed property is a solution to that, as long as we don't need to use a coroutine accessor to produce a `Span`. While allowing the return of `Span`s through coroutine accessors may be undesirable, whether it is undesirable is unclear until coroutine accessors are formalized in the language.
 
+## Acknowledgements
+
+Thanks to Ben Rimmington for suggesting that the `bytes` property should be on `Span` rather than on every type.
