@@ -227,13 +227,14 @@ In the standard library, the following functions and types would be marked `@uns
 
 * `Unsafe(Mutable)(Raw)(Buffer)Pointer`, `OpaquePointer`, `CVaListPointer`: These types provide neither lifetime nor bounds safety. Over time, Swift code is likely to move toward their safe replacements, such as `(Raw)Span`.
 * `(Closed)Range.init(uncheckedBounds:)`: This operation makes it possible to create a range that doesn't satisfy invariants on which other bounds safety checking (e.g., in `Array.subscript`)
+* `Span.subscript(unchecked:)` : An unchecked subscript whose use can introduce bounds safety problems.
 * `Unmanaged`: Wrapper over reference-counted types that explicitly disables reference counting, potentially introducing lifetime safety issues.
 * `unsafeBitCast`: Allows type casts that are not known to be safe, which can introduce type safety problems.
-*  `unsafeDowncast`: An unchecked form of an `as!` cast that can introduce type safety problems.
+* `unsafeDowncast`: An unchecked form of an `as!` cast that can introduce type safety problems.
 * `Optional.unsafelyUnwrapped`: An unchecked form of the postfix `!` operation on optionals that can introduce various type, initialization, or lifetime safety problems when `nil` is interpreted as a typed value.
 * `UnsafeContinuation`, `withUnsafe(Throwing)Continuation`: An unsafe form of `withChecked(Throwing)Continuation` that does not verify that the continuation is called exactly once, which can cause various safety problems.
 * `withUnsafeCurrentTask` and `UnsafeCurrentTask`: The `UnsafeCurrentTask` type does not provide lifetime safety, and must only be used within the closure passed to `withUnsafeCurrentTask`.
-* `Span.subscript(unchecked:)` : An unchecked subscript whose use can introduce bounds safety problems.
+* `UnownedSerialExecutor`: This type is intentionally not lifetime safe. It's primary use is the `unownedExecutor` property of the `Actor` protocol, which documents the lifetime assumptions of the `UnownedSerialExecutor` instance it produces.
 
 All of these APIs will be marked `@unsafe`. For all of the types that are `@unsafe`, any API that uses that type in its signature will also be marked `@unsafe`, such as `Array.withUnsafeBufferPointer`. Unless mentioned above, standard library APIs that do not have an unsafe type in their signature, but use unsafe constructs in their implementation, will be marked `@safe(unchecked)` because they provide safe abstractions to client code.
 
