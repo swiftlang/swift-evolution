@@ -291,7 +291,17 @@ extension ConformsToP: @unsafe P {
 }
 ```
 
-Use of an `@unsafe` conformance for any reason (e.g., when that conformance is needed to call a generic function with a `ConformsToP` requirement) is diagnosed as an unsafe use, much like use of an `@unsafe` declaration.
+Use of an `@unsafe` conformance for any reason (e.g., when that conformance is needed to call a generic function with a `ConformsToP` requirement) is diagnosed as an unsafe use, much like use of an `@unsafe` declaration. For example
+
+```swift
+func acceptP<T: P>(_: T.Type) { }
+
+func passUnsafe() {
+  acceptP(ConformsToP.self) // warning: use of @unsafe conformance of 'ConformsToP' to protocol 'P'
+}
+```
+
+
 
 ### Strict safety mode and escalatable warnings
 
