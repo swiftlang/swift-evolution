@@ -202,8 +202,8 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
 
 All of these unsafe conversions return a value whose lifetime is dependent on the _binding_ of the UnsafeBufferPointer. Note that this does not keep the underlying memory alive, as usual where the `UnsafePointer` family of types is involved. The programmer must ensure the following invariants for as long as the `Span` or `RawSpan` binding is valid:
 
-	- The underlying memory remains initialized.
-	- The underlying memory is not mutated.
+  - The underlying memory remains initialized.
+  - The underlying memory is not mutated.
 
 Failure to keep these invariants results in undefined behaviour.
 
@@ -312,4 +312,4 @@ The other limitation stated in [SE-0447][SE-0447]'s section about `ContiguousSto
 
 ## Acknowledgements
 
-Thanks to Ben Rimmington for suggesting that the `bytes` property should be on `Span` rather than on every type.
+Thanks to Ben Rimmington for suggesting that the `bytes` property should be on `Span` rather than on every type.
