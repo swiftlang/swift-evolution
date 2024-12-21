@@ -169,32 +169,12 @@ extension UnsafeMutableBufferPointer {
   var storage: Span<Element> { get }
 }
 
-extension Slice where Base == UnsafeBufferPointer<Element> {
-  /// Unsafely view this buffer as a `Span`
-  var storage: Span<Element> { get }
-}
-
-extension Slice where Base == UnsafeMutableBufferPointer<Element> {
-  /// Unsafely view this buffer as a `Span`
-  var storage: Span<Element> { get }
-}
-
 extension UnsafeRawBufferPointer {
   /// Unsafely view this raw buffer as a `RawSpan`
   var bytes: RawSpan { get }
 }
 
 extension UnsafeMutableRawBufferPointer {
-  /// Unsafely view this raw buffer as a `RawSpan`
-  var bytes: RawSpan { get }
-}
-
-extension Slice where Base == UnsafeRawBufferPointer {
-  /// Unsafely view this raw buffer as a `RawSpan`
-  var bytes: RawSpan { get }
-}
-
-extension Slice where Base == UnsafeMutableRawBufferPointer {
   /// Unsafely view this raw buffer as a `RawSpan`
   var bytes: RawSpan { get }
 }
