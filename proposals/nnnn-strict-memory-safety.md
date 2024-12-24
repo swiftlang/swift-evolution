@@ -330,6 +330,29 @@ The attributes and strict memory-safety checking model proposed here have no imp
 
 ## Future Directions
 
+### The `SerialExecutor` and `Actor` protocols
+
+The `SerialExecutor` protocol provides a somewhat unique challenge for the strict memory safety mode. For one, it is impossible to implement this protocol with entirely safe code due to the presence of the `unownedExecutor` requirement:
+
+```swift
+protocol SerialExecutor: Executor {
+  // ...
+  @unsafe var unownedExecutor: UnownedSerialExecutor { get }
+}
+```
+
+To make it possible to safely implement `SerialExecutor`, the protocol will need to be extended with a safe form of `unownedExecutor`, which itself will likely require a [non-escapable](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md) form of `UnownedSerialExecutor` to provide lifetime safety without introducing any overhead. The `Actor` protocol has the same `unownedExecutor` requirement, so it will need the corresponding safe variant. The Swift implementation will need to start using this new requirement for scheduling work on actors to eliminate the implicit use of unsafe constructs.
+
+The `SerialExecutor` protocol has additional semantic constraints involving the serial execution of the jobs provided to the executor. While conformance to any protocol implies that the conforming type meets the documented semantic requirements, `SerialExecutor` is unique in that the data-race safety model (and therefore the memory safety model) depends on it correctly implementing these semantics: a conforming type that currently executes two jobs will create memory-safety violations. There are a few options for addressing this:
+
+* The `SerialExecutor` protocol itself could be marked `@unsafe`, meaning that any use of this protocol must account for unsafety.
+* Some requirements of the `SerialExecutor` protocol (such as the replacement for `unownedExecutor`) could be marked `@unsafe`, so any use of this protocol's requirements must account for unsafety.
+* Conformance to the `SerialExecutor` protocol could require some attestation (such as `@safe(unchecked)`) to make it clear from the source code that there is some unsafety encapsulated in the conformance.
+
+The first two options are the most straightforward, but the fact that actors have implicit uses of `SerialExecutor` means that it would effectively make every actor `@unsafe`. This pushes the responsibility for acknowledging the memory unsafety to clients of `SerialExecutor`, rather than at the conforming type where the responsibility for a correct implementation lies. The third option appears best, because it provides an auditable place to assert memory safety that corresponds with where extra care must be taken to avoid introducing a problem.
+
+It is unclear whether `SerialExecutor` is or will be the only protocol of this nature. If there are others, it could be worth providing a special form of the `@unsafe` attribute on the protocol itself, such as `@unsafe(conforms)`, that is only considered unsafe for conforming types.
+
 ### Overloading to stage in safe APIs
 
 When adopting the strict memory safety mode, it's likely that a Swift module will want to replace existing APIs that traffic in unsafe types (such as `UnsafeMutablePointer`) with safer equivalents (such as `Span`). To retain compatibility for older clients, the existing APIs will need to be left in place. Unfortunately, this might mean that the best name for the API is already taken. For example, perhaps we have a data packet that exposes its bytes via a property:
