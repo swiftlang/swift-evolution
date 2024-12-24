@@ -217,7 +217,6 @@ The following language constructs are always considered to be unsafe:
 
 The following language constructs are considered to be unsafe when strict concurrency checking is enabled (i.e., in the Swift 6 language mode):
 
-* `@unchecked Sendable`: A `Sendable` conformance that cannot be checked by the compiler, which could introduce thread safety issues.
 * `nonisolated(unsafe)`: Allows a property to be accessed from concurrent code without ensuring that such accesses are done so safely. 
 * `@preconcurrency` imports: Suppresses diagnostics related to data race safety when they relate to specific imported modules, which can introduce thread safety issues.
 
@@ -300,8 +299,6 @@ func passUnsafe() {
   acceptP(ConformsToP.self) // warning: use of @unsafe conformance of 'ConformsToP' to protocol 'P'
 }
 ```
-
-
 
 ### Strict safety mode and escalatable warnings
 
