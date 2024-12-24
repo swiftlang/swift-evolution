@@ -268,7 +268,7 @@ The `@unsafe` annotation is at the class level because any use of the `Sub` type
 
 ### Unsafe conformances
 
-Implementing a protocol requirement that is not `@unsafe` (and not part of an `@unsafe` protocol) within an `@unsafe` declaration introduces unsafety, so it will produce a diagnostic in the strict safety mode:
+Implementing a protocol requirement that is safe (and not part of an `@unsafe` protocol) within an `@unsafe` declaration introduces unsafety, so it will produce a diagnostic in the strict safety mode:
 
 ```swift
 protocol P {
