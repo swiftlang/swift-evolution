@@ -467,3 +467,6 @@ This proposal introduced strict safety checking as an opt in mode and not an [*u
 * Interoperability with the C family of languages is an important feature for Swift. Most C(++) APIs are unlikely to ever adopt the safety-related attributes described above, which means that enabling strict safety checking by default would undermine the usability of C(++) interoperability.
 * Swift's current (non-strict) memory safety by default is likely to be good enough for the vast majority of users of Swift, so the benefit of enabling stricter checking by default is unlikely to be worth the disruption it would cause.
 
+## Acknowledgments
+
+This proposal has been greatly improved by the feedback from Félix Cloutier, Gábor Horváth, Frederick Kellison-Linn, Karl Wagner, and Xiaodi Wu.
