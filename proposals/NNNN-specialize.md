@@ -101,7 +101,7 @@ The `@specialize` attribute can be placed on any generic function. It takes an a
 
 The `where` clause must fully specialize all the generic placeholders of the types in the function signature. In the case of a protocol extension, as seen above, that includes specifying `Self`.
 
-It can also be used on extensions of generic types, on computed properties (note, it must be put on `get` explicitly, not on the shorthand where it is elided), and on free functions:
+As well as protocol extensions, it can also be used on extensions of generic types, on computed properties (note, it must be put on `get` explicitly, not on the shorthand where it is elided), and on free functions:
 
 ```swift
 extension Array where Element: BinaryInteger {
@@ -126,8 +126,8 @@ All placeholders must be fully specified in the `where` clause even if they do n
 
 ```swift
 extension Dictionary where Value: BinaryInteger {
-  // error: Too few generic parameters are specified in '_specialize' attribute (got 1, but expected 2)
-  // note: Missing constraint for 'Key' in 'specialize' attribute
+  // error: Too few generic parameters are specified in 'specialize' attribute (got 1, but expected 2)
+  // note: Missing equality constraint for 'Key' in 'specialize' attribute
   @specialize(where Value == Int)
   func sum() -> Double {
     values.reduce(0) { $0 + Double($1) }
@@ -179,6 +179,12 @@ Another example of this is `Array.append`. There is only one single implementati
 This proposal keeps expliicit specializations internal only. For ABI-stable frameworks, a useful future direction would be to make these symbols publicly available and listed in the `.swiftinterface` file, for callers to link to directly. 
 
 Doing this allows ABI-stable framework authors to expose specializations without exposing the full implementation details of a function as inlinable code. While adding a public specialized symbol to a framework is ABI, it is a much more limited ABI surface compared to providing an inlinable implementation, which requires any future changes to a type to consider the previous inlinable code's behavior to ensure it remains compatible forever in older binaries. A specialized entry point could be updated in a framework to fix a bug without recompiling the caller. Specializations in binary frameworks also have the benefit of avoiding duplication of code into the caller.
+
+### Requiring Specialization
+
+A related feature is the ability to _require_ specialization either at the call site, or on a protocol. Specialization does not always have to happen at the call site even when it could – it remains an optimization (albeit a very aggressively applied one currently). If the specializatino does not happen, it would be useful to force the compiler to override its heuristics, similar to forcing linlining of a long but critical function.
+
+There are also protocols that are only meant to be used in specialized form in optimized builds. Arguably `BinaryInteger` is one of them. It may be worth exploring in these cases an annotation to indicate this to the caller, either via a compile-time errror/warning, or a runtime error.
 
 ### Tooling Directions
 
