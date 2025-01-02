@@ -31,11 +31,11 @@ let arrayOfInt: [Int] = // ...
 let result = arrayOfInt.sum()
 ```
 
-in optimized builds, the Swift compiler it will generate a specialized version of `sum` for that type. 
+in optimized builds, the Swift compiler will generate a specialized version of `sum` for that type. 
 
 If you inspect the binary, you will see this specialized version under a symbol `_$sST3sumSz7ElementRpzrlEAASdyFSaySiG_Tg5`, which demangles to `generic specialization <[Swift.Int]> of (extension in example):Swift.Sequence< where A.Element: Swift.BinaryInteger>.sum() -> Swift.Double`, alongside the unspecialized version.
 
-This specialized version of `sum` will be optimized specifically for `Array<Int>`. It can move a pointer directly over the the array's buffer, loading the elements into registers directly from memory. On modern hardware, it can make use of dedicated instructions to convert the them to floating point. It can do this because it can see the implementation of `sum`, and can see the exact types on which it is being called. What exact assembly instructions are generated will differ significantly between e.g. `Array<Int8>.sum` and `Array<UInt64>.sum`.
+This specialized version of `sum` will be optimized specifically for `Array<Int>`. It can move a pointer directly over the the array's buffer, loading the elements into registers directly from memory. On modern hardware, it can make use of dedicated instructions to convert the integers to floating point. It can do this because it can see the implementation of `sum`, and can see the exact types on which it is being called. What exact assembly instructions are generated will differ significantly between e.g. `Array<Int8>.sum` and `Array<UInt64>.sum`.
 
 Here is that `Array<Int>`-specialized code when compiled to x86-64 with `swiftc -Osize`:
 
@@ -62,7 +62,7 @@ Now consider some code that places an optimization barrier between the call site
 protocol Summable: Sequence where Element: BinaryInteger { }
 extension Array: Summable where Element: BinaryInteger { }
 
-var summable: any Summable = []
+var summable: any Summable
 
 // later, when summable has been populated with an array of some kind of integer
 let result = summable.sum()
@@ -176,7 +176,7 @@ Another example of this is `Array.append`. There is only one single implementati
 
 ### Making Specializations Publicly Available
 
-This proposal keeps expliicit specializations internal only. For ABI-stable frameworks, a useful future direction would be to make these symbols publicly available and listed in the `.swiftinterface` file, for callers to link to directly. 
+This proposal keeps explicit specializations internal only. For ABI-stable frameworks, a useful future direction would be to make these symbols publicly available and listed in the `.swiftinterface` file, for callers to link to directly. 
 
 Doing this allows ABI-stable framework authors to expose specializations without exposing the full implementation details of a function as inlinable code. While adding a public specialized symbol to a framework is ABI, it is a much more limited ABI surface compared to providing an inlinable implementation, which requires any future changes to a type to consider the previous inlinable code's behavior to ensure it remains compatible forever in older binaries. A specialized entry point could be updated in a framework to fix a bug without recompiling the caller. Specializations in binary frameworks also have the benefit of avoiding duplication of code into the caller.
 
