@@ -54,7 +54,7 @@ rules might break in the future.
 ### Experimental APIs
 
 Some packages want to introduce new functionality without yet committing to a
-stable public API Currently, those modules and APIs are often underscored or
+stable public API. Currently, those modules and APIs are often underscored or
 specifically annotated. While this approach works it comes with downsides such
 as hiding the APIs in code completion.
 
