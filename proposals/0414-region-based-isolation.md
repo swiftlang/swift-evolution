@@ -610,7 +610,7 @@ func nonIsolatedCaller(_ x: NonSendable) async {
 ```
 
 In the example above, `x` is in a task isolated region. Since
-`nonIsolatedCallee` will execute on the same task as `nonIsolatedCallee`, they
+`nonIsolatedCallee` will execute on the same task as `nonIsolatedCaller`, they
 are in the same isolation domain and a transfer does not occur. In contrast,
 `transferToMainActor` is in a different isolation domain so passing `x` to it is
 a transfer resulting in an error.
