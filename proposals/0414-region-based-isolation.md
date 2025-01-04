@@ -321,9 +321,10 @@ Now lets apply these rules to some specific examples in Swift code:
   ```swift
   func captureInClosure() {
     let x = NonSendable()
-    // Regions: [(x)]
-    let closure = { print(x) }
-    // Regions: [(x, closure)]
+    let y = NonSendable()
+    // Regions: [(x), (y)]
+    let closure = { print(x); print(y) }
+    // Regions: [(x, y, closure)]
   }
   ```
 
