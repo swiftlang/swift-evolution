@@ -3,9 +3,9 @@
 * Proposal: [SE-0452](0452-integer-generic-parameters.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (November 5-19 2024)**
+* Status: **Active review (Janyuary 6-14 2024)**
 * Implementation: [apple/swift#75518](https://github.com/apple/swift/pull/75518)
-* Review: ([pitch](https://forums.swift.org/t/integer-generic-parameters/74181)) ([review](https://forums.swift.org/t/se-0452-integer-generic-parameters/75844))
+* Review: ([pitch](https://forums.swift.org/t/integer-generic-parameters/74181)) ([first review](https://forums.swift.org/t/se-0452-integer-generic-parameters/75844)) ([second review](https://forums.swift.org/t/second-review-se-0452-integer-generic-parameters/77043))
 
 ## Introduction
 
@@ -33,7 +33,7 @@ number of elements they consume or produce.
 ## Proposed solution
 
 Generic types can now be parameterized by integer parameters, declared using
-the syntax `let <Name>: Int` inside of the generic parameter angle brackets:
+the syntax `let <name>: Int` inside of the generic parameter angle brackets:
 
 ```swift
 struct Vector<let count: Int, Element> {
@@ -54,9 +54,27 @@ Or it can be instantiated using integer generic parameters from the surrounding
 generic environment:
 
 ```swift
-struct Matrix<let n: Int, let m: Int> {
-    var matrix: Vector<n, Vector<m, Double>>
+struct Matrix<let columns: Int, let rows: Int> {
+    var matrix: Vector<columns, Vector<rows, Double>>
 }
+```
+
+Integer generic parameters become static constant members of the type, with
+the same visibility as the type itself:
+
+```swift 
+public struct Matrix<let columns: Int, let rows: Int> {
+    // implicitly has these members:
+    //  public static var columns: Int { get }
+    //  public static var rows: Int { get }
+}
+
+// From another module:
+
+import struct Matrices.Matrix
+
+print(Matrix<4, 3>.columns) // prints 4
+print(Matrix<4, 3>.rows) // prints 3
 ```
 
 Generic functions and methods can also be parameterized by integer generic
@@ -153,6 +171,18 @@ func contrived() {
     struct BadFoo<let x: Int> { } // Error, local Int not supported
 
     struct Foo<let x: Swift.Int> { } // OK
+}
+```
+
+Integer generic parameters of types become static members of that type,
+with the same visibility as the type itself. It is an error to try to
+declare another static property with the same name as an integer generic
+parameter within the type declaration, just as it would if the property
+were independently declared:
+
+```swift
+struct Vec<let count: Int> {
+    static let count: Int // error: Vec already has a static property `count`
 }
 ```
 
@@ -555,6 +585,27 @@ by putting them in a different set of brackets separate from the type
 generic parameters, like `Vector[count]<Element>`. This would avoid the need
 for disambiguation if an arbitrary expression can be used as a `count` in
 the future.
+
+### Behavior of static properties corresponding to generic parameters
+
+In response to the first round of review, we added static properties
+corresponding to the integer generic parameters of types, based on feedback
+that, in many if not most cases, the values of the generic parameters would end
+up being redeclared as static parameters, and the existence and names of the
+generic parameters are already essentially part of its public API, since
+usage of the type must be able to provide arguments to the parameters, and
+extensions can refer to the parameters by their names.
+
+One good argument against doing this is that we don't already do anything
+analogous for type generic parameters, such as presenting them as a typealias
+member of the type. We think that it would be beneficial to do so, however,
+and in discussion with the LSG, there were attempts to make this happen in
+the past, but they ran into source compatibility issues. If there is a chance
+to take a source break that enables this functionality for type generic
+parameters, the LSG thinks it is worth considering. With integer generic
+parameters, we have the opportunity to do the right thing out of the gate,
+and we would have similar source-breaking considerations to do it later, so
+we believe it is better to do the right thing up front.
 
 ## Acknowledgments
 
