@@ -1,8 +1,8 @@
 # Custom Allocator for Toolchain
 
-* Proposal: [SE-NNNN](NNNN-memory-allocator.md)
+* Proposal: [SE-0454](0454-memory-allocator.md)
 * Authors: [Saleem Abdulrasool](https://github.com/compnerd)
-* Review Manager: TBD
+* Review Manager: [Alastair Houghton](https://github.com/al45tair)
 * Status: **Awaiting Review**
 * Vision: N/A
 * Roadmap: N/A
