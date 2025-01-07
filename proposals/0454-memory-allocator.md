@@ -7,7 +7,7 @@
 * Vision: N/A
 * Roadmap: N/A
 * Bug: N/A
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Implementation: [swiftlang/swift#76563](https://github.com/swiftlang/swift/pull/76563)
 * Upcoming Feature Flag: N/A
 * Previous Proposal: N/A
 * Previous Revision: N/A
