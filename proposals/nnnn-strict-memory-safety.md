@@ -241,6 +241,8 @@ All of these APIs will be marked `@unsafe`. For all of the types that are `@unsa
 
 The `-Ounchecked` compiler flag disables some checking in the standard library, including (for example) bounds checking on array accesses. It is generally discouraged in all Swift code, but is particularly problematic in conjunction with strict memory safety because it removes the checking that makes certain standard library APIs safe. Therefore, the compiler will produce a diagnostic when the two features are combined.
 
+The `-disable-access-control` flag ignores access specifiers entirely, allowing one to (for example) access a `private` declaration from outside its defining file. This could allow one to break invariants of a type that can lead to memory-safety issues, such as breaking the invariant of `Range` that the lower bound not exceed the upper bound. The compiler will produce a diagnostic when the two features are combined.
+
 ### Unsafe overrides
 
 Overriding a safe method within an `@unsafe` one could introduce unsafety, so it will produce a diagnostic in the strict safety mode:
