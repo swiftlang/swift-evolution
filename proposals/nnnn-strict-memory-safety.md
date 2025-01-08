@@ -450,6 +450,36 @@ This proposal suggests the `@safe(unchecked)` attribute instead of `unsafe` bloc
 
 * `@safe(unchecked)` can be used in places that aren't executable code, such as protocol conformances.
 
+* `@safe(unchecked)` can be introduced with no source-compatibility impact, whereas the `unsafe` block will break code that calls a function named `unsafe` given a closure.
+
+### `unsafe` as an effect
+
+As another alternative to `@safe(unchecked)` and `unsafe` blocks, we could model accesses to unsafe enties as an effect like `async` and `throws`. In such cases, referring to any declaration that is explicitly `@unsafe` or whose type involves an `@unsafe` type would require `unsafe` on the enclosing expression just like using an `async` function requires `await` and a `throws` function requires `try`. This would require more annotations than the `unsafe` block, because individual expressions would need to be marked. For our example with producing the sum of integer arrays, it would look like this:
+
+```swift
+extension Array<Int> {
+  func sum() -> Int {
+    unsafe withUnsafeBufferPointerSimplified { buffer in
+       unsafe c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
+Unlike with the `unsafe` block, one `unsafe` annotation doesn't cover both expressions: the first `unsafe` is needed because `withUnsafeBufferPointerSimplified` involves unsafe types, and the second because `c_library_sum_function`, `buffer.baseAddress`, and `buffer.count` all involve unsafe types.
+
+There are some benefits to this approach:
+
+* It makes it easier to audit those places where unsafe code is used, because `unsafe` only applies to individual expressions, not large chunks of code.
+* It builds on the existing behavior of `try` and `await` in a way that should be understandable to most Swift programmers.
+
+However, both of these have corresponding downsides:
+
+* The `unsafe` effect could make code very noisy when using unsafe types, and starts to feel quite redundant given that most unsafe APIs already intentionally have "unsafe" somewhere in the name: `unsafe withUnsafeXYZ` sounds like it doubly-punishes the use of unsafe code. While this is perhaps a minor annoyance, it could mean that some unsafe APIs designed with strict safety checking in mind would omit the explicit "unsafe" from the name. This change would make code *not* using strict safety checking less safe, because we'd no longer get the benefits of the longstanding conventions built around calling unsafe functions "unsafe".
+* Both `throws` and `async` are part of the type system, whereas `@unsafe` is not, so `unsafe` is effect-like but not *exactly* an effect. There are practical differences here, such as the fact that naming a throwing function but not calling it (e.g., `let g = f`) doesn't require `try` (becaue `throws` is captured in the type of `g`) but would require `unsafe` if `f` is unsafe. Having `unsafe` be effect-like muddles the message about how effects work in Swift.
+
+Additionally, introducing `unsafe` as an effect has the same source-compatibility impact as the `unsafe` block described in the previous section: code like `unsafe { ... }` can exist today to call a function named `unsafe` with closure, and would get a different meaning when `unsafe` is parsed as an effect.
+
 ### Strictly-safe-by-default
 
 This proposal introduced strict safety checking as an opt in mode and not an [*upcoming* language feature](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md) because there is no intent to make this feature the default behavior in a future language mode. There are several reasons why this checking should remain an opt-in feature for the foreseeable future:
