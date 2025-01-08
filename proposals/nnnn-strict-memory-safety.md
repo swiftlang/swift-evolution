@@ -214,6 +214,7 @@ The following language constructs are always considered to be unsafe:
 
 * `unowned(unsafe)`: Used to store a reference without maintaining its reference count. The safe counterpart, `unowned`, uses dynamic checking to ensure that the reference isn't accessed after the corresponding object has been released. The `unsafe` variant disables that dynamic checking. Uses of `unowned(unsafe)` entities are not memory-safe.
 * `unsafeAddressor`, `unsafeMutableAddressor`: These accessors vend an unsafe pointer, and are therefore unsafe to declare. Other accessors (e.g., `get` and `set`) can provide safe alternatives.
+* `@exclusivity(unchecked)`: Used to remove dynamic exclusivity checks from a particular variable, which can mean that dynamic exclusivity violations go undetected at run time, causing a memory safety violation.
 
 The following language constructs are considered to be unsafe when strict concurrency checking is enabled (i.e., in the Swift 6 language mode):
 
