@@ -414,7 +414,7 @@ There are downsides to this approach. It partially undermines the source compati
 
 The attribute `@safe(unchecked)` indicates that a definition is safe despite the use of unsafe constructs in its body. The attribute has no effect on the client, and could effectively be eliminated from the public interface (e.g., documentation, Swift textual interfaces, etc.) without changing how clients behave.
 
-There is an alternative formulation for acknowledging unsafe code that is used in some peer languages like C# and Rust: an `unsafe` block, which is a statement (or expression) that suppresses diagnostics about uses of unsafe code within it. For example, the `sum` example could be written as follows:
+There is an alternative formulation for acknowledging unsafe code that is used in some peer languages like C# and Rust: an `unsafe` block, which is a statement that suppresses diagnostics about uses of unsafe code within it. For example, the `sum` example could be written as follows:
 
 ```swift
 extension Array<Int> {
@@ -428,7 +428,12 @@ extension Array<Int> {
 }
 ```
 
-For Swift, `unsafe` would be a statement that can also be used as an expression when its body is an expression, much like `if` or `switch` expressions following [SE-0380](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md).
+For Swift, an `unsafe` block would be a statement that can also be used as an expression when its body is an expression, much like `if` or `switch` expressions following [SE-0380](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md).
+
+`unsafe` blocks have some advantages over the proposed `@safe(unchecked)` attribute, including:
+
+* They can be limited to smaller amounts of code than a whole function, which can make auditing for the unsafe parts of a function easier.
+* The `unsafe` blocks are more clearly part of the implementation of a function, not the interface.
 
 This proposal suggests the `@safe(unchecked)` attribute instead of `unsafe` blocks for a few reasons, but the choice is effectively arbitrary: either syntax will work with the rest of this proposal. Some of the reasons for preferring `@safe(unchecked)` include:
 
@@ -443,24 +448,7 @@ This proposal suggests the `@safe(unchecked)` attribute instead of `unsafe` bloc
 
 * The `unsafe` blocks end up adding another level of nesting, which also means that introducing them to silence warnings causes unnecessarily large amount of code change when adopting the feature.
 
-* The `unsafe` blocks aren't a natural boundary between unsafe and safe code in the same way as a function boundary, because there is no place to state the expected invariants. Combined with pressure to make `unsafe` blocks have as little code as possible (as a proxy for that code being safer), it becomes easy for "minimizing the amount of code in unsafe blocks" to introduce more safety problems. For example, `sum` might be incorrectly factored as follows:
-
-  ```swift
-  extension Array<Int> {
-    func sum() -> Int {
-      let (ptr, count) = unsafe {
-        withUnsafeBufferPointerSimplified { buffer in
-          (buffer.baseAddress, buffer.count)
-        }
-      }
-      return unsafe { c_library_sum_function(ptr, count, 0) }
-    }
-  }
-  ```
-
-  Here, the base address pointer has escaped the `withUnsafeBufferPointerSimplified` block, causing a member safety problem that wouldn't have been there before. If we tried to do this kind of factoring with the `@safe(unchecked)` approach, the intermediate function producing the pointer would have to be marked `@unsafe`.
-
-
+* `@safe(unchecked)` can be used in places that aren't executable code, such as protocol conformances.
 
 ### Strictly-safe-by-default
 
