@@ -146,7 +146,7 @@ Module `A` defines a type, `DataWrapper`, that is `@unsafe`. It can be compiled 
 
 Module `B` uses the `DataWrapper` type. If compiled without strict safety checking, there will be no diagnostics about memory safety. If compiled with strict safety checking, there will be a diagnostic about `wrapper` using an `@unsafe` type (`DataWrapper`) in its interface. This diagnostic can be ignored.
 
-In module `C` enables strict memory safety, the use of `MyType` is considered safe (since it was not marked `@unsafe` and doesn't involve unsafe types in its interface). However, the access to `wrapper` will result in a diagnostic, because the type of `wrapper` involves an `@unsafe` type. 
+If module `C` enables strict memory safety, the use of `MyType` is considered safe (since it was not marked `@unsafe` and doesn't involve unsafe types in its interface). However, the access to `wrapper` will result in a diagnostic, because the type of `wrapper` involves an `@unsafe` type. 
 
 ### Encapsulating unsafe behavior
 
@@ -171,7 +171,7 @@ extension MyType {
 }
 ```
 
-However, these two APIs diff in the severity of the problem they post for memory safety: `wrapper` has an unsafe type in its interface, so any use of `wrapper` is fundamentally unsafe. However, `MyType` itself can encapsulate the memory-unsafe behavior within a safe API., The `MyType.checksum` operation is actually safe for clients to use. Marking it as `@unsafe` is therefore undesirable, because it (incorrectly) forces clients to treat this as an unsafe API, causing unnecessary extra work and deluting the value of correctly-identified unsafe APIs.
+However, these two APIs differ in the severity of the problem they pose for memory safety: `wrapper` has an unsafe type in its interface, so any use of `wrapper` is fundamentally unsafe. However, `MyType` itself can encapsulate the memory-unsafe behavior within a safe API., The `MyType.checksum` operation is actually safe for clients to use. Marking it as `@unsafe` is therefore undesirable, because it (incorrectly) forces clients to treat this as an unsafe API, causing unnecessary extra work and deluting the value of correctly-identified unsafe APIs.
 
 One option would be for the author of module `C` to simply ignore the memory-safety warnings produced within its body, which will have the effect of encapsulating the unsafe behavior, but would make it harder to ensure that all unsafe behavior has been accounted for in that module. Another option would be to factor this code into a separate module that doesn't enable strict safety checking, but this is a fairly heavyweight solution.
 
@@ -263,7 +263,7 @@ to suppress this warning, the `Sub` class itself can be marked as `@unsafe`, e.g
 ```swift
 @unsafe
 class Sub: Super {
-  func f() { ... } // warning: override of safe instance method with unsafe instance method
+  func f() { ... } // no more warning
 }
 ```
 
