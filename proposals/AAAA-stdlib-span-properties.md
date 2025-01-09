@@ -121,7 +121,7 @@ extension CollectionOfOne {
   var storage: Span<Element> { get }
 }
 
-extension SIMD where Scalar: BitwiseCopyable {
+extension SIMD_N_ { // where _N_ ∈ {2, 3, 4 ,8, 16, 32, 64}
   /// Share this vector's elements as a `Span`
   var storage: Span<Scalar> { get }
 }
