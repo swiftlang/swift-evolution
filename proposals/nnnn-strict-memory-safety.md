@@ -408,6 +408,25 @@ There are downsides to this approach. It partially undermines the source compati
 
 ## Alternatives considered
 
+### `@safe(unchecked)` attribute to allow unsafe code
+
+Early iterations of this proposal introduced a `@safe(unchecked)` attribute as an alternative to `unsafe` expressions. The `@safe(unchecked)` attribute would be placed on a function to suppress diagnostics about use of unsafe constructs within its definition. For our `sum` example, this means one would write:
+
+```swift
+extension Array<Int> {
+  @safe(unchecked)
+  func sum() -> Int {
+    withUnsafeBufferPointerSimplified { buffer in
+      c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
+This approach means fewer annotations for unsafe code, because one `@safe(unchecked)` covers the entire body of the function. That is a trade-off: it's less verbose, but it makes it much harder to identify exactly what parts of the implementation are actually unsafe. To reduce the amount of code covered by a `@safe(unchecked)` down to just the actual unsafe code, one would have to factor out the unsafe code into many small `@safe(unchecked)` functions, which could end up being quite verbose and make it harder to reason about the code itself.
+
+This approach also implies that making a function `@unsafe` will suppress any diagnostics about uses of unsafe constructs within the body of that function. Rust's `unsafe` functions have this behavior, and it is the source of [some concern in that community](https://rust-lang.github.io/rfcs/2585-unsafe-block-in-unsafe-fn.html). Part of the issue there involves wanting to tightly scope the uses of unsafe code, but that discussion brings up another reason: it means that `unsafe` on a function actually has a dual role: it both says that the function is unsafe to use *and also* says that the function can freely use unsafe constructs in its definition.
+
 ### `unsafe` blocks
 
 The `unsafe` expression proposed here  covers unsafe constructs within a single expression. For unsafe-heavy code, this can introduce a large number of `unsafe` keywords. There is an alternative formulation for acknowledging unsafe code that is used in some peer languages like C# and Rust: an `unsafe` block, which is a statement that suppresses diagnostics about uses of unsafe code within it. For example, the `sum` example could be written as follows:
