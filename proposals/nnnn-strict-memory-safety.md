@@ -223,9 +223,12 @@ All of these APIs will be marked `@unsafe`. For all of the types that are `@unsa
 
 ### Unsafe compiler flags
 
-The `-Ounchecked` compiler flag disables some checking in the standard library, including (for example) bounds checking on array accesses. It is generally discouraged in all Swift code, but is particularly problematic in conjunction with strict memory safety because it removes the checking that makes certain standard library APIs safe. Therefore, the compiler will produce a diagnostic when the two features are combined.
+There are a number of compiler flags that intentionally disable some safety-related checking. For each of these flags, the compiler will produce a diagnostic if they are used with strict memory safety:
 
-The `-disable-access-control` flag ignores access specifiers entirely, allowing one to (for example) access a `private` declaration from outside its defining file. This could allow one to break invariants of a type that can lead to memory-safety issues, such as breaking the invariant of `Range` that the lower bound not exceed the upper bound. The compiler will produce a diagnostic when the two features are combined.
+* `-Ounchecked`, which disables some checking in the standard library, including (for example) bounds checking on array accesses.
+* `-enforce-exclusivity=unchecked` and `-enforce-exclusivity=none`, which disables exclusivity checking that is needed for memory safety.
+* `-strict-concurrency=` for anything other than "complete", because the memory safety model requires strict concurrency to eliminate thread safety issues.
+* `-disable-access-control`, which allows one to break invariants of a type that can lead to memory-safety issues, such as breaking the invariant of `Range` that the lower bound not exceed the upper bound.
 
 ### Unsafe overrides
 
