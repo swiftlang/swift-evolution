@@ -3,7 +3,7 @@
 * Proposal: [SE-0454](0454-memory-allocator.md)
 * Authors: [Saleem Abdulrasool](https://github.com/compnerd)
 * Review Manager: [Alastair Houghton](https://github.com/al45tair)
-* Status: **Awaiting Review**
+* Status: **In Review**
 * Vision: N/A
 * Roadmap: N/A
 * Bug: N/A
