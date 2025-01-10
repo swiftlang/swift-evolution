@@ -3,15 +3,9 @@
 * Proposal: [SE-0454](0454-memory-allocator.md)
 * Authors: [Saleem Abdulrasool](https://github.com/compnerd)
 * Review Manager: [Alastair Houghton](https://github.com/al45tair)
-* Status: **In Review**
-* Vision: N/A
-* Roadmap: N/A
-* Bug: N/A
+* Status: **Active review (January 9–23)**
 * Implementation: [swiftlang/swift#76563](https://github.com/swiftlang/swift/pull/76563)
-* Upcoming Feature Flag: N/A
-* Previous Proposal: N/A
-* Previous Revision: N/A
-* Review: N/A
+* Review: ([review](https://forums.swift.org/t/se-454-adopt-mimalloc-for-windows-toolchain/77096))
 
 ## Introduction
 
