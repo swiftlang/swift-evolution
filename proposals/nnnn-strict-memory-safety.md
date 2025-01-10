@@ -4,9 +4,9 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status:  **Awaiting review**
-* Vision: *if applicable* [Opt-in Strict Memory Safety Checking (Prospective)](https://github.com/swiftlang/swift-evolution/pull/2581)
+* Vision: [Opt-in Strict Memory Safety Checking (Prospective)](https://github.com/swiftlang/swift-evolution/pull/2581)
 * Implementation:  On main with experimental feature flags `AllowUnsafeAttribute` and `WarnUnsafe`
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-opt-in-strict-memory-safety-checking/76689))
 
 ## Introduction
 
@@ -41,8 +41,8 @@ Providing memory safety does not imply the absence of run-time failures. Good la
 This proposal introduces an opt-in strict memory safety checking mode that identifies all uses of unsafe behavior within the given module. There are several parts to this change:
 
 * A compiler flag `-strict-memory-safety` that enables warnings for all uses of unsafe constructs within a given module. All warnings will be in the diagnostic group `Unsafe`, enabling precise control over memory-safety-related warnings per [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md).
-* An attribute `@unsafe` that indicates that a declaration is unsafe to use. Such declarations may use unsafe constructs within their signatures or definitions.
-* An attribute `@safe(unchecked)` that indicates that a declaration provides a safe interface despite using unsafe constructs within its definition. The `unchecked` indicates that Swift cannot check this assertion of safety.
+* An attribute `@unsafe` that indicates that a declaration is unsafe to use. Such declarations may use unsafe constructs within their signatures.
+* An `unsafe` expression that marks any use of unsafe constructs in an expression, much like `try` and `await`.
 * Standard library annotations to identify unsafe declarations.
 
 ### Example of `unsafe` usage
@@ -83,31 +83,45 @@ extension Array<Int> {
   func sum() -> Int {
     // warning: use of unsafe function 'withUnsafeBufferPointerSimplified'
     withUnsafeBufferPointerSimplified { buffer in
+    // warning: use of function 'c_library_sum_function' with unsafe type 'UnsafePointer<Int>''.
       c_library_sum_function(buffer.baseAddress, buffer.count, 0)
     }
   }
 }
 ```
 
-Both the call to `withUnsafeBufferPointerSimplified` (which is `@unsafe`) and the call to `c_library_sum_function` (which has a parameter of `@unsafe` type `UnsafePointer`) would trigger warnings about uses of unsafe constructs. The author of `sum` has a choice to suppress the warnings:
+Both the call to `withUnsafeBufferPointerSimplified` (which is `@unsafe`) and the call to `c_library_sum_function` (which has a parameter of `@unsafe` type `UnsafePointer`) would trigger warnings about uses of unsafe constructs. 
 
-1. Mark the `sum` function as `@unsafe`, propagating the "unsafe" checking out to callers of `sum`; or
-2. Mark the `sum` function as `@safe(unchecked)`, taking responsibility for the safety of the code within the body. Here, one needs to verify that the `UnsafeBufferPointer` itself is being used safely (i.e., accesses are in-bounds and the buffer doesn't escape the closure) and that `c_library_sum_function` does the same with the pointer and bounds it is given.
+To suppress these warnings, both expressions must be marked with `unsafe` in the same manner as one would mark a throwing expression with `try` or an asynchronous expression with `async`. The warning-free version of this code is:
+
+```swift
+extension Array<Int> {
+  func sum() -> Int {
+    unsafe withUnsafeBufferPointerSimplified { buffer in
+      unsafe c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
+The `unsafe` keyword here indicates the presence of unsafe code within that expression. As with `try` and `await`, it can cover multiple sources of unsafety within that expression: the call to `c_library_sum_function` is unsafe, as is the use of `buffer` and `buffer.baseAddress`, yet they are all covered by one `unsafe`.
+
+Note that we do *not* require that the `sum` function be marked `@unsafe` just because it has unsafe code in it. The programmer may choose to indicate that `sum` is unsafe, but the assumption is that unsafe behavior is properly encapsulated when using `unsafe`.
 
 ### Incremental adoption
 
 The strict memory safety checking proposed here enforces a subset of Swift. Code written within this subset must also be valid Swift code, and must interoperate with Swift code that does not use this strict checking. Compared to other efforts in Swift that introduce stricter checking or a subset, strictly-safe Swift is smaller and more constrained, providing better interoperability and a more gradual adoption curve:
 
-* Strict concurrency checking, the focus of the Swift 6 language mode, required major changes to the type system, including the propagation of `Sendable` and the understanding of what code must be run on the main actor. These are global properties that don't permit local reasoning, or even local fixes, making the interoperability problem particularly hard. In contrast, strict safety checking has little or no effect on the type system, and unsafety can be encapsulated with `@safe(unchecked)` or ignored by a module that doesn't enable the checking.
+* Strict concurrency checking, the focus of the Swift 6 language mode, required major changes to the type system, including the propagation of `Sendable` and the understanding of what code must be run on the main actor. These are global properties that don't permit local reasoning, or even local fixes, making the interoperability problem particularly hard. In contrast, strict safety checking has little or no effect on the type system, and unsafety can be encapsulated with `unsafe` expressions or ignored by a module that doesn't enable the checking.
 * [Embedded Swift](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md) is a subset of Swift that works without a runtime. Like the proposed strictly-safe subset, code written in Embedded Swift will also work as regular Swift. Embedded Swift and the strict safety checking proposed here are orthogonal and can be composed to (for example) ensure that firmware written in Swift has no runtime and provides the best memory-safety guarantees.
 
-A Swift module that adopts strict safety checking can address all of the resulting diagnostics by applying the `@unsafe` and `@safe(unchecked)` attributes in the appropriate places, without changing any other code. This application of attributes can be automated through Fix-Its, making it possible to enable the mode and silence all diagnostics automatically. It would then be left to the programmer to audit those places that have used `@safe(unchecked)` to encapsulate unsafe behavior within a safe interface, to ensure that they are indeed safe.
+A Swift module that adopts strict safety checking can address all of the resulting diagnostics by applying the `@unsafe` attribute and `unsafe` expression in the appropriate places, without changing any other code. This application of attributes can be automated through Fix-Its, making it possible to enable the mode and silence all diagnostics automatically. It would then be left to the programmer to audit those places that have used `unsafe` to encapsulate unsafe behavior, to ensure that they are indeed safe.
 
-The introduction of the `@safe(unchecked)` attribute on a declaration has no effect on its clients. The introduction of the `@unsafe` attribute on a declaration has no effect on clients compiled without strict safety enabled. For clients that have enabled strict safety, they will start diagnosing uses of the newly-`@unsafe` API. However, these diagnostics are warnings with their own diagnostic group, so a client can ensure that they do not prevent the client from building. Therefore, modules can adopt strict safety checking at their own pace (or not) and clients of those modules are never "stuck" having to make major changes in response.
+The introduction of the `@unsafe` attribute on a declaration has no effect on clients compiled without strict safety enabled. For clients that have enabled strict safety, they will start diagnosing uses of the newly-`@unsafe` API. However, these diagnostics are warnings with their own diagnostic group, so a client can ensure that they do not prevent the client from building. Therefore, modules can adopt strict safety checking at their own pace (or not) and clients of those modules are never "stuck" having to make major changes in response.
 
 ## Detailed design
 
-This section describes how the `@unsafe` and `@safe` attributes interact with the strict type checking mode, and enumerates the places in the language and standard library that introduce non-memory-safe code. 
+This section describes how the primary proposed constructs, the `@unsafe` attribute and `unsafe` expression, interact with the strict type checking mode, and enumerates the places in the language, standard library, and compiler that introduce non-memory-safe code. 
 
 ### `@unsafe` attribute
 
@@ -144,13 +158,13 @@ extension MyType {
 
 Module `A` defines a type, `DataWrapper`, that is `@unsafe`. It can be compiled with or without strict safety checking enabled, and is fine either way.
 
-Module `B` uses the `DataWrapper` type. If compiled without strict safety checking, there will be no diagnostics about memory safety. If compiled with strict safety checking, there will be a diagnostic about `wrapper` using an `@unsafe` type (`DataWrapper`) in its interface. This diagnostic can be ignored.
+Module `B` uses the `DataWrapper` type. If compiled without strict safety checking, there will be no diagnostics about memory safety. If compiled with strict safety checking, there will be a diagnostic about `wrapper` using an `@unsafe` type (`DataWrapper`) in its interface. This diagnostic can be ignored, but ideally the `wrapper` property will be marked as `@unsafe` (silencing the warning).
 
-If module `C` enables strict memory safety, the use of `MyType` is considered safe (since it was not marked `@unsafe` and doesn't involve unsafe types in its interface). However, the access to `wrapper` will result in a diagnostic, because the type of `wrapper` involves an `@unsafe` type. 
+If module `C` enables strict memory safety, the use of `MyType` is considered safe (since it was not marked `@unsafe` and doesn't involve unsafe types in its interface). However, the access to `wrapper` will result in a diagnostic, because the type of `wrapper` involves an `@unsafe` type. This diagnostic will occur whether or not `wrapper` has been explicitly marked `@unsafe`.
 
-### Encapsulating unsafe behavior
+### `unsafe` expression
 
-When a declaration is marked `@unsafe`, it is free to use any other unsafe declarations as part of its interface or implementation. In the example from the previously section, both `wrapper` and C's `checksum` can be marked as `@unsafe` to suppress diagnostics by explicitly propagating unsafety to their clients:
+When a declaration is marked `@unsafe`, it is free to use any other unsafe types as part of its interface. Any time there is executable code that makes use of unsafe constructs, that code must be within an `unsafe` expression or it will receive a diagnostic about uses of unsafe code. In the example from the previous section, `wrapper` can be marked as `@unsafe` to suppress diagnostics by explicitly propagating unsafety to their clients:
 
 ```swift
 // Module B
@@ -159,54 +173,23 @@ import A
 public struct MyType {
   @unsafe public var wrapper: DataWrapper
 }
+```
 
+However, the use of the `wrapper` property in module `C` will produce a diagnostic unless it is part of an `unsafe` expression, like this:
+
+```swift
 // Module C
 import A
 import B
 
 extension MyType {
-  @unsafe public func checksum() -> Int32 {}
-    return wrapper.checksum()
+  public func checksum() -> Int32 {}
+    return unsafe wrapper.checksum()
   }
 }
 ```
 
-However, these two APIs differ in the severity of the problem they pose for memory safety: `wrapper` has an unsafe type in its interface, so any use of `wrapper` is fundamentally unsafe. However, `MyType` itself can encapsulate the memory-unsafe behavior within a safe API., The `MyType.checksum` operation is actually safe for clients to use. Marking it as `@unsafe` is therefore undesirable, because it (incorrectly) forces clients to treat this as an unsafe API, causing unnecessary extra work and deluting the value of correctly-identified unsafe APIs.
-
-One option would be for the author of module `C` to simply ignore the memory-safety warnings produced within its body, which will have the effect of encapsulating the unsafe behavior, but would make it harder to ensure that all unsafe behavior has been accounted for in that module. Another option would be to factor this code into a separate module that doesn't enable strict safety checking, but this is a fairly heavyweight solution.
-
-Instead, introduce an attribute `@safe(unchecked)` that asserts that the definition is safe despite uses of unsafe constructs. This is a programmer assertion that cannot be validated by the compiler, so it should be used carefully. For the `checksum` operation, it would be used as follows to suppress all memory-safety diagnostics within the body of the function:
-
-```swift
-extension MyType {
-  @safe(unchecked) public func checksum() -> Int32 {}
-    return wrapper.checksum()
-  }
-}
-```
-
-Note that `@safe(unchecked)` only suppresses memory-safety diagnostics in the definition. If we were to try to apply it to the `wrapper` property and enable strict safety checking in module `B`, like this:
-
-```swift
-public struct MyType {
-  @safe(unchecked) public var wrapper: DataWrapper // warning: use of unsafe type 'DataWrapper'
-}
-```
-
-it would not suppress the diagnostic, because `wrapper` is still fundamentally unsafe.
-
-The `@safe` attribute allows an optional message, which can be used to explain why the use of unsafe constructs is justified, and is meant to help with an audit trail. Bringing back out early example of producing the sum of values in an array, one can provide an explanation here:
-
-```swift
-extension Array<Int> {
-  @safe(unchecked, message: "use of C API that does its own bounds-safety checking")
-  func sum() -> Int {
-    withUnsafeBufferPointerSimplified { buffer in
-      c_library_sum_function(buffer.baseAddress, buffer.count, 0)
-    }
-  }
-}
-```
+The `unsafe` expression is much like `try` and `await`, in that it acknowledges that unsafe constructs (`wrapper`) are used within the subexpression but otherwise does not change the type. Unlike `try` and `await`, which require the enclosing context to handle throwing or be asynchronous, respectively, the `unsafe` expression does not imply any requirements about the enclosing block: it is purely a marker to indicate the presence of unsafe code, silencing a diagnostic.
 
 ### Unsafe language constructs
 
@@ -236,7 +219,7 @@ In the standard library, the following functions and types would be marked `@uns
 * `withUnsafeCurrentTask` and `UnsafeCurrentTask`: The `UnsafeCurrentTask` type does not provide lifetime safety, and must only be used within the closure passed to `withUnsafeCurrentTask`.
 * `UnownedSerialExecutor`: This type is intentionally not lifetime safe. It's primary use is the `unownedExecutor` property of the `Actor` protocol, which documents the lifetime assumptions of the `UnownedSerialExecutor` instance it produces.
 
-All of these APIs will be marked `@unsafe`. For all of the types that are `@unsafe`, any API that uses that type in its signature will also be marked `@unsafe`, such as `Array.withUnsafeBufferPointer`. Unless mentioned above, standard library APIs that do not have an unsafe type in their signature, but use unsafe constructs in their implementation, will be marked `@safe(unchecked)` because they provide safe abstractions to client code.
+All of these APIs will be marked `@unsafe`. For all of the types that are `@unsafe`, any API that uses that type in its signature will also be marked `@unsafe`, such as `Array.withUnsafeBufferPointer`. Unless mentioned above, standard library APIs that do not have an unsafe type in their signature, but use unsafe constructs in their implementation, will be considered to be safe.
 
 ### Unsafe compiler flags
 
@@ -325,11 +308,23 @@ static func strictMemorySafety(
 
 ## Source compatibility
 
-The introduce of this strict safety checking mode has no impact on source compatibility for any module that does not enable it. When enabling strict safety checking, source compatibility impact is limited to the introduction of warnings that will not break source compatibility (and can be treated as warnings even under `-warnings-as-errors` mode). The source compatibility and interoperability story is covered in detail in prior sections.
+The `unsafe` keyword in this proposal will be introduced as a contextual keyword following the precedent set by `await`'s' introduction in [SE-0296](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0296-async-await.md) and `consume`'s introduction in [SE-0366](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0366-move-function.md). This allows `unsafe` to continue to be used as an identifier, albeit with a small potential to break existing source that uses `unsafe` as a function that is then called with a trailing closure, like this:
+
+```swift
+func unsafe(_ body: () -> Void) { }
+
+unsafe {
+  // currently calls 'unsafe(_:)', but will become and unsafe expression
+}
+```
+
+As with those proposals, the impact of this source break in expected to be small enough that it is acceptable. If not, the parsing of the `unsafe` expression can be limited to code that has enabled strict safety checking.
+
+Other than the source break above, the introduction of this strict safety checking mode has no impact on source compatibility for any module that does not enable it. When enabling strict safety checking, source compatibility impact is limited to the introduction of warnings that will not break source compatibility (and can be treated as warnings even under `-warnings-as-errors` mode using the aforementioned diagnostic flags). The interoperability story is covered in detail in prior sections.
 
 ## ABI compatibility
 
-The attributes and strict memory-safety checking model proposed here have no impact on ABI.
+The attributes, `unsafe` expression, and strict memory-safety checking model proposed here have no impact on ABI.
 
 ## Future Directions
 
@@ -370,7 +365,7 @@ The `bytes` property is necessarily unsafe. Far better would be to produce a `Ra
 
 ```swift
 extension DataPacket {
-  @safe(unchecked) public var byteSpan: RawSpan
+  public var byteSpan: RawSpan
 }
 ```
 
@@ -380,7 +375,7 @@ Swift does allow type-based overloading, including on the type of properties, so
 
 ```swift
 extension DataPacket {
-  @safe(unchecked) public var bytes: RawSpan
+  public var bytes: RawSpan
 }
 ```
 
@@ -412,9 +407,7 @@ There are downsides to this approach. It partially undermines the source compati
 
 ### `unsafe` blocks
 
-The attribute `@safe(unchecked)` indicates that a definition is safe despite the use of unsafe constructs in its body. The attribute has no effect on the client, and could effectively be eliminated from the public interface (e.g., documentation, Swift textual interfaces, etc.) without changing how clients behave.
-
-There is an alternative formulation for acknowledging unsafe code that is used in some peer languages like C# and Rust: an `unsafe` block, which is a statement that suppresses diagnostics about uses of unsafe code within it. For example, the `sum` example could be written as follows:
+The `unsafe` expression proposed here  covers unsafe constructs within a single expression. For unsafe-heavy code, this can introduce a large number of `unsafe` keywords. There is an alternative formulation for acknowledging unsafe code that is used in some peer languages like C# and Rust: an `unsafe` block, which is a statement that suppresses diagnostics about uses of unsafe code within it. For example, the `sum` example could be written as follows:
 
 ```swift
 extension Array<Int> {
@@ -430,55 +423,7 @@ extension Array<Int> {
 
 For Swift, an `unsafe` block would be a statement that can also be used as an expression when its body is an expression, much like `if` or `switch` expressions following [SE-0380](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md).
 
-`unsafe` blocks have some advantages over the proposed `@safe(unchecked)` attribute, including:
-
-* They can be limited to smaller amounts of code than a whole function, which can make auditing for the unsafe parts of a function easier.
-* The `unsafe` blocks are more clearly part of the implementation of a function, not the interface.
-
-This proposal suggests the `@safe(unchecked)` attribute instead of `unsafe` blocks for a few reasons, but the choice is effectively arbitrary: either syntax will work with the rest of this proposal. Some of the reasons for preferring `@safe(unchecked)` include:
-
-* It's easier to stage in this change without affecting the surrounding code. One can add
-  ```swift
-  if #hasAttribute(safe)
-  @safe(unchecked)
-  #endif
-  ```
-
-  to `sum` without changing any other code, which is easy to review and will still work with compilers that predate the introduction of this feature.
-
-* The `unsafe` blocks end up adding another level of nesting, which also means that introducing them to silence warnings causes unnecessarily large amount of code change when adopting the feature.
-
-* `@safe(unchecked)` can be used in places that aren't executable code, such as protocol conformances.
-
-* `@safe(unchecked)` can be introduced with no source-compatibility impact, whereas the `unsafe` block will break code that calls a function named `unsafe` given a closure.
-
-### `unsafe` as an effect
-
-As another alternative to `@safe(unchecked)` and `unsafe` blocks, we could model accesses to unsafe enties as an effect like `async` and `throws`. In such cases, referring to any declaration that is explicitly `@unsafe` or whose type involves an `@unsafe` type would require `unsafe` on the enclosing expression just like using an `async` function requires `await` and a `throws` function requires `try`. This would require more annotations than the `unsafe` block, because individual expressions would need to be marked. For our example with producing the sum of integer arrays, it would look like this:
-
-```swift
-extension Array<Int> {
-  func sum() -> Int {
-    unsafe withUnsafeBufferPointerSimplified { buffer in
-       unsafe c_library_sum_function(buffer.baseAddress, buffer.count, 0)
-    }
-  }
-}
-```
-
-Unlike with the `unsafe` block, one `unsafe` annotation doesn't cover both expressions: the first `unsafe` is needed because `withUnsafeBufferPointerSimplified` involves unsafe types, and the second because `c_library_sum_function`, `buffer.baseAddress`, and `buffer.count` all involve unsafe types.
-
-There are some benefits to this approach:
-
-* It makes it easier to audit those places where unsafe code is used, because `unsafe` only applies to individual expressions, not large chunks of code.
-* It builds on the existing behavior of `try` and `await` in a way that should be understandable to most Swift programmers.
-
-However, both of these have corresponding downsides:
-
-* The `unsafe` effect could make code very noisy when using unsafe types, and starts to feel quite redundant given that most unsafe APIs already intentionally have "unsafe" somewhere in the name: `unsafe withUnsafeXYZ` sounds like it doubly-punishes the use of unsafe code. While this is perhaps a minor annoyance, it could mean that some unsafe APIs designed with strict safety checking in mind would omit the explicit "unsafe" from the name. This change would make code *not* using strict safety checking less safe, because we'd no longer get the benefits of the longstanding conventions built around calling unsafe functions "unsafe".
-* Both `throws` and `async` are part of the type system, whereas `@unsafe` is not, so `unsafe` is effect-like but not *exactly* an effect. There are practical differences here, such as the fact that naming a throwing function but not calling it (e.g., `let g = f`) doesn't require `try` (becaue `throws` is captured in the type of `g`) but would require `unsafe` if `f` is unsafe. Having `unsafe` be effect-like muddles the message about how effects work in Swift.
-
-Additionally, introducing `unsafe` as an effect has the same source-compatibility impact as the `unsafe` block described in the previous section: code like `unsafe { ... }` can exist today to call a function named `unsafe` with closure, and would get a different meaning when `unsafe` is parsed as an effect.
+`unsafe` blocks are more coarse-grained than the proposed `unsafe` expressions, which represents a trade-off: `unsafe` blocks will be less noisy for unsafe-heavy code, because one `unsafe { ... }` can cover a lot of code. On the other hand, doing so hides which code within the block is actually unsafe, making it harder to audit the unsafe parts. In languages that have `unsafe` blocks, it's considered best practice to make the `unsafe` blocks as narrow as possible. The proposed `unsafe` expressions enforce that best practice at the language level.
 
 ### Strictly-safe-by-default
 
