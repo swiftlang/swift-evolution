@@ -34,7 +34,7 @@ While there are a number of potential definitions for memory safety, the one pro
 
 Since its inception, Swift has provided memory safety for the first four dimensions. Lifetime safety is provided for reference types by automatic reference counting and for value types via [memory exclusivity](https://www.swift.org/blog/swift-5-exclusivity/); bounds safety is provided by bounds-checking on `Array` and other collections; type safety is provided by safe features for casting (`as?` , `is` ) and `enum` s; and initialization safety is provided by “definite initialization”, which doesn’t allow a variable to be accessed until it has been defined. Swift 6’s strict concurrency checking extends Swift’s memory safety guarantees to the last dimension.
 
-Providing memory safety does not imply the absence of run-time failures. Good language design often means defining away runtime failures in the type system. However, memory safely requires only that an error in the program cannot be escalated into a violation of one of the safety properties. For example, having reference types be non-nullable by default defines away most problems with NULL pointers. With explicit optional types, the force-unwrap operator (postfix `!` ) meets the definition of memory safety by trapping at runtime if the unwrapped optional is `nil` . The standard library also provides the [`unsafelyUnwrapped` property](https://developer.apple.com/documentation/swift/optional/unsafelyunwrapped) that does not check for `nil` in release builds: this does not meet the definition of memory safety because it admits violations of initialization and lifetime safety that could be exploited.
+Providing memory safety does not imply the absence of run-time failures. Good language design often means defining away runtime failures in the type system. However, memory safety requires only that an error in the program cannot be escalated into a violation of one of the safety properties. For example, having reference types be non-nullable by default defines away most problems with NULL pointers. With explicit optional types, the force-unwrap operator (postfix `!` ) meets the definition of memory safety by trapping at runtime if the unwrapped optional is `nil` . The standard library also provides the [`unsafelyUnwrapped` property](https://developer.apple.com/documentation/swift/optional/unsafelyunwrapped) that does not check for `nil` in release builds: this does not meet the definition of memory safety because it admits violations of initialization and lifetime safety that could be exploited.
 
 ## Proposed solution
 
@@ -106,7 +106,7 @@ extension Array<Int> {
 
 The `unsafe` keyword here indicates the presence of unsafe code within that expression. As with `try` and `await`, it can cover multiple sources of unsafety within that expression: the call to `c_library_sum_function` is unsafe, as is the use of `buffer` and `buffer.baseAddress`, yet they are all covered by one `unsafe`.
 
-Note that we do *not* require that the `sum` function be marked `@unsafe` just because it has unsafe code in it. The programmer may choose to indicate that `sum` is unsafe, but the assumption is that unsafe behavior is properly encapsulated when using `unsafe`.
+Note that we do *not* require that the `sum` function be marked `@unsafe` just because it has unsafe code in it. The programmer may choose to indicate that `sum` is unsafe, but the assumption is that unsafe behavior is properly encapsulated when using `unsafe`. Additionally, the `@unsafe` attribute is available for all Swift code, even if it doesn't itself enable the strict safety checking described in this proposal.
 
 ### Incremental adoption
 
@@ -197,12 +197,12 @@ The following language constructs are always considered to be unsafe:
 
 * `unowned(unsafe)`: Used to store a reference without maintaining its reference count. The safe counterpart, `unowned`, uses dynamic checking to ensure that the reference isn't accessed after the corresponding object has been released. The `unsafe` variant disables that dynamic checking. Uses of `unowned(unsafe)` entities are not memory-safe.
 * `unsafeAddressor`, `unsafeMutableAddressor`: These accessors vend an unsafe pointer, and are therefore unsafe to declare. Other accessors (e.g., `get` and `set`) can provide safe alternatives.
-* `@exclusivity(unchecked)`: Used to remove dynamic exclusivity checks from a particular variable, which can mean that dynamic exclusivity violations go undetected at run time, causing a memory safety violation.
+* `@exclusivity(unchecked)`: Used to remove dynamic exclusivity checks from a particular variable, which can mean that dynamic exclusivity violations go undetected at run time, causing a memory safety violation. Uses of `@exclusivity(unchecked)` entities are not memory-safe.
 
 The following language constructs are considered to be unsafe when strict concurrency checking is enabled (i.e., in the Swift 6 language mode):
 
 * `nonisolated(unsafe)`: Allows a property to be accessed from concurrent code without ensuring that such accesses are done so safely. Uses of `nonisolated(unsafe)` entities are not memory-safe.
-* `@preconcurrency` imports: Suppresses diagnostics related to data race safety when they relate to specific imported modules, which can introduce thread safety issues.
+* `@preconcurrency` imports: Suppresses diagnostics related to data race safety when they relate to specific imported modules, which can introduce thread safety issues. The `@preconcurrency` import will need to be annotated with `@unsafe` in the strict dsafety mode.
 
 ### Unsafe standard library APIs
 
@@ -317,7 +317,7 @@ The `unsafe` keyword in this proposal will be introduced as a contextual keyword
 func unsafe(_ body: () -> Void) { }
 
 unsafe {
-  // currently calls 'unsafe(_:)', but will become and unsafe expression
+  // currently calls 'unsafe(_:)', but will become an unsafe expression
 }
 ```
 
@@ -408,6 +408,46 @@ There are downsides to this approach. It partially undermines the source compati
 
 ## Alternatives considered
 
+### `@unsafe` implying `unsafe` throughout a function body
+
+A function marked `@unsafe` is unsafe to use, so any clients that have enabled strict safety checking will need to put uses of the function into an `unsafe` expression. The implementation of that function is likely to use unsafe code (possibly a lot of it), which could result in a large number of annotations:
+
+```swift
+extension UnsafeMutableBufferPointer {
+  @unsafe public func swapAt(_ i: Int, _ j: Int) {
+    guard i != j else { return }
+    precondition(i >= 0 && j >= 0)
+    precondition(unsafe i < endIndex && j < endIndex)
+    @unsafe let pi = unsafe (_position! + i)
+    @unsafe let pj = unsafe (_position! + j)
+    @unsafe let tmp = unsafe pi.move()
+    unsafe pi.moveInitialize(from: pj, count: 1)
+    unsafe pj.initialize(to: tmp)
+  }
+}
+```
+
+Now, it is very likely that an `@unsafe` function is going to make use of other unsafe constructs, so we could choose to make `@unsafe` on a function acknowledge all uses of unsafe code within its definition. For example, this would mean that marking `swapAt` with `@unsafe` means that one need not have any `unsafe` expressions in its body:
+
+```swift
+extension UnsafeMutableBufferPointer {
+  @unsafe public func swapAt(_ i: Int, _ j: Int) {
+    guard i != j else { return }
+    precondition(i >= 0 && j >= 0)
+    precondition(i < endIndex && j < endIndex)
+    let pi = (_position! + i)
+    let pj = (_position! + j)
+    let tmp = pi.move()
+    pi.moveInitialize(from: pj, count: 1)
+    pj.initialize(to: tmp)
+  }
+}
+```
+
+This approach reduces the annotation burden in unsafe code, but makes it much harder to tell exactly what  aspects of the implementation are unsafe. Indeed, even unsafe functions should still strive to minimize the use of unsafe constructs, and benefit from having the actual unsafe behavior marked in the source. It also conflates the notion of "exposes an unsafe interface" from "has an unsafe implementation". 
+
+Rust's `unsafe` functions have this behavior, where an `unsafe fn` in Rust implies an `unsafe { ... }` block around the entire function body. [Rust RFC #2585](https://rust-lang.github.io/rfcs/2585-unsafe-block-in-unsafe-fn.html)  argues for Rust to remove this behavior; the motivation there generally applies to Swift as well.
+
 ### `@safe(unchecked)` attribute to allow unsafe code
 
 Early iterations of this proposal introduced a `@safe(unchecked)` attribute as an alternative to `unsafe` expressions. The `@safe(unchecked)` attribute would be placed on a function to suppress diagnostics about use of unsafe constructs within its definition. For our `sum` example, this means one would write:
@@ -461,4 +501,4 @@ We could introduce an optional `message` argument to the `@unsafe` attribute, wh
 
 ## Acknowledgments
 
-This proposal has been greatly improved by the feedback from Félix Cloutier, Gábor Horváth, Frederick Kellison-Linn, Karl Wagner, and Xiaodi Wu.
+This proposal has been greatly improved by the feedback from Félix Cloutier, Geoff Garen, Gábor Horváth, Frederick Kellison-Linn, Karl Wagner, and Xiaodi Wu.
