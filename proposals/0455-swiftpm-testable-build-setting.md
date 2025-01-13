@@ -3,9 +3,9 @@
 * Proposal: [SE-0455](0455-swiftpm-testable-build-setting.md)
 * Authors: [Jake Petroules](https://github.com/jakepetroules)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Awaiting review**
+* Status: **Active review (January 9–23, 2025)**
 * Implementation: [swiftlang/swift-package-manager#8004](https://github.com/swiftlang/swift-package-manager/pull/8004)
-* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-testable-build-setting/75084))
+* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-testable-build-setting/75084)) ([review](https://forums.swift.org/t/se-0455-swiftpm-testable-build-setting/77100))
 
 ## Introduction
 
