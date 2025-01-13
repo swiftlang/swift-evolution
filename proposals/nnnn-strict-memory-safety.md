@@ -448,6 +448,38 @@ This approach reduces the annotation burden in unsafe code, but makes it much ha
 
 Rust's `unsafe` functions have this behavior, where an `unsafe fn` in Rust implies an `unsafe { ... }` block around the entire function body. [Rust RFC #2585](https://rust-lang.github.io/rfcs/2585-unsafe-block-in-unsafe-fn.html)  argues for Rust to remove this behavior; the motivation there generally applies to Swift as well.
 
+### Making "encapsulation" of unsafe behavior explicit
+
+In the proposed design, a function with no unsafe types in its signature is considered safe unless the programmer explicitly marked it `@unsafe`. The implementation may contain any amount of unsafe code, so long as it is covered by an `unsafe` expression:
+
+```swift
+extension Array<Int> {
+  // this function is considered safe
+  func sum() -> Int {
+    unsafe withUnsafeBufferPointerSimplified { buffer in
+      unsafe c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
+This differs somewhat from the way in which throwing and asynchronous functions work. A function that has a `try` or `await` in the body needs to be `throws` or `async`, respectively. Essentially, the effect from the body has to also be reflected in the signature. With unsafe code, this could mean that having `unsafe` expressions in the function body requires you to either make the function `@unsafe` or use some other suppression mechanism to acknowledge that you are using unsafe constructs to provide a safe interface.
+
+There are several options for such a suppression mechanism. An attribute form, `@safe(unchecked)`, is described below as an alternative to the `unsafe` expression. Another approach would be to provide an `unsafe!` form the `unsafe` expression, which (like `try!`) acknowledges the effect but doesn't propagate that effect out to the function. For the `sum` function, it would be used as follows:
+
+```swift
+extension Array<Int> {
+  // this function is considered safe
+  func sum() -> Int {
+    unsafe! withUnsafeBufferPointerSimplified { buffer in
+      unsafe! c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
+This proposal chooses not to go down this path, because having a function signature involving no unsafe types is already a strong indication that the function is providing a safe interface, and there is little to be gained from requiring additional ceremony (whether an attribute like `@safe(unchecked)` or the `unsafe!` form described above).
+
 ### `@safe(unchecked)` attribute to allow unsafe code
 
 Early iterations of this proposal introduced a `@safe(unchecked)` attribute as an alternative to `unsafe` expressions. The `@safe(unchecked)` attribute would be placed on a function to suppress diagnostics about use of unsafe constructs within its definition. For our `sum` example, this means one would write:
