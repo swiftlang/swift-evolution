@@ -1,6 +1,6 @@
 # Add `remove(where:)` Method for `Set` and `Dictionary`
 
-* **Proposal**: [SE-0456](0456-remove-where-for-set-and-dictionary.md)
+* **Proposal**: [SE-NNNN](0456-remove-where-for-set-and-dictionary.md)
 * **Authors**: [Krisna Pranav](https://github.com/krishpranav)
 * **Status**: **Awaiting review**
 * **Implementation**: [apple/swift#PR](https://github.com/swiftlang/swift/pull/78600)
