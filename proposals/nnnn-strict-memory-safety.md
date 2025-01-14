@@ -162,6 +162,25 @@ Module `B` uses the `DataWrapper` type. If compiled without strict safety checki
 
 If module `C` enables strict memory safety, the use of `MyType` is considered safe (since it was not marked `@unsafe` and doesn't involve unsafe types in its interface). However, the access to `wrapper` will result in a diagnostic, because the type of `wrapper` involves an `@unsafe` type. This diagnostic will occur whether or not `wrapper` has been explicitly marked `@unsafe`.
 
+There are a few exemptions to the rule that any unsafe constructs within the signature require the declaration to be `@unsafe`:
+
+* Local variables involving unsafe types do not need to be marked with `@unsafe`. For example, the local variable `base` will have unsafe type `UnsafePointer?`, but does not require `@unsafe` because every *use* of this local variable will need to be marked using the `unsafe` expression described in the next section.
+
+  ```swift
+  func sum(array: [Int]) -> Int {
+    array.withUnsafeBufferPointer { buffer in
+      let base = /*unsafe*/ buffer.baseAddress
+      // ...
+    }
+  }
+  ```
+
+* Default arguments of functions are part of the implementation of a function, not its signature. For example, the following function does not have any unsafe types in its signature, so it does not require `@unsafe`, even though the default argument for `value` involves unsafe code. That unsafe code is effectively part of the body of the function, so it follows the rules for `unsafe` expressions.
+
+  ```swift
+  func hasDefault(value: Int = /*unsafe*/ getIntegerUnsafely()) { ... }
+  ```
+
 ### `unsafe` expression
 
 When a declaration is marked `@unsafe`, it is free to use any other unsafe types as part of its interface. Any time there is executable code that makes use of unsafe constructs, that code must be within an `unsafe` expression or it will receive a diagnostic about uses of unsafe code. In the example from the previous section, `wrapper` can be marked as `@unsafe` to suppress diagnostics by explicitly propagating unsafety to their clients:
