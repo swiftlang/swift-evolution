@@ -10,7 +10,7 @@
 
 ## Introduction
 
-[Memory safety](https://en.wikipedia.org/wiki/Memory_safety) is a property of programming languages and their implementations that prevents programmer errors from manifesting as [undefined behavior](https://en.wikipedia.org/wiki/Undefined_behavior) at runtime. Undefined behavior effectively breaks the semantic model of a language, with unpredictable results including crashes, data corruption, and otherwise-impossible program states. Such behavior can lead to hard-to-reproduce bugs as well as introduce security vulnerabilities. Various studies have shown that memory safety problems in C and C++ account for around [70% of security vulnerabilities in software](https://www.cisa.gov/sites/default/files/2023-12/The-Case-for-Memory-Safe-Roadmaps-508c.pdf).
+[Memory safety](https://en.wikipedia.org/wiki/Memory_safety) is a property of programming languages and their implementations that prevents programmer errors from manifesting as [undefined behavior](https://en.wikipedia.org/wiki/Undefined_behavior) at runtime. Undefined behavior effectively breaks the semantic model of a language, with unpredictable results including crashes, data corruption, and otherwise-impossible program states. Such behavior can lead to hard-to-reproduce bugs as well as introduce security vulnerabilities.
 
 Swift provides memory safety with a combination of language affordances and runtime checking. However, Swift also deliberately includes some unsafe constructs, such as the `Unsafe` pointer types in the standard library, language features like `nonisolated(unsafe)`, and interoperability with unsafe languages like C. For most Swift developers, this is a pragmatic solution that provides an appropriate level of memory safety while not getting in the way.
 
@@ -106,9 +106,35 @@ extension Array<Int> {
 }
 ```
 
-The `unsafe` keyword here indicates the presence of unsafe code within that expression. As with `try` and `await`, it can cover multiple sources of unsafety within that expression: the call to `c_library_sum_function` is unsafe, as is the use of `buffer` and `buffer.baseAddress`, yet they are all covered by one `unsafe`.
+The `unsafe` keyword here indicates the presence of unsafe code within that expression. As with `try` and `await`, it can cover multiple sources of unsafety within that expression: the call to `c_library_sum_function` is unsafe, as is the use of `buffer` and `buffer.baseAddress`, yet they are all covered by one `unsafe`. 
 
-Note that we do *not* require that the `sum` function be marked `@unsafe` just because it has unsafe code in it. The programmer may choose to indicate that `sum` is unsafe, but the assumption is that unsafe behavior is properly encapsulated when using `unsafe`. Additionally, the `@unsafe` attribute is available for all Swift code, even if it doesn't itself enable the strict safety checking described in this proposal.
+Unlike `try`, `unsafe` doesn't propagate outward: we do *not* require that the `sum` function be marked `@unsafe` just because it has unsafe code in it. Similarly, the call to `withUnsafeBufferPointerSimplified` is unsafe because it involves the `UnsafeBufferPointer` type, not because it was passed a closure containing `unsafe` behavior. The programmer may choose to indicate that `sum` is unsafe, but the assumption is that unsafe behavior is properly encapsulated when using `unsafe` if the signature doesn't contain any unsafe types.  Additionally, the `@unsafe` attribute and `unsafe` expression is available for all Swift code, even if it doesn't itself enable the strict safety checking described in this proposal.
+
+### A larger example: `swapAt` on unsafe pointers
+
+The operation `UnsafeMutableBufferPointer.swapAt` swaps the values at the given two indices in the buffer. Under the proposed strict safety mode, it would look like this:
+
+```swift
+extension UnsafeMutableBufferPointer {
+  @unsafe public func swapAt(_ i: Element, _ j: Element) {
+    guard i != j else { return }
+    precondition(i >= 0 && j >= 0)
+    precondition(unsafe i < endIndex && j < endIndex)
+    let pi = unsafe (baseAddress! + i)
+    let pj = unsafe (baseAddress! + j)
+    let tmp = unsafe pi.move()
+    unsafe pi.moveInitialize(from: pj, count: 1)
+    unsafe pj.initialize(to: tmp)
+  }
+}
+```
+
+The `swapAt` implementation uses a mix of safe and unsafe code. The code marked with `unsafe` identifies operations that Swift cannot verify memory safety for:
+
+* Performing pointer arithmetic on `baseAddress`: Swift cannot reason about the lifetime of that underlying pointer, nor whether the resulting pointer is still within the bounds of the allocation.
+* Moving and initializing the actual elements. The elements need to already be initialized.
+
+The code itself has preconditions to ensure that the provided indices aren't out of bounds before performing the pointer arithmetic. However, there are other safety properties that cannot be checked with preconditions: that the memory associated with the pointer has been properly initialized, has a lifetime that spans the whole call, and is not being used simultaneously by any other part of the code. These safety properties are something that must be established by the *caller* of `swapAt`. Therefore, `swapAt` is marked `@unsafe` because callers of it need to reason about these properties.
 
 ### Incremental adoption
 
@@ -435,13 +461,13 @@ A function marked `@unsafe` is unsafe to use, so any clients that have enabled s
 
 ```swift
 extension UnsafeMutableBufferPointer {
-  @unsafe public func swapAt(_ i: Int, _ j: Int) {
+  @unsafe public func swapAt(_ i: Element, _ j: Element) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
     precondition(unsafe i < endIndex && j < endIndex)
-    @unsafe let pi = unsafe (_position! + i)
-    @unsafe let pj = unsafe (_position! + j)
-    @unsafe let tmp = unsafe pi.move()
+    let pi = unsafe (baseAddress! + i)
+    let pj = unsafe (baseAddress! + j)
+    let tmp = unsafe pi.move()
     unsafe pi.moveInitialize(from: pj, count: 1)
     unsafe pj.initialize(to: tmp)
   }
@@ -452,12 +478,12 @@ Now, it is very likely that an `@unsafe` function is going to make use of other 
 
 ```swift
 extension UnsafeMutableBufferPointer {
-  @unsafe public func swapAt(_ i: Int, _ j: Int) {
+  @unsafe public func swapAt(_ i: Element, _ j: Element) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
     precondition(i < endIndex && j < endIndex)
-    let pi = (_position! + i)
-    let pj = (_position! + j)
+    let pi = (baseAddress! + i)
+    let pj = (baseAddress! + j)
     let tmp = pi.move()
     pi.moveInitialize(from: pj, count: 1)
     pj.initialize(to: tmp)
