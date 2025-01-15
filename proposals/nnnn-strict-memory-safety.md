@@ -44,7 +44,8 @@ For example, Swift solves null references with optional types. Statically, Swift
 This proposal introduces an opt-in strict memory safety checking mode that identifies all uses of unsafe behavior within the given module. There are several parts to this change:
 
 * A compiler flag `-strict-memory-safety` that enables warnings for all uses of unsafe constructs within a given module. All warnings will be in the diagnostic group `Unsafe`, enabling precise control over memory-safety-related warnings per [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). When strict memory safety is enabled, the `StrictMemorySafety` feature will be set: `#if hasFeature(StrictMemorySafety)` can be used to detect when Swift code is being compiled in this mode.
-* An attribute `@unsafe` that indicates that a declaration is unsafe to use. Such declarations may use unsafe constructs within their signatures.
+* An attribute `@unsafe` that indicates that a declaration is unsafe to use. Such declarations may use unsafe constructs within their signatures. 
+* A corresponding attribute `@safe` that indicates that a declaration whose signature contains unsafe constructs is actually safe to use. For example, the `count` property on `Unsafe(Mutable)BufferPointer` has an unsafe type in its signature (`self`), but is actually safe to use because it is just producing an `Int` value. Marking the property with `@safe` means that its use will be treated as safe.
 * An `unsafe` expression that marks any use of unsafe constructs in an expression, much like `try` and `await`.
 * Standard library annotations to identify unsafe declarations.
 
@@ -210,6 +211,40 @@ There are a few exemptions to the rule that any unsafe constructs within the sig
   func hasDefault(value: Int = /*unsafe*/ getIntegerUnsafely()) { ... }
   ```
 
+### `@safe` attribute
+
+Like the `@unsafe` attribute, the `@safe` attribute ise used on declarations whose signatures involve unsafe types. However, the `@safe` attribute means that the declaration is consider safe to use even though its signature includes unsafe types. For example, marking `UnsafeBufferPointer` as `@unsafe` means that all operations involving an unsafe buffer pointer are implicitly considered `@unsafe`. The `@safe` attribute can be used to say that those particular operations are actually safe. For example, any operation involving buffer indices or count are safe, because they don't touch the memory itself. This can be indicated by marking these APIs `@safe`:
+
+```swift
+extension UnsafeBufferPointer {
+  @safe public var count: Int
+  @safe public var startIndex: Int { 0 }
+  @safe public var endIndex: Int { count }
+}
+```
+
+For an array, the `withUnsafeBufferPointer` operation itself also involves the unsafe type that it passes along to the closure. The array itself takes responsibility for the memory safety of the unsafe buffer pointer it vends, ensuring that the elements have been initialized (which is always the case for array elements), that the bounds are correct, and that nobody else has access to the buffer when it is provided. From that perspective, `withUnsafeBufferPointer` itself can be marked `@safe`, and any unsafety will be in the closure's use of the `UnsafeBufferPointer`.
+
+```swift
+extension Array {
+  @safe func withUnsafeBufferPointer<R, E>(
+    _ body: (UnsafeBufferPointer<Element>) throws(E) -> R
+  ) throws(E) -> R
+}
+```
+
+A use of this API with the `c_library_sum_function` would look like this:
+
+```swift
+extension Array<Int> {
+  func sum() -> Int {
+    withUnsafeBufferPointer { buffer in
+      unsafe c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
 ### `unsafe` expression
 
 When a declaration is marked `@unsafe`, it is free to use any other unsafe types as part of its interface. Any time there is executable code that makes use of unsafe constructs, that code must be within an `unsafe` expression or it will receive a diagnostic about uses of unsafe code. In the example from the previous section, `wrapper` can be marked as `@unsafe` to suppress diagnostics by explicitly propagating unsafety to their clients:
@@ -267,7 +302,7 @@ In the standard library, the following functions and types would be marked `@uns
 * `withUnsafeCurrentTask` and `UnsafeCurrentTask`: The `UnsafeCurrentTask` type does not provide lifetime safety, and must only be used within the closure passed to `withUnsafeCurrentTask`.
 * `UnownedSerialExecutor`: This type is intentionally not lifetime safe. It's primary use is the `unownedExecutor` property of the `Actor` protocol, which documents the lifetime assumptions of the `UnownedSerialExecutor` instance it produces.
 
-All of these APIs will be marked `@unsafe`. For all of the types that are `@unsafe`, any API that uses that type in its signature will also be marked `@unsafe`, such as `Array.withUnsafeBufferPointer`. Unless mentioned above, standard library APIs that do not have an unsafe type in their signature, but use unsafe constructs in their implementation, will be considered to be safe.
+All of these APIs will be marked `@unsafe`. For standard library APIs that involve unsafe types, those that are safe to use will be marked `@safe` while those that require the user to maintain some aspect of safety will be marked `@unsafe`. Unless mentioned above, standard library APIs that do not have an unsafe type in their signature, but use unsafe constructs in their implementation, will be considered to be safe.
 
 ### Unsafe compiler flags
 
