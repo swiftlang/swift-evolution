@@ -54,7 +54,7 @@ One way to think of this proposal is that gives all `SerialExecutor`s the power 
 
 We propose to add a new last-resort mechanism to executor comparison, which will be used by all the isolation-checking APIs in the concurrency library.
 
-This will be done by providing a new `checkIsolation()` protocol requirement on `SerialExecutor`:
+This will be done by providing a new `checkIsolated()` protocol requirement on `SerialExecutor`:
 
 ```swift
 protocol SerialExecutor: Executor {
@@ -73,11 +73,11 @@ protocol SerialExecutor: Executor {
   /// a job itself.
   ///
   /// A default implementation is provided that unconditionally causes a fatal error.
-  func checkIsolation()
+  func checkIsolated()
 }
 
 extension SerialExecutor {
-  public func checkIsolation() {
+  public func checkIsolated() {
     fatalError("Incorrect actor executor assumption, expected: \(self)")
   }
 }
@@ -170,7 +170,7 @@ Asynchronous functions should not use dynamic isolation checking.  Isolation che
 
 ### Introduce `globalMainExecutor` global property and utilize `checkIsolated` on it
 
-This proposal also paves the way to clean up this hard-coded aspect of the runtime, and it would be possible to change these heurystics to instead invoke the `checkIsolation()` method on a "main actor executor" SerialExecutor reference if it were available.
+This proposal also paves the way to clean up this hard-coded aspect of the runtime, and it would be possible to change these heurystics to instead invoke the `checkIsolated()` method on a "main actor executor" SerialExecutor reference if it were available.
 
 This proposal does not introduce a `globalMainActorExecutor`, however, similar how how [SE-0417: Task ExecutorPreference](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0417-task-executor-preference.md) introduced a:
 
