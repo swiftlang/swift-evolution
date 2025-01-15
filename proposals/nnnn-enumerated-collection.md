@@ -49,7 +49,7 @@ All protocol conformances of an existing type to an existing protocol are potent
 
 ## Effect on ABI stability
 
-This proposal does not affect ABI stability.
+These conformances are additive to the ABI, but will affect runtime casting mechanisms like `is` and `as`. On ABI stable platforms, the result of these operations will depend on the OS version of said ABI stable platforms. Similarly, APIs like `underestimatedCount` may return a different result depending on if the OS has these conformances or not.
 
 ## Alternatives considered
 
