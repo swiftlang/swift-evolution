@@ -4,6 +4,7 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status:  **Awaiting review**
+* Feature name: `StrictMemorySafety`
 * Vision: [Opt-in Strict Memory Safety Checking (Prospective)](https://github.com/swiftlang/swift-evolution/pull/2581)
 * Implementation:  On main with experimental feature flags `AllowUnsafeAttribute` and `WarnUnsafe`
 * Review: ([pitch](https://forums.swift.org/t/pitch-opt-in-strict-memory-safety-checking/76689))
@@ -42,7 +43,7 @@ For example, Swift solves null references with optional types. Statically, Swift
 
 This proposal introduces an opt-in strict memory safety checking mode that identifies all uses of unsafe behavior within the given module. There are several parts to this change:
 
-* A compiler flag `-strict-memory-safety` that enables warnings for all uses of unsafe constructs within a given module. All warnings will be in the diagnostic group `Unsafe`, enabling precise control over memory-safety-related warnings per [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md).
+* A compiler flag `-strict-memory-safety` that enables warnings for all uses of unsafe constructs within a given module. All warnings will be in the diagnostic group `Unsafe`, enabling precise control over memory-safety-related warnings per [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). When strict memory safety is enabled, the `StrictMemorySafety` feature will be set: `#if hasFeature(StrictMemorySafety)` can be used to detect when Swift code is being compiled in this mode.
 * An attribute `@unsafe` that indicates that a declaration is unsafe to use. Such declarations may use unsafe constructs within their signatures.
 * An `unsafe` expression that marks any use of unsafe constructs in an expression, much like `try` and `await`.
 * Standard library annotations to identify unsafe declarations.
