@@ -3,7 +3,7 @@
 * Proposal: [SE-0456](0456-stdlib-span-properties.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (January 15...28, 2024)
+* Status: **Active Review (January 15...28, 2024)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: [PR #78561](https://github.com/swiftlang/swift/pull/78561)
 * Review: [Review](https://forums.swift.org/t/se-0456-add-span-providing-properties-to-standard-library-types/77233), [Pitch](https://forums.swift.org/t/76138)
