@@ -61,56 +61,60 @@ public struct UnsafeBufferPointer<Element> { ... }
 This indicates that use of this type is not memory-safe. Any declaration that has `UnsafeBufferPointer` as part of its type is also unsafe, and would produce a warning under this strict safety mode, e.g.,
 
 ```swift
-extension Array {
-  // warning on next line: reference to unsafe generic struct 'UnsafeBufferPointer'
-  func withUnsafeBufferPointerSimplified<T>(_ body: (UnsafeBufferPointer<Element>) -> T) -> T {
-    // ...
-  }
-}
+// warning: reference to unsafe generic struct 'UnsafePointer'
+func sumIntBuffer(_ address: UnsafePointer<Int>?, _ count: Int) -> Int { ... }
 ```
 
 This warning can be suppressed by marking the function as `@unsafe`:
 
 ```swift
+@unsafe
+func sumIntBuffer(_ address: UnsafePointer<Int>?, _ count: Int, _ start: Int) -> Int { ... }
+```
+
+Users of this function that enable strict safety checking will see warnings when using it. For example:
+
+```swift
+extension Array<Int> {
+  func sum() -> Int {
+    withUnsafeBufferPointer { buffer in
+      // warning: use of unsafe function 'sumIntBuffer' and unsafe property 'baseAddress'
+      sumIntBuffer(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
+Both the call to `sumIntBuffer` and access to the property `UnsafeBufferPointer.baseAddress` involve unsafe code, and therefore will produce a warning. Because `UnsafeBufferPointer` and `UnsafePointer` are `@unsafe` types, this code will get a warning regardless of whether the declarations were marked `@unsafe`, because having unsafe types in the signature of a declaration implies that they are `@unsafe`. This helps us identify more unsafe code even when the libraries we depend on haven't enabled strict safety checking themselves.
+
+To suppress these warnings, the expressions involving unsafe code must be marked with `unsafe` in the same manner as one would mark a throwing expression with `try` or an asynchronous expression with `async`. The warning-free version of this code is:
+
+```swift
+extension Array<Int> {
+  func sum() -> Int {
+    withUnsafeBufferPointer { buffer in
+      // warning: use of unsafe function 'sumIntBuffer' and unsafe property 'baseAddress'
+      unsafe sumIntBuffer(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
+The `unsafe` keyword here indicates the presence of unsafe code within that expression. As with `try` and `await`, it can cover multiple sources of unsafety within that expression: the call to `sumIntBuffer` is unsafe, as is the use of `buffer` and `buffer.baseAddress`, yet they are all covered by one `unsafe`. 
+
+Unlike `try`, `unsafe` doesn't propagate outward: we do *not* require that the `sum` function be marked `@unsafe` just because it has unsafe code in it. Similarly, the call to `withUnsafeBufferPointer` doesn't have to be marked as `unsafe` just because it has a closure that is unsafe. The programmer may choose to indicate that `sum` is unsafe, but the assumption is that unsafe behavior is properly encapsulated when using `unsafe` if the signature doesn't contain any unsafe types.  
+
+The function `Array.withUnsafeBufferPointer` has an unsafe type in its signature, because it passes an unsafe buffer pointer to its closure parameter. However, this function itself is addressing all of the memory-safety issues with providing such a pointer, and it's up to the closure itself to ensure that it is memory safe. Therefore, we mark `withUnsafeBufferPointer` with the `@safe` attribute to indicate that it iself is not introducing memory-safety issues:
+
+```swift
 extension Array {
-  @unsafe
-  func withUnsafeBufferPointerSimplified<T>(_ body: (UnsafeBufferPointer<Element>) -> T) -> T {
-    // ...
-  }
+  @safe func withUnsafeBufferPointer<R, E>(
+    _ body: (UnsafeBufferPointer<Element>) throws(E) -> R
+  ) throws(E) -> R
 }
 ```
 
-Code that does not enable safety checking will ignore the `@unsafe` attribute. Users of this function that also enable strict safety checking will see warnings when using it. For example:
-
-```swift
-extension Array<Int> {
-  func sum() -> Int {
-    // warning: use of unsafe function 'withUnsafeBufferPointerSimplified'
-    withUnsafeBufferPointerSimplified { buffer in
-    // warning: use of function 'c_library_sum_function' with unsafe type 'UnsafePointer<Int>''.
-      c_library_sum_function(buffer.baseAddress, buffer.count, 0)
-    }
-  }
-}
-```
-
-Both the call to `withUnsafeBufferPointerSimplified` (which is `@unsafe`) and the call to `c_library_sum_function` (which has a parameter of `@unsafe` type `UnsafePointer`) would trigger warnings about uses of unsafe constructs. 
-
-To suppress these warnings, both expressions must be marked with `unsafe` in the same manner as one would mark a throwing expression with `try` or an asynchronous expression with `async`. The warning-free version of this code is:
-
-```swift
-extension Array<Int> {
-  func sum() -> Int {
-    unsafe withUnsafeBufferPointerSimplified { buffer in
-      unsafe c_library_sum_function(buffer.baseAddress, buffer.count, 0)
-    }
-  }
-}
-```
-
-The `unsafe` keyword here indicates the presence of unsafe code within that expression. As with `try` and `await`, it can cover multiple sources of unsafety within that expression: the call to `c_library_sum_function` is unsafe, as is the use of `buffer` and `buffer.baseAddress`, yet they are all covered by one `unsafe`. 
-
-Unlike `try`, `unsafe` doesn't propagate outward: we do *not* require that the `sum` function be marked `@unsafe` just because it has unsafe code in it. Similarly, the call to `withUnsafeBufferPointerSimplified` is unsafe because it involves the `UnsafeBufferPointer` type, not because it was passed a closure containing `unsafe` behavior. The programmer may choose to indicate that `sum` is unsafe, but the assumption is that unsafe behavior is properly encapsulated when using `unsafe` if the signature doesn't contain any unsafe types.  Additionally, the `@unsafe` attribute and `unsafe` expression is available for all Swift code, even if it doesn't itself enable the strict safety checking described in this proposal.
+The new attributes `@safe` and `@unsafe`, as well as the `unsafe` expression, are all available in Swift regardless of whether strict safety checking is enabled, and all code using these features retains the same semantics. Strict safety checking will *only* produce diagnostics.
 
 ### A larger example: `swapAt` on unsafe pointers
 
@@ -566,8 +570,8 @@ In the proposed design, a function with no unsafe types in its signature is cons
 extension Array<Int> {
   // this function is considered safe
   func sum() -> Int {
-    unsafe withUnsafeBufferPointerSimplified { buffer in
-      unsafe c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    withUnsafeBufferPointer { buffer in
+      unsafe sumIntBuffer(buffer.baseAddress, buffer.count, 0)
     }
   }
 }
@@ -581,8 +585,8 @@ There are several options for such a suppression mechanism. An attribute form, `
 extension Array<Int> {
   // this function is considered safe
   func sum() -> Int {
-    unsafe! withUnsafeBufferPointerSimplified { buffer in
-      unsafe! c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    withUnsafeBufferPointer { buffer in
+      unsafe! sumIntBuffer(buffer.baseAddress, buffer.count, 0)
     }
   }
 }
@@ -592,34 +596,24 @@ This proposal chooses not to go down this path, because having a function signat
 
 ### `@safe(unchecked)` attribute to allow unsafe code
 
-Early iterations of this proposal introduced a `@safe(unchecked)` attribute as an alternative to `unsafe` expressions. The `@safe(unchecked)` attribute would be placed on a function to suppress diagnostics about use of unsafe constructs within its definition. For our `sum` example, this means one would write:
-
-```swift
-extension Array<Int> {
-  @safe(unchecked)
-  func sum() -> Int {
-    withUnsafeBufferPointerSimplified { buffer in
-      c_library_sum_function(buffer.baseAddress, buffer.count, 0)
-    }
-  }
-}
-```
-
-This approach means fewer annotations for unsafe code, because one `@safe(unchecked)` covers the entire body of the function. That is a trade-off: it's less verbose, but it makes it much harder to identify exactly what parts of the implementation are actually unsafe. To reduce the amount of code covered by a `@safe(unchecked)` down to just the actual unsafe code, one would have to factor out the unsafe code into many small `@safe(unchecked)` functions, which could end up being quite verbose and make it harder to reason about the code itself.
-
-This approach also implies that making a function `@unsafe` will suppress any diagnostics about uses of unsafe constructs within the body of that function. Rust's `unsafe` functions have this behavior, and it is the source of [some concern in that community](https://rust-lang.github.io/rfcs/2585-unsafe-block-in-unsafe-fn.html). Part of the issue there involves wanting to tightly scope the uses of unsafe code, but that discussion brings up another reason: it means that `unsafe` on a function actually has a dual role: it both says that the function is unsafe to use *and also* says that the function can freely use unsafe constructs in its definition.
+Early iterations of this proposal introduced a `@safe(unchecked)` attribute as an alternative to `unsafe` expressions. The `@safe(unchecked)` attribute would be placed on a function to suppress diagnostics about use of unsafe constructs within its definition. This has all of the same downsides as having `@unsafe` imply cover for all of the uses of unsafe code within the body of a function, albeit while providing a safe interface.
 
 ### `unsafe` blocks
 
-The `unsafe` expression proposed here  covers unsafe constructs within a single expression. For unsafe-heavy code, this can introduce a large number of `unsafe` keywords. There is an alternative formulation for acknowledging unsafe code that is used in some peer languages like C# and Rust: an `unsafe` block, which is a statement that suppresses diagnostics about uses of unsafe code within it. For example, the `sum` example could be written as follows:
+The `unsafe` expression proposed here  covers unsafe constructs within a single expression. For unsafe-heavy code, this can introduce a large number of `unsafe` keywords. There is an alternative formulation for acknowledging unsafe code that is used in some peer languages like C# and Rust: an `unsafe` block, which is a statement that suppresses diagnostics about uses of unsafe code within it. For example:
 
 ```swift
-extension Array<Int> {
-  func sum() -> Int {
+extension UnsafeMutableBufferPointer {
+  @unsafe public func swapAt(_ i: Element, _ j: Element) {
+    guard i != j else { return }
+    precondition(i >= 0 && j >= 0)
+    precondition(i < endIndex && j < endIndex)
     unsafe {
-      withUnsafeBufferPointerSimplified { buffer in
-        c_library_sum_function(buffer.baseAddress, buffer.count, 0)
-      }
+      let pi = (baseAddress! + i)
+      let pj = (baseAddress! + j)
+      let tmp = pi.move()
+      pi.moveInitialize(from: pj, count: 1)
+      pj.initialize(to: tmp)
     }
   }
 }
