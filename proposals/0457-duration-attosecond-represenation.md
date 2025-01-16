@@ -1,9 +1,9 @@
 # Expose attosecond representation of `Duration`
 
-* Proposal: [SE-NNNN](NNNN-duration-attosecond-represenation.md)
+* Proposal: [SE-0457](0457-duration-attosecond-represenation.md)
 * Authors: [Philipp Gabriel](https://github.com/ph1ps)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Stephen Canon](https://github.com/stephentyrone)
+* Status: **Active review (January 16 ... 30, 2025)**
 * Implementation: [swiftlang/swift#78202](https://github.com/swiftlang/swift/pull/78202)
 * Review: ([pitch](https://forums.swift.org/t/pitch-adding-int128-support-to-duration))
 
