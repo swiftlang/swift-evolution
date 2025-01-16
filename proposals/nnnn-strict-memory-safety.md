@@ -437,6 +437,33 @@ The first two options are the most straightforward, but the fact that actors hav
 
 It is unclear whether `SerialExecutor` is or will be the only protocol of this nature. If there are others, it could be worth providing a special form of the `@unsafe` attribute on the protocol itself, such as `@unsafe(conforms)`, that is only considered unsafe for conforming types.
 
+### Handling of `@unsafe` cases
+
+When an enum case is explicitly marked `@unsafe`, but involves no associated data that is unsafe, this proposal doesn't have a way to suppress safety diagnostics when pattern matching that case. For example:
+
+```swift
+enum WeirdAddress {
+  @unsafe case rawOffsetIntoGlobalArray(Int)
+}
+
+func example(_ address: WeirdAddress) {
+  if case .rawOffsetIntoGlobalArray(let offset) = weirdAddress { // reference to @unsafe case rawOffsetIntoGlobalArray that can't be suppressed
+  }
+}
+
+```
+
+We have several options here:
+
+* We could suppress the diagnostic for this use of an `@unsafe case`. One would still get diagnostics when constructing such a case.
+
+* We could reject `@unsafe` on case declarations that don't involve any unsafe types.
+
+* We could extend the pattern grammar with an `unsafe` pattern to suppress this diagnostic, e.g.,
+  ```swift
+  if case unsafe .rawOffsetIntoGlobalArray(let offset) = weirdAddress { ... }
+  ```
+
 ### Overloading to stage in safe APIs
 
 When adopting the strict memory safety mode, it's likely that a Swift module will want to replace existing APIs that traffic in unsafe types (such as `UnsafeMutablePointer`) with safer equivalents (such as `Span`). To retain compatibility for older clients, the existing APIs will need to be left in place. Unfortunately, this might mean that the best name for the API is already taken. For example, perhaps we have a data packet that exposes its bytes via a property:
