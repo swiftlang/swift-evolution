@@ -5,7 +5,7 @@
 * Review Manager: [Stephen Canon](https://github.com/stephentyrone)
 * Status: **Active review (January 16 ... 30, 2025)**
 * Implementation: [swiftlang/swift#78202](https://github.com/swiftlang/swift/pull/78202)
-* Review: ([pitch](https://forums.swift.org/t/pitch-adding-int128-support-to-duration))
+* Review: ([pitch](https://forums.swift.org/t/pitch-adding-int128-support-to-duration))([review](https://forums.swift.org/t/se-0457-expose-attosecond-representation-of-duration/77249))
 
 ## Introduction
 This proposal introduces public APIs to enable seamless integration of `Int128` into the `Duration` type. Specifically, it provides support for directly accessing a `Duration`'s attosecond representation via the newly available `Int128` type and simplifies the creation of `Duration` values from attoseconds.
