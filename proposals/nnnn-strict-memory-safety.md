@@ -468,58 +468,6 @@ We have several options here:
   if case unsafe .rawOffsetIntoGlobalArray(let offset) = weirdAddress { ... }
   ```
 
-### Overloading to stage in safe APIs
-
-When adopting the strict memory safety mode, it's likely that a Swift module will want to replace existing APIs that traffic in unsafe types (such as `UnsafeMutablePointer`) with safer equivalents (such as `Span`). To retain compatibility for older clients, the existing APIs will need to be left in place. Unfortunately, this might mean that the best name for the API is already taken. For example, perhaps we have a data packet that exposes its bytes via a property:
-
-```swift
-public class DataPacket {
-  @unsafe public let bytes: UnsafeRawBufferPointer
-}
-```
-
-The `bytes` property is necessarily unsafe. Far better would be to produce a `RawSpan`, which we can easily do with another property:
-
-```swift
-extension DataPacket {
-  public var byteSpan: RawSpan
-}
-```
-
-Clients using the existing `bytes` will continue to work, and those that care about memory safety can choose to move to `byteSpan`. All of this works, but is somewhat annoying because the good name, `bytes`, has been taken for the API we no longer want to use.
-
-Swift does allow type-based overloading, including on the type of properties, so one could introduce an overloaded `bytes` property, like this:
-
-```swift
-extension DataPacket {
-  public var bytes: RawSpan
-}
-```
-
-This works for code that accesses `bytes` and then uses it in a context where type inference can figure out whether we need an `UnsafeRawBufferPointer` or a `RawSpan`, but fails if that context does not exist:
-
-```swift
-let unsafeButGoodBytes: UnsafeRawBufferPointer = dataPacket.bytes // ok, uses @unsafe bytes
-let goodBytes: RawSpan = dataPacket.bytes // ok, uses safe bytes
-let badBytes = dataPacket.bytes // error: ambiguous!
-```
-
-We could consider extending Swift's overloading rules to make this kind of evolution possible. For example, one could introduce a pair of rules into the language:
-
-1. When strict memory safety checking is enabled, `@unsafe` declarations are dis-favored vs. safe ones, so the unsafe `bytes: UnsafeRawBufferPointer` would be a worse solution for type inference to pick than the safe alternative, `bytes: RawSpan`. 
-
-2. Overloads that were introduced to replace unsafe declarations could be marked with a new attribute `@safe(unsafeDisfavored)` so that they would be disfavored only when building with strict memory safety checking disabled.
-
-Assuming these rules, and that the safe `bytes: RawSpan` had the `@safe(unsafeDisfavored)` attribute, the example uses of `DataPacket` would resolve as follows:
-
-* `unsafeButGoodBytes` would always be initialized with the unsafe `bytes`. If strict memory safety were enabled, this use would produce a warning.
-* `goodBytes` would always be initialized with the safe `bytes`.
-* `badBytes` would be initialized differently based on whether strict memory safety was enabled:
-  * If enabled, `badBytes` would choose the safe version of `bytes` to produce the safest code,  because the unsafe one is disfavored (rule #1).
-  * If disabled, `badBytes` would choose the unsafe version of `bytes` to provide source compatibility with existing code, because the safe one is disfavored (rule #2).
-
-There are downsides to this approach. It partially undermines the source compatibility story for the strict safety mode, because type inference now behaves differently when the mode is enabled. That means, for example, there might be errors---not warnings---because some code like `badBytes` above would change behavior, causing additional failures. Changing the behavior of type inference is also risky in an of itself, because it is not always easy to reason about all of the effects of such a change. That said, the benefit of being able to move toward a more memory-safe future might be worth it.
-
 ## Alternatives considered
 
 ### `@unsafe` implying `unsafe` throughout a function body
@@ -630,6 +578,58 @@ This proposal introduced strict safety checking as an opt in mode and not an [*u
 * The various `Unsafe` pointer types are the only way to work with contiguous memory in Swift today, and  the safe replacements (e.g., `Span`) are new constructs that will take a long time to propagate through the ecosystem. Some APIs depending on these `Unsafe` pointer types cannot be replaced because it would break existing clients (either source, binary, or both).
 * Interoperability with the C family of languages is an important feature for Swift. Most C(++) APIs are unlikely to ever adopt the safety-related attributes described above, which means that enabling strict safety checking by default would undermine the usability of C(++) interoperability.
 * Swift's current (non-strict) memory safety by default is likely to be good enough for the vast majority of users of Swift, so the benefit of enabling stricter checking by default is unlikely to be worth the disruption it would cause.
+
+### Overloading to stage in safe APIs
+
+When adopting the strict memory safety mode, it's likely that a Swift module will want to replace existing APIs that traffic in unsafe types (such as `UnsafeMutablePointer`) with safer equivalents (such as `Span`). To retain compatibility for older clients, the existing APIs will need to be left in place. Unfortunately, this might mean that the best name for the API is already taken. For example, perhaps we have a data packet that exposes its bytes via a property:
+
+```swift
+public class DataPacket {
+  @unsafe public let bytes: UnsafeRawBufferPointer
+}
+```
+
+The `bytes` property is necessarily unsafe. Far better would be to produce a `RawSpan`, which we can easily do with another property:
+
+```swift
+extension DataPacket {
+  public var byteSpan: RawSpan
+}
+```
+
+Clients using the existing `bytes` will continue to work, and those that care about memory safety can choose to move to `byteSpan`. All of this works, but is somewhat annoying because the good name, `bytes`, has been taken for the API we no longer want to use.
+
+Swift does allow type-based overloading, including on the type of properties, so one could introduce an overloaded `bytes` property, like this:
+
+```swift
+extension DataPacket {
+  public var bytes: RawSpan
+}
+```
+
+This works for code that accesses `bytes` and then uses it in a context where type inference can figure out whether we need an `UnsafeRawBufferPointer` or a `RawSpan`, but fails if that context does not exist:
+
+```swift
+let unsafeButGoodBytes: UnsafeRawBufferPointer = dataPacket.bytes // ok, uses @unsafe bytes
+let goodBytes: RawSpan = dataPacket.bytes // ok, uses safe bytes
+let badBytes = dataPacket.bytes // error: ambiguous!
+```
+
+We could consider extending Swift's overloading rules to make this kind of evolution possible. For example, one could introduce a pair of rules into the language:
+
+1. When strict memory safety checking is enabled, `@unsafe` declarations are dis-favored vs. safe ones, so the unsafe `bytes: UnsafeRawBufferPointer` would be a worse solution for type inference to pick than the safe alternative, `bytes: RawSpan`. 
+
+2. Overloads that were introduced to replace unsafe declarations could be marked with a new attribute `@safe(unsafeDisfavored)` so that they would be disfavored only when building with strict memory safety checking disabled.
+
+Assuming these rules, and that the safe `bytes: RawSpan` had the `@safe(unsafeDisfavored)` attribute, the example uses of `DataPacket` would resolve as follows:
+
+* `unsafeButGoodBytes` would always be initialized with the unsafe `bytes`. If strict memory safety were enabled, this use would produce a warning.
+* `goodBytes` would always be initialized with the safe `bytes`.
+* `badBytes` would be initialized differently based on whether strict memory safety was enabled:
+  * If enabled, `badBytes` would choose the safe version of `bytes` to produce the safest code,  because the unsafe one is disfavored (rule #1).
+  * If disabled, `badBytes` would choose the unsafe version of `bytes` to provide source compatibility with existing code, because the safe one is disfavored (rule #2).
+
+There are downsides to this approach. It partially undermines the source compatibility story for the strict safety mode, because type inference now behaves differently when the mode is enabled. That means, for example, there might be errors---not warnings---because some code like `badBytes` above would change behavior, causing additional failures. Changing the behavior of type inference is also risky in an of itself, because it is not always easy to reason about all of the effects of such a change. That said, the benefit of being able to move toward a more memory-safe future might be worth it.
 
 ### Optional `message` for the `@unsafe` attribute
 
