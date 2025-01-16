@@ -15,7 +15,7 @@
 
 Swift provides memory safety with a combination of language affordances and runtime checking. However, Swift also deliberately includes some unsafe constructs, such as the `Unsafe` pointer types in the standard library, language features like `nonisolated(unsafe)`, and interoperability with unsafe languages like C. For most Swift developers, this is a pragmatic solution that provides an appropriate level of memory safety while not getting in the way.
 
-However, some projects want to require stronger memory-safety guarantees than are Swift provides by default. These projects want to pay closer attention to uses of unsafe constructs in their code, and discourage casual use of unsafe constructs when a safe alternative exists. This proposal introduces opt-in strict memory safety checking to identify those places in Swift code that make use of unsafe language constructs and APIs. Any code written within this strictly-safe subset also works as “normal” Swift and can interoperate with existing Swift code.
+However, some projects want to require stronger memory-safety guarantees than Swift provides by default. These projects want to pay closer attention to uses of unsafe constructs in their code, and discourage casual use of unsafe constructs when a safe alternative exists. This proposal introduces opt-in strict memory safety checking to identify those places in Swift code that make use of unsafe language constructs and APIs. Any code written within this strictly-safe subset also works as “normal” Swift and can interoperate with existing Swift code.
 
 ## Motivation
 
@@ -489,7 +489,7 @@ extension UnsafeMutableBufferPointer {
 }
 ```
 
-Now, it is very likely that an `@unsafe` function is going to make use of other unsafe constructs, so we could choose to make `@unsafe` on a function acknowledge all uses of unsafe code within its definition. For example, this would mean that marking `swapAt` with `@unsafe` means that one need not have any `unsafe` expressions in its body:
+We could choose to make `@unsafe` on a function acknowledge all uses of unsafe code within its definition. For example, this would mean that marking `swapAt` with `@unsafe` means that one need not have any `unsafe` expressions in its body:
 
 ```swift
 extension UnsafeMutableBufferPointer {
