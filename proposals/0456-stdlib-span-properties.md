@@ -1,12 +1,11 @@
 # Add `Span`-providing Properties to Standard Library Types
 
-* Proposal: [PR-2620](https://github.com/swiftlang/swift-evolution/pull/2620)
+* Proposal: [SE-0456](0456-stdlib-span-properties.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: (tbd)
-* Status: **Pitch**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active Review (January 15...28, 2024)
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
-* Bug: rdar://137710901
-* Implementation: (tbd)
+* Implementation: [PR #78561](https://github.com/swiftlang/swift/pull/78561)
 * Review: [pitch](https://forums.swift.org/t/76138)
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
