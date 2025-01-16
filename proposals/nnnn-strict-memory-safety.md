@@ -285,14 +285,14 @@ The following language constructs are always considered to be unsafe:
 The following language constructs are considered to be unsafe when strict concurrency checking is enabled (i.e., in the Swift 6 language mode):
 
 * `nonisolated(unsafe)`: Allows a property to be accessed from concurrent code without ensuring that such accesses are done so safely. Uses of `nonisolated(unsafe)` entities are not memory-safe.
-* `@preconcurrency` imports: Suppresses diagnostics related to data race safety when they relate to specific imported modules, which can introduce thread safety issues. The `@preconcurrency` import will need to be annotated with `@unsafe` in the strict dsafety mode.
+* `@preconcurrency` imports: Suppresses diagnostics related to data race safety when they relate to specific imported modules, which can introduce thread safety issues. The `@preconcurrency` import will need to be annotated with `@unsafe` in the strict safety mode.
 
 ### Unsafe standard library APIs
 
 In the standard library, the following functions and types would be marked `@unsafe` :
 
 * `Unsafe(Mutable)(Raw)(Buffer)Pointer`, `OpaquePointer`, `CVaListPointer`: These types provide neither lifetime nor bounds safety. Over time, Swift code is likely to move toward their safe replacements, such as `(Raw)Span`.
-* `(Closed)Range.init(uncheckedBounds:)`: This operation makes it possible to create a range that doesn't satisfy invariants on which other bounds safety checking (e.g., in `Array.subscript`)
+* `(Closed)Range.init(uncheckedBounds:)`: This operation makes it possible to create a range that doesn't satisfy invariants on which other bounds safety checking (e.g., in `Array.subscript`) relies.
 * `Span.subscript(unchecked:)` : An unchecked subscript whose use can introduce bounds safety problems.
 * `Unmanaged`: Wrapper over reference-counted types that explicitly disables reference counting, potentially introducing lifetime safety issues.
 * `unsafeBitCast`: Allows type casts that are not known to be safe, which can introduce type safety problems.
