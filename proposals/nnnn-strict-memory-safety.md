@@ -15,7 +15,7 @@
 
 Swift provides memory safety with a combination of language affordances and runtime checking. However, Swift also deliberately includes some unsafe constructs, such as the `Unsafe` pointer types in the standard library, language features like `nonisolated(unsafe)`, and interoperability with unsafe languages like C. For most Swift developers, this is a pragmatic solution that provides an appropriate level of memory safety while not getting in the way.
 
-However, some projects want require stronger memory-safety guarantees than are provided Swift by default. These projects want to pay closer attention to uses of unsafe constructs in their code, and discourage casual use of unsafe constructs when a safe alternative exists. This proposal introduces opt-in strict memory safety checking to identify those places in Swift code that make use of unsafe language constructs and APIs. Any code written within this strictly-safe subset also works as “normal” Swift and can interoperate with existing Swift code.
+However, some projects want to require stronger memory-safety guarantees than are Swift provides by default. These projects want to pay closer attention to uses of unsafe constructs in their code, and discourage casual use of unsafe constructs when a safe alternative exists. This proposal introduces opt-in strict memory safety checking to identify those places in Swift code that make use of unsafe language constructs and APIs. Any code written within this strictly-safe subset also works as “normal” Swift and can interoperate with existing Swift code.
 
 ## Motivation
 
@@ -35,7 +35,7 @@ While there are a number of potential definitions for memory safety, the one pro
 
 Since its inception, Swift has provided memory safety for the first four dimensions. Lifetime safety is provided for reference types by automatic reference counting and for value types via [memory exclusivity](https://www.swift.org/blog/swift-5-exclusivity/); bounds safety is provided by bounds-checking on `Array` and other collections; type safety is provided by safe features for casting (`as?` , `is` ) and `enum` s; and initialization safety is provided by “definite initialization”, which doesn’t allow a variable to be accessed until it has been defined. Swift 6’s strict concurrency checking extends Swift’s memory safety guarantees to the last dimension.
 
-Swift achieves safety with a mixture of static and dynamic checks. Static checks are better when possible, because they are surfaced at compile time and carry no runtime cost. Dynamic checks are sometimes necessary and are still acceptable, so long as the failure can't escalate into a memory safety problem. as long as failure can't escalate. Swift offers unsafe features to allow problems to be solved when neither static nor dynamic checks are sufficient. These nsafe features can still be used without compromising memory safety, but doing so requires more care because they have requirements that Swift can't automatically check.
+Swift achieves safety with a mixture of static and dynamic checks. Static checks are better when possible, because they are surfaced at compile time and carry no runtime cost. Dynamic checks are sometimes necessary and are still acceptable, so long as the failure can't escalate into a memory safety problem. Swift offers unsafe features to allow problems to be solved when neither static nor dynamic checks are sufficient. These unsafe features can still be used without compromising memory safety, but doing so requires more care because they have requirements that Swift can't automatically check.
 
 For example, Swift solves null references with optional types. Statically, Swift prevents you from using an optional reference without checking it first. If you're sure it's non-null, you can use the `!` operator, which is safe because Swift will dynamically check for `nil`. If you really can't afford that dynamic check, you can use [`unsafelyUnwrapped`](https://developer.apple.com/documentation/swift/optional/unsafelyunwrapped). This can still be correct if you can prove that the reference is definitely non-null for some reason that Swift doesn't know. But it is an unsafe feature because it admits violations if you're wrong.
 
@@ -199,7 +199,7 @@ There are a few exemptions to the rule that any unsafe constructs within the sig
   ```swift
   func sum(array: [Int]) -> Int {
     array.withUnsafeBufferPointer { buffer in
-      let base = /*unsafe*/ buffer.baseAddress
+      /*@unsafe is unnecessary here*/ let base = unsafe buffer.baseAddress
       // ...
     }
   }
@@ -208,7 +208,7 @@ There are a few exemptions to the rule that any unsafe constructs within the sig
 * Default arguments of functions are part of the implementation of a function, not its signature. For example, the following function does not have any unsafe types in its signature, so it does not require `@unsafe`, even though the default argument for `value` involves unsafe code. That unsafe code is effectively part of the body of the function, so it follows the rules for `unsafe` expressions.
 
   ```swift
-  func hasDefault(value: Int = /*unsafe*/ getIntegerUnsafely()) { ... }
+  func hasDefault(value: Int = unsafe getIntegerUnsafely()) { ... }
   ```
 
 ### `@safe` attribute
