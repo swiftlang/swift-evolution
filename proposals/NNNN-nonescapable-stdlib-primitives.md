@@ -1,0 +1,871 @@
+# Standard Library Primitives for Nonescapable Types
+
+* Proposal: [SE-NNNN](NNNN-nonescapable-stdlib-primitives.md)
+* Authors: [Karoy Lorentey](https://github.com/lorentey)
+* Review Manager: TBD
+* Status: **Awaiting review**
+* Roadmap: [Improving Swift performance predictability: ARC improvements and ownership control][Roadmap]
+* Implementation: https://github.com/swiftlang/swift/pull/73258
+* Review: ([Pitch])
+
+[Roadmap]: https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206
+[Pitch]: https://forums.swift.org/TBD
+
+
+<small>
+
+Related proposals:
+
+- [SE-0377] `borrowing` and `consuming` parameter ownership modifiers
+- [SE-0390] Noncopyable structs and enums
+- [SE-0426] BitwiseCopyable
+- [SE-0427] Noncopyable generics
+- [SE-0429] Partial consumption of noncopyable values
+- [SE-0432] Borrowing and consuming pattern matching for noncopyable types
+- [SE-0436] Noncopyable Standard Library Primitives
+- [SE-0446] Nonescapable Types
+- [SE-0447] Span: Safe Access to Contiguous Storage
+- [SE-0452] Integer Generic Parameters
+- [SE-0453] Vector, a fixed-size array
+- [SE-0456] Add `Span`-providing Properties to Standard Library Types
+
+</small>
+
+[SE-0370]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0370-pointer-family-initialization-improvements.md
+[SE-0377]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md
+[SE-0390]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md
+[SE-0426]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0426-bitwise-copyable.md
+[SE-0427]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md
+[SE-0429]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0429-partial-consumption.md
+[SE-0432]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0432-noncopyable-switch.md
+[SE-0436]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0437-noncopyable-stdlib-primitives.md
+[SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
+[SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
+[SE-0452]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0452-integer-generic-parameters.md
+[SE-0453]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0453-vector.md
+[SE-0456]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0456-stdlib-span-properties.md
+
+### Table of Contents
+
+  * [Motivation](#motivation)
+  * [Proposed Solution](#proposed-solution)
+    * [Nonescapable optionals](#nonescapable-optionals)
+    * [Nonescapable Result](#nonescapable-result)
+    * [Retrieving the memory layout of nonescapable types](#retrieving-the-memory-layout-of-nonescapable-types)
+    * [Lifetime management](#lifetime-management)
+    * [Unsafe bit casts](#unsafe-bit-casts)
+    * [Object identifiers](#object-identifiers)
+    * [Odds and ends](#odds-and-ends)
+  * [Detailed Design](#detailed-design)
+    * [protocol ExpressibleByNilLiteral](#protocol-expressiblebynilliteral)
+    * [enum Optional](#enum-optional)
+    * [enum Result](#enum-result)
+    * [enum MemoryLayout](#enum-memorylayout)
+    * [Lifetime Management](#lifetime-management-1)
+    * [Unsafe Bit Casts](#unsafe-bit-casts-1)
+    * [struct ObjectIdentifier](#struct-objectidentifier)
+    * [ManagedBufferPointer equatability](#managedbufferpointer-equatability)
+    * [Making indices universally available on unsafe buffer pointers](#making-indices-universally-available-on-unsafe-buffer-pointers)
+    * [Buffer pointer operations on Slice](#buffer-pointer-operations-on-slice)
+  * [Source compatibility](#source-compatibility)
+  * [ABI compatibility](#abi-compatibility)
+    * [Note on protocol generalizations](#note-on-protocol-generalizations)
+  * [Alternatives Considered](#alternatives-considered)
+  * [Future Work](#future-work)
+  * [Acknowledgements](#acknowledgements)
+
+## Introduction
+
+This document proposes to allow `Optional` and `Result` to hold instances of nonescapable types, and continues the work of adding support for noncopyable and nonescapable types throughout the Swift Standard Library.
+
+
+## Motivation
+
+[SE-0436] started integrating noncopyable types into our Standard Library abstractions, by generalizing existing APIs and introducing new ones. In the time since that proposal, [SE-0446] has introduced nonescapable types to Swift, adding a new direction of generalization.
+
+This proposal continues the work of [SE-0436] by extending some basic constructs to support nonescapable types, where it is already possible to do so. For now, we are focusing on further generalizing a subset of the constructs covered by [SE-0436]: `MemoryLayout`, `Optional` and `Result` types. Our immediate aim is to unblock the use of nonescapable types, especially in API surfaces. We also smooth out some minor inconsistencies that [SE-0436] has left unresolved.
+
+Like before, our aim is to implement these generalizations with as little disruption as possible. Existing code implicitly assumes copyability and escapability, and it needs to continue working as before.
+
+## Proposed Solution
+
+This proposal is focusing on achieving the following results:
+
+- Allow `Optional` to wrap nonescapable types, itself becoming conditionally escapable.
+- Do the same for `Result`, allowing its success case to hold a nonescapable item.
+- Generalize `MemoryLayout` to allow querying basic information on the memory layout of nonescapable types.
+- Continue generalizing basic lifetime management functions; introduce a new `extendLifetime()` function that avoids a closure argument.
+- Allow generating `ObjectIdentifier` instances for noncopyable and/or nonescapable metatypes.
+
+We also propose to fix a handful of minor copyability-related omissions that have been discovered since [SE-0436] was accepted:
+
+- Allow `ManagedBufferPointer` instances to be equatable even when `Element` is noncopyable.
+- Make the `Unsafe[Mutable]BufferPointer.indices` property universally available for all `Element` types.
+- Generalize select operations on unsafe buffer pointer slices, to restore consistency with the same operations on the buffer pointers themselves.
+
+### Nonescapable optionals
+
+We want `Optional` to support wrapping all Swift types, whether or not they're copyable or escapable. This means that `Optional` needs to become conditionally escapable, depending on the escapability of its `Wrapped` type. 
+
+`Optional` must itself become nonescapable when it is wrapping a nonescapable type, and such optional values need to be subject to precisely the same lifetime constraints as their wrapped item: we cannot allow the act of wrapping a nonescapable value in an optional to allow that value to escape its intended context.
+
+There are many ways to construct optional values in Swift: for example, we can explicitly invoke the factory for the `.some` case, we can rely on Swift's implicit optional promotion rules, or we can invoke the default initializer. We propose to generalize all of these basic/primitive mechanisms to support nonescapable use. For instance, given a non-optional `Span` value, this code exercises these three basic ways of constructing non-nil nonescapable optionals:
+
+```swift
+func sample(_ span: Span<Int>) {
+  let a = Optional.some(span) // OK, explicit case factory
+  let b: Optional = span      // OK, implicit optional promotion
+  let c = Optional(span)      // OK, explicit initializer invocation
+}
+```
+
+`a`, `b`, and `c` hold the same span instance, and their lifetimes are subject to the same constraints as the original span -- they can be used within the context of the `sample` function, but they cannot escape outside of it. (At least not without explicit lifetime dependency annotations, to be introduced in the future.)
+
+Of course, it also needs to be possible to make empty `Optional` values that do not hold anything. We have three basic ways to do that: we can explicitly invoke the factory for the `none` case, we can reach for the special `nil` literal, or (for `var`s) we can rely on implicit optional initialization. This proposal generalizes all three mechanisms to support noncopyable wrapped types:
+
+```swift
+func sample(_ span: Span<Int>) {
+  var d: Span<Int>? = .none // OK, explicit factory invocation
+  var e: Span<Int>? = nil   // OK, nil literal expression
+  var f: Span<Int>?         // OK, implicit nil default value
+}
+```
+
+Empty optionals of nonescapable types are still technically nonescapable, but they aren't inherently constrained to any particular context -- empty optionals are born with "immortal" (or "static") lifetimes, i.e., they are allowed to stay around for the entire execution of a Swift program. (Nil optionals can be passed to any operation that takes a nonescapable optional, no matter what expectations it may dictate about its lifetime.)
+
+Of course, we also expect to be able to reassign variables, rebinding them to a new value. Reassignments of local variables are allowed to arbitrarily change lifetime dependencies. There is no expectation that the lifetime of the new value has any particular relation to the old: local variable reassignments can freely narrow and widen variable lifetimes, as they see fit.
+
+For instance, the code below initializes an optional variable to an immortal nil value; it then assigns a new value to it that has definite lifetime; and finally it turns it back to an immortal nil value:
+
+```swift
+func sample(_ span: Span<Int>) {
+  var maybe: Span<Int>? = nil // immortal
+  maybe = span                // definite lifetime
+  maybe = nil                 // immortal again
+}
+```
+
+This flexibility will not necessarily apply to other kinds of variables, like stored properties in custom nonescapable structs, global variables, or computed properties -- I expect those variables to carry specific lifetime dependencies that cannot vary through reassignment. (For example, a global variable of a nonescapable type will typically expect to hold immortal values.) However, for now, we're limiting our reasoning to local variables.
+
+Of course, an optional is of limited use unless we are able to decide whether it contains a value, and (if so) to unwrap it and look at its contents. We need to be able to operate on nonescapable optionals using the familiar basic mechanisms:
+
+ - `switch` and `if case`/`guard case` statements that pattern match over them:
+
+   ```swift
+   // Variant 1: Full pattern matching
+   func count(of maybeSpan: Span<Int>?) -> Int {
+     switch maybeSpan {
+       case .none: return 0
+       case .some(let span): return span.count
+     }
+   }
+   
+   // Variant 2: Pattern matching with optional sugar
+   func count(of maybeSpan: Span<Int>?) -> Int {
+     switch maybeSpan {
+       case nil: return 0
+       case let span?: return span.count
+     }
+   }
+   ```
+
+ - The force-unwrapping `!` special form, or its unsafe cousin, the `unsafelyUnwrapped` property:
+
+   ```swift
+   func count(of maybeSpan: Span<Int>?) -> Int {
+     if case .none = maybeSpan { return 0 }
+     return maybeSpan!.count
+     // or: return maybeSpan.unsafelyUnwrapped.count
+   }
+   ```
+
+- The optional chaining form `?`:
+ 
+   ```swift
+   func count(of maybeSpan: Span<Int>?) -> Int {
+     guard let c = maybeSpan?.count else { return 0 }
+     return c
+   }
+   ```
+
+ - Optional bindings such as `if let` or `guard let` statements:
+
+   ```swift
+   func count(of maybeSpan: Span<Int>?) -> Int {
+     guard let span = maybeSpan else { return 0 }
+     return span.count
+   }
+   ```
+ 
+These variants all work as expected. To avoid escapability violations, unwrapping the nonescapable optional results in a value with precisely the same lifetime dependencies as the original optional value. This applies to all forms of unwrapping, including pattern matching forms that bind copies of associated values to new variables, like `let span` above -- the resulting `span` value always has the same lifetime as the optional it comes from.
+
+The standard `Optional` type has custom support for comparing optional instances against `nil` using the traditional `==` operator, whether or not the wrapped type conforms to `Equatable`. [SE-0436] generalized this mechanism for noncopyable wrapped types, and it is reasonable to extend this to also cover the nonescapable case:
+
+```swift
+func count(of maybeSpan: Span<Int>?) -> Int {
+  if maybeSpan == nil { return 0 } // OK!
+  return maybeSpan!.count
+}
+```
+
+This core set of functionality makes nonescapable optionals usable, but it does not yet enable the use of more advanced API. Eventually, we'd also like to use the standard `Optional.map` function (and similar higher-order functions) to operate on (or to return) nonescapable optional types, like in the example below:
+
+```swift
+func sample(_ maybeArray: Array<Int>?) {
+  // Assuming `Array.storage` returns a nonescapable `Span`:
+  let maybeSpan = maybeArray.map { $0.storage }
+  ...
+}
+```
+
+These operations require precise reasoning about lifetime dependencies though, so they have to wait until we have a stable way to express lifetimes annotations on their definitions. We expect lifetime semantics to become an integral part of the signatures of functions dealing with nonescapable entities -- for the simplest cases they can often remain implicit, but for something like `map` above, we'll probably need to explicitly describe how the lifetime of the function's result relates to the lifetime of the result of the function argument. We need to defer this work until we have the means to express such annotations in the language.
+
+One related omission from the list of generalizations above is the standard nil-coalescing operator `??`. This is currently defined as follows (along with another variant that returns an `Optional`):
+
+```swift
+func ?? <T: ~Copyable>(
+  optional: consuming T?,
+  defaultValue: @autoclosure () throws -> T
+) rethrows -> T
+```
+
+To generalize this to also allow nonescapable `T` types, we'll need to specify that the returned value's lifetime is tied to the _intersection_ of the lifetime of the left argument and the lifetime of the result of the right argument (a function). We aren't currently able to express that, so this generalization has to be deferred until a subsequent proposal.
+
+
+### Nonescapable `Result`
+
+We generalize `Result` along the same lines as `Optional`, allowing its `success` case to wrap a nonescapable value. For now, we need to mostly rely on Swift's general enum facilities to operate on nonescapable `Result` values: switch statements, case factories, pattern matching, associated value bindings etc.
+
+Important convenience APIs such as `Result.init(catching:)` or `Result.map` will need to require escapability until we introduce a way to formally specify lifetime dependencies. This is unfortunate, but it still enables intrepid Swift developers to experiment with defining interfaces that take (or even return!) `Result` values.
+
+However, we are already able to generalize a small handful of methods: `get` and the two error-mapping utilities, `mapError` and `flatMapError`.
+
+```swift
+func sample<E: Error>(_ res: Result<Span<Int>, E>) -> Int {
+  guard let span = try? res.get() else { return 42 }
+  return 3 * span.count + 9
+}
+```
+
+Like unwrapping an `Optional`, calling `get()` on a nonescapable `Result` returns a value whose lifetime requirements exactly match that of the original `Result` instance -- the act of unwrapping a result cannot allow its content to escape its intended context.
+
+### Retrieving the memory layout of nonescapable types
+
+This proposal generalizes `enum MemoryLayout` to support retrieving information about the layout of nonescapable types:
+
+```swift
+print(MemoryLayout<Span<Int>>.size) // ⟹ 16
+print(MemoryLayout<Span<Int>>.stride) // ⟹ 16
+print(MemoryLayout<Span<Int>>.alignment) // ⟹ 8
+```
+
+(Of course, the values returned will vary depending on target architecture.)
+
+The information returned is going to be of somewhat limited use until we generalize unsafe pointer types to support nonescapable pointees, which this proposal does not include -- but there is no reason to delay this work until then.
+
+(To usefully allow pointers to nonescapable types, we'll need to assign precise lifetime semantics to their `pointee` (and pointer dereferencing in general), and we'll most likely also need a way to allow developers to unsafely override the resulting default lifetime semantics. This requires explicit lifetime annotations, and as such that work is postponed to a future proposal.)
+
+### Lifetime management
+
+We once again generalize the `withExtendedLifetime` family of functions, this time to support calling them on nonescapable values.
+
+```swift
+let span = someArray.storage
+withExtendedLifetime(span) { span in
+  // `someArray` is being actively borrowed while this closure is running
+}
+// At this point `someArray` may be ready to be mutated
+```
+
+We've now run proposals to generalize `withExtendedLifetime` for (1) typed throws, (2) noncopyable inputs and results, and (3) nonescapable inputs. It is getting unwieldy to keep having to tweak these APIs, especially since in actual practice, `withExtendedLifetime` is most often called with an empty closure, to serve as a sort-of-fence protecting against early destruction.
+
+To acknowledge this widespread pattern, and to avoid having to keep indefinitely generalizing these marginal functions, we propose to introduce a simple `extendLifetime` function that avoids 
+
+```swift
+let span = someArray.storage
+...
+extendLifetime(span) // span is guaranteed not be destroyed before this call
+```
+
+We are not proposing to deprecate the old `withExtendedLifetime` entry points at this time -- some developers may find the closure-based variants to be more attractive (or less error-prone) for some of their use cases. But I expect the new `extendLifetime` function will let us start tweaking the higher-order variants less often, perhaps even freezing them in their current state.
+
+### Unsafe bit casts
+
+To cover a common low-level need that regularly came up while experimenting with nonescapable use cases, we propose to narrowly generalize the existing `unsafeBitCast` function to allow its input value to be of a nonescapable type. 
+
+The bit cast's result is free of any lifetime constraints that affected the input. This is a profoundly unsafe operation, but dissolving lifetime enforcement like this can be a useful fallback option when implementing low-level constructs. (In general though, it is a better idea to add explicit unsafe operations that extract whatever data we need from a nonescapable type, without resorting to error-prone bit casting.)
+
+We do not allow unsafe bit casts _to_ nonescapable types (as we do not have a good way to assign lifetime constraints on the result yet), and we continue to require both the input and target types to be copyable.
+
+### Object identifiers
+
+The `ObjectIdentifier` construct is primarily used to generate a Comparable/Hashable value that identifies a class instance. However, it is also able to identify metatypes:
+
+```swift
+let id1 = ObjectIdentifier(Int.self)
+let id2 = ObjectIdentifier(String.self)
+print(id1 == id2) // ⟹ false
+```
+
+[SE-0436] did not generalize this initializer; we can now allow it to work with both noncopyable and nonescapable types:
+
+```swift
+import Synchronization
+
+let id3 = ObjectIdentifier(Atomic<Int>.self) // OK, noncopyable input type
+let id4 = ObjectIdentifier(Span<Int>.self) // OK, nonescapable input type
+print(id3 == id4) // ⟹ false
+```
+
+The object identifier of a noncopyable/nonescapable type is still a regular copyable and escapable identifier -- it can be compared against other ids and hashed, like always.
+
+### Odds and ends
+
+[SE-0436] omitted generalizing the `Equatable` conformance of `ManagedBufferPointer`; this proposal allows comparing `ManagedBufferPointer` instances for equality even if their `Element` happens to be noncopyable.
+
+[SE-0436] kept the `indices` property of unsafe buffer pointer types limited to cases where `Element` is copyable. This proposal generalizes `indices` to be also available on buffer pointers of noncopyable elements. (In the time since the original proposal, [SE-0447] has introduced a `Span` type that ships with an unconditional `indices` property, and [SE-0453] followed suit by introducing `Vector` with the same property. It makes sense to also provide this interface on buffer pointers, for consistency.) `indices` is useful for iterating through these collection types, especially until we ship a new iteration model that supports noncopyable/nonescapable containers.
+
+Finally, [SE-0436] neglected to generalize any of the buffer pointer operations that [SE-0370] introduced on the standard `Slice` type. In this proposal, we correct this omission by generalizing the handful of operations that can support noncopyable result elements: `moveInitializeMemory(as:fromContentsOf:)`, `bindMemory(to:)`, `withMemoryRebound(to:_:)` and `assumingMemoryBound(to:)`. `Slice` itself continues to require its `Element` to be copyable (at least for now), preventing the generalization of other operations.
+
+## Detailed Design
+
+### `protocol ExpressibleByNilLiteral`
+
+In order to generalize `Optional`, we need the `ExpressibleByNilLiteral` protocol to support nonescapable conforming types. By definition, the `nil` form needs to behave like a regular, escapable value; accordingly, the required initializer needs to establish "immortal" or "static" lifetime semantics on the resulting instance.
+
+We expect a future proposal to define a stable syntax for expressing such lifetime dependency constraints. In lieu of that, this proposal is using a non-normative substitute: the hypothetical `@_immortalResult` attribute.
+
+```swift
+protocol ExpressibleByNilLiteral: ~Copyable, ~Escapable {
+  @_immortalResult // Illustrative syntax
+  init(nilLiteral: ())
+}
+```
+
+In this illustration, `@_immortalResult` specifies that the result of the initializer must have immortal lifetime.
+
+Preexisting types that conform to `ExpressibleByNilLiteral` are all escapable, and escapable values always have immortal lifetimes, by definition. Therefore, initializer implementations in existing conformances already satisfy this new requirement -- it only makes a difference in the newly introduced `~Escapable` case.
+
+By making this change, we need to assume that specifying a lifetime dependency will not have an ABI compatibility impact on existing users of this protocol.
+
+(Note: `@_immortalResult` is not a real attribute. Until the language gains an official way to express such constraints, the Swift Standard Library will define this protocol with unstable syntax that isn't generally available. We expect to the protocol definition to immediately switch to whatever syntax Swift eventually embraces, as soon as it becomes available.)
+
+### `enum Optional`
+
+We generalize `Optional` to allow nonescapable wrapped types in addition to noncopyable ones.
+
+```swift
+enum Optional<Wrapped: ~Copyable & ~Escapable>: ~Copyable, ~Escapable {
+  case none
+  case some(Wrapped)
+}
+
+extension Optional: Copyable where Wrapped: Copyable & ~Escapable {}
+extension Optional: Escapable where Wrapped: Escapable & ~Copyable {}
+extension Optional: BitwiseCopyable where Wrapped: BitwiseCopyable & ~Escapable {}
+extension Optional: Sendable where Wrapped: ~Copyable & ~Escapable & Sendable {}
+```
+
+To allow the use of the `nil` syntax with nonescapable optional types, we generalize `Optional`'s conformance to `ExpressibleByNilLiteral`:
+
+```swift
+extension Optional: ExpressibleByNilLiteral
+where Wrapped: ~Copyable & ~Escapable {
+  @_immortalResult // Illustrative syntax
+  init(nilLiteral: ())
+}
+```
+
+As discussed above, `nil` optionals have no lifetime dependencies, and they continue to work like escapable values.
+
+We need to generalize the existing unlabeled initializer to support the nonescapable case:
+
+```swift
+extension Optional where Wrapped: ~Copyable & ~Escapable {
+  init(_ some: consuming Wrapped)
+}
+```
+
+Swift offers many built-in ways for developers to unwrap optional values: we have force unwrapping, optional chaining, pattern matching, optional bindings, etc. Many of these rely on direct compiler support that is already able to properly handle lifetime matters; but the stdlib also includes its own forms of unwrapping, and these require some API changes.
+
+We need to generalize the stdlib's `unsafelyUnwrapped` property:
+
+```swift
+extension Optional where Wrapped: ~Escapable {
+  var unsafelyUnwrapped: Wrapped { get }
+}
+```
+
+Note that [SE-0436] did not generalize this property for noncopyable wrapped types, and we are still postponing that task to a future proposal (pending the advent of new property accessors); but we can safely generalize this property in the nonescapable direction.
+
+Another library-level unwrapping form is the nil-coalescing operator `??`. We propose to generalize it to support nonescapable wrapped types:
+
+```
+@lifetime(optional, defaultValue.result) // Illustrative syntax
+public func ?? <T: ~Copyable & ~Escapable>(
+  optional: consuming T?,
+  defaultValue: @autoclosure () throws -> T
+) rethrows -> T
+
+@lifetime(optional, defaultValue.result) // Illustrative syntax
+func ?? <T: ~Copyable & ~Escapable>(
+  optional: consuming T?,
+  defaultValue: @autoclosure () throws -> T?
+) rethrows -> T?
+```
+
+The result of `??` is expected to have lifetime dependencies matching the original optional value.
+
+***FIXME: The signatures above do not declare an expectation on the lifetime of the autoclosure's result. The implementation builds without a diagnostic, but it may be broken.
+
+We also generalize `take()` to work on nonescapable optionals. It resets `self` to nil and returns its original value with precisely the same lifetime dependency as we started with. The `nil` value it leaves behind is still constrained to the same lifetime.
+
+```swift
+extension Optional where Wrapped: ~Copyable & ~Escapable {
+  @lifetime(self) // Illustrative syntax
+  mutating func take() -> Self
+}
+```
+
+The Standard Library provides special support for comparing arbitrary optional values against `nil`. We generalize this mechanism to work on nonescapable case:
+
+```
+extension Optional where Wrapped: ~Copyable & ~Escapable {
+  static func ~=(
+    lhs: _OptionalNilComparisonType,
+    rhs: borrowing Wrapped?
+  ) -> Bool
+  
+  static func ==(
+    lhs: borrowing Wrapped?,
+    rhs: _OptionalNilComparisonType
+  ) -> Bool
+  
+  static func !=(
+    lhs: borrowing Wrapped?,
+    rhs: _OptionalNilComparisonType
+  ) -> Bool
+  
+  static func ==(
+    lhs: _OptionalNilComparisonType,
+    rhs: borrowing Wrapped?
+  ) -> Bool
+  
+  static func !=(
+    lhs: _OptionalNilComparisonType,
+    rhs: borrowing Wrapped?
+  ) -> Bool
+}
+```
+
+### `enum Result`
+
+For `Result`, this proposal concentrates on merely allowing the success case to contain a nonescapable value. 
+
+```swift
+enum Result<Success: ~Copyable & ~Escapable, Failure: Error> {
+  case success(Success)
+  case failure(Failure)
+}
+
+extension Result: Copyable where Success: Copyable & ~Escapable {}
+extension Result: Escapable where Success: Escapable & ~Copyable {}
+extension Result: Sendable where Success: Sendable & ~Copyable & ~Escapable {}
+```
+
+We postpone generalizing most of the higher-order functions that make `Result` convenient to use, as we currently lack the means to reason about lifetime dependencies for such functions. But we are already able to generalize the two functions that do not have complicated lifetime semantics: `mapError` and `flatMapError`.
+
+```swift
+extension Result where Success: ~Copyable & ~Escapable {
+  @lifetime(self)
+  consuming func mapError<NewFailure>(
+    _ transform: (Failure) -> NewFailure
+  ) -> Result<Success, NewFailure>
+}
+
+extension Result where Success: ~Copyable & ~Escapable {
+  @lifetime(self)
+  consuming func flatMapError<NewFailure>(
+    _ transform: (Failure) -> Result<Success, NewFailure>
+  ) -> Result<Success, NewFailure>
+}
+```
+
+Both of these functions return a value with the same lifetime as the original `Result` instance.
+
+We can also generalize the convenient `get()` function, which is roughly equivalent to optional unwrapping:
+
+```
+extension Result where Success: ~Copyable & ~Escapable {
+  @lifetime(self)
+  consuming func get() throws(Failure) -> Success
+}
+```
+
+In the nonescapable case, this function returns a value with a lifetime that precisely matches the original `Result`.
+
+***FIXME: Is `consuming` expected to cause any problems? (E.g., what if the `Result` is a noncopyable+nonescapable variant that was yielded by a coroutine?)
+
+### `enum MemoryLayout`
+
+Swift is not yet ready to introduce pointers to nonescapable values -- we currently lack the ability to assign proper lifetime semantics to the addressed items. 
+
+However, a nonescapable type does still have well-defined memory layout, and it makes sense to allow developers to query the size, stride and alignment of such instances. This information is associated with the type itself, and it is independent to the lifetime constraints of its instances. Therefore, we can generalize the `MemoryLayout` enumeration to allow its subject to be a nonescapable type:
+
+```swift
+enum MemoryLayout<T: ~Copyable & ~Escapable>
+: ~BitwiseCopyable, Copyable, Escapable {}
+
+extension MemoryLayout where T: ~Copyable & ~Escapable {
+  static var size: Int { get }
+  static var stride: Int { get }
+  static var alignment: Int { get }
+}
+
+extension MemoryLayout where T: ~Copyable & ~Escapable {
+  static func size(ofValue value: borrowing T) -> Int
+  static func stride(ofValue value: borrowing T) -> Int
+  static func alignment(ofValue value: borrowing T) -> Int
+}
+```
+
+### Lifetime Management
+
+[SE-0436] generalized the `withExtendedLifetime` family of functions to support extending the lifetime of noncopyable entities. This proposal further generalizes these to also allow nonescapable use:
+
+```swift
+func withExtendedLifetime<
+  T: ~Copyable & ~Escapable,
+  E: Error,
+  Result: ~Copyable
+>(
+  _ x: borrowing T,
+  _ body: () throws(E) -> Result
+) throws(E) -> Result
+
+func withExtendedLifetime<
+  T: ~Copyable & ~Escapable,
+  E: Error,
+  Result: ~Copyable
+>(
+  _ x: borrowing T,
+  _ body: (borrowing T) throws(E) -> Result
+) throws(E) -> Result
+```
+
+Admittedly, these function signatures are getting unwieldy, and the closure-based calls have never really been a good fit for the real life practices of Swift developers.
+
+These functions were originally designed to be used with a non-empty closure, like in the example below:
+
+```swift
+withExtendedLifetime(obj) {
+  weak var ref = obj
+  foo(ref!)
+}
+```
+
+In most cases, the formulation we actually recommend these days is to use a defer statement, with the function getting passed an empty closure:
+
+```swift
+weak var ref = obj
+defer { withExtendedLifetime(obj) {} } // Ugh 😖
+foo(ref!)
+```
+
+These functions clearly weren't designed to accommodate this widespread practice. To acknowledge and embrace this widespread practice, we propose to introduce a new public Standard Library function that simply extends the lifetime of whatever variable it is given:
+
+```swift
+func extendLifetime<T: ~Copyable & ~Escapable>(_ x: borrowing T)
+```
+
+This allows defer incantations like the one above to be reformulated into a more readable form:
+
+```swift
+// Slightly improved reality
+weak var ref = obj
+defer { extendLifetime(obj) }
+foo(ref!)
+```
+
+To avoid disrupting working code, this proposal does not deprecate the existing closure-based functions in favor of the new `extendLifetime` operation. (Introducing the new function will still considerably reduce the need for future Swift releases to continue repeatedly generalizing the existing functions -- for example, to allow async use, or to allow nonescapable results.)
+
+### Unsafe Bit Casts
+
+We narrowly generalize the existing `unsafeBitCast` function to allow the input value to be of a nonescapable type:
+
+```swift
+func unsafeBitCast<T: ~Escapable, U>(
+  _ x: T, to type: U.Type
+) -> U
+```
+
+This is intended to serve as a last-resort escape hatch to allow low-level code to "dissolve" nonescapability even if it has no regular way to directly extract data from the input type. (This generalization doesn't lift `unsafeBitCast`'s existing requirements; for example, the input and output types must have compatible layout.)
+
+<!-- FIXME: Later, as needed: -->
+<!-- FIXME: Try generalizing for `U: ~Escapable`, copying lifetime from the input -->
+<!-- FIXME: Maybe generalize for noncopyables (make it consuming) -->
+<!-- FIXME: Note that these two directions may conflict. -->
+
+### `struct ObjectIdentifier`
+
+The `ObjectIdentifier` construct is primarily used to generate a Comparable/Hashable value that identifies a class instance. However, it is also able to generate type identifiers:
+
+```swift
+extension ObjectIdentifier {
+  init(_ x: Any.Type)
+}
+```
+
+We propose to generalize this initializer to allow generating identifiers for noncopyable and nonescapable types as well. Ideally, we'd express this in terms of a generalized existential type:
+
+```swift
+extension ObjectIdentifier {
+  init(_ x: (any (~Copyable & ~Escapable)).Type)
+}
+```
+
+However, this syntax is not usable yet, so in this proposal we actually define this as a generic initializer:
+
+```swift
+extension ObjectIdentifier {
+  init<T: ~Copyable & ~Escapable>(_ x: T.Type)
+}
+```
+
+Note that this isn't precisely the same shape, as the existential initializer takes a dynamic type, while this generic one dispatches based on static type information only. The distinction may matter if the initializer is used in generic contexts -- so the definition will need to be corrected when the existential syntax becomes usable.
+
+### `ManagedBufferPointer` equatability
+
+The `ManagedBufferPointer` type conforms to `Equatable`; its `==` implementation works by comparing the identity of the class instances it is referencing. [SE-0436] has generalized the type to allow a noncopyable `Element` type, but it did not generalize this specific conformance. This proposal aims to correct this oversight:
+
+```swift
+extension ManagedBufferPointer: Equatable where Element: ~Copyable {
+  static func ==(
+    lhs: ManagedBufferPointer,
+    rhs: ManagedBufferPointer
+  ) -> Bool
+}
+```
+
+Managed buffer pointers are pointer types -- as such, they can be compared whether or not they are addressing a buffer of copyable items.
+
+### Making `indices` universally available on unsafe buffer pointers
+
+[SE-0436] kept the `indices` property of unsafe buffer pointer types limited to cases where `Element` is copyable. In the time since that proposal, [SE-0447] has introduced a `Span` type that ships with an unconditional `indices` property, and [SE-0453] followed suit by introducing `Vector` with the same property. For consistency, it makes sense to also allow developers to unconditionally access `Unsafe[Mutable]BufferPointer.indices`, whether or not `Element` is copyable.
+
+```swift
+extension UnsafeBufferPointer where Element: ~Copyable {
+  var indices: Range<Int> { get }
+}
+
+extension UnsafeMutableBufferPointer where Element: ~Copyable {
+  var indices: Range<Int> { get }
+}
+```
+
+This allows Swift programmers to iterate over the indices of a buffer pointer with simpler syntax, independent of what `Element` they are adressing:
+
+```swift
+for i in buf.indices {
+  ...
+}
+```
+
+We consider `indices` to be slightly more convenient than the equivalent expression `0 ..< buf.count`.
+
+(Of course, we are still planning to introduce direct support for for-in loops over noncopyable/nonescapable containers, which will provide a far more flexible solution. `indices` is merely a stopgap solution to bide us over until we are ready to propose that.)
+
+### Buffer pointer operations on `Slice`
+
+Finally, to address an inconsistency that was left unresolved by [SE-0436], we generalize a handful of buffer pointer operations that are defined on buffer slices. This consists of the following list, originally introduced in [SE-0370]:
+
+- Initializing a slice of a mutable raw buffer pointer by moving items out of a typed mutable buffer pointer:
+
+   ```swift
+   extension Slice where Base == UnsafeMutableRawBufferPointer {
+     func moveInitializeMemory<T: ~Copyable>(
+       as type: T.Type,
+       fromContentsOf source: UnsafeMutableBufferPointer<T>
+     ) -> UnsafeMutableBufferPointer<T>
+   }
+   ```
+
+- Binding memory of raw buffer pointer slices:
+
+   ```swift
+   extension Slice where Base == UnsafeMutableRawBufferPointer {
+     func bindMemory<T: ~Copyable>(
+       to type: T.Type
+     ) -> UnsafeMutableBufferPointer<T>
+   }
+   
+   extension Slice where Base == UnsafeRawBufferPointer {
+     func bindMemory<T: ~Copyable>(
+       to type: T.Type
+     ) -> UnsafeBufferPointer<T>
+   }
+   ```
+
+- Temporarily rebinding memory of a (typed or untyped, mutable or immutable) buffer pointer slice for the duration of a function call:
+
+   ```swift
+   extension Slice where Base == UnsafeMutableRawBufferPointer {
+     func withMemoryRebound<T: ~Copyable, E: Error, Result:    ~Copyable>(
+       to type: T.Type,
+       _ body: (UnsafeMutableBufferPointer<T>) throws(E) -> Result
+     ) throws(E) -> Result
+   }
+   
+   extension Slice where Base == UnsafeRawBufferPointer {
+     func withMemoryRebound<T: ~Copyable, E: Error, Result:    ~Copyable>(
+       to type: T.Type, 
+       _ body: (UnsafeBufferPointer<T>) throws(E) -> Result
+     ) throws(E) -> Result
+   }
+   
+   extension Slice {
+     func withMemoryRebound<
+       T: ~Copyable, E: Error, Result: ~Copyable, Element
+     >(
+       to type: T.Type,
+       _ body: (UnsafeBufferPointer<T>) throws(E) -> Result
+     ) throws(E) -> Result
+     where Base == UnsafeBufferPointer<Element>
+     
+     public func withMemoryRebound<
+       T: ~Copyable, E: Error, Result: ~Copyable, Element
+     >(
+       to type: T.Type,
+       _ body: (UnsafeMutableBufferPointer<T>) throws(E) -> Result
+     ) throws(E) -> Result
+     where Base == UnsafeMutableBufferPointer<Element>
+   }
+   ```
+
+- Finally, converting a slice of a raw buffer pointer into a typed buffer pointer, assuming its memory is already bound to the correct type:
+
+   ```swift
+   extension Slice where Base == UnsafeMutableRawBufferPointer {
+     func assumingMemoryBound<T: ~Copyable>(
+       to type: T.Type
+     ) -> UnsafeMutableBufferPointer<T>
+   }
+   
+   extension Slice where Base == UnsafeRawBufferPointer {
+     func assumingMemoryBound<T: ~Copyable>(
+       to type: T.Type
+     ) -> UnsafeBufferPointer<T>
+   }
+   ```
+
+All of these forward to operations on the underlying base buffer pointer that have already been generalized in [SE-0436]. These changes are simply restoring feature parity between buffer pointer and their slices, where possible. (`Slice` still requires its `Element` to be copyable, which limits generalization of other buffer pointer APIs defined on it.)
+
+These generalizations are limited to copyability for now. We do expect that pointer types (including buffer pointers) will need to be generalized to allow nonescapable pointees; however, we have to postpone that work until we are able to precisely reason about lifetime requirements.
+
+<!--
+// FIXME: Sequence.reduce, Sequence.reduce(into:)
+// FIXME: Slice<Unsafe[Mutable][Raw]BufferPointer>.withMemoryRebound
+// FIXME: [Contiguous]Array[Slice].withUnsafe[Mutable]BufferPointer
+// FIXME: [Contiguous]Array[Slice].withUnsafe[Mutable]Bytes
+// FIXME: String.withCString, .withUTF8 et al
+// FIXME: StaticString.withUTF8Buffer
+// FIXME: {Array,String}.init(unsafeUninitializedCapacity:initalizingWith:) (note: this does not need a proposal)
+-->
+
+## Source compatibility
+
+Like [SE-0436], this proposal also heavily relies on the assurance that removing the assumption of escapability on these constructs will not break existing code that used to rely on the original, escaping definitions. [SE-0436] has explored a few cases where this may not the case; these can potentially affect code that relies on substituting standard library API with its own implementations. With the original ungeneralized definitions, such custom reimplementations could have shadowed the originals. However, this may no longer be the case with the generalizations included, and this can lead to ambiguous function invocations.
+
+This proposal mostly touches APIs that were already changed by [SE-0436], and that reduces the likelihood of it causing new issues. That said, it does generalize some previously unchanged interfaces that may provide new opportunities for such shadowing declarations to cause trouble.
+
+Like previously, we do have engineering options to mitigate such issues in case we do encounter them in practice: for example, we can choose to amend Swift's shadowing rules to ignore differences in throwing, noncopyability and nonescapability, or we can manually patch affected definitions to make the expression checker consider them to be less specific than any custom overloads.
+
+## ABI compatibility
+
+The introduction of support for nonescapable types is (in general) a compile-time matter, with minimal (or even zero) runtime impact. This greatly simplifies the task of generalizing previously shipping types for use in nonescapable contexts. Another simplifying aspect is that while it can be relatively easy for classic Swift code to accidentally copy a value, it tends to be rare for functions to accidentally _escape_ their arguments -- previous versions of a function are less likely to accidentally violate nonescapability than noncopyability.
+
+The implementation of this proposal adopts the same approaches as [SE-0436] to ensure forward and backward compatibility of newly compiled (and existing) binaries, including the Standard Library itself. We expect that code that exercises the new features introduced in this proposal will be able to run on earlier versions of the Swift stdlib -- to the extent that noncopyable and/or nonescapable types are allowed to backdeploy.
+
+[SE-0436] has already arranged ABI compatibility symbols to get exported as needed to support ABI continuity. It has also already reimplemented most of the entry points that this proposal touches, in a way that forces them to get embedded in client binaries. This allows the changes in this proposal to get backdeployed without any additional friction.
+
+
+### Note on protocol generalizations
+
+Like [SE-0436], this proposal mostly avoids generalizing standard protocols, with the sole exception of `ExpressibleByNilLiteral`, which has now been generalized to allow both noncopyable and nonescapable conforming types.
+
+As a general rule, protocol generalizations like that may not be arbitrarily backdeployable -- it seems likely that we'll at least need to support limiting the availability of _conformance_ generalizations, if not generalizations of the protocol itself. In this proposal, we follow [SE-0436] in assuming that this potential issue will not apply to the specific case of `ExpressibleByNilLiteral`, because of its particularly narrow use case. Our experience with [SE-0436] is reinforcing this assumption, but it is still possible there is an ABI back-compatibility issue that we haven't uncovered yet. In the (unlikely, but possible) case we do discover such an issue, we may need to do extra work to patch protocol conformances in earlier stdlibs, or we may decide to limit the use of `nil` with noncopyable/nonescapable optionals to recent enough runtimes.
+
+To illustrate the potential problem, let's consider `Optional`'s conformance to `Equatable`: 
+
+```swift
+extension Optional: Equatable where Wrapped: Equatable {
+  public static func ==(lhs: Wrapped?, rhs: Wrapped?) -> Bool {
+    switch (lhs, rhs) {
+    case let (l?, r?): return l == r
+    case (nil, nil): return true
+    default: return false
+    }
+  }
+}
+```
+
+This conformance is currently limited to copyable and escapable cases, and it is using the classic, copying form of the switch statement, with `case let (l?, r?)` semantically making full copies of the two wrapped values. We do intend to soon generalize the `Equatable` protocol to support noncopyable and/or nonescapable conforming types. When that becomes possible, `Optional` will want to immediately embrace this generalization, to start allowing checking whether two noncopyable/nonescapable instances are equal:
+
+```swift
+extension Optional: Equatable where Wrapped: Equatable & ~Copyable & ~Escapable {
+  public static func ==(lhs: borrowing Wrapped?, rhs: borrowing Wrapped?) -> Bool {
+    switch (lhs, rhs) {
+    case let (l?, r?): return l == r
+    case (nil, nil): return true
+    default: return false
+    }
+  }
+}
+```
+
+On the surface, this seems like a straightforward change. Unfortunately, switching to `borrowing` arguments changes the semantics of the implementation, converting the original copying switch statement to the borrowing form introduced by [SE-0432]. This new variant avoids copying wrapped values to compare them, enabling the use of this function on noncopyable data. However, the old implementation of `==` did assume (and exercise!) copyability, so the `Equatable` conformance cannot be allowed to dispatch to `==` implementations that shipped in Standard Library releases that pre-date this generalization. 
+
+To mitigate such problems, we'll either need to retroactively patch/substitute the generic implementations in previously shipping stdlibs, or we need to somehow limit availability of the generalized conformance, without affecting the original copyable/escapable one.
+
+This issue is more pressing for noncopyable cases, as preexisting implementations are far more likely to perform accidental copying than to accidentally escape their arguments.
+
+Our hypothesis is that `ExpressibleByNilLiteral` conformances are generally free of such issues.
+
+## Alternatives Considered
+
+Most of the changes proposed here follow directly from the introduction of nonescapable types. The API generalizations follow the patterns established by [SE-0436], and are largely mechanical in nature. For the most part, the decision points aren't about the precise form of any particular change, but more about what changes we are ready to propose _right now_.
+
+The single exception is the `extendLifetime` function, which is brand new API; it comes from our experience using (and maintaining) the `withExtendedLifetime` function family.
+
+## Future Work
+
+For the most part, this proposal is concentrating on resolving the first item from [SE-0436]'s wish list (nonescapable `Optional` and `Result`), and it adds minor coherency improvements to the feature set we shipped there.
+
+Most other items listed as future work in that proposal continue to remain on our agenda. The advent of nonescapable types extend this list with additional items, including the following topics:
+
+1. We need to define stable syntax for expressing lifetime dependencies as explicit annotations, and we need to define what semantics we apply by default on functions that do not explicitly specify these.
+
+2. We will need an unsafe mechanism to override lifetime dependencies of nonescapable entities.
+
+3. We will need to allow pointer types to address nonescapable items: `UnsafePointer`, `UnsafeBufferPointer` type families, perhaps `ManagedBuffer`. The primary design task here is to decide what lifetime semantics we want to assign to pointer dereferencing operations, including mutations.
+
+4. Once we have pointers, we will also need to allow the construction of generic containers of nonescapable items, with some Sequence/Collection-like capabilities (iteration, indexing, generic algorithms, etc). We expect the noncopyable/nonescapable container model to heavily rely on the `Span` type, which we intend to use as the basic unit of iteration, providing direct access to contiguous storage chunks. For containers of nonescapables in particular, this means we'll also need to generalize `Span` to allow it to capture nonescapable elements.
+
+5. We'll want to generalize most of the preexisting standard library protocols to allow nonescapable conforming types and (if possible) associated types. This is in addition to supporting noncopyability. This work will require adding carefully considered lifetime annotations on protocol requirements, while also carefully maintaining seamless forward/backward compatibility with the currently shipping protocol versions. This is expected to take several proposals; in some cases it may include carefully reworking existing semantic requirements to better match noncopyable/nonescapable use cases. Some protocols may not be generalizable without breaking existing code; in those cases, we may need to resort to replacing or augmenting them with brand new protocols. However, protocol generalizations for nonescapables is generally expected to be a smoother process than it is for noncopyables.
+
+## Acknowledgements
+
+Many people contributed to the discussions that led to this proposal. We'd like to especially thank the following individuals for their continued, patient and helpful input:
+
+- Alejandro Alonso
+- Steve Canon
+- Ben Cohen
+- Kavon Farvardin
+- Doug Gregor
+- Joe Groff
+- Megan Gupta
+- Tim Kientzle
+- Guillaume Lessard
+- John McCall
+- Tony Parker
+- Andrew Trick
