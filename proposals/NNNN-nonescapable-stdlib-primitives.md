@@ -83,7 +83,7 @@ This document proposes to allow `Optional` and `Result` to hold instances of non
 
 [SE-0436] started integrating noncopyable types into our Standard Library abstractions, by generalizing existing APIs and introducing new ones. In the time since that proposal, [SE-0446] has introduced nonescapable types to Swift, adding a new direction of generalization.
 
-This proposal continues the work of [SE-0436] by extending some basic constructs to support nonescapable types, where it is already possible to do so. For now, we are focusing on further generalizing a subset of the constructs covered by [SE-0436]: `MemoryLayout`, `Optional` and `Result` types. Our immediate aim is to unblock the use of nonescapable types, especially in API surfaces. We also smooth out some minor inconsistencies that [SE-0436] has left unresolved.
+This proposal continues the work of [SE-0436] by extending some basic constructs to support nonescapable types, where it is already possible to do so. For now, we are focusing on further generalizing a subset of the constructs covered by [SE-0436]: `MemoryLayout`, `Optional`, and `Result` types. Our immediate aim is to unblock the use of nonescapable types, especially in API surfaces. We also smooth out some minor inconsistencies that [SE-0436] has left unresolved.
 
 Like before, our aim is to implement these generalizations with as little disruption as possible. Existing code implicitly assumes copyability and escapability, and it needs to continue working as before.
 
@@ -208,7 +208,7 @@ func count(of maybeSpan: Span<Int>?) -> Int {
 }
 ```
 
-This core set of functionality makes nonescapable optionals usable, but it does not yet enable the use of more advanced API. Eventually, we'd also like to use the standard `Optional.map` function (and similar higher-order functions) to operate on (or to return) nonescapable optional types, like in the example below:
+This core set of functionality makes nonescapable optionals usable, but it does not yet enable the use of more advanced APIs. Eventually, we'd also like to use the standard `Optional.map` function (and similar higher-order functions) to operate on (or to return) nonescapable optional types, like in the example below:
 
 ```swift
 func sample(_ maybeArray: Array<Int>?) {
@@ -259,11 +259,11 @@ print(MemoryLayout<Span<Int>>.stride) // ⟹ 16
 print(MemoryLayout<Span<Int>>.alignment) // ⟹ 8
 ```
 
-(Of course, the values returned will vary depending on target architecture.)
+(Of course, the values returned will vary depending on the target architecture.)
 
 The information returned is going to be of somewhat limited use until we generalize unsafe pointer types to support nonescapable pointees, which this proposal does not include -- but there is no reason to delay this work until then.
 
-(To usefully allow pointers to nonescapable types, we'll need to assign precise lifetime semantics to their `pointee` (and pointer dereferencing in general), and we'll most likely also need a way to allow developers to unsafely override the resulting default lifetime semantics. This requires explicit lifetime annotations, and as such that work is postponed to a future proposal.)
+(To usefully allow pointers to nonescapable types, we'll need to assign precise lifetime semantics to their `pointee` (and pointer dereferencing in general), and we'll most likely also need a way to allow developers to unsafely override the resulting default lifetime semantics. This requires explicit lifetime annotations, and as such, that work is postponed to a future proposal.)
 
 ### Lifetime management
 
@@ -274,17 +274,17 @@ let span = someArray.storage
 withExtendedLifetime(span) { span in
   // `someArray` is being actively borrowed while this closure is running
 }
-// At this point `someArray` may be ready to be mutated
+// At this point, `someArray` may be ready to be mutated
 ```
 
-We've now run proposals to generalize `withExtendedLifetime` for (1) typed throws, (2) noncopyable inputs and results, and (3) nonescapable inputs. It is getting unwieldy to keep having to tweak these APIs, especially since in actual practice, `withExtendedLifetime` is most often called with an empty closure, to serve as a sort-of-fence protecting against early destruction.
+We've now run proposals to generalize `withExtendedLifetime` for (1) typed throws, (2) noncopyable inputs and results, and (3) nonescapable inputs. It is getting unwieldy to keep having to tweak these APIs, especially since in actual practice, `withExtendedLifetime` is most often called with an empty closure, to serve as a sort of fence protecting against early destruction.
 
 To acknowledge this widespread pattern, and to avoid having to keep indefinitely generalizing these marginal functions, we propose to introduce a simple `extendLifetime` function that avoids 
 
 ```swift
 let span = someArray.storage
 ...
-extendLifetime(span) // span is guaranteed not be destroyed before this call
+extendLifetime(span) // span is guaranteed not to be destroyed before this call
 ```
 
 We are not proposing to deprecate the old `withExtendedLifetime` entry points at this time -- some developers may find the closure-based variants to be more attractive (or less error-prone) for some of their use cases. But I expect the new `extendLifetime` function will let us start tweaking the higher-order variants less often, perhaps even freezing them in their current state.
@@ -293,9 +293,9 @@ We are not proposing to deprecate the old `withExtendedLifetime` entry points at
 
 To cover a common low-level need that regularly came up while experimenting with nonescapable use cases, we propose to narrowly generalize the existing `unsafeBitCast` function to allow its input value to be of a nonescapable type. 
 
-The bit cast's result is free of any lifetime constraints that affected the input. This is a profoundly unsafe operation, but dissolving lifetime enforcement like this can be a useful fallback option when implementing low-level constructs. (In general though, it is a better idea to add explicit unsafe operations that extract whatever data we need from a nonescapable type, without resorting to error-prone bit casting.)
+The bit cast's result is free of any lifetime constraints that affected the input. This is a profoundly unsafe operation, but dissolving lifetime enforcement like this can be a useful fallback option when implementing low-level constructs. (In general, though, it is a better idea to add explicit unsafe operations that extract whatever data we need from a nonescapable type, without resorting to error-prone bit casting.)
 
-We do not allow unsafe bit casts _to_ nonescapable types (as we do not have a good way to assign lifetime constraints on the result yet), and we continue to require both the input and target types to be copyable.
+We do not allow unsafe bit casts to nonescapable types (as we do not have a good way to assign lifetime constraints on the result yet), and we continue to require both the input and target types to be copyable.
 
 ### Object identifiers
 
@@ -325,13 +325,13 @@ The object identifier of a noncopyable/nonescapable type is still a regular copy
 
 [SE-0436] kept the `indices` property of unsafe buffer pointer types limited to cases where `Element` is copyable. This proposal generalizes `indices` to be also available on buffer pointers of noncopyable elements. (In the time since the original proposal, [SE-0447] has introduced a `Span` type that ships with an unconditional `indices` property, and [SE-0453] followed suit by introducing `Vector` with the same property. It makes sense to also provide this interface on buffer pointers, for consistency.) `indices` is useful for iterating through these collection types, especially until we ship a new iteration model that supports noncopyable/nonescapable containers.
 
-Finally, [SE-0436] neglected to generalize any of the buffer pointer operations that [SE-0370] introduced on the standard `Slice` type. In this proposal, we correct this omission by generalizing the handful of operations that can support noncopyable result elements: `moveInitializeMemory(as:fromContentsOf:)`, `bindMemory(to:)`, `withMemoryRebound(to:_:)` and `assumingMemoryBound(to:)`. `Slice` itself continues to require its `Element` to be copyable (at least for now), preventing the generalization of other operations.
+Finally, [SE-0436] neglected to generalize any of the buffer pointer operations that [SE-0370] introduced on the standard `Slice` type. In this proposal, we correct this omission by generalizing the handful of operations that can support noncopyable result elements: `moveInitializeMemory(as:fromContentsOf:)`, `bindMemory(to:)`, `withMemoryRebound(to:_:)`, and `assumingMemoryBound(to:)`. `Slice` itself continues to require its `Element` to be copyable (at least for now), preventing the generalization of other operations.
 
 ## Detailed Design
 
 ### `protocol ExpressibleByNilLiteral`
 
-In order to generalize `Optional`, we need the `ExpressibleByNilLiteral` protocol to support nonescapable conforming types. By definition, the `nil` form needs to behave like a regular, escapable value; accordingly, the required initializer needs to establish "immortal" or "static" lifetime semantics on the resulting instance.
+In order to generalize `Optional`, we need the `ExpressibleByNilLiteral` protocol to support non-escapable conforming types. By definition, the `nil` form needs to behave like a regular, escapable value; accordingly, the required initializer needs to establish "immortal" or "static" lifetime semantics on the resulting instance.
 
 We expect a future proposal to define a stable syntax for expressing such lifetime dependency constraints. In lieu of that, this proposal is using a non-normative substitute: the hypothetical `@_immortalResult` attribute.
 
@@ -348,7 +348,7 @@ Preexisting types that conform to `ExpressibleByNilLiteral` are all escapable, a
 
 By making this change, we need to assume that specifying a lifetime dependency will not have an ABI compatibility impact on existing users of this protocol.
 
-(Note: `@_immortalResult` is not a real attribute. Until the language gains an official way to express such constraints, the Swift Standard Library will define this protocol with unstable syntax that isn't generally available. We expect to the protocol definition to immediately switch to whatever syntax Swift eventually embraces, as soon as it becomes available.)
+(Note: `@_immortalResult` is not a real attribute. Until the language gains an official way to express such constraints, the Swift Standard Library will define this protocol with unstable syntax that isn't generally available. We expect the protocol definition to immediately switch to whatever syntax Swift eventually embraces, as soon as it becomes available.)
 
 ### `enum Optional`
 
@@ -427,7 +427,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
 }
 ```
 
-The Standard Library provides special support for comparing arbitrary optional values against `nil`. We generalize this mechanism to work on nonescapable case:
+The Standard Library provides special support for comparing arbitrary optional values against `nil`. We generalize this mechanism to work on nonescapable cases:
 
 ```
 extension Optional where Wrapped: ~Copyable & ~Escapable {
@@ -502,7 +502,7 @@ extension Result where Success: ~Copyable & ~Escapable {
 }
 ```
 
-In the nonescapable case, this function returns a value with a lifetime that precisely matches the original `Result`.
+In the non-escapable case, this function returns a value with a lifetime that precisely matches the original `Result`.
 
 ***FIXME: Is `consuming` expected to cause any problems? (E.g., what if the `Result` is a noncopyable+nonescapable variant that was yielded by a coroutine?)
 
@@ -510,7 +510,7 @@ In the nonescapable case, this function returns a value with a lifetime that pre
 
 Swift is not yet ready to introduce pointers to nonescapable values -- we currently lack the ability to assign proper lifetime semantics to the addressed items. 
 
-However, a nonescapable type does still have well-defined memory layout, and it makes sense to allow developers to query the size, stride and alignment of such instances. This information is associated with the type itself, and it is independent to the lifetime constraints of its instances. Therefore, we can generalize the `MemoryLayout` enumeration to allow its subject to be a nonescapable type:
+However, a nonescapable type does still have a well-defined memory layout, and it makes sense to allow developers to query the size, stride, and alignment of such instances. This information is associated with the type itself, and it is independent of the lifetime constraints of its instances. Therefore, we can generalize the `MemoryLayout` enumeration to allow its subject to be a nonescapable type:
 
 ```swift
 enum MemoryLayout<T: ~Copyable & ~Escapable>
@@ -553,7 +553,7 @@ func withExtendedLifetime<
 ) throws(E) -> Result
 ```
 
-Admittedly, these function signatures are getting unwieldy, and the closure-based calls have never really been a good fit for the real life practices of Swift developers.
+Admittedly, these function signatures are getting unwieldy, and the closure-based calls have never really been a good fit for the real-life practices of Swift developers.
 
 These functions were originally designed to be used with a non-empty closure, like in the example below:
 
@@ -663,7 +663,7 @@ extension UnsafeMutableBufferPointer where Element: ~Copyable {
 }
 ```
 
-This allows Swift programmers to iterate over the indices of a buffer pointer with simpler syntax, independent of what `Element` they are adressing:
+This allows Swift programmers to iterate over the indices of a buffer pointer with simpler syntax, independent of what `Element` they are addressing:
 
 ```swift
 for i in buf.indices {
@@ -760,7 +760,7 @@ Finally, to address an inconsistency that was left unresolved by [SE-0436], we g
 
 All of these forward to operations on the underlying base buffer pointer that have already been generalized in [SE-0436]. These changes are simply restoring feature parity between buffer pointer and their slices, where possible. (`Slice` still requires its `Element` to be copyable, which limits generalization of other buffer pointer APIs defined on it.)
 
-These generalizations are limited to copyability for now. We do expect that pointer types (including buffer pointers) will need to be generalized to allow nonescapable pointees; however, we have to postpone that work until we are able to precisely reason about lifetime requirements.
+These generalizations are limited to copyability for now. We do expect that pointer types (including buffer pointers) will need to be generalized to allow non-escapable pointees; however, we have to postpone that work until we are able to precisely reason about lifetime requirements.
 
 <!--
 // FIXME: Sequence.reduce, Sequence.reduce(into:)
@@ -774,11 +774,11 @@ These generalizations are limited to copyability for now. We do expect that poin
 
 ## Source compatibility
 
-Like [SE-0436], this proposal also heavily relies on the assurance that removing the assumption of escapability on these constructs will not break existing code that used to rely on the original, escaping definitions. [SE-0436] has explored a few cases where this may not the case; these can potentially affect code that relies on substituting standard library API with its own implementations. With the original ungeneralized definitions, such custom reimplementations could have shadowed the originals. However, this may no longer be the case with the generalizations included, and this can lead to ambiguous function invocations.
+Like [SE-0436], this proposal also heavily relies on the assurance that removing the assumption of escapability on these constructs will not break existing code that used to rely on the original, escaping definitions. [SE-0436] has explored a few cases where this may not be the case; these can potentially affect code that relies on substituting standard library API with its own implementations. With the original ungeneralized definitions, such custom reimplementations could have shadowed the originals. However, this may no longer be the case with the generalizations included, and this can lead to ambiguous function invocations.
 
 This proposal mostly touches APIs that were already changed by [SE-0436], and that reduces the likelihood of it causing new issues. That said, it does generalize some previously unchanged interfaces that may provide new opportunities for such shadowing declarations to cause trouble.
 
-Like previously, we do have engineering options to mitigate such issues in case we do encounter them in practice: for example, we can choose to amend Swift's shadowing rules to ignore differences in throwing, noncopyability and nonescapability, or we can manually patch affected definitions to make the expression checker consider them to be less specific than any custom overloads.
+Like previously, we do have engineering options to mitigate such issues in case we do encounter them in practice: for example, we can choose to amend Swift's shadowing rules to ignore differences in throwing, noncopyability, and nonescapability, or we can manually patch affected definitions to make the expression checker consider them to be less specific than any custom overloads.
 
 ## ABI compatibility
 
@@ -823,7 +823,7 @@ extension Optional: Equatable where Wrapped: Equatable & ~Copyable & ~Escapable 
 }
 ```
 
-On the surface, this seems like a straightforward change. Unfortunately, switching to `borrowing` arguments changes the semantics of the implementation, converting the original copying switch statement to the borrowing form introduced by [SE-0432]. This new variant avoids copying wrapped values to compare them, enabling the use of this function on noncopyable data. However, the old implementation of `==` did assume (and exercise!) copyability, so the `Equatable` conformance cannot be allowed to dispatch to `==` implementations that shipped in Standard Library releases that pre-date this generalization. 
+On the surface, this seems like a straightforward change. Unfortunately, switching to `borrowing` arguments changes the semantics of the implementation, converting the original copying switch statement to the borrowing form introduced by [SE-0432]. This new variant avoids copying wrapped values to compare them, enabling the use of this function on noncopyable data. However, the old implementation of `==` did assume (and exercise!) copyability, so the `Equatable` conformance cannot be allowed to dispatch to `==` implementations that shipped in Standard Library releases that predate this generalization. 
 
 To mitigate such problems, we'll either need to retroactively patch/substitute the generic implementations in previously shipping stdlibs, or we need to somehow limit availability of the generalized conformance, without affecting the original copyable/escapable one.
 
@@ -835,13 +835,13 @@ Our hypothesis is that `ExpressibleByNilLiteral` conformances are generally free
 
 Most of the changes proposed here follow directly from the introduction of nonescapable types. The API generalizations follow the patterns established by [SE-0436], and are largely mechanical in nature. For the most part, the decision points aren't about the precise form of any particular change, but more about what changes we are ready to propose _right now_.
 
-The single exception is the `extendLifetime` function, which is brand new API; it comes from our experience using (and maintaining) the `withExtendedLifetime` function family.
+The single exception is the `extendLifetime` function, which is a brand new API; it comes from our experience using (and maintaining) the `withExtendedLifetime` function family.
 
 ## Future Work
 
 For the most part, this proposal is concentrating on resolving the first item from [SE-0436]'s wish list (nonescapable `Optional` and `Result`), and it adds minor coherency improvements to the feature set we shipped there.
 
-Most other items listed as future work in that proposal continue to remain on our agenda. The advent of nonescapable types extend this list with additional items, including the following topics:
+Most other items listed as future work in that proposal continue to remain on our agenda. The advent of nonescapable types extends this list with additional items, including the following topics:
 
 1. We need to define stable syntax for expressing lifetime dependencies as explicit annotations, and we need to define what semantics we apply by default on functions that do not explicitly specify these.
 
@@ -849,9 +849,9 @@ Most other items listed as future work in that proposal continue to remain on ou
 
 3. We will need to allow pointer types to address nonescapable items: `UnsafePointer`, `UnsafeBufferPointer` type families, perhaps `ManagedBuffer`. The primary design task here is to decide what lifetime semantics we want to assign to pointer dereferencing operations, including mutations.
 
-4. Once we have pointers, we will also need to allow the construction of generic containers of nonescapable items, with some Sequence/Collection-like capabilities (iteration, indexing, generic algorithms, etc). We expect the noncopyable/nonescapable container model to heavily rely on the `Span` type, which we intend to use as the basic unit of iteration, providing direct access to contiguous storage chunks. For containers of nonescapables in particular, this means we'll also need to generalize `Span` to allow it to capture nonescapable elements.
+4. Once we have pointers, we will also need to allow the construction of generic containers of nonescapable items, with some Sequence/Collection-like capabilities (iteration, indexing, generic algorithms, etc.). We expect the noncopyable/nonescapable container model to heavily rely on the `Span` type, which we intend to use as the basic unit of iteration, providing direct access to contiguous storage chunks. For containers of nonescapables in particular, this means we'll also need to generalize `Span` to allow it to capture nonescapable elements.
 
-5. We'll want to generalize most of the preexisting standard library protocols to allow nonescapable conforming types and (if possible) associated types. This is in addition to supporting noncopyability. This work will require adding carefully considered lifetime annotations on protocol requirements, while also carefully maintaining seamless forward/backward compatibility with the currently shipping protocol versions. This is expected to take several proposals; in some cases it may include carefully reworking existing semantic requirements to better match noncopyable/nonescapable use cases. Some protocols may not be generalizable without breaking existing code; in those cases, we may need to resort to replacing or augmenting them with brand new protocols. However, protocol generalizations for nonescapables is generally expected to be a smoother process than it is for noncopyables.
+5. We'll want to generalize most of the preexisting standard library protocols to allow nonescapable conforming types and (if possible) associated types. This is in addition to supporting noncopyability. This work will require adding carefully considered lifetime annotations on protocol requirements, while also carefully maintaining seamless forward/backward compatibility with the currently shipping protocol versions. This is expected to take several proposals; in some cases, it may include carefully reworking existing semantic requirements to better match noncopyable/nonescapable use cases. Some protocols may not be generalizable without breaking existing code; in those cases, we may need to resort to replacing or augmenting them with brand-new protocols. However, protocol generalizations for nonescapables are generally expected to be a smoother process than it is for noncopyables.
 
 ## Acknowledgements
 
