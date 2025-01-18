@@ -3,10 +3,9 @@
 * Proposal: [SE-0450](0450-swiftpm-package-traits.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch), [Max Desiatov](https://github.com/MaxDesiatov)
 * Review Manager: [Mishal Shah](https://github.com/shahmishal)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.1)**
 * Implementation: https://github.com/swiftlang/swift-package-manager/pull/7704, https://github.com/swiftlang/swift-package-manager/pull/7703, https://github.com/swiftlang/swift-package-manager/pull/7702, https://github.com/swiftlang/swift-package-manager/pull/7701, https://github.com/swiftlang/swift-package-manager/pull/7694, https://github.com/swiftlang/swift-package-manager/pull/7689, https://github.com/swiftlang/swift-package-manager/pull/8178
-* Experimental Implementation: Gated on `@_spi(ExperimentalTraits)` in package manifests and `--experimental` prefix for CLI options
-* Review: ([pitch](https://forums.swift.org/t/pitch-package-traits/72191)) ([review](https://forums.swift.org/t/se-0450-package-traits/75598))
+* Review: ([pitch](https://forums.swift.org/t/pitch-package-traits/72191)) ([review](https://forums.swift.org/t/se-0450-package-traits/75598)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0450-package-traits/76705))
 
 ## Introduction
 
