@@ -82,7 +82,7 @@ member it will be inline allocated on the heap with the rest of the properties.
 alone.
 
 ```swift
-func complexAlgorithm() -> Int {
+func complexAlgorithm() {
   // This is a stack allocation, no 'malloc's or reference counting here!
   let elements: Vector<4, Int> = [1, 2, 3, 4]
 
@@ -276,7 +276,7 @@ extension Vector where Element: ~Copyable {
   /// Initializes every element in this vector by running the closure with the
   /// previously initialized element.
   ///
-  /// This will call the closure 'count' times, where 'count' is the static
+  /// This will call the closure `count - 1` times, where `count` is the static
   /// count of the vector, to initialize every element by passing the closure
   /// an immutable borrow reference to the previously initialized element. The
   /// closure is allowed to throw an error at any point during initialization at
