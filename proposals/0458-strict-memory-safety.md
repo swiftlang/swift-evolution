@@ -1,9 +1,9 @@
 # Opt-in Strict Memory Safety Checking
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0458](0458-strict-memory-safety.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status:  **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status:  **Active Review (January 17th...27th, 2025)**
 * Feature name: `StrictMemorySafety`
 * Vision: [Opt-in Strict Memory Safety Checking (Prospective)](https://github.com/swiftlang/swift-evolution/pull/2581)
 * Implementation:  On main with experimental feature flags `AllowUnsafeAttribute` and `WarnUnsafe`
