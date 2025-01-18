@@ -9,8 +9,7 @@
 * Review: ([Pitch])
 
 [Roadmap]: https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206
-[Pitch]: https://forums.swift.org/TBD
-
+[Pitch]: https://forums.swift.org/t/pitch-nonescapable-standard-library-primitives/77253
 
 <small>
 
@@ -47,6 +46,7 @@ Related proposals:
 
 ### Table of Contents
 
+  * [Introduction](#introduction)
   * [Motivation](#motivation)
   * [Proposed Solution](#proposed-solution)
     * [Nonescapable optionals](#nonescapable-optionals)
