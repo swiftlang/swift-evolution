@@ -179,7 +179,7 @@ extension UnsafeMutableRawBufferPointer {
 }
 ```
 
-All of these unsafe conversions return a value whose lifetime is dependent on the _binding_ of the UnsafeBufferPointer. Note that this does not keep the underlying memory alive, as usual where the `UnsafePointer` family of types is involved. The programmer must ensure the following invariants for as long as the `Span` or `RawSpan` binding is valid:
+All of these unsafe conversions return a value whose lifetime is dependent on the _binding_ of the UnsafeBufferPointer. This dependency does not keep the underlying memory alive. As is usual where the `UnsafePointer` family of types is involved, the programmer must ensure the memory remains allocated while it is in use. Additionally, the following invariants must remain true for as long as the `Span` or `RawSpan` value exists:
 
   - The underlying memory remains initialized.
   - The underlying memory is not mutated.
