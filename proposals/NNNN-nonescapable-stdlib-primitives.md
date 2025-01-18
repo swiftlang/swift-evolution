@@ -398,26 +398,6 @@ extension Optional where Wrapped: ~Escapable {
 
 Note that [SE-0436] did not generalize this property for noncopyable wrapped types, and we are still postponing that task to a future proposal (pending the advent of new property accessors); but we can safely generalize this property in the nonescapable direction.
 
-Another library-level unwrapping form is the nil-coalescing operator `??`. We propose to generalize it to support nonescapable wrapped types:
-
-```
-@lifetime(optional, defaultValue.result) // Illustrative syntax
-public func ?? <T: ~Copyable & ~Escapable>(
-  optional: consuming T?,
-  defaultValue: @autoclosure () throws -> T
-) rethrows -> T
-
-@lifetime(optional, defaultValue.result) // Illustrative syntax
-func ?? <T: ~Copyable & ~Escapable>(
-  optional: consuming T?,
-  defaultValue: @autoclosure () throws -> T?
-) rethrows -> T?
-```
-
-The result of `??` is expected to have lifetime dependencies matching the original optional value.
-
-***FIXME: The signatures above do not declare an expectation on the lifetime of the autoclosure's result. The implementation builds without a diagnostic, but it may be broken.
-
 We also generalize `take()` to work on nonescapable optionals. It resets `self` to nil and returns its original value with precisely the same lifetime dependency as we started with. The `nil` value it leaves behind is still constrained to the same lifetime.
 
 ```swift
@@ -426,6 +406,8 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   mutating func take() -> Self
 }
 ```
+
+As noted above, we leave the nil-coalescing operator `??` as is for now. We expect to generalize it when it becomes possible to express the lifetime dependency of its result as an intersection of the lifetimes of its left argument and the result of the right argument, an autoclosure.
 
 The Standard Library provides special support for comparing arbitrary optional values against `nil`. We generalize this mechanism to work on nonescapable cases:
 
@@ -503,8 +485,6 @@ extension Result where Success: ~Copyable & ~Escapable {
 ```
 
 In the non-escapable case, this function returns a value with a lifetime that precisely matches the original `Result`.
-
-***FIXME: Is `consuming` expected to cause any problems? (E.g., what if the `Result` is a noncopyable+nonescapable variant that was yielded by a coroutine?)
 
 ### `enum MemoryLayout`
 
