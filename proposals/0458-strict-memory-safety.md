@@ -7,7 +7,7 @@
 * Feature name: `StrictMemorySafety`
 * Vision: [Opt-in Strict Memory Safety Checking (Prospective)](https://github.com/swiftlang/swift-evolution/pull/2581)
 * Implementation:  On main with experimental feature flags `AllowUnsafeAttribute` and `WarnUnsafe`
-* Review: ([pitch](https://forums.swift.org/t/pitch-opt-in-strict-memory-safety-checking/76689))
+* Review: ([pitch](https://forums.swift.org/t/pitch-opt-in-strict-memory-safety-checking/76689)) ([review](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274))
 
 ## Introduction
 
