@@ -327,7 +327,7 @@ class Super {
 }
 
 class Sub: Super {
-  @unsafe func f() { ... } // warning: override of safe instance method with unsafe instance method
+  @unsafe override func f() { ... } // warning: override of safe instance method with unsafe instance method
 }
 ```
 
@@ -336,7 +336,7 @@ to suppress this warning, the `Sub` class itself can be marked as `@unsafe`, e.g
 ```swift
 @unsafe
 class Sub: Super {
-  func f() { ... } // no more warning
+  override func f() { ... } // no more warning
 }
 ```
 
