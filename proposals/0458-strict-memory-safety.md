@@ -122,7 +122,7 @@ The operation `UnsafeMutableBufferPointer.swapAt` swaps the values at the given 
 
 ```swift
 extension UnsafeMutableBufferPointer {
-  @unsafe public func swapAt(_ i: Element, _ j: Element) {
+  @unsafe public func swapAt(_ i: Index, _ j: Index) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
     precondition(unsafe i < endIndex && j < endIndex)
@@ -476,7 +476,7 @@ A function marked `@unsafe` is unsafe to use, so any clients that have enabled s
 
 ```swift
 extension UnsafeMutableBufferPointer {
-  @unsafe public func swapAt(_ i: Element, _ j: Element) {
+  @unsafe public func swapAt(_ i: Index, _ j: Index) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
     precondition(unsafe i < endIndex && j < endIndex)
@@ -493,7 +493,7 @@ We could choose to make `@unsafe` on a function acknowledge all uses of unsafe c
 
 ```swift
 extension UnsafeMutableBufferPointer {
-  @unsafe public func swapAt(_ i: Element, _ j: Element) {
+  @unsafe public func swapAt(_ i: Index, _ j: Index) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
     precondition(i < endIndex && j < endIndex)
@@ -552,7 +552,7 @@ The `unsafe` expression proposed here  covers unsafe constructs within a single 
 
 ```swift
 extension UnsafeMutableBufferPointer {
-  @unsafe public func swapAt(_ i: Element, _ j: Element) {
+  @unsafe public func swapAt(_ i: Index, _ j: Index) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
     precondition(i < endIndex && j < endIndex)
