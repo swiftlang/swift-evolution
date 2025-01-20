@@ -221,7 +221,7 @@ Like the `@unsafe` attribute, the `@safe` attribute ise used on declarations who
 
 ```swift
 extension UnsafeBufferPointer {
-  @safe public var count: Int
+  @safe public let count: Int
   @safe public var startIndex: Int { 0 }
   @safe public var endIndex: Int { count }
 }
