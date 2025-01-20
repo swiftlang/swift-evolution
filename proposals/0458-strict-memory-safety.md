@@ -93,7 +93,6 @@ To suppress these warnings, the expressions involving unsafe code must be marked
 extension Array<Int> {
   func sum() -> Int {
     withUnsafeBufferPointer { buffer in
-      // warning: use of unsafe function 'sumIntBuffer' and unsafe property 'baseAddress'
       unsafe sumIntBuffer(buffer.baseAddress, buffer.count, 0)
     }
   }
@@ -122,10 +121,10 @@ The operation `UnsafeMutableBufferPointer.swapAt` swaps the values at the given 
 
 ```swift
 extension UnsafeMutableBufferPointer {
-  @unsafe public func swapAt(_ i: Element, _ j: Element) {
+  @unsafe public func swapAt(_ i: Index, _ j: Index) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
-    precondition(unsafe i < endIndex && j < endIndex)
+    precondition(i < endIndex && j < endIndex)
     let pi = unsafe (baseAddress! + i)
     let pj = unsafe (baseAddress! + j)
     let tmp = unsafe pi.move()
