@@ -271,11 +271,11 @@ protocol RunLoopExecutor: Executor {
 }
 ```
 
-We will also add a protocol for `RunLoopExecutor`s that are also
-`SerialExecutors`:
+We will also add a protocol for the main actor's executor (see later
+for details of `EventableExecutor` and why it exists):
 
 ```swift
-protocol SerialRunLoopExecutor: RunLoopExecutor & SerialExecutor {
+protocol MainExecutor: RunLoopExecutor & SerialExecutor & EventableExecutor {
 }
 ```
 
@@ -289,7 +289,7 @@ extension MainActor {
   ///
   /// Attempting to set this after the first `enqueue` on the main
   /// executor is a fatal error.
-  public static var executor: any SerialRunLoopExecutor { get set }
+  public static var executor: any MainExecutor { get set }
 }
 
 extension Task {
@@ -298,7 +298,7 @@ extension Task {
   ///
   /// Attempting to set this after the first `enqueue` on the global
   /// executor is a fatal error.
-  public static var defaultExecutor: any Executor { get set }
+  public static var defaultExecutor: any TaskExecutor { get set }
 }
 ```
 
@@ -307,12 +307,12 @@ exposed with the names below:
 
 ``` swift
 /// The default main executor implementation for the current platform.
-public struct PlatformMainExecutor: SerialRunLoopExecutor {
+public struct PlatformMainExecutor: MainExecutor {
   ...
 }
 
 /// The default global executor implementation for the current platform.
-public struct PlatformDefaultExecutor: Executor {
+public struct PlatformDefaultExecutor: TaskExecutor {
   ...
 }
 ```
@@ -325,27 +325,27 @@ the `Executor` protocols:
 struct ExecutorJob {
   ...
 
-  /// Storage reserved for the scheduler (exactly two UInts in size)
-  var schedulerPrivate: some Collection<UInt>
+  /// Storage reserved for the executor
+  var executorPrivate: (UInt, UInt)
+
+  /// Kinds of schedulable jobs.
+  @frozen
+  public struct Kind: Sendable {
+    public typealias RawValue = UInt8
+
+    /// The raw job kind value.
+    public var rawValue: RawValue
+
+    /// A task
+    public static let task = RawValue(0)
+
+    // Job kinds >= 192 are private to the implementation
+    public static let firstReserved = RawValue(192)
+  }
 
   /// What kind of job this is
-  var kind: ExecutorJobKind
+  var kind: Kind
   ...
-}
-
-/// Kinds of schedulable jobs.
-@frozen
-public struct ExecutorJobKind: Sendable {
-  public typealias RawValue = UInt8
-
-  /// The raw job kind value.
-  public var rawValue: RawValue
-
-  /// A task
-  public static let task = RawValue(0)
-
-  // Job kinds >= 192 are private to the implementation
-  public static let firstReserved = RawValue(192)
 }
 ```
 
@@ -421,6 +421,59 @@ extension Task {
 
 If this option is enabled, an Embedded Swift program that wishes to
 customize executor behaviour will have to use the C API.
+
+### Coalesced Event Interface
+
+We would like custom main executors to be able to integrate with other
+libraries, without tying the implementation to a specific library; in
+practice, this means that the executor will need to be able to trigger
+processing from some external event.
+
+```swift
+protocol EventableExecutor {
+
+  /// An opaque, executor-dependent type used to represent an event.
+  associatedtype Event
+
+  /// Register a new event with a given handler.
+  ///
+  /// Notifying the executor of the event will cause the executor to
+  /// execute the handler, however the executor is free to coalesce multiple
+  /// event notifications, and is also free to execute the handler at a time
+  /// of its choosing.
+  ///
+  /// Parameters
+  ///
+  /// - handler:  The handler to call when the event fires.
+  ///
+  /// Returns a new opaque `Event`.
+  public func registerEvent(handler: @escaping () -> ()) -> Event
+
+  /// Deregister the given event.
+  ///
+  /// After this function returns, there will be no further executions of the
+  /// handler for the given event.
+  public func deregister(event: Event)
+
+  /// Notify the executor of an event.
+  ///
+  /// This will trigger, at some future point, the execution of the associated
+  /// event handler.  Prior to that time, multiple calls to `notify` may be
+  /// coalesced and result in a single invocation of the event handler.
+  public func notify(event: Event)
+
+}
+```
+
+Our expectation is that a library that wishes to integrate with the
+main executor will register an event with the main executor, and can
+then notify the main executor of that event, which will trigger the
+executor to run the associated handler at an appropriate time.
+
+The point of this interface is that a library can rely on the executor
+to coalesce these events, such that the handler will be triggered once
+for a potentially long series of `MainActor.executor.notify(event:)`
+invocations.
 
 ## Detailed design
 
