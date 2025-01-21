@@ -336,7 +336,7 @@ to this proposal.
 In order for a call to an `@isolated(any)` function to be treated as
 not crossing an isolation boundary, the caller must be known to have
 the same isolation as the function.  Since the isolation of an
-`@isoalted(any)` parameter is necessarily an opaque value, this would
+`@isolated(any)` parameter is necessarily an opaque value, this would
 require the caller to be declared with value-specific isolation.  It
 is currently not possible for a local function or closure to be
 isolated to a specific value that isn't already the isolation of the
