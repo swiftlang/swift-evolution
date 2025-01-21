@@ -87,7 +87,7 @@ By allowing the language to define lifetime dependencies in these limited ways, 
 
 #### <a name="extensions"></a>Extensions to Standard Library types
 
-The standard library and Foundation will provide `storage` and computed properties, returning lifetime-dependent `Span` instances. These computed properties are the safe and composable replacements for the existing `withUnsafeBufferPointer` closure-taking functions.
+The standard library and Foundation will provide `storage` computed properties, returning lifetime-dependent `Span` instances. These computed properties are the safe and composable replacements for the existing `withUnsafeBufferPointer` closure-taking functions.
 
 ```swift
 extension Array {
