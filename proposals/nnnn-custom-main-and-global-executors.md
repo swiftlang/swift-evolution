@@ -326,7 +326,7 @@ struct ExecutorJob {
   ...
 
   /// Storage reserved for the executor
-  var executorPrivate: (UInt, UInt)
+  public var executorPrivate: (UInt, UInt)
 
   /// Kinds of schedulable jobs.
   @frozen
@@ -344,50 +344,90 @@ struct ExecutorJob {
   }
 
   /// What kind of job this is
-  var kind: Kind
+  public var kind: Kind
   ...
 }
 ```
 
-Finally, jobs of type `JobKind.task` have the ability to allocate task
-memory, using a stack disciplined allocator; this memory is
-automatically released when the task itself is released.  We will
-expose some new functions on `ExecutorJob` to allow access to this
-facility:
+Finally, jobs of type `ExecutorJob.Kind.task` have the ability to
+allocate task memory, using a stack disciplined allocator; this memory
+is automatically released when the task itself is released.
+
+Rather than require users to test the job kind to discover this, which
+would mean that they would not be able to use allocation on new job
+types we might add in future, or on other existing job types that
+might gain allocation support, it seems better to provide an interface
+that will allow users to conditionally acquire an allocator.  We are
+therefore proposing that `ExecutorJob` gain
 
 ```swift
 extension ExecutorJob {
 
-  /// Allocate a specified number of bytes of uninitialized memory.
-  public func allocate(capacity: Int) -> UnsafeMutableRawBufferPointer?
+  /// Obtain a stack-disciplined job-local allocator.
+  ///
+  /// If the job does not support allocation, this property will be
+  /// `nil`.
+  public var allocator: LocalAllocator? { get }
 
-  /// Allocate uninitialized memory for a single instance of type `T`.
-  public func allocate<T>(as: T.Type) -> UnsafeMutablePointer<T>?
+  /// A job-local stack-disciplined allocator.
+  ///
+  /// This can be used to allocate additional data required by an
+  /// executor implementation; memory allocated in this manner will
+  /// be released automatically when the job is disposed of by the
+  /// runtime.
+  ///
+  /// N.B. Because this allocator is stack disciplined, explicitly
+  /// deallocating memory will also deallocate all memory allocated
+  /// after the block being deallocated.
+  struct LocalAllocator {
 
-  /// Allocate uninitialized memory for the specified number of
-  /// instances of type `T`.
-  public func allocate<T>(capacity: Int, as: T.Type)
-    -> UnsafeMutableBufferPointer<T>?
+    /// Allocate a specified number of bytes of uninitialized memory.
+    public func allocate(capacity: Int) -> UnsafeMutableRawBufferPointer?
 
-  /// Deallocate previously allocated memory.  Note that the task
-  /// allocator is stack disciplined, so if you deallocate a block of
-  /// memory, all memory allocated after that block is also deallocated.
-  public func deallocate(_ buffer: UnsafeMutableRawBufferPointer?)
+    /// Allocate uninitialized memory for a single instance of type `T`.
+    public func allocate<T>(as: T.Type) -> UnsafeMutablePointer<T>?
 
-  /// Deallocate previously allocated memory.  Note that the task
-  /// allocator is stack disciplined, so if you deallocate a block of
-  /// memory, all memory allocated after that block is also deallocated.
-  public func deallocate<T>(_ pointer: UnsafeMutablePointer<T>?)
+    /// Allocate uninitialized memory for the specified number of
+    /// instances of type `T`.
+    public func allocate<T>(capacity: Int, as: T.Type)
+      -> UnsafeMutableBufferPointer<T>?
 
-  /// Deallocate previously allocated memory.  Note that the task
-  /// allocator is stack disciplined, so if you deallocate a block of
-  /// memory, all memory allocated after that block is also deallocated.
-  public func deallocate<T>(_ buffer: UnsafeMutableBufferPointer<T>?)
+    /// Deallocate previously allocated memory.  Note that the task
+    /// allocator is stack disciplined, so if you deallocate a block of
+    /// memory, all memory allocated after that block is also deallocated.
+    public func deallocate(_ buffer: UnsafeMutableRawBufferPointer?)
+
+    /// Deallocate previously allocated memory.  Note that the task
+    /// allocator is stack disciplined, so if you deallocate a block of
+    /// memory, all memory allocated after that block is also deallocated.
+    public func deallocate<T>(_ pointer: UnsafeMutablePointer<T>?)
+
+    /// Deallocate previously allocated memory.  Note that the task
+    /// allocator is stack disciplined, so if you deallocate a block of
+    /// memory, all memory allocated after that block is also deallocated.
+    public func deallocate<T>(_ buffer: UnsafeMutableBufferPointer<T>?)
+
+  }
 
 }
 ```
 
-Calling these on a job not of kind `JobKind.task` is a fatal error.
+In the current implementation, `allocator` will be `nil` for jobs
+other than those of type `ExecutorJob.Kind.task`.  This means that you
+can write code like
+
+```swift
+if let chunk = job.allocator?.allocate(capacity: 1024) {
+
+  // Job supports allocation and `chunk` is a 1,024-byte buffer
+  ...
+
+} else {
+
+  // Job does not support allocation
+
+}
+```
 
 ### Embedded Swift
 
