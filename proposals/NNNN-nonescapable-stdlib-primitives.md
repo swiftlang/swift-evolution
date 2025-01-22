@@ -279,15 +279,39 @@ withExtendedLifetime(span) { span in
 
 We've now run proposals to generalize `withExtendedLifetime` for (1) typed throws, (2) noncopyable inputs and results, and (3) nonescapable inputs. It is getting unwieldy to keep having to tweak these APIs, especially since in actual practice, `withExtendedLifetime` is most often called with an empty closure, to serve as a sort of fence protecting against early destruction.
 
-To acknowledge this widespread pattern, and to avoid having to keep indefinitely generalizing these marginal functions, we propose to introduce a simple `extendLifetime` function that avoids 
+Admittedly, these function signatures are getting unwieldy, and the closure-based calls are no longer a good fit with the real-life practices of Swift developers. These functions were originally designed to be used with a non-empty closure, like in the example below:
 
 ```swift
-let span = someArray.storage
-...
-extendLifetime(span) // span is guaranteed not to be destroyed before this call
+withExtendedLifetime(obj) {
+  weak var ref = obj
+  foo(ref!)
+}
 ```
 
-We are not proposing to deprecate the old `withExtendedLifetime` entry points at this time -- some developers may find the closure-based variants to be more attractive (or less error-prone) for some of their use cases. But I expect the new `extendLifetime` function will let us start tweaking the higher-order variants less often, perhaps even freezing them in their current state.
+In most cases, the formulation we actually recommend these days is to use a defer statement, with the function getting passed an empty closure:
+
+```swift
+weak var ref = obj
+defer { withExtendedLifetime(obj) {} } // Ugh 😖
+foo(ref!)
+```
+
+These functions clearly weren't designed to accommodate this widespread practice. To acknowledge and embrace this new style, we propose to introduce a new public Standard Library function that simply extends the lifetime of whatever variable it is given:
+
+```swift
+func extendLifetime<T: ~Copyable & ~Escapable>(_ x: borrowing T)
+```
+
+This allows `defer` incantations like the one above to be reformulated into a more readable form:
+
+```swift
+// Slightly improved reality
+weak var ref = obj
+defer { extendLifetime(obj) }
+foo(ref!)
+```
+
+To avoid disrupting working code, this proposal does not deprecate the existing closure-based functions in favor of the new `extendLifetime` operation. (Introducing the new function will still considerably reduce the need for future Swift releases to continue repeatedly generalizing the existing functions -- for example, to allow async use, or to allow nonescapable results.)
 
 ### Unsafe bit casts
 
@@ -533,41 +557,11 @@ func withExtendedLifetime<
 ) throws(E) -> Result
 ```
 
-Admittedly, these function signatures are getting unwieldy, and the closure-based calls have never really been a good fit for the real-life practices of Swift developers.
-
-These functions were originally designed to be used with a non-empty closure, like in the example below:
-
-```swift
-withExtendedLifetime(obj) {
-  weak var ref = obj
-  foo(ref!)
-}
-```
-
-In most cases, the formulation we actually recommend these days is to use a defer statement, with the function getting passed an empty closure:
-
-```swift
-weak var ref = obj
-defer { withExtendedLifetime(obj) {} } // Ugh 😖
-foo(ref!)
-```
-
-These functions clearly weren't designed to accommodate this widespread practice. To acknowledge and embrace this widespread practice, we propose to introduce a new public Standard Library function that simply extends the lifetime of whatever variable it is given:
+We also propose the addition of a new function variant that eliminates the closure argument, to better accommodate the current best practice of invoking these functions in `defer` blocks:
 
 ```swift
 func extendLifetime<T: ~Copyable & ~Escapable>(_ x: borrowing T)
 ```
-
-This allows defer incantations like the one above to be reformulated into a more readable form:
-
-```swift
-// Slightly improved reality
-weak var ref = obj
-defer { extendLifetime(obj) }
-foo(ref!)
-```
-
-To avoid disrupting working code, this proposal does not deprecate the existing closure-based functions in favor of the new `extendLifetime` operation. (Introducing the new function will still considerably reduce the need for future Swift releases to continue repeatedly generalizing the existing functions -- for example, to allow async use, or to allow nonescapable results.)
 
 ### Unsafe Bit Casts
 
@@ -849,3 +843,4 @@ Many people contributed to the discussions that led to this proposal. We'd like 
 - John McCall
 - Tony Parker
 - Andrew Trick
+- Rauhul Varma
