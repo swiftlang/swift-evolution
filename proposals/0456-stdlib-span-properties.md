@@ -220,7 +220,7 @@ This proposal is additive and ABI-compatible with existing code.
 
 ## Implications on adoption
 
-The additions described in this proposal require a new version of the Swift standard library and runtime.
+The additions described in this proposal require a version of the Swift standard library which include the `Span` and `RawSpan` types.
 
 ## Alternatives considered
 
