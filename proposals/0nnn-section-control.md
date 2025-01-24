@@ -6,11 +6,11 @@
 * Discussion threads:
   * Pitch #1: https://forums.swift.org/t/pitch-low-level-linkage-control-attributes-used-and-section/65877
   * Pitch #2: https://forums.swift.org/t/pitch-2-low-level-linkage-control/69752
-  * Pitch #3: TBD
+  * Pitch #3: https://forums.swift.org/t/pitch-3-section-placement-control/77435
 
 ## Introduction
 
-This proposal builds on top of [Swift Compile-Time Values](https://TBD) and adds two new attributes into the Swift language: `@section`  and `@used`. These allow users to directly control which section of the resulting binary should globals variables be emitted into, and give users the ability to disable DCE (dead code elimination) on those. The goal is to enable systems and embedded programming use cases like runtime discovery of test metadata from multiple modules, and also to serve as a low-level building block for higher-level features (e.g. linker sets, plugins).
+This proposal builds on top of [Swift Compile-Time Values](https://github.com/artemcm/swift-evolution/blob/const-values/proposals/0nnn-const-values.md) and adds two new attributes into the Swift language: `@section`  and `@used`. These allow users to directly control which section of the resulting binary should globals variables be emitted into, and give users the ability to disable DCE (dead code elimination) on those. The goal is to enable systems and embedded programming use cases like runtime discovery of test metadata from multiple modules, and also to serve as a low-level building block for higher-level features (e.g. linker sets, plugins).
 
 The intention is that these attributes are to be used rarely and only by specific use cases; high-level application code should not need to use them directly and instead should rely on libraries, macros and other abstractions over the low-level attributes.
 
@@ -59,7 +59,7 @@ This proposal recommends to use sections of the various object file formats as t
 
 ## Proposed Solution
 
-The proposal is to add two new attributes `@section` and `@used` that will allow annotating global and static variables with directives to place the value into a custom section, and to require no-dead-stripping aka "attribute used". The `@section` attribute relies heavily on the facilities provided by [Swift Compile-Time Values](https://TBD), namely the ability to enforce constantness of an expressions. Using `@section` requires that the initializer expression is a constant expression:
+The proposal is to add two new attributes `@section` and `@used` that will allow annotating global and static variables with directives to place the value into a custom section, and to require no-dead-stripping aka "attribute used". The `@section` attribute relies heavily on the facilities provided by [Swift Compile-Time Values](https://github.com/artemcm/swift-evolution/blob/const-values/proposals/0nnn-const-values.md), namely the ability to enforce constantness of an expressions. Using `@section` requires that the initializer expression is a constant expression:
 
 ```swift
 // Place entry into a section, mark as "do not dead strip".
@@ -227,7 +227,7 @@ let d2 = @const d1.count            // statically initializable
 
 *However, using a statically non-initializable value in an expression does not preclude the outer expression from being statically initialized either. In this example, `d1` would not be allowed to be placed into a custom section because it’s not statically initializable. But `d2` could still potentially be statically initializable (even though the definition of `d2` uses a sub-expression that is not statically initializable), as it’s simply an integer.*
 
-As described in [Swift Compile-Time Values](https://TBD), values of function types are eligible for being compile-time evaluable. Their concrete pointer value is not fully known until link-time or program load-time (depending on type of linking, ASLR, PAC, etc.). For the purposes of guaranteed static initialization, function values are statically initialized into a function pointer. This pointer is still subject to normal linking and loading resolutions and fixups.
+As described in [Swift Compile-Time Values](https://github.com/artemcm/swift-evolution/blob/const-values/proposals/0nnn-const-values.md), values of function types are eligible for being compile-time evaluable. Their concrete pointer value is not fully known until link-time or program load-time (depending on type of linking, ASLR, PAC, etc.). For the purposes of guaranteed static initialization, function values are statically initialized into a function pointer. This pointer is still subject to normal linking and loading resolutions and fixups.
 
 ```swift
 func foo() { ... }
