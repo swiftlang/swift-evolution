@@ -180,7 +180,7 @@ public struct Backtrace: CustomStringConvertible, Codable, Sendable {
   }
 
   /// The architecture of the process to which this backtrace refers.
-  public var architecture: String
+  public var architecture: String { get }
 
   /// A `Sequence` of captured frame information.
   ///
@@ -194,8 +194,8 @@ public struct Backtrace: CustomStringConvertible, Codable, Sendable {
   /// Some backtracing algorithms may require this information, in which case
   /// it will be filled in by the `capture()` method.  Other algorithms may
   /// not, in which case it will be `nil` and you can capture an image list
-  /// separately yourself using `captureImages()`.
-  public var images: [Image]?
+  /// separately yourself using `ImageMap.capture()`.
+  public var images: ImageMap?
 
   /// Capture a backtrace from the current program location.
   ///
@@ -221,12 +221,6 @@ public struct Backtrace: CustomStringConvertible, Codable, Sendable {
                              limit: Int? = 64,
                              offset: Int = 0,
                              top: Int = 16) throws -> Backtrace
-
-  /// Capture a list of the images currently mapped into the calling
-  /// process.
-  ///
-  /// @returns A list of `Image`s.
-  public static func captureImages() -> [Image]
 
   /// Specifies options for the `symbolicated` method.
   public struct SymbolicationOptions: OptionSet {
@@ -259,7 +253,7 @@ public struct Backtrace: CustomStringConvertible, Codable, Sendable {
   /// @param options Symbolication options; see `SymbolicationOptions`.
   ///
   /// @returns A new `SymbolicatedBacktrace`.
-  public func symbolicated(with images: [Image]? = nil,
+  public func symbolicated(with images: ImageMap? = nil,
                            options: SymbolicationOptions = .default)
     -> SymbolicatedBacktrace?
 
@@ -282,6 +276,43 @@ extension FixedWidthInteger {
   init?(_ address: Backtrace.Address)
 }
 ```
+
+We also allow conversion of a `FixedWidthInteger` to an address:
+
+```swift
+extension Backtrace.Address {
+  /// Convert from a FixedWidthInteger.
+  ///
+  /// This initializer will return nil if the address width is not one that is
+  /// currently supported by `Backtrace.Address`.
+  ///
+  /// @param value The value to convert.
+  public init?<T: FixedWidthInteger>(_ value: T)
+}
+```
+
+The `ImageMap` type represents a captured list of loaded images, and
+implements the `Collection` protocol so can be indexed like an array:
+
+```swift
+public struct ImageMap: Collection, Sendable, Hashable, CustomStringConvertible {
+
+  /// Capture the image map for the current process.
+  public static func capture() -> ImageMap
+
+  /// The name of the platform that captured this image map.
+  public private(set) var platform: String
+
+  /// Look-up an image by address.
+  public func indexOfImage(at address: Backtrace.Address) -> Int?
+
+}
+```
+
+The `platform` string starts with a token identifying the operating
+system (e.g. `macOS`, `iOS`, `tvOS`, `watchOS`, `visionOS`, `Linux`,
+`Windows`) and may contain additional platform-specific version
+information thereafter.
 
 _Symbolication_, by which we mean the process of looking up the symbols
 associated with addresses in a backtrace, is in general an expensive
@@ -385,10 +416,10 @@ public struct SymbolicatedBacktrace: CustomStringConvertible, Codable, Sendable 
   }
 
   /// A list of captured frame information.
-  public var frames: some Sequence<Frame> { get }
+  public var frames: [Frame] { get }
 
   /// A list of images found in the process.
-  public var images: [Backtrace.Image]
+  public var images: ImageMap { get }
 
   /// True if this backtrace is a Swift runtime failure.
   public var isSwiftRuntimeFailure: Bool { get }
@@ -451,12 +482,13 @@ of existentials; or it could have been a generic parameter, but doing
 that makes it difficult to cope with a backtrace unless you already
 know what kind of addresses it contains at compile time.
 
-The `frames` member variables could have been arrays, but implementing
-them instead as a sequence means that we have the flexibility to use
-a different backing store where doing so makes sense.  An example where
-we might want that is where we're capturing very large numbers of
-backtraces, in which case doing some kind of delta compression on the
-frame addresses might enable us to save significant amounts of memory.
+The `frames` member variable on `Backtrace` could have been an array,
+but implementing it instead as a sequence means that we have the
+flexibility to use a different backing store where doing so makes
+sense.  An example where we might want that is where we're capturing
+very large numbers of backtraces, in which case doing some kind of
+delta compression on the frame addresses might enable us to save
+significant amounts of memory.
 
 Some desirable features are intentionally left out of this proposal;
 the intent is that while some of these may even be implemented, they
