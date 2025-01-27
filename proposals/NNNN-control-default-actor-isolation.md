@@ -20,7 +20,7 @@ A lot of code is effectively “single-threaded”. For example, most executable
 
 The easiest and best way to model single-threaded code is with a global actor. Everything on a global actor runs sequentially, and code that isn’t isolated to that actor can’t access the data that is. All programs start running on the global actor `MainActor`, and if everything in the program is isolated to the main actor, there shouldn’t be any concurrency errors.
 
-Unfortunately, it’s not quite that simple right now. Writing a single-threaded program is surprisingly difficult under the Swift 6 language mode. This is because Swift 6 defaults to a presumption of concurrency: if a function or type is not annotated or inferred to be isolated, it is treated as non-isolated, meaning it can be used concurrently. This default often leads to conflicts with single-threaded code, producing false positive diagnostics in cases such as:
+Unfortunately, it’s not quite that simple right now. Writing a single-threaded program is surprisingly difficult under the Swift 6 language mode. This is because Swift 6 defaults to a presumption of concurrency: if a function or type is not annotated or inferred to be isolated, it is treated as non-isolated, meaning it can be used concurrently. This default often leads to conflicts with single-threaded code, producing false-positive diagnostics in cases such as:
 
 - global and static variables,
 - conformances of main-actor-isolated types to non-isolated protocols,
