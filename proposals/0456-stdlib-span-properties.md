@@ -184,7 +184,7 @@ All of these unsafe conversions return a value whose lifetime is dependent on th
   - The underlying memory remains initialized.
   - The underlying memory is not mutated.
 
-Failure to keep these invariants results in undefined behaviour.
+Failure to maintain these invariants results in undefined behaviour.
 
 #### Extensions to `Foundation.Data`
 
