@@ -2,8 +2,8 @@
 
 * Previous proposal: [SE-0312](0312-indexed-and-enumerated-zip-collections.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: Pending
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (28 Jan - February 7 2025)**
 * Implementation: [apple/swift#78092](https://github.com/swiftlang/swift/pull/78092)
 
 ## Introduction
