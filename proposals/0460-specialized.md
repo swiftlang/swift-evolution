@@ -1,10 +1,11 @@
 # Explicit Specialization
 
-* Proposal: [SE-NNNN](NNNN-specialize.md)
+* Proposal: [SE-0460](0460-specialized.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (January 29 ... February 11, 2025)**
 * Implementation: Available in nightly toolchains using the underscored `@_specialize`
-* Status: **Awaiting review**
+* Discussion: ([pitch](https://forums.swift.org/t/pitch-explicit-specialization/76967)) 
 
 ## Introduction
 
