@@ -209,9 +209,9 @@ Closely related to partial specialization is the ability to specialize once for 
 
 Another example of this is `Array.append`. There is only one single implementation needed for appending an `AnyObject`-constrained to an array. The append operation needs to retain the object, but does not need any other properties. So two class instances could be appended using the same method irrespective of their actual type. Similar techniques could be used to provide shared specializations for `BitwiseCopyable` types, possibly with the addition of a supplied size argument to avoid having to use value witness calls.
 
-### Making Specializations Publicly Available
+### Making Symbols for Specializations Publicly Available
 
-This proposal keeps explicit specializations internal only. For ABI-stable frameworks, a useful future direction would be to make these symbols publicly available and listed in the `.swiftinterface` file, for callers to link to directly. 
+This proposal keeps entry points for explicit specializations internal only. Callers outside the module call the generic version of the function, which redispatches to the specialized version. For ABI-stable frameworks, a useful future direction would be to make these symbols publicly available and listed in the `.swiftinterface` file, for callers to link to directly. 
 
 Doing this allows ABI-stable framework authors to expose specializations without exposing the full implementation details of a function as inlinable code. While adding a public specialized symbol to a framework is ABI, it is a much more limited ABI surface compared to providing an inlinable implementation, which requires any future changes to a type to consider the previous inlinable code's behavior to ensure it remains compatible forever in older binaries. A specialized entry point could be updated in a framework to fix a bug without recompiling the caller. Specializations in binary frameworks also have the benefit of avoiding duplication of code into the caller.
 
