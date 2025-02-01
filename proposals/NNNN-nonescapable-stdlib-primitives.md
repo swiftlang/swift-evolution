@@ -53,7 +53,6 @@ Related proposals:
     * [Nonescapable Result](#nonescapable-result)
     * [Retrieving the memory layout of nonescapable types](#retrieving-the-memory-layout-of-nonescapable-types)
     * [Lifetime management](#lifetime-management)
-    * [Unsafe bit casts](#unsafe-bit-casts)
     * [Object identifiers](#object-identifiers)
     * [Odds and ends](#odds-and-ends)
   * [Detailed Design](#detailed-design)
@@ -62,7 +61,6 @@ Related proposals:
     * [enum Result](#enum-result)
     * [enum MemoryLayout](#enum-memorylayout)
     * [Lifetime Management](#lifetime-management-1)
-    * [Unsafe Bit Casts](#unsafe-bit-casts-1)
     * [struct ObjectIdentifier](#struct-objectidentifier)
     * [ManagedBufferPointer equatability](#managedbufferpointer-equatability)
     * [Making indices universally available on unsafe buffer pointers](#making-indices-universally-available-on-unsafe-buffer-pointers)
@@ -313,14 +311,6 @@ foo(ref!)
 
 To avoid disrupting working code, this proposal does not deprecate the existing closure-based functions in favor of the new `extendLifetime` operation. (Introducing the new function will still considerably reduce the need for future Swift releases to continue repeatedly generalizing the existing functions -- for example, to allow async use, or to allow nonescapable results.)
 
-### Unsafe bit casts
-
-To cover a common low-level need that regularly came up while experimenting with nonescapable use cases, we propose to narrowly generalize the existing `unsafeBitCast` function to allow its input value to be of a nonescapable type. 
-
-The bit cast's result is free of any lifetime constraints that affected the input. This is a profoundly unsafe operation, but dissolving lifetime enforcement like this can be a useful fallback option when implementing low-level constructs. (In general, though, it is a better idea to add explicit unsafe operations that extract whatever data we need from a nonescapable type, without resorting to error-prone bit casting.)
-
-We do not allow unsafe bit casts to nonescapable types (as we do not have a good way to assign lifetime constraints on the result yet), and we continue to require both the input and target types to be copyable.
-
 ### Object identifiers
 
 The `ObjectIdentifier` construct is primarily used to generate a Comparable/Hashable value that identifies a class instance. However, it is also able to identify metatypes:
@@ -563,23 +553,6 @@ We also propose the addition of a new function variant that eliminates the closu
 func extendLifetime<T: ~Copyable & ~Escapable>(_ x: borrowing T)
 ```
 
-### Unsafe Bit Casts
-
-We narrowly generalize the existing `unsafeBitCast` function to allow the input value to be of a nonescapable type:
-
-```swift
-func unsafeBitCast<T: ~Escapable, U>(
-  _ x: T, to type: U.Type
-) -> U
-```
-
-This is intended to serve as a last-resort escape hatch to allow low-level code to "dissolve" nonescapability even if it has no regular way to directly extract data from the input type. (This generalization doesn't lift `unsafeBitCast`'s existing requirements; for example, the input and output types must have compatible layout.)
-
-<!-- FIXME: Later, as needed: -->
-<!-- FIXME: Try generalizing for `U: ~Escapable`, copying lifetime from the input -->
-<!-- FIXME: Maybe generalize for noncopyables (make it consuming) -->
-<!-- FIXME: Note that these two directions may conflict. -->
-
 ### `struct ObjectIdentifier`
 
 The `ObjectIdentifier` construct is primarily used to generate a Comparable/Hashable value that identifies a class instance. However, it is also able to generate type identifiers:
@@ -819,7 +792,7 @@ Most other items listed as future work in that proposal continue to remain on ou
 
 1. We need to define stable syntax for expressing lifetime dependencies as explicit annotations, and we need to define what semantics we apply by default on functions that do not explicitly specify these.
 
-2. We will need an unsafe mechanism to override lifetime dependencies of nonescapable entities.
+2. We will need an unsafe mechanism to override lifetime dependencies of nonescapable entities. We also expect to eventually need to allow unsafe bit casting to and from nonescapable types.
 
 3. We will need to allow pointer types to address nonescapable items: `UnsafePointer`, `UnsafeBufferPointer` type families, perhaps `ManagedBuffer`. The primary design task here is to decide what lifetime semantics we want to assign to pointer dereferencing operations, including mutations.
 
