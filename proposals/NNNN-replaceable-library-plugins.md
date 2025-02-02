@@ -1,6 +1,6 @@
 # Replaceable Library Plugins
 
-* Proposal: [SE-0461](0641-replaceable-library-plugins.md)
+* Proposal: [SE-NNNN](NNNN-replaceable-library-plugins.md)
 * Authors: [tayloraswift](https://github.com/tayloraswift)
 * Review Manager: TBD
 * Implementation: [swiftlang/swift-package-manager#8249](https://github.com/swiftlang/swift-package-manager/pull/8249)
