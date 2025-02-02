@@ -10,8 +10,7 @@
 
 SwiftPM currently has no support for non-system binary library dependencies on Linux. This proposal adds support for **Replaceable Library Plugins**, which are a type of dynamic library that is shared across a fleet of machines and can be upgraded without recompiling and redeploying all applications running on those machines. We will distribute Replaceable Library Plugins through the existing `.artifactbundle` format.
 
-Swift-evolution thread: [Discussion thread topic for that
-proposal](https://forums.swift.org/)
+Swift-evolution thread: [Discussion thread](https://forums.swift.org/t/pitch-replaceable-library-plugins/77605)
 
 Example Producer: [swift-rlp-example](https://github.com/tayloraswift/swift-rlp-example)
 
