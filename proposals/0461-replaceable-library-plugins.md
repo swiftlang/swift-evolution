@@ -13,12 +13,15 @@ SwiftPM currently has no support for non-system binary library dependencies on L
 Swift-evolution thread: [Discussion thread topic for that
 proposal](https://forums.swift.org/)
 
+Example Producer: [swift-rlp-example](https://github.com/tayloraswift/swift-rlp-example)
+
+Example Consumer: [swift-rlp-example-client](https://github.com/tayloraswift/swift-rlp-example-client)
 
 ## Motivation
 
 Many of us in the Server World have a Big App with a small component that changes very rapidly, much more rapidly than the rest of the App. This component might be something like a filter, or an algorithm, or a plugin that is being constantly tuned.
 
-We could, for argument’s sake, try and turn this component into data that can be consumed by the Big App, which would probably involve designing a bytecode and an interpreter, and maybe even a whole interpreted domain-specific programming language. But that is Really Hard and we would rather just write this thing In Swift, and let Swift code call Swift code.
+We could, for argument’s sake, try and turn this component into data that can be consumed by the Big App, which would probably involve designing a bytecode and an interpreter, and maybe even a whole interpreted domain-specific programming language. But that is very hard and we would rather just write this thing in Swift, and let Swift code call Swift code.
 
 While macOS has Dynamic Library support through XCFrameworks, on Linux we currently have to recompile the Big App from source and redeploy the Big App every time the filter changes, and we don’t want to do that. What we really want instead is to have the Big App link the filter as a Dynamic Library, and redeploy the Dynamic Library as needed.
 
@@ -38,7 +41,7 @@ The organization that distributes an RLP is responsible for defining what exactl
 1. Ubuntu 24.04 with the Swift 6.0.3 runtime installed at `/home/ubuntu/swift`
 2. Ubuntu 24.04 with the Swift 6.0.3 runtime installed at `/home/ubuntu/swift-runtime`
 
-Concepts like Platform Triples are not sufficient to describe an ODP. Even though both ODPs above would probably share the Triple `aarch64-unknown-linux-gnu`, code compiled for one would never be able to run on the other.
+Concepts like Platform Triples are not sufficient to describe an ODP. Even though both ODPs above would probably share the Triple `aarch64-unknown-linux-gnu`, Swift code compiled (without `--static-swift-stdlib`) for one would never be able to run on the other.
 
 Organizations add and remove ODPs as needed, and trying to define a global registry of all possible ODPs is a non-goal.
 
