@@ -1,7 +1,7 @@
 # Extensible enums
 
 * Proposal: [SE-NNNN](NNNN-extensible-enums.md)
-* Authors: [Cory Benfield](https://github.com/lukasa), [Pavel Yaskevich](https://github.com/xedin), [Franz Busch](https://github.com/FranzBusch)
+* Authors: [Pavel Yaskevich](https://github.com/xedin), [Franz Busch](https://github.com/FranzBusch), [Cory Benfield](https://github.com/lukasa)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Bug: [apple/swift#55110](https://github.com/swiftlang/swift/issues/55110)
@@ -26,7 +26,7 @@ binaries. While by-and-large this was done without introducing feature
 mismatches between the "resilient" and default "non-resilient" language
 dialects, the `@frozen` attribute when applied to enumerations managed to
 introduce a difference. This difference was introduced late in the process of
-evolving SE-0192, and this pitch would aim to address it.
+evolving SE-0192, and this proposal would aim to address it.
 
 `@frozen` is a very powerful attribute. It can be applied to both structures and
 enumerations. It has a wide ranging number of effects, including exposing their
@@ -136,13 +136,13 @@ non-resilient Swift.
 ## Proposed solution
 
 We propose to introduce a new language feature `ExtensibleEnums` that aligns the
-behaviour of enumerations in both language dialetcs. This will make enumerations
+behaviour of enumerations in both language dialects. This will make enumerations
 in packages a safe default and leave maintainers the choice of extending them
 later on.
 
-In modules with the language feature enabled, developers can use the exisiting
-`@frozen` attribute to mark an enumeration as non-extensible. Allowing consumers
-of the module to exhaustively switch over the cases. This makes commiting to the
+In modules with the language feature enabled, developers can use the existing
+`@frozen` attribute to mark an enumeration as non-extensible, allowing consumers
+of the module to exhaustively switch over the cases. This makes committing to the
 API of an enum an active choice for developers.
 
 Modules consuming other modules with the language feature enabled will be forced
@@ -155,6 +155,13 @@ attribute allows developers to make a case-by-case decision on each enumeration
 if it should be extensible or not by applying one of the two attributes. The
 language feature `ExtensibleEnums` can be thought of as implicitly adding
 `@extensible` to all enums that are not explicitly marked as `@frozen`.
+
+In resilient modules, the `@extensible` module doesn't affect API nor ABI since
+the behaviour of enumerations in modules compiled with library evolution mode
+are already extensible by default. We believe that extensible enums are the
+right default choice in both resilient and non-resilient modules and the new
+proposed `@extensible` attribute primiarly exists to give developers a migration
+path.
 
 ## Source compatibility
 
