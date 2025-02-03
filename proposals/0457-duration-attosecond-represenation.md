@@ -3,7 +3,7 @@
 * Proposal: [SE-0457](0457-duration-attosecond-represenation.md)
 * Authors: [Philipp Gabriel](https://github.com/ph1ps)
 * Review Manager: [Stephen Canon](https://github.com/stephentyrone)
-* Status: **Active review (January 16 ... 30, 2025)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#78202](https://github.com/swiftlang/swift/pull/78202)
 * Review: ([pitch](https://forums.swift.org/t/pitch-adding-int128-support-to-duration))([review](https://forums.swift.org/t/se-0457-expose-attosecond-representation-of-duration/77249))
 
