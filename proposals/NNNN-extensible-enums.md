@@ -136,9 +136,9 @@ non-resilient Swift.
 ## Proposed solution
 
 We propose to introduce a new language feature `ExtensibleEnums` that aligns the
-behaviour of enumerations in both language dialects. This will make enumerations
-in packages a safe default and leave maintainers the choice of extending them
-later on.
+behaviour of enumerations in both language dialects. This will make **public**
+enumerations in packages a safe default and leave maintainers the choice of
+extending them later on.
 
 In modules with the language feature enabled, developers can use the existing
 `@frozen` attribute to mark an enumeration as non-extensible, allowing consumers
@@ -147,7 +147,10 @@ API of an enum an active choice for developers.
 
 Modules consuming other modules with the language feature enabled will be forced
 to add an `@unknown default:` case to any switch state for enumerations that are
-not marked with `@frozen`.
+not marked with `@frozen`. Importantly, this only applies to enums that are
+imported from other modules that are not in the same package. For enums inside
+the same modules of the declaring package switches is still required to be
+exhaustive and doesn't require an `@unknown default:` case.
 
 Since enabling a language feature applies to the whole module at once we also
 propose adding a new attribute `@extensible` analogous to `@frozen`. This
@@ -156,9 +159,9 @@ if it should be extensible or not by applying one of the two attributes. The
 language feature `ExtensibleEnums` can be thought of as implicitly adding
 `@extensible` to all enums that are not explicitly marked as `@frozen`.
 
-In resilient modules, the `@extensible` module doesn't affect API nor ABI since
-the behaviour of enumerations in modules compiled with library evolution mode
-are already extensible by default. We believe that extensible enums are the
+In resilient modules, the `@extensible` attribute doesn't affect API nor ABI
+since the behaviour of enumerations in modules compiled with library evolution
+mode are already extensible by default. We believe that extensible enums are the
 right default choice in both resilient and non-resilient modules and the new
 proposed `@extensible` attribute primiarly exists to give developers a migration
 path.
@@ -189,4 +192,4 @@ This proposal only affects API resilience of non-resilient libraries, by enablin
 We believe that extensible enums should be default in the language to remove the
 common pitfall of using enums in public API and only later on realising that
 those can't be extended in an API compatible way. Since this would be a large
-source breaking it must be gated behind a new language mode.
+source breaking change it must be gated behind a new language mode.
