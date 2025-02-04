@@ -249,7 +249,7 @@ extension Array<Int> {
 }
 ```
 
-The `@safe` annotation on a declaration takes responsibility for its direct arguments, so (for example) a variable of unsafe type used as an argument to a `@safe` function (or as the `self` for a property or subscript reference) will not be diagnosed as unsafe:
+The `@safe` annotation on a declaration takes responsibility for any variables of unsafe type that are used as its direct arguments (including the `self`). If such a variable is used to access a `@safe` property or subscript, or in a function call to a `@safe` function, it will not be diagnosed as unsafe:
 
 ```swift
 extension Array<Int> {
