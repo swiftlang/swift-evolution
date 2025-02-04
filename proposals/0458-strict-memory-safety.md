@@ -125,7 +125,7 @@ extension UnsafeMutableBufferPointer {
   @unsafe public func swapAt(_ i: Index, _ j: Index) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
-    precondition(unsafe i < endIndex && j < endIndex)
+    precondition(i < endIndex && j < endIndex)
     let pi = unsafe (baseAddress! + i)
     let pj = unsafe (baseAddress! + j)
     let tmp = unsafe pi.move()
@@ -217,7 +217,7 @@ There are a few exemptions to the rule that any unsafe constructs within the sig
 
 ### `@safe` attribute
 
-Like the `@unsafe` attribute, the `@safe` attribute ise used on declarations whose signatures involve unsafe types. However, the `@safe` attribute means that the declaration is consider safe to use even though its signature includes unsafe types. For example, marking `UnsafeBufferPointer` as `@unsafe` means that all operations involving an unsafe buffer pointer are implicitly considered `@unsafe`. The `@safe` attribute can be used to say that those particular operations are actually safe. For example, any operation involving buffer indices or count are safe, because they don't touch the memory itself. This can be indicated by marking these APIs `@safe`:
+Like the `@unsafe` attribute, the `@safe` attribute is used on declarations whose signatures involve unsafe types. However, the `@safe` attribute means that the declaration is consider safe to use even though its signature includes unsafe types. For example, marking `UnsafeBufferPointer` as `@unsafe` means that all operations involving an unsafe buffer pointer are implicitly considered `@unsafe`. The `@safe` attribute can be used to say that those particular operations are actually safe. For example, any operation involving buffer indices or count are safe, because they don't touch the memory itself. This can be indicated by marking these APIs `@safe`:
 
 ```swift
 extension UnsafeBufferPointer {
@@ -244,6 +244,20 @@ extension Array<Int> {
   func sum() -> Int {
     withUnsafeBufferPointer { buffer in
       unsafe c_library_sum_function(buffer.baseAddress, buffer.count, 0)
+    }
+  }
+}
+```
+
+The `@safe` annotation on a declaration takes responsibility for its direct arguments, so (for example) a variable of unsafe type used as an argument to a `@safe` function (or as the `self` for a property or subscript reference) will not be diagnosed as unsafe:
+
+```swift
+extension Array<Int> {
+  func sum() -> Int {
+    withUnsafeBufferPointer { buffer in
+      let count = buffer.count         // count is `@safe`, no diagnostic even though 'buffer' has unsafe type
+      let address = buffer.baseAddress // warning: 'buffer' and 'baseAddress' are both unsafe
+      c_library_sum_function(address, count, 0) // warning: 'c_library_sum_function' and 'address' are both unsafe
     }
   }
 }
