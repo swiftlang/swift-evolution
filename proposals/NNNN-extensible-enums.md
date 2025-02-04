@@ -176,6 +176,9 @@ Changing the annotation from `@extensible` to `@frozen` is a source compatible
 change and will only result in a warning code that used `@unknown default:`
 clause. This allows developers to commit to the API of an enum in a non-source
 breaking way.
+Adding an `@extensible` annotation is a source breaking change in modules that
+have **not** enabled the `ExtensibleEnums` language features or are compiled
+with resiliency.
 
 ## Effect on ABI stability
 
@@ -193,3 +196,13 @@ We believe that extensible enums should be default in the language to remove the
 common pitfall of using enums in public API and only later on realising that
 those can't be extended in an API compatible way. Since this would be a large
 source breaking change it must be gated behind a new language mode.
+
+## Alternatives considered
+
+### Only provide the `@extensible` annotation
+
+We believe that the default behaviour in both language dialects should be that
+public enumerations are extensible. One of Swift's goals, is safe defaults and
+the current non-extensible default in non-resilient modules doesn't achieve that
+goal. That's why we propose a new language feature to change the default in a
+future Swift language mode.
