@@ -59,6 +59,7 @@ case .hawaiian:
     throw BadFlavorError()
 case .pepperoni:
     try validateNoVegetariansEating()
+    return .delicious
 case .cheese:
     return .delicious
 }
@@ -149,8 +150,8 @@ Modules consuming other modules with the language feature enabled will be forced
 to add an `@unknown default:` case to any switch state for enumerations that are
 not marked with `@frozen`. Importantly, this only applies to enums that are
 imported from other modules that are not in the same package. For enums inside
-the same modules of the declaring package switches is still required to be
-exhaustive and doesn't require an `@unknown default:` case.
+the same modules of the declaring package switches are still required to be
+exhaustive and don't require an `@unknown default:` case.
 
 Since enabling a language feature applies to the whole module at once we also
 propose adding a new attribute `@extensible` analogous to `@frozen`. This
@@ -166,6 +167,9 @@ right default choice in both resilient and non-resilient modules and the new
 proposed `@extensible` attribute primiarly exists to give developers a migration
 path.
 
+In non-resilient modules, adding the `@extensible` attribute to non-public enums
+will produce a warning since those enums can only be matched exhaustively.
+
 ## Source compatibility
 
 Enabling the language feature `ExtensibleEnums` in a module that contains public
@@ -176,9 +180,9 @@ Changing the annotation from `@extensible` to `@frozen` is a source compatible
 change and will only result in a warning code that used `@unknown default:`
 clause. This allows developers to commit to the API of an enum in a non-source
 breaking way.
-Adding an `@extensible` annotation is a source breaking change in modules that
-have **not** enabled the `ExtensibleEnums` language features or are compiled
-with resiliency.
+Adding an `@extensible` annotation to an exisitng public enum is a source
+breaking change in modules that have **not** enabled the `ExtensibleEnums`
+language features or are compiled with resiliency.
 
 ## Effect on ABI stability
 
