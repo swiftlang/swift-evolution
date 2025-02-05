@@ -231,7 +231,7 @@ Since some modules support compiling in resilient and non-resilient modes,
 developers need a way to mark enums as non-extensible for both. `@nonExtensible`
 produces an error when compiling with resiliency; hence, developers must use
 `@frozen`. To make supporting both modes easier `@frozen` will also work in
-non-resilient modules and make enumerations extensible.
+non-resilient modules and make enumerations non extensible.
 
 ## Source compatibility
 
