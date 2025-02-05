@@ -259,6 +259,13 @@ Enums can be used for errors. Catching and pattern matching enums could add
 support for an `@unknown catch` to make pattern matching of typed throws align
 with `switch` pattern matching.
 
+### Allow adding additional associated values
+
+Adding additional associated values to an enum can also be seen as extending it
+and we agree that this is interesting to explore in the future. However, this
+proposal focuses on solving the primary problem of the unusability of public
+enumerations in non-resilient modules.
+
 ## Alternatives considered
 
 ### Only provide the `@extensible` annotation
