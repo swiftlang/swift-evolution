@@ -430,6 +430,11 @@ Other than the source break above, the introduction of this strict safety checki
 
 The attributes, `unsafe` expression, and strict memory-safety checking model proposed here have no impact on ABI.
 
+## Revision history
+
+* **Revision 2 (following first review)**
+  * Specified that variables of unsafe type passed in to uses of `@safe` declarations (e.g., calls, property accesses) are not diagnosed as themselves being unsafe. This makes means that expressions like `unsafeBufferePointer.count` will be considered safe.
+
 ## Future Directions
 
 ### The `SerialExecutor` and `Actor` protocols
