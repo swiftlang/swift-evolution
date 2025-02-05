@@ -9,6 +9,16 @@
 * Upcoming Feature Flag: `ExtensibleEnums`
 * Review: ([pitch](https://forums.swift.org/...))
 
+Previously pitched in:
+- https://forums.swift.org/t/extensible-enumerations-for-non-resilient-libraries/35900
+- https://forums.swift.org/t/pitch-non-frozen-enumerations/68373
+
+> **Differences to previous proposals**
+
+> This proposal expands on the previous proposals and incorperates the language
+> steering groups feedback of exploring language features to solve the
+> motivating problem. It also provides a migration path for existing modules.
+
 ## Introduction
 
 This proposal addresses the long standing behavioural difference of `enum`s in
@@ -139,59 +149,107 @@ non-resilient Swift.
 We propose to introduce a new language feature `ExtensibleEnums` that aligns the
 behaviour of enumerations in both language dialects. This will make **public**
 enumerations in packages a safe default and leave maintainers the choice of
-extending them later on. We also propose to enable this new language feature
-by default with the next lagnuage mode.
+extending them later on. We also propose to enable this new language feature by
+default with the next lagnuage mode.
 
-In modules with the language feature enabled, developers can use the existing
-`@frozen` attribute to mark an enumeration as non-extensible, allowing consumers
-of the module to exhaustively switch over the cases. This makes committing to the
-API of an enum an active choice for developers.
+We also propose to introduce two new attributes.
+- `@nonExtensible`: For marking an enumeration as not extensible.
+- `@extensible`: For marking an enumeration as extensible.
 
-Modules consuming other modules with the language feature enabled will be forced
-to add an `@unknown default:` case to any switch state for enumerations that are
-not marked with `@frozen`. Importantly, this only applies to enums that are
-imported from other modules that are not in the same package. For enums inside
-the same modules of the declaring package switches are still required to be
-exhaustive and don't require an `@unknown default:` case.
+Modules consuming other modules with the language feature enabled will be
+required to add an `@unknown default:` case to any switch state for enumerations
+that are not marked with `@nonExtensible`.
 
-Since enabling a language feature applies to the whole module at once we also
-propose adding a new attribute `@extensible` analogous to `@frozen`. This
-attribute allows developers to make a case-by-case decision on each enumeration
-if it should be extensible or not by applying one of the two attributes. The
-language feature `ExtensibleEnums` can be thought of as implicitly adding
-`@extensible` to all enums that are not explicitly marked as `@frozen`.
+An example of using the language feature and the keywords is below:
 
-In resilient modules, the `@extensible` attribute doesn't affect API nor ABI
-since the behaviour of enumerations in modules compiled with library evolution
-mode are already extensible by default. We believe that extensible enums are the
-right default choice in both resilient and non-resilient modules and the new
-proposed `@extensible` attribute primiarly exists to give developers a migration
-path.
+```swift
+/// Module A
+@extensible // or language feature ExtensibleEnums is enabled
+enum MyEnum {
+  case foo
+  case bar
+}
 
-In non-resilient modules, adding the `@extensible` attribute to non-public enums
-will produce a warning since those enums can only be matched exhaustively.
+@nonExtensible 
+enum MyFinalEnum {
+    case justMe
+}
+
+/// Module B
+switch myEnum { // error: Switch covers known cases, but 'MyEnum' may have additional unknown values, possibly added in future versions
+    case .foo: break
+    case .bar: break
+}
+
+// The below produces no warnings since the enum is marked as nonExtensible
+switch myFinalEnum {
+    case .justMe: break
+}
+```
+
+## Detailed design
+
+### Migration path
+
+The proposed new language feature is the first langauge feature that has impact
+on the consumers of a module and not the module itself. Enabling the langauge
+feature in a non-resilient module with public enumerations is a source breaking
+change.
+
+The two proposed annotations `@extensible/@nonExtensible` give developers tools
+to opt-in to the new language feature or in the future language mode without
+breaking their consumers. This paves a path for a gradual migration. Developers
+can mark all of their exisiting public enumerations as `@nonExtensible` and then
+turn on the language feature. Similarly, developers can also mark new
+enumerations as `@extensible` without turning on the language feature yet.
+
+In a future language mode, individual modules can still be opted in one at a
+time into the new language mode and apply the annotations as needed to avoid
+source breakages.
+
+When the language feature is turned on and a public enumeration is marked as
+`@extensible` it will produce a warning that the annotation isn't required.
+
+In non-resilient modules without the language feature turned on, adding the
+`@extensible` attribute to non-public enums will produce a warning since those
+enums can only be matched exhaustively.
+
+### Implications on code in the same package
+
+Code inside the same package still needs to exhaustively switch over
+enumerations defined in the same package. Switches over enums of the same
+package containing an `@unknown default` will produce a compiler warning.
+
+### Impact on resilient modules & `@frozen` attribute
+
+Explicitly enabling the language feature in resilient modules will produce a
+compiler warning since that is already the default behaviour. Using the
+`@nonExtensible` annotation will lead to a compiler error since users of
+resilient modules must use the `@frozen` attribute instead.
+
+Since some modules support compiling in resilient and non-resilient modes,
+developers need a way to mark enums as non-extensible for both. `@nonExtensible`
+produces an error when compiling with resiliency; hence, developers must use
+`@frozen`. To make supporting both modes easier `@frozen` will also work in
+non-resilient modules and make enumerations extensible.
 
 ## Source compatibility
 
-Enabling the language feature `ExtensibleEnums` in a module that contains public
-enumerations is a source breaking change.
-Changing the annotation from `@frozen` to `@extensible` is a source breaking
-change. 
-Changing the annotation from `@extensible` to `@frozen` is a source compatible
-change and will only result in a warning code that used `@unknown default:`
-clause. This allows developers to commit to the API of an enum in a non-source
-breaking way.
-Adding an `@extensible` annotation to an exisitng public enum is a source
+- Enabling the language feature `ExtensibleEnums` in a module that contains
+public enumerations is a source breaking change unless all existing public
+enumerations are marked with `@nonExtensible`
+- Adding an `@extensible` annotation to an exisitng public enum is a source
 breaking change in modules that have **not** enabled the `ExtensibleEnums`
 language features or are compiled with resiliency.
+- Changing the annotation from `@nonExtensible/@frozen` to `@extensible` is a
+source breaking change. 
+- Changing the annotation from `@extensible` to `@nonExtensible/@frozen` is a
+source compatible change and will only result in a warning code that used
+`@unknown default:` clause. This allows developers to commit to the API of an
+enum in a non-source breaking way.
 
-## Effect on ABI stability
-
-This attribute does not affect the ABI, as it is a no-op when used in a resilient library.
-
-## Effect on API resilience
-
-This proposal only affects API resilience of non-resilient libraries, by enabling more changes to be made without API breakage.
+## ABI compatibility
+The new attributes do not affect the ABI, as it is a no-op when used in a resilient library.
 
 ## Future directions
 
@@ -200,7 +258,6 @@ This proposal only affects API resilience of non-resilient libraries, by enablin
 Enums can be used for errors. Catching and pattern matching enums could add
 support for an `@unknown catch` to make pattern matching of typed throws align
 with `switch` pattern matching.
-
 
 ## Alternatives considered
 
@@ -211,3 +268,13 @@ public enumerations are extensible. One of Swift's goals, is safe defaults and
 the current non-extensible default in non-resilient modules doesn't achieve that
 goal. That's why we propose a new language feature to change the default in a
 future Swift language mode.
+
+### Usign `@frozen` and introducing `@nonFrozen`
+
+We considered names such as `@nonFrozen` for `@extensible` and using `@frozen`
+for `@nonExtensible`; however, we believe that _frozen_ is a concept that
+includes more than exhaustive matching. It is heavily tied to resiliency  and
+also has ABI impact. That's why decoupled annotations that only focus on the
+extensability is better suited. `@exhaustive/@nonExhaustive` would fit that bill
+as well but we believe that `@extensible` better expresses the intention of the
+author.
