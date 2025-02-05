@@ -331,6 +331,35 @@ There are a number of compiler flags that intentionally disable some safety-rela
 * `-strict-concurrency=` for anything other than "complete", because the memory safety model requires strict concurrency to eliminate thread safety issues.
 * `-disable-access-control`, which allows one to break invariants of a type that can lead to memory-safety issues, such as breaking the invariant of `Range` that the lower bound not exceed the upper bound.
 
+### Types with unsafe storage
+
+Types that wrap unsafe types will often encapsulate the unsafe behavior to provide safe interfaces. However, this requires deliberate design and implementation, potentially involving adding specific preconditions. When strict safety checking is enabled, a type whose storage is unsafe will be diagnosed as involving unsafe code. This diagnostic can be suppressed by marking the type as `@safe` or `@unsafe`, in the same manner as any other declaration that has unsafe types or conformances in its signature:
+
+```swift
+// @safe is required to suppress a diagnostic about the 'buffer' property's use
+// of an unsafe type.
+@safe
+struct ImmortalBufferWrapper<Element> : Collection {
+    let buffer: UnsafeBufferPointer<Element>
+
+    @unsafe init(_ withImmortalBuffer: UnsafeBufferPointer<Element>) {
+        self.buffer = unsafe buffer
+    }
+
+    subscript(index: Index) -> Element {
+        precondition(index >= 0 && index < buffer.count)
+        return unsafe buffer[index]
+    }
+
+    /* Also: Index, startIndex, endIndex, index(after:) */
+}
+```
+
+A type has unsafe storage if:
+
+* Any stored instance property (for `actor`, `class`, and `struct` types) or associated value (for cases of `enum` types) have a type that involves an unsafe type or conformance.
+* Any stored instance property uses one of the unsafe language features (such as `unowned(unsafe)`).
+
 ### Unsafe overrides
 
 Overriding a safe method within an `@unsafe` one could introduce unsafety, so it will produce a diagnostic in the strict safety mode:
@@ -704,6 +733,7 @@ We could introduce an optional `message` argument to the `@unsafe` attribute, wh
 
 * **Revision 2 (following first review)**
   * Specified that variables of unsafe type passed in to uses of `@safe` declarations (e.g., calls, property accesses) are not diagnosed as themselves being unsafe. This makes means that expressions like `unsafeBufferePointer.count` will be considered safe.
+  * Require types whose storage involves an unsafe type or conformance to be marked as `@safe` or `@unsafe`, much like other declarations that have unsafe types or conformances in their signature.
   * Add an Alternatives Considered section on prohibiting unsafe conformances and overrides.
 
 ## Acknowledgments
