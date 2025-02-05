@@ -139,7 +139,8 @@ non-resilient Swift.
 We propose to introduce a new language feature `ExtensibleEnums` that aligns the
 behaviour of enumerations in both language dialects. This will make **public**
 enumerations in packages a safe default and leave maintainers the choice of
-extending them later on.
+extending them later on. We also propose to enable this new language feature
+by default with the next lagnuage mode.
 
 In modules with the language feature enabled, developers can use the existing
 `@frozen` attribute to mark an enumeration as non-extensible, allowing consumers
@@ -194,12 +195,12 @@ This proposal only affects API resilience of non-resilient libraries, by enablin
 
 ## Future directions
 
-### Enable `ExtensibleEnums` by default in a future language mode
+### `@unkown case`
 
-We believe that extensible enums should be default in the language to remove the
-common pitfall of using enums in public API and only later on realising that
-those can't be extended in an API compatible way. Since this would be a large
-source breaking change it must be gated behind a new language mode.
+Enums can be used for errors. Catching and pattern matching enums could add
+support for an `@unknown catch` to make pattern matching of typed throws align
+with `switch` pattern matching.
+
 
 ## Alternatives considered
 
