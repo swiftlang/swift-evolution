@@ -217,7 +217,7 @@ There are a few exemptions to the rule that any unsafe constructs within the sig
 
 ### `@safe` attribute
 
-Like the `@unsafe` attribute, the `@safe` attribute is used on declarations whose signatures involve unsafe types. However, the `@safe` attribute means that the declaration is consider safe to use even though its signature includes unsafe types. For example, marking `UnsafeBufferPointer` as `@unsafe` means that all operations involving an unsafe buffer pointer are implicitly considered `@unsafe`. The `@safe` attribute can be used to say that those particular operations are actually safe. For example, any operation involving buffer indices or count are safe, because they don't touch the memory itself. This can be indicated by marking these APIs `@safe`:
+Like the `@unsafe` attribute, the `@safe` attribute is used on declarations whose signatures involve unsafe types. However, the `@safe` attribute means that the declaration is considered safe to use even though its signature includes unsafe types. For example, marking `UnsafeBufferPointer` as `@unsafe` means that all operations involving an unsafe buffer pointer are implicitly considered `@unsafe`. The `@safe` attribute can be used to say that those particular operations are actually safe. For example, any operation involving buffer indices or count are safe, because they don't touch the memory itself. This can be indicated by marking these APIs `@safe`:
 
 ```swift
 extension UnsafeBufferPointer {
@@ -430,11 +430,6 @@ Other than the source break above, the introduction of this strict safety checki
 
 The attributes, `unsafe` expression, and strict memory-safety checking model proposed here have no impact on ABI.
 
-## Revision history
-
-* **Revision 2 (following first review)**
-  * Specified that variables of unsafe type passed in to uses of `@safe` declarations (e.g., calls, property accesses) are not diagnosed as themselves being unsafe. This makes means that expressions like `unsafeBufferePointer.count` will be considered safe.
-
 ## Future Directions
 
 ### The `SerialExecutor` and `Actor` protocols
@@ -488,6 +483,57 @@ We have several options here:
   ```
 
 ## Alternatives considered
+
+### Prohibiting unsafe conformances and overrides entirely
+
+This proposal introduces two places where polymorphism interacts with unsafety: protocol conformances and overrides. In both cases, a safe abstraction (e.g., a superclass or protocol) has a specific implementation that is unsafe, and there is a way to note the unsafety:
+
+* When overriding a safe declaration with an unsafe one, the overriding subclass must be marked `@unsafe`.
+* When implementing a safe protocol requirement with an unsafe declaration, the corresponding conformance must be marked `@unsafe`.
+
+In both cases, the current proposal will consider uses of the type (in the overriding case) or conformance (for that case) as unsafe, respectively. However, that unsafety is not localized, because code that's generally safe can now cause safety problems when calling through polymorphic operations. For example, consider a function that operates on a general collection:
+
+```swift
+func parse(_ input: some Collection<UInt8>) -> ParseResult
+```
+
+Calling this function with an unsafe buffer pointer will produce a diagnostic due to the use of the unsafe conformance of `UnsafeBufferPointer` to `Collection`:
+
+```swift
+let result = parse(unsafeBufferPointer)     // warning: use of unsafe conformance
+```
+
+Marking the call as `unsafe` will address the diagnostic. However, because `UnsafeBufferPointer` doesn't perform bounds checking, the `parse` function itself can introduce a memory safety problem if it subscripts into the collection with an invalid index. There isn't a way to communicate how the code that is `unsafe` is addressing memory safety issues within the context of the call.
+
+This proposal could prohibit use of unsafe conformances and overrides entirely, for example by making it impossible to suppress the diagnostics associated with their definition and use. This would require the `parse(unsafeBufferPointer)` call to be refactored to avoid the unsafe conformance, for example by introducing a wrapper type:
+
+```swift
+@safe struct ImmortalBufferWrapper<Element> : Collection {
+    let buffer: UnsafeBufferPointer<Element>
+
+    @unsafe init(_ withImmortalBuffer: UnsafeBufferPointer<Element>) {
+        self.buffer = unsafe buffer
+    }
+
+    subscript(index: Index) -> Element {
+        precondition(index >= 0 && index < buffer.count)
+        return unsafe buffer[index]
+    }
+
+    /* Also: Index, startIndex, endIndex, index(after:) */
+}
+```
+
+The call would then look like this:
+
+```swift
+let wrapper = unsafe ImmortalBufferWrapper(withImmortalBuffer: buffer)
+let result = parse(wrapper)
+```
+
+This approach is better than the prior one: it improves bounds safety by introducing bounds checking. It clearly documents the assumptions made around lifetime safety. It is both functionally safer (due to bounds checks) and makes it easier to reason that the `unsafe` is correctly used. It does require a lot more code, and the code itself requires careful reasoning about safety (e.g., the right preconditions for bounds checking; the right naming to capture the lifetime implications).
+
+Unsafe conformances and overrides remain part of this proposal because prohibiting them doesn't fundamentally change the safety model. Rather, it requires the introduction of more abstractions that could be safer--or could just be boilerplate. Swift has a number of constructs that are functionally similar to unsafe conformances, where safety checking can be disabled locally despite that having wide-ranging consequences: `@unchecked Sendable`, `nonisolated(unsafe)`, `unowned(unsafe)`, and `@preconcurrency` all fall into this category.
 
 ### `@unsafe` implying `unsafe` throughout a function body
 
@@ -653,6 +699,12 @@ There are downsides to this approach. It partially undermines the source compati
 ### Optional `message` for the `@unsafe` attribute
 
 We could introduce an optional `message` argument to the `@unsafe` attribute, which would allow programmers to indicate *why* the use of a particular declaration is unsafe and, more importantly, how to safely write code that uses it. However, this argument isn't strictly necessary: a comment could provide the same information, and there is established tooling to expose comments to programmers that wouldn't be present for this attribute's message, so we have omitted this feature.
+
+## Revision history
+
+* **Revision 2 (following first review)**
+  * Specified that variables of unsafe type passed in to uses of `@safe` declarations (e.g., calls, property accesses) are not diagnosed as themselves being unsafe. This makes means that expressions like `unsafeBufferePointer.count` will be considered safe.
+  * Add an Alternatives Considered section on prohibiting unsafe conformances and overrides.
 
 ## Acknowledgments
 
