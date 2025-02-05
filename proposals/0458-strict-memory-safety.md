@@ -511,6 +511,14 @@ We have several options here:
   if case unsafe .rawOffsetIntoGlobalArray(let offset) = weirdAddress { ... }
   ```
 
+### Handling unsafe code in macro expansions
+
+A macro can expand to any code. If the macro-expanded code contains uses of unsafe constructs not properly covered by `@safe`, `@unsafe`, or an `unsafe` expression within the macro, then strict safety checking will diagnose those safety issues within the macro expansion. In this case, the client of the macro does not have any way to suppress diagnostics within the macro expansion itself without modifying the implementation of the macro.
+
+There are a number of possible approaches that one could use for suppression. The `unsafe` expression could be made to apply to everything in the macro expansion, which would also require some spelling for attached attributes and other places where expressions aren't permitted. Alternatively, Swift could introduce a general syntax for suppressing a class of warnings within a block of code, and that could be used to surround the macro expansion.
+
+Note that both of these approaches trade away some of the benefits of the strict safety mode for the convenience of suppressing safety-related diagnostics. 
+
 ## Alternatives considered
 
 ### Prohibiting unsafe conformances and overrides entirely
@@ -735,6 +743,7 @@ We could introduce an optional `message` argument to the `@unsafe` attribute, wh
   * Specified that variables of unsafe type passed in to uses of `@safe` declarations (e.g., calls, property accesses) are not diagnosed as themselves being unsafe. This makes means that expressions like `unsafeBufferePointer.count` will be considered safe.
   * Require types whose storage involves an unsafe type or conformance to be marked as `@safe` or `@unsafe`, much like other declarations that have unsafe types or conformances in their signature.
   * Add an Alternatives Considered section on prohibiting unsafe conformances and overrides.
+  * Add a Future Directions section on handling unsafe code in macro expansions.
 
 ## Acknowledgments
 
