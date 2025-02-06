@@ -1,16 +1,16 @@
 # Add `Collection` conformances for `enumerated()`
 
-* Previous proposal: [SE-0312](0312-indexed-and-enumerated-zip-collections.md)
+* Proposal: [SE-0459](0459-enumerated-collection.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (28 Jan - February 7 2025)**
-* Implementation: [apple/swift#78092](https://github.com/swiftlang/swift/pull/78092)
+* Status: **Active review (January 28 – February 7, 2025)**
+* Implementation: [swiftlang/swift#78092](https://github.com/swiftlang/swift/pull/78092)
+* Previous Proposal: [SE-0312](0312-indexed-and-enumerated-zip-collections.md)
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-collection-conformance-for-enumeratedsequence/76680)) ([review](https://forums.swift.org/t/se-0459-add-collection-conformances-for-enumerated/77509))
 
 ## Introduction
 
 This proposal aims to fix the lack of `Collection` conformance of the sequence returned by `enumerated()`, preventing it from being used in a context that requires a `Collection`.
-
-Swift-evolution thread: [Pitch](https://forums.swift.org/t/pitch-add-indexed-and-collection-conformances-for-enumerated-and-zip/47288)
 
 ## Motivation
 
