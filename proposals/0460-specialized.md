@@ -5,7 +5,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (January 29 ... February 11, 2025)**
 * Implementation: Available in nightly toolchains using the underscored `@_specialize`
-* Discussion: ([pitch](https://forums.swift.org/t/pitch-explicit-specialization/76967))([review](https://forums.swift.org/t/se-0460-explicit-specialization/77541))
+* Review: ([pitch](https://forums.swift.org/t/pitch-explicit-specialization/76967)) ([review](https://forums.swift.org/t/se-0460-explicit-specialization/77541))
 
 ## Introduction
 
