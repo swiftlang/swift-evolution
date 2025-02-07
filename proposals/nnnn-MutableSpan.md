@@ -12,6 +12,7 @@
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
 [SE-0456]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0456-stdlib-span-properties.md
 [PR-2305]: https://github.com/swiftlang/swift-evolution/pull/2305
+[SE-0437]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0437-noncopyable-stdlib-primitives.md
 [SE-0453]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0453-vector.md
 [SE-0223]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0223-array-uninitialized-initializer.md
 [SE-0176]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md
@@ -29,13 +30,13 @@ These functions have a few different drawbacks, most prominently their reliance 
 In addition to the new types, we will propose adding new API some standard library types to take advantage of `MutableSpan` and `MutableRawSpan`.
 
 ## Proposed solution
-We previously introduced `Span` to provide shared read-only access to containers. A question can be raised as to whether this same type could be used for mutations. We cannot, due to the [law of exclusivity][SE-0176]. `Span` is copyable, and it should be copyable in order to properly model read access under the law of exclusivity: a value can be simultaneously accessed through multiple read-only accesses. Mutations, on the other hand, require _exclusive access_. Exclusive access cannot be modeled through a copyable type, since a copy of the value representing the access would violate exclusivity. We therefore need a type separate from `Span` in order to model mutations.
+We introduced `Span` to provide shared read-only access to containers. We cannot use `Span` to also model container mutations, due to the [law of exclusivity][SE-0176]. `Span` is copyable, and must be copyable in order to properly model read access under the law of exclusivity: a value can be simultaneously accessed through multiple read-only accesses. Mutations, on the other hand, require _exclusive access_. Exclusive access cannot be modeled with a copyable type, since a copy of the value representing the access would violate exclusivity by adding a second access. We therefore need a non-copyable type separate from `Span` in order to model mutations.
 
 #### MutableSpan
 
-`MutableSpan` allows delegating mutations of a type's contiguous internal representation, by providing access to an exclusively-borrowed view of a range of contiguous, initialized memory. `MutableSpan` relies on guarantees that it has exclusive access to the range of memory it represents, and that the memory it represents will remain valid for the duration of the access. These guarantee data race safety and temporal safety. Like `Span`, `MutableSpan` performs bounds-checking on every access to preserve spatial safety.
+`MutableSpan` allows delegating mutations of a type's contiguous internal representation, by providing access to an exclusively-borrowed view of a range of contiguous, initialized memory. `MutableSpan` relies on guarantees that it has exclusive access to the range of memory it represents, and that the memory it represents will remain valid for the duration of the access. These provide data race safety and temporal safety. Like `Span`, `MutableSpan` performs bounds-checking on every access to preserve spatial safety.
 
-A `MutableSpan` provided by a container represents a mutation of that container, via an exclusive borrow. Mutations are implemented by mutating operations, which let the compiler statically enforce exclusivity.
+A `MutableSpan` provided by a container represents a mutation of that container, via an exclusive borrow. Mutations are implemented by mutating functions and subscripts, which let the compiler statically enforce exclusivity.
 
 #### MutableRawSpan
 
@@ -55,7 +56,7 @@ func(_ array: inout Array<Int>) {
 }
 ```
 
-These computed properties represent a case of lifetime relationships between two bindings that wasn't covered in [SE-0456][SE-0456]. There we defined lifetime relationships for computed property getters of non-escapable and copyable types (`~Escapable & Copyable`). We now need to define them for properties of non-escapable and non-copyable types (`~Escapable & ~Copyable`). A `~Escapable & ~Copyable` value borrows another binding; if this borrow is also a mutation then it is an exclusive borrow. The scope of the borrow, whether or not it is exclusive, extends until the last use of the dependent binding.
+These computed properties represent a case of lifetime relationships not covered in [SE-0456][SE-0456]. In SE-0456 we defined lifetime relationships for computed property getters of non-escapable and copyable types (`~Escapable & Copyable`). We propose defining them for properties of non-escapable and non-copyable types (`~Escapable & ~Copyable`). A `~Escapable & ~Copyable` value borrows another binding; if this borrow is also a mutation then it is an exclusive borrow. The scope of the borrow, whether or not it is exclusive, extends until the last use of the dependent binding.
 
 ## Detailed Design
 
@@ -75,6 +76,8 @@ extension MutableSpan: @unchecked Sendable where Element: Sendable {}
 
 We store a `UnsafeMutableRawPointer` value internally in order to explicitly support reinterpreted views of memory as containing different types of `BitwiseCopyable` elements. Note that the the optionality of the pointer does not affect usage of `MutableSpan`, since accesses are bounds-checked and the pointer is only dereferenced when the `MutableSpan` isn't empty, when the pointer cannot be `nil`.
 
+Initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for details, see "[Initializers](#initializers)" in the [future directions](#Directions) section.
+
 ```swift
 extension MutableSpan where Element: ~Copyable {
   /// The number of initialized elements in this `MutableSpan`.
@@ -90,10 +93,14 @@ extension MutableSpan where Element: ~Copyable {
   var indices: Range<Index> { get }
 
   /// Accesses the element at the specified position.
-  subscript(_ index: Index) -> Element { borrowing read; mutate }
+  subscript(_ index: Index) -> Element { borrow; mutate }
+    // accessor syntax from accessors roadmap (https://forums.swift.org/t/76707)
 
   /// Exchange the elements at the two given offsets
   mutating func swapAt(_ i: Index, _ j: Index)
+
+  /// Borrow the underlying memory for read-only access
+  var span: Span<Element> { borrowing get }
 }
 ```
 
@@ -111,24 +118,33 @@ for i in myMutableSpan.indices {
 }
 ```
 
-##### `MutableSpan` API:
+##### Unchecked access to elements:
 
-Initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for details, see "[Initializers](#initializers)" in the [future directions](#Directions) section.
+The `subscript` mentioned above always checks the bounds of the `MutableSpan` before allowing access to the memory, preventing out-of-bounds accesses. We also provide an unchecked variant of the `subscript` and of the `swapAt` function as an alternative for situations where bounds-checking is costly and has already been performed:
 
 ```swift
 extension MutableSpan where Element: ~Copyable {
+  /// Accesses the element at the specified `position`.
+  ///
+  /// This subscript does not validate `position`; this is an unsafe operation.
+  ///
+  /// - Parameter position: The offset of the element to access. `position`
+  ///     must be greater or equal to zero, and less than `count`.
   @unsafe
-  subscript(unchecked position: Index) -> Element { borrowing read; mutate }
+  subscript(unchecked position: Index) -> Element { borrow; mutate }
 
+	/// Exchange the elements at the two given offsets
+  ///
+  /// This function does not validate `i` or `j`; this is an unsafe operation.
   @unsafe
-  mutating func swapAt(unchecked i: Index, unchecked j: Index)
-  
-  var storage: Span<Element> { borrowing get }
+  mutating func swapAt(unchecked i: Index, unchecked j: Index)  
 }
 ```
 ##### Bulk updating of a `MutableSpan`'s elements:
 
-We include functions to perform bulk copies into the memory represented by a `MutableSpan`. Updating a `MutableSpan` from known-sized sources (such as `Collection` or `Span`) copies every element of a source. It is an error to do so when there is the span is too short to contain every element from the source. Updating a `MutableSpan` from `Sequence` or `IteratorProtocol` instances will copy as many items as possible, either until the input is empty or until the operation has updated the item at the last index.
+We include functions to perform bulk copies of elements into the memory represented by a `MutableSpan`. Updating a `MutableSpan` from known-sized sources (such as `Collection` or `Span`) copies every element of a source. It is an error to do so when there is the span is too short to contain every element from the source. Updating a `MutableSpan` from `Sequence` or `IteratorProtocol` instances will copy as many items as possible, either until the input is empty or until the operation has updated the item at the last index.
+
+<a name="slicing"></a>**Note:** This set of functions is sufficiently complete in functionality, but uses a minimal approach to slicing. This is only one of many possible approaches to slicing `MutableSpan`. We could revive the option of using a `some RangeExpression` parameter, or we could use the return value of a `func extracting(_: some RangeExpression)` such as was [recently added][SE-0437] to `UnsafeBufferPointer`. The latter option in combination with `mutating` functions requires the use of intermediate bindings. This section may change in response to feedback and our investigations.
 
 ```swift
 extension MutableSpan {
@@ -163,6 +179,7 @@ extension MutableSpan {
   ) -> Index
 }
   
+extension MutableSpan where Element: ~Copyable {
   mutating func moveUpdate(
     startingAt offset: Index = 0,
     fromContentsOf source: UnsafeMutableBufferPointer<Element>
@@ -203,7 +220,7 @@ These functions use a closure to define the scope of validity of `buffer`, ensur
 
 #### MutableRawSpan
 
-`MutableRawSpan` is similar to `MutableSpan<T>`, but reperesents untyped initialized bytes. `MutableRawSpan` specifically supports encoding and decoding applications. Its API supports `unsafeLoad(as:)` and `storeBytes(of: as:)`, as well as a variety of bulk copying operations.
+`MutableRawSpan` is similar to `MutableSpan<T>`, but represents untyped initialized bytes. `MutableRawSpan` specifically supports encoding and decoding applications. Its API supports `unsafeLoad(as:)` and `storeBytes(of: as:)`, as well as a variety of bulk copying operations.
 
 ##### `MutableRawSpan` API:
 
@@ -230,53 +247,55 @@ extension MutableRawSpan {
   /// The range of valid byte offsets into this `RawSpan`
   var byteOffsets: Range<Int> { get }
 }
-
 ```
 
 ##### Accessing and modifying  the memory of a `MutableRawSpan`:
 
-The basic operations available on `RawSpan` are available for `MutableRawSpan`. These operations are not type-safe, in that the loaded value returned by the operation can be invalid, and violate type invariants. Some types have a property that makes the `unsafeLoad(as:)` function safe, but we don't have a way to [formally identify](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md#SurjectiveBitPattern) such types at this time.
+`MutableRawSpan` supports storing the bytes of a `BitwiseCopyable` value to its underlying memory:
 
 ```swift
 extension MutableRawSpan {
-  @unsafe
-  func unsafeLoad<T>(
-    fromByteOffset offset: Int = 0, as: T.Type
-  ) -> T
-
-  @unsafe
-  func unsafeLoadUnaligned<T: BitwiseCopyable>(
-    fromByteOffset offset: Int = 0, as: T.Type
-  ) -> T
-
-  @unsafe
-  func unsafeLoad<T>(
-    fromUncheckedByteOffset offset: Int, as: T.Type
-  ) -> T
-
-  @unsafe
-  func unsafeLoadUnaligned<T: BitwiseCopyable>(
-    fromUncheckedByteOffset offset: Int, as: T.Type
-  ) -> T
-}
-```
-
-To these, `MutableRawSpan` adds functions to store the bytes of a `BitwiseCopyable` value:
-
-```swift
-extension MutableRawSpan {
-  func storeBytes<T: BitwiseCopyable>(
+  mutating func storeBytes<T: BitwiseCopyable>(
     of value: T, toByteOffset offset: Int = 0, as type: T.Type
   )
 
   @unsafe
-  func storeBytes<T: BitwiseCopyable>(
+  mutating func storeBytes<T: BitwiseCopyable>(
     of value: T, toUncheckedByteOffset offset: Int, as type: T.Type
   )
 }
 ```
 
+Additionally, the basic loading operations available on `RawSpan` are available for `MutableRawSpan`. These operations are not type-safe, in that the loaded value returned by the operation can be invalid, and violate type invariants. Some types have a property that makes the `unsafeLoad(as:)` function safe, but we don't have a way to [formally identify](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md#SurjectiveBitPattern) such types at this time.
+
+```swift
+extension MutableRawSpan {
+  @unsafe
+  func unsafeLoad<T>(
+    fromByteOffset offset: Int = 0, as: T.Type
+  ) -> T
+
+  @unsafe
+  func unsafeLoadUnaligned<T: BitwiseCopyable>(
+    fromByteOffset offset: Int = 0, as: T.Type
+  ) -> T
+
+  @unsafe
+  func unsafeLoad<T>(
+    fromUncheckedByteOffset offset: Int, as: T.Type
+  ) -> T
+
+  @unsafe
+  func unsafeLoadUnaligned<T: BitwiseCopyable>(
+    fromUncheckedByteOffset offset: Int, as: T.Type
+  ) -> T
+}
+```
+
 We include functions to perform bulk copies into the memory represented by a `MutableRawSpan`. Updating a `MutableRawSpan` from a `Collection` or a `Span` copies every element of a source. It is an error to do so when there is are not enough bytes in the span to contain every element from the source. Updating `MutableRawSpan` from `Sequence` or `IteratorProtocol` instance copies as many items as possible, either until the input is empty or until there are not enough bytes in the span to store another element.
+
+**Note:** This set of functions is sufficiently complete in functionality, but uses a minimal approach to slicing. This is only one of many possible approaches to slicing `MutableRawSpan`. (See the <a href="#slicing">note above</a> for more details on the same considerations.)
+
 ```swift
 extension MutableRawSpan {
   mutating func update<S: Sequence>(
@@ -347,7 +366,7 @@ A `mutating` computed property getter defined on any type and returning a `~Esca
 
 A `nonmutating` computed property getter returning a `~Escapable & ~Copyable` value establishes a borrowing lifetime relationship, as if returning a `~Escapable & Copyable` value (see [SE-0456][SE-0456].)
 
-The standard library will provide `mutableSpan` computed properties. These return lifetime-dependent `MutableSpan` instances. These computed properties are the safe and composable replacements for the existing `withUnsafeMutableBufferPointer` closure-taking functions.
+The standard library will provide `mutating` computed properties providing lifetime-dependent `MutableSpan` instances. These `mutableSpan` computed properties are intended as the safe and composable replacements for the existing `withUnsafeMutableBufferPointer` closure-taking functions.
 
 ```swift
 extension Array {
@@ -370,8 +389,6 @@ extension CollectionOfOne {
   var mutableSpan: MutableSpan<Element> { mutating get }
 }
 ```
-
-
 
 #### Extensions to unsafe buffer types
 
@@ -412,7 +429,7 @@ extension Foundation.Data {
 
 The `mutableSpan` and `mutableBytes` properties should be performant and return their `MutableSpan` or `MutableRawSpan` with very little work, in O(1) time. In copy-on-write types, however, obtaining a `MutableSpan` is the start of the mutation, and if the backing buffer is not uniquely reference a copy must be made ahead of returning the `MutableSpan`.
 
-Note that `MutableSpan` incurs no special behaviour for bridged types, since mutations always require a defensive copy of data bridged from Objective-C data structures.
+Note that `MutableSpan` incurs no special behaviour for bridged types, since mutable bindings always require a defensive copy of data bridged from Objective-C data structures.
 
 ## Source compatibility
 
@@ -424,7 +441,7 @@ This proposal is additive and ABI-compatible with existing code.
 
 ## Implications on adoption
 
-The additions described in this proposal require a new version of the Swift standard library and runtime.
+The additions described in this proposal require a new version of the Swift standard library.
 
 ## Alternatives considered
 
@@ -478,7 +495,7 @@ extension MutableRawSpan {
 ```
 We are subsetting functions that require lifetime annotations until such annotations are [proposed][PR-2305].
 
-#### Splitting `MutableSpan` instances
+#### Splitting `MutableSpan` instances – `MutableSpan` in divide-and-conquer algorithms
 
 It is desirable to have a way to split a `MutableSpan` in multiple parts, for divide-and-conquer algorithms or other reasons:
 
@@ -488,11 +505,15 @@ extension MutableSpan where Element: ~Copyable {
 }
 ```
 
-Unfortunately, tuples do not support non-copyable values yet. We may be able to use the new `Vector`/`Slab`/`InlineArray` type proposed in [SE-0453][SE-0453], but destructuring its non-copyable elements remains a challenge. Solving this issue for `Span` as well as `MutableSpan` is a top priority.
+Unfortunately, tuples do not support non-copyable values yet. We may be able to use `InlineArray` ([SE-0453][SE-0453]), or a bespoke type, but destructuring the non-copyable constituent part remains a challenge. Solving this issue for `Span` and `MutableSpan` is a top priority.
+
+#### Mutating algorithms
+
+Algorithms defined on `MutableCollection` such as `sort(by:)` and `partition(by:)` could be defined on `MutableSpan`. We believe we will be able to define these more generally once we have a generalized container protocol hierarchy.
 
 #### <a name="OutputSpan"></a>Delegated initialization with `OutputSpan<T>`
 
 Some data structures can delegate initialization of parts of their owned memory. The standard library added the `Array` initializer `init(unsafeUninitializedCapacity:initializingWith:)` in [SE-0223][SE-0223]. This initializer relies on `UnsafeMutableBufferPointer` and correct usage of initialization primitives. We should present a simpler and safer model of initialization by leveraging non-copyability and non-escapability.
 
-## Acknowledgements
+We expect to propose an `OutputSpan<T>` type to represent partially-initialized memory, and to support to the initialization of memory by appending to the initialized portion of the underlying storage.
 
