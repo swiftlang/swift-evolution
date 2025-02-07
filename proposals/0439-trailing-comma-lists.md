@@ -3,8 +3,8 @@
 * Proposal: [SE-0439](0439-trailing-comma-lists.md)
 * Author: [Mateus Rodrigues](https://github.com/mateusrodriguesxyz)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Accepted with modifications**
-* Implementation: `main` https://github.com/swiftlang/swift/pull/74522#
+* Status: **Implemented (Swift 6.1)**
+* Implementation: [swiftlang/swift#74522](https://github.com/swiftlang/swift/pull/74522)
 * Previous Proposal: [SE-0084](0084-trailing-commas.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-allow-trailing-comma-in-tuples-arguments-and-if-guard-while-conditions/70170)), ([review](https://forums.swift.org/t/se-0439-allow-trailing-comma-in-comma-separated-lists/72876)), ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0439-allow-trailing-comma-in-comma-separated-lists/73216))
 * Previous Revision: ([1](https://github.com/swiftlang/swift-evolution/blob/7864fa20cfb3a43aa6874feedb5aedb8be02da2c/proposals/0439-trailing-comma-lists.md))

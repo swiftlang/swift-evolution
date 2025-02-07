@@ -321,9 +321,10 @@ Now lets apply these rules to some specific examples in Swift code:
   ```swift
   func captureInClosure() {
     let x = NonSendable()
-    // Regions: [(x)]
-    let closure = { print(x) }
-    // Regions: [(x, closure)]
+    let y = NonSendable()
+    // Regions: [(x), (y)]
+    let closure = { print(x); print(y) }
+    // Regions: [(x, y, closure)]
   }
   ```
 
@@ -610,7 +611,7 @@ func nonIsolatedCaller(_ x: NonSendable) async {
 ```
 
 In the example above, `x` is in a task isolated region. Since
-`nonIsolatedCallee` will execute on the same task as `nonIsolatedCallee`, they
+`nonIsolatedCallee` will execute on the same task as `nonIsolatedCaller`, they
 are in the same isolation domain and a transfer does not occur. In contrast,
 `transferToMainActor` is in a different isolation domain so passing `x` to it is
 a transfer resulting in an error.

@@ -3,10 +3,9 @@
 * Proposal: [SE-0450](0450-swiftpm-package-traits.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch), [Max Desiatov](https://github.com/MaxDesiatov)
 * Review Manager: [Mishal Shah](https://github.com/shahmishal)
-* Status: **Active review (October 24th...November 7th, 2024)**
-* Implementation: https://github.com/swiftlang/swift-package-manager/pull/7704, https://github.com/swiftlang/swift-package-manager/pull/7703, https://github.com/swiftlang/swift-package-manager/pull/7702, https://github.com/swiftlang/swift-package-manager/pull/7701, https://github.com/swiftlang/swift-package-manager/pull/7694, https://github.com/swiftlang/swift-package-manager/pull/7689
-* Experimental Implementation: Gated on `@_spi(ExperimentalTraits)` in package manifests and `--experimental` prefix for CLI options
-* Review: ([pitch](https://forums.swift.org/t/pitch-package-traits/72191)) ([review](https://forums.swift.org/t/se-0450-package-traits/75598))
+* Status: **Implemented (Swift 6.1)**
+* Implementation: https://github.com/swiftlang/swift-package-manager/pull/7704, https://github.com/swiftlang/swift-package-manager/pull/7703, https://github.com/swiftlang/swift-package-manager/pull/7702, https://github.com/swiftlang/swift-package-manager/pull/7701, https://github.com/swiftlang/swift-package-manager/pull/7694, https://github.com/swiftlang/swift-package-manager/pull/7689, https://github.com/swiftlang/swift-package-manager/pull/8178
+* Review: ([pitch](https://forums.swift.org/t/pitch-package-traits/72191)) ([review](https://forums.swift.org/t/se-0450-package-traits/75598)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0450-package-traits/76705))
 
 ## Introduction
 
@@ -54,7 +53,7 @@ rules might break in the future.
 ### Experimental APIs
 
 Some packages want to introduce new functionality without yet committing to a
-stable public API Currently, those modules and APIs are often underscored or
+stable public API. Currently, those modules and APIs are often underscored or
 specifically annotated. While this approach works it comes with downsides such
 as hiding the APIs in code completion.
 
@@ -512,14 +511,8 @@ Since traits can show up both in the `Package.swift` and in source code when
 checking if a trait is enabled, the allowed characters for a trait name are
 restricted to [legal Swift
 identifier](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/summaryofthegrammar/).
-Hence, the following rules are enforced on trait names:
+Additional, the following rules are enforced on trait names:
 
-- The first character must be a [Unicode XID start
-  character](https://unicode.org/reports/tr31/#Figure_Code_Point_Categories_for_Identifier_Parsing)
-  (most letters), a digit, or `_`.
-- Subsequent characters must be a [Unicode XID continue
-  character](https://unicode.org/reports/tr31/#Figure_Code_Point_Categories_for_Identifier_Parsing)
-  (a digit, `_`, or most letters), `-`, or `+`.
 - `default` and `defaults` (in any letter casing combination) are not allowed as
   trait names to avoid confusion with default traits.
 

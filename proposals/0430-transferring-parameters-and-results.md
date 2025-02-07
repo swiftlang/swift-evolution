@@ -340,7 +340,7 @@ protocol P2 {
 
 Following the function subtyping rules in the previous section, a protocol
 requirement with a `sending` parameter may be witnessed by a function with a
-non-`Sendable` typed parameter:
+non-`sending` parameter:
 
 ```swift
 struct X1: P1 {
