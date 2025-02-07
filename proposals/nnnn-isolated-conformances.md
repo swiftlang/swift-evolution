@@ -4,30 +4,43 @@
 
 ## Introduction
 
-Data-race safety prohibits the ability to conform define conformances of general protocols that rely on actor-isolated operator`@MainActor`-isolated types can be ha
-
-## **Proposed solution**
-
-This proposal introduces the notion of an *isolated* conformance. An isolated conformance is a conformance of a given type to a given protocol that can only be safely used within a particular isolation domain. In general, Swift has two kinds of actor isolation:
-
-- Isolation to a global actor such as `@MainActor`.
-- Isolation to an actor instance.
-
-While it is conceivable that an isolated conformance could be isolated to either of these, this proposal only supports the first case: conformances that are isolated to a global actor. Conformances that are isolated to actor instances have additional challenges that are described in Future Directions. The remainder of this proposal will focus on global-actor-isolated conformances.
-
-Witnesses for an isolated conformance can be either nonisolated or isolated to the same thing as the conformance itself. Examples:
+When conforming an actor-isolated type to a protocol, one cannot satisfy a nonisolated protocol requirement with an actor-isolated declaration. This can make actor-isolated types particularly hard to use with most protocols. For example:
 
 ```swift
 protocol P {
   func f()
 }
 
-@MainActor class C: @MainActor P, @unchecked Sendable { 
+@MainActor class C: P { 
+   func f() { } // error: main actor isolated function 'f' cannot satisfy nonisolated requirement 'f' of protocol P
+}
+```
+
+This error is necessary to maintain data-race safety: if an instance of `C` ended up being used as a `P` outside of the main actor, a call to `P.f` (which is non-isolated) would end up invoking `C.f` off of the main actor, introducing a data race.
+
+The current solution is to make each function `nonisolated`, then use `assumeIsolated` to dynamically check that the the function was only called from the main actor, like this:
+
+```swift
+@MainActor class C: P { 
+   nonisolated func f() { 
+     MainActor.assumeIsolated {
+       // do main-actor things
+     }
+   }
+}
+```
+
+This does provide *dynamic* data-race safety, but requires a lot of boilerplate and does not provide good static data-race safety.
+
+This proposal introduces the notion of an *isolated* conformance, which is a conformance that can only be used within the stated isolation domain. An isolated conformance lifts the restriction that only non-isolated functions can satisfy protocol requirements:
+
+```swift
+@MainActor class C: isolated P { 
    func f() { } // @MainActor-isolated, which is okay because the conformance to P is @MainActor-isolated
 }
 ```
 
-The intent is that one can use the conformance within the isolation domain, but never outside of it, so it's guaranteed that any call through `P.f` to `C.f` is only possible in code that's already correctly isolated. For example, this would allow using generic functions with actor-isolated types:
+One can only use an isolated conformance within the isolation domain, but never outside of it, so it's guaranteed that any call through `P.f` to `C.f` is only possible in code that's already correctly isolated. For example, this would allow using generic functions with actor-isolated types from inside the main actor:
 
 ```swift
 nonisolated func callPF<T: P>(_ value: T) {
@@ -37,7 +50,24 @@ nonisolated func callPF<T: P>(_ value: T) {
 @MainActor func callPFC(c: C) {
   callPF(c) // okay, uses isolated conformance C: P entirely within the @MainActor isolation domain
 }
+
+nonisolated func callPFCIncorrectly(c: C) {
+  callPF(c) // error: uses isolated conformance C: P outside the @MainActor isolation domain
+}
 ```
+
+## **Proposed solution**
+
+ In general, Swift has two kinds of actor isolation:
+
+- Isolation to a global actor such as `@MainActor`.
+- Isolation to an actor instance.
+
+While it is conceivable that an isolated conformance could be isolated to either of these, this proposal only supports the first case: conformances that are isolated to a global actor. Conformances that are isolated to actor instances have additional challenges that are described in Future Directions. The remainder of this proposal will focus on global-actor-isolated conformances.
+
+Isolated conformances lift a restriction on the use of actor-isolated functions when satisfying protocol requirements. In lifting this restriction, we still need to maintain data-race safety. One approach would be to introduce dynamic checking, by effectively automating the process of wrapping  `assumeIsolated` around each of the affected function bodies. This is a valid implementation strategy, but an unsatisfying one because it undermines one of the explicit goals of data-race safety in Swift 6: having *statically-verified* safety from data races.
+
+This proposal, instead, creates restrictions around the way in which isolated conformances are used to maintain data-race safety. To understand the restrictions, we first start by cataloguing the data-race safety issues that arise with the introduction of isolated conformances into the language.
 
 ### Data-race safety issues
 
@@ -50,7 +80,7 @@ protocol Q {
   static func g() { }
 }
 
-extension C: @MainActor Q {
+extension C: isolated Q {
   @MainActor static func g() { }
 }
 
@@ -90,6 +120,8 @@ The issue is not limited to return values. For example, a generic parameter migh
     value.f() 
   }
 }
+
+extension C: @unchecked Sendable { }
 
 @MainActor func doSend(c: C) {
 	sendMe(c) // uses C: P from the main actor context
@@ -158,7 +190,7 @@ Conceptually, we can address data-race safety issues with isolated conformances 
 Rule (1) is straightforward: the conformance can only be used within a context that is also isolated to the same global actor. This applies to any use of a conformance anywhere in the language. For example:
 
 ```swift
-@MainActor struct S: @MainActor P { }
+@MainActor struct S: isolated P { }
 
 struct WrapsP<T: P>: P {
   var value: T
