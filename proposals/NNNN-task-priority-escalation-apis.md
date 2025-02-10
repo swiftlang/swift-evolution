@@ -69,18 +69,57 @@ Another example of libraries which may want to reach for manual task priority es
 In order to address the above use-cases, we propose to add a pair of APIs: to react to priority escalation happening within a block of code, and an API to _cause_ a priority escalation without resorting to trickery using creating new tasks whose only purpose is to escalate the priority of some other task:
 
 ```swift
-let m: Mutex<Task<Void, Never>?> 
+enum State {
+  case initialized
+  case task(Task<Void, Never>)
+  case priority(TaskPriority)
+}
+let m: Mutex<State> = .init(.initialized) 
 
 await withTaskPriorityEscalationHandler {
-  await withCheckedContinuation { cc in 
-    let t = Task { cc.resume() }
-    m.withLock { $0 = t }
-  } onPriorityEscalated: { newPriority in 
-    let t = m.withLock { $0 }
-    Task.escalatePriority(t, to: newPriority)
+  await withCheckedContinuation { cc in
+    let task = Task { cc.resume() }
+    
+    let newPriority: TaskPriority? = state.withLock { state -> TaskPriority? in
+      defer { state = .task(task) }
+      switch state {
+      case .initialized:
+          return nil
+      case .task:
+          preconditionFailure("unreachable")
+      case .priority(let priority):
+          return priority
+      }
+    }
+    // priority was escalated just before we have store the task in the mutex
+    if let newPriority {
+        Task.escalatePriority(task, to: newPriority)
+    }
+  } onPriorityEscalated: { newPriority in
+    state.withLock { state in
+      switch state {
+      case .initialized, .priority:
+        // priority was escalated just before managed to store the task in the mutex
+        state = .priority(newPriority)
+      case .task(let task):
+        Task.escalatePriority(task, to: newPriority)
+      }
+    }
   }
 }
 ```
+
+The above snippet handles edge various ordering situations, including the task escalation happening after
+the time the handler is registered but _before_ we managed to create and store the task.
+
+If priority escalation happened before the handler was installed, the `Task.currentPriority` will
+also naturally have the escalated value while the operation executes, meaning that the `Task` created
+during the `operation` would naturally _start at_ the appropriate escalated priority, because it inherits the 
+outer task's priority by querying Task.currentPriority.
+
+In general, task escalation remains a slightly racy affair, we could always observe an escalation "too late" for it to matter,
+and have any meaningful effect on the work's execution, however this API and associated patterns handle most situations which 
+we care about in practice.
 
 ## Detailed design
 
@@ -195,3 +234,6 @@ While at first this looks promising, we did not really remove much of the comple
 
 Overall, this seems like a tightly knit API that changes current idioms of `with...Handler ` without really saving us from the inherent complexity of these handlers being invoked concurrently, and limiting the usefulness of those handlers to just "around a continuation" which may not always be the case.
 
+### Acknowledgements 
+
+We'd like to thank John McCall, David Nadoba for their input on the APIs during early reviews.
