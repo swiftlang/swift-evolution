@@ -112,11 +112,6 @@ await withTaskPriorityEscalationHandler {
 The above snippet handles edge various ordering situations, including the task escalation happening after
 the time the handler is registered but _before_ we managed to create and store the task.
 
-If priority escalation happened before the handler was installed, the `Task.currentPriority` will
-also naturally have the escalated value while the operation executes, meaning that the `Task` created
-during the `operation` would naturally _start at_ the appropriate escalated priority, because it inherits the 
-outer task's priority by querying Task.currentPriority.
-
 In general, task escalation remains a slightly racy affair, we could always observe an escalation "too late" for it to matter,
 and have any meaningful effect on the work's execution, however this API and associated patterns handle most situations which 
 we care about in practice.
@@ -181,8 +176,11 @@ The `escalatePriority` API is offered as a static method on `Task` in order to s
 
 ```swift
 extension Task {
-  public static func escalatePriority(_ task: Task, to newPriority: TaskPriority)
-  public static func escalatePriority(_ task: UnsafeCurrentTask, to newPriority: TaskPriority)
+  public static func escalatePriority(of task: Task, to newPriority: TaskPriority)
+}
+
+extension UnsafeCurrentTask {
+  public static func escalatePriority(of task: UnsafeCurrentTask, to newPriority: TaskPriority)
 }
 ```
 
