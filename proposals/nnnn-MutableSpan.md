@@ -30,7 +30,7 @@ These functions have a few different drawbacks, most prominently their reliance 
 In addition to the new types, we will propose adding new API some standard library types to take advantage of `MutableSpan` and `MutableRawSpan`.
 
 ## Proposed solution
-We introduced `Span` to provide shared read-only access to containers. We cannot use `Span` to also model container mutations, due to the [law of exclusivity][SE-0176]. `Span` is copyable, and must be copyable in order to properly model read access under the law of exclusivity: a value can be simultaneously accessed through multiple read-only accesses. Mutations, on the other hand, require _exclusive access_. Exclusive access cannot be modeled with a copyable type, since a copy of the value representing the access would violate exclusivity by adding a second access. We therefore need a non-copyable type separate from `Span` in order to model mutations.
+We introduced `Span` to provide shared read-only access to containers. The natural next step is to provide a similar capability for mutable access. Mutability requires exclusive access, per Swift's [law of exclusivity][SE-0176]. `Span` is copyable, and must be copyable in order to properly model read access under the law of exclusivity: a value can be simultaneously accessed through multiple read-only accesses. Exclusive access cannot be modeled with a copyable type, since a copy would represent an additional access, in violation of the law of exclusivity. We therefore need a non-copyable type separate from `Span` in order to model mutations.
 
 #### MutableSpan
 
