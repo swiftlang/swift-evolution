@@ -19,7 +19,7 @@
 
 ## Introduction
 
-We recently [introduced][SE-0447] the `Span` and `RawSpan` types, providing read-only access to borrowed memory shared. This proposal adds mutations of exclusively-borrowed memory with `MutableSpan` and `MutableRawSpan`.
+We recently [introduced][SE-0447] the `Span` and `RawSpan` types, providing shared read-only access to borrowed memory. This proposal adds helper types to delegate mutations of exclusively-borrowed memory: `MutableSpan` and `MutableRawSpan`.
 
 ## Motivation
 
