@@ -419,6 +419,30 @@ A type has unsafe storage if:
 * Any stored instance property (for `actor`, `class`, and `struct` types) or associated value (for cases of `enum` types) have a type that involves an unsafe type or conformance.
 * Any stored instance property uses one of the unsafe language features (such as `unowned(unsafe)`).
 
+#### Unsafe witnesses
+
+When a type conforms to a given protocol, it must satisfy all of the requirements of that protocol. Part of this process is determining which declaration (called the *witness*) satisfies a given protocol requirement. If a particular witness is unsafe but the corresponding requirement is not safe, the compiler will produce a warning:
+
+```swift
+protocol P {
+  func f()
+}
+
+struct ConformsToP { }
+
+extension ConformsToP: P {
+  @unsafe func f() { } // warning: unsafe instance method 'f()' cannot satisfy safe requirement
+}
+```
+
+This unsafety can be acknowledged by marking the conformance as `@unsafe`, e.g.,
+
+```swift
+extension ConformsToP: @unsafe P {
+  @unsafe func f() { } // okay, it's an unsafe conformance
+}
+```
+
 #### Unsafe overrides
 
 Overriding a safe method within an `@unsafe` one could introduce unsafety, so it will produce a diagnostic in the strict safety mode:
