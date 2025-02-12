@@ -17,7 +17,7 @@ This feature is automatic and works transparently for any structured task hierar
 
 Generally developers can and should rely on the automatic task priority escalation happening transparently–at least for as long as all tasks necessary to escalate are created using structured concurrency primitives (task groups and `async let`). However, sometimes it is not possible to entirely avoid creating an unstructured task. 
 
-One such example is the async sequence [`merge`](https://github.com/apple/swift-async-algorithms/blob/main/Sources/AsyncAlgorithms/AsyncAlgorithms.docc/Guides/Merge.md) operation from the [swift-async-algorithms](https://github.com/apple/swift-async-algorithms/) project where the implementation is forced to create an unstructured task for iterating the upstream sequences, which must outlive downstream calls. These libraries would like to participate in task priority escalation to boost the priority of the upstream consuming task, however today lack the API to do so.
+One such example is the async sequence [`merge`](https://github.com/apple/swift-async-algorithms/blob/4c3ea81f81f0a25d0470188459c6d4bf20cf2f97/Sources/AsyncAlgorithms/AsyncAlgorithms.docc/Guides/Merge.md) operation from the [swift-async-algorithms](https://github.com/apple/swift-async-algorithms/) project where the implementation is forced to create an unstructured task for iterating the upstream sequences, which must outlive downstream calls. These libraries would like to participate in task priority escalation to boost the priority of the upstream consuming task, however today lack the API to do so.
 
 ```swift
 // SIMPLIFIED EXAMPLE CODE
@@ -60,13 +60,13 @@ struct AsyncMergeSequenceIterator: AsyncIterator {
 }
 ```
 
-The above example showcases a common pattern: often an unchecked continuation is paired with a Task used to complete it. Around the suspension on the continuation, waiting for it to be resumed, developers often install a task cancellation handler in order to potentially break out of potentially unbounded waiting for a continuation to be resumed. Around the same suspension (marked with `HERE` in the snippet above), we might want to insert a task priority escalation handler in order to priority boost the task that is used to resume the continuation. This can be important for correctness and performance of such operations, so we should find a way to offer these libraries to participate in task priority handling.
+The above example showcases a common pattern: often a continuation is paired with a Task used to complete it. Around the suspension on the continuation, waiting for it to be resumed, developers often install a task cancellation handler in order to potentially break out of potentially unbounded waiting for a continuation to be resumed. Around the same suspension (marked with `HERE` in the snippet above), we might want to insert a task priority escalation handler in order to priority boost the task that is used to resume the continuation. This can be important for correctness and performance of such operations, so we should find a way to offer these libraries a mechanism to participate in task priority handling.
 
 Another example of libraries which may want to reach for manual task priority escalation APIs are libraries which facilitate communication across process boundaries, and would like to react to priority escalation and propagate it to a different process. Relying on the built-in priority escalation mechanisms won't work, because they are necessarily in-process, so libraries like this need to be able to participate and be notified when priority escalation happens, and also be able to efficiently cause the escalation inside the other process.
 
 ## Proposed solution
 
-In order to address the above use-cases, we propose to add a pair of APIs: to react to priority escalation happening within a block of code, and an API to _cause_ a priority escalation without resorting to trickery using creating new tasks whose only purpose is to escalate the priority of some other task:
+In order to address the above use-cases, we propose to add a pair of APIs: to react to priority escalation happening within a block of code, and an API to _cause_ a priority escalation without resorting to trickery by creating new tasks whose only purpose is to escalate the priority of some other task:
 
 ```swift
 enum State {
@@ -91,7 +91,7 @@ await withTaskPriorityEscalationHandler {
           return priority
       }
     }
-    // priority was escalated just before we have store the task in the mutex
+    // priority was escalated just before we stored the task in the mutex
     if let newPriority {
         Task.escalatePriority(task, to: newPriority)
     }
@@ -99,7 +99,7 @@ await withTaskPriorityEscalationHandler {
     state.withLock { state in
       switch state {
       case .initialized, .priority:
-        // priority was escalated just before managed to store the task in the mutex
+        // priority was escalated just before we managed to store the task in the mutex
         state = .priority(newPriority)
       case .task(let task):
         Task.escalatePriority(task, to: newPriority)
