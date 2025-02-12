@@ -411,6 +411,42 @@ func passUnsafe() {
 }
 ```
 
+### `for..in` loops
+
+Swift's `for..in` loops are effectively implemented as syntactic sugar over the `Sequence` and `IteratorProtocol` protocols, where the `for..in` creates a new iterator (with `Sequence.makeIterator()`) and then calls its `next()` operation for each loop iteration. If the conformances to `Sequence` are `IteratorProtocol` is `@unsafe`, the loop will introduce a warning:
+
+```swift
+let someUnsafeBuffer: UnsafeBufferPointer<Element> = unsafe ...
+for x in someBuffer { // warning: use of unsafe conformance of 'UnsafeBufferPointer' to 'Sequence'
+                            // and someBuffer has unsafe type 'UnsafeBufferPointer'
+  // ...
+}
+```
+
+Following the precedent set by [SE-0298](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0298-asyncsequence.md), which introduced effects in loops, the `unsafe` keyword that acknowledges unsafe behavior in the iteration will follow the `for`:
+
+```swift
+let someUnsafeBuffer: UnsafeBufferPointer<Element> = unsafe ...
+for unsafe x in someBuffer { // still warns that someBuffer has unsafe type 'UnsafeBufferPointer'
+  // ...
+}
+```
+
+This may not be the only unsafe behavior in the `for..in` loop. For example, the expression that produces the sequence itself (via the reference to `someBuffer`) is also unsafe, so it needs to be acknowledged:
+
+```swift
+let someUnsafeBuffer: UnsafeBufferPointer<Element> = unsafe ...
+for unsafe x in unsafe someBuffer {
+  // ...
+}
+```
+
+This repeated `unsafe` also occurs with the other effects: if an `async throws` function `getAsyncSequence()` produces an `AsyncSequence` whose iteration can throw, one will end up with two `try` and `await` keywords:
+
+```swift
+for try await x in try await getAsyncSequence() { ... }
+```
+
 ### Strict safety mode and escalatable warnings
 
 The strict memory safety mode can be enabled with the new compiler flag `-strict-memory-safety`.
@@ -733,6 +769,7 @@ We could introduce an optional `message` argument to the `@unsafe` attribute, wh
 
 * **Revision 3 (following second review eextension)**
   * Do not require declarations with unsafe types in their signature to be marked `@unsafe`; it is implied. They may be marked `@safe` to indicate that they are actually safe.
+  * Add `unsafe` for iteration via the `for..in` syntax.
   
 * **Revision 2 (following first review extension)**
   * Specified that variables of unsafe type passed in to uses of `@safe` declarations (e.g., calls, property accesses) are not diagnosed as themselves being unsafe. This makes means that expressions like `unsafeBufferePointer.count` will be considered safe.
