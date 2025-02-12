@@ -447,6 +447,66 @@ This repeated `unsafe` also occurs with the other effects: if an `async throws` 
 for try await x in try await getAsyncSequence() { ... }
 ```
 
+### C(++) interoperability
+
+The C family of languages does not provide an equivalent to the strict safety mode described in this proposal, and unlike Swift, the defaults tend to be unsafe along all of the dimensions of memory safety. C(++) libriaries used within Swift can, therefore, introduce memory safety issues into the Swift code.
+
+The primary issue with memory safety in C(++) concerns the presence of pointers. C(++) pointers will generally be imported into Swift as an `Unsafe*Pointer` type of some form. For C functions (and C++ member functions), that means that a potentially unsafe API such as
+
+```swift
+char *strstr(const char * haystack, const char *needle);
+```
+
+will be treated as implicitly `@unsafe` in Swift because its signature contains unsafe types:
+
+```swift
+func strstr(
+  _ haystack: UnsafePointer<CChar>?, 
+  _ needle: UnsafePointer<CChar>?
+) -> UnsafeMutablePointer<CChar>?
+```
+
+A C function that doesn't use pointer types, on the other hand, will implicitly be considered to be safe, because there are no unsafe types in its Swift signature. For example, the following would be considered safe:
+
+```swift
+// int getchar(void);
+func getchar() -> CInt
+```
+
+C and C++ also have user-defined types in the form of `struct`s, `enum`s, `union`s, and (in C++) `class`es. For such types, this proposal infers them to be `@unsafe` when their non-static data contains any C pointers or C types that are explicitly marked as unsafe. For example, a `Point` struct could be considered safe:
+
+```cpp
+struct Point {
+  double x, y;
+};
+```
+
+but a `struct` with a pointer or C++ reference in it would be implicitly `@unsafe` in Swift:
+
+```swift
+struct ListNode {
+  void *element;
+  struct ListNode *next;
+};
+```
+
+The C attribute `swift_attr` can be used to make specific declarations safe or unsafe, e.g., we could mark a C++ class that manages its internal pointer correctly as being safe, e.g.,
+
+```cpp
+class __attribute__((swift_attr("@safe"))) MyString {
+  char *data;
+  size_t length;
+  
+  MyString(const MyString &);
+  MyString(MyString &&);
+  MyString &operator=(const MyString&);
+  MyString &operator=(MyString&&);
+  ~MyString();
+};
+```
+
+Note that C `enum`s will never be inferred to be `@unsafe` because they don't carry any values other than their underlying integral type, which is always a safe type.
+
 ### Strict safety mode and escalatable warnings
 
 The strict memory safety mode can be enabled with the new compiler flag `-strict-memory-safety`.
@@ -770,6 +830,7 @@ We could introduce an optional `message` argument to the `@unsafe` attribute, wh
 * **Revision 3 (following second review eextension)**
   * Do not require declarations with unsafe types in their signature to be marked `@unsafe`; it is implied. They may be marked `@safe` to indicate that they are actually safe.
   * Add `unsafe` for iteration via the `for..in` syntax.
+  * Add C(++) interoperability section that infers `@unsafe` for C types that involve pointers.
   
 * **Revision 2 (following first review extension)**
   * Specified that variables of unsafe type passed in to uses of `@safe` declarations (e.g., calls, property accesses) are not diagnosed as themselves being unsafe. This makes means that expressions like `unsafeBufferePointer.count` will be considered safe.
