@@ -470,7 +470,7 @@ The `@unsafe` annotation is at the class level because any use of the `Sub` type
 
 #### `for..in` loops
 
-Swift's `for..in` loops are effectively implemented as syntactic sugar over the `Sequence` and `IteratorProtocol` protocols, where the `for..in` creates a new iterator (with `Sequence.makeIterator()`) and then calls its `next()` operation for each loop iteration. If the conformances to `Sequence` are `IteratorProtocol` is `@unsafe`, the loop will introduce a warning:
+Swift's `for..in` loops are effectively implemented as syntactic sugar over the `Sequence` and `IteratorProtocol` protocols, where the `for..in` creates a new iterator (with `Sequence.makeIterator()`) and then calls its `next()` operation for each loop iteration. If the conformances to `Sequence` or `IteratorProtocol` are `@unsafe`, the loop will introduce a warning:
 
 ```swift
 let someUnsafeBuffer: UnsafeBufferPointer<Element> = unsafe ...
@@ -824,7 +824,7 @@ We could introduce an optional `message` argument to the `@unsafe` attribute, wh
 
 ## Revision history
 
-* **Revision 3 (following second review eextension)**
+* **Revision 3 (following second review extension)**
   * Do not require declarations with unsafe types in their signature to be marked `@unsafe`; it is implied. They may be marked `@safe` to indicate that they are actually safe.
   * Add `unsafe` for iteration via the `for..in` syntax.
   * Add C(++) interoperability section that infers `@unsafe` for C types that involve pointers.
