@@ -288,7 +288,45 @@ struct ListNode {
 
 Note that C `enum`s will never be inferred to be `@unsafe` because they don't carry any values other than their underlying integral type, which is always a safe type.
 
-### `@safe` attribute
+### Acknowledging unsafety
+
+All of the features described above are available in Swift regardless of whether strict memory safety checking is enabled. When strict memory safety checking is enabled, each use of an unsafe construct of any form must be ackwnowledged in the source code with one of the forms below, which provides an in-source auditable indication of where memory unsafety issues can arise. The following section describes each of the features for acknowledging memory unsafety. 
+
+#### `unsafe` expression
+
+Any time there is executable code that makes use of unsafe constructs, the compiler will produce a diagnostic that indicates the use of those unsafe constructs unless it is within an `unsafe` expression. For example, consider the `DataWrapper` example from an earlier section:
+
+```swift
+public struct DataWrapper {
+  var buffer: UnsafeBufferPointer<UInt8>
+}
+
+extension DataWrapper {
+  public func checksum() -> Int32 { 
+    crc32(0, buffer.baseAddress, buffer.count)
+  }
+}
+```
+
+The property `buffer` uses an unsafe type, `UnsafeBufferPointer`. When using that property in the implementation of `checksum`, the Swift compiler will produce a warning when strict memory safety checking is enabled:
+
+```swift
+warning: expression uses unsafe constructs but is not marked with 'unsafe'
+```
+
+This warning can be suppressed using the `unsafe` expression, as follows:
+
+```swift
+extension DataWrapper {
+  public func checksum() -> Int32 { 
+    unsafe crc32(0, buffer.baseAddress, buffer.count)
+  }
+}
+```
+
+The `unsafe` expression is much like `try` and `await`, in that it acknowledges that unsafe constructs (`buffer`) are used within the subexpression but otherwise does not change the type. Unlike `try` and `await`, which require the enclosing context to handle throwing or be asynchronous, respectively, the `unsafe` expression does not imply any requirements about the enclosing block: it is purely a marker to indicate the presence of unsafe code, silencing a diagnostic.
+
+#### `@safe` attribute
 
 The `@safe` attribute is used on declarations whose signatures involve unsafe types but are, nonetheless, safe to use. For example, marking `UnsafeBufferPointer` as `@unsafe` means that all operations involving an unsafe buffer pointer are implicitly considered `@unsafe`. The `@safe` attribute can be used to say that those certain operations are actually safe. For example, any operation involving buffer indices or count are safe, because they don't touch the memory itself. This can be indicated by marking these APIs `@safe`:
 
@@ -335,44 +373,6 @@ extension Array<Int> {
   }
 }
 ```
-
-### Acknowledging unsafety
-
-All of the features described above are available in Swift regardless of whether strict memory safety checking is enabled. When strict memory safety checking is enabled, each use of an unsafe construct of any form must be ackwnowledged in the source code with one of the forms below, which provides an in-source auditable indication of where memory unsafety issues can arise. The following section describes each of the features for acknowledging memory unsafety. 
-
-#### `unsafe` expression
-
-Any time there is executable code that makes use of unsafe constructs, the compiler will produce a diagnostic that indicates the use of those unsafe constructs unless it is within an `unsafe` expression. For example, consider the `DataWrapper` example from an earlier section:
-
-```swift
-public struct DataWrapper {
-  var buffer: UnsafeBufferPointer<UInt8>
-}
-
-extension DataWrapper {
-  public func checksum() -> Int32 { 
-    crc32(0, buffer.baseAddress, buffer.count)
-  }
-}
-```
-
-The property `buffer` uses an unsafe type, `UnsafeBufferPointer`. When using that property in the implementation of `checksum`, the Swift compiler will produce a warning when strict memory safety checking is enabled:
-
-```swift
-warning: expression uses unsafe constructs but is not marked with 'unsafe'
-```
-
-This warning can be suppressed using the `unsafe` expression, as follows:
-
-```swift
-extension DataWrapper {
-  public func checksum() -> Int32 { 
-    unsafe crc32(0, buffer.baseAddress, buffer.count)
-  }
-}
-```
-
-The `unsafe` expression is much like `try` and `await`, in that it acknowledges that unsafe constructs (`buffer`) are used within the subexpression but otherwise does not change the type. Unlike `try` and `await`, which require the enclosing context to handle throwing or be asynchronous, respectively, the `unsafe` expression does not imply any requirements about the enclosing block: it is purely a marker to indicate the presence of unsafe code, silencing a diagnostic.
 
 #### Types with unsafe storage
 
