@@ -62,7 +62,7 @@ Despite these significant and often undesirable implications, existential types 
 
 ## Proposed solution
 
-I propose to make existential types syntactically explicit in the language using the `any` keyword. This proposal introduces the new syntax in the Swift 5 language mode, and this syntax should be required for existential types under the Swift 6 language mode.
+I propose to make existential types syntactically explicit in the language using the `any` keyword. This proposal introduces the new syntax in the Swift 5 language mode, and this syntax should be required for existential types under a future language mode.
 
 In Swift 5, anywhere that an existential type can be used today, the `any` keyword can be used to explicitly denote an existential type:
 
@@ -80,10 +80,10 @@ let pq1: P & Q = S() // 'P & Q' in this context is an existential type
 let pq2: any P & Q = S() // 'any P & Q' is an explicit existential type
 ```
 
-In Swift 6, existential types are required be explicitly spelled with `any`:
+In a future language mode, existential types are required to be explicitly spelled with `any`:
 
 ```swift
-// Swift 6 mode
+// Future language mode
 
 protocol P {}
 protocol Q {}
@@ -96,7 +96,7 @@ let pq1: P & Q = S() // error
 let pq2: any P & Q = S() // okay
 ```
 
-The Swift 6 behavior can be enabled in earlier language modes with the [upcoming feature flag](0362-piecemeal-future-features.md) `ExistentialAny`.
+This behavior can be enabled in earlier language modes with the [upcoming feature flag](0362-piecemeal-future-features.md) `ExistentialAny`.
 
 ## Detailed design
 
@@ -192,11 +192,9 @@ func generic<T: AnotherP>(value: T) { ... }
 func generic<T: AnyP>(value: T) { ... } // error
 ```
 
-Once the `any` spelling is required under the Swift 6 language mode, a type alias to a plain protocol name is not a valid type witness for an associated type requirement; existential type witnesses must be explicit in the `typealias` with `any`:
+Once the `any` spelling is required under a future language mode, a type alias to a plain protocol name is not a valid type witness for an associated type requirement; existential type witnesses must be explicit in the `typealias` with `any`:
 
 ```swift
-// Swift 6 code
-
 protocol P {}
 
 protocol Requirements {
@@ -214,16 +212,16 @@ struct S2: Requirements {
 
 ## Source compatibility
 
-Enforcing that existential types use the `any` keyword will require a source change. To ease the migration, I propose to start allowing existential types to be spelled with `any` with the Swift 5.6 compiler, and require existential types to be spelled with `any` under the Swift 6 language mode. The old existential type syntax will continue to be supported under the Swift 5 language mode, and the transition to the new syntax is mechanical, so it can be performed automatically by a migrator.
+Enforcing that existential types use the `any` keyword will require a source change. To ease the migration, I propose to start allowing existential types to be spelled with `any` with the Swift 5.6 compiler, and require existential types to be spelled with `any` under a future language mode. The old existential type syntax will continue to be supported under the Swift 5 language mode, and the transition to the new syntax is mechanical, so it can be performed automatically by a migrator.
 
-[SE-0309 Unlock existentials for all protocols](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md) enables more code to be written using existential types. To minimize the amount of new code written that will become invalid in Swift 6, I propose requiring `any` immediately for protocols with `Self` and associated type requirements. This introduces an inconsistency for protocols under the Swift 5 language mode, but this inconsistency already exists today (because you cannot use certain protocols as existential types at all), and the syntax difference serves two purposes:
+[SE-0309 Unlock existentials for all protocols](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md) enables more code to be written using existential types. To minimize the amount of new code written that will become invalid under `ExistentialAny`, I propose requiring `any` immediately for protocols with `Self` and associated type requirements. This introduces an inconsistency for protocols under the Swift 5 language mode, but this inconsistency already exists today (because you cannot use certain protocols as existential types at all), and the syntax difference serves two purposes:
 
 1. It saves programmers time in the long run by preventing them from writing new code that will become invalid later.
-2. It communicates the existence of `any` and encourages programmers to start using it for other existential types before adopting Swift 6.
+2. It communicates the existence of `any` and encourages programmers to start using it for other existential types before adopting `ExistentialAny`.
 
-### Transitioning to `any` in Swift 6
+### Transitioning to `any`
 
-The new `any` syntax will be staged in over several major Swift releases. In the release where `any` is introduced, the compiler will not emit any warnings for the lack of `any` on existential types. After `any` is introduced, warnings will be added to guide programmers toward the new syntax. Finally, these warnings can become errors, or [plain protocol names can be repurposed](#re-purposing-the-plain-protocol-name), in Swift 6.
+The new `any` syntax will be staged in over several major Swift releases. In the release where `any` is introduced, the compiler will not emit diagnostics for the lack of `any` on existential types, save for the aforementioned cases. After `any` is introduced, warnings will be added to guide programmers toward the new syntax. Finally, a missing `any` will become an unconditional error, or [plain protocol names may be repurposed](#re-purposing-the-plain-protocol-name) — in Swift 6 or a later language mode.
 
 ## Effect on ABI stability
 
