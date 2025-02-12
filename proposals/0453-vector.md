@@ -3,10 +3,10 @@
 * Proposal: [SE-0453](0453-vector.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Active review (December 5...December 17, 2024)**
+* Status: **Accepted**
 * Roadmap: [Approaches for fixed-size arrays](https://forums.swift.org/t/approaches-for-fixed-size-arrays/58894)
 * Implementation: [swiftlang/swift#76438](https://github.com/swiftlang/swift/pull/76438)
-* Review: ([pitch](https://forums.swift.org/t/vector-a-fixed-size-array/75264)) ([review](https://forums.swift.org/t/se-0453-vector-a-fixed-size-array/76004)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0453-vector-a-fixed-size-array/76411)) ([second review](https://forums.swift.org/t/second-review-se-0453-vector-a-fixed-size-array/76412))
+* Review: ([pitch](https://forums.swift.org/t/vector-a-fixed-size-array/75264)) ([first review](https://forums.swift.org/t/se-0453-vector-a-fixed-size-array/76004)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0453-vector-a-fixed-size-array/76411)) ([second review](https://forums.swift.org/t/second-review-se-0453-vector-a-fixed-size-array/76412)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0453-inlinearray-formerly-vector-a-fixed-size-array/77678))
 
 ## Introduction
 
@@ -82,7 +82,7 @@ member it will be inline allocated on the heap with the rest of the properties.
 alone.
 
 ```swift
-func complexAlgorithm() -> Int {
+func complexAlgorithm() {
   // This is a stack allocation, no 'malloc's or reference counting here!
   let elements: InlineArray<4, Int> = [1, 2, 3, 4]
 
@@ -215,10 +215,10 @@ func array<T>(_: [T]) {}
 array([1, 2, 3]) // passes a Swift.Array
 array([1, 2, 3] as InlineArray<3, Int>) // error: 'InlineArray<3, Int>' is not convertible to 'Array<Int>'
 
-func InlineArray<T>(_: InlineArray<3, T>) {}
+func inlineArray<T>(_: InlineArray<3, T>) {}
 
-InlineArray([1, 2, 3]) // passes a Swift.InlineArray
-InlineArray([1, 2, 3] as [Int]) // error: 'Array<Int>' is not convertible to 'InlineArray<3, Int>'
+inlineArray([1, 2, 3]) // passes a Swift.InlineArray
+inlineArray([1, 2, 3] as [Int]) // error: 'Array<Int>' is not convertible to 'InlineArray<3, Int>'
 ```
 
 I discuss later about a hypothetical `ExpressibleByInlineArrayLiteral` and the design
@@ -276,7 +276,7 @@ extension InlineArray where Element: ~Copyable {
   /// Initializes every element in this InlineArray by running the closure with the
   /// previously initialized element.
   ///
-  /// This will call the closure 'count' times, where 'count' is the static
+  /// This will call the closure `count - 1` times, where `count` is the static
   /// count of the InlineArray, to initialize every element by passing the closure
   /// an immutable borrow reference to the previously initialized element. The
   /// closure is allowed to throw an error at any point during initialization at
