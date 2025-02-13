@@ -120,11 +120,6 @@ extension CollectionOfOne {
   var span: Span<Element> { get }
 }
 
-extension SIMD_N_ { // where _N_ ∈ {2, 3, 4 ,8, 16, 32, 64}
-  /// Share this vector's elements as a `Span`
-  var span: Span<Scalar> { get }
-}
-
 extension KeyValuePairs {
   /// Share this `Collection`'s elements as a `Span`
   var span: Span<(Key, Value)> { get }
@@ -288,6 +283,10 @@ The properties added by this proposal are largely the concrete implementations o
 Unfortunately, a major issue prevents us from proposing it at this time: the ability to suppress requirements on `associatedtype` declarations was deferred during the review of [SE-0427](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md). Once this restriction is lifted, then we could propose a `ContiguousStorage` protocol.
 
 The other limitation stated in [SE-0447][SE-0447]'s section about `ContiguousStorage` is "the inability to declare a `_read` acessor as a protocol requirement." This proposal's addition to enable defining a borrowing relationship via a computed property is a solution to that, as long as we don't need to use a coroutine accessor to produce a `Span`. While allowing the return of `Span`s through coroutine accessors may be undesirable, whether it is undesirable is unclear until coroutine accessors are formalized in the language.
+
+<a name="simd"></a>`span` properties on standard library SIMD types
+
+This proposal as reviewed included `span` properties for the standard library `SIMD` types. We are deferring this feature at the moment, since it is difficult to define these succinctly. The primary issue is that the `SIMD`-related protocols do not explicitly require contiguous memory; assuming that they are represented in contiguous memory fails with theoretically-possible examples. We could define the `span` property systematically for each concrete SIMD type in the standard library, but that would be very repetitive (and expensive from the point of view of code size.) We could also fix the SIMD protocols to require contiguous memory, enabling a succinct definition of their `span` property. Finally, we could also rely on converting `SIMD` types to `InlineArray`, and use the `span` property defined on `InlineArray`.
 
 ## Acknowledgements
 
