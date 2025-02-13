@@ -131,11 +131,11 @@ extension KeyValuePairs {
 }
 ```
 
-Conditionally to the acceptance of [`Vector`][SE-0453], we will also add the following:
+Following the acceptance of [`InlineArray`][SE-0453], we will also add the following:
 
 ```swift
-extension Vector where Element: ~Copyable {
-  /// Share this vector's elements as a `Span`
+extension InlineArray where Element: ~Copyable {
+  /// Share this `InlineArray`'s elements as a `Span`
   var span: Span<Element> { get }
 }
 ```
