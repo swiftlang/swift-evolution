@@ -62,7 +62,7 @@ development and focus on other important tasks.
 ### Automation
 
 Many existing and prospective upcoming features imply or implement simple and
-consistent code modifications to facilitate the adoption process:
+consistent code modifications to facilitate adoption processes:
 
 * [`NonfrozenEnumExhaustivity`][SE-0192]: Restore exhaustivity with
   `@unknown default:`.
