@@ -15,7 +15,7 @@ expanding domains.
 
 Source-breaking changes to Swift were first staged behind the now obsolete
 Swift 3 language mode.
-Each successive major release has since included a correponding language mode,
+Each successive major release has since included a corresponding language mode,
 using the previous language mode as the default to maximize source
 compatibility.
 For example, Swift 6 compilers operate in the Swift 5 language mode by default.
@@ -31,7 +31,7 @@ features as opposed to an entire language mode.
 Among other things, upcoming features facilitated earlier adoption of
 improvements and drastically reduced the pressures in our evolutionary model.
 
-This proposal centers seeks to improve the experience of adopting individual
+This proposal seeks to improve the experience of adopting individual
 features.
 The proposition is that the growing complexity and diversification of Swift
 calls for a flexible, integrated mechanism for supporting quality assistance
@@ -89,8 +89,6 @@ consistent code modifications to facilitate adoption processes:
 * [Inherit isolation by default for async functions][async-inherit-isolation-pitch]:
   Mark nonisolated functions with the proposed attribute.
 
-Feature
-
 Extending diagnostic metadata to include information that allows for
 recognizing these diagnostics and distinguishing semantics-preserving fix-its
 from alternative source changes would open up numerous opportunities for
@@ -124,7 +122,7 @@ UPCOMING_FEATURE(RegionBasedIsolation, 414, 6)
 
 ## Proposed solution
 
-Introduce the notion of a "adoption" mode for individual experimental and
+Introduce the notion of an "adoption" mode for individual experimental and
 upcoming features.
 The core idea behind adoption mode is a declaration of intent that can be
 leveraged to build holistic supportive adoption experiences for developers.
@@ -142,6 +140,9 @@ existing code whenever the feature provides for them.
 
 ### Behavior
 
+Adoption mode should deliver guidance in the shape of warnings, notes, remarks,
+and fix-its, as and when appropriate.
+
 The action of enabling a previously disabled source-breaking feature in adoption
 mode per se must never produce compilation errors.
 Additionally, this action will have no effect on the state of the feature if
@@ -152,9 +153,6 @@ impression that the impacted source code is compatible with the feature.
 > [!NOTE]
 > Experimental features can be both additive and source-breaking.
 > Upcoming features are necessarily source-breaking.
-
-adoption mode will deliver guidance in the shape of warnings, notes, remarks,
-and fix-its, as and when appropriate.
 
 When implemented, adoption mode for upcoming features is expected to anticipate
 and call out any behavioral differences that will result from enacting the
