@@ -24,12 +24,12 @@ language mode explicitly.
 Once the time is right, old language modes together with the legacy behaviors
 they manifest will be proposed to be deprecated.
 
-The cumulative source compatibility impact of the changes that were accreting
-around a converging Swift 6 language mode gave rise to the
+In Swift 5.8, the cumulative source compatibility impact of a still converging
+Swift 6 language mode gave rise to the
 [Swift feature model][SE-0362], which enabled piecemeal adoption of individual
 features as opposed to an entire language mode.
-Upcoming features facilitated sooner adoption of improvements and drastically
-reduced the pressures in our evolutionary model.
+Among other things, upcoming features facilitated earlier adoption of
+improvements and drastically reduced the pressures in our evolutionary model.
 
 This proposal centers seeks to improve the experience of adopting individual
 features.
