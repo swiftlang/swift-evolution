@@ -9,35 +9,16 @@
 
 ## Introduction
 
-The future we envision for Swift will take many more valiant evolutionary
-decisions and major transformations with a proportional impact on its
-expanding domains.
-
-Source-breaking changes to Swift were first staged behind the now obsolete
-Swift 3 language mode.
-Each successive major release has since included a corresponding language mode,
-using the previous language mode as the default to maximize source
-compatibility.
-For example, Swift 6 compilers operate in the Swift 5 language mode by default.
-Users that are not ready to adopt the new default can still specify an earlier
-language mode explicitly.
-Once the time is right, old language modes together with the legacy behaviors
-they manifest will be proposed to be deprecated.
-
-In Swift 5.8, the cumulative source compatibility impact of a still converging
-Swift 6 language mode gave rise to the
-[Swift feature model][SE-0362], which enabled piecemeal adoption of individual
-features as opposed to an entire language mode.
-Among other things, upcoming features facilitated earlier adoption of
-improvements and drastically reduced the pressures in our evolutionary model.
-
-This proposal seeks to improve the experience of adopting individual
-features.
-The proposition is that the growing complexity and diversification of Swift
-calls for a flexible, integrated mechanism for supporting quality assistance
-with feature adoption.
-And that — in principle — comprehensive, code-aware assistance can be delivered
-without breaking source and acted upon incrementally.
+In Swift 5.8 introduced [upcoming features][SE-0362],
+which enabled piecemeal adoption of individual source incompatible
+changes that are enabled by default in a new langauge mode.
+Many upcoming features have a mechanical migration, meaning the compiler can
+determine the exact source changes necessary to allow the code to compile under 
+the upcoming feature while preserving the behavior of the code.
+This proposal seeks to improve the experience of enabling individual
+upcoming features by providing tools that produce the necessary source code
+changes automatically for a given set of upcoming features that a programmer
+wants to enable.
 
 ## Motivation
 
