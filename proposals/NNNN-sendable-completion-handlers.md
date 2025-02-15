@@ -6,7 +6,7 @@
 * Status: **Awaiting review**
 * Vision: [[Prospective Vision] Improving the approachability of data-race safety](https://forums.swift.org/t/prospective-vision-improving-the-approachability-of-data-race-safety/76183)
 * Implementation: On `main` behind `-enable-experimental-feature SendableCompletionHandlers`
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-import-objective-c-completion-handler-parameters-as-sendable/77904))
 
 ## Introduction
 
