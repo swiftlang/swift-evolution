@@ -77,29 +77,14 @@ higher-level tools — ranging from the Swift package manager to IDEs — to
 implement powerful solutions for organizing, automating, and tuning code
 migration processes.
 
-### Flexibility/Ergonomics
+It's not always feasible for an upcoming feature to have a mechanical
+migration path. For example, the following upcoming features require manual
+migration:
 
-> [!CAUTION]
-> Still a draft.
-
-Although upcoming features should strive to facilitate code migration, 
-
-language design principles may prevail over bespoke code migration solutions.
-Some features, like [StrictConcurrency][SE-0337], inherently require user
-intervetion
-
-Adjusting to new behaviors or language requirements can demand research,
-careful consideration, coordinated efforts, and manual code refactorings,
-sometimes on a case-by-case basis.
-
-Currently best solution is to implement custom staging solutions. This approach
-has limited applications (why?).
-
-UPCOMING_FEATURE(DynamicActorIsolation, 423, 6)
-UPCOMING_FEATURE(GlobalActorIsolatedTypesUsability, 0434, 6)
-UPCOMING_FEATURE(StrictConcurrency, 0337, 6)
-UPCOMING_FEATURE(IsolatedDefaultValues, 411, 6)
-UPCOMING_FEATURE(RegionBasedIsolation, 414, 6)
+* [`DynamicActorIsolation`][SE-0423]
+* [`GlobalActorIsolatedTypesUsability`][SE-0434]
+* [`StrictConcurrency`][SE-0337]
+* [`IsolatedDefaultValues`][SE-0411]
 
 ## Proposed solution
 
@@ -310,5 +295,7 @@ Special thanks to Holly for her feedback throughout the draft stage.
 [SE-0411]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0411-isolated-default-values.md
 [SE-0412]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0412-strict-concurrency-for-global-variables.md
 [SE-0418]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0418-inferring-sendable-for-methods.md
+[SE-0423]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0423-dynamic-actor-isolation.md
+[SE-0434]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md
 [SE-0444]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
 [async-inherit-isolation-pitch]: https://forums.swift.org/t/pitch-inherit-isolation-by-default-for-async-functions/74862
