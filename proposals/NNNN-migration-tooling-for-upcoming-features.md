@@ -98,9 +98,11 @@ An immediate benefit of adoption mode is the capability to deliver source
 modifications that can be applied to preserve or improve the behavior of
 existing code whenever the feature provides for them.
 
-> [!NOTE]
-> The subject of this proposal is an enhancement to the Swift feature model.
-> Applications of adoption mode to existing features are beyond its scope.
+This proposal will support the set of existing upcoming features that
+have mechanical migrations, as described in the [Automation](#automation)
+section. All future proposals that introduce new upcoming features should
+include a mechanical migration via adoption mode in the Source compatibility
+section of the proposal.
 
 ## Detailed design
 
