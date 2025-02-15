@@ -193,4 +193,4 @@ Compiler tooling can automatically migrate existing projects when they choose to
 
 This vision does not cover existing pain points with task ordering and actor re-entrancy. These are important problems, but they are more prevalent in more advanced uses of concurrency and warrant a separate, dedicated exploration.
 
-Improving compiler or runtime diagnostics is also not covered here; these are important improvements to make, and they do not need to be reviewed through the Swift evolution process.
+Improving concurrency diagnostics and documentation is also not covered in this document. Diagnostics and documentation changes are not governed by the Swift evolution vision process, because these changes don't have long-term source compatibility and ABI constraints, so gating improvements behind a heavy weight review process isn't necessary. However, diagnostics and documentation are an extremely important tool for making the concurrency model more approachable, and they will be included in the implementation effort behind this vision.
