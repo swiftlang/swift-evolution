@@ -52,7 +52,7 @@ make the existing actor isolation inference explicit. If they enable the
 upcoming feature, their code will simply behave differently. This was a
 point of debate in the review of SE-0401, and the Language Steering Group
 concluded that automatic migration tooling is the right way to address this
-particular workflow, as [noted in the acceptance notes][SE-0401-acceptance:
+particular workflow, as [noted in the acceptance notes][SE-0401-acceptance]:
 
 > the Language Steering Group believes that separate migration tooling to
 > help programmers audit code whose behavior will change under Swift 6 mode
@@ -127,17 +127,18 @@ behavior in the *Source compatibility* section of the proposal.
 
 ## Detailed design
 
-### Behavior
+Upcoming features that have mechanical migrations will support an adoption
+mode, which is a a new mode of building a project that will produce compiler
+warnings with attached fix-its that can be applied to preserve the behavior
+of the code when the upcoming feature is enabled. Adoption mode must not
+cause any new compiler errors, and the fix-its produced must preserve the
+source compatibility and behavior of the code.
 
-The action of enabling a previously disabled source-breaking feature in adoption
-mode per se must not cause compilation errors.
-Additionally, this action will have no effect if the mode is not supported.
+Additionally, this action will have no effect if the mode is not supported
+for a given upcoming feature, i,e. because the upcoming feature does not
+have a mechanical migration.
 A corresponding warning will be emitted in this case to avoid the false
 impression that the impacted source code is compatible with the feature.
-
-> [!NOTE]
-> Experimental features can be both additive and source-breaking.
-> Upcoming features are necessarily source-breaking.
 
 Adoption mode should deliver guidance in the shape of regular diagnostics.
 For arbitrary upcoming features, adoption mode is expected to anticipate and
@@ -146,17 +147,6 @@ coupling diagnostic messages with counteracting compatible changes and helpful
 alternatives whenever feasible.
 Compatibility issues encompass both source and binary compatibility issues,
 including behavioral changes.
-
-Note that adoption mode does not provide any new general guarantees in respect
-to fix-its.
-We cannot promise to offer exclusively compatible modifications.
-Besides the impact of a change on dependent source code being generally
-unpredictable, it can be reasonable to couple compatible fix-its with
-potentially incompatible, albeit better, alternatives, as in `any P` → `some P`.
-The same stands for provision of modifications — features might not have a
-mechanical migration path, and the compiler remains inherently limited in the
-extent to which it can make assumptions about what is helpful or best for the
-programmer.
 
 ### Interface
 
@@ -262,6 +252,15 @@ Entering or exiting adoption mode may affect behavior and is therefore a
 potentially source-breaking action.
 
 ## Future directions
+
+### Producing source incompatible fix-its
+
+For some upcoming features, a source change which alters the semantics of
+the program is a more desirable approach to addressing an error that comes
+from enabling an upcoming feature. For example, programmers might want to
+replace cases of `any P` with `some P`. Adoption tooling could support the
+option to produce source incompatible fix-its in cases where the compiler
+can detect that a different behavior might be more beneficial.
 
 ### Applications beyond migration
 
