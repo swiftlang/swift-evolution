@@ -9,25 +9,23 @@
 
 ## Introduction
 
-In Swift 5.8 introduced [upcoming features][SE-0362],
-which enabled piecemeal adoption of individual source-incompatible changes that
-are included in a language mode.
+Swift 5.8 introduced [upcoming features][SE-0362], which enabled piecemeal
+adoption of individual source-incompatible changes that are included in a
+language mode.
 Many upcoming features have a mechanical migration, meaning the compiler can
 determine the exact source changes necessary to allow the code to compile under
 the upcoming feature while preserving the behavior of the code.
-This proposal seeks to improve the experience of enabling individual
-upcoming features by providing a mechanism for producing the necessary source
-code changes automatically for a given set of upcoming features that a
-programmer wants to enable.
+This proposal seeks to improve the experience of enabling individual Swift
+features by providing an integrated mechanism for producing these source code
+modifications automatically.
 
 ## Motivation
 
-Adopting certain features is a time-consuming endeavor at the least.
 It is the responsibility of project maintainers to preserve source (and binary)
-compatibility both internally and externally for library clients when enabling
-an upcoming feature, which can be difficult or tedious without having tools to
-help detect possibly inadvertent changes and perform monotonous migration
-shenanigans for you.
+compatibility both internally and for library clients when enabling an upcoming
+feature, which can be difficult or tedious without having tools to help detect
+possibly inadvertent changes or perform monotonous migration shenanigans for
+you.
 *Our* responsibility is to make that an easier task for everybody.
 
 ### User intent
@@ -38,21 +36,22 @@ intent.
 Is the developer expecting guidance on adopting an improvement?
 All the compiler knows to do when a feature is enabled is to compile code
 accordingly.
-This suffices if a feature merely supplants an existing syntactical construct
-or changes the behavior of existing code in strictly predictable ways because
-Swift can infer the need to suggest a fix just from spotting certain code
-patterns.
+If an upcoming feature supplants an existing grammatical construct or
+invalidates an existing behavior, the language rules alone suffice because
+Swift can consistently infer the irrefutable need to diagnose certain code
+patterns just by spotting them.
 
 Needless to say, not all upcoming features fall under these criteria (and not
-all features are source-breaking in the first place). Consider
-[`DisableOutwardActorInference`][SE-0401], which changes actor isolation
-inference of a type that contains an actor-isolated property wrapper. There
-is no way for the programmer to specify that they'd like compiler fix-its to
-make the existing actor isolation inference explicit. If they enable the
-upcoming feature, their code will simply behave differently. This was a
-point of debate in the review of SE-0401, and the Language Steering Group
-concluded that automatic migration tooling is the right way to address this
-particular workflow, as [noted in the acceptance notes][SE-0401-acceptance]:
+all features are source-breaking in the first place).
+Consider [`DisableOutwardActorInference`][SE-0401], which changes actor
+isolation inference rules with respect to wrapped properties.
+There is no way for the programmer to specify that they'd like compiler fix-its
+to make the existing actor isolation inference explicit.
+If they enable the upcoming feature, their code will simply behave differently.
+This was a point of debate in the review of [SE-0401], and the Language
+Steering Group concluded that automatic migration tooling is the right way to
+address this particular workflow, as
+[noted in the acceptance notes][SE-0401-acceptance]:
 
 > the Language Steering Group believes that separate migration tooling to
 > help programmers audit code whose behavior will change under Swift 6 mode
@@ -61,7 +60,7 @@ particular workflow, as [noted in the acceptance notes][SE-0401-acceptance]:
 
 ### Automation
 
-Many existing and prospective upcoming features come with simple and reliable
+Many existing and prospective upcoming features account for simple and reliable
 migration paths to facilitate adoption:
 
 * [`NonfrozenEnumExhaustivity`][SE-0192]: Restore exhaustivity with
@@ -79,32 +78,17 @@ migration paths to facilitate adoption:
 * [`DisableOutwardActorInference`][SE-0401]: Specify global actor isolation
   explicitly.
 * [`InternalImportsByDefault`][SE-0409]: `import X` → `public import X`.
-* [`GlobalConcurrency`][SE-0412]:
-  - Convert the global variable to a `let` (or)
-  - `@MainActor`-isolate it (or)
-  - Mark it with `nonisolated(unsafe)`
+* [`GlobalConcurrency`][SE-0412]: Convert the global variable to a `let`, or
+  `@MainActor`-isolate it, or mark it with `nonisolated(unsafe)`.
 * [`MemberImportVisibility`][SE-0444]: Add explicit imports appropriately.
 * [`InferSendableFromCaptures`][SE-0418]: Suppress inference with coercions
   and type annotations.
 * [Inherit isolation by default for async functions][async-inherit-isolation-pitch]:
   Mark nonisolated functions with the proposed attribute.
 
-Extending diagnostic metadata to include information that allows for
-recognizing these diagnostics and distinguishing semantics-preserving fix-its
-from alternative source changes will open up numerous opportunities for
-higher-level tools — ranging from the Swift package manager to IDEs — to
-implement powerful solutions for organizing, automating, and tuning feature
-adoption processes.
-
-It is not always feasible or in line with language design principles for an
-upcoming feature to have a mechanical migration path.
-For example, the following upcoming features require manual migration to
-preserve semantics:
-
-* [`DynamicActorIsolation`][SE-0423]
-* [`GlobalActorIsolatedTypesUsability`][SE-0434]
-* [`StrictConcurrency`][SE-0337]
-* [`IsolatedDefaultValues`][SE-0411]
+Application of these adjustments can be fully automated in favor of preserving
+behavior, saving time for more important tasks, such as identifying, auditing,
+and testing code where a change in behavior is preferable.
 
 ## Proposed solution
 
@@ -115,38 +99,34 @@ leveraged to build better supportive adoption experiences for developers.
 If enabling a feature communicates an intent to *enact* rules, adoption mode
 communicates an intent to *adopt* them.
 An immediate benefit of adoption mode is the capability to deliver source
-modifications that can be applied to preserve or improve the behavior of
-existing code whenever the feature provides for them.
+modifications that can be applied to preserve compatibility whenever a feature
+provides for them.
 
 This proposal will support the set of existing upcoming features that
 have mechanical migrations, as described in the [Automation](#automation)
 section.
-All future proposals that introduce a new upcoming feature and provide a
-mechanical migration are expected to support adoption mode and detail its
-behavior in the *Source compatibility* section of the proposal.
+All future proposals that intend to introduce an upcoming feature and
+provide for a mechanical migration should include an adoption mode and detail
+its behavior alongside the migration paths in the *Source compatibility*
+section.
 
 ## Detailed design
 
 Upcoming features that have mechanical migrations will support an adoption
-mode, which is a a new mode of building a project that will produce compiler
+mode, which is a new mode of building a project that will produce compiler
 warnings with attached fix-its that can be applied to preserve the behavior
-of the code when the upcoming feature is enabled. Adoption mode must not
-cause any new compiler errors, and the fix-its produced must preserve the
-source compatibility and behavior of the code.
+of the code once the upcoming feature is enacted.
 
+The action of enabling a previously disabled upcoming feature in adoption
+mode must not cause any new compiler errors or behavioral changes, and the
+fix-its produced must preserve compatibility.
+Compatibility here refers to both source and binary compatibility, as well as
+to behavior.
 Additionally, this action will have no effect if the mode is not supported
-for a given upcoming feature, i,e. because the upcoming feature does not
+for a given upcoming feature, i.e., because the upcoming feature does not
 have a mechanical migration.
 A corresponding warning will be emitted in this case to avoid the false
 impression that the impacted source code is compatible with the feature.
-
-Adoption mode should deliver guidance in the shape of regular diagnostics.
-For arbitrary upcoming features, adoption mode is expected to anticipate and
-call out any compatibility issues that result from enacting the feature,
-coupling diagnostic messages with counteracting compatible changes and helpful
-alternatives whenever feasible.
-Compatibility issues encompass both source and binary compatibility issues,
-including behavioral changes.
 
 ### Interface
 
@@ -233,14 +213,14 @@ SwiftSetting.enableUpcomingFeature("InternalImportsByDefault", mode: .adoption)
 ### Diagnostics
 
 Diagnostics emitted in relation to a specific feature in adoption mode must
-belong to a diagnostic group named after the feature. The names of diagnostic
-groups can be displayed alongside diagnostic messages using
-`-print-diagnostic-groups` and used to associate messages with features.
+belong to a diagnostic group named after the feature.
+The names of diagnostic groups can be displayed alongside diagnostic messages
+using `-print-diagnostic-groups` and used to associate messages with features.
 
 ## Source compatibility
 
-This proposal does not affect language rules. The described changes to the API
-surface are source-compatible.
+This proposal does not affect language rules.
+The described changes to the API surface are source-compatible.
 
 ## ABI compatibility
 
@@ -248,21 +228,22 @@ This proposal does not affect binary compatibility or binary interfaces.
 
 ## Implications on adoption
 
-Entering or exiting adoption mode may affect behavior and is therefore a
+Entering or exiting adoption mode will affect behavior and is therefore a
 potentially source-breaking action.
 
 ## Future directions
 
 ### Producing source incompatible fix-its
 
-For some upcoming features, a source change which alters the semantics of
+For some features, a source change that alters the semantics of
 the program is a more desirable approach to addressing an error that comes
-from enabling an upcoming feature. For example, programmers might want to
-replace cases of `any P` with `some P`. Adoption tooling could support the
-option to produce source incompatible fix-its in cases where the compiler
-can detect that a different behavior might be more beneficial.
+from enabling the feature.
+For example, programmers might want to replace cases of `any P` with `some P`.
+Adoption tooling could support the option to produce source incompatible
+fix-its in cases where the compiler can detect that a different behavior might
+be more beneficial.
 
-### Applications beyond migration
+### Applications beyond mechanical migration
 
 Adoption mode can be extrapolated to additive features, such as
 [typed `throws`][SE-0413] or [opaque parameter types][SE-0341], by providing
@@ -270,9 +251,9 @@ actionable adoption tips.
 Additive features are hard-enabled and become an integral part of the language
 as soon as they ship.
 Many recent additive features are already integrated into the Swift feature
-model and kept around for the sole purpose of supporting
-[feature availability checks][feature-detection] in conditional compilation
-blocks.
+model, and their metadata is kept around either to support
+[feature availability checks][SE-0362-feature-detection] in conditional
+compilation blocks or because they started off as experimental features.
 
 Another potential direction for adoption mode is promotion of best practices.
 
@@ -288,22 +269,24 @@ is essential for future tools built around adoption mode:
   This can prove especially handy when multiple features are simultaneously
   enabled in adoption mode, or when similar diagnostic messages are caused by
   distinct features.
-* Fix-its that preserve semantics can be prioritized and auto-applied in
-  previews.
+* Exposing the purpose of a fix-it can help developers make quicker decisions
+  when offered multiple fix-its.
+  Furthermore, tools can take advantage of this information by favoring and
+  auto-applying source-compatible fix-its.
 
 ### `swift adopt`
 
 The Swift package manager could implement an `adopt` subcommand for interactive
 review and application of adoption mode output for a given set of features,
-with a command line interface similar to `git add --patch`.
+with a command-line interface similar to `git add --patch`.
 
 ## Alternatives considered
 
 ### Naming
 
-Perhaps the most intuitive alternative to "adoption" is "migration". We
-settled on the former because there is no reason for this concept to be limited
-to upcoming features or migrational changes.
+Perhaps the most intuitive alternative to "adoption" is "migration".
+We settled on the former because there is no reason for this concept to be
+limited to upcoming features or migrational changes.
 
 ## Acknowledgements
 
@@ -326,9 +309,10 @@ Special thanks to Holly for her guidance throughout the draft stage.
 [SE-0352]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0352-implicit-open-existentials.md
 [SE-0354]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0354-regex-literals.md
 [SE-0362]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md
-[feature-detection]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md#feature-detection-in-source-code
+[SE-0362-feature-detection]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md#feature-detection-in-source-code
 [SE-0383]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0383-deprecate-uiapplicationmain-and-nsapplicationmain.md
 [SE-0401]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0401-remove-property-wrapper-isolation.md
+[SE-0401-acceptance]: https://forums.swift.org/t/accepted-with-modifications-se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/66241
 [SE-0409]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md
 [SE-0411]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0411-isolated-default-values.md
 [SE-0413]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md
@@ -338,4 +322,3 @@ Special thanks to Holly for her guidance throughout the draft stage.
 [SE-0434]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md
 [SE-0444]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
 [async-inherit-isolation-pitch]: https://forums.swift.org/t/pitch-inherit-isolation-by-default-for-async-functions/74862
-[SE-0401-acceptance]: https://forums.swift.org/t/accepted-with-modifications-se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/66241
