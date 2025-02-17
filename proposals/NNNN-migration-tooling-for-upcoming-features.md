@@ -45,8 +45,19 @@ patterns.
 
 Needless to say, not all upcoming features fall under these criteria (and not
 all features are source-breaking in the first place). Consider
-[`ConciseMagicFile`][SE-0274], which changes the meaning of an existing
-literal.
+[`DisableOutwardActorInference`][SE-0401], which changes actor isolation
+inference of a type that contains an actor-isolated property wrapper. There
+is no way for the programmer to specify that they'd like compiler fix-its to
+make the existing actor isolation inference explicit. If they enable the
+upcoming feature, their code will simply behave differently. This was a
+point of debate in the review of SE-0401, and the Language Steering Group
+concluded that automatic migration tooling is the right way to address this
+particular workflow, as [noted in the acceptance notes][SE-0401-acceptance:
+
+> the Language Steering Group believes that separate migration tooling to
+> help programmers audit code whose behavior will change under Swift 6 mode
+> would be beneficial for all upcoming features that can change behavior
+> without necessarily emitting errors.
 
 ### Automation
 
@@ -328,3 +339,4 @@ Special thanks to Holly for her guidance throughout the draft stage.
 [SE-0434]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md
 [SE-0444]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
 [async-inherit-isolation-pitch]: https://forums.swift.org/t/pitch-inherit-isolation-by-default-for-async-functions/74862
+[SE-0401-acceptance]: https://forums.swift.org/t/accepted-with-modifications-se-0401-remove-actor-isolation-inference-caused-by-property-wrappers/66241
