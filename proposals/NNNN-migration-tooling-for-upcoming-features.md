@@ -10,40 +10,48 @@
 ## Introduction
 
 In Swift 5.8 introduced [upcoming features][SE-0362],
-which enabled piecemeal adoption of individual source incompatible
-changes that are enabled by default in a new langauge mode.
+which enabled piecemeal adoption of individual source-incompatible changes that
+are included in a language mode.
 Many upcoming features have a mechanical migration, meaning the compiler can
-determine the exact source changes necessary to allow the code to compile under 
+determine the exact source changes necessary to allow the code to compile under
 the upcoming feature while preserving the behavior of the code.
 This proposal seeks to improve the experience of enabling individual
-upcoming features by providing tools that produce the necessary source code
-changes automatically for a given set of upcoming features that a programmer
-wants to enable.
+upcoming features by providing a mechanism for producing the necessary source
+code changes automatically for a given set of upcoming features that a
+programmer wants to enable.
 
 ## Motivation
 
-Whether you are adjusting code to follow new language rules or researching ways
-to apply new functionality, adopting features can be a time-consuming endeavor
-at the least.
+Adopting certain features is a time-consuming endeavor at the least.
+It is the responsibility of project maintainers to preserve source (and binary)
+compatibility both internally and externally for library clients when enabling
+an upcoming feature, which can be difficult or tedious without having tools to
+help detect possibly inadvertent changes and perform monotonous migration
+shenanigans for you.
+*Our* responsibility is to make that an easier task for everybody.
 
-Some source-breaking language features are anticipated to generate hundreds
-of targeted errors in sizable projects.
-Occasionally, errors will also cascade down the dependecy graph or fall out
-from changes in behavior without a clear indication of the precise cause or source of
-the issue, requiring further investigation.
-Developers are left to either resolve all of these errors or address a subset
-and take the risk of switching the feature back off before they can resume
-development and focus on other important tasks.
+### User intent
 
-### User Intent
+A primary limiting factor in how proactively and accurately the compiler can
+assist developers with adopting a feature is a lack of comprehension of user
+intent.
+Is the developer expecting guidance on adopting an improvement?
+All the compiler knows to do when a feature is enabled is to compile code
+accordingly.
+This suffices if a feature merely supplants an existing syntactical construct
+or changes the behavior of existing code in strictly predictable ways because
+Swift can infer the need to suggest a fix just from spotting certain code
+patterns.
 
-> [!CAUTION]
-> TODO: No way for users to declare an intetion to adopt a feature
+Needless to say, not all upcoming features fall under these criteria (and not
+all features are source-breaking in the first place). Consider
+[`ConciseMagicFile`][SE-0274], which changes the meaning of an existing
+literal.
 
 ### Automation
 
 Many existing and prospective upcoming features imply or implement simple and
-consistent code modifications to facilitate adoption processes:
+consistent source modifications to facilitate adoption:
 
 * [`NonfrozenEnumExhaustivity`][SE-0192]: Restore exhaustivity with
   `@unknown default:`.
@@ -72,14 +80,15 @@ consistent code modifications to facilitate adoption processes:
 
 Extending diagnostic metadata to include information that allows for
 recognizing these diagnostics and distinguishing semantics-preserving fix-its
-from alternative source changes would open up numerous opportunities for
+from alternative source changes will open up numerous opportunities for
 higher-level tools — ranging from the Swift package manager to IDEs — to
-implement powerful solutions for organizing, automating, and tuning code
-migration processes.
+implement powerful solutions for organizing, automating, and tuning feature
+adoption processes.
 
-It's not always feasible for an upcoming feature to have a mechanical
-migration path. For example, the following upcoming features require manual
-migration:
+It is not always feasible or in line with language design principles for an
+upcoming feature to have a mechanical migration path.
+For example, the following upcoming features require manual migration to
+preserve semantics:
 
 * [`DynamicActorIsolation`][SE-0423]
 * [`GlobalActorIsolatedTypesUsability`][SE-0434]
@@ -91,7 +100,7 @@ migration:
 Introduce the notion of an "adoption" mode for individual experimental and
 upcoming features.
 The core idea behind adoption mode is a declaration of intent that can be
-leveraged to build holistic supportive adoption experiences for developers.
+leveraged to build better supportive adoption experiences for developers.
 If enabling a feature communicates an intent to *enact* rules, adoption mode
 communicates an intent to *adopt* them.
 An immediate benefit of adoption mode is the capability to deliver source
@@ -100,21 +109,18 @@ existing code whenever the feature provides for them.
 
 This proposal will support the set of existing upcoming features that
 have mechanical migrations, as described in the [Automation](#automation)
-section. All future proposals that introduce new upcoming features should
-include a mechanical migration via adoption mode in the Source compatibility
-section of the proposal.
+section.
+All future proposals that introduce a new upcoming feature and provide a
+mechanical migration are expected to support adoption mode and detail its
+behavior in the *Source compatibility* section of the proposal.
 
 ## Detailed design
 
 ### Behavior
 
-Adoption mode should deliver guidance in the shape of warnings, notes, remarks,
-and fix-its, as and when appropriate.
-
 The action of enabling a previously disabled source-breaking feature in adoption
-mode per se must never produce compilation errors.
-Additionally, this action will have no effect on the state of the feature if
-it does not implement the mode.
+mode per se must not cause compilation errors .
+Additionally, this action will have no effect if the mode is not supported.
 A corresponding warning will be emitted in this case to avoid the false
 impression that the impacted source code is compatible with the feature.
 
@@ -122,15 +128,24 @@ impression that the impacted source code is compatible with the feature.
 > Experimental features can be both additive and source-breaking.
 > Upcoming features are necessarily source-breaking.
 
-When implemented, adoption mode for upcoming features is expected to anticipate
-and call out any behavioral differences that will result from enacting the
-feature, coupling diagnostic messages with counteracting source-compatible
-changes and helpful alternatives whenever possible.
-Adoption mode cannot guarantee to provide exclusively source-compatible
-modifications because the impact of a change on dependent source code is
-generally unpredictable.
-Neither can it promise to always offer fix-its in the first place for the
-same reason in regards to user intention.
+Adoption mode should deliver guidance in the shape of regular diagnostics.
+For arbitrary upcoming features, adoption mode is expected to anticipate and
+call out any compatibility issues that result from enacting the feature,
+coupling diagnostic messages with counteracting compatible changes and helpful
+alternatives whenever feasible.
+Compatibility issues encompass both source and binary compatibility issues,
+including behavioral changes.
+
+Note that adoption mode does not provide any new general guarantees in respect
+to fix-its.
+We cannot promise to offer exclusively compatible modifications.
+Besides the impact of a change on dependent source code being generally
+unpredictable, it can be reasonable to couple compatible fix-its with
+potentially incompatible, albeit better, alternatives, as in `any P` → `some P`.
+The same stands for provision of modifications — features might not have a
+mechanical migration path, and the compiler remains inherently limited in the
+extent to which it can make assumptions about what is helpful or best for the
+programmer.
 
 ### Interface
 
@@ -217,14 +232,10 @@ SwiftSetting.enableUpcomingFeature("InternalImportsByDefault", mode: .adoption)
 ### Diagnostics
 
 Diagnostics emitted in relation to a specific feature in adoption mode must
-belong to a diagnostic group named after the feature.
-There are several reasons why this will be useful:
-* Future feature-oriented adoption tooling can use the group identifier to
-  filter out relevant diagnostics.
-* IDEs and other diagnostic consumers can integrate group identifiers into
-  their interfaces to, well, group diagnostics, as well as to communicate
-  relationships between diagnostics and features. This can prove especially
-  handy when multiple features are simultaneously enabled in adoption mode.
+belong to a diagnostic group named after the feature. The names of diagnostic
+groups can be displayed along with diagnostic messages using
+`-print-diagnostic-groups` and can be used to associate a message with a
+particular feature.
 
 ## Source compatibility
 
@@ -237,43 +248,59 @@ This proposal does not affect binary compatibility or binary interfaces.
 
 ## Implications on adoption
 
-Demoting an enabled source-breaking feature to adoption mode may affect
-behavior and is therefore a potentially source-breaking action.
+Entering or exiting adoption mode may affect behavior and is therefore a
+potentially source-breaking action.
 
 ## Future directions
 
-### Augment diagnostic metadata
+### Applications beyond migration
 
+Adoption mode can be extrapolated to additive features, such as
+[typed `throws`][SE-0413] or [opaque parameter types][SE-0341], by providing
+actionable adoption tips.
+Additive features are hard-enabled and become an integral part of the language
+as soon as they ship.
+Many recent additive features are already integrated into the Swift feature
+model and kept around for the sole purpose of supporting
+[feature availability checks][feature-detection] in conditional compilation
+blocks.
 
+Another potential direction for adoption mode is promotion of best practices.
 
-### Support baseline features
+### Augmented diagnostic metadata
 
-Adoption mode can be extrapolated to baseline features, such as `TypedThrows`
-or [opaque parameter types][SE-0341], with an emphasis on actionable adoption
-tips and otherwise unsolicited educational notes.
-These additive features are hard-enabled in all language modes and become an
-integral part of the language as soon as they ship.
-Baseline feature identifiers are currently kept around for the sole purpose of
-supporting [feature availability checks][feature-detection] in conditional
-compilation blocks.
+The current serialization format for diagnostics does not include information
+about diagnostic groups or whether a particular fix-it preserves semantics.
+There are several reasons why this data is essential for future tools built
+around adoption mode:
+* The diagnostic group name can be used to, well, group diagnostics, as well as
+  to communicate relationships between diagnostics and features and filter out
+  relevant diagnostics.
+  This can prove especially handy when multiple features are simultaneously
+  enabled in adoption mode, or when similar diagnostic messages are caused by
+  distinct features.
+* Fix-its that preserve semantics can be prioritized and auto-applied in
+  previews.
 
 ### `swift adopt`
 
-The Swift package manager could implement an `adopt` subcommand with an
-interactive command line interface similar to `git add --patch` for selecting
-and applying fix-its ...
+The Swift package manager could implement an `adopt` subcommand for interactive
+review and application of adoption mode output for a given set of features,
+with a command line interface similar to `git add --patch`.
 
 ## Alternatives considered
 
 ### Naming
 
-
+Perhaps the most intuitive alternative to "adoption" is "migration". We
+settled on the former because there is no reason for this concept to be limited
+to upcoming features or migrational changes.
 
 ## Acknowledgements
 
 This proposal was inspired by documents prepared by [Allan Shortlidge][Allan]
 and [Holly Borla][Holly].
-Special thanks to Holly for her feedback throughout the draft stage.
+Special thanks to Holly for her guidance throughout the draft stage.
 
 <!----------------------------------------------------------------------------->
 
@@ -295,6 +322,7 @@ Special thanks to Holly for her feedback throughout the draft stage.
 [SE-0401]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0401-remove-property-wrapper-isolation.md
 [SE-0409]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md
 [SE-0411]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0411-isolated-default-values.md
+[SE-0413]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md
 [SE-0412]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0412-strict-concurrency-for-global-variables.md
 [SE-0418]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0418-inferring-sendable-for-methods.md
 [SE-0423]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0423-dynamic-actor-isolation.md
