@@ -50,8 +50,8 @@ literal.
 
 ### Automation
 
-Many existing and prospective upcoming features imply or implement simple and
-consistent source modifications to facilitate adoption:
+Many existing and prospective upcoming features come with simple and reliable
+migration paths to facilitate adoption:
 
 * [`NonfrozenEnumExhaustivity`][SE-0192]: Restore exhaustivity with
   `@unknown default:`.
@@ -119,7 +119,7 @@ behavior in the *Source compatibility* section of the proposal.
 ### Behavior
 
 The action of enabling a previously disabled source-breaking feature in adoption
-mode per se must not cause compilation errors .
+mode per se must not cause compilation errors.
 Additionally, this action will have no effect if the mode is not supported.
 A corresponding warning will be emitted in this case to avoid the false
 impression that the impacted source code is compatible with the feature.
@@ -233,9 +233,8 @@ SwiftSetting.enableUpcomingFeature("InternalImportsByDefault", mode: .adoption)
 
 Diagnostics emitted in relation to a specific feature in adoption mode must
 belong to a diagnostic group named after the feature. The names of diagnostic
-groups can be displayed along with diagnostic messages using
-`-print-diagnostic-groups` and can be used to associate a message with a
-particular feature.
+groups can be displayed alongside diagnostic messages using
+`-print-diagnostic-groups` and used to associate messages with features.
 
 ## Source compatibility
 
@@ -271,8 +270,8 @@ Another potential direction for adoption mode is promotion of best practices.
 
 The current serialization format for diagnostics does not include information
 about diagnostic groups or whether a particular fix-it preserves semantics.
-There are several reasons why this data is essential for future tools built
-around adoption mode:
+There are several reasons why this data can be valuable for users, and why it
+is essential for future tools built around adoption mode:
 * The diagnostic group name can be used to, well, group diagnostics, as well as
   to communicate relationships between diagnostics and features and filter out
   relevant diagnostics.
