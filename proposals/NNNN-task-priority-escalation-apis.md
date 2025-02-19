@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: **Awaiting implementation** 
+* Status: **Implemented**
 * Implementation: https://github.com/swiftlang/swift/pull/78625
 * Review: ...
 
