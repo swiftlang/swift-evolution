@@ -2,6 +2,8 @@
 
 [SE-0434]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md
 
+> This document is an official feature [vision document](https://forums.swift.org/t/the-role-of-vision-documents-in-swift-evolution/62101). The Language Steering Group has endorsed the goals and basic approach laid out in this document. This endorsement is not a pre-approval of any of the concrete proposals that may come out of this document. All proposals will undergo normal evolution review, which may result in rejection or revision from how they appear in this document.
+
 ## Introduction
 
 Swift's built-in support for concurrency has three goals:
