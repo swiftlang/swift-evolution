@@ -285,8 +285,8 @@ with a command-line interface similar to `git add --patch`.
 ### Naming
 
 Perhaps the most intuitive alternative to "adoption" is "migration".
-We settled on the former because there is no reason for this concept to be
-limited to upcoming features or migrational changes.
+We settled on the former because there is no reason for this concept to remain
+limited to upcoming features or mechanical migration.
 
 ## Acknowledgements
 
