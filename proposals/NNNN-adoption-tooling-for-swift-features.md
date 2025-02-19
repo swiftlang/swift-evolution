@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: TBD
-* Review: TBD
+* Review: [pitch](https://forums.swift.org/t/pitch-adoption-tooling-for-upcoming-features/77936)
 
 ## Introduction
 
@@ -294,7 +294,7 @@ This proposal was inspired by documents prepared by [Allan Shortlidge][Allan]
 and [Holly Borla][Holly].
 Special thanks to Holly for her guidance throughout the draft stage.
 
-<!----------------------------------------------------------------------------->
+<!-- Links -------------------------------------------------------------------->
 
 [Holly]: https://github.com/hborla
 [Allan]: https://github.com/tshortli
