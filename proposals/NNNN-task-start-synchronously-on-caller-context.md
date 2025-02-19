@@ -323,7 +323,7 @@ actor Caplin {
   var num: Int = 0
   
   func check() {
-    Task.startSynchronously {
+    Task.startSynchronouslyDetached {
       num += 1 // could be ok; we know we're synchronously executing on caller
       
       try await Task.sleep(for: .seconds(1))
