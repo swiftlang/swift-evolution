@@ -195,10 +195,16 @@ actor MyActor {
 ```
 
 Changing the default execution semantics of async functions can change the
-behavior of existing code, so the change must be staged in behind an upcoming
-feature flag. This proposal introduces the `@execution` attribute to explicitly
-specify the execution semantics of an async function. `@execution(caller)`
-specifies that an async function always runs on the caller's actor. For example:
+behavior of existing code, so the change is gated behind the
+`AsyncCallerExecution` upcoming feature flag. To help stage in the new
+behavior, a new `@execution` attribute can be used to explicitly specify the
+execution semantics of an async function in any language mode. The
+`@execution(concurrent)` attribute is an explicit spelling for the behavior of
+async functions in language modes <= Swift 6, and the `@execution(caller)`
+attribute is an explicit spelling for async functions that run on the caller's
+actor.
+
+For example:
 
 ```swift
 class NotSendable {
@@ -206,6 +212,9 @@ class NotSendable {
   
   @execution(caller)
   func performAsync() async { ... }
+
+  @execution(concurrent)
+  func alwaysSwitch() async { ... }
 }
 
 actor MyActor {
@@ -215,30 +224,15 @@ actor MyActor {
     x.performSync() // okay
 
     await x.performAsync() // okay
+
+    await x.alwaysSwitch() // error
   }
 }
 ```
 
-`@execution(caller)` will become the default for async functions when the
-upcoming feature is enabled.
-
-`@execution(concurrent)` specifies that an async function always
-switches off of an actor to run on the concurrent executor. For example:
-
-```swift
-class NotSendable {
-  @execution(concurrent)
-  func performAsync() async { ... }
-}
-
-actor MyActor {
-  let x: NotSendable
-
-  func call() async {
-    await x.performAsync() // error
-  }
-}
-```
+`@execution(concurrent)` is the current default for nonisolated async
+functions. `@execution(caller)` will become the default for async functions
+when the `AsyncCallerExecution` upcoming feature is enabled.
 
 ## Detailed design
 
