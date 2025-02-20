@@ -5,7 +5,7 @@
 * Review Manager: [Freddy Kellison-Linn](https://github.com/jumhyn)
 * Status: **Active review (February 20...March 2, 2025)**
 * Implementation: https://github.com/swiftlang/swift/pull/78625
-* Review: ([pitch](https://forums.swift.org/t/pitch-task-priority-escalation-apis/77702))
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-priority-escalation-apis/77702)) ([review](https://forums.swift.org/t/se-0462-task-priority-escalation-apis/77997))
 
 ## Introduction
 
