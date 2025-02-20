@@ -127,6 +127,7 @@ for a given upcoming feature, i.e., because the upcoming feature does not
 have a mechanical migration.
 A corresponding warning will be emitted in this case to avoid the false
 impression that the impacted source code is compatible with the feature.
+This warning will belong to the diagnostic group `StrictLanguageFeatures`.
 
 ### Interface
 
@@ -149,8 +150,8 @@ For example:
 ```
 
 If the specified mode is invalid, the flag will be ignored, and a warning will
-be emitted. This warning will belong to the `StrictLanguageFeatures` diagnostic
-group.
+be emitted.
+This warning will belong to the diagnostic group `StrictLanguageFeatures`.
 In a series of either of these options applied to a given feature, only the
 last option will be honored.
 If an upcoming feature is both implied by the effective language mode and
