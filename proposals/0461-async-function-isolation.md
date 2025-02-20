@@ -1,9 +1,9 @@
 # Run nonisolated async functions on the caller's actor by default
 
-* Proposal: [SE-NNNN](NNNN-async-function-isolation.md)
+* Proposal: [SE-0461](0461-async-function-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (February 20...March 2, 2025)**
 * Vision: [[Prospective Vision] Improving the approachability of data-race safety](https://forums.swift.org/t/prospective-vision-improving-the-approachability-of-data-race-safety/76183)
 * Implementation: On `main` behind `-enable-experimental-feature NonIsolatedAsyncInheritsIsolationFromContext`
 * Upcoming Feature Flag: `AsyncCallerExecution`
