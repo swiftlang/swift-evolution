@@ -1,11 +1,11 @@
 # Task Priority Escalation APIs
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0462](0462-task-priority-escalation-apis.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
-* Review Manager: TBD
+* Review Manager: [Freddy Kellison-Linn](https://github.com/jumhyn)
 * Status: **Active review (February 20...March 2, 2025)**
 * Implementation: https://github.com/swiftlang/swift/pull/78625
-* Review: ...
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-priority-escalation-apis/77702))
 
 ## Introduction
 
