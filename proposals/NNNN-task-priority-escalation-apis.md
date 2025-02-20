@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: **Implemented**
+* Status: **Active review (February 20...March 2, 2025)**
 * Implementation: https://github.com/swiftlang/swift/pull/78625
 * Review: ...
 
@@ -17,7 +17,7 @@ This feature is automatic and works transparently for any structured task hierar
 
 Generally developers can and should rely on the automatic task priority escalation happening transparently–at least for as long as all tasks necessary to escalate are created using structured concurrency primitives (task groups and `async let`). However, sometimes it is not possible to entirely avoid creating an unstructured task. 
 
-One such example is the async sequence [`merge`](https://github.com/apple/swift-async-algorithms/blob/4c3ea81f81f0a25d0470188459c6d4bf20cf2f97/Sources/AsyncAlgorithms/AsyncAlgorithms.docc/Guides/Merge.md) operation from the [swift-async-algorithms](https://github.com/apple/swift-async-algorithms/) project where the implementation is forced to create an unstructured task for iterating the upstream sequences, which must outlive downstream calls. These libraries would like to participate in task priority escalation to boost the priority of the upstream consuming task, however today lack the API to do so.
+One such example is the async sequence [`merge`](https://github.com/apple/swift-async-algorithms/blob/4c3ea81f81f0a25d0470188459c6d4bf20cf2f97/Sources/AsyncAlgorithms/AsyncAlgorithms.docc/Guides/Merge.md) operation from the [swift-async-algorithms](https://github.com/apple/swift-async-algorithms/) project where the implementation is forced to create an unstructured task for iterating the upstream sequences, which must outlive downstream calls. These libraries would like to participate in task priority escalation to boost the priority of the upstream consuming task, however today they lack the API to do so.
 
 ```swift
 // SIMPLIFIED EXAMPLE CODE
