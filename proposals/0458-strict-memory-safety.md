@@ -94,7 +94,6 @@ To suppress these warnings, the expressions involving unsafe code must be marked
 extension Array<Int> {
   func sum() -> Int {
     withUnsafeBufferPointer { buffer in
-      // warning: use of unsafe function 'sumIntBuffer' and unsafe property 'baseAddress'
       unsafe sumIntBuffer(buffer.baseAddress, buffer.count, 0)
     }
   }
