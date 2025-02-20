@@ -889,12 +889,8 @@ reasons:
 1. It does not accomplish the goal of having consistent semantics for
    `nonisolated` by default, regardless of whether it's applied to synchronous
    or async functions.
-2. It's important to have an explicit, easy-to-write spelling for async
-   functions that run on the caller's actor. For example, this is useful to
-   prevent a global actor from being inferred on the function if the global
-   actor is not required.
-3. This approach cuts off the future direction of allowing `@execution(concurrent)` on
-   synchronous functions.
+2. This approach cuts off the future direction of allowing
+   `@execution(concurrent)` on synchronous functions.
 
 ### Use "isolation" terminology instead of "execution"
 
