@@ -8,7 +8,7 @@
 * Implementation: On `main` behind `-enable-experimental-feature NonIsolatedAsyncInheritsIsolationFromContext`
 * Upcoming Feature Flag: `AsyncCallerExecution`
 * Previous Proposal: [SE-0338](0338-clarify-execution-non-actor-async.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-inherit-isolation-by-default-for-async-functions/74862))
+* Review: ([pitch](https://forums.swift.org/t/pitch-inherit-isolation-by-default-for-async-functions/74862)) ([review](https://forums.swift.org/t/se-0461-run-nonisolated-async-functions-on-the-callers-actor-by-default/77987))
 
 ## Introduction
 
