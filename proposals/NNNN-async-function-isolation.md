@@ -771,11 +771,15 @@ nonisolated async method can be passed mutable state from the actor.
 
 Nonisolated functions imported from Objective-C that match the import-as-async
 heuristic from [SE-0297: Concurrency Interoperability with Objective-C][SE-0297]
-will implicitly be imported as `@execution(caller)`. Note that Objective-C
-async functions already have bespoke code generation that continues running on
+will implicitly be imported as `@execution(caller)`. Objective-C async
+functions already have bespoke code generation that continues running on
 the caller's actor to match the semantics of the original completion handler
 function, so `@execution(caller)` already better matches the semantics of these
-imported `async` functions.
+imported `async` functions. This change will eliminate many existing data-race
+safety issues that happen when calling an async function on an Objective-C
+class from the main actor. Because the only effect of this change is
+eliminating concurrency diagnostics -- the runtime behavior of the code will
+not change -- it will not be gated behind the upcoming feature.
 
 ## Source compatibility
 
