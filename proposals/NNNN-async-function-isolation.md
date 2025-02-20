@@ -244,7 +244,11 @@ actor MyActor {
 
 The sections below will explicitly use `@execution(concurrent)` and
 `@execution(caller)` to demonstrate examples that will behave consistently
-independent of upcoming features or language modes.
+independent of upcoming features or language modes. However, note that the
+end state under the `AsyncCallerExecution` upcoming feature will mean that
+`@execution(caller)` is not necessary to explicitly write, and
+`@execution(caller)` will likely be used sparingly because it has far
+stricter data-race safety requirements.
 
 ### The `@execution` attribute
 
@@ -523,13 +527,11 @@ this can lead to reference cycles.
 
 ### Function conversions
 
-A function conversion that changes the isolation of a function value applies
-the same checking as calling the original function from the destination
-isolation domain. This checking is applied at the point of conversion, because
-a function conversion is effectively a closure that wraps a call to the original
-function value. For example, a function conversion from one global-actor-isolated
-type to another can be conceptualized as an async, isolated closure that calls
-the original function with `await`:
+Function conversions can change isolation. You can think of this like a
+closure with the new isolation that calls the original function, asynchronously
+if necessary. For example, a function conversion from one global-actor-isolated
+type to another can be conceptualized as an async closure that calls the
+original function with `await`:
 
 ```swift
 @globalActor actor OtherActor { ... }
@@ -547,40 +549,93 @@ func convert(
 }
 ```
 
-The function conversion rules for `nonisolated` functions depends on the
-execution semantics of the function. Each case is specified below.
-
-**Nonisolated synchronous or `@execution(caller)` to actor-isolated.**
-Nonisolated functions that run on the caller's actor can be converted to
-actor-isolated function types. The function conversion rules are the same
-for nonisolated synchronous functions and nonisolated async functions that
-are `@execution(caller)`.
+A function conversion that crosses an isolation boundary must only
+pass argument and result values that are `Sendable`; this is checked
+at the point of the function conversion. For example, converting an
+actor-isolated function type to a `nonisolated` function type requires
+that the argument and result types conform to `Sendable`:
 
 ```swift
-@execution(caller)
-nonisolated func performSync() async { ... }
+class NotSendable {}
+actor MyActor {
+  var ns = NotSendable()
 
-func convert() async {
-  let fn: @MainActor () async -> Void = performAsync // okay
+  func getState() -> NotSendable { ns }
+}
 
-  await fn()
+func invalidResult(a: MyActor) async -> NotSendable {
+  let grabActorState: @execution(caller) () async -> NotSendable = a.getState // error
+
+  return await grabActorState()
 }
 ```
 
-The argument and result values of the nonisolated function do not need
-to conform to `Sendable`, because a call to the function from an actor will
-continue to run on the actor.
+In the above code, the conversion from the actor-isolated method `getState`
+to a `@execution(caller) nonisolated` function is invalid, because the
+result type does not conform to `Sendable` and the result value could be
+actor-isolated state. The `nonisolated` function can be called from
+anywhere, which would allow access to actor state from outside the actor.
 
-If the nonisolated synchronous or `@execution(caller)` function value is not
-`Sendable`, it may have captured non-`Sendable` values from the enclosing
-context. A conversion to an actor-isolated function merges the function value
-to the actor's region:
+Not all function conversions cross an isolation boundary, and function
+conversions that don't can safely pass non-`Sendable` arguments and results.
+For example, a `@execution(caller)` function type can always be converted to an
+actor-isolated function type, because the `@execution(caller)` function will
+simply run on the actor:
+
+```swift
+class NotSendable {}
+
+@execution(caller)
+nonisolated func performAsync(_ ns: NotSendable) async { ... }
+
+@MainActor
+func convert(ns: NotSendable) async {
+  // Okay because 'performAsync' will run on the main actor
+  let runOnMain: @MainActor (NotSendable) async -> Void = performAsync
+
+  await runOnMain(ns)
+}
+```
+
+The following table enumerates each function conversion rule and specifies
+which function conversions cross an isolation boundary. Function conversions
+that cross an isolation boundary require `Sendable` argument and result types,
+and the destination function type must be `async`. Note that the function
+conversion rules for synchronous `nonisolated` functions and asynchronous
+`@execution(caller) nonisolated` functions are the same; they are both
+represented under the "Nonisolated" category in the table:
+
+| Old isolation            | New isolation              | Crosses Boundary |
+|--------------------------|----------------------------|------------------|
+| Nonisolated              | Actor isolated             | No               |
+| Nonisolated              | `@isolated(any)`           | No               |
+| Nonisolated              | `@execution(concurrent)`   | Yes              |
+| Actor isolated           | Actor isolated             | Yes              |
+| Actor isolated           | `@isolated(any)`           | No               |
+| Actor isolated           | Nonisolated                | Yes              |
+| Actor isolated           | `@execution(concurrent)`   | Yes              |
+| `@isolated(any)`         | Actor isolated             | Yes              |
+| `@isolated(any)`         | Nonisolated                | Yes              |
+| `@isolated(any)`         | `@execution(concurrent)`   | Yes              |
+| `@execution(concurrent)` | Actor isolated             | Yes              |
+| `@execution(concurrent)` | `@isolated(any)`           | No               |
+| `@execution(concurrent)` | Nonisolated                | Yes              |
+
+#### Non-`@Sendable` function conversions
+
+If a function type is not `@Sendable`, only one isolation domain can
+reference the function at a time, and calls to the function may never
+happen concurrently. These rules for non-`Sendable` types are enforced
+through region isolation. When a non-`@Sendable` function is converted
+to an actor-isolated function, the function value itself is merged into the
+actor's region, along with any non-`Sendable` function captures:
 
 ```swift
 class NotSendable {
   var value = 0
 }
 
+@execution(caller)
 func convert(closure: () -> Void) async {
   let ns = NotSendable()
   let disconnectedClosure = {
@@ -598,206 +653,47 @@ The function conversion for the `invalid` variable is an error because the
 non-`Sendable` captures of `closure` could be used concurrently from the caller
 of `convert` and the main actor.
 
-**Actor-isolated to `nonisolated` synchronous or `@execution(caller)`.**
-Actor-isolated synchronous functions can be converted to nonisolated
-synchronous or `@execution(caller)` functions as long as the conversion happens
-on the actor and the nonisolated function is not `@Sendable`:
+Converting a non-`@Sendable` function type to an actor-isolated one is invalid
+if the original function must leave the actor in order to be called:
 
 ```swift
-@MainActor func onMain() { ... }
-
-@MainActor
-func convertOnMain() {
-  let fn1: () -> Void = onMain // okay
-  fn1()
-
-  let fn2: @Sendable () -> Void = onMain // error
-}
-
-func convert() {
-  let fn1: () -> Void = onMain // error
-  let fn2: @Sendable () -> Void = onMain // error
-}
-```
-
-Both synchronous and async actor-isolated function types can be converted to
-`@execution(caller)`, non-`Sendable` async function types if the conversion happens on
-the actor:
-
-```swift
-class NotSendable { ... }
-
-@MainActor onMain() -> NotSendable { ... }
-
-@MainActor
-func convertOnMain async {
-  let fn: @execution(caller) () async -> NotSendable = onMain // okay
-  let ns = await fn()
-}
-
-func convertOffMain() {
-  let fn: () async -> NotSendable = onMain // error
-  await fn()
-}
-```
-
-From outside the actor, isolated function types can be converted to `@execution(caller)`
-async function types as long as the argument and result types of the function
-conform to `Sendable`:
-
-```swift
-class NotSendable { ... }
-
-@MainActor let ns = NotSendable()
-
-@MainActor func isolatedValue() -> NotSendable {
-  return ns
-}
-
-@MainActor func sendableValue() -> Int {
-  return 0
-}
-
-@MainActor func sendableValueAsync() async -> Int {
-  return 0
-}
-
 @execution(caller)
-func convert() async {
-  do {
-    let valid: @execution(caller) () async -> Int = sendableValue // okay
-    let int = await valid()
-  }
+func convert(
+    fn1: @escaping @execution(concurrent) () async -> Void,
+) async {
+    let fn2: @MainActor () async -> Void = fn1 // error
 
-  do {
-    let valid: @execution(caller) () async -> Int = sendableValueAsync // okay
-    let int = await valid()
-  }
-
-
-  let invalid: @execution(caller) () async -> NotSendable = isolatedValue // error
-  let ns = await invalid()
+    await withDiscardingTaskGroup { group in
+      group.addTask { await fn2() }
+      group.addTask { await fn2() }
+    }
 }
 ```
 
-The function conversion to the `invalid` variable produces an error because
-it would allow main-actor-isolated state to be used from outside the actor; if
-`convert` is called from some actor other than the main actor, then the call to
-`await invalid()` will also run on that actor.
-
-**Actor-isolated to actor-isolated.** Converting a synchronous isolated
-function to another synchronous function that changes isolation is always
-invalid. Converting an isolated function to an async function that changes
-isolation is valid if the argument and result types conform to `Sendable`:
-
-```swift
-class NotSendable { ... }
-
-actor MyActor {
-  let ns: NotSendable = .init()
-  func perform() {}
-  func performAsync() async {}
-  func getIsolatedValue() -> NotSendable { ns }
-  func getIsolatedValueAsync() async -> NotSendable { ns }
-}
-
-@MainActor
-func convert(a: MyActor) async {
-  do {
-    let fn: @MainActor () async -> Void = a.perform // okay
-    await fn()
-  }
-
-  do {
-    let fn: @MainActor () async -> Void = a.performAsync // okay
-    await fn()
-  }
-
-  do {
-    // error
-    let invalid: @MainActor () async -> NotSendable = a.getIsolatedValue
-    let ns = await invalid()
-  }
-
-  do {
-    // error
-    let invalid: @MainActor () async -> NotSendable = a.getIsolatedValueAsync
-    let ns = await invalid()
-  }
-}
-```
-
-**`@execution(concurrent)` to `@execution(caller)` or actor-isolated.**
-Converting an `@execution(concurrent)` function to an async function that
-can run on an actor is valid if the argument and result types conform to
-`Sendable`:
-
-```swift
-class NotSendable { ... }
-
-@execution(concurrent) func useNotSendable(ns: NotSendable) async { ... }
-@execution(concurrent) func useInt(x: Int) async { ... }
-
-actor MyActor {
-  let ns: NotSendable = .init()
-  func convert() async {
-    let fn: (Int) async -> Void = useInt // okay
-    let ns = await fn(10)
-
-    let invalidFn: (NotSendable) async -> Void = useNotSendable // error
-    await invalidFn(self.ns)
-  }
-}
-```
-
-**Nonisolated synchronous or `@execution(caller)` to `@execution(concurrent)`.**
-Converting a nonisolated synchronous or `@execution(caller)` function to an
-`@execution(concurrent)` function is always valid. Sendable checking for
-arguments and results will be applied when calling the converted function value.
-
-For example:
+In general, a conversion from an actor-isolated function type to a
+`nonisolated` function type crosses an isolation boundary, because the
+`nonisolated` function type can be called from an arbitrary isolation domain.
+However, if the conversion happens on the actor, and the new function type is
+not `@Sendable`, then the function must only be called from the actor. In this
+case, the function conversion is allowed, and the resulting function value
+is merged into the actor's region:
 
 ```swift
 class NotSendable {}
 
-@execution(caller)
-nonisolated func performAsync(ns: NotSendable) {}
+@MainActor class C {
+  var ns: NotSendable
 
-nonisolated func performSync(ns: NotSendable) {}
-
-@MainActor
-func convert(ns: NotSendable) async {
-  let fn1: @execution(concurrent) (NotSendable) async -> Void = performAsync // okay
-  await fn1(ns) // error
-
-  let fn2: @execution(concurrent) (NotSendable) async -> Void = performSync // okay
-  await fn2(ns) // error
-}
-```
-
-**Actor-isolated to `@execution(concurrent)`.**
-Converting an isolated function to an `@execution(concurrent)` function is
-valid if the argument and result types conform to `Sendable`:
-
-```swift
-class NotSendable { ... }
-
-@MainActor var globalState: NotSendable = .init()
-
-@MainActor func useNotSendable(ns: NotSendable) async {
-  globalState = ns
+  func getState() -> NotSendable { ns }
 }
 
-@MainActor func useInt(x: Int) async { ... }
+func call(_ closure: () -> NotSendable) -> NotSendable {
+  return closure()
+}
 
-@execution(concurrent) func convert() async {
-  let fn: @execution(concurrent) (Int) async -> Void = useInt // okay
-  let ns = await fn(10)
-
-  let ns = NotSendable()
-  let invalidFn: @execution(concurrent) (NotSendable) async -> Void = useNotSendable // error
-  await invalidFn(ns)
-  // concurrent access to 'ns' can happen here
+@MainActor func onMain(c: C) {
+  // 'result' is in the main actor's region
+  let result = call(c.getState)
 }
 ```
 
@@ -999,6 +895,23 @@ reasons:
    actor is not required.
 3. This approach cuts off the future direction of allowing `@execution(concurrent)` on
    synchronous functions.
+
+### Use "isolation" terminology instead of "execution"
+
+One other possibility is to use isolation terminology instead of `@execution`
+for the syntax. This direction does not accomplish goal 1. in the previous
+section to have a consistent meaning for `nonisolated` across synchronous and
+async functions. If the attribute were spelled `@isolated(caller)` and
+`@isolated(concurrent)`, presumably that attribute would not work together with
+`nonisolated`; it would instead be an alternative kind of actor isolation.
+
+Having `@execution(caller)` as an attribute that is used together with
+`nonisolated` leads to a simpler programming model because after the upcoming
+feature is enabled, programmers will simply write `nonisolated` on an `async`
+function in the same way that `nonisolated` is applied to synchronous
+functions. If we choose a different form of isolation like `@isolated(caller)`,
+programmers have to learn a separate syntax for `async` functions that
+accomplishes the same effect as a `nonisolated` synchronous function.
 
 ### Don't introduce a type attribute for `@execution`
 
