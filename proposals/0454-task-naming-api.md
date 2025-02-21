@@ -69,7 +69,7 @@ In addition to these APIs to name unstructured Tasks, the following API will be 
 
 ```swift
 mutating func addTask(
-    name: String? = nil,
+    name: String?,
     executorPreference taskExecutor: (any TaskExecutor)? = nil,
     priority: TaskPriority? = nil,
     operation: sending @escaping @isolated(any) () async -> ChildTaskResult
@@ -90,7 +90,7 @@ In addition to that, it will be possible to read a name off a task, similar to h
 
 ```swift
 extension Task {
-  var currentName: String? { get } 
+  static var name: String? { get } 
 }
 ```
 
