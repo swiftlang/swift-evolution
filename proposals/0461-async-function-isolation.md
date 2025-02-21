@@ -4,7 +4,7 @@
 * Authors: [Holly Borla](https://github.com/hborla), [John McCall](https://github.com/rjmccall)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (February 20...March 2, 2025)**
-* Vision: [[Prospective Vision] Improving the approachability of data-race safety](https://forums.swift.org/t/prospective-vision-improving-the-approachability-of-data-race-safety/76183)
+* Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Implementation: On `main` behind `-enable-experimental-feature NonIsolatedAsyncInheritsIsolationFromContext`
 * Upcoming Feature Flag: `AsyncCallerExecution`
 * Previous Proposal: [SE-0338](0338-clarify-execution-non-actor-async.md)
