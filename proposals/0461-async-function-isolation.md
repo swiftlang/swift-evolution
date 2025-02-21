@@ -41,6 +41,8 @@ async function always switches off of an actor to run.
 - [Alternatives considered](#alternatives-considered)
   - [Changing isolation inference behavior to implicitly capture isolated parameters](#changing-isolation-inference-behavior-to-implicitly-capture-isolated-parameters)
   - [Use `nonisolated` instead of a separate `@execution(concurrent)` attribute](#use-nonisolated-instead-of-a-separate-executionconcurrent-attribute)
+  - [Use "isolation" terminology instead of "execution"](#use-isolation-terminology-instead-of-execution)
+  - [Deprecate `nonisolated`](#deprecate-nonisolated)
   - [Don't introduce a type attribute for `@execution`](#dont-introduce-a-type-attribute-for-execution)
 - [Revisions](#revisions)
 
@@ -241,7 +243,7 @@ The sections below will explicitly use `@execution(concurrent)` and
 independent of upcoming features or language modes. However, note that the
 end state under the `AsyncCallerExecution` upcoming feature will mean that
 `@execution(caller)` is not necessary to explicitly write, and
-`@execution(caller)` will likely be used sparingly because it has far
+`@execution(concurrent)` will likely be used sparingly because it has far
 stricter data-race safety requirements.
 
 ### The `@execution` attribute
@@ -259,8 +261,26 @@ in the following sections.
 Only (implicitly or explicitly) `nonisolated` functions can be marked with the
 `@execution` attribute; it is an error to use the `@execution` attribute with
 an isolation other than `nonisolated`, including global actors, isolated
-parameters, and `@isolated(any)`. The `@execution` attribute can be used
-together with `@Sendable` or `sending`.
+parameters, and `@isolated(any)`:
+
+```swift
+actor MyActor {
+  var value = 0
+
+  // error: '@execution(caller)' can only be used with 'nonisolated' methods
+  @execution(caller)
+  func isolatedToSelf() async {
+    value += 1
+  }
+
+  @execution(caller)
+  nonisolated func canRunAnywhere() async {
+    // cannot access 'value' or other actor-isolated state
+  }
+}
+```
+
+The `@execution` attribute can be used together with `@Sendable` or `sending`.
 
 The `@execution` attribute is preserved in the type system so that the execution
 semantics can be distinguished for function vales.
@@ -892,12 +912,15 @@ reasons:
 
 ### Use "isolation" terminology instead of "execution"
 
-One other possibility is to use isolation terminology instead of `@execution`
-for the syntax. This direction does not accomplish goal 1. in the previous
+Another possibility is to use isolation terminology instead of `@execution`
+for the syntax. This direction does not accomplish the goal of having a
 section to have a consistent meaning for `nonisolated` across synchronous and
 async functions. If the attribute were spelled `@isolated(caller)` and
 `@isolated(concurrent)`, presumably that attribute would not work together with
 `nonisolated`; it would instead be an alternative kind of actor isolation.
+`@isolated(concurrent)` also doesn't make much sense because the concurrent
+executor does not provide isolation at all - isolation is only provided by
+actors and tasks.
 
 Having `@execution(caller)` as an attribute that is used together with
 `nonisolated` leads to a simpler programming model because after the upcoming
@@ -906,6 +929,22 @@ function in the same way that `nonisolated` is applied to synchronous
 functions. If we choose a different form of isolation like `@isolated(caller)`,
 programmers have to learn a separate syntax for `async` functions that
 accomplishes the same effect as a `nonisolated` synchronous function.
+
+### Deprecate `nonisolated`
+
+Going in the oppose direction, this proposal could effectively deprecate
+`nonisolated` and allow you to use `@execution(caller)` everywhere that
+`nonisolated` is currently supported, including synchronous methods, stored
+properties, type declarations, and extensions. This direction was not chosen
+for the following reasons:
+
+1. This would lead to much more code churn than the current proposal. Part of
+   the goal of this proposal is to minimize the change to only what is absolutely
+   necessary to solve the major usability problem with async functions on
+   non-`Sendable` types, because it's painful both to transition code and to
+   re-learn parts of the model that have already been internalized.
+2. `nonisolated` is nicer to write than `@execution(caller)`,
+   `@isolated(caller)`, or any other alternative attribute + argument syntax.
 
 ### Don't introduce a type attribute for `@execution`
 
