@@ -93,7 +93,7 @@ await withTaskPriorityEscalationHandler {
     }
     // priority was escalated just before we stored the task in the mutex
     if let newPriority {
-        Task.escalatePriority(task, to: newPriority)
+        Task.escalatePriority(of: task, to: newPriority)
     }
   } onPriorityEscalated: { newPriority in
     state.withLock { state in
@@ -102,7 +102,7 @@ await withTaskPriorityEscalationHandler {
         // priority was escalated just before we managed to store the task in the mutex
         state = .priority(newPriority)
       case .task(let task):
-        Task.escalatePriority(task, to: newPriority)
+        Task.escalatePriority(of: task, to: newPriority)
       }
     }
   }
@@ -172,7 +172,7 @@ The API can also be freely composed with `withTaskCancellationHandler` or there 
 
 While generally developers should not rely on manual task escalation handling, this API also does introduce a manual way to escalate a task's priority. Primarily this should be used in combination with a task escalation handler to _propagate_ an escalation to an _unstructured task_ which otherwise would miss reacting to the escalation.
 
-The `escalatePriority` API is offered as a static method on `Task` in order to slightly hide it away from using it accidentally by stumbling upon it if it were directly declared as a member method of a Task.
+The `escalatePriority(of:to:)` API is offered as a static method on `Task` in order to slightly hide it away from using it accidentally by stumbling upon it if it were directly declared as a member method of a Task.
 
 ```swift
 extension Task {
@@ -224,7 +224,7 @@ await withCheckedContinuation2 { cc in
   cc.resume(throwing: CancellationError()) 
 } onPriorityEscalated: { cc, newPriority in
   print("new priority: \(newPriority)")
-  C.withLock { Task.escalatePriority($0.task, to: newPriority) }
+  C.withLock { Task.escalatePriority(of: $0.task, to: newPriority) }
 }
 ```
 
@@ -234,4 +234,4 @@ Overall, this seems like a tightly knit API that changes current idioms of `with
 
 ### Acknowledgements 
 
-We'd like to thank John McCall, David Nadoba for their input on the APIs during early reviews.
+I'd like to thank John McCall, David Nadoba for their input on the APIs during early reviews.
