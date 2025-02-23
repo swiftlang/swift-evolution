@@ -162,13 +162,13 @@ flowchart LR
   %% <https://mermaid-js.github.io/>
 
   %% Nodes:
-  1{{"Awaiting\nreview"}}
-  2{{"Scheduled\nfor review"}}
-  3{"Active\nreview"}
-  4["Returned\nfor revision"]
+  1{{"Awaiting<br/>review"}}
+  2{{"Scheduled<br>for review"}}
+  3{"Active<br/>review"}
+  4["Returned<br/>for revision"]
   5(["Withdrawn"])
   6(["Rejected"])
-  7_8["Accepted\n(with revisions)"]
+  7_8["Accepted<br/>(with revisions)"]
   9[["Previewing"]]
   10(["Implemented"])
 
