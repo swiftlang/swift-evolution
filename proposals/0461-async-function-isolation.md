@@ -327,8 +327,6 @@ The type of an `@execution(caller)` function declaration is an
 ```swift
 class NotSendable { ... }
 
-func useAsValue(_ ns: NotSendable) async { ... }
-
 @MainActor let global: NotSendable = .init()
 
 @execution(caller)
@@ -344,7 +342,7 @@ func callSendableClosure() async {
   await closure(global) // okay
 }
 
-callSendableClosure(useAsValue)
+callSendableClosure()
 ```
 
 In the above code, the calls to `closure` from `callSendableClosure` run on the
