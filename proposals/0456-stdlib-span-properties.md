@@ -6,10 +6,9 @@
 * Status: **Accepted**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: [PR #78561](https://github.com/swiftlang/swift/pull/78561)
-* Review: [Pitch](https://forums.swift.org/t/76138), [Review](https://forums.swift.org/t/se-0456-add-span-providing-properties-to-standard-library-types/77233), [Acceptance](https://forums.swift.org/t/77684)
+* Review: ([pitch](https://forums.swift.org/t/76138)) ([review](https://forums.swift.org/t/se-0456-add-span-providing-properties-to-standard-library-types/77233)) ([acceptance](https://forums.swift.org/t/77684))
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
-
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
 [PR-2305]: https://github.com/swiftlang/swift-evolution/pull/2305
 [SE-0453]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0453-vector.md
