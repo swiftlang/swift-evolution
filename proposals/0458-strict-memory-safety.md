@@ -3,12 +3,12 @@
 * Proposal: [SE-0458](0458-strict-memory-safety.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status:  **Active Review (January 17th...February 11th, 2025)**
+* Status:  **Accepted**
 * Feature name: `StrictMemorySafety`
-* Vision: [Opt-in Strict Memory Safety Checking (Prospective)](https://github.com/swiftlang/swift-evolution/pull/2581)
+* Vision: [Optional Strict Memory Safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/memory-safety.md)
 * Implementation:  On main with experimental feature flags `AllowUnsafeAttribute` and `WarnUnsafe`
-* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/f2cab4ddc3381d1dc7a970e813ed29e27b5ae43f/proposals/0458-strict-memory-safety.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-opt-in-strict-memory-safety-checking/76689)) ([review](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274)) ([mid-review revision](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274/33))
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/f2cab4ddc3381d1dc7a970e813ed29e27b5ae43f/proposals/0458-strict-memory-safety.md) [2](https://github.com/swiftlang/swift-evolution/blob/9d180aea291c6b430bcc816ce12ef0174ec0237b/proposals/0458-strict-memory-safety.md)
+* Review: ([pitch](https://forums.swift.org/t/pitch-opt-in-strict-memory-safety-checking/76689)) ([review](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274)) ([first revision](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274/33)) ([second revision](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274/51)) ([acceptance](https://forums.swift.org/t/accepted-se-0458-opt-in-strict-memory-safety-checking/78116))
 
 ## Introduction
 
