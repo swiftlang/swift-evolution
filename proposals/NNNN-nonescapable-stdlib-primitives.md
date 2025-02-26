@@ -331,7 +331,7 @@ let id4 = ObjectIdentifier(Span<Int>.self) // OK, nonescapable input type
 print(id3 == id4) // ⟹ false
 ```
 
-The object identifier of a noncopyable/nonescapable type is still a regular copyable and escapable identifier -- it can be compared against other ids and hashed, like always.
+The object identifier of a noncopyable/nonescapable type is still a regular copyable and escapable identifier -- for instance, it can be compared against other ids and hashed.
 
 ### Odds and ends
 
@@ -567,19 +567,29 @@ We propose to generalize this initializer to allow generating identifiers for no
 
 ```swift
 extension ObjectIdentifier {
-  init(_ x: (any (~Copyable & ~Escapable)).Type)
+  init(_ x: (any ~Copyable & ~Escapable).Type)
 }
 ```
 
-However, this syntax is not usable yet, so in this proposal we actually define this as a generic initializer:
+However, this syntax is not usable yet, so in this proposal we actually define an approximation to this by adding a new generic initializer overload:
 
 ```swift
 extension ObjectIdentifier {
-  init<T: ~Copyable & ~Escapable>(_ x: T.Type)
+  init(_ x: Any.Type) // original
+  init<T: ~Copyable & ~Escapable>(_ x: T.Type) // new temporary overload
 }
 ```
 
-Note that this isn't precisely the same shape, as the existential initializer takes a dynamic type, while this generic one dispatches based on static type information only. The distinction may matter if the initializer is used in generic contexts -- so the definition will need to be corrected when the existential syntax becomes usable.
+Note that the new generic isn't a full replacement to the original existential initializer, so to avoid breaking code, we need to have both. (For example, the generic init cannot be passed `Any.Type` existentials, as `T` cannot be inferred.)
+
+The same workaround wouldn't be practical to apply on the (very similarly defined) `==`/`!=` operators over existential metatypes, so this proposal leaves them as is for now:
+
+```swift
+func == (t0: Any.Type?, t1: Any.Type?) -> Bool { ... }
+func != (t0: Any.Type?, t1: Any.Type?) -> Bool { ... }
+```
+
+We expect a followup proposal to tackle these and to revisit the shape of the `ObjectIdentifier` initializer once generalized type existentials become operational.
 
 ### `ManagedBufferPointer` equatability
 
