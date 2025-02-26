@@ -75,3 +75,9 @@ Thank you to Becca Royal-Gordon for implementing the `SendableCompletionHandlers
 
 [SE-0297]: /proposals/0297-concurrency-objc.md
 [SE-0423]: /proposals/0423-dynamic-actor-isolation.md
+
+## Revisions
+
+The proposal was revised with the following changes after the pitch discussion:
+
+* Add a carve out where global actor isolated functions are still imported with non-`Sendable` completion handlers.
