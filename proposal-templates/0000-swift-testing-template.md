@@ -6,7 +6,7 @@
 * Bug: _if applicable_ [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/issues/NNNNN)
 * Implementation: [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/pull/NNNNN)
 * Previous Proposal: _if applicable_ [SWT-XXXX](XXXX-filename.md)
-* Previous Revision: _if applicable_ [1](https://github.com/swiftlang/swift-testing/blob/...commit-ID.../Documentation/Proposals/NNNN-filename.md)
+* Previous Revision: _if applicable_ [1](https://github.com/swiftlang/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Review: ([pitch](https://forums.swift.org/...))
 
 When filling out this template, you should delete or replace all of the text
