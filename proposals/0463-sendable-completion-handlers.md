@@ -1,10 +1,10 @@
 # Import Objective-C completion handler parameters as `@Sendable`
 
-* Proposal: [SE-NNNN](NNNN-sendable-completion-handlers.md)
+* Proposal: [SE-0463](0463-sendable-completion-handlers.md)
 * Authors: [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Awaiting review**
-* Vision: [[Prospective Vision] Improving the approachability of data-race safety](https://forums.swift.org/t/prospective-vision-improving-the-approachability-of-data-race-safety/76183)
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active Review (Feburary 27th...March 10th, 2025)**
+* Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
 * Implementation: On `main` behind `-enable-experimental-feature SendableCompletionHandlers`
 * Review: ([pitch](https://forums.swift.org/t/pitch-import-objective-c-completion-handler-parameters-as-sendable/77904))
 
