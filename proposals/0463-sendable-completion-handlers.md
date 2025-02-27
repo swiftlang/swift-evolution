@@ -6,7 +6,7 @@
 * Status: **Active Review (Feburary 27th...March 10th, 2025)**
 * Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
 * Implementation: On `main` behind `-enable-experimental-feature SendableCompletionHandlers`
-* Review: ([pitch](https://forums.swift.org/t/pitch-import-objective-c-completion-handler-parameters-as-sendable/77904))
+* Review: ([pitch](https://forums.swift.org/t/pitch-import-objective-c-completion-handler-parameters-as-sendable/77904)) ([review](https://forums.swift.org/t/se-0463-import-objective-c-completion-handler-parameters-as-sendable/78169))
 
 ## Introduction
 
