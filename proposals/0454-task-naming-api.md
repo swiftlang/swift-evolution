@@ -56,11 +56,13 @@ In order to allow naming tasks, the following APIs will be provided on `Task`:
 ```swift
   init(
      name: String? = nil,
+     executorPreference taskExecutor: (any TaskExecutor)? = nil,
      priority: TaskPriority? = nil,
-     operation: sending @escaping @isolated(any) () async -> Success
+     operation: sending @escaping @isolated(any) () async -> Success)
      
   static func detached(
      name: String? = nil,
+     executorPreference taskExecutor: (any TaskExecutor)? = nil,
      priority: TaskPriority? = nil,
      operation: sending @escaping @isolated(any) () async -> Success
 ```
@@ -91,6 +93,10 @@ In addition to that, it will be possible to read a name off a task, similar to h
 ```swift
 extension Task {
   static var name: String? { get } 
+}
+
+extension UnsafeCurrentTask { 
+  var name: String? { get }
 }
 ```
 
