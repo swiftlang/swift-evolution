@@ -1,19 +1,19 @@
 # Task Naming API
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-task-names.md)
 * Authors: [Konrad Malawski](https://github.com/ktoso), [Harjas Monga](https://github.com/Harjas12)
 * Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
 * Implementation: Work In Progress [PR](https://github.com/swiftlang/swift/pull/77609)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: TODO
 
 ## Introduction
 
-In this proposal, we introduce several new APIs to allow developers to name their Swift Tasks for the purposes of identifying tasks in a human readable way manually and by various developer tools.
+In this proposal, we introduce several new APIs to allow developers to name their Swift Tasks for the purposes of identifying tasks in a human-readable way. These names can then be used to identify tasks by printing their names, programatically inspecting the name property, or by tools which dump and inspect tasks–such as debuggers, swift-inspect or others. 
 
 ## Motivation
 
-In previous generations of concurrency technologies, developer tools, such as debuggers, have had access to some kind of label to help describe a process’s concurrent work. Ex: Pthread names or GCD queue names. These names are very helpful to provide extra context to developers when using debugging and profiling tools. 
+In previous generations of concurrency technologies, developer tools, such as debuggers, have had access to some kind of label to help describe a process’s concurrent work. Ex: Pthread names or Grand Central Dispatch queue names. These names are very helpful to provide extra context to developers when using debugging and profiling tools. 
 
 Currently, Swift Concurrency has no affordances to allow developers to label a Task, which can be troublesome for developers trying to identify "which task" is taking a long time to process or similar questions when observing the system externally. In order to ease the debugging and profiling of Swift concurrency code, developers should be able to annotate their Swift Tasks to describe an asynchronous workload.
 
@@ -22,6 +22,7 @@ Currently, Swift Concurrency has no affordances to allow developers to label a T
 In order to allow developers to provide helpful names for Swift Tasks, the Swift Task creation APIs should be modified to *optionally* allow developers to provide a name for that task.
 
 Consider the example:
+
 ```swift
 let getUsers = Task {
 	await users.get(accountID))
@@ -36,7 +37,7 @@ let getUsers = Task(name: "Get Users") {
 }
 ```
 
-Or, if a developer has a lot of similar Tasks, they can provide more contextual information using string interpolation.
+Or, if a developer has a lot of similar tasks, they can provide more contextual information using string interpolation.
 
 ```
 let getUsers = Task("Get Users for \(accountID)") {
@@ -44,34 +45,37 @@ let getUsers = Task("Get Users for \(accountID)") {
 }
 ```
 
-By introducing this in a structured, coherent way in Swift itself, rather than developers each inventing their own task-local with a name, runtime inspection tools and debuggers can become aware of task names and show you exactly which accountID was causing the crash or a profiling tool could tell you which accountID request was slow to load.
+By introducing this API in Swift itself, rather than developers each inventing their own task-local with a name, runtime inspection tools and debuggers can become aware of task names and show you exactly which accountID was causing the crash or a profiling tool could tell you which accountID request was slow to load.
 
 ## Detailed design
 
+Naming tasks is only allowed during their creation, and modifying names is not allowed. 
 
-Naming tasks is only allowed during their creation, and modifying names is not allowed. Names are arbitrary user-defined strings, which may be computed at runtime because they often contain identifying information such as the request ID or similar runtime information.
+Names are arbitrary user-defined strings, which may be computed at runtime because they often contain identifying information such as the request ID or similar runtime information.
 
-In order to allow naming tasks, the following APIs will be provided on `Task`:
+The following APIs will be provided on `Task`:
 
 ```swift
+extension Task where Failure == /* both Never and Error cases */ {
   init(
      name: String? = nil,
      executorPreference taskExecutor: (any TaskExecutor)? = nil,
      priority: TaskPriority? = nil,
-     operation: sending @escaping @isolated(any) () async -> Success)
+     operation: sending @escaping @isolated(any) () async /*throws */-> Success)
      
   static func detached(
      name: String? = nil,
      executorPreference taskExecutor: (any TaskExecutor)? = nil,
      priority: TaskPriority? = nil,
-     operation: sending @escaping @isolated(any) () async -> Success
+     operation: sending @escaping @isolated(any) () async /*throws */ -> Success)
+}
 ```
 
-In addition to these APIs to name unstructured Tasks, the following API will be added to name Tasks created as a part of a task group task group:
+In addition to these APIs to name unstructured Tasks, the following API will be added to all kinds of task groups:
 
 ```swift
 mutating func addTask(
-    name: String?,
+    name: String? = nil,
     executorPreference taskExecutor: (any TaskExecutor)? = nil,
     priority: TaskPriority? = nil,
     operation: sending @escaping @isolated(any) () async -> ChildTaskResult
@@ -83,10 +87,12 @@ mutating func addTask(
     priority: TaskPriority? = nil,
     operation: sending @escaping @isolated(any) () async -> ChildTaskResult
   )
-
 ```
 
-These APIs would be added to all kinds of task groups, including throwing, discarding ones. With the signature being appropriately matching the existing addTask signatures of those groups
+These APIs would be added to all kinds of task groups, including throwing, discarding ones. With the signature being appropriately matching the existing addTask signatures of those groups.
+
+> Concurrently under review with this proposal is the `Task.startSynchronously` (working name, pending changes) proposal;
+> If both this and the synchronous starting tasks proposals are accepted, these APIs would also gain the additional `name: String? = nil` parameter.
 
 In addition to that, it will be possible to read a name off a task, similar to how the current task's priority is possible to be read:
 
@@ -100,7 +106,31 @@ extension UnsafeCurrentTask {
 }
 ```
 
-### Actor Identity
+## Source compatibility
+
+This proposal only contains additive changes to the API surface.
+
+Since Swift Tasks names will be optional, there will be no source compatibility issues. 
+
+## ABI compatibility
+
+This proposal is ABI additive and does not change any existing ABI.
+
+## Implications on adoption
+
+Because runtime changes are required, these new APIs will only be available on newer OSes.
+
+## Future directions
+
+This proposal does not contain a method to name Swift Tasks created using the `async let` syntax. Unlike the other methods of creating Tasks, the `async let` syntax didn’t have an obvious way to allow a developer to provide a string. A suggestion of how we may provide automatic names to Tasks created via this method will be shown below in the [Alternatives Considered section](##Alternatives-considered). 
+
+## Alternatives considered
+
+### Actor & DistributedActor Identity
+
+#### Actor Identity
+
+> Note: While not really an alternative, we would like to explain why this proposal does not propose to change anything about how actors are identified.
 
 This proposal focuses on task names, however, another important part of Swift Concurrency is actors, so in this section we’d like to discuss how there isn’t an actual need for new API to address *actor naming* because of how actors can already conform to protocols.
 
@@ -135,33 +165,13 @@ actor Worker: Identifiable {
 
 Distributed actors already implicitly conform to `Identifiable` protocol and have a very useful `id` representation that is always assigned by the actor system by which an actor is managed. 
 
-This id is the natural visual representation of such actor, and tools which want to print an “actor identity” should rely on this. In other words, this simply follows the same general pattern that makes sense for other objects and actors of using Identifiable when available to identify things.
+This id is the natural human readable representation of such actor identity, and tools which want to print an “actor identity” should rely on this. In other words, this simply follows the same general pattern that makes sense for other objects and actors of using Identifiable when available to identify things.
 
 ```swift
 distributed actor Worker { // implicitly Identifiable
 	// nonisolated var id: Self.ActorSystem.ActorID { get } 
 }
 ```
-
-## Source compatibility
-
-This proposal only contains additive changes to the API surface.
-
-Since Swift Tasks names will be optional, there will be no source compatibility issues. 
-
-## ABI compatibility
-
-This proposal is ABI additive and does not change any existing ABI.
-
-## Implications on adoption
-
-Because runtime changes are required, these new APIs will only be available on newer OSes.
-
-## Future directions
-
-This proposal does not contain a method to name Swift Tasks created using the `async let` syntax. Unlike the other methods of creating Tasks, the `async let` syntax didn’t have an obvious way to allow a developer to provide a string. A suggestion of how we may provide automatic names to Tasks created via this method will be shown below in the [Alternatives Considered section](##Alternatives-considered). 
-
-## Alternatives considered
 
 ### AsyncLet Task Naming
 
