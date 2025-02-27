@@ -420,7 +420,7 @@ A type has unsafe storage if:
 
 #### Unsafe witnesses
 
-When a type conforms to a given protocol, it must satisfy all of the requirements of that protocol. Part of this process is determining which declaration (called the *witness*) satisfies a given protocol requirement. If a particular witness is unsafe but the corresponding requirement is not safe, the compiler will produce a warning:
+When a type conforms to a given protocol, it must satisfy all of the requirements of that protocol. Part of this process is determining which declaration (called the *witness*) satisfies a given protocol requirement. If a particular witness is unsafe but the corresponding requirement is safe, the compiler will produce a warning:
 
 ```swift
 protocol P {
