@@ -31,7 +31,7 @@ let getUsers = Task {
 
 In order to ease debugging, a developer could create this unstructured task by passing in a name instead:
 
-```
+```swift
 let getUsers = Task(name: "Get Users") {
 	await users.get(accountID)
 }
@@ -39,7 +39,7 @@ let getUsers = Task(name: "Get Users") {
 
 Or, if a developer has a lot of similar tasks, they can provide more contextual information using string interpolation.
 
-```
+```swift
 let getUsers = Task("Get Users for \(accountID)") {
 	await users.get(accountID)
 }
