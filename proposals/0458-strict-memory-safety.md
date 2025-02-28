@@ -43,7 +43,7 @@ For example, Swift solves null references with optional types. Statically, Swift
 
 This proposal introduces an opt-in strict memory safety checking mode that identifies all uses of unsafe behavior within the given module. There are several parts to this change:
 
-* A compiler flag `-strict-memory-safety` that enables warnings for all uses of unsafe constructs within a given module. All warnings will be in the diagnostic group `Unsafe`, enabling precise control over memory-safety-related warnings per [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). When strict memory safety is enabled, the `StrictMemorySafety` feature will be set: `#if hasFeature(StrictMemorySafety)` can be used to detect when Swift code is being compiled in this mode.
+* A compiler flag `-strict-memory-safety` that enables warnings for all uses of unsafe constructs within a given module. All warnings will be in the diagnostic group `StrictMemorySafety`, enabling precise control over memory-safety-related warnings per [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). When strict memory safety is enabled, the `StrictMemorySafety` feature will be set: `#if hasFeature(StrictMemorySafety)` can be used to detect when Swift code is being compiled in this mode.
 * An attribute `@unsafe` that indicates that a declaration is unsafe to use. Such declarations may use unsafe constructs within their signatures. 
 * A corresponding attribute `@safe` that indicates that a declaration whose signature contains unsafe constructs is actually safe to use. For example, the `withUnsafeBufferPointer` method on `Array` has an unsafe type in its signature (`self`), but is actually safe to use because it handles safety for the unsafe buffer pointer it vends to its closure argument. The closure itself will need to handle the unsafety when using that unsafe buffer pointer.
 * An `unsafe` expression that marks any use of unsafe constructs in an expression, much like `try` and `await`.
@@ -507,7 +507,7 @@ for try await x in try await getAsyncSequence() { ... }
 
 The strict memory safety mode can be enabled with the new compiler flag `-strict-memory-safety`.
 
-All of the memory-safety diagnostics produced by the strict memory safety mode will be warnings. These warnings be in the group `Unsafe` (possibly organized into subgroups) so that one can choose to escalate them to errors or keep them as warnings using the compiler flags introduced in [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). For example, one can choose to enable the mode and make memory-safety issues errors using:
+All of the memory-safety diagnostics produced by the strict memory safety mode will be warnings. These warnings be in the group `StrictMemorySafety` (possibly organized into subgroups) so that one can choose to escalate them to errors or keep them as warnings using the compiler flags introduced in [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). For example, one can choose to enable the mode and make memory-safety issues errors using:
 
 ```
 swiftc -strict-memory-safety -Werror Unsafe
