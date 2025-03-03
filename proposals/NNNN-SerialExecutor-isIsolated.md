@@ -146,7 +146,7 @@ public func isSameExclusiveExecutionContext(other: NaiveQueueExecutor) -> Bool {
 }
 ```
 
-In order to enable the the runtime to call into the `isIsolatingCurrentContext` the `UnownedSerialExecutor` **must** be constructed as follows:
+In order to enable the runtime to call into the `isIsolatingCurrentContext` the `UnownedSerialExecutor` **must** be constructed as follows:
 
 ```swift
 public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
