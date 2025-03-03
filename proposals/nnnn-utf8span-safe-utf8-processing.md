@@ -42,30 +42,10 @@ We propose a non-escapable `UTF8Span` which exposes `String` functionality for v
 `UTF8Span` is a borrowed view into contiguous memory containing validly-encoded UTF-8 code units.
 
 ```swift
-@frozen
-public struct UTF8Span: Copyable, ~Escapable {
-  @usableFromInline
-  internal var _unsafeBaseAddress: UnsafeRawPointer?
-
-  /*
-   A bit-packed count and flags (such as isASCII)
-
-   ╔═══════╦═════╦══════════╦═══════╗
-   ║  b63  ║ b62 ║  b61:56  ║ b56:0 ║
-   ╠═══════╬═════╬══════════╬═══════╣
-   ║ ASCII ║ NFC ║ reserved ║ count ║
-   ╚═══════╩═════╩══════════╩═══════╝
-
-   ASCII means the contents are all-ASCII (<0x7F).
-   NFC means contents are in normal form C for fast comparisons.
-   SSC means single-scalar Characters (i.e. grapheme clusters): every
-     `Character` holds only a single `Unicode.Scalar`.
-   */
-  @usableFromInline
-  internal var _countAndFlags: UInt64
-}
-
+public struct UTF8Span: Copyable, ~Escapable, BitwiseCopyable {}
 ```
+
+`UTF8Span` is a trivial struct and is 2 words in size on 64-bit platforms.
 
 ### UTF-8 validation
 
@@ -166,7 +146,6 @@ extension Unicode.UTF8 {
    ╚═════════════════╩══════╩═════╩═════╩═════╩═════╩═════╩═════╩══════╝
 
    */
-  @frozen
   public struct EncodingError: Error, Sendable, Hashable, Codable {
     /// The kind of encoding error
     public var kind: Unicode.UTF8.EncodingError.Kind
@@ -185,7 +164,6 @@ extension Unicode.UTF8 {
 
 extension UTF8.EncodingError {
   /// The kind of encoding error encountered during validation
-  @frozen
   public struct Kind: Error, Sendable, Hashable, Codable, RawRepresentable {
     public var rawValue: UInt8
 
@@ -247,7 +225,6 @@ extension UTF8Span {
   public func makeUnicodeScalarIterator() -> UnicodeScalarIterator
 
   /// Iterate the `Unicode.Scalar`s contents of a `UTF8Span`.
-  @frozen
   public struct UnicodeScalarIterator: ~Escapable {
     public let codeUnits: UTF8Span
 
@@ -292,14 +269,14 @@ extension UTF8Span {
     ///
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be 0
     /// if at the start of the UTF8Span.
-    public mutating func skipBack() -> Bool
+    public mutating func skipBack() -> Int
 
     /// Move `codeUnitOffset` to the start of the previous `n` scalars,
     /// without decoding them.
     ///
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be
     /// fewer than `n` if at the start of the UTF8Span.
-    public mutating func skipBack(by n: Int) -> Bool
+    public mutating func skipBack(by n: Int) -> Int
 
     /// Reset to the nearest scalar-aligned code unit offset `<= i`.
     public mutating func reset(roundingBackwardsFrom i: Int)
@@ -335,14 +312,13 @@ extension UTF8Span {
 
 ```
 
-
 ### Character processing
 
 We similarly propose a `UTF8Span.CharacterIterator` type that can do grapheme-breaking forwards and backwards.
 
 The `CharacterIterator` assumes that the start and end of the `UTF8Span` is the start and end of content. 
 
-Any scalar-aligned position is a valid place to start or reset the grapheme-breaking algorithm to, though you could get different `Character` output if if resetting to a position that isn't `Character`-aligned relative to the start of the `UTF8Span` (e.g. in the middle of a series of regional indicators).
+Any scalar-aligned position is a valid place to start or reset the grapheme-breaking algorithm to, though you could get different `Character` output if resetting to a position that isn't `Character`-aligned relative to the start of the `UTF8Span` (e.g. in the middle of a series of regional indicators).
 
 ```swift
 
@@ -357,8 +333,9 @@ extension UTF8Span {
   public struct CharacterIterator: ~Escapable {
     public let codeUnits: UTF8Span
 
-    /// The byte offset of the start of the next `Character`. This is 
-    /// always scalar-aligned and `Character`-aligned.
+    /// The byte offset of the start of the next `Character`. This is always
+    /// scalar-aligned. It is always `Character`-aligned relative to the last
+    /// call to `reset` (or the start of the span if not called).
     public var currentCodeUnitOffset: Int { get private(set) }
 
     public init(_ span: UTF8Span)
@@ -827,23 +804,5 @@ Finally, in the future there will likely be some kind of `Container` protocol fo
 
 Karoy Lorentey, Karl, Geordie_J, and fclout, contributed to this proposal with their clarifying questions and discussions.
 
-<!--
-
-Pending questions:
-
-1) How should we talk about `_countAndFlags` and the frozenness of `UTF8Span` and its stored properties?
-
-We want to be able to communicate to SE what the type is and how it could evolve.
-
-Basically, I want to say that this is a trivial 2-word struct whose lifetime is statically managed. Trivial 2-word comes from `@frozen` and listing its stored members in the proposal and statically managed comes from mentioning the `: ~Escapable`. This is similar to how the `Span` proposal specified both `@frozen` and the stored members (it did omit `@usableFromInline`).
-
-If we are going to talk about the layout in the proposal, then the next question is whether it makes some sense to talk about the custom hand-coded bit interpretation for some of that layout. It is very much ABI and it shows potential evolution directions and constraints. I could see arguments either way. 
-
-2) Should we have a public unsafe unchecked initializer that skips UTF-8 validation?
-
-We'd want the developer to be very sure that it is in fact valid UTF-8. For example, Rust has `from_utf8_unchecked()`.
-
-Or, we keep it internal and have `String` use it.
 
 
--->
