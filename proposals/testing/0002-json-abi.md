@@ -89,7 +89,7 @@ of this ABI we need to implement:
 
 We propose defining the stable input and output format using JSON as it is
 widely supported across platforms and languages. The proposed JSON schema for
-output is defined [here](../ABI/JSON.md).
+output is defined [here](https://github.com/swiftlang/swift-testing/blob/main/Documentation/ABI/JSON.md).
 
 ### Example output
 
