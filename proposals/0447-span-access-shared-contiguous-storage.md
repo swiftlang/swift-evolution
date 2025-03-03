@@ -3,11 +3,11 @@
 * Proposal: [SE-0447](0447-span-access-shared-contiguous-storage.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard), [Michael Ilseman](https://github.com/milseman), [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Bug: rdar://48132971, rdar://96837923
-* Implementation: https://github.com/swiftlang/swift/pull/76406
-* Review: ([pitch 1](https://forums.swift.org/t/69888))([pitch 2](https://forums.swift.org/t/72745))([review](https://forums.swift.org/t/se-0447-span-safe-access-to-contiguous-storage/74676))([acceptance](https://forums.swift.org/t/accepted-se-0447-span-safe-access-to-contiguous-storage/75508))
+* Implementation: [apple/swift#76406](https://github.com/swiftlang/swift/pull/76406)
+* Review: ([Pitch 1](https://forums.swift.org/t/69888))([Pitch 2](https://forums.swift.org/t/72745))([Review](https://forums.swift.org/t/se-0447-span-safe-access-to-contiguous-storage/74676))([Acceptance](https://forums.swift.org/t/accepted-se-0447-span-safe-access-to-contiguous-storage/75508))
 
 ## Introduction
 
