@@ -549,3 +549,28 @@ func instanceActors(a1: isolated A, a2: A) {
 
 It's possible that these problems can be addressed by relying more heavily on region-based isolation akin to rule (3). This can be revisited in the future if the need justifies the additional complexity.
 
+### Allow non-isolated types to have isolated conformances
+
+It would be possible to allow non-isolated types have isolated conformances. For example, a type that is not isolated to any domain but implements a handful of functions in a specific global isolated domain, e.g.:
+
+```swift
+protocol P {
+  func onEvent(_ event: Event)
+}
+
+class X: @MainActor isolated P {
+  @MainActor func onEvent(_ event: Event) { 
+    // ...
+  }
+}
+```
+
+There is a syntax choice to be made here: the bare `isolated` keyword used throughout the proposal optimizes for the expected-to-be-common case where the type is isolated, which effectively forces the conformance to be isolated, and avoids having to restate the isolation. In this case where conformance is isolated but the type is not, the `isolated` keyword is insufficient: we need to state the global actor in some manner. One path forward would be to annotate the conformance with just the global actor, e.g.,
+
+```swift
+extension X: @MainActor P {
+  @MainActor func onEvent(_ event: Event) { ... }
+}
+```
+
+This could be in addition to the `isolated P` syntax (providing the generalization), such that `isolated P` is syntactic sugar for "the global actor of the type". Or it could be the only syntax provided, and `isolated P`  might only come back if actor-instance isolated conformances (from the prior section) happen.
