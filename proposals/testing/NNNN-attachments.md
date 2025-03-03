@@ -4,7 +4,7 @@
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Status: **Awaiting review**
 * Bug: [swiftlang/swift-testing#714](https://github.com/swiftlang/swift-testing/issues/714)
-* Implementation: [swiftlang/swift-testing#796](https://github.com/swiftlang/swift-testing/pull/796)
+* Implementation: [swiftlang/swift-testing#973](https://github.com/swiftlang/swift-testing/pull/973)
 * Review: ([pitch](https://forums.swift.org/...))
 
 ## Introduction
