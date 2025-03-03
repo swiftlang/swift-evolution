@@ -137,7 +137,7 @@ public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
 }
 ```
 
-Which enables the following `isSameExclusiveExecutionContext` check, which can only be used when a "current" executor is present, and cannot be used when running code outside of a Swift concurren ytask (!):
+Which enables the following `isSameExclusiveExecutionContext` check, which can only be used when a "current" executor is present, and cannot be used when running code outside of a Swift concurrency task (!):
 
 ```swift
 // Existing API
