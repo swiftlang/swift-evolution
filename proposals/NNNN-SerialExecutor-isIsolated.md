@@ -1,0 +1,195 @@
+# Improved Custom SerialExecutor isolation checking for Concurrency Runtime 
+
+* Proposal: [SE-NNNN](...)
+* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
+* Review Manager:
+* Status:  **WIP**
+* Review: TODO
+
+## Introduction
+
+In [SE-0424: Custom isolation checking for SerialExecutor](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0424-custom-isolation-checking-for-serialexecutor.md) we introduced a way for custom executors implementing the `SerialExecutor` protocol to assert and and assume the static isolation if the dynamic check succeeded. This proposal extends these capabilities, allowing custom executors to not only "check and crash if assumption was wrong", but also check and act on the result of the check.
+
+## Motivation
+
+The previously ([SE-0424](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0424-custom-isolation-checking-for-serialexecutor.md)) introduced family of `Actor/assertIsolated()`, `Actor/preconditionIsolated()` and `Actor/assumeIsolated(operation:)` all rely on the `SerialExecutor/checkIsolated()` API which was introduced in the same proposal.
+
+These APIs all follow the "*pass or crash*" pattern. Where the crash is caused in order to prevent an incorrect assumption about isolation resulting in unsafe concurrent access to some isolated state. This is frequently used by methods which are "known to be called" on some specific actor to recover the dynamic (known at runtime) isolation information, into its static equivalent and therefore safely access some isolated state, like in this example:
+
+```swift
+@MainActor 
+var counter: Int = num
+
+protocol P {
+  // Always called by the main actor, 
+  // yet protocol author forgot to annotate the method or protocol using @MainActor
+  func actuallyWeKnowForSureThisIsCalledFromTheMainActor()
+}
+
+struct Impl: P {
+  func actuallyWeKnowForSureThisIsCalledFromTheMainActor() {
+    MainActor.assumeIsolated { // we know this is safe here
+      counter += 1
+    }
+  }
+}
+
+@MainActor
+func call(p: some P) {
+  p.actuallyWeKnowForSureThisIsCalledFromTheMainActor()
+}
+```
+
+This works fine for many situations, however some libraries may need to be more careful when rolling out strict concurrency checks like these, and instead of crashing may want to choose to issue warnings before they adopt a mode that enforces correct use.
+
+Currently all APIs available are using the `checkIsolated()` API which must crash if called from a context not managed by the serial executor it is invoked on. This method is often implemented using `dispatchPrecondition()` when the serial executor is backed using `Dispatch` or custom `fatalError()` messages otherwise:
+
+```swift
+final class ExampleExecutor: SerialExecutor {
+  func checkIsolated() {
+    dispatchPrecondition(condition: .onQueue(self.queue))
+  }
+}
+```
+
+This approach is better than not being able to participate in the checks at all (i.e. this API allows for advanced thread/queue sharing between actor and non-actor code), but it has two severe limitations:
+
+- the crash **messages** offered by these `checkIsolated()`  crashes **are often sub-optimal** and confusing
+  - messages often don't include crucial information about which actor/executor the calling context was _actually_ executing on. Offering only "expected [...]" messages, leading to hard to debug crashes.
+- it is **impossible** for the Swift runtime to offer **isolation violation warnings**
+  - because the Swift runtime _must_ call into a custom executor to verify its isolation, the "pass or crash" method will crash, rather than inform the runtime that a violation ocured and we should warn about it.
+
+Today, it is not possible for the Swift runtime to issue _warnings_ if something is detected to be on not the expected executor, but somehow we'd still like to continue without crashing the application. 
+
+And for existing situations when `assumeIsolated()` is called and _should_ crash, by using this new API the Swift runtime will be able to provide _more informative_ messages, including all available context about the execution environment.
+
+## Proposed solution
+
+We propose to introduce a new `isIsolatingCurrentContext` protocol requirement to the `SerialExecutor` protocol:
+
+```swift
+protocol SerialExecutor {
+
+  /// May be called by the Swift runtime before `checkIsolated()`
+  /// in order to check for isolation violations at runtime, 
+  /// and potentially issue isolation warnings.
+  ///
+  /// [...]
+  func isIsolatingCurrentContext() -> Bool
+
+  // existing API, since SE-0424
+  @available(SwiftStdlib 6.0, *)
+  func checkIsolated() // must crash if run on a context not managed by this serial executor
+  
+  // ... 
+}
+
+extension SerialExecutor { 
+  /// Default implementation for backwards compatibility.
+  func isIsolatingCurrentContext() -> Bool { false }
+}
+```
+
+The Swift runtime is free to call the `isIsolated` function whenever it wants to verify if the current context is apropriately isolated by some serial executor. 
+
+In most cases implementing this new API is preferable to implementing `checkIsolated()`, as the Swift runtime is able to offer more detailed error messages when when an isolation failure detected by a call to `isIsolatingCurrentContext()` is detected.
+
+## Detailed design
+
+The newly proposed `isIsolatingCurrentContext()` function participates in the previously established runtime isolation checking flow, and happens _before_ any calls to `checkIsolated()` are attempted. The following diagram explains the order of calls issued by the runtime to dynamically verify an isolation when e.g. `assumeIsolated()` is called:
+
+![diagram illustrating which method is called when](/Users/ktoso/code/swift-evolution/proposals/nnnn-is-isolated-flow.png)
+
+
+
+There are a lot of conditions here and availability of certain features also impacts this decision flow, so it is best to refer to the diagram for detailed analysis of every situation. However the most typical situation involves executing on a task, which has a potentially different executor than the `expected` one. In such situation the runtime will:
+
+- check for the existence of a "current" task,
+- (fast path) if a task is present: 
+  - compare the current task's serial executor it is isolated to (if any) with the expected serial executor,
+
+- :new: if **`isIsolatingCurrentContext`** **is available** on the `expected`  executor:
+  - invoke `isIsolatingCurrentContext` 
+  - ✅ if it returned true: pass the check.
+  - :x: if it returned false: fail the check.
+  - The runtime will **not** proceed to call `checkIsolated` after `isIsolated` is invoked!
+
+- if **`isIsolatingCurrentContext`** is **not available** on the expected executor, but **`checkIsolated`** **is available**:
+  - invoke `expected.checkIsolated` which will crash :x: or pass :white_check_mark: depending on its internal checking.
+- if neither `checkIsolated` or `isIsolatingCurrentContext` are available, 
+  - :x: crash with a best effort message.
+
+
+This proposal specifically adds the "if `isIsolatingCurrentContext` is available" branch into the existing logic for confirming the isolation expectation.
+
+If `isIsolatingCurrentContext` is available, effectively it replaces `checkIsolated` because it does offer a sub-par error message experience and is not able to offer a warning if Swift would be asked to check the isolation but not crash upon discovering a violation.
+
+### Enabling `isIsolatingCurrentContext` checking mode
+
+Similar as complex equality in `SerialExecutors` this feature must be opted into by flagging it when the `UnownedSerialExecutor` value is returned from a serial executor's `asUnownedSerialExecutor()`.
+
+Previously this was done by signalling the feature in the `UnownedSerialExecutor` initializer like this:
+
+```swift
+// Existing API
+public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
+  UnownedSerialExecutor(complexEquality: self)
+}
+```
+
+Which enables the following `isSameExclusiveExecutionContext` check, which can only be used when a "current" executor is present, and cannot be used when running code outside of a Swift concurren ytask (!):
+
+```swift
+// Existing API
+public func isSameExclusiveExecutionContext(other: NaiveQueueExecutor) -> Bool {
+  other.secretIdentifier == self.secretIdentifier
+}
+```
+
+In order to enable the the runtime to call into the `isIsolatingCurrentContext` the `UnownedSerialExecutor` **must** be constructed as follows:
+
+```swift
+public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
+  UnownedSerialExecutor(hasIsIsolatingCurrentContext: self)
+}
+```
+
+This sets a flag inside the internal executor reference which makes the swift runtime call into the new `isIsolatingCurrentContext` function, rather than the other versions of isolation checking. In many ways this API is the most general of them all, and generally preferable _if_ your executor is using some kind of mechanism to track the "current" context that the Swift concurrency runtime cannot know about, e.g. like thread local values inside threads managed by your executor.
+
+### Compatibility strategy for custom SerialExecutor authors
+
+New executor implementations should prioritize implementing `isIsolatingCurrentContext` when available, using an appropriate `#if swift(>=...)` check to ensure compatibility. Otherwise, they should fall back to implementing the crashing version of this API: `checkIsolated()`.
+
+While the relationship between `isIsolatingCurrentContext` and `checkIsolated` is not ideal, the boolean-returning version was previously not possible to implement due to runtime restrictions which we have manage to resolve, and thus would like to introduce the better API and better user-experience. 
+
+For authors of custom serial executors, adopting this feature is an incremental process and they can adopt it at their own pace, properly guarding the new feature with necessary availability guards. This feature requires a new version of the Swift concurrency runtime which is aware of this new mode and therefore able to call into the new checking function, therefore libraries should implement and adopt it, however it will only manifest itself when the code is used with a new enough concurrency runtime
+
+As a result, this change should cause little to no disruption to Swift concurrency users, while providing an improved error reporting experience if using executors which adopt this feature.
+
+## Source Compatibility
+
+This proposal is source compatible, a default implementation of the new protocol requirement is introduced along with it, allowing existing `SerialExecutors` to compile without changes.
+
+## Binary Compatibility
+
+This proposal is ABI additive, and does not cause any binary incompatibility risks.
+
+## Future directions
+
+### Expose `isIsolated` on (Distributed)Actor and MainActor?
+
+We are _not_ including new public API on Actor types because of concerns of this function being abused.
+
+If we determine that there are significant good use-cases for this method to be exposed, we might reconsider this position.
+
+## Alternatives considered
+
+### Somehow change `checkIsolated` to return a bool value
+
+This would be ideal, however also problematic since changing a protocol requirements signature would be ABI breaking.
+
+It would be ideal if this method could have been bool returning initially, but due to some restrictions back then it would not have been implementable the to what concurrency integrations were available to Swift.
+
+### Deprecate `checkIsolated`?
+
+In order to make adoption of this new mode less painful and not cause deprecation warnings to libraries which intend to support multiple versions of Swift, the `SerialExcecutor/checkIsolated` protocol requirement remains _not_ deprecated. It may eventually become deprecated in the future, but right now we have no plans of doing so.
