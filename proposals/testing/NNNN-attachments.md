@@ -5,7 +5,7 @@
 * Status: **Awaiting review**
 * Bug: [swiftlang/swift-testing#714](https://github.com/swiftlang/swift-testing/issues/714)
 * Implementation: [swiftlang/swift-testing#973](https://github.com/swiftlang/swift-testing/pull/973)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-attachments/78072))
 
 ## Introduction
 
