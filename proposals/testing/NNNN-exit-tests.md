@@ -1,6 +1,6 @@
 # Exit tests
 
-* Proposal: [SWT-NNNN](NNNN-exit-tests.md)
+* Proposal: [ST-NNNN](NNNN-exit-tests.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Status: **Awaiting review**
 * Bug: [apple/swift-testing#157](https://github.com/apple/swift-testing/issues/157)
