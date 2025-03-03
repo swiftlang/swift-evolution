@@ -1,6 +1,6 @@
 # Attachments
 
-* Proposal: [SWT-NNNN](NNNN-attachments.md)
+* Proposal: [ST-NNNN](NNNN-attachments.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Status: **Awaiting review**
 * Bug: [swiftlang/swift-testing#714](https://github.com/swiftlang/swift-testing/issues/714)
