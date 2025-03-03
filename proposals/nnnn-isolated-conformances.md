@@ -578,3 +578,32 @@ This could be in addition to the `isolated P` syntax (providing the generalizati
 ### Infer `isolated` on conformances for types that infer `@MainActor`
 
 If Swift gains a setting to infer `@MainActor` on various declarations within a module, we should consider inferring `isolated` on conformances for types that have had their actor isolation inferred. This should make single-threaded code easier to write, because protocol conformances will "just work" so long as the conformances themselves aren't referenced outside of the main actor.
+
+## Alternatives considered
+
+### Isolated conformance requirements
+
+This proposal introduces the notion of isolated conformances, which can satisfy a conformance requirement only when the corresponding type isn't `Sendable`. There is no way for a generic function to express that some protocol requirements are intended to allow isolated conformances while others are not. That could be made explicit, for example by allowing requirements of the form `T: isolated P` (which would work with both isolated and non-isolated conformances) and `T: nonisolated P` (which only allows non-isolated conformances). One could combine these in a given generic signature:
+
+```swift
+func mixedConformances<T: Sendable & isolated P & nonisolated Identifiable>(_ x: [T]) {
+  for item in x {
+    item.foo() // Can use requirements of P
+    print(x.id) // Can use requirements of Identifiable
+  }
+
+  Task.detached {
+    for item in x {
+      item.foo() // error: cannot capture isolated conformance of 'T' to 'P' in a closure in a different isolation domain
+      print(x.id) // okay: conformance to Identifable is nonisolated
+    }
+  }
+}
+```
+
+This is a generalization of the proposed rules that makes more explicit when conformances can cross isolation domains within generic code, as well as allowing mixing of isolated and non-isolated conformances as in the example. One can explain this proposal's rule involving `SendableMetatype` requirements and isolated conformances in terms of (non)-isolated requirements. For a given conformance requirement `T: P` :
+
+* If `T: SendableMetatype`, `T: P` is interpreted as `T: nonisolated P`.
+* If not `T: SendableMetatype`, `T: P` is interepreted as `T: isolated P`.
+
+The main down side of this alternative is the additional complexity it introduces into generic requirements. It should be possible to introduce this approach later if it proves to be necessary, by treating it as a generalization of the existing rules in this proposal.
