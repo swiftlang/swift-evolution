@@ -574,3 +574,7 @@ extension X: @MainActor P {
 ```
 
 This could be in addition to the `isolated P` syntax (providing the generalization), such that `isolated P` is syntactic sugar for "the global actor of the type". Or it could be the only syntax provided, and `isolated P`  might only come back if actor-instance isolated conformances (from the prior section) happen.
+
+### Infer `isolated` on conformances for types that infer `@MainActor`
+
+If Swift gains a setting to infer `@MainActor` on various declarations within a module, we should consider inferring `isolated` on conformances for types that have had their actor isolation inferred. This should make single-threaded code easier to write, because protocol conformances will "just work" so long as the conformances themselves aren't referenced outside of the main actor.
