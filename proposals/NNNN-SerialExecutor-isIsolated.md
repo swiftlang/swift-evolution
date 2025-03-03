@@ -98,7 +98,7 @@ In most cases implementing this new API is preferable to implementing `checkIsol
 
 The newly proposed `isIsolatingCurrentContext()` function participates in the previously established runtime isolation checking flow, and happens _before_ any calls to `checkIsolated()` are attempted. The following diagram explains the order of calls issued by the runtime to dynamically verify an isolation when e.g. `assumeIsolated()` is called:
 
-![diagram illustrating which method is called when](/Users/ktoso/code/swift-evolution/proposals/nnnn-is-isolated-flow.png)
+![diagram illustrating which method is called when](nnnn-is-isolated-flow.png)
 
 
 
