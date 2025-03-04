@@ -246,7 +246,7 @@ describes how the child process is expected to have exited:
   standard, but not to the degree that signals are supported by POSIX-like or
   UNIX-derived operating systems. Swift Testing makes a "best effort" to emulate
   signal-handling support on Windows. See [this](https://forums.swift.org/t/swift-on-windows-question-about-signals-and-exceptions/76640/2)
-  Swift forum message for more information. 
+  Swift forum message for more information.
 
 The type is declared as:
 
@@ -287,7 +287,7 @@ extension ExitTest {
     public static var failure: Self { get }
 
     public init(_ statusAtExit: StatusAtExit)
-    
+
     /// Creates a condition that matches when a process terminates with a given
     /// exit code.
     ///
@@ -311,7 +311,7 @@ extension ExitTest {
     /// systems may only reliably report the low unsigned 8 bits (0&ndash;255) of
     /// the exit code.
     public static func exitCode(_ exitCode: CInt) -> Self
-    
+
     /// Creates a condition that matches when a process terminates with a given
     /// signal.
     ///
@@ -624,7 +624,7 @@ and control returns to the test function that is awaiting the exit test:
 
 ```swift
 await #expect(exitsWith: .failure) {
-  throw TacoError.noTacosFound 
+  throw TacoError.noTacosFound
 }
 ```
 
@@ -737,7 +737,7 @@ let result = try await #require(process, exitsWith: .success)
   case signal(CInt)
   }
   ```
-  
+
   This simplified the set of types used for exit tests, but made comparing two
   exit conditions complicated and necessitated a `==` operator that did not
   satisfy the requirements of the `Equatable` protocol.
@@ -756,7 +756,7 @@ let result = try await #require(process, exitsWith: .success)
   I settled on `StatusAtExit` because it was distinct and makes it clear that it
   represents the status of a process _at exit time_. `ExitStatus` could be
   interpreted as the status of the exit itself, i.e.:
-  
+
   ```swift
   enum ExitStatus {
     case running
@@ -765,6 +765,42 @@ let result = try await #require(process, exitsWith: .success)
     case exited
   }
   ```
+
+- Using parameter packs to specify observed values and return types:
+
+  ```swift
+  @freestanding(expression) public macro require<each T>(
+    exitsWith expectedExitCondition: ExitTest.Condition,
+    observing observedValues: (repeat (KeyPath<ExitTest.Result, each T>)) = (),
+    _ comment: @autoclosure () -> Comment? = nil,
+    sourceLocation: SourceLocation = #_sourceLocation,
+    performing expression: @escaping @Sendable @convention(thin) () async throws -> Void
+  ) -> (repeat each T)
+  ```
+
+  Using a parameter pack in this way would make it impossible to access
+  properties of the returned `ExitTest.Result` value that weren't observed, and
+  in general would mean developers wouldn't even need to use `ExitTest.Result`:
+
+  ```swift
+  let (status, stderr) = try await #expect(
+    exitsWith: .failure,
+    observing: (\.statusAtExit, \.standardErrorContent)
+  ) { ... }
+  #expect(status == ...)
+  #expect(stderr.contains(...))
+  ```
+
+  Unfortunately, the `#expect(exitsWith:)` and `#require(exitsWith:)` macros do
+  not have enough information at compile time to correctly infer the types of
+  the key paths passed as `observedValues` above, so we end up with rather
+  obscure errors:
+
+  > 🛑 Cannot convert value of type 'KeyPath<_, _>' to expected argument type
+  > 'KeyPath<ExitTest.Result, _>'
+
+  If, in the future, this error is resolved, we may wish to revisit this option,
+  so it can also be considered a "future direction" for the feature.
 
 - Changing the implementation of `precondition()`, `fatalError()`, etc. in the
   standard library so that they do not terminate the current process while
