@@ -64,8 +64,7 @@ When the default actor isolation is specified as `MainActor`, declarations are i
 
 * Declarations with explicit actor isolation
 * Declarations with inferred actor isolation from a superclass, overridden method, protocol conformance, or member propagation
-* Static variables and methods in an actor
-* Actor initializers and deinitializers
+* All declarations inside an `actor` type, including static variables, methods, initializers, and deinitializers
 * Declarations that cannot have global actor isolation, including typealiases, import statements, enum cases, and individual accessors
 
 The following code example shows the inferred actor isolation in comments given the code is built with `-default-isolation MainActor`:
@@ -164,7 +163,27 @@ This proposal only supports `MainActor` because any other global actor does not 
 
 Instead of introducing a separate mode for configuring default actor isolation inference, the default isolation could be changed to be `MainActor` under an upcoming feature that is enabled by default in a future Swift language mode. The upcoming feature approach was not taken because `MainActor` isolation is the wrong default for many kinds of modules, including libraries that offer APIs that can be used from any isolation domain, and highly-concurrent server applications.
 
+Similarly, a future language mode could enable main actor isolation by default, and require an opt out for using `nonisolated` as the default actor isolation. However, as the Swift package ecosystem grows, it's more likely for `nonisolated` to be the more common default amongst projects. If we discover that not to be true in practice, nothing in this proposal prevents changing the default actor isolation in a future language mode.
+
 See the approachable data-race safety vision document for an [analysis on the risks of introducing a language dialect](https://github.com/hborla/swift-evolution/blob/approachable-concurrency-vision/visions/approachable-concurrency.md#risks-of-a-language-dialect) for default actor isolation.
+
+### Don't apply default actor isolation to explicitly `Sendable` types
+
+This proposal includes few excepts where the specified default actor isolation does not apply. An additional case that should be considered is types with a conformance to `Sendable`:
+
+```swift
+struct SimpleValue: Sendable {
+  var value: Int
+}
+```
+
+This is an attractive carve out upon first glance, but there are a number of downsides:
+
+* The carve out may be confusing if a conformance to `Sendable` is implied, e.g. through a conformance to another protocol.
+* Global actor isolation implies a conformance to `Sendable`, so it's not clear that a `Sendable` type should not be global actor isolated.
+* Methods on a `Sendable` type may still use other types and methods that have default actor isolation applied, which would lead to failures if the `Sendable` type was exempt from default isolation inference.
+
+A middle ground might be to not apply default actor isolation to types with an explicit conformance to `Sendable` within the same source file as the type. This approach would still have some of the downsides listed above, but it would be more straightforward to spot types that have this exemption.
 
 ### Use an enum for the package manifest API
 
