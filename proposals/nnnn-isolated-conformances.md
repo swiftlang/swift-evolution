@@ -581,6 +581,27 @@ If Swift gains a setting to infer `@MainActor` on various declarations within a 
 
 ## Alternatives considered
 
+### "Non-Sendable" terminology instead of isolated conformances
+
+Isolated conformances are a lot like non-`Sendable` types, in that they can be freely used within the isolation domain in which they are created, but can't necessarily cross isolation domain boundaries. We could consider using "sendable" terminology instead of "isolation" terminology, e.g., all existing conformances are "Sendable" conformances (you can freely share them across isolation domain boundaries) and these new conformances are "non-Sendable" conformances. Trying to send such a conformance across an isolation domain boundary is, of course, an error.
+
+However, the "sendable" analogy breaks down or causes awkwardness in a few places:
+
+* Values of non-`Sendable` type can be sent across isolation domain boundaries due to [region-based isolation](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0414-region-based-isolation.md), but the same cannot be said of isolated conformances, so they are more non-Sendable than most non-Sendable things.
+
+* Global-actor-isolated types are usually `Sendable`, but their conformances would generally need to be non-`Sendable`.
+
+* Usually things are non-`Sendable` but have to be explicitly opt-in to being `Sendable`, whereas conformances would be the opposite.
+
+* Diagnostics for invalid conformance declarations that could be addressed with isolated conformances are necessarily described in terms of isolation, e.g.,
+  ````
+  error: main-actor isolated method 'f' cannot satisfy non-isolated requirement `f` of protocol P
+  ````
+
+  It wouldn't make sense to recast that diagnostic in terms of "sendable", and would also be odd for the fix to an isolation-related error message to be "add non-Sendable."
+
+* There is no established spelling for "not Sendable" that would work well on a conformance.
+
 ### Isolated conformance requirements
 
 This proposal introduces the notion of isolated conformances, which can satisfy a conformance requirement only when the corresponding type isn't `Sendable`. There is no way for a generic function to express that some protocol requirements are intended to allow isolated conformances while others are not. That could be made explicit, for example by allowing requirements of the form `T: isolated P` (which would work with both isolated and non-isolated conformances) and `T: nonisolated P` (which only allows non-isolated conformances). One could combine these in a given generic signature:
