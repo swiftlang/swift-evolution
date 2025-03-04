@@ -1,11 +1,11 @@
 # Swift Testing Feature name
 
-* Proposal: [SWT-NNNN](NNNN-filename.md)
+* Proposal: [ST-NNNN](NNNN-filename.md)
 * Authors: [Author 1](https://github.com/author1), [Author 2](https://github.com/author2)
 * Status: **Awaiting implementation** or **Awaiting review**
 * Bug: _if applicable_ [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/issues/NNNNN)
 * Implementation: [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/pull/NNNNN)
-* Previous Proposal: _if applicable_ [SWT-XXXX](XXXX-filename.md)
+* Previous Proposal: _if applicable_ [ST-XXXX](XXXX-filename.md)
 * Previous Revision: _if applicable_ [1](https://github.com/swiftlang/swift-evolution/blob/...commit-ID.../proposals/testing/NNNN-filename.md)
 * Review: ([pitch](https://forums.swift.org/...))
 
@@ -44,7 +44,7 @@ between this proposal and another proposal. For example, this proposal might
 have been removed from a previous proposal so that it can be reviewed separately,
 or this proposal might supersede a previous proposal in some way that was felt
 to exceed the scope of a "revision". Include text briefly explaining the
-relationship, such as "Supersedes SWT-1234" or "Extracted from SWT-01234". If
+relationship, such as "Supersedes ST-1234" or "Extracted from ST-01234". If
 possible, link to a post explaining the relationship, such as a review decision
 that asked for part of the proposal to be split off. Otherwise, you can just
 link to the previous proposal.
