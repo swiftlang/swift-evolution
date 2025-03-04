@@ -4,7 +4,7 @@
 * Authors: [Amritpan Kaur](https://github.com/amritpan), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [swiftlang/swift#78823](https://github.com/swiftlang/swift/pull/78823) [swiftsyntax/swiftsyntax#2950](https://github.com/swiftlang/swift-syntax/pull/2950) 
+* Implementation: [swiftlang/swift#78823](https://github.com/swiftlang/swift/pull/78823),  [swiftlang/swiftsyntax#2950](https://github.com/swiftlang/swift-syntax/pull/2950), [swiftlang/swiftfoundation#1179](https://github.com/swiftlang/swift-foundation/pull/1179) 
 * Upcoming Feature Flag: `KeyPathWithMethodMembers`
 * Review: ([pitch](https://forums.swift.org/t/pitch-method-key-paths/76678))
 
@@ -85,27 +85,19 @@ If the member is a metatype (e.g., a static method, class method, initializer, o
 
 ```swift
 struct Calculator {
-  func add(_ a: Int, _ b: Int) -> Int {
+  static func add(_ a: Int, _ b: Int) -> Int {
     return a + b
   }
 }
 
-let calc = Calculator.self
-let addKeyPath: KeyPath<Calculator.Type, (Calculator) -> (Int, Int) -> Int> = \Calculator.Type.add
+let addKeyPath: KeyPath<Calculator.Type, Int> = \Calculator.Type.add(4, 5)
 ```
 
-Here, `addKeyPath` is a key path that references the add method of `Calculator` as a metatype member. The key path’s root type is `Calculator.Type`, and it resolves to an unapplied instance method: `(Calculator) -> (Int, Int) -> Int`. This represents a curried function where the first step binds an instance of `Calculator`, and the second step applies the method arguments.
-
-```swift
-let addFunction = calc[keyPath: addKeyPath]
-let fullyApplied = addFunction(Calculator())(20, 30)`
-```
-
-`addFunction` applies an instance of Calculator to the key path method. `fullyApplied` further applies the arguments (20, 30) to produce the final result.
+Here, `addKeyPath` is a key path that references the add method of `Calculator` as a metatype member. The key path’s root type is `Calculator.Type`, and the value resolves to an applied instance method result type of`Int`. 
 
 ### Overloads
 
-Keypaths to methods with the same base name and distinct argument labels can be disambiguated by explicitly including the argument labels:
+Keypaths to methods with the same base name and distinct argument labels can be disambiguated with explicit  argument labels:
 
 ```swift
 struct Calculator {
@@ -114,10 +106,25 @@ struct Calculator {
   func subtract(that: Int) -> Int { that + that }
 }
   
-let kp1 = \S.subtract // KeyPath<S, (Int, Int) -> Int
-let kp2 = \S.subtract(this:) // WritableKeyPath<S, (Int) -> Int>
-let kp3 = \S.subtract(that:) // WritableKeyPath<S, (Int) -> Int>
-let kp4 = \S.subtract(that: 1) // WritableKeyPath<S, Int>
+let kp1 = \Calculator.subtract // KeyPath<Calculator, (Int, Int) -> Int
+let kp2 = \Calculator.subtract(this:) // KeyPath<Calculator, (Int) -> Int>
+let kp3 = \Calculator.subtract(that:) // KeyPath<Calculator, (Int) -> Int>
+let kp4 = \Calculator.subtract(that: 1) // KeyPath<Calculator, Int>
+```
+
+### Implicit closure conversion
+
+This feature also supports implicit closure conversion of key path methods, allowing them to used in expressions where closures are expected, such as in higher order functions: 
+
+```swift
+struct Calculator {
+  func power(of base: Int, exponent: Int) -> Int {
+    return Int(pow(Double(base), Double(exponent)))
+  }
+}
+
+let calculators = [Calculator(), Calculator()]
+let results = calculators.map(\.power(of: 2, exponent: 3))
 ```
 
 ### Dynamic member lookups
@@ -141,7 +148,7 @@ print(subtract(10))
 
 ### Effectful value types
 
-Methods annotated with `nonisolated` and `consuming` are supported by this feature. `mutating`, `throwing` and `async` are not supported for any other component type and will similarly not be supported for methods. Keypaths cannot capture method arguments that are not `Hashable`/`Equatable`, so `escaping` is also not supported.
+Methods annotated with `nonisolated` and `consuming` are supported by this feature. However, noncopying root and value types [are not supported](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0437-noncopyable-stdlib-primitives.md#additional-future-work). `mutating`, `throws` and `async` are not supported for any other component type and will similarly not be supported for methods. Additionally keypaths cannot capture closure arguments that are not `Hashable`/`Equatable`.
 
 ### Component chaining
 
