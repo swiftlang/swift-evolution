@@ -1,6 +1,6 @@
 # Starting tasks synchronously from caller context
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-task-start-synchronously-on-caller-context.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Partially implemented on `main`**
