@@ -448,8 +448,12 @@ a memory-intensive operation, so the caller must explicitly opt in:
 
 ```swift
 @Test func `We only eat delicious tacos`() async throws {
-  let result = try await #require(exitsWith: .failure, observing: [\.standardErrorContent])) { ... }
-  #expect(result.standardOutputContent.contains("ERROR: This taco tastes terrible!".utf8)
+  let result = try await #require(
+    exitsWith: .failure,
+    observing: [\.standardErrorContent])
+  ) { ... }
+  let stdout = result.standardOutputContent
+  #expect(stdout.contains("ERROR: This taco tastes terrible!".utf8))
 }
 ```
 
