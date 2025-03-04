@@ -166,6 +166,35 @@ Instead of introducing a separate mode for configuring default actor isolation i
 
 See the approachable data-race safety vision document for an [analysis on the risks of introducing a language dialect](https://github.com/hborla/swift-evolution/blob/approachable-concurrency-vision/visions/approachable-concurrency.md#risks-of-a-language-dialect) for default actor isolation.
 
+### Use an enum for the package manifest API
+
+An alternative to using a `MainActor` metatype for the Swift package manifest API is to use an enum, e.g.
+
+```swift
+public enum DefaultActorIsolation {
+  case mainActor
+  case nonisolated
+}
+
+extension SwiftSetting {
+  @available(_PackageDescription, introduced: 6.2)
+  public static func defaultIsolation(
+    _ isolation: DefaultActorIsolation,
+    _ condition: BuildSettingCondition? = nil
+  ) -> SwiftSetting
+}
+
+// in a package manifest
+
+swiftSettings: [
+  .defaultIsolation(.mainActor)
+]
+```
+
+The enum approach introduces a different way of writing main actor isolation that does not involve the `MainActor` global actor type. The proposed design matches exactly the values used for `#isolation`, i.e. `MainActor.self` for main actor isolation and `nil` for `nonisolated`, which programmers are already familiar with.
+
+The primary argument for using an enum is that it can be extended in the future to support custom global actor types. This proposal deliberately puts supporting custom global actors in the alternatives considered and not future directions, because defaulting a module to a different global actor does not help improve progressive disclosure for concurrency.
+
 ## Acknowledgments
 
 Thank you to John McCall for providing much of the motivation for this pitch in the approachable data-race safety vision document, and to Michael Gottesman for helping with the implementation.
