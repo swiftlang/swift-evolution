@@ -8,7 +8,7 @@
 
 ## Introduction
 
-In [SE-0424: Custom isolation checking for SerialExecutor](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0424-custom-isolation-checking-for-serialexecutor.md) we introduced a way for custom executors implementing the `SerialExecutor` protocol to assert and and assume the static isolation if the dynamic check succeeded. This proposal extends these capabilities, allowing custom executors to not only "check and crash if assumption was wrong", but also check and act on the result of the check.
+In [SE-0424: Custom isolation checking for SerialExecutor](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0424-custom-isolation-checking-for-serialexecutor.md) we introduced a way for custom executors implementing the `SerialExecutor` protocol to assert and assume the static isolation if the dynamic check succeeded. This proposal extends these capabilities, allowing custom executors to not only "check and crash if assumption was wrong", but also check and act on the result of the check.
 
 ## Motivation
 
