@@ -1,17 +1,17 @@
 # UTF8Span: Safe UTF-8 Processing Over Contiguous Bytes
 
-* Proposal: [SE-0464](0464-utf8-span.md)
+* Proposal: [SE-0464](0464-utf8span-safe-utf8-processing.md)
 * Authors: [Michael Ilseman](https://github.com/milseman), [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active review (March 5–19, 2025)**
 * Bug: rdar://48132971, rdar://96837923
-* Implementation: https://github.com/swiftlang/swift/pull/78531
-* Review: ([pitch 1](https://forums.swift.org/t/pitch-utf-8-processing-over-unsafe-contiguous-bytes/69715)) ([pitch 2](https://forums.swift.org/t/pitch-safe-utf-8-processing-over-contiguous-bytes/72742)) ([review](https://forums.swift.org/t/se-0464-utf8span-safe-utf-8-processing-over-contiguous-bytes/78307))
+* Implementation: [swiftlang/swift#78531](https://github.com/swiftlang/swift/pull/78531)
+* Review: ([first pitch](https://forums.swift.org/t/pitch-utf-8-processing-over-unsafe-contiguous-bytes/69715)) ([second pitch](https://forums.swift.org/t/pitch-safe-utf-8-processing-over-contiguous-bytes/72742)) ([third pitch](https://forums.swift.org/t/pitch-utf8span-safe-utf-8-processing-over-contiguous-bytes/77483)) ([review](https://forums.swift.org/t/se-0464-utf8span-safe-utf-8-processing-over-contiguous-bytes/78307))
 
 
 ## Introduction
 
-We introduce `UTF8Span` for efficient and safe Unicode processing over contiguous storage. `UTF8Span` is a memory safe non-escapable type [similar to `Span`](https://github.com/swiftlang/swift-evolution/pull/2307).
+We introduce `UTF8Span` for efficient and safe Unicode processing over contiguous storage. `UTF8Span` is a memory safe non-escapable type [similar to `Span`](0447-span-access-shared-contiguous-storage.md).
 
 Native `String`s are stored as validly-encoded UTF-8 bytes in an internal contiguous memory buffer. The standard library implements `String`'s API as internal methods which operate on top of this buffer, taking advantage of the validly-encoded invariant and specialized Unicode knowledge. We propose making this UTF-8 buffer and its methods public as API for more advanced libraries and developers.
 
@@ -522,7 +522,7 @@ extension UTF8Span {
 
 ### `UTF8Span` from `String`
 
-We propose adding `utf8Span` properties to `String` and `Substring`, in line with [SE-0456](https://forums.swift.org/t/se-0456-add-span-providing-properties-to-standard-library-types/77233/17):
+We propose adding `utf8Span` properties to `String` and `Substring`, in line with [SE-0456](0456-stdlib-span-properties.md):
 
 ```swift
 extension String {
