@@ -3,7 +3,8 @@
 * Proposal: [SE-NNNN](...)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager:
-* Status:  **WIP**
+* Status:  **Partial implementation**
+* Implementation: https://github.com/swiftlang/swift/pull/79788
 * Review: TODO
 
 ## Introduction
