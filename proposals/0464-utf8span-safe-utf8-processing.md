@@ -1,12 +1,11 @@
 # UTF8Span: Safe UTF-8 Processing Over Contiguous Bytes
 
-* Proposal: [SE-NNNN](nnnn-utf8-span.md)
+* Proposal: [SE-0464](0464-utf8-span.md)
 * Authors: [Michael Ilseman](https://github.com/milseman), [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active review (March 5–19, 2025)**
 * Bug: rdar://48132971, rdar://96837923
 * Implementation: https://github.com/swiftlang/swift/pull/78531
-* Upcoming Feature Flag:
 * Review: ([pitch 1](https://forums.swift.org/t/pitch-utf-8-processing-over-unsafe-contiguous-bytes/69715)) ([pitch 2](https://forums.swift.org/t/pitch-safe-utf-8-processing-over-contiguous-bytes/72742))
 
 
