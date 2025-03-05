@@ -57,7 +57,7 @@ This approach is better than not being able to participate in the checks at all 
 - the crash **messages** offered by these `checkIsolated()`  crashes **are often sub-optimal** and confusing
   - messages often don't include crucial information about which actor/executor the calling context was _actually_ executing on. Offering only "expected [...]" messages, leading to hard to debug crashes.
 - it is **impossible** for the Swift runtime to offer **isolation violation warnings**
-  - because the Swift runtime _must_ call into a custom executor to verify its isolation, the "pass or crash" method will crash, rather than inform the runtime that a violation ocured and we should warn about it.
+  - because the Swift runtime _must_ call into a custom executor to verify its isolation, the "pass or crash" method will crash, rather than inform the runtime that a violation occurred and we should warn about it.
 
 Today, it is not possible for the Swift runtime to issue _warnings_ if something is detected to be on not the expected executor, but somehow we'd still like to continue without crashing the application. 
 
@@ -90,9 +90,9 @@ extension SerialExecutor {
 }
 ```
 
-The Swift runtime is free to call the `isIsolated` function whenever it wants to verify if the current context is apropriately isolated by some serial executor. 
+The Swift runtime is free to call the `isIsolated` function whenever it wants to verify if the current context is appropriately isolated by some serial executor. 
 
-In most cases implementing this new API is preferable to implementing `checkIsolated()`, as the Swift runtime is able to offer more detailed error messages when when an isolation failure detected by a call to `isIsolatingCurrentContext()` is detected.
+In most cases implementing this new API is preferable to implementing `checkIsolated()`, as the Swift runtime is able to offer more detailed error messages when an isolation failure detected by a call to `isIsolatingCurrentContext()` is detected.
 
 ## Detailed design
 
