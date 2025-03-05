@@ -4,6 +4,7 @@
 * Authors: [tayloraswift](https://github.com/tayloraswift)
 * Review Manager: TBD
 * Implementation: [swiftlang/swift-package-manager#8249](https://github.com/swiftlang/swift-package-manager/pull/8249)
+* Documentation: [How to use Environment-Dependent Shared Libraries](https://github.com/tayloraswift/swift-edsl-example-client/blob/master/Sources/KrustyKrab/docs.docc/Getting%20Started.md)
 * Bugs: [SR-5714](https://github.com/swiftlang/swift-package-manager/issues/5714)
 
 ## Introduction
@@ -12,9 +13,9 @@ SwiftPM currently has no support for non-system binary library dependencies on L
 
 Swift-evolution thread: [Discussion thread](https://forums.swift.org/t/pitch-replaceable-library-plugins/77605)
 
-Example Producer: [swift-rlp-example](https://github.com/tayloraswift/swift-rlp-example)
+Example Producer: [swift-edsl-example](https://github.com/tayloraswift/swift-edsl-example)
 
-Example Consumer: [swift-rlp-example-client](https://github.com/tayloraswift/swift-rlp-example-client)
+Example Consumer: [swift-edsl-example-client](https://github.com/tayloraswift/swift-edsl-example-client)
 
 ## Motivation
 
