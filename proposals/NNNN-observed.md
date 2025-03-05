@@ -1,6 +1,6 @@
 # Transactional Observation of Values
 
-* Proposal: [OBS-0001](NNNN-observation_values_and_tracking.md)
+* Proposal: [SE-NNNN](NNNN-observed.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: None
 * Status: Draft
