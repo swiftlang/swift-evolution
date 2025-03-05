@@ -6,7 +6,7 @@
 * Status: **Active review (March 5–19, 2025)**
 * Bug: rdar://48132971, rdar://96837923
 * Implementation: https://github.com/swiftlang/swift/pull/78531
-* Review: ([pitch 1](https://forums.swift.org/t/pitch-utf-8-processing-over-unsafe-contiguous-bytes/69715)) ([pitch 2](https://forums.swift.org/t/pitch-safe-utf-8-processing-over-contiguous-bytes/72742))
+* Review: ([pitch 1](https://forums.swift.org/t/pitch-utf-8-processing-over-unsafe-contiguous-bytes/69715)) ([pitch 2](https://forums.swift.org/t/pitch-safe-utf-8-processing-over-contiguous-bytes/72742)) ([review](https://forums.swift.org/t/se-0464-utf8span-safe-utf-8-processing-over-contiguous-bytes/78307))
 
 
 ## Introduction
