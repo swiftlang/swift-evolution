@@ -1,12 +1,12 @@
 # Standard Library Primitives for Nonescapable Types
 
-* Proposal: [SE-NNNN](NNNN-nonescapable-stdlib-primitives.md)
+* Proposal: [SE-0465](0465-nonescapable-stdlib-primitives.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/douggregor)
+* Status: **Active review (March 5...18, 2025)**
 * Roadmap: [Improving Swift performance predictability: ARC improvements and ownership control][Roadmap]
 * Implementation: https://github.com/swiftlang/swift/pull/73258
-* Review: ([Pitch])
+* Review: ([Pitch](https://forums.swift.org/t/pitch-nonescapable-standard-library-primitives/77253))
 
 [Roadmap]: https://forums.swift.org/t/a-roadmap-for-improving-swift-performance-predictability-arc-improvements-and-ownership-control/54206
 [Pitch]: https://forums.swift.org/t/pitch-nonescapable-standard-library-primitives/77253
@@ -184,7 +184,7 @@ Of course, an optional is of limited use unless we are able to decide whether it
    ```
    
 - The optional chaining special form `?`:
- 
+
    ```swift
    func count(of maybeSpan: Span<Int>?) -> Int {
      guard let c = maybeSpan?.count else { return 0 }
@@ -200,7 +200,7 @@ Of course, an optional is of limited use unless we are able to decide whether it
      return span.count
    }
    ```
- 
+
 These variants all work as expected. To avoid escapability violations, unwrapping the nonescapable optional results in a value with precisely the same lifetime dependencies as the original optional value. This applies to all forms of unwrapping, including pattern matching forms that bind copies of associated values to new variables, like `let span` above -- the resulting `span` value always has the same lifetime as the optional it comes from.
 
 The standard `Optional` type has custom support for comparing optional instances against `nil` using the traditional `==` operator, whether or not the wrapped type conforms to `Equatable`. [SE-0437] generalized this mechanism for noncopyable wrapped types, and it is reasonable to extend this to also cover the nonescapable case:
