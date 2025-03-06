@@ -6,7 +6,7 @@
 * Status: **Active Review (March 5...19, 2025)**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Implementation: On `main` behind the `UnspecifiedMeansMainActorIsolated` experimental feature.
-* Review: ([pitch](https://forums.swift.org/t/pitch-control-default-actor-isolation-inference/77482))
+* Review: ([pitch](https://forums.swift.org/t/pitch-control-default-actor-isolation-inference/77482))([review](https://forums.swift.org/t/se-0466-control-default-actor-isolation-inference/78321))
 
 ## Introduction
 
