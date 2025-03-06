@@ -1,9 +1,9 @@
 # Control default actor isolation inference
 
-* Proposal: [SE-NNNN](NNNN-control-default-actor-isolation.md)
+* Proposal: [SE-0466](0466-control-default-actor-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (March 5...19, 2025)**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Implementation: On `main` behind the `UnspecifiedMeansMainActorIsolated` experimental feature.
 * Review: ([pitch](https://forums.swift.org/t/pitch-control-default-actor-isolation-inference/77482))
