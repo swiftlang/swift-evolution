@@ -4,7 +4,7 @@
 * Authors: [tayloraswift](https://github.com/tayloraswift)
 * Review Manager: TBD
 * Implementation: [swiftlang/swift-package-manager#8249](https://github.com/swiftlang/swift-package-manager/pull/8249)
-* Documentation: [How to use Environment-Dependent Shared Libraries](https://github.com/tayloraswift/swift-edsl-example-client/blob/master/Sources/KrustyKrab/docs.docc/Getting%20Started.md)
+* Documentation: [How to use Environment-Dependent Shared Libraries](https://github.com/swiftlang/swift-package-manager/blob/b586467575580f2365e8f5a29c949379724db795/Documentation/EDSLs.md)
 * Bugs: [SR-5714](https://github.com/swiftlang/swift-package-manager/issues/5714)
 
 ## Introduction
