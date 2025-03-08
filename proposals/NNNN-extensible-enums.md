@@ -316,7 +316,7 @@ future Swift language mode.
 
 ### Introducing a new annotation instead of using `@frozen`
 
-An initial pitch proposed an new annotation instead of using `@frozen. The
+An initial pitch proposed a new annotation instead of using `@frozen`. The
 problem with that approach was coming up with a reasonable behavior of how the
 new annotation works in resilient modules and what the difference to `@frozen`
 is. Feedback during this and previous pitches was that `@frozen` has more
