@@ -3,8 +3,8 @@
 * Proposal: [SE-0436](0436-objc-implementation.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Accepted**
-* Implementation: Proposed syntax implemented in [apple/swift#73309](https://github.com/apple/swift/pull/73309); enable using the `ObjCImplementation` experimental feature flag
+* Status: **Implemented (Swift 6.1)**
+* Implementation: [swiftlang/swift#73309](https://github.com/swiftlang/swift/pull/73309), [swiftlang/swift#74801](https://github.com/swiftlang/swift/pull/74801)
 * Review: ([first pitch](https://forums.swift.org/t/pitch-objective-c-implementations-in-swift/61907)) ([second pitch](https://forums.swift.org/t/pitch-2-objective-c-implementations-in-swift/68090)) ([third pitch](https://forums.swift.org/t/pitch-3-objective-c-implementations-in-swift/71315)) ([review](https://forums.swift.org/t/se-0436-objective-c-implementations-in-swift/71712)) ([acceptance](https://forums.swift.org/t/accepted-se-0436-objective-c-implementations-in-swift/72053))
 
 ## Introduction
