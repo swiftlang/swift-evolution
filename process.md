@@ -36,9 +36,10 @@ There is a natural tension between these two goals. Open evolution processes are
 
 The [Core Team](https://www.swift.org/community/#core-team) is responsible for the strategic direction of Swift.  The Core Team creates workgroups focused on specific parts of the project.  When the Core Team gives a workgroup authority over part of the evolution of the project, that workgroup is called an evolution workgroup.  Evolution workgroups manage the evolution process for proposals under their authority, working together with other workgroups as needed.
 
-Currently, there are two evolution workgroups:
+Currently, there are three evolution workgroups:
 
-* The [Language Steering Group][language-steering-group] has authority over the evolution of the Swift language and its standard library.
+* The [Language Steering Group][language-steering-group] has authority over the evolution of the Swift language, its standard library, and any language configuration features of the Swift package manager.
+* The [Platform Steering Group][platform-steering-group] has authority over the evolution of all other features of the Swift package manager and its manifest files.
 * The [Testing Workgroup][testing-workgroup] has authority over the evolution of
   the Swift Testing and Corelibs XCTest projects.
 
@@ -243,6 +244,7 @@ A given proposal can be in one of several states:
 [status-page]: https://apple.github.io/swift-evolution/
 [preview-package]: https://github.com/apple/swift-standard-library-preview/
 [language-steering-group]: https://www.swift.org/language-steering-group
+[platform-steering-group]: https://www.swift.org/platform-steering-group
 [testing-workgroup]: https://www.swift.org/testing-workgroup  "Testing Workgroup page on Swift.org"
 [swift-template]: proposal-templates/0000-swift-template.md  "Swift proposal template"
 [swiftpm-template]: proposal-templates/0000-swiftpm-template.md  "Swift Package Manager proposal template"
