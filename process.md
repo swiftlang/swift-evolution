@@ -12,8 +12,9 @@ The Swift evolution process covers all design changes, no matter how small, to t
 - the core tools of the Swift package ecosystem, including the configuration of
   the [Swift package manager](https://www.swift.org/package-manager/) and the
   design of its manifest files, and
-- the features and public interfaces of
-  [Swift Testing](https://github.com/swiftlang/swift-testing).
+- the public interfaces of the following libraries:
+  - [Swift Testing](https://github.com/swiftlang/swift-testing)
+  - [XCTest](https://github.com/swiftlang/swift-corelibs-xctest)
 
 The design of other tools, such as IDEs, debuggers, and documentation generators, is not covered by the evolution process.  The Core Team may create workgroups to guide and make recommendations about the development of these tools, but the output of those workgroups is not reviewed.
 
