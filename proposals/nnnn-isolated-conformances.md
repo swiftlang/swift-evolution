@@ -192,60 +192,6 @@ func tryEquatable(_ lhs: Any, rhs: Any) -> Bool {
 
 The `Any` value could contain `MyModelType`, in which case the conformance to `Equatable` will be isolated. In such cases, the `as?` operation will check whether the code is running on the executor associated with the conformance's isolation. If so, the cast can succeed; otherwise, the case will fail (and produce `nil`).
 
-
-
-When conforming an actor-isolated type to a protocol, one cannot satisfy a nonisolated protocol requirement with an actor-isolated declaration. This can make actor-isolated types particularly hard to use with most protocols. For example:
-
-```swift
-protocol P {
-  func f()
-}
-
-@MainActor class C: P { 
-   func f() { } // error: main actor isolated function 'f' cannot satisfy nonisolated requirement 'f' of protocol P
-}
-```
-
-This error is necessary to maintain data-race safety: if an instance of `C` ended up being used as a `P` outside of the main actor, a call to `P.f` (which is non-isolated) would end up invoking `C.f` off of the main actor, introducing a data race.
-
-The current solution is to make each function `nonisolated`, then use `assumeIsolated` to dynamically check that the the function was only called from the main actor, like this:
-
-```swift
-@MainActor class C: P { 
-   nonisolated func f() { 
-     MainActor.assumeIsolated {
-       // do main-actor things
-     }
-   }
-}
-```
-
-This does provide *dynamic* data-race safety, but requires a lot of boilerplate and does not provide good static data-race safety.
-
-This proposal introduces the notion of an *isolated* conformance, which is a conformance that can only be used within the stated isolation domain. An isolated conformance lifts the restriction that only non-isolated functions can satisfy protocol requirements:
-
-```swift
-@MainActor class C: isolated P { 
-   func f() { } // @MainActor-isolated, which is okay because the conformance to P is @MainActor-isolated
-}
-```
-
-One can only use an isolated conformance within the isolation domain, but never outside of it, so it's guaranteed that any call through `P.f` to `C.f` is only possible in code that's already correctly isolated. For example, this would allow using generic functions with actor-isolated types from inside the main actor:
-
-```swift
-nonisolated func callPF<T: P>(_ value: T) {
-  t.f()
-}
-
-@MainActor func callPFC(c: C) {
-  callPF(c) // okay, uses isolated conformance C: P entirely within the @MainActor isolation domain
-}
-
-nonisolated func callPFCIncorrectly(c: C) {
-  callPF(c) // error: uses isolated conformance C: P outside the @MainActor isolation domain
-}
-```
-
 ## Detailed design
 
 The proposed solution describes the basic shape of isolated conformances and how they interact with the type system. This section goes into more detail on the data-race safety issues that arise from the introduction of isolated conformances into the language. Then it details three rules that, together, ensure freedom from data race safety issues in the presence of isolated conformances:
