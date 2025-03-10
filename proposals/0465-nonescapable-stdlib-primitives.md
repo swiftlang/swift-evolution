@@ -357,7 +357,7 @@ The object identifier of a noncopyable/nonescapable type is still a regular copy
 
 [SE-0437] omitted generalizing the `Equatable` conformance of `ManagedBufferPointer`; this proposal allows comparing `ManagedBufferPointer` instances for equality even if their `Element` happens to be noncopyable.
 
-[SE-0437] kept the `indices` property of unsafe buffer pointer types limited to cases where `Element` is copyable. This proposal generalizes `indices` to be also available on buffer pointers of noncopyable elements. (In the time since the original proposal, [SE-0447] has introduced a `Span` type that ships with an unconditional `indices` property, and [SE-0453] followed suit by introducing `Vector` with the same property. It makes sense to also provide this interface on buffer pointers, for consistency.) `indices` is useful for iterating through these collection types, especially until we ship a new iteration model that supports noncopyable/nonescapable containers.
+[SE-0437] kept the `indices` property of unsafe buffer pointer types limited to cases where `Element` is copyable. This proposal generalizes `indices` to be also available on buffer pointers of noncopyable elements. (In the time since the original proposal, [SE-0447] has introduced a `Span` type that ships with an unconditional `indices` property, and [SE-0453] followed suit by introducing `InlineArray` with the same property. It makes sense to also provide this interface on buffer pointers, for consistency.) `indices` is useful for iterating through these collection types, especially until we ship a new iteration model that supports noncopyable/nonescapable containers.
 
 Finally, [SE-0437] neglected to generalize any of the buffer pointer operations that [SE-0370] introduced on the standard `Slice` type. In this proposal, we correct this omission by generalizing the handful of operations that can support noncopyable result elements: `moveInitializeMemory(as:fromContentsOf:)`, `bindMemory(to:)`, `withMemoryRebound(to:_:)`, and `assumingMemoryBound(to:)`. `Slice` itself continues to require its `Element` to be copyable (at least for now), preventing the generalization of other operations.
 
@@ -481,7 +481,7 @@ As noted above, we defer generalizing the nil-coalescing operator `??`. We expec
 
 The Standard Library provides special support for comparing arbitrary optional values against `nil`. We generalize this mechanism to support nonescapable cases:
 
-```
+```swift
 extension Optional where Wrapped: ~Copyable & ~Escapable {
   static func ~=(
     lhs: _OptionalNilComparisonType,
@@ -547,7 +547,7 @@ Both of these functions return a value with the same lifetime as the original `R
 
 We can also generalize the convenient `get()` function, which is roughly equivalent to optional unwrapping:
 
-```
+```swift
 extension Result where Success: ~Copyable & ~Escapable {
   @_lifetime(copying self) // Illustrative syntax
   consuming func get() throws(Failure) -> Success
@@ -670,7 +670,7 @@ Managed buffer pointers are pointer types -- as such, they can be compared wheth
 
 ### Making `indices` universally available on unsafe buffer pointers
 
-[SE-0437] kept the `indices` property of unsafe buffer pointer types limited to cases where `Element` is copyable. In the time since that proposal, [SE-0447] has introduced a `Span` type that ships with an unconditional `indices` property, and [SE-0453] followed suit by introducing `Vector` with the same property. For consistency, it makes sense to also allow developers to unconditionally access `Unsafe[Mutable]BufferPointer.indices`, whether or not `Element` is copyable.
+[SE-0437] kept the `indices` property of unsafe buffer pointer types limited to cases where `Element` is copyable. In the time since that proposal, [SE-0447] has introduced a `Span` type that ships with an unconditional `indices` property, and [SE-0453] followed suit by introducing `InlineArray` with the same property. For consistency, it makes sense to also allow developers to unconditionally access `Unsafe[Mutable]BufferPointer.indices`, whether or not `Element` is copyable.
 
 ```swift
 extension UnsafeBufferPointer where Element: ~Copyable {
