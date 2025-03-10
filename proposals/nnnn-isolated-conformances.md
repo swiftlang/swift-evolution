@@ -579,6 +579,13 @@ This could be in addition to the `isolated P` syntax (providing the generalizati
 
 If Swift gains a setting to infer `@MainActor` on various declarations within a module, we should consider inferring `isolated` on conformances for types that have had their actor isolation inferred. This should make single-threaded code easier to write, because protocol conformances will "just work" so long as the conformances themselves aren't referenced outside of the main actor.
 
+This change also implies the need to express that an implicitly-`isolated` conformance should not be isolated, which could be done using `nonisolated`:
+
+```swift
+/*implicit @MainActor*/
+class MyClass: /*implicit isolated*/P, nonisolated Hashable { ... }
+```
+
 ## Alternatives considered
 
 ### "Non-Sendable" terminology instead of isolated conformances
