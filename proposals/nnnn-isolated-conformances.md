@@ -588,6 +588,17 @@ class MyClass: /*implicit isolated*/P, nonisolated Hashable { ... }
 
 ## Alternatives considered
 
+### Use global-actor spelling instead of `isolated`
+
+Instead of describing an isolated conformance as `isolated P`, the conformance could restate the global actor to which it is isolated. For example, it might look like this:
+
+```swift
+@MainActor
+class MyClass: @MainActor P { ... }
+```
+
+This syntax is a little more verbose than `isolated`, and implies additional features that might not happen (such as the ability for a nonisolated type to have an isolated conformance). However, it does match fairly well with the notion of inferring `@MainActor` in mostly-non-concurrent programs.
+
 ### "Non-Sendable" terminology instead of isolated conformances
 
 Isolated conformances are a lot like non-`Sendable` types, in that they can be freely used within the isolation domain in which they are created, but can't necessarily cross isolation domain boundaries. We could consider using "sendable" terminology instead of "isolation" terminology, e.g., all existing conformances are "Sendable" conformances (you can freely share them across isolation domain boundaries) and these new conformances are "non-Sendable" conformances. Trying to send such a conformance across an isolation domain boundary is, of course, an error.
