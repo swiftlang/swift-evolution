@@ -107,6 +107,29 @@ extension UnsafeCurrentTask {
 }
 ```
 
+### `UnsafeCurrentTask` access from `UnownedJob`
+
+In order to have an `Executor` be able to inspect a task name, either to print "Now running [Task A]" or for other reasons, we propose to offer the access to an `UnsafeCurrentTask` representation of a `ExecutorJob` (or `UnownedJob`):
+
+```swift
+extension ExecutorJob / UnownedJob {
+  public var unsafeCurrentTask: UnsafeCurrentTask? { ... }
+}
+```
+
+This allows executors to inspect the task name if the `job` is a task, and has a name:
+
+```swift
+public nonisolated func enqueue(_ job: consuming ExecutorJob) {
+  log.trace("Running task named: \(job?.unsafeCurrentTask?.name ?? "<no-name>")")
+}
+```
+
+We use the `UnsafeCurrentTask` type because it is possible to obtain it from an `UnownedTask` and therefore it is not safe to refer to it without knowladge about the job's lifetime.
+One should not refer to the unsafe current task after invoking `runSynchronously` on the job, as the job may have completed and been destroyed; therefore the use of the existing `UnsafeCurrentTask` type here is quite appropriate. 
+
+This also allows us to expose other information off a task, such as task local values in the future, if the `UnsafeCurrentTask` were to gain such APIs, without having to replicate "the same" accessors into yet another API that would be accessible directly from an `ExecutorJob`.
+
 ## Source compatibility
 
 This proposal only contains additive changes to the API surface.
