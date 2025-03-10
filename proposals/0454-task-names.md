@@ -1,10 +1,11 @@
-# Task Naming API
+# Task Naming
 
 * Proposal: [SE-NNNN](NNNN-task-names.md)
 * Authors: [Konrad Malawski](https://github.com/ktoso), [Harjas Monga](https://github.com/Harjas12)
 * Review Manager: TBD
-* Status: **Awaiting implementation** or **Awaiting review**
-* Implementation: Work In Progress [PR](https://github.com/swiftlang/swift/pull/77609)
+* Status: **Implemented on `main`**
+* Implementation: Implemented [PR](https://github.com/swiftlang/swift/pull/79600)
+* Pitch: [[Pitch] Task Naming API](https://forums.swift.org/t/pitch-task-naming-api/76115)
 * Review: TODO
 
 ## Introduction
@@ -123,6 +124,10 @@ Because runtime changes are required, these new APIs will only be available on n
 ## Future directions
 
 This proposal does not contain a method to name Swift Tasks created using the `async let` syntax. Unlike the other methods of creating Tasks, the `async let` syntax didn’t have an obvious way to allow a developer to provide a string. A suggestion of how we may provide automatic names to Tasks created via this method will be shown below in the [Alternatives Considered section](##Alternatives-considered). 
+
+### Task names for "startSynchronously" 
+
+If the ["start synchronously" tasks proposal](https://github.com/swiftlang/swift-evolution/pull/2698) would be accepted, the name parameter would also be included in those APIs. 
 
 ## Alternatives considered
 
