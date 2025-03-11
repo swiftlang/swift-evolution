@@ -37,7 +37,7 @@ Mutability requires exclusive access, per Swift's [law of exclusivity][SE-0176].
 
 #### MutableSpan
 
-`MutableSpan` allows delegating mutations of a type's contiguous internal representation, by providing access to an exclusively-borrowed view of a range of contiguous, initialized memory. `MutableSpan`'s memory safety' relies on guarantees that:
+`MutableSpan` allows delegating mutations of a type's contiguous internal representation, by providing access to an exclusively-borrowed view of a range of contiguous, initialized memory. `MutableSpan`'s memory safety relies on guarantees that:
 - it has exclusive access to the range of memory it represents, providing data race safety and enforced by `~Copyable`.
 - the memory it represents will remain valid for the duration of the access, providing lifetime safety and enforced by `~Escapable`.
 - each access is guarded by bounds checking, providing bounds safety.
@@ -90,7 +90,7 @@ extension MutableSpan where Element: ~Copyable & ~Escapable {
 }
 ```
 
-This function returns an instance of `MutableSpan` that represents a mutation of the same memory as represented by the callee. The callee can therefore no longer be mutated while the returned value exists:
+This function returns an instance of `MutableSpan` that represents a mutation of the same memory as represented by the callee. The callee can therefore no longer be accessed (read or mutated) while the returned value exists:
 
 ```swift
 var array = [1, 2, 3, 4, 5]
@@ -713,7 +713,7 @@ The `mutating` functions in this proposal generally do not represent mutations o
 
 #### Harmonizing `extracting()` functions across types
 
-The range of `extracting()` functions proposed here expands upon the range accepted in [SE-0437][SE-0437]. If the prefix and suffix variants are accepted, we should add them to `UnsafeBufferPointer` types as well. `Span` and `RawSpan` should also have `extracting()` functions with appropriate lifetime dependencies.
+The range of `extracting()` functions proposed here expands upon the range accepted in [SE-0437][SE-0437]. If the prefix and suffix variants are accepted, we should add them to `UnsafeBufferPointer` types as well. `Span` and `RawSpan` should also have `extracting()` functions with appropriate lifetime dependencies.
 
 #### <a name="OutputSpan"></a>Delegated initialization with `OutputSpan<T>`
 
