@@ -665,5 +665,5 @@ The same `yielding` modifier could also be used in other places in the future, s
 
 ## Acknowledgments
 
-Thanks to John McCall and Arnold Schwaighofer for providing much of the original implementation of accessor coroutines. John McCall also authored the accessors vision document this proposal serves as part of the implementation of.
+John McCall and Arnold Schwaighofer provided much of the original implementation of accessor coroutines. Tim Kientzle and John McCall authored the accessors vision document this proposal serves as part of the implementation of.
 
