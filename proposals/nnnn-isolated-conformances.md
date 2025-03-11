@@ -35,11 +35,11 @@ class MyModelType: Equatable {
 }
 ```
 
-This proposal introduces the notion of an *isolated conformance*, which is a conformance that can only be used within the isolation domain of the type. For the code above, the conformance to `Equatable` can be specified as `isolated` as follows:
+This proposal introduces the notion of an *isolated conformance*, which is a conformance that can only be used within the isolation domain of the type. For the code above, the conformance to `Equatable` can be specified as being isolated to the main actor as follows:
 
 ```swift
 @MainActor
-class MyModelType: isolated Equatable {
+class MyModelType: @MainActor Equatable {
   // unchanged from the above ...
 }
 ```
@@ -88,11 +88,11 @@ This is effectively saying that `MyModelType` will only ever be considered `Equa
 
 ## Proposed solution
 
-This proposal introduces the notion of an `isolated` conformance of a global-actor-isolated type to a protocol. Isolated conformances are conformances whose use is restricted to the same global actor as the conforming type. This is the same effective restriction as the `nonisolated`/`assumeIsolated` pattern above, but enforced statically by the compiler and without any boilerplate. The following defines an isolated conformance of `MyModelType` to `Equatable`:
+This proposal introduces the notion of an *isolated conformance*. Isolated conformances are conformances whose use is restricted to the same global actor as the conforming type. This is the same effective restriction as the `nonisolated`/`assumeIsolated` pattern above, but enforced statically by the compiler and without any boilerplate. The following defines an isolated conformance of `MyModelType` to `Equatable`:
 
 ```swift
 @MainActor
-class MyModelType: isolated Equatable {
+class MyModelType: @MainActor Equatable {
   var name: String
 
   init(name: String) {
@@ -136,7 +136,7 @@ func parallelHasMatching(_ value: MyModelType, in modelValues: [MyModelType]) ->
 }
 ```
 
-Providing full data-race safety with isolated conformances also requires us to reason about the sendability of a *metatype*, because sending the metatype to another isolation domain can carry protocol conformances with it. For example, the following code could introduce a data race if the conformance of `T` to `GlobalLookup` were `isolated`, despite not having a `Sendable` constraint:
+Providing full data-race safety with isolated conformances also requires us to reason about the sendability of a *metatype*, because sending the metatype to another isolation domain can carry protocol conformances with it. For example, the following code could introduce a data race if the conformance of `T` to `GlobalLookup` were isolated, despite not having a `Sendable` constraint:
 
 ```swift
 protocol GlobalLookup {
@@ -159,7 +159,7 @@ error: capture of non-sendable type 'T.Type' in closure
 A function like `hasNamed` can express the need for a `Sendable` metatype by introducing a requirement `T: SendableMetatype` (to make the metatype `Sendable`), e.g.,
 
 ```swift
-func hasNamed<T: GlobalLookup & SenableMetatype>(_: T.Type, name: String) async -> Bool {
+func hasNamed<T: GlobalLookup & SendableMetatype>(_: T.Type, name: String) async -> Bool {
    return await Task.detached {
      return T.lookupByName(name) != nil
    }.value
@@ -211,7 +211,7 @@ protocol Q {
   static func g() { }
 }
 
-extension C: isolated Q {
+extension C: @MainActor Q {
   @MainActor static func g() { }
 }
 
@@ -313,7 +313,7 @@ If the provided `value` is an instance of `C` , and this code is invoked off the
 Rule (1) is straightforward: the conformance can only be used within a context that is also isolated to the same global actor. This applies to any use of a conformance anywhere in the language. For example:
 
 ```swift
-@MainActor struct S: isolated P { }
+struct S: @MainActor P { }
 
 struct WrapsP<T: P>: P {
   var value: T
@@ -340,6 +340,20 @@ protocol P2 {
 struct S2: P2 {    // error: conformance of S2: P2 depends on @MainActor-isolated conformance `S: P`
                    // note: fix by making conformance of S2: P2 also @MainActor-isolated
   typealias A = S
+}
+```
+
+Note that the types that have isolated conformances may have different isolation from their conformances. For example, an `actor` or non-isolated type can have a `@MainActor` conformance. For example:
+
+```swift
+actor MyActor: @MainActor P {
+  // okay, so long as the declarations satisfying the requirements to P are
+  // @MainActor or nonisolated
+}
+
+/*nonisolated*/ struct MyStruct: @MainActor P {
+  // okay, so long as the declarations satisfying the requirements to P are
+  // @MainActor or nonisolated  
 }
 ```
 
@@ -470,7 +484,7 @@ However, there is one likely behavioral difference with isolated conformances be
 
 ### Actor-instance isolated conformances
 
-Actor-instance isolated conformances are considerably more difficult than global-actor isolated conformances, because the conformance needs to be associated with a specific instance of that actor. Even enforcing rule (1) is nonobvious. The following code illustrates some of the issues:
+Actor-instance isolated conformances are considerably more difficult than global-actor isolated conformances, because the conformance needs to be associated with a specific instance of that actor. Even enforcing rule (1) is nonobvious. As with `isolated` parameters, we could spell actor-instance isolation to a protocol `P` with `isolated P`. The semantics would need to be similar to what follows:
 
 ```swift
 actor A: isolated P {
@@ -479,7 +493,7 @@ actor A: isolated P {
 
 func instanceActors(a1: isolated A, a2: A) {
   let anyP1: any P = a1     // okay: uses isolated conformance 'A: P' only on a1, to which this function is isolated
-  let anyP2: any P = a2     // error: uses isolated conformance 'A: P' on a2, which is not 
+  let anyP2: any P = a2     // error: uses isolated conformance 'A: P' on a2, which is not the actor to which this function is isolated 
   
   let a3 = a1
   let anyP3: any P = a3     // okay? requires dataflow analysis to determine that a3 and
@@ -495,55 +509,18 @@ func instanceActors(a1: isolated A, a2: A) {
 
 It's possible that these problems can be addressed by relying more heavily on region-based isolation akin to rule (3). This can be revisited in the future if the need justifies the additional complexity.
 
-### Allow non-isolated types to have isolated conformances
+### Infer `@MainActor` conformances
 
-It would be possible to allow non-isolated types have isolated conformances. For example, a type that is not isolated to any domain but implements a handful of functions in a specific global isolated domain, e.g.:
+If Swift gains a setting to infer `@MainActor` on various declarations within a module, we should consider inferring `isolated` on conformances for `@MainActor` types. This should make single-threaded code easier to write, because protocol conformances will "just work" so long as the conformances themselves aren't referenced outside of the main actor or transferred into another isolation domain.
 
-```swift
-protocol P {
-  func onEvent(_ event: Event)
-}
-
-class X: @MainActor isolated P {
-  @MainActor func onEvent(_ event: Event) { 
-    // ...
-  }
-}
-```
-
-There is a syntax choice to be made here: the bare `isolated` keyword used throughout the proposal optimizes for the expected-to-be-common case where the type is isolated, which effectively forces the conformance to be isolated, and avoids having to restate the isolation. In this case where conformance is isolated but the type is not, the `isolated` keyword is insufficient: we need to state the global actor in some manner. One path forward would be to annotate the conformance with just the global actor, e.g.,
-
-```swift
-extension X: @MainActor P {
-  @MainActor func onEvent(_ event: Event) { ... }
-}
-```
-
-This could be in addition to the `isolated P` syntax (providing the generalization), such that `isolated P` is syntactic sugar for "the global actor of the type". Or it could be the only syntax provided, and `isolated P`  might only come back if actor-instance isolated conformances (from the prior section) happen.
-
-### Infer `isolated` on conformances for types that infer `@MainActor`
-
-If Swift gains a setting to infer `@MainActor` on various declarations within a module, we should consider inferring `isolated` on conformances for types that have had their actor isolation inferred. This should make single-threaded code easier to write, because protocol conformances will "just work" so long as the conformances themselves aren't referenced outside of the main actor.
-
-This change also implies the need to express that an implicitly-`isolated` conformance should not be isolated, which could be done using `nonisolated`:
+This change also implies the need to express that an implicitly-`isolated` conformance should not be isolated, which could be done using `nonisolated` as is the case for types:
 
 ```swift
 /*implicit @MainActor*/
-class MyClass: /*implicit isolated*/P, nonisolated Hashable { ... }
+class MyClass: /*implicit @MainActor*/P, nonisolated Hashable { ... }
 ```
 
 ## Alternatives considered
-
-### Use global-actor spelling instead of `isolated`
-
-Instead of describing an isolated conformance as `isolated P`, the conformance could restate the global actor to which it is isolated. For example, it might look like this:
-
-```swift
-@MainActor
-class MyClass: @MainActor P { ... }
-```
-
-This syntax is a little more verbose than `isolated`, and implies additional features that might not happen (such as the ability for a nonisolated type to have an isolated conformance). However, it does match fairly well with the notion of inferring `@MainActor` in mostly-non-concurrent programs.
 
 ### "Non-Sendable" terminology instead of isolated conformances
 
