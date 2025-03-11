@@ -6,7 +6,7 @@
 * Review Manager: TBD
 * Status: **Pitch, Awaiting Implementation**
 * Implementation: TBA
-* Review:
+* Review: ([original pitch](https://forums.swift.org/t/pitch-custom-main-and-global-executors/77247) ([pitch])(https://forums.swift.org/t/pitch-2-custom-main-and-global-executors/78437)
 
 ## Introduction
 
@@ -210,13 +210,18 @@ something like the following pseudo-code:
 
 ```swift
 func _main1() {
-  ...
-  print("Before the first await")
-  MainActor.unownedExecutor.enqueue(_main2)
+  let task = Task(_main2)
+  task.runSynchronously()
+  MainActor.unownedExecutor.enqueue(_main3)
   _swift_task_asyncMainDrainQueue()
 }
 
 func _main2() {
+  ...
+  print("Before the first await")
+}
+
+func _main3() {
   foo()
   print("After the first await")
   ...
@@ -252,21 +257,38 @@ We propose adding a new protocol to represent an Executor that is
 backed by some kind of run loop:
 
 ```swift
-protocol RunLoopExecutor: Executor {
+/// An executor that is backed by some kind of run loop.
+///
+/// The idea here is that some executors may work by running a loop
+/// that processes events of some sort; we want a way to enter that loop,
+/// and we would also like a way to trigger the loop to exit.
+public protocol RunLoopExecutor: Executor {
   /// Run the executor's run loop.
   ///
-  /// This method will synchronously block the calling thread.  Nested calls
-  /// to `run()` are permitted, however it is not permitted to call `run()`
-  /// on a single executor instance from more than one thread.
+  /// This method will synchronously block the calling thread.  Nested calls to
+  /// `run()` may be permitted, however it is not permitted to call `run()` on a
+  /// single executor instance from more than one thread.
   func run() throws
 
-  /// Signal to the runloop to stop running and return.
+  /// Run the executor's run loop until a condition is satisfied.
+  ///
+  /// Not every `RunLoopExecutor` will support this method; you must not call
+  /// it unless you *know* that it is supported.  The default implementation
+  /// generates a fatal error.
+  ///
+  /// Parameters:
+  ///
+  /// - until condition: A closure that returns `true` if the run loop should
+  ///                    stop.
+  func run(until condition: () -> Bool) throws
+
+  /// Signal to the run loop to stop running and return.
   ///
   /// This method may be called from the same thread that is in the `run()`
-  /// method, or from some other thread.  It will not wait for the run loop
-  /// to stop; calling this method simply signals that the run loop *should*,
-  /// as soon as is practicable, stop the innermost `run()` invocation
-  /// and make that `run()` invocation return.
+  /// method, or from some other thread.  It will not wait for the run loop to
+  /// stop; calling this method simply signals that the run loop *should*, as
+  /// soon as is practicable, stop the innermost `run()` invocation and make
+  /// that `run()` invocation return.
   func stop()
 }
 ```
@@ -279,43 +301,60 @@ protocol MainExecutor: RunLoopExecutor & SerialExecutor & EventableExecutor {
 }
 ```
 
+This cannot be a typealias because those will not work for Embedded Swift.
+
 We will then expose properties on `MainActor` and `Task` to allow
-users to query or set the executors:
+users to query the executors:
 
 ```swift
 extension MainActor {
   /// The main executor, which is started implicitly by the `async main`
   /// entry point and owns the "main" thread.
-  ///
-  /// Attempting to set this after the first `enqueue` on the main
-  /// executor is a fatal error.
-  public static var executor: any MainExecutor { get set }
+  public static var executor: any MainExecutor { get }
 }
 
 extension Task {
   /// The default or global executor, which is the default place in which
   /// we run tasks.
-  ///
-  /// Attempting to set this after the first `enqueue` on the global
-  /// executor is a fatal error.
-  public static var defaultExecutor: any TaskExecutor { get set }
+  public static var defaultExecutor: any TaskExecutor { get }
 }
 ```
 
-The platform-specific default implementations of these two executors will also be
-exposed with the names below:
+There will also be an `ExecutorFactory` protocol, which is used to set
+the default executors:
 
-``` swift
-/// The default main executor implementation for the current platform.
-public struct PlatformMainExecutor: MainExecutor {
-  ...
+```swift
+/// An ExecutorFactory is used to create the default main and task
+/// executors.
+public protocol ExecutorFactory {
+  /// Constructs and returns the main executor, which is started implicitly
+  /// by the `async main` entry point and owns the "main" thread.
+  static var mainExecutor: any MainExecutor { get }
+
+  /// Constructs and returns the default or global executor, which is the
+  /// default place in which we run tasks.
+  static var defaultExecutor: any TaskExecutor { get }
 }
 
-/// The default global executor implementation for the current platform.
-public struct PlatformDefaultExecutor: TaskExecutor {
-  ...
+```
+
+along with a default implementation of `ExecutorFactory` called
+`PlatformExecutorFactory` that sets the default executors for the
+current platform.
+
+Additionally, `Task` will expose a new `currentExecutor` property:
+
+```swift
+extension Task {
+  /// Get the current executor; this is the executor that the currently
+  /// executing task is executing on.
+  public static var currentExecutor: (any Executor)? { get }
 }
 ```
+
+to allow `Task.sleep()` to wait on the appropriate executor, rather
+than its current behaviour of always waiting on the global executor,
+which adds unnecessary executor hops and context switches.
 
 We will also need to expose the executor storage fields on
 `ExecutorJob`, so that they are accessible to Swift implementations of
@@ -325,12 +364,19 @@ the `Executor` protocols:
 struct ExecutorJob {
   ...
 
-  /// Storage reserved for the executor
-  public var executorPrivate: (UInt, UInt)
+  /// Execute a closure, passing it the bounds of the executor private data
+  /// for the job.
+  ///
+  /// Parameters:
+  ///
+  /// - body: The closure to execute.
+  ///
+  /// Returns the result of executing the closure.
+  public func withUnsafeExecutorPrivateData<R>(body: (UnsafeMutableRawBufferPointer) throws -> R) rethrows -> R
 
   /// Kinds of schedulable jobs.
   @frozen
-  public struct Kind: Sendable {
+  public struct Kind: Sendable, RawRepresentable {
     public typealias RawValue = UInt8
 
     /// The raw job kind value.
@@ -344,7 +390,7 @@ struct ExecutorJob {
   }
 
   /// What kind of job this is
-  public var kind: Kind
+  public var kind: Kind { get }
   ...
 }
 ```
@@ -429,38 +475,191 @@ if let chunk = job.allocator?.allocate(capacity: 1024) {
 }
 ```
 
-### Embedded Swift
-
-For Embedded Swift we will provide default implementations of the main
-and default executor that call C functions; this means that Embedded
-Swift users can choose to implement those C functions to override the
-default behaviour.  This is desirable because Swift is not designed to
-support externally defined Swift functions, types or methods in the
-same way that C is.
-
-We will also add a compile-time option to the Concurrency runtime to
-allow users of Embedded Swift to disable the ability to dynamically
-set the executors, as this is an option that may not be necessary in
-that case.  When this option is enabled, the `executor` and
-`defaultExecutor` properties will be as follows (rather than using
-existentials):
+We will also round-out the `Executor` protocol with some `Clock`-based
+APIs to enqueue after a delay:
 
 ```swift
-extension MainActor {
-  /// The main executor, which is started implicitly by the `async main`
-  /// entry point and owns the "main" thread.
-  public static var executor: PlatformMainExecutor { get }
-}
+protocol Executor {
+  ...
+  /// `true` if this Executor supports scheduling.
+  ///
+  /// This will default to false.  If you attempt to use the delayed
+  /// enqueuing functions on an executor that does not support scheduling,
+  /// the default executor will be used to do the scheduling instead,
+  /// unless the default executor does not support scheduling in which
+  /// case you will get a fatal error.
+  var supportsScheduling: Bool { get }
 
-extension Task {
-  /// The default or global executor, which is the default place in which
-  /// we run tasks.
-  public static var defaultExecutor: PlatformDefaultExecutor { get }
+  /// Enqueue a job to run after a specified delay.
+  ///
+  /// You need only implement one of the two enqueue functions here;
+  /// the default implementation for the other will then call the one
+  /// you have implemented.
+  ///
+  /// Parameters:
+  ///
+  /// - job:       The job to schedule.
+  /// - after:     A `Duration` specifying the time after which the job
+  ///              is to run.  The job will not be executed before this
+  ///              time has elapsed.
+  /// - tolerance: The maximum additional delay permissible before the
+  ///              job is executed.  `nil` means no limit.
+  /// - clock:     The clock used for the delay.
+  func enqueue<C: Clock>(_ job: consuming ExecutorJob,
+                         after delay: C.Duration,
+                         tolerance: C.Duration?,
+                         clock: C)
+
+  /// Enqueue a job to run at a specified time.
+  ///
+  /// You need only implement one of the two enqueue functions here;
+  /// the default implementation for the other will then call the one
+  /// you have implemented.
+  ///
+  /// Parameters:
+  ///
+  /// - job:       The job to schedule.
+  /// - at:        The `Instant` at which the job should run.  The job
+  ///              will not be executed before this time.
+  /// - tolerance: The maximum additional delay permissible before the
+  ///              job is executed.  `nil` means no limit.
+  /// - clock:     The clock used for the delay..
+  func enqueue<C: Clock>(_ job: consuming ExecutorJob,
+                         at instant: C.Instant,
+                         tolerance: C.Duration?,
+                         clock: C)
+  ...
 }
 ```
 
-If this option is enabled, an Embedded Swift program that wishes to
-customize executor behaviour will have to use the C API.
+As an implementer, you will only need to implement _one_ of the two
+APIs to get both of them working; there is a default implementation
+that will do the necessary mathematics for you to implement the other
+one.
+
+If you try to call the `Clock`-based `enqueue` APIs on an executor
+that does not declare support for them (by returning `true` from its
+`supportsScheduling` property), the runtime will raise a fatal error.
+
+(These functions have been added to the `Executor` protocol directly
+rather than adding a separate protocol to avoid having to do a dynamic
+cast at runtime, which is a relatively slow operation.)
+
+To support these `Clock`-based APIs, we will add to the `Clock`
+protocol as follows:
+
+```swift
+protocol Clock {
+  ...
+  /// The traits associated with this clock instance.
+  var traits: ClockTraits { get }
+
+  /// Convert a Clock-specific Duration to a Swift Duration
+  ///
+  /// Some clocks may define `C.Duration` to be something other than a
+  /// `Swift.Duration`, but that makes it tricky to convert timestamps
+  /// between clocks, which is something we want to be able to support.
+  /// This method will convert whatever `C.Duration` is to a `Swift.Duration`.
+  ///
+  /// Parameters:
+  ///
+  /// - from duration: The `Duration` to convert
+  ///
+  /// Returns: A `Swift.Duration` representing the equivalent duration, or
+  ///          `nil` if this function is not supported.
+  func convert(from duration: Duration) -> Swift.Duration?
+
+  /// Convert a Swift Duration to a Clock-specific Duration
+  ///
+  /// Parameters:
+  ///
+  /// - from duration: The `Swift.Duration` to convert.
+  ///
+  /// Returns: A `Duration` representing the equivalent duration, or
+  ///          `nil` if this function is not supported.
+  func convert(from duration: Swift.Duration) -> Duration?
+
+  /// Convert an `Instant` from some other clock's `Instant`
+  ///
+  /// Parameters:
+  ///
+  /// - instant:    The instant to convert.
+  //  - from clock: The clock to convert from.
+  ///
+  /// Returns: An `Instant` representing the equivalent instant, or
+  ///          `nil` if this function is not supported.
+  func convert<OtherClock: Clock>(instant: OtherClock.Instant,
+                                  from clock: OtherClock) -> Instant?
+  ...
+}
+```
+
+If your `Clock` uses `Swift.Duration` as its `Duration` type, the
+`convert(from duration:)` methods will be implemented for you.  There
+is also a default implementation of the `Instant` conversion method
+that makes use of the `Duration` conversion methods.
+
+The `traits` property is of type `ClockTraits`, which is an
+`OptionSet` as follows:
+
+```swift
+/// Represents traits of a particular Clock implementation.
+///
+/// Clocks may be of a number of different varieties; executors will likely
+/// have specific clocks that they can use to schedule jobs, and will
+/// therefore need to be able to convert timestamps to an appropriate clock
+/// when asked to enqueue a job with a delay or deadline.
+///
+/// Choosing a clock in general requires the ability to tell which of their
+/// clocks best matches the clock that the user is trying to specify a
+/// time or delay in.  Executors are expected to do this on a best effort
+/// basis.
+@available(SwiftStdlib 6.2, *)
+public struct ClockTraits: OptionSet {
+  public let rawValue: Int32
+
+  public init(rawValue: Int32)
+
+  /// Clocks with this trait continue running while the machine is asleep.
+  public static let continuous = ...
+
+  /// Indicates that a clock's time will only ever increase.
+  public static let monotonic = ...
+
+  /// Clocks with this trait are tied to "wall time".
+  public static let wallTime = ...
+}
+```
+
+Clock traits can be used by executor implementations to select the
+most appropriate clock that they know how to wait on; they can then
+use the `convert()` method above to convert the `Instant` or
+`Duration` to that clock in order to actually enqueue a job.
+
+`ContinuousClock` and `SuspendingClock` will be updated to support
+these new features.
+
+We will also add a way to test if an executor is the main executor:
+
+```swift
+protocol Executor {
+  ...
+  /// `true` if this is the main executor.
+  var isMainExecutor: Bool { get }
+  ...
+}
+```
+
+### Embedded Swift
+
+As we are not proposing to remove the existing "hook function" API
+from Concurrency at this point, it will still be possible to implement
+an executor for Embedded Swift by implementing the `Impl` functions in
+C/C++.
+
+We will not be able to support the new `Clock`-based `enqueue` APIs on
+Embedded Swift at present because it does not allow protocols to
+contain generic functions.
 
 ### Coalesced Event Interface
 
@@ -487,7 +686,7 @@ protocol EventableExecutor {
   /// - handler:  The handler to call when the event fires.
   ///
   /// Returns a new opaque `Event`.
-  public func registerEvent(handler: @escaping () -> ()) -> Event
+  public func registerEvent(handler: @escaping @Sendable () -> ()) -> Event
 
   /// Deregister the given event.
   ///
@@ -515,6 +714,33 @@ to coalesce these events, such that the handler will be triggered once
 for a potentially long series of `MainActor.executor.notify(event:)`
 invocations.
 
+### Overriding the main and default executors
+
+Setting the executors directly is tricky because they might already be
+in use somehow, and it is difficult in general to detect when that
+might have happened.  Instead, to specify different executors you will
+implement your own `ExecutorFactory`, e.g.
+
+```swift
+struct MyExecutorFactory: ExecutorFactory {
+  static var mainExecutor: any MainExecutor { return MyMainExecutor() }
+  static var defaultExecutor: any TaskExecutor { return MyTaskExecutor() }
+}
+```
+
+then build your program with the `--executor-factory
+MyModule.MyExecutorFactory` option.  If you do not specify the module
+for your executor factory, the compiler will look for it in the main
+module.
+
+One might imagine a future where NIO provides executors of its own
+where you can build with `--executor-factory SwiftNIO.ExecutorFactory`
+to take advantage of those executors.
+
+We will also add an `executorFactory` option in SwiftPM's
+`swiftSettings` to let people specify the executor factory in their
+package manifests.
+
 ## Detailed design
 
 ### `async` main code generation
@@ -524,23 +750,37 @@ to something like
 
 ```swift
 func _main1() {
-  ...
-  print("Before the first await")
-  MainActor.executor.enqueue(_main2)
-  MainActor.executor.run()
+  _swift_createExecutors(MyModule.MyExecutorFactory.self)
+  let task = Task(_main2)
+  task.runSynchronously()
+  MainActor.unownedExecutor.enqueue(_main3)
+  _swift_task_asyncMainDrainQueue()
 }
 
 func _main2() {
+  ...
+  print("Before the first await")
+}
+
+func _main3() {
   foo()
   print("After the first await")
   ...
 }
 ```
 
+where the `_swift_createExecutors` function is responsible for calling
+the methods on your executor factory.
+
+This new function will only be called where the target's minimum
+system version is high enough to support custom executors.
+
 ## Source compatibility
 
 There should be no source compatibility concerns, as this proposal is
-purely additive from a source code perspective.
+purely additive from a source code perspective---all new protocol
+methods will have default implementations, so existing code should
+just build and work.
 
 ## ABI compatibility
 
@@ -648,17 +888,12 @@ break for places where Swift Concurrency already runs, because some
 existing code already knows that it is not really asynchronous until
 the first `await` in the main entry point.
 
-### Building support for clocks into `Executor`
+### Putting the new Clock-based enqueue functions into a protocol
 
-While the existing C interfaces within Concurrency do associate clocks
-with executors, there is in fact no real need to do this, and it's
-only that way internally because Dispatch happens to handle timers and
-it was easy to write the implementation this way.
-
-In reality, timer-based scheduling can be handled through some
-appropriate platform-specific mechanism, and when the relevant timer
-fires the task that was scheduled for a specific time can be enqueued
-on an appropriate executor using the `enqueue()` method.
+It would be cleaner to have the new Clock-based enqueue functions in a
+separate `SchedulingExecutor` protocol.  However, if we did that, we
+would need to add `as? SchedulingExecutor` runtime casts in various
+places in the code, and dynamic casts can be expensive.
 
 ## Acknowledgments
 
