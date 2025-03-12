@@ -53,8 +53,8 @@ To support multiple subscribers, a new stream is returned every time.
 }
 ```
 
-Without a `Hashable` conformance, each continuation needs to be associated with an artificial identifier,
-e.g. object identity by wrapping each continuation in a class:
+Without a `Hashable` conformance, each continuation needs to be associated with an artificial identifier.
+E.g. wrapping continuation in a class, identity of the wrapper object can be used:
 
 ```swift
 @MainActor private class Sender {
