@@ -390,17 +390,11 @@ the callee. Unlike `consuming` parameters, `sending` parameters do not
 have no-implicit-copying semantics.
 
 To opt into no-implicit-copying semantics or to change the default ownership
-convention, `sending` may also be paired with an explicit `consuming` or
-`borrowing` ownership modifier:
+convention, `sending` may also be paired with an explicit `consuming` ownership modifier:
 
 ```swift
 func sendingConsuming(_ x: consuming sending T) { ... }
-func sendingBorrowing(_ x: borrowing sending T) { ... }
 ```
-
-Note that an explicit `borrowing` annotation always implies no-implicit-copying,
-so there is no way to change the default ownership convention of a
-`sending` parameter without also opting into no-implicit-copying semantics.
 
 ### Adoption in the Concurrency library
 

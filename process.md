@@ -111,7 +111,7 @@ Please state explicitly whether you believe that the proposal should be accepted
       Proposals that can ship as part of the [Standard Library Preview package][preview-package]
       should be paired with a pull request against the [swift-evolution-staging repository][swift-evolution-staging].
       All other proposals should be paired with an implementation pull request
-      against the [main Swift repository](https://github.com/apple/swift).
+      against the [main Swift repository](https://github.com/swiftlang/swift).
 
       The preview package can accept new types, new protocols, and extensions to
       existing types and protocols that can be implemented without access to
@@ -162,13 +162,13 @@ flowchart LR
   %% <https://mermaid-js.github.io/>
 
   %% Nodes:
-  1{{"Awaiting\nreview"}}
-  2{{"Scheduled\nfor review"}}
-  3{"Active\nreview"}
-  4["Returned\nfor revision"]
+  1{{"Awaiting<br/>review"}}
+  2{{"Scheduled<br>for review"}}
+  3{"Active<br/>review"}
+  4["Returned<br/>for revision"]
   5(["Withdrawn"])
   6(["Rejected"])
-  7_8["Accepted\n(with revisions)"]
+  7_8["Accepted<br/>(with revisions)"]
   9[["Previewing"]]
   10(["Implemented"])
 
@@ -208,7 +208,7 @@ A given proposal can be in one of several states:
 [swift-evolution-repo]: https://github.com/swiftlang/swift-evolution  "Swift evolution repository"
 [swift-evolution-staging]: https://github.com/swiftlang/swift-evolution-staging  "Swift evolution staging repository"
 [proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
-[status-page]: https://apple.github.io/swift-evolution/
+[status-page]: https://www.swift.org/swift-evolution
 [preview-package]: https://github.com/apple/swift-standard-library-preview/
 [language-steering-group]: https://www.swift.org/language-steering-group
 

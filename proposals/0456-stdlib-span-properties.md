@@ -3,10 +3,10 @@
 * Proposal: [SE-0456](0456-stdlib-span-properties.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (January 15...28, 2024)**
+* Status: **Accepted**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: [PR #78561](https://github.com/swiftlang/swift/pull/78561)
-* Review: [Review](https://forums.swift.org/t/se-0456-add-span-providing-properties-to-standard-library-types/77233), [Pitch](https://forums.swift.org/t/76138)
+* Review: ([pitch](https://forums.swift.org/t/76138)) ([review](https://forums.swift.org/t/se-0456-add-span-providing-properties-to-standard-library-types/77233)) ([acceptance](https://forums.swift.org/t/77684))
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
@@ -46,9 +46,9 @@ func function() {
 ```
 If we were to attempt using `b` again after the call to `modify(&a)`, the compiler would report an overlapping access error, due to attempting to mutate `a` (with `modify(&a)`) while it is already being accessed through `b`'s borrow. Note that the copyability of `B` means that it cannot represent a mutation of `A`; it therefore represents a non-exclusive borrowing relationship.
 
-Given this, we propose to enable the definition of a borrowing relationship via a computed property. With this feature we then propose to add `storage` computed properties to standard library types that can share their internal typed storage, as well as `bytes` computed properties to those standard library types that can safely share their internal storage as untyped memory.
+Given this, we propose to enable the definition of a borrowing relationship via a computed property. With this feature we then propose to add `span` computed properties to standard library types that can share access to their internal typed memory. When a `span` has `BitwiseCopyable` elements, it will have a `bytes` computed property to share a view of the memory it represents as untyped memory.
 
-One of the purposes of `Span` is to provide a safer alternative to `UnsafeBufferPointer`. This proposal builds on it and allows us to rewrite code reliant on `withUnsafeBufferPointer()` to use `storage` properties instead. Eventually, code that requires access to contiguous memory can be rewritten to use `Span`, gaining better composability in the process. For example:
+One of the purposes of `Span` is to provide a safer alternative to `UnsafeBufferPointer`. This proposal builds on it and allows us to rewrite code reliant on `withUnsafeBufferPointer()` to use `span` properties instead. Eventually, code that requires access to contiguous memory can be rewritten to use `Span`, gaining better composability in the process. For example:
 
 ```swift
 let result = try myArray.withUnsafeBufferPointer { buffer in
@@ -63,7 +63,7 @@ let result = try myArray.withUnsafeBufferPointer { buffer in
 This closure-based call is difficult to evolve, such as making `result` have a non-copyable type, adding a concurrent task, or adding typed throws. An alternative based on a vended `Span` property would look like this:
 
 ```swift
-let span = myArray.storage
+let span = myArray.span
 let indices = findElements(span)
 var myResult = MyResult()
 for i in indices {
@@ -87,62 +87,57 @@ By allowing the language to define lifetime dependencies in these limited ways, 
 
 #### <a name="extensions"></a>Extensions to Standard Library types
 
-The standard library and Foundation will provide `storage` computed properties, returning lifetime-dependent `Span` instances. These computed properties are the safe and composable replacements for the existing `withUnsafeBufferPointer` closure-taking functions.
+The standard library and Foundation will provide `span` computed properties, returning lifetime-dependent `Span` instances. These computed properties are the safe and composable replacements for the existing `withUnsafeBufferPointer` closure-taking functions.
 
 ```swift
 extension Array {
   /// Share this `Array`'s elements as a `Span`
-  var storage: Span<Element> { get }
+  var span: Span<Element> { get }
 }
 
 extension ArraySlice {
   /// Share this `Array`'s elements as a `Span`
-  var storage: Span<Element> { get }
+  var span: Span<Element> { get }
 }
 
 extension ContiguousArray {
   /// Share this `Array`'s elements as a `Span`
-  var storage: Span<Element> { get }
+  var span: Span<Element> { get }
 }
 
 extension String.UTF8View {
   /// Share this `UTF8View`'s code units as a `Span`
-  var storage: Span<Unicode.UTF8.CodeUnit> { get }
+  var span: Span<Unicode.UTF8.CodeUnit> { get }
 }
 
 extension Substring.UTF8View {
   /// Share this `UTF8View`'s code units as a `Span`
-  var storage: Span<Unicode.UTF8.CodeUnit> { get }
+  var span: Span<Unicode.UTF8.CodeUnit> { get }
 }
 
 extension CollectionOfOne {
   /// Share this `Collection`'s element as a `Span`
-  var storage: Span<Element> { get }
-}
-
-extension SIMD_N_ { // where _N_ ∈ {2, 3, 4 ,8, 16, 32, 64}
-  /// Share this vector's elements as a `Span`
-  var storage: Span<Scalar> { get }
+  var span: Span<Element> { get }
 }
 
 extension KeyValuePairs {
   /// Share this `Collection`'s elements as a `Span`
-  var storage: Span<(Key, Value)> { get }
+  var span: Span<(Key, Value)> { get }
 }
 ```
 
-Conditionally to the acceptance of [`Vector`][SE-0453], we will also add the following:
+Following the acceptance of [`InlineArray`][SE-0453], we will also add the following:
 
 ```swift
-extension Vector where Element: ~Copyable {
-  /// Share this vector's elements as a `Span`
-  var storage: Span<Element> { get }
+extension InlineArray where Element: ~Copyable {
+  /// Share this `InlineArray`'s elements as a `Span`
+  var span: Span<Element> { get }
 }
 ```
 
 #### Accessing the raw bytes of a `Span`
 
-When a `Span`'s element is `BitwiseCopyable`, we allow viewing the underlying storage as raw bytes with `RawSpan`:
+When a `Span`'s element is `BitwiseCopyable`, we allow viewing the underlying memory as raw bytes with `RawSpan`:
 
 ```swift
 extension Span where Element: BitwiseCopyable {
@@ -160,12 +155,12 @@ We hope that `Span` and `RawSpan` will become the standard ways to access shared
 ```swift
 extension UnsafeBufferPointer {
   /// Unsafely view this buffer as a `Span`
-  var storage: Span<Element> { get }
+  var span: Span<Element> { get }
 }
 
 extension UnsafeMutableBufferPointer {
   /// Unsafely view this buffer as a `Span`
-  var storage: Span<Element> { get }
+  var span: Span<Element> { get }
 }
 
 extension UnsafeRawBufferPointer {
@@ -193,22 +188,22 @@ While the `swift-foundation` package and the `Foundation` framework are not gove
 ```swift
 extension Foundation.Data {
   // Share this `Data`'s bytes as a `Span`
-  var storage: Span<UInt8> { get }
+  var span: Span<UInt8> { get }
   
   // Share this `Data`'s bytes as a `RawSpan`
   var bytes: RawSpan { get }
 }
 ```
 
-Unlike with the standard library types, we plan to have a `bytes` property on `Foundation.Data` directly. This type conceptually consists of untyped bytes, and `bytes` is likely to be the primary way to directly access its memory. As `Data`'s API presents its storage as a collection of `UInt8` elements, we provide both `bytes` and `storage`. Types similar to `Data` may choose to provide both typed and untyped `Span` properties.
+Unlike with the standard library types, we plan to have a `bytes` property on `Foundation.Data` directly. This type conceptually consists of untyped bytes, and `bytes` is likely to be the primary way to directly access its memory. As `Data`'s API presents its storage as a collection of `UInt8` elements, we provide both `bytes` and `span`. Types similar to `Data` may choose to provide both typed and untyped `Span` properties.
 
 #### <a name="performance"></a>Performance
 
-The `storage` and `bytes` properties should be performant and return their `Span` or `RawSpan` with very little work, in O(1) time. This is the case for all native standard library types. There is a performance wrinkle for bridged `Array` and `String` instances on Darwin-based platforms, where they can be bridged to Objective-C types that do not guarantee contiguous storage. In such cases the implementation will eagerly copy the underlying data to the native Swift form, and return a `Span` or `RawSpan` pointing to that copy.
+The `span` and `bytes` properties should be performant and return their `Span` or `RawSpan` with very little work, in O(1) time. This is the case for all native standard library types. There is a performance wrinkle for bridged `Array` and `String` instances on Darwin-based platforms, where they can be bridged to Objective-C types that may not be represented in contiguous memory. In such cases the implementation will eagerly copy the underlying data to the native Swift form, and return a `Span` or `RawSpan` pointing to that copy.
 
-This eager copy behaviour will be specific to the `storage` and `bytes` properties, and therefore the memory usage behaviour of existing unchanged code will remain the same. New code that adopts the `storage` and `bytes` properties will occasionally have higher memory usage due to the eager copies, but we believe this performance compromise is the right approach for the standard library. The alternative is to compromise the design for all platforms supported by Swift, and we consider that a non-starter.
+This eager copy behaviour will be specific to the `span` and `bytes` properties, and therefore the memory usage behaviour of existing unchanged code will remain the same. New code that adopts the `span` and `bytes` properties will occasionally have higher memory usage due to the eager copies, but we believe this performance compromise is the right approach for the standard library. The alternative is to compromise the design for all platforms supported by Swift, and we consider that a non-starter.
 
-As a result of the eager copy behaviour for bridged `String.UTF8View` and `Array` instances, the `storage` property for these types will have a documented performance characteristic of "amortized constant time performance."
+As a result of the eager copy behaviour for bridged `String.UTF8View` and `Array` instances, the `span` property for these types will have a documented performance characteristic of "amortized constant time performance."
 
 ## Source compatibility
 
@@ -226,10 +221,10 @@ The additions described in this proposal require a version of the Swift standard
 
 #### Adding `withSpan()` and `withBytes()` closure-taking functions
 
-The `storage` and `bytes` properties aim to be safe replacements for the `withUnsafeBufferPointer()` and `withUnsafeBytes()` closure-taking functions. We could consider `withSpan()` and `withBytes()` closure-taking functions that would provide an quicker migration away from the older unsafe functions. We do not believe  the closure-taking functions are desirable in the long run. In the short run, there may be a desire to clearly mark the scope where a `Span` instance is used. The default method would be to explicitly consume a `Span` instance:
+The `span` and `bytes` properties aim to be safe replacements for the `withUnsafeBufferPointer()` and `withUnsafeBytes()` closure-taking functions. We could consider `withSpan()` and `withBytes()` closure-taking functions that would provide an quicker migration away from the older unsafe functions. We do not believe  the closure-taking functions are desirable in the long run. In the short run, there may be a desire to clearly mark the scope where a `Span` instance is used. The default method would be to explicitly consume a `Span` instance:
 ```swift
 var a = ContiguousArray(0..<8)
-var span = a.storage
+var span = a.span
 read(span)
 _ = consume span
 a.append(8)
@@ -239,7 +234,7 @@ In order to visually distinguish this lifetime, we could simply use a `do` block
 ```swift
 var a = ContiguousArray(0..<8)
 do {
-  let span = a.storage
+  let span = a.span
   read(span)
 }
 a.append(8)
@@ -248,7 +243,7 @@ a.append(8)
 A more targeted solution may be a consuming function that takes a non-escaping closure:
 ```swift
 var a = ContiguousArray(0..<8)
-var span = a.storage
+var span = a.span
 consuming(span) { span in
   read(span)
 }
@@ -257,9 +252,9 @@ a.append(8)
 
 During the evolution of Swift, we have learned that closure-based API are difficult to compose, especially with one another. They can also require alterations to support new language features. For example, the generalization of closure-taking API for non-copyable values as well as typed throws is ongoing; adding more closure-taking API may make future feature evolution more labor-intensive. By instead relying on returned values, whether from computed properties or functions, we build for greater composability. Use cases where this approach falls short should be reported as enhancement requests or bugs.
 
-#### Giving the properties different names
+#### Different naming for the properties
 
-We chose the names `storage` and `bytes` because those reflect _what_ they represent. Another option would be to name the properties after _how_ they represent what they do, which would be `span` and `rawSpan`. It is possible the name `storage` would be deemed to clash too much with existing properties of types that would like to provide views of their internal storage with `Span`-providing properties. For example, the Standard Library's concrete `SIMD`-conforming types have a property `var _storage`. The current proposal means that making this property of `SIMD` types into public API would entail a name change more significant than simply removing its leading underscore.
+We originally proposed the name `storage` for the `span` properties introduced here. That name seems to imply that the returned `Span` is the storage itself, rather than a view of the storage. That would be misleading for types that own their storage, especially those that delegate their storage to another type, such as a `ContiguousArray`. In such cases, it would make sense to have a `storage` property whose type is the type that implements the storage.
 
 #### Disallowing the definition of non-escapable properties of non-escapable types
 
@@ -269,7 +264,7 @@ The original version of this pitch disallowed this. As a consequence, the `bytes
 
 #### Omitting extensions to `UnsafeBufferPointer` and related types
 
-We could omit the extensions to `UnsafeBufferPointer` and related types, and rely instead of future `Span` and `RawSpan` initializers. The initializers can have the advantage of being able to communicate semantics (somewhat) through their parameter labels. However, they also have a very different shape than the `storage` computed properties we are proposing. We believe that the adding the same API on both safe and unsafe types is advantageous, even if the preconditions for the properties cannot be statically enforced.
+We could omit the extensions to `UnsafeBufferPointer` and related types, and rely instead of future `Span` and `RawSpan` initializers. The initializers can have the advantage of being able to communicate semantics (somewhat) through their parameter labels. However, they also have a very different shape than the `span` computed properties we are proposing. We believe that the adding the same API on both safe and unsafe types is advantageous, even if the preconditions for the properties cannot be statically enforced.
 
 ## <a name="directions"></a>Future directions
 
@@ -277,7 +272,7 @@ Note: The future directions stated in [SE-0447](https://github.com/swiftlang/swi
 
 #### <a name="MutableSpan"></a>Safe mutations with `MutableSpan<T>`
 
-Some data structures can delegate mutations of their owned memory. In the standard library the function `withMutableBufferPointer()` provides this functionality in an unsafe manner. We expect to add a `MutableSpan` type to support delegating mutations of initialized memory. Standard library types will then add a way to vend `MutableSpan` instances. This could be with a closure-taking `withMutableSpan()` function, or a new property, such as `var mutableStorage`. Note that a computed property providing mutable access needs to have a different name than the `storage` properties proposed here, because we cannot overload the return type of computed properties based on whether mutation is desired.
+Some data structures can delegate mutations of their owned memory. In the standard library the function `withMutableBufferPointer()` provides this functionality in an unsafe manner. We expect to add a `MutableSpan` type to support delegating mutations of initialized memory. Standard library types will then add a way to vend `MutableSpan` instances. This could be with a closure-taking `withMutableSpan()` function, or a new property, such as `var mutableStorage`. Note that a computed property providing mutable access needs to have a different name than the `span` properties proposed here, because we cannot overload the return type of computed properties based on whether mutation is desired.
 
 #### <a name="ContiguousStorage"></a>A `ContiguousStorage` protocol
 
@@ -288,6 +283,10 @@ The properties added by this proposal are largely the concrete implementations o
 Unfortunately, a major issue prevents us from proposing it at this time: the ability to suppress requirements on `associatedtype` declarations was deferred during the review of [SE-0427](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md). Once this restriction is lifted, then we could propose a `ContiguousStorage` protocol.
 
 The other limitation stated in [SE-0447][SE-0447]'s section about `ContiguousStorage` is "the inability to declare a `_read` acessor as a protocol requirement." This proposal's addition to enable defining a borrowing relationship via a computed property is a solution to that, as long as we don't need to use a coroutine accessor to produce a `Span`. While allowing the return of `Span`s through coroutine accessors may be undesirable, whether it is undesirable is unclear until coroutine accessors are formalized in the language.
+
+<a name="simd"></a>`span` properties on standard library SIMD types
+
+This proposal as reviewed included `span` properties for the standard library `SIMD` types. We are deferring this feature at the moment, since it is difficult to define these succinctly. The primary issue is that the `SIMD`-related protocols do not explicitly require contiguous memory; assuming that they are represented in contiguous memory fails with theoretically-possible examples. We could define the `span` property systematically for each concrete SIMD type in the standard library, but that would be very repetitive (and expensive from the point of view of code size.) We could also fix the SIMD protocols to require contiguous memory, enabling a succinct definition of their `span` property. Finally, we could also rely on converting `SIMD` types to `InlineArray`, and use the `span` property defined on `InlineArray`.
 
 ## Acknowledgements
 

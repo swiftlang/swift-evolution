@@ -3,12 +3,11 @@
 * Proposal: [SE-0458](0458-strict-memory-safety.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status:  **Active Review (January 17th...February 11th, 2025)**
+* Status:  **Implemented (Swift 6.2)**
 * Feature name: `StrictMemorySafety`
-* Vision: [Opt-in Strict Memory Safety Checking (Prospective)](https://github.com/swiftlang/swift-evolution/pull/2581)
-* Implementation:  On main with experimental feature flags `AllowUnsafeAttribute` and `WarnUnsafe`
-* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/f2cab4ddc3381d1dc7a970e813ed29e27b5ae43f/proposals/0458-strict-memory-safety.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-opt-in-strict-memory-safety-checking/76689)) ([review](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274)) ([mid-review revision](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274/33))
+* Vision: [Optional Strict Memory Safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/memory-safety.md)
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/f2cab4ddc3381d1dc7a970e813ed29e27b5ae43f/proposals/0458-strict-memory-safety.md) [2](https://github.com/swiftlang/swift-evolution/blob/9d180aea291c6b430bcc816ce12ef0174ec0237b/proposals/0458-strict-memory-safety.md)
+* Review: ([pitch](https://forums.swift.org/t/pitch-opt-in-strict-memory-safety-checking/76689)) ([review](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274)) ([first revision](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274/33)) ([second revision](https://forums.swift.org/t/se-0458-opt-in-strict-memory-safety-checking/77274/51)) ([acceptance](https://forums.swift.org/t/accepted-se-0458-opt-in-strict-memory-safety-checking/78116))
 
 ## Introduction
 
@@ -44,7 +43,7 @@ For example, Swift solves null references with optional types. Statically, Swift
 
 This proposal introduces an opt-in strict memory safety checking mode that identifies all uses of unsafe behavior within the given module. There are several parts to this change:
 
-* A compiler flag `-strict-memory-safety` that enables warnings for all uses of unsafe constructs within a given module. All warnings will be in the diagnostic group `Unsafe`, enabling precise control over memory-safety-related warnings per [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). When strict memory safety is enabled, the `StrictMemorySafety` feature will be set: `#if hasFeature(StrictMemorySafety)` can be used to detect when Swift code is being compiled in this mode.
+* A compiler flag `-strict-memory-safety` that enables warnings for all uses of unsafe constructs within a given module. All warnings will be in the diagnostic group `StrictMemorySafety`, enabling precise control over memory-safety-related warnings per [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). When strict memory safety is enabled, the `StrictMemorySafety` feature will be set: `#if hasFeature(StrictMemorySafety)` can be used to detect when Swift code is being compiled in this mode.
 * An attribute `@unsafe` that indicates that a declaration is unsafe to use. Such declarations may use unsafe constructs within their signatures. 
 * A corresponding attribute `@safe` that indicates that a declaration whose signature contains unsafe constructs is actually safe to use. For example, the `withUnsafeBufferPointer` method on `Array` has an unsafe type in its signature (`self`), but is actually safe to use because it handles safety for the unsafe buffer pointer it vends to its closure argument. The closure itself will need to handle the unsafety when using that unsafe buffer pointer.
 * An `unsafe` expression that marks any use of unsafe constructs in an expression, much like `try` and `await`.
@@ -59,18 +58,11 @@ The `UnsafeBufferPointer` type will be marked with `@unsafe` in the Standard lib
 public struct UnsafeBufferPointer<Element> { ... }
 ```
 
-This indicates that use of this type is not memory-safe. Any declaration that has `UnsafeBufferPointer` as part of its type is also unsafe, and would produce a warning under this strict safety mode, e.g.,
+This indicates that use of this type is not memory-safe. Any declaration that has `UnsafeBufferPointer` as part of its type is implicitly `@unsafe`. 
 
 ```swift
-// warning: reference to unsafe generic struct 'UnsafePointer'
+// note: implicitly @unsafe due to the use of the unsafe type UnsafePointer
 func sumIntBuffer(_ address: UnsafePointer<Int>?, _ count: Int) -> Int { ... }
-```
-
-This warning can be suppressed by marking the function as `@unsafe`:
-
-```swift
-@unsafe
-func sumIntBuffer(_ address: UnsafePointer<Int>?, _ count: Int, _ start: Int) -> Int { ... }
 ```
 
 Users of this function that enable strict safety checking will see warnings when using it. For example:
@@ -94,14 +86,13 @@ To suppress these warnings, the expressions involving unsafe code must be marked
 extension Array<Int> {
   func sum() -> Int {
     withUnsafeBufferPointer { buffer in
-      // warning: use of unsafe function 'sumIntBuffer' and unsafe property 'baseAddress'
       unsafe sumIntBuffer(buffer.baseAddress, buffer.count, 0)
     }
   }
 }
 ```
 
-The `unsafe` keyword here indicates the presence of unsafe code within that expression. As with `try` and `await`, it can cover multiple sources of unsafety within that expression: the call to `sumIntBuffer` is unsafe, as is the use of `buffer` and `buffer.baseAddress`, yet they are all covered by one `unsafe`. 
+The `unsafe` keyword here indicates the presence of unsafe code within that expression. As with `try` and `await`, it can cover multiple sources of unsafety within that expression: the call to `sumIntBuffer` is unsafe, as is the use of `buffer` and `buffer.baseAddress`, yet they are all covered by one `unsafe`. It is up to the authors of an unsafe API to document the conditions under which it is safe to use that API, and the user of that API to ensure that those conditions are met within the `unsafe` expression.
 
 Unlike `try`, `unsafe` doesn't propagate outward: we do *not* require that the `sum` function be marked `@unsafe` just because it has unsafe code in it. Similarly, the call to `withUnsafeBufferPointer` doesn't have to be marked as `unsafe` just because it has a closure that is unsafe. The programmer may choose to indicate that `sum` is unsafe, but the assumption is that unsafe behavior is properly encapsulated when using `unsafe` if the signature doesn't contain any unsafe types.  
 
@@ -123,7 +114,8 @@ The operation `UnsafeMutableBufferPointer.swapAt` swaps the values at the given 
 
 ```swift
 extension UnsafeMutableBufferPointer {
-  @unsafe public func swapAt(_ i: Index, _ j: Index) {
+  /*implicitly @unsafe*/
+  public func swapAt(_ i: Index, _ j: Index) {
     guard i != j else { return }
     precondition(i >= 0 && j >= 0)
     precondition(i < endIndex && j < endIndex)
@@ -141,7 +133,7 @@ The `swapAt` implementation uses a mix of safe and unsafe code. The code marked 
 * Performing pointer arithmetic on `baseAddress`: Swift cannot reason about the lifetime of that underlying pointer, nor whether the resulting pointer is still within the bounds of the allocation.
 * Moving and initializing the actual elements. The elements need to already be initialized.
 
-The code itself has preconditions to ensure that the provided indices aren't out of bounds before performing the pointer arithmetic. However, there are other safety properties that cannot be checked with preconditions: that the memory associated with the pointer has been properly initialized, has a lifetime that spans the whole call, and is not being used simultaneously by any other part of the code. These safety properties are something that must be established by the *caller* of `swapAt`. Therefore, `swapAt` is marked `@unsafe` because callers of it need to reason about these properties.
+The code itself has preconditions to ensure that the provided indices aren't out of bounds before performing the pointer arithmetic. However, there are other safety properties that cannot be checked with preconditions: that the memory associated with the pointer has been properly initialized, has a lifetime that spans the whole call, and is not being used simultaneously by any other part of the code. These safety properties are something that must be established by the *caller* of `swapAt`. Therefore, `swapAt` is considered `@unsafe` because callers of it need to reason about these properties. Because it's part of an unsafe type, it is implicitly `@unsafe`, although the author could choose to mark it as `@unsafe` explicitly.
 
 ### Incremental adoption
 
@@ -150,75 +142,192 @@ The strict memory safety checking proposed here enforces a subset of Swift. Code
 * Strict concurrency checking, the focus of the Swift 6 language mode, required major changes to the type system, including the propagation of `Sendable` and the understanding of what code must be run on the main actor. These are global properties that don't permit local reasoning, or even local fixes, making the interoperability problem particularly hard. In contrast, strict safety checking has little or no effect on the type system, and unsafety can be encapsulated with `unsafe` expressions or ignored by a module that doesn't enable the checking.
 * [Embedded Swift](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md) is a subset of Swift that works without a runtime. Like the proposed strictly-safe subset, code written in Embedded Swift will also work as regular Swift. Embedded Swift and the strict safety checking proposed here are orthogonal and can be composed to (for example) ensure that firmware written in Swift has no runtime and provides the best memory-safety guarantees.
 
-A Swift module that adopts strict safety checking can address all of the resulting diagnostics by applying the `@unsafe` attribute and `unsafe` expression in the appropriate places, without changing any other code. This application of attributes can be automated through Fix-Its, making it possible to enable the mode and silence all diagnostics automatically. It would then be left to the programmer to audit those places that have used `unsafe` to encapsulate unsafe behavior, to ensure that they are indeed safe. Note that the strict safety checking does not by itself make the code more memory-safety: rather, it identifies those constructs that aren't safe, encouraging the use of safe alternatives and making it easier to audit for unsafe behavior.
+A Swift module that adopts strict safety checking can address all of the resulting diagnostics by applying the `@unsafe` attribute and `unsafe` expression in the appropriate places, without changing any other code. This application of attributes can be automated through Fix-Its, making it possible to enable the mode and silence all diagnostics automatically. It would then be left to the programmer to audit those places that have used `unsafe` to encapsulate unsafe behavior, to ensure that they are indeed safe. Note that the strict safety checking does not by itself make the code more memory-safe: rather, it identifies those constructs that aren't safe, encouraging the use of safe alternatives and making it easier to audit for unsafe behavior.
 
 The introduction of the `@unsafe` attribute on a declaration has no effect on clients compiled without strict safety enabled. For clients that have enabled strict safety, they will start diagnosing uses of the newly-`@unsafe` API. However, these diagnostics are warnings with their own diagnostic group, so a client can ensure that they do not prevent the client from building. Therefore, modules can adopt strict safety checking at their own pace (or not) and clients of those modules are never "stuck" having to make major changes in response.
 
 ## Detailed design
 
-This section describes how the primary proposed constructs, the `@unsafe` attribute and `unsafe` expression, interact with the strict type checking mode, and enumerates the places in the language, standard library, and compiler that introduce non-memory-safe code. 
+This section describes how the primary proposed constructs, the `@unsafe` attribute, `@safe` attribute, and `unsafe` expression, interact with the strict memory safety mode, and enumerates the places in the language, standard library, and compiler that introduce non-memory-safe code. 
 
-### `@unsafe` attribute
+### Sources of unsafety
 
-The `@unsafe` attribute can be applied to any declaration to indicate that use of that declaration can undermine memory safety. Any use of a declaration marked `@unsafe` will result in a warning. The closest analogue in the language today is `@available(*, deprecated)`, which has effectively no impact on the type system, yet any use of a deprecated declaration results in a warning.
+There are a number of places in the language where one can introduce memory unsafety. This section enumerates the ways in which the language, library, and user code can introduce memory unsafety.
 
-When a type is marked `@unsafe`, a declaration that uses that type in its interface is implicitly `@unsafe`. For example, consider a program containing three separate modules:
+#### Unsafe language constructs
+
+The following language constructs are always considered to be unsafe:
+
+* `unowned(unsafe)`: Used to store a reference without maintaining its reference count. The safe counterpart, `unowned`, uses dynamic checking to ensure that the reference isn't accessed after the corresponding object has been released. The `unsafe` variant disables that dynamic checking. Uses of `unowned(unsafe)` entities are not memory-safe.
+* `unsafeAddressor`, `unsafeMutableAddressor`: These accessors vend an unsafe pointer, and are therefore unsafe to declare. Other accessors (e.g., `get` and `set`) can provide safe alternatives. The accessors are considered to be part of the signature of the property or subscript they're associated with, making the property implicitly `@unsafe` unless explicitly marked `@safe`.
+* `@exclusivity(unchecked)`: Used to remove dynamic exclusivity checks from a particular variable, which can mean that dynamic exclusivity violations go undetected at run time, causing a memory safety violation. Uses of `@exclusivity(unchecked)` entities are not memory-safe.
+
+The following language constructs are considered to be unsafe when strict concurrency checking is enabled (i.e., in the Swift 6 language mode):
+
+* `nonisolated(unsafe)`: Allows a property to be accessed from concurrent code without ensuring that such accesses are done so safely. Uses of `nonisolated(unsafe)` entities are not memory-safe.
+* `@preconcurrency` imports: Suppresses diagnostics related to data race safety when they relate to specific imported modules, which can introduce thread safety issues. The `@preconcurrency` import will need to be annotated with `@unsafe` in the strict safety mode.
+
+#### `@unsafe` attribute
+
+The `@unsafe` attribute can be applied to any declaration to indicate that use of that declaration can undermine memory safety. Here are some examples:
 
 ```swift
-// Module A
 @unsafe
 public struct DataWrapper {
   var buffer: UnsafeBufferPointer<UInt8>
-  
-  public func checksum() -> Int32 { ... }
 }
 
-// Module B
-import A
+@unsafe
+func writeToRegisterAt(integerAddress: Int, value: Int32) { ... }
+```
 
-public struct MyType {
-  public var wrapper: DataWrapper
-}
+Uses of `DataWrapper` and `writeToRegisterAt` within executable code will be considered to be memory-unsafe.
 
-// Module C
-import A
-import B
+When a declaration uses unsafe types within its signature, it is implicitly considered to be `@unsafe`. The signature of a declaration is the interface that the declaration presents to clients, including the parameter and result types of functions, the type of properties, and any generic parameters and requirements. For example, a method on `DataWrapper` defined as follows:
 
-extension MyType {
-  public func checksum() -> Int32 {}
-    return wrapper.checksum()
+```swift
+extension DataWrapper {
+  public func checksum() -> Int32 { 
+    crc32(0, buffer.baseAddress, buffer.count)
   }
 }
 ```
 
-Module `A` defines a type, `DataWrapper`, that is `@unsafe`. It can be compiled with or without strict safety checking enabled, and is fine either way.
+will be implicitly `@unsafe` because the type of the implicit `self` parameter is `@unsafe`. 
 
-Module `B` uses the `DataWrapper` type. If compiled without strict safety checking, there will be no diagnostics about memory safety. If compiled with strict safety checking, there will be a diagnostic about `wrapper` using an `@unsafe` type (`DataWrapper`) in its interface. This diagnostic can be ignored, but ideally the `wrapper` property will be marked as `@unsafe` (silencing the warning).
+Generally speaking, a declaration's signature is everything that isn't within the "body" of the definition that's enclosed in braces or following the `=` of a property. One notable exception to this is default arguments, because default arguments of functions are part of the implementation of a function, not its signature. For example, the following function does not have any unsafe types in its signature, even though the default argument for `value` involves unsafe code. That unsafe code is effectively part of the body of the function, so it follows the rules for `unsafe` expressions.
 
-If module `C` enables strict memory safety, the use of `MyType` is considered safe (since it was not marked `@unsafe` and doesn't involve unsafe types in its interface). However, the access to `wrapper` will result in a diagnostic, because the type of `wrapper` involves an `@unsafe` type. This diagnostic will occur whether or not `wrapper` has been explicitly marked `@unsafe`.
+```swift
+func hasDefault(value: Int = unsafe getIntegerUnsafely()) { ... }
+```
 
-There are a few exemptions to the rule that any unsafe constructs within the signature require the declaration to be `@unsafe`:
+#### Unsafe conformances
 
-* Local variables involving unsafe types do not need to be marked with `@unsafe`. For example, the local variable `base` will have unsafe type `UnsafePointer?`, but does not require `@unsafe` because every *use* of this local variable will need to be marked using the `unsafe` expression described in the next section.
+A given type might implement a protocol in a manner that introduces unsafety, for example because the operations needed to satisfy protocol requirements cannot ensure that all uses through the protocol can maintain memory safety. For example, the `UnsafeBufferPointer` type conforms to the `Collection` protocol, but it cannot do so in a safe way because `UnsafeBufferPointer` does not provide the lifetime, bounds, or initialization safety that clients of the `Collection` protocol expect. Such conformances should be explicitly marked `@unsafe`, e.g.,
 
-  ```swift
-  func sum(array: [Int]) -> Int {
-    array.withUnsafeBufferPointer { buffer in
-      /*@unsafe is unnecessary here*/ let base = unsafe buffer.baseAddress
-      // ...
-    }
+```swift
+extension UnsafeBufferPointer: @unsafe Collection { ... }
+```
+
+Unsafe conformances are similar to unsafe types in that their presence in a declaration's signature will make that declaration implicitly `@unsafe`. For example, the use of a collection algorithm such as `firstIndex(where:)` with an `UnsafeBufferPointer` will be considered unsafe because the conformance above is `@unsafe`.
+
+#### Unsafe standard library APIs
+
+Much of the identification of unsafe Swift code that becomes available with the strict memory safety mode is due to the identification of unsafe declarations within the standard library itself, and their propagation to other types that use them. In the standard library, the following functions and types would be marked `@unsafe` :
+
+* `Unsafe(Mutable)(Raw)(Buffer)Pointer`, `OpaquePointer`, `CVaListPointer`: These types provide neither lifetime nor bounds safety. Over time, Swift code is likely to move toward their safe replacements, such as `(Raw)Span`.
+* `(Closed)Range.init(uncheckedBounds:)`: This operation makes it possible to create a range that doesn't satisfy invariants on which other bounds safety checking (e.g., in `Array.subscript`) relies.
+* `Span.subscript(unchecked:)` : An unchecked subscript whose use can introduce bounds safety problems.
+* `Unmanaged`: Wrapper over reference-counted types that explicitly disables reference counting, potentially introducing lifetime safety issues.
+* `unsafeBitCast`: Allows type casts that are not known to be safe, which can introduce type safety problems.
+* `unsafeDowncast`: An unchecked form of an `as!` cast that can introduce type safety problems.
+* `Optional.unsafelyUnwrapped`: An unchecked form of the postfix `!` operation on optionals that can introduce various type, initialization, or lifetime safety problems when `nil` is interpreted as a typed value.
+* `UnsafeContinuation`, `withUnsafe(Throwing)Continuation`: An unsafe form of `withChecked(Throwing)Continuation` that does not verify that the continuation is called exactly once, which can cause various safety problems.
+* `withUnsafeCurrentTask` and `UnsafeCurrentTask`: The `UnsafeCurrentTask` type does not provide lifetime safety, and must only be used within the closure passed to `withUnsafeCurrentTask`.
+* `UnownedSerialExecutor`: This type is intentionally not lifetime safe. It's primary use is the `unownedExecutor` property of the `Actor` protocol, which documents the lifetime assumptions of the `UnownedSerialExecutor` instance it produces.
+
+All of these APIs will be marked `@unsafe`. For standard library APIs that involve unsafe types, those that are safe to use will be marked `@safe` while those that require the user to maintain some aspect of safety will be marked `@unsafe`. Unless mentioned above, standard library APIs that do not have an unsafe type in their signature, but use unsafe constructs in their implementation, will be considered to be safe.
+
+There are also a number of unsafe conformances in the standard library:
+
+* `Unsafe(Mutable)(Raw)BufferPointer`: The conformances of these types to `Sequence` and the `Collection` protocol hierarchy are all `@unsafe`.
+* `Unsafe(Mutable)(Raw)Pointer`: The conformances of these types to `Strideable` are `@unsafe`. 
+
+#### Unsafe compiler flags
+
+There are a number of compiler flags that intentionally disable some safety-related checking. For each of these flags, the compiler will produce a diagnostic if they are used with strict memory safety:
+
+* `-Ounchecked`, which disables some checking in the standard library, including (for example) bounds checking on array accesses.
+* `-enforce-exclusivity=unchecked` and `-enforce-exclusivity=none`, which disables exclusivity checking that is needed for memory safety.
+* `-strict-concurrency=` for anything other than "complete", because the memory safety model requires strict concurrency to eliminate thread safety issues.
+* `-disable-access-control`, which allows one to break invariants of a type that can lead to memory-safety issues, such as breaking the invariant of `Range` that the lower bound not exceed the upper bound.
+
+#### C(++) interoperability
+
+The C family of languages does not provide an equivalent to the strict safety mode described in this proposal, and unlike Swift, the defaults tend to be unsafe along all of the dimensions of memory safety. C(++) libriaries used within Swift can, therefore, introduce memory safety issues into the Swift code.
+
+The primary issue with memory safety in C(++) concerns the presence of pointers. C(++) pointers will generally be imported into Swift as an `Unsafe*Pointer` type of some form. For C functions (and C++ member functions), that means that a potentially unsafe API such as
+
+```swift
+char *strstr(const char * haystack, const char *needle);
+```
+
+will be treated as implicitly `@unsafe` in Swift because its signature contains unsafe types:
+
+```swift
+func strstr(
+  _ haystack: UnsafePointer<CChar>?, 
+  _ needle: UnsafePointer<CChar>?
+) -> UnsafeMutablePointer<CChar>?
+```
+
+A C function that doesn't use pointer types, on the other hand, will implicitly be considered to be safe, because there are no unsafe types in its Swift signature. For example, the following would be considered safe:
+
+```swift
+// int getchar(void);
+func getchar() -> CInt
+```
+
+C and C++ also have user-defined types in the form of `struct`s, `enum`s, `union`s, and (in C++) `class`es. For such types, this proposal infers them to be `@unsafe` when their non-static data contains any C pointers or C types that are explicitly marked as unsafe. For example, a `Point` struct could be considered safe:
+
+```cpp
+struct Point {
+  double x, y;
+};
+```
+
+but a `struct` with a pointer or C++ reference in it would be implicitly `@unsafe` in Swift:
+
+```swift
+struct ListNode {
+  void *element;
+  struct ListNode *next;
+};
+```
+
+Note that C `enum`s will never be inferred to be `@unsafe` because they don't carry any values other than their underlying integral type, which is always a safe type.
+
+### Acknowledging unsafety
+
+All of the features described above are available in Swift regardless of whether strict memory safety checking is enabled. When strict memory safety checking is enabled, each use of an unsafe construct of any form must be ackwnowledged in the source code with one of the forms below, which provides an in-source auditable indication of where memory unsafety issues can arise. The following section describes each of the features for acknowledging memory unsafety. 
+
+#### `unsafe` expression
+
+Any time there is executable code that makes use of unsafe constructs, the compiler will produce a diagnostic that indicates the use of those unsafe constructs unless it is within an `unsafe` expression. For example, consider the `DataWrapper` example from an earlier section:
+
+```swift
+public struct DataWrapper {
+  var buffer: UnsafeBufferPointer<UInt8>
+}
+
+extension DataWrapper {
+  public func checksum() -> Int32 { 
+    crc32(0, buffer.baseAddress, buffer.count)
   }
-  ```
+}
+```
 
-* Default arguments of functions are part of the implementation of a function, not its signature. For example, the following function does not have any unsafe types in its signature, so it does not require `@unsafe`, even though the default argument for `value` involves unsafe code. That unsafe code is effectively part of the body of the function, so it follows the rules for `unsafe` expressions.
+The property `buffer` uses an unsafe type, `UnsafeBufferPointer`. When using that property in the implementation of `checksum`, the Swift compiler will produce a warning when strict memory safety checking is enabled:
 
-  ```swift
-  func hasDefault(value: Int = unsafe getIntegerUnsafely()) { ... }
-  ```
+```swift
+warning: expression uses unsafe constructs but is not marked with 'unsafe'
+```
 
-### `@safe` attribute
+This warning can be suppressed using the `unsafe` expression, as follows:
 
-Like the `@unsafe` attribute, the `@safe` attribute is used on declarations whose signatures involve unsafe types. However, the `@safe` attribute means that the declaration is considered safe to use even though its signature includes unsafe types. For example, marking `UnsafeBufferPointer` as `@unsafe` means that all operations involving an unsafe buffer pointer are implicitly considered `@unsafe`. The `@safe` attribute can be used to say that those particular operations are actually safe. For example, any operation involving buffer indices or count are safe, because they don't touch the memory itself. This can be indicated by marking these APIs `@safe`:
+```swift
+extension DataWrapper {
+  public func checksum() -> Int32 { 
+    unsafe crc32(0, buffer.baseAddress, buffer.count)
+  }
+}
+```
+
+The `unsafe` expression is much like `try` and `await`, in that it acknowledges that unsafe constructs (`buffer`) are used within the subexpression but otherwise does not change the type. Unlike `try` and `await`, which require the enclosing context to handle throwing or be asynchronous, respectively, the `unsafe` expression does not imply any requirements about the enclosing block: it is purely a marker to indicate the presence of unsafe code, silencing a diagnostic.
+
+#### `@safe` attribute
+
+The `@safe` attribute is used on declarations whose signatures involve unsafe types but are, nonetheless, safe to use. For example, marking `UnsafeBufferPointer` as `@unsafe` means that all operations involving an unsafe buffer pointer are implicitly considered `@unsafe`. The `@safe` attribute can be used to say that those certain operations are actually safe. For example, any operation involving buffer indices or count are safe, because they don't touch the memory itself. This can be indicated by marking these APIs `@safe`:
 
 ```swift
 extension UnsafeBufferPointer {
@@ -264,77 +373,23 @@ extension Array<Int> {
 }
 ```
 
-### `unsafe` expression
+#### Types with unsafe storage
 
-When a declaration is marked `@unsafe`, it is free to use any other unsafe types as part of its interface. Any time there is executable code that makes use of unsafe constructs, that code must be within an `unsafe` expression or it will receive a diagnostic about uses of unsafe code. In the example from the previous section, `wrapper` can be marked as `@unsafe` to suppress diagnostics by explicitly propagating unsafety to their clients:
+Types that wrap unsafe types will often encapsulate the unsafe behavior to provide safe interfaces. However, this requires deliberate design and implementation, potentially involving adding specific preconditions. When strict safety checking is enabled, a type whose storage includes any unsafe types or conformances will be diagnosed as involving unsafe code. For example, the `DataWrapper` struct from the prior section
 
 ```swift
-// Module B
-import A
-
-public struct MyType {
-  @unsafe public var wrapper: DataWrapper
+public struct DataWrapper {
+  var buffer: UnsafeBufferPointer<UInt8>
 }
 ```
 
-However, the use of the `wrapper` property in module `C` will produce a diagnostic unless it is part of an `unsafe` expression, like this:
+contains storage of an unsafe type (`UnsafeBufferPointer`), so the Swift compiler will produce a warning when strict memory safety checking is enabled:
 
 ```swift
-// Module C
-import A
-import B
-
-extension MyType {
-  public func checksum() -> Int32 {}
-    return unsafe wrapper.checksum()
-  }
-}
+warning: type `DataWrapper` that includes unsafe storage must be explicitly marked `@unsafe` or `@safe`
 ```
 
-The `unsafe` expression is much like `try` and `await`, in that it acknowledges that unsafe constructs (`wrapper`) are used within the subexpression but otherwise does not change the type. Unlike `try` and `await`, which require the enclosing context to handle throwing or be asynchronous, respectively, the `unsafe` expression does not imply any requirements about the enclosing block: it is purely a marker to indicate the presence of unsafe code, silencing a diagnostic.
-
-### Unsafe language constructs
-
-The following language constructs are always considered to be unsafe:
-
-* `unowned(unsafe)`: Used to store a reference without maintaining its reference count. The safe counterpart, `unowned`, uses dynamic checking to ensure that the reference isn't accessed after the corresponding object has been released. The `unsafe` variant disables that dynamic checking. Uses of `unowned(unsafe)` entities are not memory-safe.
-* `unsafeAddressor`, `unsafeMutableAddressor`: These accessors vend an unsafe pointer, and are therefore unsafe to declare. Other accessors (e.g., `get` and `set`) can provide safe alternatives. The accessors are considered to be part of the signature of the property or subscript they're associated with; the property should be marked either `@unsafe` or `@safe` to suppress the safety diagnostic on the declaration of an unsafe accessor.
-* `@exclusivity(unchecked)`: Used to remove dynamic exclusivity checks from a particular variable, which can mean that dynamic exclusivity violations go undetected at run time, causing a memory safety violation. Uses of `@exclusivity(unchecked)` entities are not memory-safe.
-
-The following language constructs are considered to be unsafe when strict concurrency checking is enabled (i.e., in the Swift 6 language mode):
-
-* `nonisolated(unsafe)`: Allows a property to be accessed from concurrent code without ensuring that such accesses are done so safely. Uses of `nonisolated(unsafe)` entities are not memory-safe.
-* `@preconcurrency` imports: Suppresses diagnostics related to data race safety when they relate to specific imported modules, which can introduce thread safety issues. The `@preconcurrency` import will need to be annotated with `@unsafe` in the strict safety mode.
-
-### Unsafe standard library APIs
-
-In the standard library, the following functions and types would be marked `@unsafe` :
-
-* `Unsafe(Mutable)(Raw)(Buffer)Pointer`, `OpaquePointer`, `CVaListPointer`: These types provide neither lifetime nor bounds safety. Over time, Swift code is likely to move toward their safe replacements, such as `(Raw)Span`.
-* `(Closed)Range.init(uncheckedBounds:)`: This operation makes it possible to create a range that doesn't satisfy invariants on which other bounds safety checking (e.g., in `Array.subscript`) relies.
-* `Span.subscript(unchecked:)` : An unchecked subscript whose use can introduce bounds safety problems.
-* `Unmanaged`: Wrapper over reference-counted types that explicitly disables reference counting, potentially introducing lifetime safety issues.
-* `unsafeBitCast`: Allows type casts that are not known to be safe, which can introduce type safety problems.
-* `unsafeDowncast`: An unchecked form of an `as!` cast that can introduce type safety problems.
-* `Optional.unsafelyUnwrapped`: An unchecked form of the postfix `!` operation on optionals that can introduce various type, initialization, or lifetime safety problems when `nil` is interpreted as a typed value.
-* `UnsafeContinuation`, `withUnsafe(Throwing)Continuation`: An unsafe form of `withChecked(Throwing)Continuation` that does not verify that the continuation is called exactly once, which can cause various safety problems.
-* `withUnsafeCurrentTask` and `UnsafeCurrentTask`: The `UnsafeCurrentTask` type does not provide lifetime safety, and must only be used within the closure passed to `withUnsafeCurrentTask`.
-* `UnownedSerialExecutor`: This type is intentionally not lifetime safe. It's primary use is the `unownedExecutor` property of the `Actor` protocol, which documents the lifetime assumptions of the `UnownedSerialExecutor` instance it produces.
-
-All of these APIs will be marked `@unsafe`. For standard library APIs that involve unsafe types, those that are safe to use will be marked `@safe` while those that require the user to maintain some aspect of safety will be marked `@unsafe`. Unless mentioned above, standard library APIs that do not have an unsafe type in their signature, but use unsafe constructs in their implementation, will be considered to be safe.
-
-### Unsafe compiler flags
-
-There are a number of compiler flags that intentionally disable some safety-related checking. For each of these flags, the compiler will produce a diagnostic if they are used with strict memory safety:
-
-* `-Ounchecked`, which disables some checking in the standard library, including (for example) bounds checking on array accesses.
-* `-enforce-exclusivity=unchecked` and `-enforce-exclusivity=none`, which disables exclusivity checking that is needed for memory safety.
-* `-strict-concurrency=` for anything other than "complete", because the memory safety model requires strict concurrency to eliminate thread safety issues.
-* `-disable-access-control`, which allows one to break invariants of a type that can lead to memory-safety issues, such as breaking the invariant of `Range` that the lower bound not exceed the upper bound.
-
-### Types with unsafe storage
-
-Types that wrap unsafe types will often encapsulate the unsafe behavior to provide safe interfaces. However, this requires deliberate design and implementation, potentially involving adding specific preconditions. When strict safety checking is enabled, a type whose storage is unsafe will be diagnosed as involving unsafe code. This diagnostic can be suppressed by marking the type as `@safe` or `@unsafe`, in the same manner as any other declaration that has unsafe types or conformances in its signature:
+As the warning implies, this diagnostic can be suppressed by marking the type as `@safe` or `@unsafe`. The `DataWrapper` type doesn't appear to provide safety over its storage, so it should likely be marked `@unsafe`. In contrast, one can wrap unsafe types to provide safe types. For example:
 
 ```swift
 // @safe is required to suppress a diagnostic about the 'buffer' property's use
@@ -356,12 +411,38 @@ struct ImmortalBufferWrapper<Element> : Collection {
 }
 ```
 
+Much of the standard library is built up as safe abstractions over unsafe code, and it's expected that user code will do the same.
+
 A type has unsafe storage if:
 
 * Any stored instance property (for `actor`, `class`, and `struct` types) or associated value (for cases of `enum` types) have a type that involves an unsafe type or conformance.
 * Any stored instance property uses one of the unsafe language features (such as `unowned(unsafe)`).
 
-### Unsafe overrides
+#### Unsafe witnesses
+
+When a type conforms to a given protocol, it must satisfy all of the requirements of that protocol. Part of this process is determining which declaration (called the *witness*) satisfies a given protocol requirement. If a particular witness is unsafe but the corresponding requirement is safe, the compiler will produce a warning:
+
+```swift
+protocol P {
+  func f()
+}
+
+struct ConformsToP { }
+
+extension ConformsToP: P {
+  @unsafe func f() { } // warning: unsafe instance method 'f()' cannot satisfy safe requirement
+}
+```
+
+This unsafety can be acknowledged by marking the conformance as `@unsafe`, e.g.,
+
+```swift
+extension ConformsToP: @unsafe P {
+  @unsafe func f() { } // okay, it's an unsafe conformance
+}
+```
+
+#### Unsafe overrides
 
 Overriding a safe method within an `@unsafe` one could introduce unsafety, so it will produce a diagnostic in the strict safety mode:
 
@@ -386,45 +467,47 @@ class Sub: Super {
 
 The `@unsafe` annotation is at the class level because any use of the `Sub` type can now introduce unsafe behavior, and any indication of that unsafe behavior will be lost once that `Sub` is converted to a `Super` instance.
 
-### Unsafe conformances
+#### `for..in` loops
 
-Implementing a protocol requirement that is safe (and not part of an `@unsafe` protocol) within an `@unsafe` declaration introduces unsafety, so it will produce a diagnostic in the strict safety mode:
+Swift's `for..in` loops are effectively implemented as syntactic sugar over the `Sequence` and `IteratorProtocol` protocols, where the `for..in` creates a new iterator (with `Sequence.makeIterator()`) and then calls its `next()` operation for each loop iteration. If the conformances to `Sequence` or `IteratorProtocol` are `@unsafe`, the loop will introduce a warning:
 
 ```swift
-protocol P {
-  func f()
-}
-
-struct ConformsToP { }
-
-extension ConformsToP: P {
-  @unsafe func f() { } // warning: unsafe instance method 'f()' cannot satisfy safe requirement
+let someUnsafeBuffer: UnsafeBufferPointer<Element> = unsafe ...
+for x in someBuffer { // warning: use of unsafe conformance of 'UnsafeBufferPointer' to 'Sequence'
+                            // and someBuffer has unsafe type 'UnsafeBufferPointer'
+  // ...
 }
 ```
 
-To suppress this warning, one can place `@unsafe` on the conformance to `P` is supplied. This notes that the conformance itself is unsafe:
+Following the precedent set by [SE-0298](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0298-asyncsequence.md), which introduced effects in loops, the `unsafe` keyword that acknowledges unsafe behavior in the iteration will follow the `for`:
 
 ```swift
-extension ConformsToP: @unsafe P {
-  @unsafe func f() { }
+let someUnsafeBuffer: UnsafeBufferPointer<Element> = unsafe ...
+for unsafe x in someBuffer { // still warns that someBuffer has unsafe type 'UnsafeBufferPointer'
+  // ...
 }
 ```
 
-Use of an `@unsafe` conformance for any reason (e.g., when that conformance is needed to call a generic function with a `ConformsToP` requirement) is diagnosed as an unsafe use, much like use of an `@unsafe` declaration. For example
+This may not be the only unsafe behavior in the `for..in` loop. For example, the expression that produces the sequence itself (via the reference to `someBuffer`) is also unsafe, so it needs to be acknowledged:
 
 ```swift
-func acceptP<T: P>(_: T.Type) { }
-
-func passUnsafe() {
-  acceptP(ConformsToP.self) // warning: use of @unsafe conformance of 'ConformsToP' to protocol 'P'
+let someUnsafeBuffer: UnsafeBufferPointer<Element> = unsafe ...
+for unsafe x in unsafe someBuffer {
+  // ...
 }
+```
+
+This repeated `unsafe` also occurs with the other effects: if an `async throws` function `getAsyncSequence()` produces an `AsyncSequence` whose iteration can throw, one will end up with two `try` and `await` keywords:
+
+```swift
+for try await x in try await getAsyncSequence() { ... }
 ```
 
 ### Strict safety mode and escalatable warnings
 
 The strict memory safety mode can be enabled with the new compiler flag `-strict-memory-safety`.
 
-All of the memory-safety diagnostics produced by the strict memory safety mode will be warnings. These warnings be in the group `Unsafe` (possibly organized into subgroups) so that one can choose to escalate them to errors or keep them as warnings using the compiler flags introduced in [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). For example, one can choose to enable the mode and make memory-safety issues errors using:
+All of the memory-safety diagnostics produced by the strict memory safety mode will be warnings. These warnings be in the group `StrictMemorySafety` (possibly organized into subgroups) so that one can choose to escalate them to errors or keep them as warnings using the compiler flags introduced in [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). For example, one can choose to enable the mode and make memory-safety issues errors using:
 
 ```
 swiftc -strict-memory-safety -Werror Unsafe
@@ -740,7 +823,14 @@ We could introduce an optional `message` argument to the `@unsafe` attribute, wh
 
 ## Revision history
 
-* **Revision 2 (following first review)**
+* **Revision 3 (following second review extension)**
+  * Do not require declarations with unsafe types in their signature to be marked `@unsafe`; it is implied. They may be marked `@safe` to indicate that they are actually safe.
+  * Add `unsafe` for iteration via the `for..in` syntax.
+  * Add C(++) interoperability section that infers `@unsafe` for C types that involve pointers.
+  * Document the unsafe conformances of the `UnsafeBufferPointer` family of types to the `Collection` protocol hierarchy.
+  * Restructure detailed design to separate out "sources of unsafety" from "acknowledging unsafety".
+  
+* **Revision 2 (following first review extension)**
   * Specified that variables of unsafe type passed in to uses of `@safe` declarations (e.g., calls, property accesses) are not diagnosed as themselves being unsafe. This makes means that expressions like `unsafeBufferePointer.count` will be considered safe.
   * Require types whose storage involves an unsafe type or conformance to be marked as `@safe` or `@unsafe`, much like other declarations that have unsafe types or conformances in their signature.
   * Add an Alternatives Considered section on prohibiting unsafe conformances and overrides.
