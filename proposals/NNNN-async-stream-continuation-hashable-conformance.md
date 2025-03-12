@@ -1,4 +1,4 @@
-# Feature name
+# `Hashable` conformance for `Async(Throwing)Stream.Continuation`
 
 * Proposal: [SE-NNNN](NNNN-async-stream-continuation-hashable-conformance.md)
 * Authors: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
@@ -9,23 +9,23 @@
 
 ## Introduction
 
-This proposal suggests to add `Hashable` conformance to `Async(Throwing)Stream.Continuation`
+This proposal adds a `Hashable` conformance to `Async(Throwing)Stream.Continuation`
 to simplify working with multiple streams.
 
 ## Motivation
 
-Use cases operating with multiple `AsyncStream`'s may need to store multiple continuations.
-When handling `onTermination` callback, client code needs to remove relevant continuation.
+Use cases operating with multiple `AsyncStream`s may need to store multiple continuations.
+When handling `onTermination` callback, client code needs to remove the relevant continuation.
 
-To identify relevant continuation, client code needs to be able to compare continuations.
+To identify the relevant continuation, client code needs to be able to compare continuations.
 
-It is possible to associate lookup key with each continuation, but this is inefficient.
+It is possible to associate a lookup key with each continuation, but this is inefficient.
 `AsyncStream.Continuation` already stores a reference to `AsyncStream._Storage`,
 whose identity can be used to provide simple and efficient `Hashable` conformance.
 
-Consider this simple Observer pattern with `AsyncSequence`-based API.
+Consider this simple Observer pattern with an `AsyncSequence`-based API.
 To avoid implementing `AsyncSequence` from scratch it uses `AsyncStream` as a building block.
-To support multiple subscribes new stream is returned every time.
+To support multiple subscribers, a new stream is returned every time.
 
 ```swift
 @MainActor private class Sender {
@@ -53,7 +53,7 @@ To support multiple subscribes new stream is returned every time.
 }
 ```
 
-Without `Hashable` conformance, continuation needs to be associated with an artificial identifier,
+Without a `Hashable` conformance, each continuation needs to be associated with an artificial identifier,
 e.g. object identity by wrapping each continuation in a class:
 
 ```swift
@@ -99,19 +99,19 @@ e.g. object identity by wrapping each continuation in a class:
 }
 ```
 
-Note that capturing `continuation` or `box` in `onTermination` is safe, because `onTermination` is dropped after being called.
-And it is always called, even if `AsyncStream` is discarded without even being iterated.
+Note that capturing `continuation` or `box` in `onTermination` is safe, because `onTermination` is dropped after being called
+(and it is _always_ called, even if `AsyncStream` is discarded without being iterated).
 
 ## Proposed solution
 
-Add `Hashable` conformance to `Async(Throwing)Stream.Continuation`.
+Add a `Hashable` conformance to `Async(Throwing)Stream.Continuation`.
 
 ## Detailed design
 
-Every time when `build` closure of the `Async(Throwing)Stream.init()` is called,
+Every time when the `build` closure of the `Async(Throwing)Stream.init()` is called,
 it receives a continuation distinct from all other continuations.
 All copies of the same continuation should compare equal.
-Yielding values or errors, finishing the stream or cancelling iteration should not affect equality.
+Yielding values or errors, finishing the stream, or cancelling iteration should not affect equality.
 Assigning `onTermination` closures should not affect equality.
 
 ## Source compatibility
@@ -133,6 +133,6 @@ Adopters will need a new version of the standard library.
 
 ### Backdeployment
 
-It is possible to use `@backDeployed` on functions implementing protocol requirements, but it is not possible to back-deploy conformance record.
+It is possible to use `@backDeployed` on functions implementing protocol requirements, but it is not possible to back-deploy the conformance record itself.
 Different availability of the functions and conformance would be confusing.
 
