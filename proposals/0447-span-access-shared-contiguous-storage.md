@@ -66,10 +66,12 @@ A `RawSpan` can be obtained from containers of `BitwiseCopyable` elements, as we
 
 ```swift
 @frozen
-public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
+public struct Span<Element: ~Copyable>: Copyable, ~Escapable {
   internal var _start: UnsafeRawPointer?
   internal var _count: Int
 }
+
+extension Span: Sendable where Element: Sendable & ~Copyable {}
 ```
 
 We store a `UnsafeRawPointer` value internally in order to explicitly support reinterpreted views of memory as containing different types of `BitwiseCopyable` elements. Note that the the optionality of the pointer does not affect usage of `Span`, since accesses are bounds-checked and the pointer is only dereferenced when the `Span` isn't empty, and the pointer cannot be `nil`.
@@ -225,6 +227,8 @@ public struct RawSpan: Copyable, ~Escapable {
   internal var _start: UnsafeRawPointer
   internal var _count: Int
 }
+
+extension RawSpan: Sendable {}
 ```
 
 Initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for details, see "[Initializers](#Initializers)" in the [future directions](#Directions) section.
