@@ -3,10 +3,10 @@
 * Proposal: [SE-0467](0467-MutableSpan.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (March 11...25, 2025)**
+* Status: **Accepted**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
-* Implementation: "Future" target of [swift-collections](https://github.com/apple/swift-collections/tree/future)
-* Review: [Pitch](https://forums.swift.org/t/pitch-mutablespan/77790)
+* Implementation: [swiftlang/swift#79650](https://github.com/swiftlang/swift/pull/79650)
+* Review: ([pitch](https://forums.swift.org/t/pitch-mutablespan/77790)) ([review](https://forums.swift.org/t/se-0467-mutablespan/78454)) ([acceptance](https://forums.swift.org/t/accepted-se-0467-mutablespan/78875))
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
@@ -14,7 +14,7 @@
 [PR-2305]: https://github.com/swiftlang/swift-evolution/pull/2305
 [SE-0437]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0437-noncopyable-stdlib-primitives.md
 [SE-0453]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0453-vector.md
-[SE-0223]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0223-array-uninitialized-initializer.md
+[SE-0245]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0245-array-uninitialized-initializer.md
 [SE-0176]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md
 
 ## Introduction
@@ -27,7 +27,7 @@ Many standard library container types can provide direct access to modify their 
 
 These functions have a few different drawbacks, most prominently their reliance on unsafe types, which makes them unpalatable in security-conscious environments. We continue addressing these issues with `MutableSpan` and `MutableRawSpan`, new non-copyable and non-escapable types that manage respectively mutations of typed and untyped memory.
 
-In addition to the new types, we will propose adding new API some standard library types to take advantage of `MutableSpan` and `MutableRawSpan`.
+In addition to the new types, we will propose adding new API to some standard library types to take advantage of `MutableSpan` and `MutableRawSpan`.
 
 ## Proposed solution
 
@@ -53,7 +53,7 @@ A `MutableSpan` provided by a container represents a mutation of that container,
 The standard library will provide `mutableSpan` computed properties. These return a new lifetime-dependent `MutableSpan` instance, and that `MutableSpan` represents a mutation of the instance that provided it. The `mutableSpan` computed properties are the safe and composable replacements for the existing `withUnsafeMutableBufferPointer` closure-taking functions. For example,
 
 ```swift
-func(_ array: inout Array<Int>) {
+func example(_ array: inout Array<Int>) {
   var ms = array.mutableSpan
   modify(&ms)        // call function that mutates a MutableSpan<Int>
   // array.append(2) // attempt to modify `array` would be an error here
@@ -532,7 +532,7 @@ extension MutableRawSpan {
   ) throws(E) -> Result
 }
 ```
-These functions use a closure to define the scope of validity of `buffer`, ensuring that the underlying `MutableSpan` and the binding it depends on both remain valid through the end of the closure. They have the same shape as the equivalents on `Array` because they fulfill the same purpose, namely to keep the underlying binding alive.
+These functions use a closure to define the scope of validity of `buffer`, ensuring that the underlying `MutableRawSpan` and the binding it depends on both remain valid through the end of the closure. They have the same shape as the equivalents on `Array` because they fulfill the same purpose, namely to keep the underlying binding alive.
 
 #### <a name="extensions"></a>Properties providing `MutableSpan` or `MutableRawSpan` instances
 
@@ -657,7 +657,7 @@ During the evolution of Swift, we have learned that closure-based API are diffic
 
 #### Omitting extensions to `UnsafeBufferPointer` and related types
 
-We could omit the extensions to `UnsafeMutableBufferPointer` and related types, and rely instead of future `MutableSpan` and `MutableRawSpan` initializers. The initializers can have the advantage of being able to communicate semantics (somewhat) through their parameter labels. However, they also have a very different shape than the `storage` computed properties we are proposing for the safe types such as `Array`. We believe that the adding the same API on both safe and unsafe types is advantageous, even if the preconditions for the properties cannot be statically enforced.
+We could omit the extensions to `UnsafeMutableBufferPointer` and related types, and rely instead of future `MutableSpan` and `MutableRawSpan` initializers. The initializers can have the advantage of being able to communicate semantics (somewhat) through their parameter labels. However, they also have a very different shape than the `mutableSpan` computed properties we are proposing for the safe types such as `Array`. We believe that the adding the same API on both safe and unsafe types is advantageous, even if the preconditions for the properties cannot be statically enforced.
 
 ## <a name="directions"></a>Future directions
 
@@ -667,7 +667,7 @@ Note: The future directions stated in [SE-0447](https://github.com/swiftlang/swi
 
 `MutableSpan` represents a region of memory and, as such, must be initialized using an unsafe pointer. This is an unsafe operation which will typically be performed internally to a container's implementation. In order to bridge to safe code, these initializers require new annotations that indicate to the compiler how the newly-created `Span` can be used safely.
 
-These annotations have been [pitched][PR-2305-pitch] and, after revision, are expected to be pitched again soon. `MutableSpan` initializers using lifetime annotations will be proposed alongside the annotations themselves.
+These annotations have been [pitched][PR-2305] and, after revision, are expected to be pitched again soon. `MutableSpan` initializers using lifetime annotations will be proposed alongside the annotations themselves.
 
 #### Functions providing variants of `MutableRawSpan` to `MutableSpan`
 
@@ -717,6 +717,6 @@ The range of `extracting()` functions proposed here expands upon the range accep
 
 #### <a name="OutputSpan"></a>Delegated initialization with `OutputSpan<T>`
 
-Some data structures can delegate initialization of parts of their owned memory. The standard library added the `Array` initializer `init(unsafeUninitializedCapacity:initializingWith:)` in [SE-0223][SE-0223]. This initializer relies on `UnsafeMutableBufferPointer` and correct usage of initialization primitives. We should present a simpler and safer model of initialization by leveraging non-copyability and non-escapability.
+Some data structures can delegate initialization of parts of their owned memory. The standard library added the `Array` initializer `init(unsafeUninitializedCapacity:initializingWith:)` in [SE-0245][]. This initializer relies on `UnsafeMutableBufferPointer` and correct usage of initialization primitives. We should present a simpler and safer model of initialization by leveraging non-copyability and non-escapability.
 
 We expect to propose an `OutputSpan<T>` type to represent partially-initialized memory, and to support to the initialization of memory by appending to the initialized portion of the underlying storage.
