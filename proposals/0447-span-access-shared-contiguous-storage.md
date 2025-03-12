@@ -448,7 +448,7 @@ This proposal includes some `_read` accessors, the coroutine version of the `get
 
 #### Extensions to Standard Library and Foundation types
 
-The standard library and Foundation has a number of types that can in principle provide access to their internal storage as a `Span`. We could provide `withSpan()` and `withBytes()` closure-taking functions as safe replacements for the existing `withUnsafeBufferPointer()` and `withUnsafeBytes()` functions. We could also also provide lifetime-dependent `span` or `bytes` properties. For example, `Array` could be extended as follows:
+The standard library and Foundation has a number of types that can in principle provide access to their internal storage as a `Span`. We could provide `withSpan()` and `withBytes()` closure-taking functions as safe replacements for the existing `withUnsafeBufferPointer()` and `withUnsafeBytes()` functions. We could also provide lifetime-dependent `span` or `bytes` properties. For example, `Array` could be extended as follows:
 
 ```swift
 extension Array {
@@ -497,7 +497,7 @@ Many of the standard library collections could conform to `ContiguousStorage`.
 
 #### Index Validation Utilities 
 
-This proposal originally included index validation utilities for `Span`. such as `boundsContain(_: Index) -> Bool` and `boundsContain(_: Range<Index>) -> Bool`. After review feedback, we believe that the utilities proposed would also be useful for index validation on `UnsafeBufferPointer`, `Array`, and other similar `RandomAccessCollection` types. `Range` already a single-element `contains(_: Bound) -> Bool` function which can be made even more efficient. We should add an additional function that identifies whether a `Range` contains the _endpoints_ of another `Range`. Note that this is not the same as the existing `contains(_: some Collection<Bound>) -> Bool`, which is about the _elements_ of the collection. This semantic difference can lead to different results when examing empty `Range` instances.
+This proposal originally included index validation utilities for `Span`. such as `boundsContain(_: Index) -> Bool` and `boundsContain(_: Range<Index>) -> Bool`. After review feedback, we believe that the utilities proposed would also be useful for index validation on `UnsafeBufferPointer`, `Array`, and other similar `RandomAccessCollection` types. `Range` already a single-element `contains(_: Bound) -> Bool` function which can be made even more efficient. We should add an additional function that identifies whether a `Range` contains the _endpoints_ of another `Range`. Note that this is not the same as the existing `contains(_: some Collection<Bound>) -> Bool`, which is about the _elements_ of the collection. This semantic difference can lead to different results when examining empty `Range` instances.
 
 #### Support for `Span` in `for` loops
 
