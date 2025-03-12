@@ -1,12 +1,12 @@
 # MutableSpan and MutableRawSpan: delegate mutations of contiguous memory
 
-* Proposal: TBD
+* Proposal: [SE-0467](0467-MutableSpan.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: **Pitch**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (March 11...25, 2025)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: "Future" target of [swift-collections](https://github.com/apple/swift-collections/tree/future)
-* Review: [Pitch](https://forums.swift.org/)
+* Review: [Pitch](https://forums.swift.org/t/pitch-mutablespan/77790)
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
