@@ -406,6 +406,8 @@ A non-escapable index type implies that any indexing operation would borrow its 
 
 The ideas in this proposal previously used the name `BufferView`. While the use of the word "buffer" would be consistent with the `UnsafeBufferPointer` type, it is nevertheless not a great name, since "buffer" is commonly used in reference to transient storage. Another previous pitch used the term `StorageView` in reference to the `withContiguousStorageIfAvailable()` standard library function. We also considered the name `StorageSpan`, but that did not add much beyond the shorter name `Span`. `Span` clearly identifies itself as a relative of C++'s `std::span`.
 
+The OpenTelemetry project and its related libraries use the word "span" for a concept of a timespan. The domains of use between that and direct memory access are very distinct, and we believe that the confusability between the use cases should be low. We also note that standard library type names can always be shadowed by type names from packages, mitigating the risk of source breaks.
+
 ##### A more sophisticated approach to indexing
 
 This is discussed more fully in the [indexing appendix](#Indexing) below.
