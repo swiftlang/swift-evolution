@@ -128,11 +128,3 @@ This is an additive change.
 ## Implications on adoption
 
 Adopters will need a new version of the standard library.
-
-## Alternatives considered
-
-### Backdeployment
-
-It is possible to use `@backDeployed` on functions implementing protocol requirements, but it is not possible to back-deploy the conformance record itself.
-Different availability of the functions and conformance would be confusing.
-
