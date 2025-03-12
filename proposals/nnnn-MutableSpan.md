@@ -96,10 +96,12 @@ This function returns an instance of `MutableSpan` that represents a mutation of
 var array = [1, 2, 3, 4, 5]
 var span1 = array.mutableSpan
 var span2 = span1.extracting(3..<5)
-// span1 cannot be accessed here
+// neither array nor span1 can be accessed here
 span2.swapAt(0, 1)
 _ = consume span2 // explicitly end scope for `span2`
-print(array) // [1, 2, 3, 5, 4]
+span1.swapAt(0, 1)
+_ = consume span1 // explicitly end scope for `span1`
+print(array) // [2, 1, 3, 5, 4]
 ```
 
 As established in [SE-0437][SE-0437], the instance returned by the `extracting()` function does not share indices with the function's callee.
@@ -169,7 +171,7 @@ for i in myMutableSpan.indices {
 We include functions to perform bulk copies of elements into the memory represented by a `MutableSpan`. Updating a `MutableSpan` from known-sized sources (such as `Collection` or `Span`) copies every element of a source. It is an error to do so when there is the span is too short to contain every element from the source. Updating a `MutableSpan` from `Sequence` or `IteratorProtocol` instances will copy as many items as possible, either until the input is empty or until the operation has updated the item at the last index. The bulk operations return the index following the last element updated.
 
 ```swift
-extension MutableSpan where Element: Copyable{
+extension MutableSpan where Element: Copyable {
   /// Updates every element of this span's to the given value.
   mutating func update(
     repeating repeatedValue: Element
@@ -179,12 +181,12 @@ extension MutableSpan where Element: Copyable{
   mutating func update<S: Sequence>(
     from source: S
   ) -> (unwritten: S.Iterator, index: Index) where S.Element == Element
-  
+
   /// Updates the span's elements with the elements from the source
   mutating func update(
     from source: inout some IteratorProtocol<Element>
   ) -> Index
-  
+
   /// Updates the span's elements with every element of the source.
   mutating func update(
     fromContentsOf source: some Collection<Element>
@@ -196,7 +198,7 @@ extension MutableSpan where Element: ~Copyable
   mutating func update(
     fromContentsOf source: Span<Element>
   ) -> Index
-  
+
   /// Updates the span's elements with every element of the source.
   mutating func update(
     fromContentsOf source: borrowing MutableSpan<Element>
@@ -245,7 +247,7 @@ extension MutableSpan where Element: ~Copable & ~Escapable {
   /// Returns a span containing the final elements of the span,
   /// up to the given maximum length.
   @_lifetime(inout self)
-  mutating public func extracting(last maxLegnth: Int) -> Self
+  mutating public func extracting(last maxLength: Int) -> Self
   
   /// Returns a span over all but the given number of initial elements.
   @_lifetime(inout self)
@@ -292,8 +294,7 @@ extension MutableSpan where Element: ~Copyable {
 }
 ```
 
-
-##### Interoperability with unsafe code:
+##### Interoperability with unsafe code
 
 ```swift
 extension MutableSpan where Element: ~Copyable {
@@ -457,6 +458,7 @@ extension MutableRawSpan {
 ```
 
 ##### Extracting sub-spans
+
 These functions extract sub-spans of the callee. The first two perform strict bounds-checking. The last four return prefixes or suffixes, where the number of elements in the returned sub-span is bounded by the number of elements in the parent `MutableRawSpan`.
 
 ```swift
@@ -512,8 +514,6 @@ extension MutableRawSpan {
   mutating func extracting(unchecked byteOffsets: ClosedRange<Int>) -> Self
 }
 ```
-
-
 
 ##### Interoperability with unsafe code:
 
@@ -697,11 +697,11 @@ It is desirable to have a way to split a `MutableSpan` in multiple parts, for di
 
 ```swift
 extension MutableSpan where Element: ~Copyable {
-  func split(at index: Index) -> (part1: Self, part2: Self)
+  public mutating func split(at index: Index) -> (part1: Self, part2: Self)
 }
 ```
 
-Unfortunately, tuples do not support non-copyable values yet. We may be able to use `InlineArray` ([SE-0453][SE-0453]), or a bespoke type, but destructuring the non-copyable constituent part remains a challenge. Solving this issue for `Span` and `MutableSpan` is a top priority.
+Unfortunately, tuples do not support non-copyable or non-escapable values yet. We may be able to use `InlineArray` ([SE-0453][SE-0453]), or a bespoke type, but destructuring the non-copyable constituent part remains a challenge. Solving this issue for `Span` and `MutableSpan` is a top priority.
 
 #### Mutating algorithms
 
