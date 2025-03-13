@@ -468,6 +468,17 @@ With [region-based isolation](https://github.com/swiftlang/swift-evolution/blob/
 }
 ```
 
+### Infer `@MainActor` conformances
+
+[SE-0466](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0466-control-default-actor-isolation.md) provides the ability to specify that a given module will infer `@MainActor` on any code that hasn't explicitly stated isolated (or non-isolation, via `nonisolated`). In a module that infers `@MainActor`, any conformance of a `@MainActor`-conforming type will also be inferred to be `@MainActor`. This should make single-threaded code easier to write, because protocol conformances will "just work" so long as the conformances themselves aren't referenced outside of the main actor or transferred into another isolation domain.
+
+This change also implies the need to express that an implicitly-`isolated` conformance should not be isolated, which could be done using `nonisolated`, just as we do for types:
+
+```swift
+/*implicit @MainActor*/
+class MyClass: /*implicit @MainActor*/P, nonisolated Hashable { ... }
+```
+
 ## Source compatibility
 
 As discussed in the section on rule (2), this proposal introduces a source compatbility break for code that is using strict concurrency and passes metatypes of non-`Sendable` type parameters across isolation domains. The overall amount of such code is expected to be small, because it's likely to be rare that the metatypes of generic types cross isolation boundaries but values of those types do not.
@@ -508,17 +519,6 @@ func instanceActors(a1: isolated A, a2: A) {
 ```
 
 It's possible that these problems can be addressed by relying more heavily on region-based isolation akin to rule (3). This can be revisited in the future if the need justifies the additional complexity.
-
-### Infer `@MainActor` conformances
-
-If Swift gains a setting to infer `@MainActor` on various declarations within a module, we should consider inferring `isolated` on conformances for `@MainActor` types. This should make single-threaded code easier to write, because protocol conformances will "just work" so long as the conformances themselves aren't referenced outside of the main actor or transferred into another isolation domain.
-
-This change also implies the need to express that an implicitly-`isolated` conformance should not be isolated, which could be done using `nonisolated` as is the case for types:
-
-```swift
-/*implicit @MainActor*/
-class MyClass: /*implicit @MainActor*/P, nonisolated Hashable { ... }
-```
 
 ## Alternatives considered
 
