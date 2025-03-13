@@ -669,28 +669,6 @@ Note: The future directions stated in [SE-0447](https://github.com/swiftlang/swi
 
 These annotations have been [pitched][PR-2305-pitch] and, after revision, are expected to be pitched again soon. `MutableSpan` initializers using lifetime annotations will be proposed alongside the annotations themselves.
 
-#### Functions providing variants of `MutableRawSpan` to `MutableSpan`
-
-`MutableSpan`s representing subsets of consecutive elements could be extracted out of a larger `MutableSpan` with an API similar to the `extracting()` functions recently added to `UnsafeBufferPointer` in support of non-copyable elements:
-
-```swift
-extension MutableSpan where Element: ~Copyable {
-  public mutating func extracting(_ bounds: Range<Index>) -> Self
-}
-```
-
-These functions would require a lifetime dependency annotation.
-
-Similarly, a `MutableRawSpan` could provide a function to mutate a range of its bytes as a typed `MutableSpan`:
-
-```swift
-extension MutableRawSpan {
-  @unsafe
-  public mutating func unsafeMutableView<T: BitwiseCopyable>(as type: T.Type) -> MutableSpan<T>
-}
-```
-We are subsetting functions that require lifetime annotations until such annotations are [proposed][PR-2305].
-
 #### Splitting `MutableSpan` instances – `MutableSpan` in divide-and-conquer algorithms
 
 It is desirable to have a way to split a `MutableSpan` in multiple parts, for divide-and-conquer algorithms or other reasons:
