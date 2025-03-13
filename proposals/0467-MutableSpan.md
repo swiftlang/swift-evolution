@@ -224,7 +224,7 @@ extension MutableSpan where Element: Copyable {
 These functions extract sub-spans of the callee. The first two perform strict bounds-checking. The last four return prefixes or suffixes, where the number of elements in the returned sub-span is bounded by the number of elements in the parent `MutableSpan`.
 
 ```swift
-extension MutableSpan where Element: ~Copable {
+extension MutableSpan where Element: ~Copyable {
   /// Returns a span over the items within the supplied range of
   /// positions within this span.
   @_lifetime(inout self)
