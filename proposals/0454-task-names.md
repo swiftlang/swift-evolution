@@ -271,5 +271,3 @@ Task(category: "Networking", name: "download profile image for \(userID)) { ... 
 Then a debugger than wanted to print all the tasks running when a break point is hit, it could group them by this optional “Networking” category.
 
 This is not in the actual proposal in order to keep the API simple and doesn’t add much additional value over a simple name.
-
-## Acknowledgments
