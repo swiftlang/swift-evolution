@@ -59,13 +59,13 @@ The following APIs will be provided on `Task`:
 ```swift
 extension Task where Failure == /* both Never and Error cases */ {
   init(
-     name: String? = nil,
+     name: String?,
      executorPreference taskExecutor: (any TaskExecutor)? = nil,
      priority: TaskPriority? = nil,
      operation: sending @escaping @isolated(any) () async /*throws */-> Success)
      
   static func detached(
-     name: String? = nil,
+     name: String?,
      executorPreference taskExecutor: (any TaskExecutor)? = nil,
      priority: TaskPriority? = nil,
      operation: sending @escaping @isolated(any) () async /*throws */ -> Success)
@@ -76,14 +76,14 @@ In addition to these APIs to name unstructured Tasks, the following API will be 
 
 ```swift
 mutating func addTask(
-    name: String? = nil,
+    name: String?,
     executorPreference taskExecutor: (any TaskExecutor)? = nil,
     priority: TaskPriority? = nil,
     operation: sending @escaping @isolated(any) () async -> ChildTaskResult
   )
   
   mutating func addTaskUnlessCancelled(
-    name: String? = nil,
+    name: String?,
     executorPreference taskExecutor: (any TaskExecutor)? = nil,
     priority: TaskPriority? = nil,
     operation: sending @escaping @isolated(any) () async -> ChildTaskResult
