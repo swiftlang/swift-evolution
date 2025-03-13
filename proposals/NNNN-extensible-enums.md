@@ -168,6 +168,7 @@ With the following proposed solution we want to achieve the following goals:
    language mode so they can start declaring **new** extensible enumerations
 3. Provide a migration path to the new behavior without forcing new SemVer
    majors
+4. Provide tools for developers to treat dependencies as source stable
 
 We propose to introduce a new language feature `ExtensibleEnums` that aligns the
 behavior of enumerations in both language dialects. This will make **public**
@@ -255,6 +256,114 @@ The behavior of `swift package diagnose-api-breaking-changes` is also updated
 to understand if the language feature is enabled and only diagnose new enum
 cases as a breaking change in non-frozen enumerations.
 
+### Migration paths
+
+The following section is outlining the migration paths and tools we propose to
+provide for different kinds of projects to adopt the proposed feature. The goal
+is to reduce churn across the ecosystem while still allowing us to align the
+default behavior of enums. There are many scenarios why these migration paths
+must exist such as:
+
+- Projects split up into multiple packages
+- Projects build with other tools than Swift PM
+- Projects explicitly vendoring packages without wanting to modify the original
+  source
+- Projects that prefer to deal with source breaks as they come up rather than
+  writing source-stable code
+
+#### Semantically versioned packages
+
+Semantically versioned packages are the primary reason for this proposal. The
+expected migration path for packages when adopting the proposed feature is one
+of the two:
+
+- API stable adoption by turning on the feature and marking all existing public
+  enums with `@frozen`
+- API breaking adoption by turning on the feature and tagging a new major if the
+  public API contains enums
+
+### Projects with multiple non-semantically versioned packages
+
+A common project setup is splitting the code base into multiple packages that
+are not semantically versioned. This can either be done by using local packages
+or by using _revision locked_ dependencies. The packages in such a setup are
+often considered part of the same logical collection of code and would like to
+follow the same source stability rules as same module or same package code. We
+propose to extend then package manifest to allow overriding the package name
+used by a target.
+
+```swift
+extension SwiftSetting {
+    /// Defines the package name used by the target.
+    ///
+    /// This setting is passed as the `-package-name` flag
+    /// to the compiler. It allows overriding the package name on a
+    /// per target basis. The default package name is the package identity.
+    ///
+    /// - Important: Package names should only be aligned across co-developed and
+    ///  co-released packages.
+    ///
+    /// - Parameters:
+    ///   - name: The package name to use.
+    ///   - condition: A condition that restricts the application of the build
+    /// setting.
+    public static func packageName(_ name: String, _ condition: PackageDescription.BuildSettingCondition? = nil) -> PackageDescription.SwiftSetting
+}
+```
+
+This allows to construct arbitrary package _domains_ across multiple targets
+inside a single package or across multiple packages. When adopting the
+`ExtensibleEnums` feature across multiple packages the new Swift setting can be
+used to continue allowing exhaustive matching.
+
+While this setting allows treating multiple targets as part of the same package.
+This setting should only be used across packages when the packages are
+both co-developed and co-released.
+
+### Other build systems
+
+Swift PM isn't the only system used to create and build Swift projects. Build
+systems and IDEs such as Bazel or Xcode offer support for Swift projects as
+well. When using such tools it is common to split a project into multiple
+targets/modules. Since those targets/modules are by default not considered to be
+part of the package, when adopting the `ExtensibleEnums` feature it would
+require to either add an `@unknown default` when switching over enums defined in
+other targets/modules or marking all public enums as `@frozen`. Similarly, to
+the above to avoid this churn we recommend specifying the `-package-name` flag
+to the compiler for all targets/modules that should be considered as part of the
+same unit.
+
+### Escape hatch
+
+There might still be cases where developers need to consume a module that is
+outside of their control which adopts the `ExtensibleEnums` feature. For such
+cases we propose to introduce a flag `--assume-source-stable-package` that
+allows assuming modules of a package as source stable. When checking if a switch
+needs to be exhaustive we will check if the code is either in the same module,
+the same package, or if the defining package is assumed to be source stable.
+This flag can be passed multiple times to define a set of assumed-source-stable
+packages. 
+
+```swift
+// a.swift inside Package A
+public enum MyEnum {
+    case foo
+    case bar
+}
+
+// b.swift inside Package B compiled with `--assume-source-stable-package A`
+
+switch myEnum { // No @unknown default case needed
+case .foo:
+    print("foo")
+case .bar:
+    print("bar")
+}
+```
+
+In general, we recommend to avoid using this flag but it provides an important
+escape hatch to the ecosystem.
+
 ## Source compatibility
 
 - Enabling the language feature `ExtensibleEnums` in a module compiled without
@@ -304,6 +413,14 @@ dependency graph. This would allow a package to adopt the new language feature,
 break their existing, and release a new major while having minimal impact on
 the larger ecosystem.
 
+### Using `--assume-source-stable-packages` for other diagnostics
+
+During the pitch it was brought up that there are more potential future
+use-cases for assuming modules of another package as source stable such as
+borrowing from a declaration which distinguishes between a stored property and
+one written with a `get`. Such features would also benefit from the
+`--assume-source-stable-packages` flag.
+
 ## Alternatives considered
 
 ### Provide an `@extensible` annotation
@@ -329,11 +446,46 @@ resilient modules.
 
 We considered introducing an annotation that allows developers to mark
 enumerations as pre-existing to the new language feature similar to how
-`@preconcurrency` works. The problem with such an annotation is how the compiler
-would handle this in consuming modules. It could either downgrade the warning
-for the missing `@unknown default` case or implicitly synthesize one. However,
-the only reasonable behavior for synthesized `@unknown default` case is to
-`fatalError`. Furthermore, such an attribute becomes even more problematic to
-handle when the module then extends the annotated enum; thus, making it possible
-to hit the `@unknown default` case during runtime leading to potentially hitting
-the `fatalError`.
+`@preconcurrency` works. Such an annotation seems to work initially when
+existing public enumerations are marked as `@preEnumExtensibility` instead of
+`@frozen`. It would result in the error about the missing `@unknown default`
+case to be downgraded as a warning. However, such an annotation still doesn't
+allow new cases to be added since there is no safe default at runtime when
+encountering an unknown case. Below is an example how such an annotation would
+work and why it doesn't allow existing public enums to become extensible.
+
+```swift
+// Package A
+public enum Foo {
+  case foo
+}
+
+// Package B
+switch foo {
+case .foo: break
+}
+
+// Package A adopts ExtensibleEnums feature and marks enum as @preEnumExtensibility
+@preEnumExtensibility
+public enum Foo {
+  case foo
+}
+
+// Package B now emits a warning downgraded from an error
+switch foo { // warning: Enum might be extended later. Add an @unknown default case.
+case .foo: break
+}
+
+// Later Package A decides to extend the enum
+@preEnumExtensibility
+public enum Foo {
+  case foo
+  case bar
+}
+
+// Package B didn't add the @unknown default case yet. So now we we emit a warning and an error
+switch foo { // error: Unhandled case bar & warning: Enum might be extended later. Add an @unknown default case.
+case .foo: break
+}
+
+```
