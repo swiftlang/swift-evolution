@@ -3,48 +3,40 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Michael Gottesman](https://github.com/gottesmm)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: Implemented on main behind flag -enable-experimental-feature SwiftSettings
 * Vision: [[Prospective Vision] Improving the approachability of data-race safety](https://forums.swift.org/t/prospective-vision-improving-the-approachability-of-data-race-safety/76183)
-* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/dbab768bc058c23b7d5b99827680a19443519136/proposals/0000-compiler-settings.md)
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/dbab768bc058c23b7d5b99827680a19443519136/proposals/0000-compiler-settings.md) [2](https://github.com/swiftlang/swift-evolution/blob/3029caa010ee238d8396c1a5014a21b865c5ecb0/proposals/0000-swift-settings.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-compilersettings-a-top-level-statement-for-enabling-compiler-flags-locally-in-a-specific-file/))
 
 ## Introduction
 
 We propose introducing a new macro called `#SwiftSettings` that allows for
-compiler flags to be enabled on a single file. This can be used to enable
-warningsAsError, strict concurrency, and default isolation. For example:
+compiler flags to be enabled on a single file. Initially this will only be used
+to support controlling the default isolation. For example:
 
 ```swift
 #SwiftSettings(
-    .warningsAsErrors(.concurrency),
-    .strictConcurrency(.complete),
     .defaultIsolation(MainActor.self)
 )
 ```
 
+In the future, we wish to extend this to also include support for controlling
+`warningsAsErrors`, `strictConcurrency`, and other flags. See future directions
+for more details.
+
 ## Motivation
 
 Today Swift contains multiple ways of changing compiler and language behavior
-from the command line including:
-
-* Enabling warnings as errors for diagnostic groups.
-* Enabling strict concurrency when compiling pre-Swift 6 code.
-* Specifying the default actor isolation via [Controlling Default Actor Isolation]().
-
-Since these compiler and language behaviors can only be manipulated via the
-command line and the compiler compiles one module at a time, users are forced to
-apply these flags one module at a time instead of one file at a time. This
-results in several forms of developer friction that we outline below.
-
-### Unnecessary Module Splitting
-
-Since compiler flags can only be applied to entire modules, one cannot apply a
-compiler flag to a subset of files of a module. When confronted with this, users
-are forced to split the subset of files into a separate module creating an
-unnecessary module split. We foresee that this will occur more often in the
-future if new features like [Controlling Default Actor Isolation]() are accepted
-by Swift Evolution. Consider the following situations where unnecessary module
-splitting would be forced:
+from the command line including specifying the default actor isolation via
+[Controlling Default Actor Isolation](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0466-control-default-actor-isolation.md). Since
+these compiler and language behaviors can only be manipulated via the command
+line and the compiler compiles one module at a time, users are forced to apply
+these flags one module at a time instead of one file at a time. When confronted
+with this, users are forced to split the subset of files into a separate module
+creating an unnecessary module split. We foresee that this will occur more often
+in the future if new features like [Controlling Default Actor Isolation](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0466-control-default-actor-isolation.md)
+are accepted by Swift Evolution. Consider the following situations where
+unnecessary module splitting would be forced:
 
 * Consider a framework that by default uses `nonisolated` isolation, but wants
   to expose a set of UI elements for users of the framework. In such a case, it
@@ -61,7 +53,146 @@ splitting would be forced:
   one must either split the database helpers into a separate module or must mark
   most declarations in the database code with nonisolated by hand.
 
-### Preventing per-file based warningsAsErrors migration of large modules to strict concurrency
+## Proposed solution
+
+We propose introducing a new macro called `#SwiftSettings` that takes a list of
+structs of type `SwiftSetting`. `SwiftSetting` will possess a static method for
+each command line argument that it supports. Any parameters that would be passed
+on the command line are passed as parameters to the static method. The compiler
+upon parsing a `#SwiftSettings` macro updates its internal state to set the
+appropriate settings before compiling the rest of the file. An example of such a
+`#SwiftSettings` invocation is the following:
+
+```swift
+#SwiftSettings(
+    .defaultIsolation(MainActor.self)
+)
+```
+
+By specifying compiler options in such a manner, we are able to avoid the need
+for module splitting if a user wishes to change the default isolation only on a
+specific file.
+
+As an additional benefit since strongly typed methods are being used instead of
+providing a single method that takes a string to specify the command line
+parameter code completion can make the compiler options discoverable to the user
+in the IDE.
+
+NOTE: Initially we will only support default isolation. In the future, this can
+be loosened as appropriate (see future directions).
+
+## Detailed design
+
+We will introduce into the standard library a new declaration macro called
+`#SwiftSettings` and a new struct called `SwiftSetting` that `#SwiftSettings`
+takes as a variadic parameter:
+
+```swift
+@freestanding(declaration)
+public macro SwiftSettings(_ settings: SwiftSetting...) = Builtin.SwiftSettingsMacro
+
+public struct SwiftSetting {
+  public init() { fatalError("Cannot construct an instance of SwiftSetting") }
+}
+```
+
+`#SwiftSettings` will expand to an empty string and is used only for its syntax
+and documentation in the IDE.
+
+`SwiftSetting` is a resilient struct that cannot be constructed without a
+runtime error and is only used for the purposes of specifying command line
+arguments to a `#SwiftSettings` macro. Support for individual command line
+options is added to `SwiftSetting` by defining a static method on `SwiftSetting`
+in an extension. By using static methods and extensions in this manner, we are
+able to make `SwiftSetting` extensible without requiring the standard library to
+be updated whenever a new options is added since the extension can be defined in
+other modules. As an example, we add support for `defaultIsolation` via an
+extension in the Concurrency module as follows:
+
+```swift
+extension SwiftSetting {
+  public static func defaultIsolation(_ isolation: Actor.Type?) -> SwiftSetting { SwiftSetting() }
+}
+```
+
+Since this extension is in the `Concurrency` module, we are able to use
+`Actor.Type?` to specify the default isolation to be used which would not be
+possible if defaultIsolation was defined in the standard library since `Actor`
+is defined in Concurrency,
+
+Each static method on `SwiftSetting` is expecting to return a `SwiftSetting`
+struct. The actual value returned is not important since this code will not be
+executed.
+
+`#SwiftSetting` will only support an explicit opted-in group of command line
+flags. This initially will only include default isolation. All such options must
+possess the following characteristics to be compatible with `#SwiftSettings`:
+
+* No impact on parsing
+
+* Only modify the program in a manner that can be reflected in a textual interface
+  without the need for `#SwiftSettings` to be serialized into a textual
+  interface file.
+
+* Does not cause module wide effects that cannot be constrained to a single
+  file. An example of such a setting is `enable-library-evolution`.
+
+In the future, more options can be added as appropriate (see future
+directions). In order to ensure that any such options also obey the above
+restrictions, we expect that any feature that wants to be supported by
+`#SwiftSettings` must as part of their swift-evolution process consider the ABI
+and source stability impacts of adding support to `#SwiftSettings`. At minimum,
+the feature must obey the above requirements.
+
+Each argument can be passed to `#SwiftSettings` exactly once. Otherwise, an
+error will be emitted:
+
+```swift
+#SwiftSetting(
+  .defaultIsolation(MainActor.self),
+  .defaultIsolation(nil) // Error!
+)
+
+#SwiftSetting(
+  .defaultIsolation(MainActor.self) // Error!
+)
+```
+
+If a command line option is set to different values at the module and file
+level, the setting at the file level will take precedence.
+
+## Source compatibility
+
+The addition of the `#SwiftSettings` and `SwiftSetting` cannot impact the
+parsing of other constructs since the name shadowing rules in the compiler will
+ensure that any local macros or types that shadow those names will take
+precedence. If the user wishes to still use `#SwiftSettings`, the user can spell
+the macro as `#Swift.SwiftSettings` as needed.
+
+Importantly this means that `#SwiftSettings` if used in the swiftpm code base or
+in `Package.swift` files would always need to be namespaced. The authors think
+that this is an acceptable trade-off since:
+
+* The `swiftpm` codebase is one project out of many and can just namespace as
+  appropriate.
+* `Package.swift` files really shouldn't need `#SwiftSettings` since they are
+  very self contained APIs.
+
+## ABI compatibility
+
+This proposal does not inherently break ABI. But it can break ABI if a command
+line option is enabled that causes the generated code's ABI to change. As part
+of enabling an option, one must consider such implications.
+
+## Implications on adoption
+
+Adopters of this proposal should be aware that while this feature does not
+inherently break ABI, enabling options using `#SwiftSettings` that break ABI can
+result in ABI breakage.
+
+## Future directions
+
+### Adding support for warningsAsErrors and strictConcurrency to allow for per-file warningsAsErrors based migration of large modules to strict concurrency
 
 Swift has taken the position that updating modules for strict concurrency should
 be accomplished by:
@@ -103,119 +234,7 @@ in the file, and most importantly main is never in an intermediate, partially
 updated state. We think that this approach will make it significantly easier for
 larger modules to be migrated to strict concurrency.
 
-## Proposed solution
-
-We propose introducing a new macro called `#SwiftSettings` that takes a list of
-structs of type `SwiftSetting`. `SwiftSetting` will possess a static method for
-each command line argument that it supports. Any parameters that would be passed
-on the command line are passed as parameters to the static method. The compiler
-upon parsing a `#SwiftSettings` macro updates its internal state to set the
-appropriate settings before compiling the rest of the file. An example of such a
-`#SwiftSettings` invocation is the following:
-
-```swift
-#SwiftSettings(
-    .warningsAsErrors(.concurrency),
-    .strictConcurrency(.complete),
-    .defaultIsolation(MainActor.self)
-)
-```
-
-By specifying compiler options in such a manner, we are able to solve all of the
-problems above:
-
-1. The programmer can avoid module splitting when they wish to use compiler
-   flags only on a specific file.
-
-2. The programmer can specify strict concurrency on a per file basis instead of
-   only on a per module basis allowing for warningsAsError to be used per file
-   instead of per module migration to use new features.
-
-As an additional benefit since strongly typed methods are being used instead of
-providing a single method that takes a string to specify the command line
-parameter code completion can make the compiler options discoverable to the user
-in the IDE.
-
-NOTE: By default, only a few specified command line options will be
-supported. In the future, this can be loosened as appropriate (see future
-directions).
-
-## Detailed design
-
-We will introduce into the standard library a new declaration macro called
-`#SwiftSettings` and a new struct called `SwiftSetting` that `#SwiftSettings`
-takes as a parameter:
-
-```swift
-@freestanding(declaration)
-public macro SwiftSettings(_ settings: SwiftSetting...) = Builtin.SwiftSettingsMacro
-
-public struct SwiftSetting {
-  public init() { fatalError("Cannot construct an instance of SwiftSetting") }
-}
-```
-
-`#SwiftSettings` will expand to an empty string and is used only for syntactic
-and documentation in the IDE.
-
-`SwiftSetting` is a resilient struct that cannot be constructed without a
-runtime error and is only used for the purposes of specifying command line
-arguments to a `#SwiftSettings` macro. Support for individual command line
-options is added to `SwiftSetting` by defining a static method on `SwiftSetting`
-in an extension. By using static methods and extensions in this manner, we are
-able to make `SwiftSetting` extensible without requiring the standard library to
-be updated whenever a new options is added since the extension can be defined in
-other modules. As an example, we add support for `defaultIsolation` via an
-extension in the Concurrency module as follows:
-
-```swift
-extension SwiftSetting {
-  public static func defaultIsolation(_ isolation: Actor.Type?) -> SwiftSetting { SwiftSetting() }
-}
-```
-
-Since this extension is in the `Concurrency` module, we are able to use
-`Actor.Type?` to specify the default isolation to be used which would not be
-possible if defaultIsolation was defined in the standard library since `Actor`
-is defined in Concurrency,
-
-Each static method on `SwiftSetting` is expecting to return a `SwiftSetting`
-struct. The actual value returned is not important since this code will not be
-executed.
-
-By default, `#SwiftSetting` will only support an explicit group of command line
-flags. These are:
-
-* strict-concurrency
-* warnings-as-errors
-* default isolation.
-
-These options are compatible with `#SwiftSettings` since they possess the
-following three characteristics:
-
-* Impact parsing
-
-* Emit additional warnings and errors
-
-* Modify the program in a manner that can be reflected in a textual interface
-  without the need for `#SwiftSettings` to be serialized into a textual
-  interface file.
-
-* Are not options that cause module wide effects that cannot be constrained to a
-  single file. An example of such a setting is `enable-library-evolution`.
-
-In the future, more options can be added as appropriate (see future
-directions). In order to ensure that any such options also obey the above
-restrictions, we expect that any feature that wants to be supported by
-`#SwiftSettings` must as part of their swift-evolution process consider the ABI
-and source stability impacts of adding support to `#SwiftSettings`. At minimum,
-the feature must obey the above requirements.
-
-If a command line option is set to different values at the module and file
-level, the setting at the file level will take precedence.
-
-Beyond adding support for `defaultIsolation` in Concurrency, we will also add
-support for strict concurrency and warningsAsErrors.
+#### `strictConcurrency`
 
 Support for strict concurrency will be added by defining an extension of
 `SwiftSetting` in `Concurrency` that contains an enum that specifies the cases
@@ -234,9 +253,12 @@ extension SwiftSetting {
 }
 ```
 
+#### `warningsAsErrors`
+
 Support for warningsAsErrors will be added by defining an extension of
 `SwiftSetting` in stdlibCore that defines a struct called DiagnosticGroup and a
-static function called `warningsAsErrors`:
+static function called `warningsAsErrors` that takes a variadic list of
+DiagnosticGroup that should be applied:
 
 ```swift
 extension SwiftSetting {
@@ -244,7 +266,7 @@ extension SwiftSetting {
     public init() { fatalError("Cannot construct a DiagnosticGroup") }
   }
 
-  public static func warningsAsErrors(_ diagnosticGroup: DiagnosticGroup) -> SwiftSetting { ... }
+  public static func warningsAsErrors(_ diagnosticGroup: DiagnosticGroup...) -> SwiftSetting { SwiftSetting() }
 }
 ```
 
@@ -273,37 +295,6 @@ Thus one can specify that concurrency warnings should be errors by writing:
 )
 ```
 
-## Source compatibility
-
-The addition of the `#SwiftSettings` and `SwiftSetting` cannot impact the
-parsing of other constructs since the name shadowing rules in the compiler will
-ensure that any local macros or types that shadow those names will take
-precedence. If the user wishes to still use `#SwiftSettings`, the user can spell
-the macro as `#Swift.SwiftSettings` as needed.
-
-Importantly this means that `#SwiftSettings` if used in the swiftpm code base or
-in `Package.swift` files would always need to be namespaced. The authors think
-that this is an acceptable trade-off since:
-
-* The `swiftpm` codebase is one project out of many and can just namespace as
-  appropriate.
-* `Package.swift` files really shouldn't need `#SwiftSettings` since they are
-  very self contained APIs.
-
-## ABI compatibility
-
-This proposal does not inherently break ABI. But it can break ABI if a command
-line option is enabled that causes the generated code's ABI to change. As part
-of enabling an option, one must consider such implications.
-
-## Implications on adoption
-
-Adopters of this proposal should be aware that while this feature does not
-inherently break ABI, enabling options using `#SwiftSettings` that break ABI can
-result in ABI breakage.
-
-## Future directions
-
 ### Adding support for Upcoming Features
 
 We could add support for Upcoming Features to `#SwiftSettings`. By default all
@@ -329,6 +320,19 @@ the compiler code generation approach was used, we would populate
 time and use availability to disable the cases associated with features that do
 not support `SwiftSettings`. The nice thing about the latter approach is that
 all features can be found in the IDE.
+
+### Adding support for Strict Memory Safety
+
+We could also in the future add support to `#SwiftSettings` for Strict Memory
+Safety.
+
+### Adding the ability to opt out of module-level flags like warningsAsErrors
+
+We could add support for turning off features like warningsAsErrors at the file
+level. This would involve adding a new `disableWarningsAsErrors` method onto
+`SwiftSetting`. This would be useful when only a few files fail warningsAsErrors
+and the user wishes to only suppress warningsAsErrors in those specific files in
+order to avoid needing to unnnecessarily split a module.
 
 ### Adding new APIs to SwiftPM that take SwiftSetting
 
@@ -414,8 +418,29 @@ compiler settings since we are attempting to specifically support compiler
 settings that semantically can have file wide implications. If we wanted to
 support push/pop of compiler settings it would involve different trade-offs and
 restrictions on what settings would be able to be used since the restrictions
-would necessarily need to be greater.
+would necessarily need to be greater. As an example, we could never allow for 
+
+### Extending SwiftSetting to include parsing options
+
+We could make it so that parsing `#SwiftSetting` is done directly in the parser
+when we parse part of the macro grammar. This would work by evaluating the
+`#SwiftSetting` from its syntax and performing our pattern matching at parse
+time instead of at type checker time. We would then not create an AST for
+`#SwiftSetting`. This current proposal is compatible with the parsing approach
+since in such a case, `#SwiftSetting` would never show up at AST time.
+
+### Allowing for Experimental Features to opt into `#SwiftSettings`
+
+We could allow for experimental features to opt into `#SwiftSettings` just like
+upcoming features can. We think at this point that there are dangers to exposing
+support in this manner for experimental features since experimental features
+have not gone through the evolution process and through that process proven that
+they obey the relevant characteristics required of options for `#SwiftSettings`
+support. That being said, it may be reasonable to allow for this when the
+compiler is compiled with asserts so that features can test this behavior during
+development.
 
 ## Acknowledgments
 
-TODO
+I would like to thank Holly Borla, Doug Gregor, Konrad Malawski and the rest of
+Swift Evolution for feedback on this proposal.
