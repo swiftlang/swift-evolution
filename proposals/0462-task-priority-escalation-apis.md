@@ -3,9 +3,9 @@
 * Proposal: [SE-0462](0462-task-priority-escalation-apis.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/jumhyn)
-* Status: **Active review (February 20...March 2, 2025)**
+* Status: **Accepted with modifications**
 * Implementation: https://github.com/swiftlang/swift/pull/78625
-* Review: ([pitch](https://forums.swift.org/t/pitch-task-priority-escalation-apis/77702)) ([review](https://forums.swift.org/t/se-0462-task-priority-escalation-apis/77997))
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-priority-escalation-apis/77702)) ([review](https://forums.swift.org/t/se-0462-task-priority-escalation-apis/77997))([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0462-task-priority-escalation-apis/78488))
 
 ## Introduction
 
