@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (March 13 - March 27, 2025)**
 * Implementation: [swiftlang/swift#79600](https://github.com/swiftlang/swift/pull/79600)
-* Review: ([pitch](https://forums.swift.org/t/pitch-task-naming-api/76115))
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-naming-api/76115)) ([review](https://forums.swift.org/t/se-0469-task-naming/78509))
 
 ## Introduction
 
