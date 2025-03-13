@@ -293,11 +293,10 @@ public protocol RunLoopExecutor: Executor {
 }
 ```
 
-We will also add a protocol for the main actor's executor (see later
-for details of `EventableExecutor` and why it exists):
+We will also add a protocol for the main actor's executor:
 
 ```swift
-protocol MainExecutor: RunLoopExecutor & SerialExecutor & EventableExecutor {
+protocol MainExecutor: RunLoopExecutor & SerialExecutor {
 }
 ```
 
@@ -342,13 +341,33 @@ along with a default implementation of `ExecutorFactory` called
 `PlatformExecutorFactory` that sets the default executors for the
 current platform.
 
-Additionally, `Task` will expose a new `currentExecutor` property:
+Additionally, `Task` will expose a new `currentExecutor` property, as
+well as properties for the `preferredExecutor` and the
+`currentSchedulableExecutor`:
 
 ```swift
 extension Task {
   /// Get the current executor; this is the executor that the currently
   /// executing task is executing on.
-  public static var currentExecutor: (any Executor)? { get }
+  ///
+  /// This will return, in order of preference:
+  ///
+  ///   1. The custom executor associated with an `Actor` on which we are
+  ///      currently running, or
+  ///   2. The preferred executor for the currently executing `Task`, or
+  ///   3. The task executor for the current thread
+  ///   4. The default executor.
+  public static var currentExecutor: any Executor { get }
+
+  /// Get the preferred executor for the current `Task`, if any.
+  public static var preferredExecutor: (any TaskExecutor)? { get }
+
+  /// Get the current *schedulable* executor, if any.
+  ///
+  /// This follows the same logic as `currentExecutor`, except that it ignores
+  /// any executor that isn't a `SchedulableExecutor`, and as such it may
+  /// eventually return `nil`.
+  public static var currentSchedulableExecutor: (any SchedulableExecutor)? { get }
 }
 ```
 
@@ -475,21 +494,24 @@ if let chunk = job.allocator?.allocate(capacity: 1024) {
 }
 ```
 
-We will also round-out the `Executor` protocol with some `Clock`-based
-APIs to enqueue after a delay:
+We will also add a `SchedulableExecutor` protocol as well as a way to
+get it efficiently from an `Executor`:
 
 ```swift
 protocol Executor {
   ...
-  /// `true` if this Executor supports scheduling.
+  /// Return this executable as a SchedulableExecutor, or nil if that is
+  /// unsupported.
   ///
-  /// This will default to false.  If you attempt to use the delayed
-  /// enqueuing functions on an executor that does not support scheduling,
-  /// the default executor will be used to do the scheduling instead,
-  /// unless the default executor does not support scheduling in which
-  /// case you will get a fatal error.
-  var supportsScheduling: Bool { get }
+  /// Executors can implement this method explicitly to avoid the use of
+  /// a potentially expensive runtime cast.
+  @available(SwiftStdlib 6.2, *)
+  var asSchedulable: AsSchedulable? { get }
+  ...
+}
 
+protocol SchedulableExecutor: Executor {
+  ...
   /// Enqueue a job to run after a specified delay.
   ///
   /// You need only implement one of the two enqueue functions here;
@@ -536,14 +558,6 @@ As an implementer, you will only need to implement _one_ of the two
 APIs to get both of them working; there is a default implementation
 that will do the necessary mathematics for you to implement the other
 one.
-
-If you try to call the `Clock`-based `enqueue` APIs on an executor
-that does not declare support for them (by returning `true` from its
-`supportsScheduling` property), the runtime will raise a fatal error.
-
-(These functions have been added to the `Executor` protocol directly
-rather than adding a separate protocol to avoid having to do a dynamic
-cast at runtime, which is a relatively slow operation.)
 
 To support these `Clock`-based APIs, we will add to the `Clock`
 protocol as follows:
@@ -616,9 +630,9 @@ The `traits` property is of type `ClockTraits`, which is an
 /// basis.
 @available(SwiftStdlib 6.2, *)
 public struct ClockTraits: OptionSet {
-  public let rawValue: Int32
+  public let rawValue: UInt32
 
-  public init(rawValue: Int32)
+  public init(rawValue: UInt32)
 
   /// Clocks with this trait continue running while the machine is asleep.
   public static let continuous = ...
@@ -660,59 +674,6 @@ C/C++.
 We will not be able to support the new `Clock`-based `enqueue` APIs on
 Embedded Swift at present because it does not allow protocols to
 contain generic functions.
-
-### Coalesced Event Interface
-
-We would like custom main executors to be able to integrate with other
-libraries, without tying the implementation to a specific library; in
-practice, this means that the executor will need to be able to trigger
-processing from some external event.
-
-```swift
-protocol EventableExecutor {
-
-  /// An opaque, executor-dependent type used to represent an event.
-  associatedtype Event
-
-  /// Register a new event with a given handler.
-  ///
-  /// Notifying the executor of the event will cause the executor to
-  /// execute the handler, however the executor is free to coalesce multiple
-  /// event notifications, and is also free to execute the handler at a time
-  /// of its choosing.
-  ///
-  /// Parameters
-  ///
-  /// - handler:  The handler to call when the event fires.
-  ///
-  /// Returns a new opaque `Event`.
-  public func registerEvent(handler: @escaping @Sendable () -> ()) -> Event
-
-  /// Deregister the given event.
-  ///
-  /// After this function returns, there will be no further executions of the
-  /// handler for the given event.
-  public func deregister(event: Event)
-
-  /// Notify the executor of an event.
-  ///
-  /// This will trigger, at some future point, the execution of the associated
-  /// event handler.  Prior to that time, multiple calls to `notify` may be
-  /// coalesced and result in a single invocation of the event handler.
-  public func notify(event: Event)
-
-}
-```
-
-Our expectation is that a library that wishes to integrate with the
-main executor will register an event with the main executor, and can
-then notify the main executor of that event, which will trigger the
-executor to run the associated handler at an appropriate time.
-
-The point of this interface is that a library can rely on the executor
-to coalesce these events, such that the handler will be triggered once
-for a potentially long series of `MainActor.executor.notify(event:)`
-invocations.
 
 ### Overriding the main and default executors
 
@@ -887,6 +848,16 @@ The main downside of this is that this would be a source compatibility
 break for places where Swift Concurrency already runs, because some
 existing code already knows that it is not really asynchronous until
 the first `await` in the main entry point.
+
+### Adding a coalesced event interface
+
+A previous revision of this proposal included an `EventableExecutor`
+interface, which could be used to tie other libraries into a custom
+executor without the custom executor needing to have specific
+knowledge of those libraries.
+
+While a good idea, it was decided that this would be better dealt with
+as a separate proposal.
 
 ### Putting the new Clock-based enqueue functions into a protocol
 
