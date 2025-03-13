@@ -84,7 +84,7 @@ This lifetime relationship will apply to all the safe `var mutableSpan: MutableS
 An important category of use cases for `MutableSpan` and `MutableRawSpan` consists of bulk copying operations. Often times, such bulk operations do not necessarily start at the beginning of the span, thus having a method to select a sub-span is necessary. This means producing an instance derived from the callee instance. We adopt the nomenclature already introduced in [SE-0437][SE-0437], with a family of `extracting()` methods.
 
 ```swift
-extension MutableSpan where Element: ~Copyable & ~Escapable {
+extension MutableSpan where Element: ~Copyable {
   @_lifetime(inout self)
   public mutating func extracting(_ range: Range<Index>) -> Self
 }
@@ -114,12 +114,12 @@ As established in [SE-0437][SE-0437], the instance returned by the `extracting()
 
 ````swift
 @frozen
-public struct MutableSpan<Element: ~Copyable & ~Escapable>: ~Copyable, ~Escapable {
+public struct MutableSpan<Element: ~Copyable>: ~Copyable, ~Escapable {
   internal var _start: UnsafeMutableRawPointer?
   internal var _count: Int
 }
 
-extension MutableSpan: @unchecked Sendable where Element: Sendable {}
+extension MutableSpan: @unchecked Sendable where Element: Sendable & ~Copyable {}
 ````
 
 We store a `UnsafeMutableRawPointer` value internally in order to explicitly support reinterpreted views of memory as containing different types of `BitwiseCopyable` elements. Note that the the optionality of the pointer does not affect usage of `MutableSpan`, since accesses are bounds-checked and the pointer is only dereferenced when the `MutableSpan` isn't empty, when the pointer cannot be `nil`.
@@ -127,7 +127,7 @@ We store a `UnsafeMutableRawPointer` value internally in order to explicitly sup
 Initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for details, see "[Initializers](#initializers)" in the [future directions](#Directions) section.
 
 ```swift
-extension MutableSpan where Element: ~Copyable & ~Escapable {
+extension MutableSpan where Element: ~Copyable {
   /// The number of initialized elements in this `MutableSpan`.
   var count: Int { get }
 
@@ -224,7 +224,7 @@ extension MutableSpan where Element: Copyable {
 These functions extract sub-spans of the callee. The first two perform strict bounds-checking. The last four return prefixes or suffixes, where the number of elements in the returned sub-span is bounded by the number of elements in the parent `MutableSpan`.
 
 ```swift
-extension MutableSpan where Element: ~Copable & ~Escapable {
+extension MutableSpan where Element: ~Copable {
   /// Returns a span over the items within the supplied range of
   /// positions within this span.
   @_lifetime(inout self)
