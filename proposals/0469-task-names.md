@@ -1,12 +1,11 @@
 # Task Naming
 
-* Proposal: [SE-NNNN](NNNN-task-names.md)
+* Proposal: [SE-0469](0469-task-names.md)
 * Authors: [Konrad Malawski](https://github.com/ktoso), [Harjas Monga](https://github.com/Harjas12)
-* Review Manager: TBD
-* Status: **Implemented on `main`**
-* Implementation: Implemented [PR](https://github.com/swiftlang/swift/pull/79600)
-* Pitch: [[Pitch] Task Naming API](https://forums.swift.org/t/pitch-task-naming-api/76115)
-* Review: TODO
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (March 13 - March 27, 2025)**
+* Implementation: [swiftlang/swift#79600](https://github.com/swiftlang/swift/pull/79600)
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-naming-api/76115))
 
 ## Introduction
 
