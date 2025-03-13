@@ -408,6 +408,10 @@ The ideas in this proposal previously used the name `BufferView`. While the use 
 
 The OpenTelemetry project and its related libraries use the word "span" for a concept of a timespan. The domains of use between that and direct memory access are very distinct, and we believe that the confusability between the use cases should be low. We also note that standard library type names can always be shadowed by type names from packages, mitigating the risk of source breaks.
 
+##### <a name="Sendability"></a>Sendability of `RawSpan`
+
+This proposal makes `RawSpan` a `Sendable` type. We believe this is the right decision. The sendability of `RawSpan` could be used to unsafely transfer a pointer value across an isolation boundary, despite the non-sendability of pointers. For example, suppose a `RawSpan` were obtained from an existing `Array<UnsafeRawPointer>` variable. We could send the `RawSpan` across the isolation boundary, and there extract the pointer using `rawSpan.unsafeLoad(as: UnsafeRawPointer.self)`. While this is an unsafe outcome, a similar operation can be done encoding a pointer as an `Int`, and then using `UnsafeRawPointer(bitPattern: mySentInt)` on the other side of the isolation boundary.
+
 ##### A more sophisticated approach to indexing
 
 This is discussed more fully in the [indexing appendix](#Indexing) below.
