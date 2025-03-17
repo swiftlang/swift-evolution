@@ -8,7 +8,7 @@
 
 ## Introduction
 
-The `Result` type in Swift is often used to bridge between async and not async contexts, and could use some minor convenience improcements for both `async` contexts as well as encoding/decoding.
+The `Result` type in Swift is often used to bridge between async and not async contexts, and could use some minor convenience improvements for both `async` contexts as well as encoding/decoding.
 
 ## Motivation
 
