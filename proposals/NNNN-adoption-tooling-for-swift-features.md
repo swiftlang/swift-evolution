@@ -1,4 +1,4 @@
-# Adoption tooling for Swift features
+# Migration tooling for Swift features
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
@@ -92,32 +92,30 @@ and testing code where a change in behavior is preferable.
 
 ## Proposed solution
 
-Introduce the notion of an "adoption" mode for individual experimental and
+Introduce the notion of a ***migrate*** mode for individual experimental and
 upcoming features.
-The core idea behind adoption mode is a declaration of intent that can be
+The core idea behind migration mode is a declaration of intent that can be
 leveraged to build better supportive adoption experiences for developers.
-If enabling a feature communicates an intent to *enact* rules, adoption mode
-communicates an intent to *adopt* them.
-An immediate benefit of adoption mode is the capability to deliver source
-modifications that can be applied to preserve compatibility whenever a feature
-provides for them.
+If enabling a feature communicates an intent to *enact* rules, migration mode
+communicates an intent to migrate code so as to preserve compatibility once the
+feature is enabled.
 
 This proposal will support the set of existing upcoming features that
 have mechanical migrations, as described in the [Automation](#automation)
 section.
 All future proposals that intend to introduce an upcoming feature and
-provide for a mechanical migration should include an adoption mode and detail
+provide for a mechanical migration should include a migration mode and detail
 its behavior alongside the migration paths in the *Source compatibility*
 section.
 
 ## Detailed design
 
-Upcoming features that have mechanical migrations will support an adoption
+Upcoming features that have mechanical migrations will support a migration
 mode, which is a new mode of building a project that will produce compiler
 warnings with attached fix-its that can be applied to preserve the behavior
-of the code once the upcoming feature is enacted.
+of the code under the feature.
 
-The action of enabling a previously disabled upcoming feature in adoption
+The action of enabling a previously disabled upcoming feature in migration
 mode must not cause any new compiler errors or behavioral changes, and the
 fix-its produced must preserve compatibility.
 Compatibility here refers to both source and binary compatibility, as well as
@@ -131,92 +129,33 @@ This warning will belong to the diagnostic group `StrictLanguageFeatures`.
 
 ### Interface
 
-#### Compiler
-
 The `-enable-*-feature` frontend and driver command line options will start
-supporting an optional mode specifier with `adoption` as the only valid mode:
+supporting an optional mode specifier with `migrate` as the only valid mode:
 
 ```
 -enable-upcoming-feature <feature>[:<mode>]
 -enable-experimental-feature <feature>[:<mode>]
 
-<mode> := adoption
+<mode> := migrate
 ```
 
 For example:
 
 ```
--enable-upcoming-feature InternalImportsByDefault:adoption
+-enable-upcoming-feature InternalImportsByDefault:migrate
 ```
 
-If the specified mode is invalid, the flag will be ignored, and a warning will
+If the specified mode is invalid, the option will be ignored, and a warning will
 be emitted.
 This warning will belong to the diagnostic group `StrictLanguageFeatures`.
 In a series of either of these options applied to a given feature, only the
 last option will be honored.
 If an upcoming feature is both implied by the effective language mode and
-enabled in adoption mode using either of the aforementioned options, the latter
-will be disregarded.
-
-#### Swift package manager
-
-The [`SwiftSetting.enableUpcomingFeature`] and
-[`SwiftSetting.enableExperimentalFeature`] methods from the
-[`PackageDescription`](https://developer.apple.com/documentation/packagedescription)
-library will be augmented with a `mode` parameter defaulted to match the
-current behavior:
-
-```swift
-extension SwiftSetting {
-  @available(_PackageDescription, introduced: 6.2)
-  public enum SwiftFeatureMode {
-    case adoption
-    case on
-  }
-}
-```
-```diff
-    public static func enableUpcomingFeature(
-        _ name: String,
-+       mode: SwiftFeatureMode = .on,
-        _ condition: BuildSettingCondition? = nil
-    ) -> SwiftSetting {
-+       let argument = switch mode {
-+           case .adoption: "\(name):adoption"
-+           case .mode: name
-+       }
-+
-        return SwiftSetting(
--           name: "enableUpcomingFeature", value: [name], condition: condition)
-+           name: "enableUpcomingFeature", value: [argument], condition: condition)
-    }
-```
-```diff
-    public static func enableExperimentalFeature(
-        _ name: String,
-+       mode: SwiftFeatureMode = .on,
-        _ condition: BuildSettingCondition? = nil
-    ) -> SwiftSetting {
-+       let argument = switch mode {
-+           case .adoption: "\(name):adoption"
-+           case .mode: name
-+       }
-+
-        return SwiftSetting(
--           name: "enableExperimentalFeature", value: [name], condition: condition)
-+           name: "enableExperimentalFeature", value: [argument], condition: condition)
-    }
-```
-
-For example:
-
-```
-SwiftSetting.enableUpcomingFeature("InternalImportsByDefault", mode: .adoption)
-```
+enabled in migration, the latter will be disregarded.
 
 ### Diagnostics
 
-Diagnostics emitted in relation to a specific feature in adoption mode must
+Diagnostics emitted in relation to a specific feature in migration mode must
 belong to a diagnostic group named after the feature.
 The names of diagnostic groups can be displayed alongside diagnostic messages
 using `-print-diagnostic-groups` and used to associate messages with features.
@@ -232,7 +171,7 @@ This proposal does not affect binary compatibility or binary interfaces.
 
 ## Implications on adoption
 
-Entering or exiting adoption mode will affect behavior and is therefore a
+Entering or exiting migration mode can affect behavior and is therefore a
 potentially source-breaking action.
 
 ## Future directions
@@ -243,14 +182,14 @@ For some features, a source change that alters the semantics of
 the program is a more desirable approach to addressing an error that comes
 from enabling the feature.
 For example, programmers might want to replace cases of `any P` with `some P`.
-Adoption tooling could support the option to produce source incompatible
+Migration tooling could support the option to produce source incompatible
 fix-its in cases where the compiler can detect that a different behavior might
 be more beneficial.
 
 ### Applications beyond mechanical migration
 
-Adoption mode can be extrapolated to additive features, such as
-[typed `throws`][SE-0413] or [opaque parameter types][SE-0341], by providing
+The concept of migration mode could be extrapolated to additive features, such
+as [typed `throws`][SE-0413] or [opaque parameter types][SE-0341], by providing
 actionable adoption tips.
 Additive features are hard-enabled and become an integral part of the language
 as soon as they ship.
@@ -259,49 +198,112 @@ model, and their metadata is kept around either to support
 [feature availability checks][SE-0362-feature-detection] in conditional
 compilation blocks or because they started off as experimental features.
 
-Another potential direction for adoption mode is promotion of best practices.
+Another feasible extension of migration mode is promotion of best practices.
 
 ### Augmented diagnostic metadata
 
 The current serialization format for diagnostics does not include information
 about diagnostic groups or whether a particular fix-it preserves semantics.
 There are several reasons why this data can be valuable for users, and why it
-is essential for future tools built around adoption mode:
+is essential for future tools built around migration mode:
 * The diagnostic group name can be used to, well, group diagnostics, as well as
   to communicate relationships between diagnostics and features and filter out
   relevant diagnostics.
   This can prove especially handy when multiple features are simultaneously
-  enabled in adoption mode, or when similar diagnostic messages are caused by
+  enabled in migration mode, or when similar diagnostic messages are caused by
   distinct features.
 * Exposing the purpose of a fix-it can help developers make quicker decisions
   when offered multiple fix-its.
   Furthermore, tools can take advantage of this information by favoring and
   auto-applying source-compatible fix-its.
 
-### `swift adopt`
+### `swift migrate`
 
-The Swift package manager could implement an `adopt` subcommand for interactive
-review and application of adoption mode output for a given set of features,
+The Swift package manager could implement a `migrate` subcommand for interactive
+review and application of migration mode output for a given set of features,
 with a command-line interface similar to `git add --patch`.
 
 ## Alternatives considered
 
+### A distinct `-migrate` option
+
+This direction has a questionably balanced set of advantanges and downsides.
+On one hand, it would provide an adequate foundation for invoking migration
+for a language mode in addition to individual features.
+On the other hand, an independent option is less discoverable, has a steeper
+learning curve, and makes the necessary relationships between it and the
+existing `-enable-*-feature` options harder to infer.
+Perhaps more notably, a bespoke option by itself would not scale to any future
+modes, setting what might be an unfortunate example for further decentralizion
+of language feature control.
+
+### API for package manifests
+
+The decision around surfacing migration mode in the `PackageDescription`
+library depends on whether there is a concensus on the value of enabling it as
+a persistent setting as opposed to a automated procedure in the long run.
+
+Here is how an API change could look like for the proposed solution:
+
+```swift
++extension SwiftSetting {
++  @available(_PackageDescription, introduced: 6.2)
++  public enum SwiftFeatureMode {
++    case migrate
++    case on
++  }
++}
+```
+```diff
+    public static func enableUpcomingFeature(
+        _ name: String,
++       mode: SwiftFeatureMode = .on,
+        _ condition: BuildSettingCondition? = nil
+    ) -> SwiftSetting
+
+    public static func enableExperimentalFeature(
+        _ name: String,
++       mode: SwiftFeatureMode = .on,
+        _ condition: BuildSettingCondition? = nil
+    ) -> SwiftSetting
+```
+
+It can be argued that both Swift modules and the volume of changes required for
+migration can be large enough to justify spreading the review over several
+sessions, especially if migration mode gains support for parallel
+[source-incompatible fix-its][#producing-source-incompatible-fix-its].
+However, we also expect higher-level migration tooling to allow for
+incremental progress.
+
 ### Naming
 
-Perhaps the most intuitive alternative to "adoption" is "migration".
-We settled on the former because there is no reason for this concept to remain
-limited to upcoming features or mechanical migration.
+The next candidates in line per discussions are ***adopt***, ***audit***,
+***stage***, and ***preview***, respectively.
+* ***preview*** and ***stage*** can both be understood as to report on the
+  impact of a change, but are less commonly used in the sense of code
+  migration.
+* ***audit*** best denotes a recurrent action in this context, which we believe
+  is more characteristic of the static analysis domain, such as enforcing a set
+  of custom compile-time rules on code.
+* An important reservation about ***adoption*** of source-breaking features is
+  that it comprises both code migration and integration.
+  It may be more prudent to save this term for a future add-on mode that,
+  unlike migration mode, implies that the feature is enabled and can be invoked
+  in any language mode to aid developers in making better use of new behaviors
+  or rules.
+  To illustrate, this mode could appropriately suggest switching from `any P`
+  to `some P` for `ExistentialAny`.
 
 ## Acknowledgements
 
-This proposal was inspired by documents prepared by [Allan Shortlidge][Allan]
-and [Holly Borla][Holly].
+This proposal was inspired by documents prepared by [Allan Shortlidge] and
+[Holly Borla].
 Special thanks to Holly for her guidance throughout the draft stage.
 
 <!-- Links -------------------------------------------------------------------->
 
-[Holly]: https://github.com/hborla
-[Allan]: https://github.com/tshortli
+[Holly Borla]: https://github.com/hborla
+[Allan Shortlidge]: https://github.com/tshortli
 
 [SE-0192]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0192-non-exhaustive-enums.md
 [SE-0274]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0274-magic-file.md
