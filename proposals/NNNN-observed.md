@@ -184,8 +184,7 @@ Putting this together grants a signature as such:
 ```swift
 public struct Observed<Element: Sendable, Failure: Error>: AsyncSequence, Sendable {
   public init(
-    isolation: isolated (any Actor)? = #isolation,
-    @_inheritActorContext _ emit: @Sendable @escaping () throws(Failure) -> Element?
+    @_inheritActorContext _ emit: @escaping @isolated(any) @Sendable () throws(Failure) -> Element?
   )
 }
 ```
@@ -283,7 +282,9 @@ of `KeyPath` and concurrency (which may be an optimization path that could be co
 in the future if the API merits it). As it stands however the `KeyPath` approach in 
 comparison to the closure initializer is considerably less easy to compose.
 
-One consideration that is an addition is to add an unsafe initializer that lets an
-isolation be specified manually rather than picking it up from the inferred context.
-This is something that if usage cases demand it is possible and worth entertaining.
-But that is completely additive and can be bolted on later-on.
+The closure type passed to the initializer does not absolutely require @Sendable in the 
+cases where the initialization occurs in an isolated context, if the initializer had a 
+parameter of an isolation that was non-nullable this could be achived for that restriction
+however up-coming changes to Swift's Concurrency will make this apporach less appealing.
+If this route would be taken it would restrict the potential advanced uses cases where
+the construction would be in an explicitly non-isolated context.
