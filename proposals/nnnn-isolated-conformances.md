@@ -308,6 +308,14 @@ nonisolated func f(_ value: Any) {
 
 If the provided `value` is an instance of `C` , and this code is invoked off the main actor, allowing it to enter the `if` branch would introduce a data race. Therefore, dynamic casting will have to determine when the conformance it depends on is isolated to an actor and check whether the code is running on the executor for that actor.
 
+Additionally, a dynamic cast that involves a `Sendable` or `SendableMetatype` constraint should not accept an isolated conformance even if the code is running on that global actor, e.g.,
+
+```swift
+  if let p = value as? any Sendable & P { // never allows an isolated conformance to P
+    p.f()
+  }
+```
+
 ### Rule 1: Isolated conformance can only be used within its isolation domain
 
 Rule (1) is straightforward: the conformance can only be used within a context that is also isolated to the same global actor. This applies to any use of a conformance anywhere in the language. For example:
