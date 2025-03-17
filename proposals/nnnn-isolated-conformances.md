@@ -501,6 +501,37 @@ However, there is one likely behavioral difference with isolated conformances be
 
 ## Future Directions
 
+### Inferring global actor isolation 
+
+This proposal specifies that, in the main-actor-by-default mode introduced in [SE-0466](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0466-control-default-actor-isolation.md),  main-actor-isolated types will infer that their conformances are also main actor-isolated unless stated otherwise. This inference rule for isolated conformances could be useful independent of the main-actor-by-default mode. That is, a type that is isolated to a global actor is very likely to want its conformances to be isolated, too:
+
+```swift
+@MainActor
+class MyModelType: P { 
+  func f() { } // implements P.f, is implicitly @MainActor
+}
+```
+
+This code is currently il-formed, because the conformance to `P` is nonisolated but `MyModelType.f` is main actor-isolated. The fix is to mark the conformance as `@MainActor`, e.g.,
+
+```swift
+@MainActor
+class MyModelType: @MainActor P { 
+  func f() { } // implements P.f, is implicitly @MainActor
+}
+```
+
+We could choose to infer global actor isolation for conformances of global-actor-isolated types, which would eliminate the need to explicitly write `@MainActor` on the conformance:
+
+```swift
+@MainActor
+class MyModelType: /*inferred @MainActor*/ P { 
+  func f() { } // implements P.f, is implicitly @MainActor
+}
+```
+
+This is effectively a generalization of the rule to infer `@MainActor` conformances under the main-actor-by-default mode. It would be a source-breaking change, however, because today all conformances are non-isolated, and code could depend on those conformances being non-isolated. Therefore, this change would need to have an associated upcoming feature name (e.g., `InferIsolatedConformances`). Fortunately, it is mechanically migratable: existing code migrating to `InferIsolatedConformances` could introduce `nonisolated` for each conformance of a global-actor-isolated type.
+
 ### Actor-instance isolated conformances
 
 Actor-instance isolated conformances are considerably more difficult than global-actor isolated conformances, because the conformance needs to be associated with a specific instance of that actor. Even enforcing rule (1) is nonobvious. As with `isolated` parameters, we could spell actor-instance isolation to a protocol `P` with `isolated P`. The semantics would need to be similar to what follows:
@@ -526,7 +557,7 @@ func instanceActors(a1: isolated A, a2: A) {
 }
 ```
 
-It's possible that these problems can be addressed by relying more heavily on region-based isolation akin to rule (3). This can be revisited in the future if the need justifies the additional complexity.
+It's possible that these problems can be addressed by relying more heavily on region-based isolation akin to rule (3). This can be revisited in the future if the need justifies the additional complexity and we find a suitable implementation strategy.
 
 ## Alternatives considered
 
