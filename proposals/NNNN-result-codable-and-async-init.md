@@ -68,7 +68,7 @@ The `Codable` implementation is the default, synthesized, one which was defined 
 
 ## Source compatibility
 
-All protocol conformances of an existing type to an existing protocol are potentially source breaking because users could have added the exact same conformances themselves. However, given that `EnumeratedSequence` do not expose their underlying sequences, there is no reasonable way anyone could have conformed to `Collection` themselves.
+This proposal is source compatible. Retroactive conformances are already warned about which would be the case for manual Codable conformances declared in adopter codebases.
 
 ## Effect on ABI stability
 
