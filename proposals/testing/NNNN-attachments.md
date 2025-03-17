@@ -84,9 +84,10 @@ public struct Attachment<AttachableValue>: ~Copyable where AttachableValue: Atta
     sourceLocation: SourceLocation = #_sourceLocation
   )
 
-  /// Attach this instance to the current test.
+  /// Attach an attachment to the current test.
   ///
   /// - Parameters:
+  ///   - attachment: The attachment to attach.
   ///   - sourceLocation: The source location of the call to this function.
   ///
   /// When attaching a value of a type that does not conform to both
@@ -98,7 +99,27 @@ public struct Attachment<AttachableValue>: ~Copyable where AttachableValue: Atta
   /// disk.
   ///
   /// An attachment can only be attached once.
-  public consuming func attach(sourceLocation: SourceLocation = #_sourceLocation)
+  public static func attach(_ attachment: consuming Self, sourceLocation: SourceLocation = #_sourceLocation)
+
+  /// Attach a value to the current test.
+  ///
+  /// - Parameters:
+  ///   - attachableValue: The value to attach.
+  ///   - sourceLocation: The source location of the call to this function.
+  ///
+  /// When attaching a value of a type that does not conform to both
+  /// [`Sendable`](https://developer.apple.com/documentation/swift/sendable) and
+  /// [`Copyable`](https://developer.apple.com/documentation/swift/copyable),
+  /// the testing library encodes it as data immediately. If the value cannot be
+  /// encoded and an error is thrown, that error is recorded as an issue in the
+  /// current test and the attachment is not written to the test report or to
+  /// disk.
+  ///
+  /// This function creates a new instance of ``Attachment`` and immediately
+  /// attaches it to the current test.
+  ///
+  /// An attachment can only be attached once.
+  public static func attach(_ attachment: consuming AttachableValue, sourceLocation: SourceLocation = #_sourceLocation)
 
   /// Call a function and pass a buffer representing the value of this
   /// instance's ``attachableValue-2tnj5`` property to it.
@@ -134,7 +155,7 @@ conform:
 ///
 /// To attach an attachable value to a test report or test run output, use it to
 /// initialize a new instance of ``Attachment``, then call
-/// ``Attachment/attach(sourceLocation:)``. An attachment can only be attached
+/// ``Attachment/attach(_:sourceLocation:)``. An attachment can only be attached
 /// once.
 ///
 /// The testing library provides default conformances to this protocol for a
@@ -226,7 +247,7 @@ that refines `Attachable`:
 ///
 /// To attach an attachable value to a test report or test run output, use it to
 /// initialize a new instance of ``Attachment``, then call
-/// ``Attachment/attach(sourceLocation:)``. An attachment can only be attached
+/// ``Attachment/attach(_:sourceLocation:)``. An attachment can only be attached
 /// once.
 ///
 /// A type can conform to this protocol if it represents another type that
@@ -297,11 +318,12 @@ Package Manager:
 --attachments-path Path where attachments should be saved.
 ```
 
-If specified, an attachment will be written to that path when its `attach()`
-method is called. If not specified, attachments are not saved to disk. Tools
-that indirectly use Swift Testing through `swift test` can specify a path (e.g.
-to a directory created inside the system's temporary directory), then move or
-delete the created files as needed.
+If specified, an attachment will be written to that path when the attachment is
+passed to one of the `Attachment.attach(_:sourceLocation:)` methods. If not
+specified, attachments are not saved to disk. Tools that indirectly use Swift
+Testing through `swift test` can specify a path (e.g. to a directory created
+inside the system's temporary directory), then move or delete the created files
+as needed.
 
 The JSON event stream ABI will be amended correspondingly:
 
@@ -384,6 +406,12 @@ version too.
   [swiftlang/swift-testing#824](https://github.com/swiftlang/swift-testing/pull/824)
   includes an experimental implementation of this feature.
 
+- Attaching attachments to issues or to activities: XCTest supports attachments
+  on `XCTIssue`; Swift Testing does not currently allow developers to create an
+  issue without immediately recording it, so there is no opportunity to attach
+  anything to one. XCTest also supports the concept of activities as subsections
+  of tests; they remain a future direction for Swift Testing.
+
 ## Alternatives considered
 
 - Doing nothing: there's sufficient demand for this feature that we know we want
@@ -423,6 +451,11 @@ version too.
   Instead, `Attachable` includes the function `preferredName(for:basedOn:)` that
   allows an implementation (such as that of `Encodable & Attachable`) to add a
   path extension to the filename specified by the test author if needed.
+  
+- Making the `Attachment.attach(_:sourceLocation:)` methods a single instance
+  method of `Attachment` named `attach()`: this was in the initial pitch but the
+  community discussed several more ergonomic options and we chose
+  `Attachment.attach(_:sourceLocation:)` instead.
 
 ## Acknowledgments
 
