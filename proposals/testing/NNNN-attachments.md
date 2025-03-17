@@ -33,7 +33,7 @@ we will introduce a new protocol, `Attachable`, to which types can conform to
 indicate they can be attached to a test.
 
 Default conformances to `Attachable` will be provided for standard library types
-that can reasonably be attached. We will also introduce a **cross-import overlay**
+that can reasonably be attached. We will also introduce a [cross-import overlay](https://forums.swift.org/t/cross-import-overlays/36710)
 with Foundation—that is, a tertiary module that is automatically imported when
 a test target imports both Foundation _and_ Swift Testing—that includes
 additional conformances for Foundation types such as `Data` and `URL` and
