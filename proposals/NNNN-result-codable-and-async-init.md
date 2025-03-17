@@ -22,9 +22,9 @@ Those two changes allow us to write code like this:
 func accept<A: Codable>(_: A) { ... }
 
 enum SomeCodableError: Error, Codable { ... } 
-func compute() throws(SomeCodableError) -> Int { ... }
+func compute() async throws(SomeCodableError) -> Int { ... }
 
-let result: Result<Int, SomeCodableError> = Result { 
+let result: Result<Int, SomeCodableError> = await Result { 
   try await compute()
 }
 
