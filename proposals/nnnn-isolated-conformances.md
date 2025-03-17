@@ -125,7 +125,7 @@ extension Sequence {
 }
 ```
 
-This `parallelContains` function can send values of type `Element` to another isolation domain, and from there call the `Equatable.==` function. If the conformance to `Equatable` is isolated, this would violate the data race safety guarantees. Therefore, this proposal specifies that an isolation conformance cannot be used in conjunction with a `Sendable` conformance:
+This `parallelContains` function can send values of type `Element` to another isolation domain, and from there call the `Equatable.==` function. If the conformance to `Equatable` is isolated, this would violate the data race safety guarantees. Therefore, this proposal specifies that an isolated conformance cannot be used in conjunction with a `Sendable` conformance:
 
 ```swift
 @MainActor
@@ -197,14 +197,14 @@ The `Any` value could contain `MyModelType`, in which case the conformance to `E
 The proposed solution describes the basic shape of isolated conformances and how they interact with the type system. This section goes into more detail on the data-race safety issues that arise from the introduction of isolated conformances into the language. Then it details three rules that, together, ensure freedom from data race safety issues in the presence of isolated conformances:
 
 1. An isolated conformance can only be used within its isolation domain.
-2. When an isolated conformance is used to satisfy a generic constraint `T: P`, the generic signature must not include either of the following constraints: `T: Sendable` or `T.Type: Sendable`. 
+2. When an isolated conformance is used to satisfy a generic constraint `T: P`, the generic signature must not include either of the following constraints: `T: Sendable` or `T: SendableMetatype`. 
 3. A value using a conformance isolated to a given global actor is within the same region as that global actor.
 
 ### Data-race safety issues
 
 An isolated conformance must only be used within its actor's isolation domain. Here are a few examples that demonstrate the kinds of problems that need to be addressed by a design for isolated conformances to ensure that this property holds.
 
-First, forming an isolated conformance outside of its isolation domain creates immediate problems. For example:
+First, using an isolated conformance outside of its isolation domain creates immediate problems. For example:
 
 ```swift
 protocol Q {
@@ -260,7 +260,7 @@ extension C: @unchecked Sendable { }
 }
 ```
 
-Here, `sendMe` ends up calling `C.f()` from outside the main actor. The combination of an isolated conformance and a `Sendable` requirement on the same type underlies this issue. To address the problem, we can prohibit the use of an isolation conformance if the corresponding type parameter (e.g, `T` in the example above) also has a `Sendable` requirement.
+Here, `sendMe` ends up calling `C.f()` from outside the main actor. The combination of an isolated conformance and a `Sendable` requirement on the same type underlies this issue. To address the problem, we can prohibit the use of an isolated conformance if the corresponding type parameter (e.g, `T` in the example above) also has a `Sendable` requirement.
 
 However, that doesn't address all issues, because region isolation permits sending non-`Sendable` values:
 
@@ -308,7 +308,7 @@ nonisolated func f(_ value: Any) {
 
 If the provided `value` is an instance of `C` , and this code is invoked off the main actor, allowing it to enter the `if` branch would introduce a data race. Therefore, dynamic casting will have to determine when the conformance it depends on is isolated to an actor and check whether the code is running on the executor for that actor.
 
-### Rule 1: Isolated conformance can only be introduced within its isolation domain
+### Rule 1: Isolated conformance can only be used within its isolation domain
 
 Rule (1) is straightforward: the conformance can only be used within a context that is also isolated to the same global actor. This applies to any use of a conformance anywhere in the language. For example:
 
@@ -424,7 +424,7 @@ With this notion, we could amend rule (2) to prohibit using an isolated protocol
 
 Unfortunately, this means that isolated conformances won't work with any existing generic code, because all generic code in existence today assumes that all metatypes are `Sendable`. Most of that code could be updated with requirements of the form `T.Type: ~Sendable` and without other changes, but it would require an ecosystem-wide change in support of a somewhat niche feature.
 
-Therefore, this proposal suggests that we change the meaning of existing generic code to *not* be able to assume that a given metatype depending on a generic parameter is `Sendable`. Essentially, it will be as-if `T: ~SendableMetatype` has been applied to every generic parameter `T`. This will have the effect of rejecting the implementation of `callQGElsewhere`. After such a change to the language, the signature of `callQGElsewhere` could be updated by adding the requirement `T.Type: Sendable`. 
+Therefore, this proposal suggests that we change the meaning of existing generic code to *not* be able to assume that a given metatype depending on a generic parameter is `Sendable`. Essentially, it will be as-if `T: ~SendableMetatype` has been applied to every generic parameter `T`. This will have the effect of rejecting the implementation of `callQGElsewhere`. After such a change to the language, the signature of `callQGElsewhere` could be updated by adding the requirement `T: SendableMetatype`. 
 
 Note that, any time a value of type `T` crosses an isolation boundary, it's metatype is accessible via   [`type(of:)`](https://developer.apple.com/documentation/swift/type(of:)), so it also crosses the isolation boundary. This provides us with an inference rule that can help lessen the impact of this source compatibility break: if a generic signature contains a requirement `T: Sendable`, then we can infer the requirement `T: SendableMetatype`. Doing so involves specifying that `Sendable` refines a new marker protocol, `SendableMetatype`:
 
