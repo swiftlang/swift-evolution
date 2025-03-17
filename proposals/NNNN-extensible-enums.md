@@ -289,7 +289,7 @@ are not semantically versioned. This can either be done by using local packages
 or by using _revision locked_ dependencies. The packages in such a setup are
 often considered part of the same logical collection of code and would like to
 follow the same source stability rules as same module or same package code. We
-propose to extend then package manifest to allow overriding the package name
+propose to extend the package manifest to allow overriding the package name
 used by a target.
 
 ```swift
@@ -337,7 +337,7 @@ same unit.
 
 There might still be cases where developers need to consume a module that is
 outside of their control which adopts the `ExtensibleEnums` feature. For such
-cases we propose to introduce a flag `--assume-source-stable-package` that
+cases we propose to introduce a new flag `--assume-source-stable-package` that
 allows assuming modules of a package as source stable. When checking if a switch
 needs to be exhaustive we will check if the code is either in the same module,
 the same package, or if the defining package is assumed to be source stable.
