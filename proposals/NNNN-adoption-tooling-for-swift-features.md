@@ -92,7 +92,7 @@ and testing code where a change in behavior is preferable.
 
 ## Proposed solution
 
-Introduce the notion of a ***migrate*** mode for individual experimental and
+Introduce the notion of a migration mode for individual experimental and
 upcoming features.
 The core idea behind migration mode is a declaration of intent that can be
 leveraged to build better supportive adoption experiences for developers.
@@ -150,8 +150,8 @@ be emitted.
 This warning will belong to the diagnostic group `StrictLanguageFeatures`.
 In a series of either of these options applied to a given feature, only the
 last option will be honored.
-If an upcoming feature is both implied by the effective language mode and
-enabled in migration, the latter will be disregarded.
+If a feature is both implied by the effective language mode and enabled in
+migration mode, the latter option will be disregarded.
 
 ### Diagnostics
 
@@ -241,7 +241,7 @@ of language feature control.
 
 The decision around surfacing migration mode in the `PackageDescription`
 library depends on whether there is a concensus on the value of enabling it as
-a persistent setting as opposed to a automated procedure in the long run.
+a persistent setting as opposed to an automated procedure in the long run.
 
 Here is how an API change could look like for the proposed solution:
 
@@ -288,7 +288,7 @@ The next candidates in line per discussions are ***adopt***, ***audit***,
 * An important reservation about ***adoption*** of source-breaking features is
   that it comprises both code migration and integration.
   It may be more prudent to save this term for a future add-on mode that,
-  unlike migration mode, implies that the feature is enabled and can be invoked
+  unlike migration mode, implies that the feature is enabled, and can be invoked
   in any language mode to aid developers in making better use of new behaviors
   or rules.
   To illustrate, this mode could appropriately suggest switching from `any P`
