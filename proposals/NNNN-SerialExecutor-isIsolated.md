@@ -132,17 +132,15 @@ If `isIsolatingCurrentContext` is available, effectively it replaces `checkIsola
 
 The `isIsolatingCurrentContext` method effectively replaces the `checkIsolated` method, because it can answer the same question _if it is implemented_.
 
-Some runtimes may not be able to implement a the returning `isIsolatingCurrentContext`, and they are not expected to implement the new protocol requirement.
+Some runtimes may not be able to implement a the returning `isIsolatingCurrentContext`, and they are not required to implement the new protocol requirement.
 
-The general guidance about which method to implement is to implement `isIsolatingCurrentContext` whenever possible. This method can be used by the Swift runtime in "warning mode". When running a check in this mode, the `checkIsolated` method cannot and will not be used because it would cause an unexpected crash.
+The general guidance about which method to implement is to implement `isIsolatingCurrentContext` whenever possible. This method can be used by the Swift runtime in "warning mode". When running a check in this mode, the `checkIsolated` method cannot and will not be used because it would cause an unexpected crash. A runtime may still want to implement the `checkIsolated` function if it truly is unable to return a true/false response to the isolation question, but can only assert on an illegal state. This function will not be used when the runtime does not expect a potential for a crash.
 
-The presence of a non-default implementation of the `isIsolatingCurrentContext` protocol requirement. In other words, if there is an implementation of the requirement available _other than_ the default one provided in the concurrency library, the runtime will attempt to use this method _over_ the `checkIsolated` API. This allows for a smooth migration to the new API, and enables the use of this method in if the runtime would like issue a check that cannot cause a crash.
+The presence of a non-default implementation of the `isIsolatingCurrentContext` protocol witness is detected by the compiler and the runtime can detect this information in order to determine if the new function should be used for these checks. In other words, if there is an implementation of the requirement available _other than_ the default one provided in the concurrency library, the runtime will attempt to use this method _over_ the `checkIsolated` API. This allows for a smooth migration to the new API, and enables the use of this method in if the runtime would like issue a check that cannot cause a crash.
 
 ### Compatibility strategy for custom SerialExecutor authors
 
 New executor implementations should prioritize implementing `isIsolatingCurrentContext` when available, using an appropriate `#if swift(>=...)` check to ensure compatibility. Otherwise, they should fall back to implementing the crashing version of this API: `checkIsolated()`.
-
-While the relationship between `isIsolatingCurrentContext` and `checkIsolated` is not ideal, the boolean-returning version was previously not possible to implement due to runtime restrictions which we have manage to resolve, and thus would like to introduce the better API and better user-experience. 
 
 For authors of custom serial executors, adopting this feature is an incremental process and they can adopt it at their own pace, properly guarding the new feature with necessary availability guards. This feature requires a new version of the Swift concurrency runtime which is aware of this new mode and therefore able to call into the new checking function, therefore libraries should implement and adopt it, however it will only manifest itself when the code is used with a new enough concurrency runtime
 
@@ -169,8 +167,6 @@ If we determine that there are significant good use-cases for this method to be 
 ### Somehow change `checkIsolated` to return a bool value
 
 This would be ideal, however also problematic since changing a protocol requirements signature would be ABI breaking.
-
-It would be ideal if this method could have been bool returning initially, but due to some restrictions back then it would not have been implementable the to what concurrency integrations were available to Swift.
 
 ### Deprecate `checkIsolated`?
 
