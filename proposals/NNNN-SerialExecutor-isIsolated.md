@@ -2,9 +2,12 @@
 
 * Proposal: [SE-NNNN](...)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
-* Review Manager:
-* Status:  **Partial implementation**
-* Implementation: https://github.com/swiftlang/swift/pull/79788
+* Review Manager: TBD
+* Status:  Implemented
+  * https://github.com/swiftlang/swift/pull/79788
+  * https://github.com/swiftlang/swift/pull/79946
+
+* Pitch: [[Pitch][SerialExecutor] Improved Custom SerialExecutor isolation checking](https://forums.swift.org/t/pitch-serialexecutor-improved-custom-serialexecutor-isolation-checking/78237/)
 * Review: TODO
 
 ## Introduction
@@ -125,37 +128,15 @@ This proposal specifically adds the "if `isIsolatingCurrentContext` is available
 
 If `isIsolatingCurrentContext` is available, effectively it replaces `checkIsolated` because it does offer a sub-par error message experience and is not able to offer a warning if Swift would be asked to check the isolation but not crash upon discovering a violation.
 
-### Enabling `isIsolatingCurrentContext` checking mode
+### Detecting the `isIsolatingCurrentContext` checking mode
 
-Similar as complex equality in `SerialExecutors` this feature must be opted into by flagging it when the `UnownedSerialExecutor` value is returned from a serial executor's `asUnownedSerialExecutor()`.
+The `isIsolatingCurrentContext` method effectively replaces the `checkIsolated` method, because it can answer the same question _if it is implemented_.
 
-Previously this was done by signalling the feature in the `UnownedSerialExecutor` initializer like this:
+Some runtimes may not be able to implement a the returning `isIsolatingCurrentContext`, and they are not expected to implement the new protocol requirement.
 
-```swift
-// Existing API
-public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
-  UnownedSerialExecutor(complexEquality: self)
-}
-```
+The general guidance about which method to implement is to implement `isIsolatingCurrentContext` whenever possible. This method can be used by the Swift runtime in "warning mode". When running a check in this mode, the `checkIsolated` method cannot and will not be used because it would cause an unexpected crash.
 
-Which enables the following `isSameExclusiveExecutionContext` check, which can only be used when a "current" executor is present, and cannot be used when running code outside of a Swift concurrency task (!):
-
-```swift
-// Existing API
-public func isSameExclusiveExecutionContext(other: NaiveQueueExecutor) -> Bool {
-  other.secretIdentifier == self.secretIdentifier
-}
-```
-
-In order to enable the runtime to call into the `isIsolatingCurrentContext` the `UnownedSerialExecutor` **must** be constructed as follows:
-
-```swift
-public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
-  UnownedSerialExecutor(hasIsIsolatingCurrentContext: self)
-}
-```
-
-This sets a flag inside the internal executor reference which makes the swift runtime call into the new `isIsolatingCurrentContext` function, rather than the other versions of isolation checking. In many ways this API is the most general of them all, and generally preferable _if_ your executor is using some kind of mechanism to track the "current" context that the Swift concurrency runtime cannot know about, e.g. like thread local values inside threads managed by your executor.
+The presence of a non-default implementation of the `isIsolatingCurrentContext` protocol requirement. In other words, if there is an implementation of the requirement available _other than_ the default one provided in the concurrency library, the runtime will attempt to use this method _over_ the `checkIsolated` API. This allows for a smooth migration to the new API, and enables the use of this method in if the runtime would like issue a check that cannot cause a crash.
 
 ### Compatibility strategy for custom SerialExecutor authors
 
@@ -194,3 +175,7 @@ It would be ideal if this method could have been bool returning initially, but d
 ### Deprecate `checkIsolated`?
 
 In order to make adoption of this new mode less painful and not cause deprecation warnings to libraries which intend to support multiple versions of Swift, the `SerialExcecutor/checkIsolated` protocol requirement remains _not_ deprecated. It may eventually become deprecated in the future, but right now we have no plans of doing so.
+
+## Changelog
+
+- removed the manual need to signal to the runtime that the specific executor supports the new checking mode. It is now detected by the compiler and runtime, checking for the presence of a non-default implementation of the protocol requirement.
