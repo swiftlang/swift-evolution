@@ -430,7 +430,7 @@ nonisolated func callQGElsewhere_restricted<T: Q>(_: T.Type) where T: ~SendableM
 
 With this notion, we could amend rule (2) to prohibit using an isolated protocol conformance for a requirement `T: Q` when the generic signature contains either the requirement `T: Sendable` or `T: SendableMetatype`. This closes the data race safety hole with isolated conformances being carried through metatypes.
 
-Unfortunately, this means that isolated conformances won't work with any existing generic code, because all generic code in existence today assumes that all metatypes are `Sendable`. Most of that code could be updated with requirements of the form `T.Type: ~Sendable` and without other changes, but it would require an ecosystem-wide change in support of a somewhat niche feature.
+Unfortunately, this means that isolated conformances won't work with any existing generic code, because all generic code in existence today assumes that all metatypes are `Sendable`. Most of that code could be updated with requirements of the form `T: ~SendableMetatype` and without other changes, but it would require an ecosystem-wide change in support of a somewhat niche feature.
 
 Therefore, this proposal suggests that we change the meaning of existing generic code to *not* be able to assume that a given metatype depending on a generic parameter is `Sendable`. Essentially, it will be as-if `T: ~SendableMetatype` has been applied to every generic parameter `T`. This will have the effect of rejecting the implementation of `callQGElsewhere`. After such a change to the language, the signature of `callQGElsewhere` could be updated by adding the requirement `T: SendableMetatype`. 
 
@@ -438,7 +438,7 @@ Note that, any time a value of type `T` crosses an isolation boundary, it's meta
 
 ```swift
 /*@marker*/ protocol SendableMetatype { }
-/*@marker*/ protocol Metatype: SendableMetatype { }
+/*@marker*/ protocol Sendable: SendableMetatype { }
 ```
 
 With this inference, a generic function like this will still continue to work even after the proposed language change:
