@@ -391,7 +391,7 @@ struct ExecutorJob {
   /// - body: The closure to execute.
   ///
   /// Returns the result of executing the closure.
-  public func withUnsafeExecutorPrivateData<R>(body: (UnsafeMutableRawBufferPointer) throws -> R) rethrows -> R
+  public func withUnsafeExecutorPrivateData<R, E>(body: (UnsafeMutableRawBufferPointer) throws(E) -> R) throws(E) -> R
 
   /// Kinds of schedulable jobs.
   @frozen
