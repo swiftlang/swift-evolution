@@ -409,7 +409,7 @@ extension C: @MainActor Q { ... }
 }
 ```
 
-The above code must be rejected to prevent a data race. There are two options based on where the :
+The above code must be rejected to prevent a data race. There are two options for diagnosing this data race:
 
 1. Reject the definition of `callQGElsewhere` because it is using the conformance from a different isolation domain.
 2. Reject the call to `callQGElsewhere` because it does not support isolated conformances.
