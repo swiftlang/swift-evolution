@@ -30,13 +30,14 @@ The `evaluate()` method is as follows, containing essentially the same logic
 as was in `prepare(for:)`:
 
 ```swift
-public func evaluate() async throws -> EvaluationResult {
-  switch kind {
-  case let .conditional(condition):
-    try await condition()
-  case let .unconditional(unconditionalValue):
-    (unconditionalValue, nil)
-  }
+extension ConditionTrait {
+  /// Evaluate this instance's underlying condition.
+  ///
+  /// - Returns: The result of evaluating this instance's underlying condition.
+  ///
+  /// The evaluation is performed each time this function is called, and is not
+  /// cached.
+  public func evaluate() async throws -> EvaluationResult
 }
 ```
 
@@ -44,7 +45,14 @@ public func evaluate() async throws -> EvaluationResult {
 of the callback in `Kind.conditional`:
 
 ```swift
-public typealias EvaluationResult = (wasMet: Bool, comment: Comment?)
+extension ConditionTrait {
+  /// The result of evaluating the condition.
+  ///
+  /// - Parameters:
+  ///   - wasMet: Whether or not the condition was met.
+  ///   - comment: Optionally, a comment describing the result of evaluating the condition.
+  public typealias EvaluationResult = (wasMet: Bool, comment: Comment?)
+}
 ```
 
 ## Source compatibility
