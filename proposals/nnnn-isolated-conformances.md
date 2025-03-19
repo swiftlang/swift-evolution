@@ -8,6 +8,8 @@
 
 * Status: **Awaiting review**
 
+* Upcoming feature: `InferIsolatedConformances`
+
 * Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
 
 * Implementation: On `main` with the experimental features `IsolatedConformances` and `StrictSendableMetatypes`.
@@ -522,15 +524,58 @@ With [region-based isolation](https://github.com/swiftlang/swift-evolution/blob/
 }
 ```
 
+### Inferring global actor isolation for global-actor-isolated types
+
+Types that are isolated to a global actor are very likely to want to have their conformances to be isolated to that global actor. This is especially true because the members of global-actor isolated types are implicitly isolated to that global actor, so obvious-looking code is rejected:
+
+```swift
+@MainActor
+class MyModelType: P {
+  func f() { } // error: implements P.f, is implicitly @MainActor
+               // but conformance to P is not isolated
+}
+```
+
+With this proposal, the fix is to mark the conformance as `@MainActor`:
+
+```swift
+@MainActor
+class MyModelType: @MainActor P { 
+  func f() { } // okay: implements P.f, is implicitly @MainActor
+}
+```
+
+However, the inference rule feels uneven: why is the `@MainActor` in one place inferred but not in the other? 
+
+In the future, we'd like to extend the global actor inference rule for global-actor isolated types to also infer global actor isolated on their conformances. This makes the obvious code above also correct:
+
+```swift
+@MainActor
+class MyModelType: /*inferred @MainActor*/ P { 
+  func f() { } // implements P.f, is implicitly @MainActor
+}
+```
+
+If this inference is not desired, for example because the code will use `nonisolated` members to satisfy the requirements of the protocol, it can use `nonisolated` on the conformance:
+
+```swift
+@MainActor
+class MyModelType: nonisolated P { 
+  nonisolated func f() { } // implements P.f, is non-isolated
+}
+```
+
+This mirrors the rules for global actor inference elsewhere in the language, providing a more consistent answer.
+
+This proposed change is source-breaking, so it should be staged in via an upcoming feature (`InferIsolatedConformances`) that can be folded into a future language mode. Fortunately, it is mechanically migratable: existing code migrating to `InferIsolatedConformances` could introduce `nonisolated` for each conformance of a global-actor-isolated type.
+
 ### Infer `@MainActor` conformances
 
-[SE-0466](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0466-control-default-actor-isolation.md) provides the ability to specify that a given module will infer `@MainActor` on any code that hasn't explicitly stated isolated (or non-isolation, via `nonisolated`). In a module that infers `@MainActor`, any conformance of a `@MainActor`-conforming type will also be inferred to be `@MainActor`. This should make single-threaded code easier to write, because protocol conformances will "just work" so long as the conformances themselves aren't referenced outside of the main actor or transferred into another isolation domain.
-
-This change also implies the need to express that an implicitly-`isolated` conformance should not be isolated, which could be done using `nonisolated`, just as we do for types:
+[SE-0466](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0466-control-default-actor-isolation.md) provides the ability to specify that a given module will infer `@MainActor` on any code that hasn't explicitly stated isolated (or non-isolation, via `nonisolated`). In a module that infers `@MainActor`, the upcoming feature `InferIsolatedConformances` (from the prior section) should also be enabled. This means that types will get main-actor isolation and also have their conformances main-actor isolated, extending the "mostly single-threaded" view of SE-0466 to interactions with generic code:
 
 ```swift
 /*implicit @MainActor*/
-class MyClass: /*implicit @MainActor*/P, nonisolated Hashable { ... }
+class MyClass: /*implicit @MainActor*/P { ... }
 ```
 
 ## Source compatibility
@@ -546,37 +591,6 @@ Isolated conformances can be introduced into the Swift ABI without any breaking 
 However, there is one likely behavioral difference with isolated conformances between newer and older runtimes. In newer Swift runtimes, the functions that evaluate `as?` casts will check of an isolated conformance and validate that the code is running on the proper executor before the cast succeeds. Older Swift runtimes that don't know about isolated conformances will allow the cast to succeed even outside of the isolation domain of the conformance, which can lead to different behavior that potentially involves data races.
 
 ## Future Directions
-
-### Inferring global actor isolation 
-
-This proposal specifies that, in the main-actor-by-default mode introduced in [SE-0466](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0466-control-default-actor-isolation.md),  main-actor-isolated types will infer that their conformances are also main actor-isolated unless stated otherwise. This inference rule for isolated conformances could be useful independent of the main-actor-by-default mode. That is, a type that is isolated to a global actor is very likely to want its conformances to be isolated, too:
-
-```swift
-@MainActor
-class MyModelType: P { 
-  func f() { } // implements P.f, is implicitly @MainActor
-}
-```
-
-This code is currently il-formed, because the conformance to `P` is nonisolated but `MyModelType.f` is main actor-isolated. The fix is to mark the conformance as `@MainActor`, e.g.,
-
-```swift
-@MainActor
-class MyModelType: @MainActor P { 
-  func f() { } // implements P.f, is implicitly @MainActor
-}
-```
-
-We could choose to infer global actor isolation for conformances of global-actor-isolated types, which would eliminate the need to explicitly write `@MainActor` on the conformance:
-
-```swift
-@MainActor
-class MyModelType: /*inferred @MainActor*/ P { 
-  func f() { } // implements P.f, is implicitly @MainActor
-}
-```
-
-This is effectively a generalization of the rule to infer `@MainActor` conformances under the main-actor-by-default mode. It would be a source-breaking change, however, because today all conformances are non-isolated, and code could depend on those conformances being non-isolated. Therefore, this change would need to have an associated upcoming feature name (e.g., `InferIsolatedConformances`). Fortunately, it is mechanically migratable: existing code migrating to `InferIsolatedConformances` could introduce `nonisolated` for each conformance of a global-actor-isolated type.
 
 ### Actor-instance isolated conformances
 
