@@ -88,7 +88,7 @@ This is effectively saying that `MyModelType` will only ever be considered `Equa
 
 ## Proposed solution
 
-This proposal introduces the notion of an *isolated conformance*. Isolated conformances are conformances whose use is restricted to the same global actor as the conforming type. This is the same effective restriction as the `nonisolated`/`assumeIsolated` pattern above, but enforced statically by the compiler and without any boilerplate. The following defines an isolated conformance of `MyModelType` to `Equatable`:
+This proposal introduces the notion of an *isolated conformance*. Isolated conformances are conformances whose use is restricted to a particular global actor. This is the same effective restriction as the `nonisolated`/`assumeIsolated` pattern above, but enforced statically by the compiler and without any boilerplate. The following defines an isolated conformance of `MyModelType` to `Equatable`:
 
 ```swift
 @MainActor
@@ -136,7 +136,7 @@ func parallelHasMatching(_ value: MyModelType, in modelValues: [MyModelType]) ->
 }
 ```
 
-Providing full data-race safety with isolated conformances also requires us to reason about the sendability of a *metatype*, because sending the metatype to another isolation domain can carry protocol conformances with it. For example, the following code could introduce a data race if the conformance of `T` to `GlobalLookup` were isolated, despite not having a `Sendable` constraint:
+The corresponding restriction needs to be in place within generic functions, ensuring that they don't leak (potentially) isolated conformances across isolation boundaries. For example, the following code could introduce a data race if the conformance of `T` to `GlobalLookup` were isolated:
 
 ```swift
 protocol GlobalLookup {
@@ -150,13 +150,13 @@ func hasNamed<T: GlobalLookup>(_: T.Type, name: String) async -> Bool {
 }
 ```
 
-To prevent such problems in generic code, this proposal restricts the ability to send metatypes of type parameters (e.g., `T.Type`) across isolation domains. The above code, which is accepted in Swift 6 today, would be rejected by the proposed changes here with an error message like:
+Here, the type `T` itself is not `Sendable`, but because *all* metatypes are `Sendable` it is considered safe to use `T` from another isolation domain within the generic function. The use of `T`'s conformance to `GlobalLookup` within that other isolation domain introduces a data-race problem if the conformance were isolated. To prevent such problems in generic code, this proposal treats conformances within generic code as if they are isolated *unless* the conforming type opts in to being sendable. The above code, which is accepted in Swift 6 today, would be rejected by the proposed changes here with an error message like:
 
 ```swift
-error: capture of non-sendable type 'T.Type' in closure
+error: cannot use potentially-isolated conformance of non-sendable type `T` to `GlobalLookup` in 'sending' closure
 ```
 
-A function like `hasNamed` can express the need for a `Sendable` metatype by introducing a requirement `T: SendableMetatype` (to make the metatype `Sendable`), e.g.,
+A function like `hasNamed` can indicate that its type parameter `T`'s requires non-isolated conformance by introducing a requirement `T: SendableMetatype`, e.g.,
 
 ```swift
 func hasNamed<T: GlobalLookup & SendableMetatype>(_: T.Type, name: String) async -> Bool {
@@ -177,6 +177,8 @@ extension MyModelType: isolated GlobalLookup {
 // satisfy conformance requirement for a `SendableMetatype` type parameter 'T'.
 if hasNamed(MyModelType.self, "root") { ... }
 ```
+
+Note that `Sendable` inherits from `SendableMetatype`, so any type `T` with a `Sendable` requirement also implies a requirement `T: SendableMetatype`.
 
 Protocol conformances can also be discovered dynamically with the `as?` and `is` operators. For example, one could try to produce an `any Equatable` from a value of unknown type in any isolation domain:
 
@@ -280,29 +282,7 @@ However, that doesn't address all issues, because region isolation permits sendi
 
 There are similar examples for `sending` parameters, but they're not conceptually different from the return case. This particular issue can be addressed by treating a value that depends on an isolated conformance as being within the region as the actor it's isolated to. So a newly-created value of type `C` is in its own region, but if it's type-erased to an `any P`, its region is merged with the region for the main actor. This would make the return expression in `badSendingReturn` ill-formed, because the returned value is not in its own region.
 
-These restrictions apply anywhere that a conformance is used, even though the conformance itself might not be obvious from the code. The following example uses an isolated conformance via a key path:
-
-```swift
-protocol HasName {
-  var name: String { get }
-}
-
-@MainActor class C: @MainActor HasName {
-  var name: String
-  // ...
-}
-
-@MainActor
-func useName() {
-    let c = C()
-    Task.detached {
-        c[keyPath: \HasName.name] // error: uses main-actor isolated conformance C: P
-                                  // outside of the main actor
-    }
-}
-```
-
-Metatypes introduce yet another issue:
+Conformances can cross isolation boundaries even if no values cross the boundary:
 
 ```swift
 nonisolated func callQGElsewhere<T: Q>(_: T.Type) {
@@ -311,7 +291,7 @@ nonisolated func callQGElsewhere<T: Q>(_: T.Type) {
   }
 }
 
-func metatypeProblem() {
+@MainActor func isolationWithStatics() {
   callQGElsewhere(C.self)
 }
 ```
@@ -371,9 +351,27 @@ struct S2: P2 {    // error: conformance of S2: P2 depends on @MainActor-isolate
                    // note: fix by making conformance of S2: P2 also @MainActor-isolated
   typealias A = S
 }
+
+protocol HasName {
+  var name: String { get }
+}
+
+@MainActor class Named: @MainActor HasName {
+  var name: String
+  // ...
+}
+
+@MainActor
+func useName() {
+    let named = Named()
+    Task.detached {
+        named[keyPath: \HasName.name] // error: uses main-actor isolated conformance Named: P
+                                      // outside of the main actor
+    }
+}
 ```
 
-Note that the types that have isolated conformances may have different isolation from their conformances. For example, an `actor` or non-isolated type can have a `@MainActor` conformance. For example:
+Note that the types can have different isolation from their conformances. For example, an `actor` or non-isolated type can have a `@MainActor` conformance:
 
 ```swift
 actor MyActor: @MainActor P {
@@ -389,7 +387,34 @@ actor MyActor: @MainActor P {
 
 ### Rule 2: Isolated conformances can only be abstracted away for non-`Sendable` types
 
-Rule (2) ensures that when information about an isolated conformance is abstracted away by the type system, the type parameter requiring the conformance cannot leave the isolation domain. For values of the type parameter (call it `T`), it is sufficient to establish that it does *not* conform to `Sendable`, i.e.,  the constraint`T: Sendable` is not part of the generic signature. Some examples:
+Rule (2) ensures that when information about an isolated conformance is abstracted away by the generics system, the conformance cannot leave its original isolation domain. This requires a way to determine when a given generic function is permitted to pass a conformance it receives across isolation domains. Consider the example above where a generic function uses one of its conformances in different isolation domain:
+
+```swift
+protocol Q {
+  static func g() { }
+}
+
+nonisolated func callQGElsewhere<T: Q>(_: T.Type) {
+  Task.detached {
+    T.g() // use of the conformance T: Q in a different isolation domain
+  }
+}
+
+extension C: @MainActor Q { ... }
+
+@MainActor func isolationWithStatics() {
+  callQGElsewhere(C.self) // passing an isolated conformance
+}
+```
+
+The above code must be rejected to prevent a data race. There are two options based on where the :
+
+1. Reject the definition of `callQGElsewhere` because it is using the conformance from a different isolation domain.
+2. Reject the call to `callQGElsewhere` because it does not support isolated conformances.
+
+This proposal takes option (1): we assume that generic code accepts isolated conformances unless it has indicated otherwise with a `Sendable` constraint (more information on that below). Since most generic code doesn't deal with concurrency at all, it will be unaffected. And generic code that does make use of concurrency should already have `Sendable` constraints that indicate that it will not work with isolated conformances. 
+
+The specific requirement for option (1) is enforced both in the caller to a generic function and in the implementation of that function. The caller can use an isolated conformance to satisfy a conformance requirement `T: P` so long as the generic function does not also contain a requirement `T: Sendable`. This prevents isolated conformances to be used in conjunction with types that can cross isolation domains, preventing the data race from being introduced at the call site. Here are some examples of this rule:
 
 ```swift
 func acceptsSendableP<T: Sendable & P>(_ value: T) { }
@@ -424,7 +449,7 @@ The same checking occurs when the type parameter is hidden, for example when dea
 }
 ```
 
-As noted in the earlier discussion of data-race safety issues, protecting against values being sent to another isolation domain is insufficient, because passing the *metatype* of the type can also carry the isolated conformances with it. Recall the example from earlier:
+Within the implementation, a conformance requirement `T: Q` is considered to be isolated if there is no requirement `T: Sendable`. This mirrors the rule on the caller side, and causes the following code to be ill-formed: 
 
 ```swift
 protocol Q {
@@ -433,37 +458,33 @@ protocol Q {
 
 nonisolated func callQGElsewhere<T: Q>(_: T.Type) {
   Task.detached {
+    T.g() // error: use of potentially-isolated conformance of non-Sendable type T to Q
+  }
+}
+```
+
+To correct this function, add a constraint `T: Sendable`, which allows the function to send the conformance across isolation domains. As described above, it also prevents the caller from providing an isolated conformance to satisfy the `T: Q` requirement, preventing the data race.
+
+The `Sendable` requirement described above is a stricter contract than is necessary for a function such as `callQGElsewhere`, which won't ever pass *values* of the type `T` across an isolation domain. Therefore, we introduce a new marker protocol `SendableMetatype` to capture the idea that values of the metatype of `T` (i.e., `T.Type`) will cross isolation domains and take conformances with them. A requirement `T: SendableMetatype` prohibits isolated conformances from being used on type `T`.  Now, `callQGElsewhere` can be correctly expressed as follows:
+
+```swift
+nonisolated func callQGElsewhere<T: Q & SendableMetatype>(_: T.Type) {
+  Task.detached {
     T.g()
   }
 }
 ```
 
-If the conformance provided for `T: Q` is isolated to a global actor, the call `T.g()` from another isolation domain will break data race safety. This could be diagnosed in the implementation of `callQGElsewhere` if `T.Type` were not guaranteed to be `Sendable`. This sets up a contradiction with SE-0302, which introduced the notion of `Sendable` and specifies that [all metatypes are `Sendable`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#metatype-conformance-to-sendable). 
+The `SendableMetatype` protocol is somewhat special, because according to SE-0302 *all* metatypes are `Sendable`. This proposal refines that statement slightly: all concrete types (structs, enums, classes, actors) implicitly conform to `SendableMetatype`, because their metatypes (e.g., `MyModelType.Type`) are all `Sendable`. Therefore, a call to `callQGElsewhere` for any concrete type will succeed so long as that type has a (non-isolated) conformance to `Q`. 
 
-We can borrow from the approach taken by [non-copyable](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md) and [non-escapable](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md) types, where we introduce the notion of a suppressed constraint to allow generics to operate with a set of capabilities that is more limited than "normal" types. For example, we could introduce a constraint of the form `T: ~SendableMetatype` to make the metatype of `T` not `Sendable` within a given generic function. If we applied this constraint to `callQGElsewhere`, we would get a compile-time error:
-
-```swift
-nonisolated func callQGElsewhere_restricted<T: Q>(_: T.Type) where T: ~SendableMetatype {
-  Task.detached {
-    T.g() // error: capture of non-Sendable metatype T.Type in concurrently-executed closure
-  }
-}
-```
-
-With this notion, we could amend rule (2) to prohibit using an isolated protocol conformance for a requirement `T: Q` when the generic signature contains either the requirement `T: Sendable` or `T: SendableMetatype`. This closes the data race safety hole with isolated conformances being carried through metatypes.
-
-Unfortunately, this means that isolated conformances won't work with any existing generic code, because all generic code in existence today assumes that all metatypes are `Sendable`. Most of that code could be updated with requirements of the form `T: ~SendableMetatype` and without other changes, but it would require an ecosystem-wide change in support of a somewhat niche feature.
-
-Therefore, this proposal suggests that we change the meaning of existing generic code to *not* be able to assume that a given metatype depending on a generic parameter is `Sendable`. Essentially, it will be as-if `T: ~SendableMetatype` has been applied to every generic parameter `T`. This will have the effect of rejecting the implementation of `callQGElsewhere`. After such a change to the language, the signature of `callQGElsewhere` could be updated by adding the requirement `T: SendableMetatype`. 
-
-Note that, any time a value of type `T` crosses an isolation boundary, it's metatype is accessible via   [`type(of:)`](https://developer.apple.com/documentation/swift/type(of:)), so it also crosses the isolation boundary. This provides us with an inference rule that can help lessen the impact of this source compatibility break: if a generic signature contains a requirement `T: Sendable`, then we can infer the requirement `T: SendableMetatype`. Doing so involves specifying that `Sendable` refines a new marker protocol, `SendableMetatype`:
+The `Sendable` protocol inherits from the new `SendableMetatype` protocol:
 
 ```swift
 /*@marker*/ protocol SendableMetatype { }
 /*@marker*/ protocol Sendable: SendableMetatype { }
 ```
 
-With this inference, a generic function like this will still continue to work even after the proposed language change:
+This means that a requirement `T: Sendable` implies `T: SendableMetatype`, so a generic function that uses concurrency along with `Sendable` requirements, like this::
 
 ```swift
 func doSomethingElsewhere<T: Sendable & P>(_ value: T) {
@@ -473,12 +494,15 @@ func doSomethingElsewhere<T: Sendable & P>(_ value: T) {
 }
 ```
 
-The source compatibility break required to enforce rule (2) is therefore limited to generic code that:
+will continue to work with the stricter model for generic functions in this proposal.
 
-1. Passes a metatype of some generic type `T` across isolation domains;
-2. Has a requirement on `T` that is not a marker protocol (e.g, `BitwiseCopyable`) or suppression (`~Escapable`);
-3. Does not have a corresponding constraint `T: Sendable`; and
-4. Is compiled with strict concurrency enabled (either as Swift 6 or with warnings).
+The proposed change for generic functions does have an impact on source compatibility, where functions like `callQGElsewhere` will be rejected. However, the source break is limited to generic code that:
+
+1. Uses a conformance requirement (`T: P`) of a non-marked protocol `P` in another isolated domain,
+2. Does not have a corresponding constraint `T: Sendable` requirement; and
+3. Is compiled with strict concurrency enabled (either as Swift 6 or with warnings).
+
+Experiments with the prototype implementation of this feature uncovered very little code that was affected by this change. The benefit to introducing this source break is that the vast majority of existing generic code will work unmodified with isolated conformances, or (if it's using concurrency) correctly reject the use of isolated conformances in their callers.
 
 ### Rule 3: Isolated conformances are in their global actor's region
 
@@ -511,7 +535,7 @@ class MyClass: /*implicit @MainActor*/P, nonisolated Hashable { ... }
 
 ## Source compatibility
 
-As discussed in the section on rule (2), this proposal introduces a source compatbility break for code that is using strict concurrency and passes metatypes of non-`Sendable` type parameters across isolation domains. The overall amount of such code is expected to be small, because it's likely to be rare that the metatypes of generic types cross isolation boundaries but values of those types do not.
+As discussed in the section on rule (2), this proposal introduces a source compatbility break for code that is using strict concurrency and passes uses conformances of non-`Sendable` type parameters in other isolation domains. The overall amount of such code is expected to be small, because it's likely to be rare that the conformances of generic types cross isolation boundaries but values of those types do not.
 
 Initial testing of an implementation of this proposal found very little code that relied on `Sendable` metatypes where the corresponding type was not also `Sendable`. Therefore, this proposal suggests to accept this as a source-breaking change with strict concurrency (as a warning in Swift 5, error in Swift 6) rather than staging the change through an upcoming feature or alternative language mode.
 
