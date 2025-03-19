@@ -223,7 +223,7 @@ nonisolated func callQG() {
 
 Here, a call to `C.g()` would have been rejected because it's calling a `@MainActor` function from non-isolated code and cannot `await`. However, if we're allowed to use the isolated conformance of `C: Q`, we would subvert the checking because `Q.g()` is non-isolated.
 
-We can address this specific issue by prohibiting the use of an isolated conformance from outside its isolation domain, i.e., the use of `C: Q` to convert `C.Type` to `Q.Type` in a non-`@MainActor` function would be an error. 
+We can address this specific issue by prohibiting the use of an isolated conformance from outside its isolation domain, i.e., the use of `C: Q` to convert `C.Type` to `Q.Type` in a non-`@MainActor` function would be an error.
 
 However, this is not sufficient to ensure that this conformance `C: P` will only be used from the main actor. Consider a function like this:
 
@@ -279,6 +279,28 @@ However, that doesn't address all issues, because region isolation permits sendi
 ```
 
 There are similar examples for `sending` parameters, but they're not conceptually different from the return case. This particular issue can be addressed by treating a value that depends on an isolated conformance as being within the region as the actor it's isolated to. So a newly-created value of type `C` is in its own region, but if it's type-erased to an `any P`, its region is merged with the region for the main actor. This would make the return expression in `badSendingReturn` ill-formed, because the returned value is not in its own region.
+
+These restrictions apply anywhere that a conformance is used, even though the conformance itself might not be obvious from the code. The following example uses an isolated conformance via a key path:
+
+```swift
+protocol HasName {
+  var name: String { get }
+}
+
+@MainActor class C: @MainActor HasName {
+  var name: String
+  // ...
+}
+
+@MainActor
+func useName() {
+    let c = C()
+    Task.detached {
+        c[keyPath: \HasName.name] // error: uses main-actor isolated conformance C: P
+                                  // outside of the main actor
+    }
+}
+```
 
 Metatypes introduce yet another issue:
 
