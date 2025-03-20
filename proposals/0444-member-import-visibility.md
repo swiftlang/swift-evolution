@@ -3,7 +3,7 @@
 * Proposal: [SE-0444](0444-member-import-visibility.md)
 * Authors: [Allan Shortlidge](https://github.com/tshortli)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.1)**
 * Bug: [apple/swift#46493](https://github.com/apple/swift/issues/46493)
 * Implementation: [apple/swift#72974](https://github.com/apple/swift/pull/72974), [apple/swift#73063](https://github.com/apple/swift/pull/73063)
 * Upcoming Feature Flag: `MemberImportVisibility`
