@@ -5,7 +5,7 @@
 * Status: **Active Review (March 21...April 8, 2025)**
 * Bug: [apple/swift-testing#157](https://github.com/apple/swift-testing/issues/157)
 * Implementation: [apple/swift-testing#324](https://github.com/swiftlang/swift-testing/pull/324)
-* Review: (review), ([pitch](https://forums.swift.org/t/pitch-exit-tests/78071))
+* Review: ([review](https://forums.swift.org/t/st-0008-exit-tests/78692)), ([pitch](https://forums.swift.org/t/pitch-exit-tests/78071))
 
 ## Introduction
 
