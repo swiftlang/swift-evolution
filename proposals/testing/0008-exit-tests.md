@@ -1,11 +1,11 @@
 # Exit tests
 
-* Proposal: [ST-NNNN](NNNN-exit-tests.md)
+* Proposal: [ST-0008](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0008-exit-tests.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Status: **Awaiting review**
+* Status: **Active Review (March 21...April 8, 2025)**
 * Bug: [apple/swift-testing#157](https://github.com/apple/swift-testing/issues/157)
 * Implementation: [apple/swift-testing#324](https://github.com/swiftlang/swift-testing/pull/324)
-* Review: ([pitch](https://forums.swift.org/t/pitch-exit-tests/78071))
+* Review: (review), ([pitch](https://forums.swift.org/t/pitch-exit-tests/78071))
 
 ## Introduction
 
