@@ -6,7 +6,7 @@
 * Status: **Active Review (March 21 - April 8, 2025)**
 * Bug: [swiftlang/swift-testing#714](https://github.com/swiftlang/swift-testing/issues/714)
 * Implementation: [swiftlang/swift-testing#973](https://github.com/swiftlang/swift-testing/pull/973)
-* Review: ([pitch](https://forums.swift.org/t/pitch-attachments/78072))
+* Review: ([review](https://forums.swift.org/t/st-0009-attachments/78698)), ([pitch](https://forums.swift.org/t/pitch-attachments/78072))
 
 ## Introduction
 
