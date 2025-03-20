@@ -3,10 +3,10 @@
 * Proposal: [SE-0180](0180-string-index-overhaul.md)
 * Author: [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0180-string-index-overhaul/6286)
 * Implementation: [apple/swift#9806](https://github.com/apple/swift/pull/9806)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/72b8d90becd60b7cc7695607ae908ef251f1e966/proposals/0180-string-index-overhaul.md)
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/72b8d90becd60b7cc7695607ae908ef251f1e966/proposals/0180-string-index-overhaul.md)
 
 ## Introduction
 
@@ -129,7 +129,7 @@ let tagEnd = html.utf16[tagStart...].index(of: close)
 let tag = html[tagStart...tagEnd]
 ```
 
-A property and an intializer will be added to `String.Index`, exposing
+A property and an initializer will be added to `String.Index`, exposing
 the offset of the index in code units (currently only UTF-16) from the
 beginning of the string:
 

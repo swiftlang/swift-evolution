@@ -3,7 +3,7 @@
 * Proposal: [SE-0072](0072-eliminate-implicit-bridging-conversions.md)
 * Author: [Joe Pamer](https://github.com/jopamer)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0072-fully-eliminate-implicit-bridging-conversions-from-swift/2487)
 * Implementation: [apple/swift#2419](https://github.com/apple/swift/pull/2419)
 

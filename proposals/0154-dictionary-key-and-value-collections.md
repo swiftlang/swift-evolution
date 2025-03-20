@@ -3,7 +3,7 @@
 * Proposal: [SE-0154](0154-dictionary-key-and-value-collections.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0154-provide-custom-collections-for-dictionary-keys-and-values/5322)
 
 ## Introduction

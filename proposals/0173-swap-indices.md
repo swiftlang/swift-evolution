@@ -3,7 +3,7 @@
 * Proposal: [SE-0173](0173-swap-indices.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0173-add-mutablecollection-swapat/5811)
 * Implementation: [apple/swift#9119](https://github.com/apple/swift/pull/9119)
 
@@ -82,7 +82,7 @@ protocol MutableCollection {
 The current `swap` is required to `fatalError` on attempts to swap an element
 with itself for implementation reasons. This pushes the burden to check this
 first onto the caller. While swapping an element with itself is often a logic
-errror (for example, in a `sort` algorithm where you have a fenceposts bug), it
+error (for example, in a `sort` algorithm where you have a fenceposts bug), it
 is occasionally a valid situation (for example, it can occur easily in an
 implementation of `shuffle`). This implementation removes the precondition.
 

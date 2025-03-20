@@ -10,7 +10,7 @@
 
 ## Introduction
 
-[SE-0303](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md) introduced the ability to define *build tool plugins* in SwiftPM, allowing custom tools to be invoked while building a package. In support of this, SE-0303 introduced a minimal initial API through which plugins can access information about the target for which they are invoked.
+[SE-0303](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md) introduced the ability to define *build tool plugins* in SwiftPM, allowing custom tools to be invoked while building a package. In support of this, SE-0303 introduced a minimal initial API through which plugins can access information about the target for which they are invoked.
 
 This proposal extends the plugin API to provide more context, including a richer representation of the package graph. This is in preparation for supporting new kinds of plugins in the future.
 
@@ -181,7 +181,7 @@ public protocol Product {
     
     /// The targets that directly comprise the product, in the order in which
     /// they are declared in the package manifest. The product will contain the
-    /// transitive closure of the these targets and their depdendencies.
+    /// transitive closure of the these targets and their dependencies.
     var targets: [Target] { get }
 }
 
@@ -364,7 +364,7 @@ public enum FileType {
 }
 ```
 
-Note that the `Target` and `Product` types are defined using protocols, with structing implementing the specific types of targets and products. Although they define unique identifiers, they do not in this proposal conform to `Identifiable`, since that would introduce `Self` requirements on the protocol that makes it difficult to have heterogeneous collections of targets and products, as the SwiftPM package model has.  This should be alleviated via [SE-0309](https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md). The `ID` type alias and `id` property should make it easy to conform these protocols to `Identifiable` in the future without affecting existing plugins.
+Note that the `Target` and `Product` types are defined using protocols, with structing implementing the specific types of targets and products. Although they define unique identifiers, they do not in this proposal conform to `Identifiable`, since that would introduce `Self` requirements on the protocol that makes it difficult to have heterogeneous collections of targets and products, as the SwiftPM package model has.  This should be alleviated via [SE-0309](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md). The `ID` type alias and `id` property should make it easy to conform these protocols to `Identifiable` in the future without affecting existing plugins.
 
 The `BuildToolPlugin` is extended with the following new entry point that takes the new, more general context and a direct reference to the target for which build commands should be created:
 
@@ -419,7 +419,7 @@ This proposal also adds the first of what is expected to be a toolbox of APIs to
 
 ```swift
 extension Target {
-    /// The transitive closure of all the targets on which the reciver depends,
+    /// The transitive closure of all the targets on which the receiver depends,
     /// ordered such that every dependency appears before any other target that
     /// depends on it (i.e. in "topological sort order").
     public var recursiveTargetDependencies: [Target]
@@ -509,7 +509,7 @@ struct MyPlugin: BuildToolPlugin {
         // Create a module mappings file. This is something that the Swift source
         // generator `protoc` plug-in we are using requires. The details are not
         // important for this proposal, except that it needs to be able to be con-
-        // structed from the information in the context given to the plugin, and
+        // structured from the information in the context given to the plugin, and
         // to be written out to the intermediates directory.
         let moduleMappingsFile = otherFilesDir.appending("module-mappings")
         let outputString = ". . . module mappings file . . ."

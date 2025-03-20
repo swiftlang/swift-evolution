@@ -75,7 +75,7 @@ The attribute cannot be applied to local declarations, that is, declarations nes
 
 When applied to a subscript or computed property, the attribute applies to both the getter and setter.
 
-Note that only delegating initializers (those that assign to `self` or call another initializer via `self.init`) can be inlinable. Root initializers which initialize the stored properties of a struct or class directly cannot be inlinable. For motivation, see [SE-0189 Restrict Cross-module Struct Initializers](https://github.com/apple/swift-evolution/blob/master/proposals/0189-restrict-cross-module-struct-initializers.md).
+Note that only delegating initializers (those that assign to `self` or call another initializer via `self.init`) can be inlinable. Root initializers which initialize the stored properties of a struct or class directly cannot be inlinable. For motivation, see [SE-0189 Restrict Cross-module Struct Initializers](https://github.com/swiftlang/swift-evolution/blob/master/proposals/0189-restrict-cross-module-struct-initializers.md).
 
 ### Inlinable contexts
 
@@ -171,7 +171,7 @@ The closest analogue in C to `@usableFromInline` is a non-`static` function that
 
 ## Alternatives considered
 
-One possible alterative would be to add a new compiler mode where _all_ declarations become implicitly `@inlinable`, and _all_ private and internal declarations become `@usableFromInline`.
+One possible alternative would be to add a new compiler mode where _all_ declarations become implicitly `@inlinable`, and _all_ private and internal declarations become `@usableFromInline`.
 
 However, such a compilation mode would not solve the problem of delivering a stable ABI and standard library which can be deployed separately from user code. We _don't want_ all declaration bodies in the standard library to be available to the optimizer when building user code.
 

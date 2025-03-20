@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0073](0073-noescape-once.md)
 * Authors: [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0073-marking-closures-as-executing-exactly-once/2575)
 
@@ -128,7 +128,7 @@ expected.
 ## Not requiring exactly one execution
 
 Assuming that the main goal of this proposal is to relax initialization
-requirements, a unique invocation of the closure is not stricly required.
+requirements, a unique invocation of the closure is not strictly required.
 However the requirement of unique invocation makes the proposal simpler to
 understand.
 

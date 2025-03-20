@@ -1,8 +1,8 @@
 # Adding a Build Configuration Import Test
 
 * Proposal: [SE-0075](0075-import-test.md)
-* Author: [Erica Sadun](http://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Author: [Erica Sadun](https://github.com/erica)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0075-adding-a-build-configuration-import-test/2683)
 * Bug: [SR-1560](https://bugs.swift.org/browse/SR-1560)
@@ -33,7 +33,7 @@ Swift's existing set of build configurations specify platform differences, not m
 #endif
 ```
 
-Guarding code with operating system tests can be less future-proofed than testing for module support.  Excluding OS X to use UIColor creates code that might eventually find its way to a Linux plaform. Targeting Apple platforms by inverting a test for Linux essentially broke after the introduction of `Windows` and `FreeBSD` build configurations:
+Guarding code with operating system tests can be less future-proofed than testing for module support.  Excluding OS X to use UIColor creates code that might eventually find its way to a Linux platform. Targeting Apple platforms by inverting a test for Linux essentially broke after the introduction of `Windows` and `FreeBSD` build configurations:
 
 ```swift
 // Exclusive os tests are brittle

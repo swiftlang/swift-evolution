@@ -1,8 +1,8 @@
 # Decoupling Floating Point Strides from Generic Implementations
 
 * Proposal: [SE-0050](0050-floating-point-stride.md)
-* Authors: [Erica Sadun](http://github.com/erica), [Xiaodi Wu](http://github.com/xwu)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Authors: [Erica Sadun](https://github.com/erica), [Xiaodi Wu](https://github.com/xwu)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Withdrawn**
 * Decision Notes: [Rationale](https://forums.swift.org/t/returned-for-revision-se-0050-decoupling-floating-point-strides-from-generic-implementations/2823)
 

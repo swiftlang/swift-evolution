@@ -1,9 +1,9 @@
 # Adjusting `inout` Declarations for Type Decoration
 
 * Proposal: [SE-0031](0031-adjusting-inout-declarations.md)
-* Authors: [Joe Groff](https://github.com/jckarter), [Erica Sadun](http://github.com/erica)
+* Authors: [Joe Groff](https://github.com/jckarter), [Erica Sadun](https://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0031-adjusting-inout-declarations-for-type-decoration/1478)
 * Implementation: [apple/swift#1333](https://github.com/apple/swift/pull/1333)
 

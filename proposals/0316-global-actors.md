@@ -276,7 +276,7 @@ A class can only be annotated with a global actor if it has no superclass, the s
 Declarations that are not explicitly annotated with either a global actor or `nonisolated` can infer global actor isolation from several different places:
 
 * Subclasses infer actor isolation from their superclass:
-* 
+
   ```swift
   class RemoteIconViewController: IconViewController { // implicitly @MainActor
       func connect() { ... } // implicitly @MainActor
@@ -545,5 +545,5 @@ The primary motivation for global actors is the main actor, and the semantics of
 
 
 [customexecs]: https://github.com/rjmccall/swift-evolution/blob/custom-executors/proposals/0000-custom-executors.md
-[isolation]: https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md
+[isolation]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md
 

@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0107](0107-unsaferawpointer.md)
 * Author: [Andrew Trick](https://github.com/atrick)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0107-unsaferawpointer-api/3389)
 
 For detailed instructions on how to migrate your code to this new
@@ -160,7 +160,7 @@ value argument could result in miscompilation if the inferred type
 ever deviates from the user's original expectations. The type
 parameter also importantly conveys that the raw memory becomes
 accessible via a pointer to that type at the point of the call. The
-type should be explicitly spelled at this point because accesing the
+type should be explicitly spelled at this point because accessing the
 memory via a typed pointer of an unrelated type could also result in
 miscompilation.
 

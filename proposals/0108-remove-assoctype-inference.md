@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0108](0108-remove-assoctype-inference.md)
 * Authors: [Douglas Gregor](https://github.com/DougGregor), Austin Zheng
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0108-remove-associated-type-inference/3304)
 
@@ -165,7 +165,7 @@ There are some advantages to this approach. Brevity is slightly improved. A type
 
 As well, Dave Abrahams expresses a [potential issue](https://forums.swift.org/t/pitch-remove-type-inference-for-associated-types/3135/17):
 
-> Finally, I am very concerned that there are protocols such as `Collection`, with many inferrable associated types, and that conforming to these protocols could become *much* uglier.
+> Finally, I am very concerned that there are protocols such as `Collection`, with many inferable associated types, and that conforming to these protocols could become *much* uglier.
 
 As with many proposals, there is a tradeoff between the status quo and the proposed behavior. As *Completing Generics* puts it,
 
@@ -173,4 +173,4 @@ As with many proposals, there is a tradeoff between the status quo and the propo
 
 ### Require explicit declaration using `associatedtype`
 
-An [earlier draft of this proposal](https://github.com/apple/swift-evolution/blob/18a1781d930034583ffc0325a180099f15fbb834/proposals/XXXX-remove-assoctype-inference.md) detailed a design in which types would explicitly bind their associated types using an `associatedtype` declaration. It is presented as an alternative for consideration.
+An [earlier draft of this proposal](https://github.com/swiftlang/swift-evolution/blob/18a1781d930034583ffc0325a180099f15fbb834/proposals/XXXX-remove-assoctype-inference.md) detailed a design in which types would explicitly bind their associated types using an `associatedtype` declaration. It is presented as an alternative for consideration.

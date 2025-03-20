@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0080](0080-failable-numeric-initializers.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0080-failable-numeric-conversion-initializers/2578)
 * Bug: [SR-1491](https://bugs.swift.org/browse/SR-1491)

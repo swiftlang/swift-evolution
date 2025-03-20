@@ -3,7 +3,7 @@
 * Proposal: [SE-0135](0135-package-manager-support-for-differentiating-packages-by-swift-version.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0135-package-manager-support-for-differentiating-packages-by-swift-version/3687)
 
 ## Introduction

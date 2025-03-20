@@ -1758,6 +1758,6 @@ One of the pre-existing returned tuples does not have element labels, and the or
 
 ## Acknowledgments
 
-[Kelvin Ma](https://github.com/kelvin13) (aka [Taylor Swift](https://forums.swift.org/u/taylorswift/summary))'s initial versions of the pitch that became SE-0184 included more functions to manipulate initialization state. These were deferred, but much of the deferred functionality has not been pitched again until now.
+[Dianna Ma](https://github.com/tayloraswift) (aka [Taylor Swift](https://forums.swift.org/u/taylorswift/summary))'s initial versions of the pitch that became SE-0184 included more functions to manipulate initialization state. These were deferred, but much of the deferred functionality has not been pitched again until now.
 
 Members of the Swift Standard Library team for valuable discussions.

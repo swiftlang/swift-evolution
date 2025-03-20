@@ -5,7 +5,7 @@
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
 * Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/swift-evolution-accepted-se-0145-package-manager-version-pinning-revised/4653)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/91725ee83fa34c81942a634dcdfa9d2441fbd853/proposals/0145-package-manager-version-pinning.md)
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/91725ee83fa34c81942a634dcdfa9d2441fbd853/proposals/0145-package-manager-version-pinning.md)
 * Previous Discussion: [Email Thread](https://forums.swift.org/t/review-se-0145-package-manager-version-pinning/4405/15)
 
 ## Introduction
@@ -366,7 +366,7 @@ specification in the manifest (which is the "requirement"). The meaning of pin
 connotes this transient relationship between the pin action and the underlying
 dependency.
 
-In constrast, not only does lock have the wrong connotation, but it also is a
+In contrast, not only does lock have the wrong connotation, but it also is a
 heavily overloaded word which can lead to confusion. For example, if the package
 manager used POSIX file locking to prevent concurrent manipulation of packages
 (a feature we intend to implement), and we also referred to the pinning files as

@@ -3,7 +3,7 @@
 * Proposal: [SE-0213](0213-literal-init-via-coercion.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#17860](https://github.com/apple/swift/pull/17860)
 
 ## Introduction

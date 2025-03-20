@@ -1,7 +1,7 @@
 # Integer-convertible character literals
 
 * Proposal: [SE-0243](0243-codepoint-and-character-literals.md)
-* Authors: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13), [Chris Lattner](https://github.com/lattner), [John Holdsworth](https://github.com/johnno1962)
+* Authors: [Dianna Ma (“Taylor Swift”)](https://github.com/tayloraswift), [Chris Lattner](https://github.com/lattner), [John Holdsworth](https://github.com/johnno1962)
 * Review manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Rejected** ([Rationale](https://forums.swift.org/t/se-0243-codepoint-and-character-literals/21188/341))
 * Implementation: [apple/swift#21873](https://github.com/apple/swift/pull/21873)
@@ -146,7 +146,7 @@ Use of single quotes for character/scalar literals is precedented in other langu
 
 In Swift 1.0, single quotes were reserved for some yet-to-be determined syntactical purpose. Since then, pretty much all of the things that might have used single quotes have already found homes in other parts of the Swift syntactical space:
 
-- syntax for [multi-line string literals](https://github.com/apple/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md) uses triple quotes (`"""`)
+- syntax for [multi-line string literals](https://github.com/swiftlang/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md) uses triple quotes (`"""`)
 
 - string interpolation syntax uses standard double quote syntax. 
 
@@ -154,7 +154,7 @@ In Swift 1.0, single quotes were reserved for some yet-to-be determined syntacti
 
 - In current discussions around [regex literals](https://forums.swift.org/t/string-update/7398/6), most people seem to prefer slashes (`/`).
 
-Given that, and the desire for lightweight syntax for single chararcter syntax, and the precedent in other languages for characters, it is natural to use single quotes for this purpose.
+Given that, and the desire for lightweight syntax for single character syntax, and the precedent in other languages for characters, it is natural to use single quotes for this purpose.
 
 ### Existing double quote initializers for characters
 

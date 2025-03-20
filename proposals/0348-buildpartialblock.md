@@ -26,7 +26,7 @@ enum Builder {
 }
 ```
 
-When `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` are both provided, the [result builder transform](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md#the-result-builder-transform) will transform components in a block into a series of calls to `buildPartialBlock`, combining one subsequent line into the result at a time.
+When `buildPartialBlock(first:)` and `buildPartialBlock(accumulated:next:)` are both provided, the [result builder transform](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0289-result-builders.md#the-result-builder-transform) will transform components in a block into a series of calls to `buildPartialBlock`, combining one subsequent line into the result at a time.
 
 ```swift
 // Original
@@ -228,7 +228,7 @@ Then, a non-empty block will be transformed to the following:
 }
 ```
 
-Otherwise, the result builder transform will transform the block to call `buildBlock` instead as proposed in [SE-0289](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md).
+Otherwise, the result builder transform will transform the block to call `buildBlock` instead as proposed in [SE-0289](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0289-result-builders.md).
 
 ## Source compatibility
 
@@ -268,7 +268,7 @@ Such features would greatly complicate the type system.
 
 #### Overload `buildBlock` method name
 
-Because the proposed feature overlaps `buildBlock`, one could argue for reusing `buildBlock` as the method base name instead of `buildPartialBlock` and using arguemnt labels to distinguish whether it is the pairwise version, e.g. `buildBlock(partiallyAccumulated:next:)` or `buildBlock(combining:into:)`.
+Because the proposed feature overlaps `buildBlock`, one could argue for reusing `buildBlock` as the method base name instead of `buildPartialBlock` and using argument labels to distinguish whether it is the pairwise version, e.g. `buildBlock(partiallyAccumulated:next:)` or `buildBlock(combining:into:)`.
 
 ```swift
 extension Builder {

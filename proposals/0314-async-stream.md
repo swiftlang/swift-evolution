@@ -18,7 +18,7 @@ Changes for the second review:
 
 ## Introduction
 
-The continuation types added in [SE-0300](https://github.com/apple/swift-evolution/blob/main/proposals/0300-continuation.md) act as adaptors for synchronous code that signals completion by calling a delegate method or callback function. For code that instead yields multiple values over time, this proposal adds new types to support implementing an `AsyncSequence` interface.
+The continuation types added in [SE-0300](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0300-continuation.md) act as adaptors for synchronous code that signals completion by calling a delegate method or callback function. For code that instead yields multiple values over time, this proposal adds new types to support implementing an `AsyncSequence` interface.
 
 Swift-evolution threads:
 
@@ -114,8 +114,8 @@ extension QuakeMonitor {
       monitor.quakeHandler { quake in
         continuation.yield(quake)
       }
-      monitor.onTermination = { _ in 
-        monitor.stopMonitoring
+      continuation.onTermination = { _ in 
+        monitor.stopMonitoring()
       }
       monitor.startMonitoring()
     }
@@ -135,7 +135,7 @@ Alternatively if a source is just an async function (one that represents a backp
 
 ### Creating an `AsyncThrowingStream`
 
-Along with the potentially infinite sequence in the example above, `AsyncSeries` can also adapt APIs like the slightly contrived one below. The `findVegetables` function uses callback closures that are called with each retrieved vegetable, as well as when the vegetables have all been returned or an error occurs.
+Along with the potentially infinite sequence in the example above, `AsyncThrowingStream` can also adapt APIs like the slightly contrived one below. The `findVegetables` function uses callback closures that are called with each retrieved vegetable, as well as when the vegetables have all been returned or an error occurs.
 
 ```swift
 func buyVegetables(
@@ -169,7 +169,7 @@ Note that a call to the `finish()` method is required to end iteration for the c
 
 ### Awaiting Values
 
-An `AsyncStream` provides an `AsyncSequence` interface to its values, so you can iterate over the elements in an `AsyncStream` by using `for` - `in` , or use any of the `AsyncSequence` methods added as part of [SE-0298](https://github.com/apple/swift-evolution/blob/main/proposals/0298-asyncsequence.md).
+An `AsyncStream` provides an `AsyncSequence` interface to its values, so you can iterate over the elements in an `AsyncStream` by using `for` - `in` , or use any of the `AsyncSequence` methods added as part of [SE-0298](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0298-asyncsequence.md).
 
 ```swift
 for await notif in NotificationCenter

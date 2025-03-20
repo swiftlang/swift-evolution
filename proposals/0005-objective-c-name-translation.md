@@ -3,7 +3,7 @@
 * Proposal: [SE-0005](0005-objective-c-name-translation.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0005-better-translation-of-objective-c-apis-into-swift/1668)
 
 ## Reviewer notes

@@ -3,7 +3,7 @@
 * Proposal: [SE-0219](0219-package-manager-dependency-mirroring.md)
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift-package-manager#1776](https://github.com/apple/swift-package-manager/pull/1776)
 * Bug: [SR-8328](https://bugs.swift.org/browse/SR-8328)
 

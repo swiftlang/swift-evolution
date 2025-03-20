@@ -27,7 +27,7 @@ _Note: this proposal will use the word "field" to mean "stored instance property
 
 As of Swift 5, libraries are able to declare a stable ABI, allowing a  library binary to be replaced with a newer version without requiring client programs to be recompiled. 
 
-What consitutes the ABI of a library differs from language to language. In C and C++, the public ABI for a library includes information that ideally would be kept purely as an implementation detail. For example, the _size_ of a struct is fixed as part of the ABI, and is known to the library user at compile time. This prevents adding new fields to that type in later releases once the ABI is declared stable. If direct access to fields is allowed, the _layout_ of the struct can also become part of the ABI, so fields cannot then be reordered.
+What constitutes the ABI of a library differs from language to language. In C and C++, the public ABI for a library includes information that ideally would be kept purely as an implementation detail. For example, the _size_ of a struct is fixed as part of the ABI, and is known to the library user at compile time. This prevents adding new fields to that type in later releases once the ABI is declared stable. If direct access to fields is allowed, the _layout_ of the struct can also become part of the ABI, so fields cannot then be reordered.
 
 This often leads to manual workarounds. A common technique is to have the struct hold only a pointer to an "impl" type, which holds the actual stored properties. All access to these properties is made via function calls, which can be updated to handle changes to the layout of the "impl" type. This has some obvious downsides:
 
@@ -40,7 +40,7 @@ A similar challenge occurs with Swift enums. As discussed in [SE-0192][], introd
 
 The goal of this proposal is to reduce the burden on library developers by building into the compiler an automatic mechanism to reserve the flexibility to alter the internal representation of structs and enums, without manual workarounds. This mechanism can be implemented in such a way that optimizations such as stack allocation or contiguous inline storage of structs can still happen, while leaving the size of the type to be determined at runtime. 
 
-  [SE-0192]: https://github.com/apple/swift-evolution/blob/master/proposals/0192-non-exhaustive-enums.md
+  [SE-0192]: https://github.com/swiftlang/swift-evolution/blob/master/proposals/0192-non-exhaustive-enums.md
 
 ## Proposed solution
 
@@ -109,7 +109,7 @@ This affects what changes to the struct's fields affect the ABI of the containin
 
 > Note: This proposal is implemented already and in use by the standard library, albeit under different names. The command-line flag is `-enable-library-evolution`; the attribute is `@_fixed_layout` for structs, and `@_frozen` for enums.
 
-  [SE-0193]: https://github.com/apple/swift-evolution/blob/master/proposals/0193-cross-module-inlining-and-specialization.md
+  [SE-0193]: https://github.com/swiftlang/swift-evolution/blob/master/proposals/0193-cross-module-inlining-and-specialization.md
 
 #### Guarantees
 
@@ -134,7 +134,7 @@ That said, the compiler is allowed to use its knowledge of the struct's contents
 This proposal does not change either of these guarantees.
 
   [trivial]: https://docs.microsoft.com/en-us/cpp/cpp/trivial-standard-layout-and-pod-types
-  [SE-0055]: https://github.com/apple/swift-evolution/blob/master/proposals/0055-optional-unsafe-pointers.md
+  [SE-0055]: https://github.com/swiftlang/swift-evolution/blob/master/proposals/0055-optional-unsafe-pointers.md
 
 ### `@frozen` on `enum` types
 

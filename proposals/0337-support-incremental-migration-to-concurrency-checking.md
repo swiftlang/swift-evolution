@@ -4,11 +4,12 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Ben Cohen](https://github.com/AirspeedSwift)
 * Status: **Implemented (Swift 5.6)**
+* Upcoming Feature Flag: `StrictConcurrency` (Implemented in Swift 6.0) (Enabled in Swift 6 language mode)
 * Implementation: [Pull request](https://github.com/apple/swift/pull/40680), [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/761//artifact/branch-main/swift-PR-40680-761-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/1256//artifact/branch-main/swift-PR-40680-1256-osx.tar.gz)
 
 ## Introduction
 
-Swift 5.5 introduced mechanisms to eliminate data races from the language, including the `Sendable` protocol ([SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md)) to indicate which types have values that can safely be used across task and actor boundaries, and global actors ([SE-0316](https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md)) to help ensure proper synchronization with (e.g.) the main actor. However, Swift 5.5 does not fully enforce `Sendable` nor all uses of the main actor because interacting with modules which have not been updated for Swift Concurrency was found to be too onerous. We propose adding features to help developers migrate their code to support concurrency and interoperate with other modules that have not yet adopted it, providing a smooth path for the Swift ecosystem to eliminate data races.
+Swift 5.5 introduced mechanisms to eliminate data races from the language, including the `Sendable` protocol ([SE-0302](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md)) to indicate which types have values that can safely be used across task and actor boundaries, and global actors ([SE-0316](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0316-global-actors.md)) to help ensure proper synchronization with (e.g.) the main actor. However, Swift 5.5 does not fully enforce `Sendable` nor all uses of the main actor because interacting with modules which have not been updated for Swift Concurrency was found to be too onerous. We propose adding features to help developers migrate their code to support concurrency and interoperate with other modules that have not yet adopted it, providing a smooth path for the Swift ecosystem to eliminate data races.
 
 Swift-evolution threads: [[Pitch] Staging in `Sendable` checking](https://forums.swift.org/t/pitch-staging-in-sendable-checking/51341), [Pitch #2](https://forums.swift.org/t/pitch-2-staging-in-sendable-checking/52413), [Pitch #3](https://forums.swift.org/t/pitch-3-incremental-migration-to-concurrency-checking/53610)
 
@@ -72,7 +73,7 @@ Achieving this will require several features working in tandem:
 
 * When applied to a nominal declaration, the `@preconcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 mode that violate concurrency checking, and generate code that interoperates with pre-concurrency binaries.
 
-* When applied to an `import` statement, the `@preconcurrency` attribute tells the compiler that it should only diagnose `Sendable`-requiring uses of non-`Sendable` types from that module if the type explicitly declares a `Sendable` conformance that is unavailable or has constraints that are not satisifed; even then, this will only be a warning, not an error.
+* When applied to an `import` statement, the `@preconcurrency` attribute tells the compiler that it should only diagnose `Sendable`-requiring uses of non-`Sendable` types from that module if the type explicitly declares a `Sendable` conformance that is unavailable or has constraints that are not satisfied; even then, this will only be a warning, not an error.
 
 
 ## Detailed design
@@ -181,7 +182,7 @@ func strict() async {
 
 A type can be described as having one of the following three `Sendable` conformance statuses:
 
-* **Explicitly `Sendable`** if it actually conforms to `Sendable`, whether via explicit declaration or because the `Sendable` conformance was inferred based on the rules specified in [SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md).
+* **Explicitly `Sendable`** if it actually conforms to `Sendable`, whether via explicit declaration or because the `Sendable` conformance was inferred based on the rules specified in [SE-0302](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md).
 
 * **Explicitly non-`Sendable`** if a `Sendable` conformance has been declared for the type, but it is not available or has constraints the type does not satisfy, *or* if the type was declared in a scope that uses Strict concurrency checking.[2]
 
@@ -200,7 +201,7 @@ Such a conformance suppresses the implicit conformance of a type to `Sendable`.
 
 ### `@preconcurrency` on `Sendable` protocols
 
-Some number of existing protocols describe types that should all be `Sendable`. When such protocols are updated for concurrency, they will likely inherit from the `Sendable` protocol. However, doing so will break existing types that conform to the protocol and are now assumed to be `Sendable`. This problem was [described in SE-0302](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#thrown-errors) because it affects the `Error` and `CodingKey` protocols from the standard library:
+Some number of existing protocols describe types that should all be `Sendable`. When such protocols are updated for concurrency, they will likely inherit from the `Sendable` protocol. However, doing so will break existing types that conform to the protocol and are now assumed to be `Sendable`. This problem was [described in SE-0302](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#thrown-errors) because it affects the `Error` and `CodingKey` protocols from the standard library:
 
 ```swift
 protocol Error: /* newly added */ Sendable { ... }

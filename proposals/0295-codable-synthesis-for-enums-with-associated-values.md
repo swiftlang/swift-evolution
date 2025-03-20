@@ -11,7 +11,7 @@
 
 ## Introduction
 
-Codable was introduced in [SE-0166](https://github.com/apple/swift-evolution/blob/master/proposals/0166-swift-archival-serialization.md)
+Codable was introduced in [SE-0166](https://github.com/swiftlang/swift-evolution/blob/master/proposals/0166-swift-archival-serialization.md)
 with support for synthesizing `Encodable` and `Decodable` conformance for
 `class` and `struct` types, that only contain values that also conform
 to the respective protocols.
@@ -196,7 +196,7 @@ public init(from decoder: Decoder) throws {
 
 ### User customization
 
-For the existing cases, users can customize which properties are included in the encoded respresentation
+For the existing cases, users can customize which properties are included in the encoded representation
 and map the property name to a custom name for the encoded representation by providing a custom `CodingKeys`
 declaration, instead of having the compiler generate one. The same should apply to the enum case.
 

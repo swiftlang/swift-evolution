@@ -3,7 +3,7 @@
 * Proposal: [SE-0228](0228-fix-expressiblebystringinterpolation.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Review: [Discussion thread](https://forums.swift.org/t/se-0228-fix-expressible-by-string-interpolation/16031), [Announcement thread](https://forums.swift.org/t/accepted-se-0228-fix-expressible-by-string-interpolation/16548)
 * Implementation: [apple/swift#20214](https://github.com/apple/swift/pull/20214)
 
@@ -508,7 +508,7 @@ String(stringInterpolation:
   .literal("!"))
 ```
 
-However, this requires that conformers expose a homogenous return value, which has expressibility and/or efficiency drawbacks. The proposed approach, which is statement based, keeps this as a detail internal to the conformer.
+However, this requires that conformers expose a homogeneous return value, which has expressibility and/or efficiency drawbacks. The proposed approach, which is statement based, keeps this as a detail internal to the conformer.
 
 ### Have a formal `appendInterpolation(_:)` requirement
 

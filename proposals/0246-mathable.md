@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted with modifications (2019-03-28)**
 * Implementation: [apple/swift#23140](https://github.com/apple/swift/pull/23140)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md) [2](https://github.com/apple/swift-evolution/blob/3afc4c68a4062ff045415f5eafb9d4956b30551b/proposals/0246-mathable.md)
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md) [2](https://github.com/swiftlang/swift-evolution/blob/3afc4c68a4062ff045415f5eafb9d4956b30551b/proposals/0246-mathable.md)
 * Decision Notes: ([review](https://forums.swift.org/t/se-0246-generic-math-s-functions/21479)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0246-generic-math-functions/22244/26))
 
 **This proposal is accepted, but currently not implemented in Swift due to source breaking consequences relating
@@ -311,7 +311,7 @@ to want only the first value, so returning a tuple creates noise:
 re-exported in Swift where `lgamma` is ambiguous; it can be either the
 platform shim returning `(T, Int)`, or the C library function returning
 `Double`; we want to deprecate the first and make the second unavailable.
-Simulataneously introducing yet another function with the same name would
+Simultaneously introducing yet another function with the same name would
 create a bit of a mess.
 
 ### Future expansion

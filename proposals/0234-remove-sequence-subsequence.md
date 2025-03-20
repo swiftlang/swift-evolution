@@ -3,7 +3,7 @@
 * Proposal: [SE-0234](0234-remove-sequence-subsequence.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#20221](https://github.com/apple/swift/pull/20221)
 * Review: ([review thread](https://forums.swift.org/t/se-0234-removing-sequence-subsequence/17750)) ([acceptance](https://forums.swift.org/t/accepted-se-0234-remove-sequence-subsequence/18002))
 
@@ -257,7 +257,7 @@ the standard library in underscored form.
 This will also have the useful side-effect that these methods can also be
 removed as customization points from `Collection` as well, similar to removing
 `prefix(upTo:)` in
-[SE-0232](https://github.com/apple/swift-evolution/blob/master/proposals/0232-remove-customization-points.md),
+[SE-0232](https://github.com/swiftlang/swift-evolution/blob/master/proposals/0232-remove-customization-points.md),
 because there’s no longer any reasonable customization to be done on a per-collection basis.
 
 Doing this will have considerable benefits to code size as well. For example,

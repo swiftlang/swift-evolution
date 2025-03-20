@@ -3,7 +3,7 @@
 * Proposal: [SE-0235](0235-add-result.md)
 * Author: [Jon Shier](https://github.com/jshier)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Implementation: [apple/swift#21073](https://github.com/apple/swift/pull/21073),
                   [apple/swift#21225](https://github.com/apple/swift/pull/21225),
                   [apple/swift#21378](https://github.com/apple/swift/pull/21378)
@@ -293,7 +293,7 @@ This proposal adds a type to the standard library and so will affect the ABI onc
 
 ## Effect on API resilience
 
-Addition of `Result<Succes, Failure>` should be future proof against additional needs surrounding error handling.
+Addition of `Result<Success, Failure>` should be future proof against additional needs surrounding error handling.
 
 ## Alternatives considered
 

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0044](0044-import-as-member.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0044-import-as-member/1929)
 * Bug: [SR-1053](https://bugs.swift.org/browse/SR-1053)

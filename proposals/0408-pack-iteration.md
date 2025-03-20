@@ -3,7 +3,7 @@
 * Proposal: [SE-0408](0408-pack-iteration.md)
 * Authors: [Sima Nerush](https://github.com/simanerush), [Holly Borla](https://github.com/hborla)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor/)
-* Status: **Implemented (Swift Next)**
+* Status: **Implemented (Swift 6.0)**
 * Implementation: [apple/swift#67594](https://github.com/apple/swift/pull/67594)
 * Review: ([pitch](https://forums.swift.org/t/pitch-enable-pack-iteration/66168), [review](https://forums.swift.org/t/review-se-0408-pack-iteration/67152), [acceptance](https://forums.swift.org/t/accepted-se-0408-pack-iteration/67598))
 
@@ -33,7 +33,7 @@ func == <each Element: Equatable>(lhs: (repeat each Element), rhs: (repeat each 
 
   // Do-catch statement for short-circuiting as soon as two tuple elements are not equal.
   do {
-    repeat isEqual(each lhs, each rhs)
+    repeat try isEqual(each lhs, each rhs)
   } catch {
     return false
   }

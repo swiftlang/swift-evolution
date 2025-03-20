@@ -5,7 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#19532](https://github.com/apple/swift/pull/19532),
                   [apple/swift#21857](https://github.com/apple/swift/pull/21857)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 5.0)**
 * Review: [Discussion thread](https://forums.swift.org/t/se-0239-add-codable-conformance-to-range-types/18794/51)
 
 

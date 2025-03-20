@@ -3,7 +3,7 @@
 * Proposal: [SE-0162](0162-package-manager-custom-target-layouts.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Implemented (Swift 4)**
+* Status: **Implemented (Swift 4.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0162-package-manager-custom-target-layouts/5647)
 * Bug: [SR-29](https://bugs.swift.org/browse/SR-29)
 
@@ -91,7 +91,7 @@ remember.
       consider upgrading this to its own type to allow per-file build settings.
       The new type would conform to `CustomStringConvertible`, so existing
       declarations would continue to work (except where the strings were
-      constructed programatically).
+      constructed programmatically).
 
     * `exclude`: This property can be used to exclude certain files and
       directories from being picked up as sources. Exclude paths are relative

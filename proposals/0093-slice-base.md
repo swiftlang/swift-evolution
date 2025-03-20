@@ -3,7 +3,7 @@
 * Proposal: [SE-0093](0093-slice-base.md)
 * Author: [Max Moiseev](https://github.com/moiseev)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/review-se-0093-adding-a-public-base-property-to-slices/2695/4)
 * Implementation: [apple/swift#2929](https://github.com/apple/swift/pull/2929)
 

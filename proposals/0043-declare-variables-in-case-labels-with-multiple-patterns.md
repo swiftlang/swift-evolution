@@ -3,7 +3,7 @@
 * Proposal: [SE-0043](0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * Author: [Andrew Bennett](https://github.com/therealbnut)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0043-declare-variables-in-case-labels-with-multiple-patterns/1925)
 * Implementation: [apple/swift#1383](https://github.com/apple/swift/pull/1383)
 

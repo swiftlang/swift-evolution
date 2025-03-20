@@ -246,11 +246,11 @@ Some API designers may want to take advantage of Swift's effectful properties by
 
 Due to the read-only restriction on Swift properties, and the fact that a large number of failable Objective-C methods are already imported as `throws` methods in Swift, support for Objective-C bridging in this proposal is scoped for the Swift concurrency features. Importing as an effectful subscript is not included in this proposal. Furthermore, exporting effectful properties to Objective-C as methods are left to future work.
 
-To import an Objective-C method as a Swift effectful property, the method must be compatible with the import rules for `async` Swift methods, as described by [SE-0297](https://github.com/apple/swift-evolution/blob/main/proposals/0297-concurrency-objc.md). An annotation changes this import behavior to produce an effectful Swift computed property, instead of an `async` Swift method. The original ObjC method is still imported as a normal Swift method, alongside the property.
+To import an Objective-C method as a Swift effectful property, the method must be compatible with the import rules for `async` Swift methods, as described by [SE-0297](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0297-concurrency-objc.md). An annotation changes this import behavior to produce an effectful Swift computed property, instead of an `async` Swift method. The original ObjC method is still imported as a normal Swift method, alongside the property.
 
 To summarize, an Objective-C method that meets the following requirements:
   1. The method takes exactly one argument, a completion handler, as recognized by 
-  [SE-0297](https://github.com/apple/swift-evolution/blob/main/proposals/0297-concurrency-objc.md).
+  [SE-0297](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0297-concurrency-objc.md).
   2. The method returns `void`. 
   3. The method is annotated with `__attribute__((swift_async_name("getter:myProp()")))`. Note the use of `getter:` to specify that it should be a property instead of a method.
   
@@ -347,7 +347,7 @@ There are a number of places where the effects specifiers be placed:
 Where `<X>` refers to "position X" in the example. Consider each of these positions:
 
 * **Position A** is primarily used by access modifiers like `private(set)` or declaration modifiers like `override`. The more effect-like `mutating`/`nonmutating` is only allowed in Position C, which precedes the accessor declaration, just like a method within a struct. This position was not chosen because phrases like `override async throws var prop` or `async throws override var prop` do not read particularly well.
-* **Position B** does not make much sense, because effects are only carried as part of a function type, not other types. So, it would be very confusing, leading people to think `Int async throws` is a type, when that is not. Introducing a new kind of punctuation here was ruled out because there are alteratives to this position.
+* **Position B** does not make much sense, because effects are only carried as part of a function type, not other types. So, it would be very confusing, leading people to think `Int async throws` is a type, when that is not. Introducing a new kind of punctuation here was ruled out because there are alternatives to this position.
 * **Position C** is not bad; it's only occupied by `mutating`/`nonmutating`, but placing effects specifiers here is not consistent with the positioning for functions, which is *after* the subject. Since Position D is available, it makes more sense to use that instead of Position C.
 * **Position D** is the one ultimately chosen for this proposal. It is an unused place in the grammar, places the effects on the accessor and not the variable or its type. Plus, it is consistent with where effects go on a function declaration, after the subject: `get throws` and `get async throws`, where get is the subject. Another benefit is that it is away from the variable, so it prevents confusion between the accessor's effects and the effects of a function being returned:
 

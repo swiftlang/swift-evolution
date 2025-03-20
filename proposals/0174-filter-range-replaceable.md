@@ -15,7 +15,7 @@ to return the same type as the filtered collection.
 ## Motivation
 
 The recently accepted
-[SE-165](https://github.com/apple/swift-evolution/blob/master/proposals/0165-dict.md)
+[SE-165](https://github.com/swiftlang/swift-evolution/blob/master/proposals/0165-dict.md)
 introduced a version of `filter` on `Dictionary` that returned a
 `Dictionary`. This had both performance and usability benefits: in most cases,
 a `Dictionary` is what the user wanted from the filter, and creating one
@@ -34,7 +34,7 @@ filter it, you will still get an `Array`.
 
 An implementation of `filter` on `RangeReplaceableCollection` will be provided,
 using `init()` and `append(_:)`, so all range-replaceable collections will
-have a `filter` method returning of `Self`. Per [SE-163](https://github.com/apple/swift-evolution/blob/master/proposals/0163-string-revision-1.md),
+have a `filter` method returning of `Self`. Per [SE-163](https://github.com/swiftlang/swift-evolution/blob/master/proposals/0163-string-revision-1.md),
 this will include `String`.
 
 Note, many sequences (for example, strides or ranges), cannot represent a
@@ -70,7 +70,7 @@ They may be be relying on an array being returned (albeit often in order to
 then transform it back into the original type), but this version will still
 be available (via the extension on `Sequence`) and will be called if forced
 through type context. The only code that will break is if this operation spans
-multple lines:
+multiple lines:
 
 ```swift
 // filtered used to be [Character], now String

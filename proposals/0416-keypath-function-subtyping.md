@@ -3,7 +3,7 @@
 * Proposal: [SE-0416](0416-keypath-function-subtyping.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.0)**
 * Implementation: [apple/swift#39612](https://github.com/apple/swift/pull/39612)
 * Review: ([pitch](https://forums.swift.org/t/pitch-generalize-keypath-to-function-conversions/52681)) ([review](https://forums.swift.org/t/se-0416-subtyping-for-keypath-literals-as-functions/68984)) ([acceptance](https://forums.swift.org/t/accepted-se-0416-subtyping-for-keypath-literals-as-functions/69241))
 
@@ -17,7 +17,7 @@ let _: (String) -> Int? = \.count
 
 ## Motivation
 
-[SE-0249](https://github.com/apple/swift-evolution/blob/main/proposals/0249-key-path-literal-function-expressions.md) introduced a conversion between key path literals and function types, which allowed users to write code like the following:
+[SE-0249](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0249-key-path-literal-function-expressions.md) introduced a conversion between key path literals and function types, which allowed users to write code like the following:
 
 ```swift
 let strings = ["Hello", "world", "!"]

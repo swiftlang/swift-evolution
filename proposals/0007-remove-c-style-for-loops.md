@@ -3,7 +3,7 @@
 * Proposal: [SE-0007](0007-remove-c-style-for-loops.md)
 * Author: [Erica Sadun](https://github.com/erica)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0007-remove-c-style-for-loops-with-conditions-and-incrementers/512)
 * Bugs: [SR-226](https://bugs.swift.org/browse/SR-226), [SR-227](https://bugs.swift.org/browse/SR-227)
 

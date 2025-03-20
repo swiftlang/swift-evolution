@@ -3,7 +3,7 @@
 * Proposal: [SE-0038](0038-swiftpm-c-language-targets.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0038-package-manager-c-language-target-support/1569)
 * Bug: [SR-821](https://bugs.swift.org/browse/SR-821)
 

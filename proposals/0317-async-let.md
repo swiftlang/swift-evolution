@@ -42,13 +42,13 @@ func makeDinner() async -> Meal {
   // Create a task group to scope the lifetime of our three child tasks
   return try await withThrowingTaskGroup(of: CookingTask.self) { group in
     // spawn three cooking tasks and execute them in parallel:
-    group.async {
+    group.addTask {
       CookingTask.veggies(try await chopVegetables())
     }
-    group.async {
+    group.addTask {
       CookingTask.meat(await marinateMeat())
     }
-    group.async {
+    group.addTask {
       CookingTask.oven(await preheatOven(temperature: 350))
     }
 
@@ -180,9 +180,9 @@ The child-task created to initialize the `async let` by default runs on the glob
 
 > Customizing the execution context of async lets is a future direction we are likely to explore with the introduction of Custom Executors.
 
-The initializer of the `async let` can be thought of as a closure that runs the code contained within it in a separate task, very much like the explicit `group.async { <work here/> }` API of task groups.
+The initializer of the `async let` can be thought of as a closure that runs the code contained within it in a separate task, very much like the explicit `group.addTask { <work here/> }` API of task groups.
 
-Similarly to the `group.async()` function, the closure is `@Sendable` and `nonisolated`, meaning that it cannot access non-sendable state of the enclosing context. For example, it will result in a compile-time error, preventing a potential race condition, for a `async let` initializer to attempt mutating a closed-over variable:
+Similarly to the `group.addTask()` function, the closure is `@Sendable` and `nonisolated`, meaning that it cannot access non-sendable state of the enclosing context. For example, it will result in a compile-time error, preventing a potential race condition, for a `async let` initializer to attempt mutating a closed-over variable:
 
 ```swift
 var localText: [String] = ...
@@ -372,7 +372,7 @@ This is the same as spawning a number of child-tasks in a task group, and not co
 
 ```swift
 try await withThrowingTaskGroup(of: Int.self) { group in 
-  group.async { throw Boom() }
+  group.addTask { throw Boom() }
                              
   return 0 // we didn't care about the child-task at all(!)
 } // returns 0
@@ -414,7 +414,7 @@ Cancellation propagates recursively through the task hierarchy from parent to ch
 
 Because tasks spawned by `async let` are child tasks, they naturally participate in their parent's cancellation.
 
-Cancellation of the parent task means that the context in which the `async let` declarations exist is cancelled, and any tasks created by those declarations will be cancelled as well. Because cancellation in Swift is co-operative, it does not prevent the spawning of tasks, however tasks spawned from a cancelled context are *immediately* marked as cancelled. This exhibits the same semantics as `TaskGroup.async` which, when used from an already cancelled task, _will_ spawn more child-tasks, however they will be immediately created as cancelled tasks — which they can inspect by calling `Task.isCancelled`.
+Cancellation of the parent task means that the context in which the `async let` declarations exist is cancelled, and any tasks created by those declarations will be cancelled as well. Because cancellation in Swift is co-operative, it does not prevent the spawning of tasks, however tasks spawned from a cancelled context are *immediately* marked as cancelled. This exhibits the same semantics as `TaskGroup.addTask` which, when used from an already cancelled task, _will_ spawn more child-tasks, however they will be immediately created as cancelled tasks — which they can inspect by calling `Task.isCancelled`.
 
 We can observe this in the following example:
 
@@ -459,7 +459,7 @@ func toyParallelMap<A, B>(_ items: [A], f: (A) async -> B) async -> [B] {
     // spawn off processing all `f` mapping functions in parallel
     // in reality, one might want to limit the "width" of these
     for i in items.indices { 
-      group.async { (i, await f(items[i])) }
+      group.addTask { (i, await f(items[i])) }
     }
     
     // collect all results
@@ -494,10 +494,12 @@ For example, the `race(left:right:)` function shown below, runs two child tasks 
 ```swift
 func race(left: () async -> Int, right: () async -> Int) async -> Int {
   await withTaskGroup(of: Int.self) { group in 
-    group.async { left() }
-    group.async { right() }
+    group.addTask { left() }
+    group.addTask { right() }
 
-    return await group.next()! // !-safe, there is at-least one result to collect
+    let first = await group.next()! // !-safe, there is at-least one result to collect
+    group.cancelAll() // cancel the other task
+    return first
   }
 }
 ```
@@ -641,7 +643,7 @@ It would be very confusing to have `async let` tasks automatically "not run" if 
 
 ### Requiring an `await`on any execution path that waits for an `async let`
 
-In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This rule turned out to be too simplistic, because it isn't generally possible to annotate all of the control-flow edges that would result in waiting for a child task the complete. The most problematic case involves a control-flow edge due to a thrown exception, e.g.,
+In initial versions of this proposal, we considered a rule to force an `async let` declaration to be awaited on each control-flow path that the execution of a function might take. This rule turned out to be too simplistic, because it isn't generally possible to annotate all of the control-flow edges that would result in waiting for a child task to complete. The most problematic case involves a control-flow edge due to a thrown exception, e.g.,
 
 ```swift
 func runException() async {
@@ -781,13 +783,13 @@ func runThrowsOkay() async {
 }
 ```
 
-The rules above attempt to limit the places in which the new `await` syntaxes are required to only those where they are semantically meaningful, i.e., those places where the `async let` child tasks will not already have had their completion explicitly awaited. The rules are complicated enough that we would not expect programmers to be able to correctly write `await` in all of the places where it is required. Rather, the Swift compiler would need to provide error messags with Fix-Its to indicate the places where additional `await` annotations are required, and those `await`s will remain as an artifact for the reader.
+The rules above attempt to limit the places in which the new `await` syntaxes are required to only those where they are semantically meaningful, i.e., those places where the `async let` child tasks will not already have had their completion explicitly awaited. The rules are complicated enough that we would not expect programmers to be able to correctly write `await` in all of the places where it is required. Rather, the Swift compiler would need to provide error messages with Fix-Its to indicate the places where additional `await` annotations are required, and those `await`s will remain as an artifact for the reader.
 
 We feel that the complexity of the solution for marking all suspension points, which includes both the grammar expansion for marking control-flow edges and the flow-sensitive analysis to only require the additional `await` marking when necessary, exceeds the benefits of adding it. Instead, we feel that the presence of `async let` in a block with complicated control flow is sufficient to imply the presence of additional suspension points.
 
 ### Property wrappers instead of `async let`
 
-The combination of [property wrappers](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and [effectful properties](https://github.com/apple/swift-evolution/blob/main/proposals/0310-effectful-readonly-properties.md) implies that one could approximate the behavior of `async let` with a property wrapper, e.g.,
+The combination of [property wrappers](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and [effectful properties](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0310-effectful-readonly-properties.md) implies that one could approximate the behavior of `async let` with a property wrapper, e.g.,
 
 ```swift
 @AsyncLet var veggies = try await chopVegetables()

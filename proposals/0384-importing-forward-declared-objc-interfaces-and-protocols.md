@@ -4,7 +4,7 @@
 * Author: [Nuri Amari](https://github.com/NuriAmari)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Implemented (Swift 5.9)**
-* Implementation: https://github.com/apple/swift/pull/61606
+* Implementation:[apple/swift#61606]( https://github.com/apple/swift/pull/61606)
 * Upcoming Feature Flag: `ImportObjcForwardDeclarations`
 * Review: ([pitch](https://forums.swift.org/t/pitch-importing-forward-declared-objective-c-classes-and-protocols/61926)) ([review](https://forums.swift.org/t/se-0384-importing-forward-declared-objective-c-interfaces-and-protocols/62392)) ([acceptance](https://forums.swift.org/t/accepted-se-0384-importing-forward-declared-objective-c-interfaces-and-protocols/62670))
 
@@ -227,7 +227,7 @@ Issues:
 Issues:
 
 - It seems achievable to teach the typechecker that `IncompleteFoo.Foo` and `CompleteFoo.Foo` can be implicitly converted between one another, but that is not enough
-    - Any typechecking contraint that `CompleteFoo.Foo` satisfies must also be satisfied by `IncompleteFoo.Foo`.
+    - Any typechecking constraint that `CompleteFoo.Foo` satisfies must also be satisfied by `IncompleteFoo.Foo`.
     - It might be possible to "inject" an extension into the REPL's context that adds any required methods, computed properties and protocol conformances to `IncompleteFoo.Foo`. However, it is not possible to add new inheritances. 
 
 We believe that given these issues, it is better to disable the feature in the REPL entirely rather than provide a confusing experience. We believe that this

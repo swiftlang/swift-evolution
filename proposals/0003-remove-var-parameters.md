@@ -3,7 +3,7 @@
 * Proposal: [SE-0003](0003-remove-var-parameters.md)
 * Author: [Ashley Garland](https://github.com/bitjammer)
 * Review Manager: [Joe Pamer](https://github.com/jopamer)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0003-removing-var-from-function-parameters-and-pattern-matching/1230)
 * Implementation: [apple/swift@8a5ed40](https://github.com/apple/swift/commit/8a5ed405bf1f92ec3fc97fa46e52528d2e8d67d9)
 
@@ -97,7 +97,7 @@ this language change.
 This proposal originally included removal of `var` bindings for all
 refutable patterns as well as function parameters.
 
-[Original SE-0003 Proposal](https://github.com/apple/swift-evolution/blob/8cd734260bc60d6d49dbfb48de5632e63bf200cc/proposals/0003-remove-var-parameters-patterns.md)
+[Original SE-0003 Proposal](https://github.com/swiftlang/swift-evolution/blob/8cd734260bc60d6d49dbfb48de5632e63bf200cc/proposals/0003-remove-var-parameters-patterns.md)
 
 Removal of `var` from refutable patterns was reconsidered due to the
 burden it placed on valid mutation patterns already in use in Swift 2

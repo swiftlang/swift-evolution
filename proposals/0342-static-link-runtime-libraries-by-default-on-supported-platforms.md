@@ -5,7 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0342-statically-link-swift-runtime-libraries-by-default-on-supported-platforms/56517)
-* Implementation: https://github.com/apple/swift-package-manager/pull/3905
+* Implementation: [apple/swift-package-manager#3905](https://github.com/apple/swift-package-manager/pull/3905)
 * Initial discussion: [Forum Thread](https://forums.swift.org/t/pre-pitch-statically-linking-the-swift-runtime-libraries-by-default-on-linux)
 * Pitch: [Forum Thread](https://forums.swift.org/t/pitch-package-manager-statically-link-swift-runtime-libraries-by-default-on-supported-platforms)
 
@@ -206,7 +206,7 @@ The new behavior will take effect with a new version of SwiftPM, and packages bu
 ### Additional validation when linking libraries
 
 SwiftPM currently performs no validation when linking libraries into an executable that statically links the Swift runtime libraries. 
-This means that users can mistakinly link a library that already has the Swift runtime libraries statically linked into the executable that will also statically link the Swift runtime libraries, which could lead to runtime errors if the versions of the Swift runtime libraries do not match.
+This means that users can mistakenly link a library that already has the Swift runtime libraries statically linked into the executable that will also statically link the Swift runtime libraries, which could lead to runtime errors if the versions of the Swift runtime libraries do not match.
 As part of this proposal, SwiftPM will gain a new post build validation checking for this condition and warning the user accordingly.
 
 ## Alternatives considered and future directions

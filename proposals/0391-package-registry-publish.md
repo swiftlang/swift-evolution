@@ -5,26 +5,24 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Implemented (Swift 5.9)**
 * Implementation:
-  * https://github.com/apple/swift-package-manager/pull/6101
-  * https://github.com/apple/swift-package-manager/pull/6146
-  * https://github.com/apple/swift-package-manager/pull/6159
-  * https://github.com/apple/swift-package-manager/pull/6169
-  * https://github.com/apple/swift-package-manager/pull/6188
-  * https://github.com/apple/swift-package-manager/pull/6189
-  * https://github.com/apple/swift-package-manager/pull/6215
-  * https://github.com/apple/swift-package-manager/pull/6217
-  * https://github.com/apple/swift-package-manager/pull/6220
-  * https://github.com/apple/swift-package-manager/pull/6229
-  * https://github.com/apple/swift-package-manager/pull/6237
-* Review: 
-  * pitch: https://forums.swift.org/t/pitch-package-registry-publish/62828
-  * review: https://forums.swift.org/t/se-0391-package-registry-publish/63405
+  * [apple/swift-package-manager#6101](https://github.com/apple/swift-package-manager/pull/6101)
+  * [apple/swift-package-manager#6146](https://github.com/apple/swift-package-manager/pull/6146)
+  * [apple/swift-package-manager#6159](https://github.com/apple/swift-package-manager/pull/6159)
+  * [apple/swift-package-manager#6169](https://github.com/apple/swift-package-manager/pull/6169)
+  * [apple/swift-package-manager#6188](https://github.com/apple/swift-package-manager/pull/6188)
+  * [apple/swift-package-manager#6189](https://github.com/apple/swift-package-manager/pull/6189)
+  * [apple/swift-package-manager#6215](https://github.com/apple/swift-package-manager/pull/6215)
+  * [apple/swift-package-manager#6217](https://github.com/apple/swift-package-manager/pull/6217)
+  * [apple/swift-package-manager#6220](https://github.com/apple/swift-package-manager/pull/6220)
+  * [apple/swift-package-manager#6229](https://github.com/apple/swift-package-manager/pull/6229)
+  * [apple/swift-package-manager#6237](https://github.com/apple/swift-package-manager/pull/6237)
+* Review: ([pitch](https://forums.swift.org/t/pitch-package-registry-publish/62828)), ([review](https://forums.swift.org/t/se-0391-package-registry-publish/63405)), ([acceptance](https://forums.swift.org/t/accepted-se-0391-swift-package-registry-authentication/64088))
 
 ## Introduction
 
 A package registry makes packages available to consumers. Starting with Swift 5.7,
 SwiftPM supports dependency resolution and package download using any registry that 
-implements the [service specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md) proposed alongside with [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md).
+implements the [service specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md) proposed alongside with [SE-0292](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0292-package-registry-service.md).
 SwiftPM does not yet provide any tooling for publishing packages, so package authors 
 must manually prepare the contents (e.g., source archive) and interact 
 with the registry on their own to publish a package release. This proposal 
@@ -35,9 +33,9 @@ well-rounded experience for using package registries.
 
 Publishing package release to a Swift package registry generally involves these steps:
   1. Gather package release metadata.
-  1. Prepare package source archive by using the [`swift package archive-source` subcommand](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md#archive-source-subcommand).
+  1. Prepare package source archive by using the [`swift package archive-source` subcommand](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0292-package-registry-service.md#archive-source-subcommand).
   1. Sign the metadata and archive (if needed).
-  1. [Authenticate](https://github.com/apple/swift-evolution/blob/main/proposals/0378-package-registry-auth.md) (if required by the registry).
+  1. [Authenticate](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0378-package-registry-auth.md) (if required by the registry).
   1. Send the archive and metadata (and their signatures if any) by calling the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6).
   1. Check registry server response to determine if publication has succeeded or failed (if the registry processes request synchronously), or is pending (if the registry processes request asynchronously).
 
@@ -411,7 +409,7 @@ OPTIONS:
   --dry-run               Dry run only; prepare the archive and sign it but do not publish to the registry.
 ```
 
-- `id`: The package identifier in the `<scope>.<name>` notation as defined in [SE-0292](https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md#package-identity). It is the package author's responsibility to register the package identifier with the registry beforehand.
+- `id`: The package identifier in the `<scope>.<name>` notation as defined in [SE-0292](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0292-package-registry-service.md#package-identity). It is the package author's responsibility to register the package identifier with the registry beforehand.
 - `version`: The package release version in [SemVer 2.0](https://semver.org) notation.
 - `url`: The URL of the registry to publish to. SwiftPM will try to determine the registry URL by searching for a scope-to-registry mapping or use the `[default]` URL in `registries.json`. The command will fail if this value is missing.
 - `scratch-directory`: The path of the working directory. SwiftPM will write to the package directory by default.
@@ -444,7 +442,7 @@ Using these inputs, SwiftPM will:
   - Check server response for any errors.
 
 Prerequisites:
-- Run [`swift package-registry login`](https://github.com/apple/swift-evolution/blob/main/proposals/0378-package-registry-auth.md#new-login-subcommand) to authenticate registry user if needed. 
+- Run [`swift package-registry login`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0378-package-registry-auth.md#new-login-subcommand) to authenticate registry user if needed. 
 - The user has the necessary permissions to call the ["create a package release" API](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6) for the package identifier.
 
 ### Changes to the registry service specification

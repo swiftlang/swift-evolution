@@ -5,6 +5,8 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.5)** [Acceptance post](https://forums.swift.org/t/accepted-with-modifications-se-0304-structured-concurrency/51850)
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Review: ([first pitch](https://forums.swift.org/t/concurrency-structured-concurrency/41622)) ([second pitch](https://forums.swift.org/t/pitch-2-structured-concurrency/43452)) ([third pitch](https://forums.swift.org/t/pitch-3-structured-concurrency/44496)) ([first review](https://forums.swift.org/t/se-0304-structured-concurrency/45314)) ([second review](https://forums.swift.org/t/se-0304-2nd-review-structured-concurrency/47217)) ([third review](https://forums.swift.org/t/se-0304-3rd-review-structured-concurrency/48847)) ([fourth review](https://forums.swift.org/t/se-0304-4th-review-structured-concurrency/50281)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0304-structured-concurrency/51850)) ([revision](https://forums.swift.org/t/accepted-with-modifications-se-0304-structured-concurrency/51850/9))
+* Previous revisions: ([first review](https://github.com/swiftlang/swift-evolution/blob/9b5e0cbd552b4c8b570aedcb94c0cb72b9f591b0/proposals/0304-structured-concurrency.md)) ([second review](https://github.com/swiftlang/swift-evolution/blob/3defec78bc3f7cbbc9a14f69511397d27899244d/proposals/0304-structured-concurrency.md)) ([third review](https://github.com/swiftlang/swift-evolution/blob/a0faeabd6718ba99865a940a085927a69494fe94/proposals/0304-structured-concurrency.md)) ([fourth review](https://github.com/swiftlang/swift-evolution/blob/2e9eda9f67ae7aabd89ea17baadd32affa416843/proposals/0304-structured-concurrency.md)) ([as accepted](https://github.com/swiftlang/swift-evolution/blob/c2f363236520589ab94ef91a1419e06f39346133/proposals/0304-structured-concurrency.md))
 
 ## Table of contents
 
@@ -444,7 +446,7 @@ Note also that no information is passed to the task about why it was cancelled. 
 
 ### Unstructured tasks
 
-So far all types of tasks we discussed were child-tasks and respected the primary rule of structured concurrency: that a *child task* cannot live longer than the *parent task* (or scope) in which it was created. This is both true for task groups as well as [SE-0317 `async let`](https://github.com/apple/swift-evolution/blob/main/proposals/0317-async-let.md).
+So far all types of tasks we discussed were child-tasks and respected the primary rule of structured concurrency: that a *child task* cannot live longer than the *parent task* (or scope) in which it was created. This is both true for task groups as well as [SE-0317 `async let`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0317-async-let.md).
 
 Sometimes however, these rigid rules end up being too restrictive. We might need to create new tasks whose lifetime is not bound to the creating task, for example in order to fire-and-forget some operation or to initiate asynchronous work from synchronous code. Unstructured tasks are not able to utilize some of the optimization techniques wrt. allocation and metadata propagation as child-tasks are, however they remain a very important building block especially for more free-form usages and integration with legacy APIs.
 
@@ -1051,7 +1053,6 @@ func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 /// This is achieved in the following way:
 /// - if the body returns normally:
 ///   - the group will await any not yet complete tasks,
-///     - if any of those tasks throws, the remaining tasks will be cancelled,
 ///   - once the `withTaskGroup` returns the group is guaranteed to be empty.
 /// - if the body throws:
 ///   - all tasks remaining in the group will be automatically cancelled.
@@ -1196,13 +1197,6 @@ extension TaskGroup: AsyncSequence {
   ///
   ///     print(await group.next())
   ///     /// Prints "1" OR "2"
-  ///
-  /// ### Errors
-  /// If an operation added to the group throws, that error will be rethrown
-  /// by the next() call corresponding to that operation's completion.
-  ///
-  /// It is possible to directly rethrow such error out of a `withTaskGroup` body
-  /// function's body, causing all remaining tasks to be implicitly cancelled.
   mutating func next() async -> ChildTaskResult? { ... }
 
   /// Wait for all of the child tasks to complete.
@@ -1498,11 +1492,11 @@ Changes after first review:
 ### Pitch changes
 
 * Changes in the third pitch:
-  * Factored `with*Continuation` into [its own proposal](https://github.com/apple/swift-evolution/pull/1244).
+  * Factored `with*Continuation` into [its own proposal](https://github.com/swiftlang/swift-evolution/pull/1244).
   * Factored `async let` into [its own proposal](https://github.com/DougGregor/swift-evolution/pull/50).
   * `Task` becomes a `struct` with instance functions, introduction of `Task.current`, `Task.unsafeCurrent` and the `UnsafeCurrentTask` APIs
   * `Task.Group` now conforms to [the `AsyncSequence` protocol](0298-asyncsequence.md).
-  * `runDetached` and `Task.Group.add` now accept [executor](https://github.com/apple/swift-evolution/pull/1257) arguments to specify where the newly-spawned tasks are initially scheduled.
+  * `runDetached` and `Task.Group.add` now accept [executor](https://github.com/swiftlang/swift-evolution/pull/1257) arguments to specify where the newly-spawned tasks are initially scheduled.
 * Changes in the second pitch:
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
   * Reflowed the entire proposal to focus on the general description of structured concurrency first, the programming model with syntax next, and then details of the language features and API design last.
@@ -1611,3 +1605,7 @@ Initially the `group.addTask` operation was designed with the idea of being an a
 This was not implemented nor is it clear how efficient and meaningful this form of back-pressure really would be. A naive version of these semantics is possible to implement by balancing pending and completed task counts in the group by plain variables, so removing this implementation does not prevent developers from implementing such "width limited" operations per se.
 
 The way to back-pressure submissions should also be considered in terms of how it relates to async let and general task creation mechanisms, not only groups. We have not figured this out completely, and rather than introduce an not-implemented API which may or may not have the right shape, for now we decided to punt on this feature until we know precisely if and how to apply this style of back-pressure on creating tasks throughout the system.
+
+## Proposal history
+
+When this proposal was originally accepted, the description of `withThrowingTaskGroup` stated that any remaining tasks in the group will be cancelled if any task throws after the body function returns normally.  This behavior was never implemented; throws from tasks are ignored in this state.  By the time this discrepancy was detected, several years had passed, and the Language Steering Group decided that restoring the proposed behavior (if desired) would require a new proposal.  This document has been revised to reflect the implemented behavior.

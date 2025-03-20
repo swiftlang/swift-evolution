@@ -3,7 +3,7 @@
 * Proposal: [SE-0017](0017-convert-unmanaged-to-use-unsafepointer.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 3.0)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0017-change-unmanaged-to-use-unsafepointer/2461)
 * Bug: [SR-1485](https://bugs.swift.org/browse/SR-1485)
 

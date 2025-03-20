@@ -1,7 +1,7 @@
 # Unsafe[Mutable][Raw][Buffer]Pointer: add missing methods, adjust existing labels for clarity, and remove deallocation size
 
 * Proposal: [SE-0184](0184-unsafe-pointers-add-missing.md)
-* Author: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13)
+* Author: [Dianna Ma (“Taylor Swift”)](https://github.com/tayloraswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12200](https://github.com/apple/swift/pull/12200)
@@ -10,13 +10,13 @@
 
 ## Introduction
 
-*This document is a spin-off from a much larger [original proposal](https://github.com/kelvin13/swift-evolution/blob/e888af466c9993de977f6999a131eadd33291b06/proposals/0184-unsafe-pointers-add-missing.md), which covers only those aspects of SE-0184 which do not deal with partial buffer memory state. Designing the partial buffer memory state API clearly requires more work, and has been left out of the scope of this document.*
+*This document is a spin-off from a much larger [original proposal](https://github.com/tayloraswift/swift-evolution/blob/e888af466c9993de977f6999a131eadd33291b06/proposals/0184-unsafe-pointers-add-missing.md), which covers only those aspects of SE-0184 which do not deal with partial buffer memory state. Designing the partial buffer memory state API clearly requires more work, and has been left out of the scope of this document.*
 
 Swift’s pointer types are an important interface for low-level memory manipulation, but the current API design is not very consistent, complete, or convenient. In some places, poor naming choices and overengineered function signatures compromise memory safety by leading users to believe that they have allocated or freed memory when in fact, they have not. This proposal seeks to improve the Swift pointer API by ironing out naming inconsistencies, adding missing methods, and reducing excessive verbosity, offering a more convenient, more sensible, and less bug-prone API. 
 
 Swift-evolution threads: [Pitch: Improved Swift pointers](https://forums.swift.org/t/pitch-improved-swift-pointers/6318), [Pitch: More Improved Swift pointers](https://forums.swift.org/t/pitch-improved-swift-pointers/6318)
 
-Implementation branch: [`kelvin13:se-0184a`](https://github.com/kelvin13/swift/tree/se-0184a)
+Implementation branch: [`tayloraswift:se-0184a`](https://github.com/tayloraswift/swift/tree/se-0184a)
 
 ## Background 
 

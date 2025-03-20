@@ -5,10 +5,16 @@ Swift is a powerful and intuitive programming language that is designed to make 
 ## Scope
 
 The Swift evolution process covers all design changes, no matter how small, to the Swift language, its standard library, and the core tools necessary to build Swift programs.  This includes additions, removals, and changes to:
+
 - the features of the Swift language,
 - the public interface of the Swift standard library,
-- the configuration of the Swift compiler, and
-- the core tools of the Swift package ecosystem, including the configuration of the [Swift package manager](https://www.swift.org/package-manager/) and the design of its manifest files.
+- the configuration of the Swift compiler,
+- the core tools of the Swift package ecosystem, including the configuration of
+  the [Swift package manager](https://www.swift.org/package-manager/) and the
+  design of its manifest files, and
+- the public interfaces of the following libraries:
+  - [Swift Testing](https://github.com/swiftlang/swift-testing)
+  - [XCTest](https://github.com/swiftlang/swift-corelibs-xctest)
 
 The design of other tools, such as IDEs, debuggers, and documentation generators, is not covered by the evolution process.  The Core Team may create workgroups to guide and make recommendations about the development of these tools, but the output of those workgroups is not reviewed.
 
@@ -31,9 +37,12 @@ There is a natural tension between these two goals. Open evolution processes are
 
 The [Core Team](https://www.swift.org/community/#core-team) is responsible for the strategic direction of Swift.  The Core Team creates workgroups focused on specific parts of the project.  When the Core Team gives a workgroup authority over part of the evolution of the project, that workgroup is called an evolution workgroup.  Evolution workgroups manage the evolution process for proposals under their authority, working together with other workgroups as needed.
 
-Currently, there is only one evolution workgroup:
+Currently, there are three evolution workgroups:
 
-* The [Language Steering Group][language-steering-group] has authority over the evolution of the Swift language and its standard library.
+* The [Language Steering Group][language-steering-group] has authority over the evolution of the Swift language, its standard library, and any language configuration features of the Swift package manager.
+* The [Platform Steering Group][platform-steering-group] has authority over the evolution of all other features of the Swift package manager and its manifest files.
+* The [Testing Workgroup][testing-workgroup] has authority over the evolution of
+  the Swift Testing and Corelibs XCTest projects.
 
 The Core Team manages (or delegates) the evolution process for proposals outside these areas.  The Core Team also retains the power to override the evolution decisions of workgroups when necessary.
 
@@ -93,9 +102,12 @@ Please state explicitly whether you believe that the proposal should be accepted
 
 1. **Develop the proposal and implementation**
 
-   1. Expand the rough sketch into a formal proposal using the [proposal template](proposal-templates/0000-swift-template.md).
-   1. In the [swift-evolution repository][swift-evolution-repo], open a [draft pull request][draft-pr] that adds your proposal to the [proposals directory](/proposals).
-   1. Anounce the pull request on the forums and edit the root post to link out to the pull request.
+   1. Expand the rough sketch into a formal proposal using the
+      [relevant proposal template](#proposal-templates).
+   1. In the [swift-evolution repository][swift-evolution-repo], open a
+      [draft pull request][draft-pr] that adds your proposal to the appropriate
+      [proposal directory](#proposal-locations).
+   1. Announce the pull request on the forums and edit the root post to link out to the pull request.
    1. Refine the formal proposal in the open as you receive further feedback on the forums or the pull request.
       A ripe proposal is expected to address commentary from present and past
       discussions of the idea.
@@ -111,13 +123,13 @@ Please state explicitly whether you believe that the proposal should be accepted
       Proposals that can ship as part of the [Standard Library Preview package][preview-package]
       should be paired with a pull request against the [swift-evolution-staging repository][swift-evolution-staging].
       All other proposals should be paired with an implementation pull request
-      against the [main Swift repository](https://github.com/apple/swift).
+      against the [main Swift repository](https://github.com/swiftlang/swift).
 
       The preview package can accept new types, new protocols, and extensions to
       existing types and protocols that can be implemented without access to
       standard library internals or other non-public features.
       For more information about the kinds of changes that can be implemented in
-      the preview package, see [SE-0264](https://github.com/apple/swift-evolution/blob/main/proposals/0264-stdlib-preview-package.md).
+      the preview package, see [SE-0264](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0264-stdlib-preview-package.md).
 
 1. **Request a review**
 
@@ -127,6 +139,28 @@ Please state explicitly whether you believe that the proposal should be accepted
 > In general, and especially [during the review period](#review-process), be responsive to questions and feedback about the proposal.
 
 [draft-pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests
+
+### Proposal templates
+
+When writing a formal proposal document, start with the most relevant template
+given the primary subject of the proposal:
+
+- Use the [Swift template][swift-template] for proposals concerning the Swift
+  language, compiler, or standard library.
+- Use the [Swift Package Manager template][swiftpm-template] for proposals
+  related to SwiftPM, including the design of its package manifest files and
+  command-line tools.
+- Use the [Swift Testing template][swift-testing-template] for proposals focused
+  on Swift Testing features or public interfaces.
+
+### Proposal locations
+
+When opening a pull request to add a new proposal to the
+[swift-evolution repository][swift-evolution-repo], place proposals which use
+the [Swift][swift-template] or [Swift Package Manager][swiftpm-template]
+templates in the top-level [proposals](/proposals) directory. Place proposals
+which use the newer [Swift Testing template][swift-testing-template] in the
+[proposals/testing](/proposals/testing) subdirectory.
 
 ## Review process
 
@@ -162,13 +196,13 @@ flowchart LR
   %% <https://mermaid-js.github.io/>
 
   %% Nodes:
-  1{{"Awaiting\nreview"}}
-  2{{"Scheduled\nfor review"}}
-  3{"Active\nreview"}
-  4["Returned\nfor revision"]
+  1{{"Awaiting<br/>review"}}
+  2{{"Scheduled<br>for review"}}
+  3{"Active<br/>review"}
+  4["Returned<br/>for revision"]
   5(["Withdrawn"])
   6(["Rejected"])
-  7_8["Accepted\n(with revisions)"]
+  7_8["Accepted<br/>(with revisions)"]
   9[["Previewing"]]
   10(["Implemented"])
 
@@ -205,12 +239,17 @@ A given proposal can be in one of several states:
   If the proposal's implementation spans multiple version numbers,
   write the version number for which the implementation will be complete.
 
-[swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
-[swift-evolution-staging]: https://github.com/apple/swift-evolution-staging  "Swift evolution staging repository"
+[swift-evolution-repo]: https://github.com/swiftlang/swift-evolution  "Swift evolution repository"
+[swift-evolution-staging]: https://github.com/swiftlang/swift-evolution-staging  "Swift evolution staging repository"
 [proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
-[status-page]: https://apple.github.io/swift-evolution/
+[status-page]: https://www.swift.org/swift-evolution
 [preview-package]: https://github.com/apple/swift-standard-library-preview/
 [language-steering-group]: https://www.swift.org/language-steering-group
+[platform-steering-group]: https://www.swift.org/platform-steering-group
+[testing-workgroup]: https://www.swift.org/testing-workgroup  "Testing Workgroup page on Swift.org"
+[swift-template]: proposal-templates/0000-swift-template.md  "Swift proposal template"
+[swiftpm-template]: proposal-templates/0000-swiftpm-template.md  "Swift Package Manager proposal template"
+[swift-testing-template]: proposal-templates/0000-swift-testing-template.md  "Swift Testing proposal template"
 
 ## Review announcement
 
@@ -250,7 +289,7 @@ answer in your review:
 
 More information about the Swift evolution process is available at
 
-> <https://github.com/apple/swift-evolution/blob/main/process.md>
+> <https://github.com/swiftlang/swift-evolution/blob/main/process.md>
 
 Thank you,
 
