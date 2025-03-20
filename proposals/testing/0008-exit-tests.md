@@ -2,6 +2,7 @@
 
 * Proposal: [ST-0008](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0008-exit-tests.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
+* Review Manager: [Maarten Engels](https://github.com/maartene)
 * Status: **Active Review (March 21...April 8, 2025)**
 * Bug: [apple/swift-testing#157](https://github.com/apple/swift-testing/issues/157)
 * Implementation: [apple/swift-testing#324](https://github.com/swiftlang/swift-testing/pull/324)
