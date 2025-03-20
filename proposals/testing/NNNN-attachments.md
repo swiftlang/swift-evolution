@@ -99,12 +99,15 @@ public struct Attachment<AttachableValue>: ~Copyable where AttachableValue: Atta
   /// disk.
   ///
   /// An attachment can only be attached once.
-  public static func attach(_ attachment: consuming Self, sourceLocation: SourceLocation = #_sourceLocation)
+  public static func record(_ attachment: consuming Self, sourceLocation: SourceLocation = #_sourceLocation)
 
   /// Attach a value to the current test.
   ///
   /// - Parameters:
   ///   - attachableValue: The value to attach.
+  ///   - preferredName: The preferred name of the attachment when writing it to
+  ///     a test report or to disk. If `nil`, the testing library attempts to
+  ///     derive a reasonable filename for the attached value.
   ///   - sourceLocation: The source location of the call to this function.
   ///
   /// When attaching a value of a type that does not conform to both
@@ -119,7 +122,7 @@ public struct Attachment<AttachableValue>: ~Copyable where AttachableValue: Atta
   /// attaches it to the current test.
   ///
   /// An attachment can only be attached once.
-  public static func attach(_ attachment: consuming AttachableValue, sourceLocation: SourceLocation = #_sourceLocation)
+  public static func record(_ attachableValue: consuming AttachableValue, named preferredName: String? = nil, sourceLocation: SourceLocation = #_sourceLocation)
 
   /// Call a function and pass a buffer representing the value of this
   /// instance's ``attachableValue-2tnj5`` property to it.
@@ -153,10 +156,11 @@ conform:
 /// A protocol describing a type that can be attached to a test report or
 /// written to disk when a test is run.
 ///
-/// To attach an attachable value to a test report or test run output, use it to
-/// initialize a new instance of ``Attachment``, then call
-/// ``Attachment/attach(_:sourceLocation:)``. An attachment can only be attached
-/// once.
+/// To attach an attachable value to a test, pass it to ``Attachment/record(_:named:sourceLocation:)``.
+/// To further configure an attachable value before you attach it, use it to
+/// initialize an instance of ``Attachment`` and set its properties before
+/// passing it to ``Attachment/record(_:sourceLocation:)``. An attachable
+/// value can only be attached to a test once.
 ///
 /// The testing library provides default conformances to this protocol for a
 /// variety of standard library types. Most user-defined types do not need to
@@ -245,10 +249,11 @@ that refines `Attachable`:
 /// written to disk when a test is run and which contains another value that it
 /// stands in for.
 ///
-/// To attach an attachable value to a test report or test run output, use it to
-/// initialize a new instance of ``Attachment``, then call
-/// ``Attachment/attach(_:sourceLocation:)``. An attachment can only be attached
-/// once.
+/// To attach an attachable value to a test, pass it to ``Attachment/record(_:named:sourceLocation:)``.
+/// To further configure an attachable value before you attach it, use it to
+/// initialize an instance of ``Attachment`` and set its properties before
+/// passing it to ``Attachment/record(_:sourceLocation:)``. An attachable
+/// value can only be attached to a test once.
 ///
 /// A type can conform to this protocol if it represents another type that
 /// cannot directly conform to ``Attachable``, such as a non-final class or a
@@ -452,10 +457,10 @@ version too.
   allows an implementation (such as that of `Encodable & Attachable`) to add a
   path extension to the filename specified by the test author if needed.
   
-- Making the `Attachment.attach(_:sourceLocation:)` methods a single instance
-  method of `Attachment` named `attach()`: this was in the initial pitch but the
-  community discussed several more ergonomic options and we chose
-  `Attachment.attach(_:sourceLocation:)` instead.
+- Making the `Attachment.record(_:[named:]sourceLocation:)` methods a single
+  instance method of `Attachment` named `attach()`: this was in the initial
+  pitch but the community discussed several more ergonomic options and we chose
+  `Attachment.record(_:sourceLocation:)` instead.
 
 ## Acknowledgments
 
