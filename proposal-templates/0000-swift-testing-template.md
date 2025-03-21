@@ -2,6 +2,7 @@
 
 * Proposal: [ST-NNNN](NNNN-filename.md)
 * Authors: [Author 1](https://github.com/author1), [Author 2](https://github.com/author2)
+* Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
 * Bug: _if applicable_ [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/issues/NNNNN)
 * Implementation: [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/pull/NNNNN)
@@ -14,8 +15,10 @@ except for the section headers and the header fields above. For example, you
 should delete everything from this paragraph down to the Introduction section
 below.
 
-As a proposal author, you should fill out all of the header fields. Delete any
-header fields marked _if applicable_ that are not applicable to your proposal.
+As a proposal author, you should fill out all of the header fields except
+`Review Manager`. The review manager will set that field and change several
+others as part of initiating the review. Delete any header fields marked _if
+applicable_ that are not applicable to your proposal.
 
 When sharing a link to the proposal while it is still a PR, be sure to share a
 live link to the proposal, not an exact commit, so that readers will always see
@@ -181,4 +184,5 @@ were incorporated into the proposal as it developed, take a moment here to thank
 them for their contributions. This is a collaborative process, and everyone's
 input should receive recognition!
 
-Generally, you should not acknowledge anyone who is listed as a co-author.
+Generally, you should not acknowledge anyone who is listed as a co-author or as
+the review manager.
