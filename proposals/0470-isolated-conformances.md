@@ -7,7 +7,7 @@
 * Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
 * Implementation: On `main` with the experimental features `IsolatedConformances` and `StrictSendableMetatypes`.
 * Upcoming Feature Flag: `InferIsolatedConformances`
-* Review: ([pitch](https://forums.swift.org/t/pre-pitch-isolated-conformances/77726))
+* Review: ([pitch](https://forums.swift.org/t/pre-pitch-isolated-conformances/77726)) ([review](https://forums.swift.org/t/se-0470-global-actor-isolated-conformances/78704))
 
 ## Introduction
 
