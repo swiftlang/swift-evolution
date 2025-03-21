@@ -66,10 +66,12 @@ A `RawSpan` can be obtained from containers of `BitwiseCopyable` elements, as we
 
 ```swift
 @frozen
-public struct Span<Element: ~Copyable & ~Escapable>: Copyable, ~Escapable {
+public struct Span<Element: ~Copyable>: Copyable, ~Escapable {
   internal var _start: UnsafeRawPointer?
   internal var _count: Int
 }
+
+extension Span: Sendable where Element: Sendable & ~Copyable {}
 ```
 
 We store a `UnsafeRawPointer` value internally in order to explicitly support reinterpreted views of memory as containing different types of `BitwiseCopyable` elements. Note that the the optionality of the pointer does not affect usage of `Span`, since accesses are bounds-checked and the pointer is only dereferenced when the `Span` isn't empty, and the pointer cannot be `nil`.
@@ -95,7 +97,7 @@ Like `UnsafeBufferPointer`, `Span` uses a simple offset-based indexing. The firs
 As a side-effect of not conforming to `Collection` or `Sequence`, `Span` is not directly supported by `for` loops at this time. It is, however, easy to use in a `for` loop via indexing:
 
 ```swift
-for i in 0..<mySpan.count {
+for i in mySpan.indices {
   calculation(mySpan[i])
 }
 ```
@@ -225,6 +227,8 @@ public struct RawSpan: Copyable, ~Escapable {
   internal var _start: UnsafeRawPointer
   internal var _count: Int
 }
+
+extension RawSpan: Sendable {}
 ```
 
 Initializers, required for library adoption, will be proposed alongside [lifetime annotations][PR-2305]; for details, see "[Initializers](#Initializers)" in the [future directions](#Directions) section.
@@ -402,6 +406,12 @@ A non-escapable index type implies that any indexing operation would borrow its 
 
 The ideas in this proposal previously used the name `BufferView`. While the use of the word "buffer" would be consistent with the `UnsafeBufferPointer` type, it is nevertheless not a great name, since "buffer" is commonly used in reference to transient storage. Another previous pitch used the term `StorageView` in reference to the `withContiguousStorageIfAvailable()` standard library function. We also considered the name `StorageSpan`, but that did not add much beyond the shorter name `Span`. `Span` clearly identifies itself as a relative of C++'s `std::span`.
 
+The OpenTelemetry project and its related libraries use the word "span" for a concept of a timespan. The domains of use between that and direct memory access are very distinct, and we believe that the confusability between the use cases should be low. We also note that standard library type names can always be shadowed by type names from packages, mitigating the risk of source breaks.
+
+##### <a name="Sendability"></a>Sendability of `RawSpan`
+
+This proposal makes `RawSpan` a `Sendable` type. We believe this is the right decision. The sendability of `RawSpan` could be used to unsafely transfer a pointer value across an isolation boundary, despite the non-sendability of pointers. For example, suppose a `RawSpan` were obtained from an existing `Array<UnsafeRawPointer>` variable. We could send the `RawSpan` across the isolation boundary, and there extract the pointer using `rawSpan.unsafeLoad(as: UnsafeRawPointer.self)`. While this is an unsafe outcome, a similar operation can be done encoding a pointer as an `Int`, and then using `UnsafeRawPointer(bitPattern: mySentInt)` on the other side of the isolation boundary.
+
 ##### A more sophisticated approach to indexing
 
 This is discussed more fully in the [indexing appendix](#Indexing) below.
@@ -444,7 +454,7 @@ This proposal includes some `_read` accessors, the coroutine version of the `get
 
 #### Extensions to Standard Library and Foundation types
 
-The standard library and Foundation has a number of types that can in principle provide access to their internal storage as a `Span`. We could provide `withSpan()` and `withBytes()` closure-taking functions as safe replacements for the existing `withUnsafeBufferPointer()` and `withUnsafeBytes()` functions. We could also also provide lifetime-dependent `span` or `bytes` properties. For example, `Array` could be extended as follows:
+The standard library and Foundation has a number of types that can in principle provide access to their internal storage as a `Span`. We could provide `withSpan()` and `withBytes()` closure-taking functions as safe replacements for the existing `withUnsafeBufferPointer()` and `withUnsafeBytes()` functions. We could also provide lifetime-dependent `span` or `bytes` properties. For example, `Array` could be extended as follows:
 
 ```swift
 extension Array {
@@ -465,10 +475,6 @@ extension Array where Element: BitwiseCopyable {
 ```
 
 Of these, the closure-taking functions can be implemented now, but it is unclear whether they are desirable. The lifetime-dependent computed properties require lifetime annotations, as initializers do. We are deferring proposing these extensions until the lifetime annotations are proposed.
-
-#### Index Validation Utilities 
-
-This proposal originally included index validation utilities for `Span`. such as `boundsContain(_: Index) -> Bool` and `boundsContain(_: Range<Index>) -> Bool`. After review feedback, we believe that the utilities proposed would also be useful for index validation on `UnsafeBufferPointer`, `Array`, and other similar `RandomAccessCollection` types. `Range` already a single-element `contains(_: Bound) -> Bool` function which can be made even more efficient. We should add an additional function that identifies whether a `Range` contains the _endpoints_ of another `Range`. Note that this is not the same as the existing `contains(_: some Collection<Bound>) -> Bool`, which is about the _elements_ of the collection. This semantic difference can lead to different results when examing empty `Range` instances.
 
 #### <a name="ContiguousStorage"></a>A `ContiguousStorage` protocol
 
@@ -494,6 +500,10 @@ public protocol ContiguousStorage<Element>: ~Copyable, ~Escapable {
 Two issues prevent us from proposing it at this time: (a) the ability to suppress requirements on `associatedtype` declarations was deferred during the review of [SE-0427], and (b) we cannot declare a `_read` accessor as a protocol requirement.
 
 Many of the standard library collections could conform to `ContiguousStorage`.
+
+#### Index Validation Utilities 
+
+This proposal originally included index validation utilities for `Span`. such as `boundsContain(_: Index) -> Bool` and `boundsContain(_: Range<Index>) -> Bool`. After review feedback, we believe that the utilities proposed would also be useful for index validation on `UnsafeBufferPointer`, `Array`, and other similar `RandomAccessCollection` types. `Range` already a single-element `contains(_: Bound) -> Bool` function which can be made even more efficient. We should add an additional function that identifies whether a `Range` contains the _endpoints_ of another `Range`. Note that this is not the same as the existing `contains(_: some Collection<Bound>) -> Bool`, which is about the _elements_ of the collection. This semantic difference can lead to different results when examining empty `Range` instances.
 
 #### Support for `Span` in `for` loops
 
