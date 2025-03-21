@@ -1,21 +1,13 @@
 # Global-actor isolated conformances
 
-* Proposal: [SE-NNNN](NNNN-isolated-conformances.md)
-
+* Proposal: [SE-0470](0470-isolated-conformances.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-
-* Review Manager: TBD
-
-* Status: **Awaiting review**
-
-* Upcoming feature: `InferIsolatedConformances`
-
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (March 21...April 3, 2025)**
 * Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
-
 * Implementation: On `main` with the experimental features `IsolatedConformances` and `StrictSendableMetatypes`.
+* Upcoming Feature Flag: `InferIsolatedConformances`
 * Review: ([pitch](https://forums.swift.org/t/pre-pitch-isolated-conformances/77726))
-
-
 
 ## Introduction
 
@@ -500,7 +492,7 @@ will continue to work with the stricter model for generic functions in this prop
 
 The proposed change for generic functions does have an impact on source compatibility, where functions like `callQGElsewhere` will be rejected. However, the source break is limited to generic code that:
 
-1. Uses a conformance requirement (`T: P`) of a non-marked protocol `P` in another isolated domain,
+1. Uses a conformance requirement (`T: P`) of a non-marker protocol `P` in another isolated domain,
 2. Does not have a corresponding constraint `T: Sendable` requirement; and
 3. Is compiled with strict concurrency enabled (either as Swift 6 or with warnings).
 
@@ -580,7 +572,7 @@ class MyClass: /*implicit @MainActor*/P { ... }
 
 ## Source compatibility
 
-As discussed in the section on rule (2), this proposal introduces a source compatbility break for code that is using strict concurrency and passes uses conformances of non-`Sendable` type parameters in other isolation domains. The overall amount of such code is expected to be small, because it's likely to be rare that the conformances of generic types cross isolation boundaries but values of those types do not.
+As discussed in the section on rule (2), this proposal introduces a source compatibility break for code that is using strict concurrency and passes uses conformances of non-`Sendable` type parameters in other isolation domains. The overall amount of such code is expected to be small, because it's likely to be rare that the conformances of generic types cross isolation boundaries but values of those types do not.
 
 Initial testing of an implementation of this proposal found very little code that relied on `Sendable` metatypes where the corresponding type was not also `Sendable`. Therefore, this proposal suggests to accept this as a source-breaking change with strict concurrency (as a warning in Swift 5, error in Swift 6) rather than staging the change through an upcoming feature or alternative language mode.
 
