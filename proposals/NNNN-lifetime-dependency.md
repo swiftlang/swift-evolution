@@ -1,20 +1,25 @@
 # Compile-time Lifetime Dependency Annotations
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Andrew Trick](https://github.com/atrick), [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka)
+* Proposal: [SE-NNNN](NNNN-lifetime-dependency.md)
+* Authors: [Andrew Trick](https://github.com/atrick), [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka), [Joe Groff](https://github.com/jckarter/)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Review: ([pitch](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865))
+* Status: **Implemented** in `main` branch, with the `LifetimeDependence` experimental feature flag
+* Review: ([pitch 1](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865))
 
 ## Introduction
 
-We would like to propose extensions to Swift's function-declaration syntax that allow authors to specify lifetime dependencies between the return value and one or more of the parameters.
-These would also be useable with methods that wish to declare a dependency on `self`.
-To reduce the burden of manually adding such annotations, we also propose inferring lifetime dependencies in certain common cases without requiring any additional annotations.
+We would like to propose an attribute for Swift function, initializer, method, and property accessor declarations that allow authors to specify lifetime dependencies between a declaration's return value and one or more of its parameters.
 
-This is a key requirement for the `Span` type (previously called `BufferView`) being discussed elsewhere, and is closely related to the proposal for `~Escapable` types.
+This is deeply related to `~Escapable` types, as introduced in [SE-0446](0446-non-escapable.md). This proposal exposes the underyling mechanisms used by the standard library to implement [SE-0447](0447-span-access-shared-contiguous-storage.md)'s `Span` and [SE-0467](0467-MutableSpan.md)'s `MutableSpan` types, as well as the new APIs for creating instances of these types from standard library collections added in [SE-0456](0456-stdlib-span-properties.md), providing a consistent framework by which user-defined types and functions can also express lifetime dependencies.
 
-**Edited** (Apr 12, 2024): Changed `@dependsOn` to `dependsOn` to match the current implementation.
+**Edited** (March 20, 2025):
+
+- Replaced `dependsOn` return type modifier with a declaration-level `@lifetime` attribute.
+Removed dependency inference rules.
+- Integrated links to proposals SE-0446 (`Escapable`), SE-0447 (`Span`), SE-0456 (`Span`-producing properties), and SE-0467 (`MutableSpan`) that have undergone review.
+- Added SE-0458 `@unsafe` annotations to the `unsafeLifetime` standard library functions, and added `@unsafe` as a requirement for APIs using `BitwiseCopyable` lifetime dependencies under strict memory safety.
+
+**Edited** (April 12, 2024): Changed `@dependsOn` to `dependsOn` to match the current implementation.
 
 **Edited** (May 2, 2024): Changed `StorageView` and `BufferReference` to `Span` to match the sibling proposal.
 
@@ -60,11 +65,12 @@ This is a key requirement for the `Span` type (previously called `BufferView`) b
 * [Pitch Thread for Span](https://forums.swift.org/t/pitch-safe-access-to-contiguous-storage/69888)
 * [Forum discussion of BufferView language requirements](https://forums.swift.org/t/roadmap-language-support-for-bufferview)
 * [Proposed Vision document for BufferView language requirements (includes description of ~Escapable)](https://github.com/atrick/swift-evolution/blob/fd63292839808423a5062499f588f557000c5d15/visions/language-support-for-BufferView.md#non-escaping-bufferview) 
+* [First pitch thread for lifetime dependencies](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865)
 
 ## Motivation
 
 An efficient way to provide one piece of code with temporary access to data stored in some other piece of code is with a pointer to the data in memory.
-Swift's `Unsafe*Pointer` family of types can be used here, but as the name implies, using these types can be error-prone.
+Swift's `Unsafe*Pointer` family of types can be used here, but as the name implies, using these types is not statically safe and can be error-prone.
 
 For example, suppose `ContiguousArray` had a property `unsafeBufferPointer` that returned an `UnsafeBufferPointer` to the contents of the array.
 Here's an attempt to use such a property:
@@ -76,7 +82,7 @@ parse(buff) // <== 🛑 NOT SAFE!
 ```
 
 One reason for this unsafety is because Swift's standard lifetime rules only apply to individual values.
-They cannot guarantee that `buff` will outlive the `array`, which means there is a risk that the compiler might choose to destroy `array` before the call to `parse`, which could result in `buff` referencing deallocated memory.
+They cannot guarantee that `array` will outlive `buff`, which means there is a risk that the compiler might choose to destroy `array` before the call to `parse`, which could result in `buff` referencing deallocated memory.
 (There are other reasons that this specific example is unsafe, but the lifetime issue is the one that specifically concerns us here.)
 
 Library authors trying to support this kind of code pattern today have a few options, but none are entirely satisfactory:
@@ -101,114 +107,166 @@ A "lifetime dependency" between two objects indicates that one of them can only 
 This dependency is enforced entirely at compile time; it requires no run-time support.
 These lifetime dependencies can be expressed in several different ways, with varying trade-offs of expressiveness and ease-of-use.
 
-### Background: "Escapable" and “Nonescapable” Types
+### Background: `Escapable` and Non-`Escapable` Types
 
-In order to avoid changing the meaning of existing code, we will introduce a
-new protocol `Escapable` which can be suppressed with `~Escapable`.
-
+[SE-0446](0446-non-escapable.md) introduced the `Escapable` protocol for controlling lifetime dependency of types.
 Normal Swift types are `Escapable` by default.
 This implies that they can be returned, stored in properties, or otherwise "escape" the local context.
-Conversely, types can be explicitly declared to be "nonescapable" using `~Escapable`.
-These types are not allowed to escape the local context except in very specific circumstances.
-A separate proposal explains the general syntax and semantics of `Escapable` and `~Escapable`.
+Conversely, types can be suppress this implicit assumption of escapability by being declared as `~Escapable`.
+Values of types that are not known to be `Escapable` are not allowed to escape the local context except in very specific circumstances.
 
-By themselves, nonescapable types have severe constraints on usage.
-For example, consider a hypothetical `Span` type that is similar type that is being proposed for inclusion in the standard library. It simply holds a pointer and size and can be used to access data stored in a contiguous block of memory. (We are not proposing this type; it is shown here merely for illustrative purposes.)
+By themselves, non-`Escapable` types have severe constraints on usage.
+For example, consider the `Span` type from [SE-0447](0447-span-access-shared-contiguous-storage.md). It simply holds a pointer and size and can be used to access data stored in a contiguous block of memory.
 
 ```swift
-struct Span<T>: ~Escapable {
+// This is not necessarily the exact definition from the standard library, but
+// is close enough to serve as an example.
+public struct Span<T>: ~Escapable {
   private var base: UnsafePointer<T>
   private var count: Int
 }
 ```
 
-Because this type is marked as unconditionally `~Escapable`, it cannot be returned from a function or even initialized without some way to relax the escapability restrictions.
-This proposal provides a set of constraints that can tie the lifetime of a nonescapable value to the lifetime of some other value.
-In the most common cases, these constraints can be inferred automatically.
+Because the `Span` type is marked as unconditionally `~Escapable`, it cannot be returned from a function or even initialized without some way to relax the escapability restrictions.
+[SE-0456](0456-stdlib-span-properties.md) imbued `span` accessors on certain standard library types with specific lifetime relationships that allowed for only those accessors to return `Span` instances, and [SE-0467](0467-MutableSpan.md) subsequently did the same for `mutableSpan` accessors on those same types.
+This proposal supersedes those special cases with a general-purpose mechanism for providing a set of constraints that can tie the lifetime of a non-`Escapable` value to the lifetime of other values.
 
-### Explicit Lifetime Dependency Annotations
+### Lifetime Dependency Annotations
 
-To make the semantics clearer, we’ll begin by describing how one can explicitly specify a lifetime constraint in cases where the default inference rules do not apply.
-
-Let’s consider adding support for our hypothetical `Span` type to `ContiguousArray`.
-Our proposal would allow you to declare an `array.span()` method as follows:
+Let's consider adding support for our hypothetical `Span` type to `ContiguousArray`.
+Our proposal will allow you to declare an `array.span` property as follows:
 
 ```swift
 extension ContiguousArray {
-  borrowing func span() -> dependsOn(self) Span<Element> {
-    ... construct a Span ...
+  var span: Span<Element> {
+    @lifetime(borrow self)
+    borrowing get {
+        ... construct a Span ...
+    }
   }
 }
 ```
 
-The annotation `dependsOn(self)` here indicates that the returned value must not outlive the array that produced it.
-Conceptually, it is a continuation of the function's borrowing access:
-the array is being borrowed by the function while the function executes and then continues to be borrowed by the `Span` for as long as the return value exists.
-Specifically, the `dependsOn(self)` annotation in this example informs the compiler that:
+The annotation `@lifetime(borrow self)` here indicates that the returned value must not outlive the array that produced it.
+Futhermore, the originating array value behaves as if it is borrowed for the duration of the `span`'s lifetime, meaning not only that the array cannot be destroyed, but also cannot be modified while the `span` is alive.
+Conceptually, the `span` acts as a continuation of the function's borrowing access:
+the array is borrowed by the function while the function executes and then continues to be borrowed by the result of `span` for as long as the return value exists.
+Specifically, the `@lifetime(borrow self)` annotation in this example informs the compiler that:
 
 * The array must not be destroyed until after the `Span<Element>` is destroyed.
   This ensures that use-after-free cannot occur.
 * The array must not be mutated while the  `Span<Element>` value exists.
-  This follows the usual Swift exclusivity rules for a borrowing access.
+  This follows the usual Swift exclusivity rules for mutation; mutation requires exclusive access, so cannot occur during a borrowing access.
+  However, just like a variable can undergo multiple simultaneous borrowing accesses, so can multiple `Span`s depend on borrowing the same origin `array`.
+  In this case, the `array` is borrowed until the end of the lifetimes of all of its borrow-dependent values.
 
 #### Scoped Lifetime Dependency
 
-Let’s consider another hypothetical type: a `MutatingSpan<T>` type that could provide indirect mutating access to a block of memory.
-Here's one way such a value might be produced:
+Let's now consider the `MutableSpan<T>` type from [SE-0467](0467-MutableSpan.md), which provides indirect mutating access to a block of memory.
+Here's one way such a value might be produced from an owning array:
 
 ```swift
-func mutatingSpan(to: inout ContiguousArray, count: Int) -> dependsOn(to) MutatingSpan<Element> {
+@lifetime(inout to)
+func mutatingSpan<Element>(to: inout ContiguousArray<Element>, count: Int) -> MutatingSpan<Element> {
   ... construct a MutatingSpan ...
 }
 ```
 
-We’ve written this example as a free function rather than as a method to show how this annotation syntax can be used to express constraints that apply to a particular argument.
-The `dependsOn(to)` annotation indicates that the returned value depends on the argument named `to`.
+We’ve written this example as a free function rather than as a method to show how this annotation syntax can be used to express constraints that apply to a particular parameter other than `self`.
+The `@lifetime(inout to)` annotation indicates that the returned value depends on the argument named `to`.
 Because `count` is not mentioned in the lifetime dependency, that argument does not participate.
+Instead of `borrow`, this annotation uses the `inout` keyword to indicate that the returned span depends on **mutating** exclusive access to the `to` parameter rather than borrowed access.
+
 Similar to the previous example:
 
-* The array will not be destroyed until after the `MutatingSpan<Element>` is destroyed.
-* No other read or write access to the array will be allowed for as long as the returned value exists.
+* The array will not be destroyed until after the `MutableSpan<Element>` is destroyed.
 
-In both this and the previous case, the lifetime of the return value is "scoped" to the lifetime of the original value.
-Because lifetime dependencies can only be attached to nonescapable values, types that contain pointers will generally need to be nonescapable in order to provide safe semantics.
-As a result, **scoped lifetime dependencies** are the only possibility whenever an `Escapable` value (such as a ContiguousArray or similar container) is providing a nonescapable value (such as the `Span` or `MutatingSpan` in these examples).
+However, by contrast with the previous `borrow` dependency:
+
+* No other read or write access to the array will be allowed for as long as the returned value exists, since the dependency requires exclusivity.
+
+In both the `inout` and the `borrow` dependency case, the lifetime of the return value is "scoped" to an access into the lifetime of the original value.
+Because lifetime dependencies can only be attached to non-`Escapable` values, types that contain pointers will generally need to be non-`Escapable` in order to provide safe semantics.
+As a result, **scoped lifetime dependencies** are the only possibility whenever a non-`Escapable` value (such as `Span` or `MutableSpan`) gets its dependency from an `Escapable` value (such as `ContiguousArray` or similar container).
 
 #### Copied Lifetime Dependency
 
-The case where a nonescapable value is used to produce another nonescapable value is somewhat different.
-Here's a typical example that constructs a new `Span` from an existing one:
+A non-`Escapable` value can also derive its dependency from another non-`Escapable` value, but this case is somewhat different.
+For instance, `Span` has an `extracting` method that returns another `Span` referring to a subrange of the same memory referenced by the original `Span`.
+This method can be declared as follows:
+
 ```swift
 struct Span<T>: ~Escapable {
-  ...
-  consuming func drop(_: Int) -> dependsOn(self) Span<T> { ... }
-  ...
+    @lifetime(copy self)
+    func extracting(_ range: Range<Int>) -> Span<T> {
+        ...make derived span...
+    }
 }
 ```
 
-In this examples, the nonescapable result depends on a nonescapable value.
-Recall that nonescapable values such as these represent values that are already lifetime-constrained to another value.
+In this example, the non-`Escapable` result doesn't depend on the first non-`Escapable` value that it was derived from.
+Recall that non-`Escapable` values such as these represent values that are already lifetime-constrained to another value; in this case, the returned `Span` is ultimately dependent on the same owning value as the original `Span`.
 
-For a `consuming` method, the return value cannot have a scoped lifetime dependency on the original value, since the original value no longer exists when the method returns.
-Instead, the return value must "copy" the lifetime dependency from the original:
+To express this, the return value can "copy" the lifetime dependency from the original:
 If the original `Span` was borrowing some array, the new `Span` will continue to borrow the same array.
 
 This supports coding patterns such as this:
 ```swift
-let a: ContiguousArray<Int>
-let ref1 = a.span() // ref1 cannot outlive a
-let ref2 = ref1.drop(4) // ref2 also cannot outlive a
+var a: ContiguousArray<Int>
+let ref1 = a.span // ref1 cannot outlive a
+let ref2 = ref1.extracting(4 ..< ref1.count) // ref2 also cannot outlive a
 ```
 
-After `ref1.drop(4)`, the lifetime of `ref2` does not depend on `ref1`, which is consumed within the method. Instead,
-the `drop` method **copies** `ref1`s lifetime depenence onto `ref2`. `ref2` effectively **inherits** a lifetime
-dependency on `a`. We may refer to a lifetime dependence that has been copied from another value as an "inherited"
-dependence.
+After `ref1.extracting(4 ..< ref1.count)`, the lifetime of `ref2` does not depend on `ref1`.
+The `extracting` method **copies** `ref1`s lifetime depenence onto `ref2`.
+`ref2` effectively **inherits** the same lifetime dependency on `a` as `ref1`.
+We may also refer to a lifetime dependence that has been copied from another value as an "inherited" dependence.
+Since both `ref1` and `ref2` have borrowing scoped dependencies on `a`, they can be used simultaneously:
 
-#### Allowed Lifetime Dependencies
+```
+print(ref1[0])
+print(ref2[0])
+```
 
-The previous sections described **scoped lifetime dependencies** and **copied lifetime dependencies**
-and showed how each type occurs naturally in different use cases.
+`ref2` can continue to be used after the end of `ref1`'s lifetime, as long as `a` remains valid:
+
+```
+_ = consume ref1 // explicitly end ref1's lifetime here
+print(ref2[0]) // OK, ref2 is still valid
+
+_ = consume a // explicitly end a's lifetime here
+print(ref2[0]) // error: ref2 cannot exceed a's lifetime
+```
+
+`a` cannot be mutated or destroyed until both `ref1` and `ref2` have expired:
+
+```
+a.append(1) // error: 'a' is borrowed by 'ref1' and 'ref2'
+_ = consume ref2
+a.append(1) // error: 'a' is borrowed by 'ref1'
+_ = consume ref1
+a.append(1) // OK
+```
+
+Note that non-`Escapable` values can still have scoped dependencies on other non-`Escapable` values as well.
+This comes up frequently with `MutableSpan` due to its interaction with exclusivity.
+Since there can only be one mutating reference to a mutable value at any time, `MutableSpan`'s version of the `extracting` method must pass off that responsibility to the extracted `MutableSpan` for the latter value's lifetime and prevent overlapping access through the base `MutableSpan` until the extracted `MutableSpan` is no longer usable. It can achieve this by giving the extracted `MutableSpan` a scoped dependency:
+
+```
+extension MutableSpan {
+  @lifetime(inout self)
+  mutating func extracting(_ range: Range<Int>) -> MutableSpan<Element> {
+    ...
+  }
+}
+```
+
+Since the return value of `extracting` has a scoped `inout` dependency on the original `MutableSpan`, the original cannot be accessed while the new value is active.
+When the extracted `MutableSpan` ends its lifetime, the exclusive access to the original ends, making it available for use again, thereby allowing for the derivation of new `MutableSpan`s without violating exclusivity.
+
+### Allowed Lifetime Dependencies
+
+The previous sections described **scoped lifetime dependencies** and **copied lifetime dependencies** and showed how each type occurs naturally in different use cases.
 
 Now let's look at the full range of possibilities for explicit constraints.
 The syntax is somewhat different for functions and methods, though the basic rules are essentially the same.
@@ -216,191 +274,148 @@ The syntax is somewhat different for functions and methods, though the basic rul
 **Functions:** A simple function with an explicit lifetime dependency annotation generally takes this form:
 
 ```swift
-func f(arg: <parameter-convention> ArgType) -> dependsOn(arg) ResultType
+@lifetime(<dependency-kind> arg)
+func f(arg: ArgType) -> ResultType
 ```
 
 Where
 
-*  *`parameter-convention`* is one of the ownership specifiers **`borrowing`**, **`consuming`**, or **`inout`**, (this may be implied by Swift’s default parameter ownership rules),
-* `ResultType` must be nonescapable.
+*  *`dependency-kind`* is one of the dependency specifiers **`borrow`**, **`inout`**, or **`copy`**, and
+* `ResultType` must be non-`Escapable`.
 
-If the `ArgType` is escapable, the return value will have a new scoped dependency on the argument.
-(This is the only possibility, as an escapable value cannot have an existing lifetime dependency,
-so we cannot copy the lifetime dependency.)
-A scoped dependency ensures the argument will not be destroyed while the result is alive.
+If the `ArgType` is `Escapable`, the dependency specifier must be `borrow` or `inout` and return value will have a new scoped dependency on the argument.
+(This is the only possibility, since an `Escapable` value cannot have an existing lifetime dependency, so we cannot copy its lifetime dependency.)
+The specifier must further correspond to the ownership of `arg`: if `arg` has no ownership specified, or is explicitly `borrowing`, then the dependency must be `borrow`.
+On the other hand, if `arg` is `inout`, the dependency must also be `inout`.
+(A scoped dependency cannot be formed on a `consuming` parameter.)
+
+A scoped dependency ensures that the argument will not be destroyed while the result is alive.
 Also, access to the argument will be restricted for the lifetime of the result following Swift's usual exclusivity rules:
 
-* A `borrowing` parameter-convention extends borrowing access, prohibiting mutations of the argument.
-* An `inout` parameter-convention extends mutating access, prohibiting any access to the argument.
+* A `borrowing` parameter-convention extends borrowing access, prohibiting mutations of the argument, but allowing other simultaneous borrowing accesses.
+* An `inout` parameter-convention extends mutating access, prohibiting any other access to the argument f, whether borrowing or mutating.
 * A `consuming` parameter-convention is illegal, since that ends the lifetime of the argument immediately.
 
-If the `ArgType` is nonescapable, then it can have a pre-existing lifetime dependency.
-In this case, the semantics of `dependsOn()` are slightly different:
-* A `consuming` parameter-convention will copy the lifetime dependency from the argument to the result
-* A `borrowing` or `inout` parameter-convention can either copy the lifetime dependency or create a new scoped lifetime dependency.
-  In this case, for reasons explained earlier, we default to copying the lifetime dependency.
-  If a scoped lifetime dependency is needed, it can be explicitly requested by adding the `scoped` keyword:
-  
-```swift
-func f(arg: borrowing ArgType) -> dependsOn(scoped arg) ResultType
-```
+If the `ArgType` is non-`Escapable`, then it can have a pre-existing lifetime dependency.
+In this case, in addition to `borrow` or `inout`, a `copy` dependency-kind is allowed, to indicate that the returned value has the same dependency as the argument.
+`borrow` and `inout` dependency kinds continue to work as for `Escapable` types, and indicate that the returned value has a scoped lifetime dependency based on an access to the argument, making the returned value even further lifetime-constrained than the argument going in.
 
-**Methods:** Similar rules apply to `self` lifetime dependencies on methods.
+**Methods:** Similar rules apply to lifetime dependencies on `self` in methods.
 Given a method of this form:
 
 ```swift
-<mutation-modifier> func method(... args ...) -> dependsOn(self) ResultType
+@lifetime(<dependency-kind> self)
+<mutation-modifier> func method(... args ...) -> ResultType
 ```
 
-The behavior depends as above on the mutation-modifier and whether the defining type is escapable or nonescapable.
+The behavior depends as above on the dependency-kind and whether the defining type is `Escapable`.
+For a method of an `Escapable` type, the dependency-kind must be `borrow self` for a `borrowing` method, or `inout self` for a `mutating` method, and lifetime dependencies are not allowed on `self` in a `consuming` method.
+For a method of a non-`Escapable` type, the dependency-kind may additionally be `copy self`.
 
-**Initializers:** An initializer can define lifetime dependencies on one or more arguments.
+**Initializers:** An initializer can also define lifetime dependencies on one or more arguments.
 In this case, we use the same rules as for “Functions” above
 by using the convention that initializers can be viewed as functions that return `Self`:
 
 ```swift
-init(arg: <parameter-convention> ArgType) -> dependsOn(arg) Self
+@lifetime(<dependency-kind> arg)
+init(arg: ArgType)
 ```
 
-### Implicit Lifetime Dependencies
+#### Dependent Parameters
 
-The syntax above allows developers to explicitly annotate lifetime dependencies in their code.  But because the possibilities are limited, we can usually allow the compiler to infer a suitable dependency.  The detailed rules are below, but generally we require that the return type be nonescapable and that there be an “obvious” source for the dependency.
-
-#### Self dependence
-
-We can infer a lifetime dependency on `self` for any method that returns a nonescapable value. As above, the details vary depending on whether `self` is escapable or nonescapable:
+Normally, lifetime dependence is required when a non-`Escapable` function result depends on an argument to that function. However, `inout` parameters of non-`Escapable` type also express an operation that results in a new non-`Escapable` value as a result of mutation by calling the function, so that function parameter may also depend on another argument to a function call. The target of a dependency can be expressed before a colon in a `@lifetime` attribute:
 
 ```swift
-struct NonescapableType: ~Escapable { ... }
-struct EscStruct {
-  func f1(...) -> /* dependsOn(self) */ NonescapableType
-  borrowing func f2(...) -> /* dependsOn(self) */ NonescapableType
-  mutating func f3(...) -> /* dependsOn(self) */ NonescapableType
-
-  // 🛑 Error: there is no valid lifetime dependency for
-  // a consuming method on an `Escapable` type
-  consuming func f4(...) -> NonescapableType
-}
-
-struct NEStruct: ~Escapable {
-  func f1(...) -> /* dependsOn(self) */ NonescapableType
-  borrowing func f2(...) -> /* dependsOn(self) */ NonescapableType
-  mutating func f3(...) -> /* dependsOn(self) */ NonescapableType
-
-  // Note: A copied lifetime dependency is legal here
-  consuming func f4(...) -> /* dependsOn(self) */ NonescapableType
+@lifetime(span: borrow a)
+func mayReassign(span: inout Span<Int>, to a: ContiguousArray<Int>) {
+  span = a.span
 }
 ```
 
-#### Same-type dependence
-
-For any function or method that returns a nonescapable type, we infer a copied lifetime dependency on all parameters of the same type.
-
-`func foo<T: ~Escapable, U: ~Escapable, R: ~Escapable>(x: T, y: U) -> R { ... }`
-
-implies:
-
-```
--> dependsOn(x) where R == T
--> dependsOn(y) where R == U
--> dependsOn(x, y) where R == T == U
-```
-
-This is particularly helpful for Generic APIs. With this rule, indicating that a generic parameter is `~Escapable` should usually be sufficient to infer the correct lifetime dependence.
-
-For methods, if `self` is the same type as the result, the same-type rule also applies, resulting in a copied dependence on `self`. This case overlaps with the aforementioned self dependence rule above and has the same effect.
-
-### Dependent parameters
-
-Normally, lifetime dependence is required when a nonescapable function result depends on an argument to that function. In some rare cases, however, a nonescapable function parameter may depend on another argument to that function. Consider a function with an `inout` parameter. The function body may reassign that parameter to a value that depends on another parameter. This is similar in principle to a result dependence.
-
-```swift
-func mayReassign(span: dependsOn(a) inout Span<Int>, to a: ContiguousArray<Int>) {
-  span = a.span()
-}
-```
-
-The `dependsOn(self:)` keyword is required to indicate that a method's implicit `self` depends on another parameter.
+`@lifetime(self:)` can also be used to indicate that a `mutating` method's implicit `self` depends on another parameter after being mutated.
 
 ```swift
 extension Span {
-  mutating dependsOn(self: other) func reassign(other: Span<T>) {
-    self = other // ✅ OK: 'self' depends on 'other'
+  @lifetime(self: copy other)
+  mutating func reassign(other: Span<T>) {
+    self = other
   }
 }
 ```
 
-We've discussed how a nonescapable result must be destroyed before the source of its lifetime dependence. Similarly, a dependent argument must be destroyed before an argument that it depends on. The difference is that the dependent argument may already have a lifetime dependence when it enters the function. The new function argument dependence is additive, because the call does not guarantee reassignment. Instead, passing the 'inout' argument is like a conditional reassignment. After the function call, the dependent argument carries both lifetime dependencies.
+We've discussed how a non-`Escapable` result must be destroyed before the source of its lifetime dependence. Similarly, a dependent argument must be destroyed before an argument that it depends on. The difference is that the dependent argument may already have a lifetime dependence when it enters the function. The new function argument dependence is additive, because the call does not guarantee reassignment. Instead, passing the 'inout' argument is like a conditional reassignment. After the function call, the dependent argument carries both lifetime dependencies.
 
 ```swift
   let a1: ContiguousArray<Int> = ...
-  var span = a1.span()
+  var span = a1.span
   let a2: ContiguousArray<Int> = ...
   mayReassign(span: &span, to: a2)
   // 'span' now depends on both 'a1' and 'a2'.
 ```
 
-The general form of the `dependsOn` syntax is:
+The general form of a `@lifetime` attribute is:
 
-> **dependsOn**(*target*: *source*)
-
-where `target` can be inferred from context:
-
-- Result modifiers go before the result type (after the `->` sigil)
-
-- Parameter modifiers go before the parameter type
-
-- `self` modifiers always go in front of the `func` declaration.
-
-Although `self` could be inferred, it must be spelled explicitly to avoid confusion with the common case of a result
-dependence.
-
-Example:
-
-```
-  dependsOn(self: arg1) func foo<T, R>(arg1: dependsOn(arg2) T, arg2: T) -> dependsOn(arg2) R
+```swift
+@lifetime(target: <dependency-kind> source)
 ```
 
-### Dependent properties
+where `target` can be elided to refer to the return value of the declaration.
 
-Structural composition is an important use case for nonescapable types. Getting or setting a nonescapable property requires lifetime dependence, just like a function result or an 'inout' parameter. There's no need for explicit annotation in these cases, because only one dependence is possible. A getter returns a value that depends on `self`. A setter replaces the current dependence from `self` with a dependence on `newValue`.
+#### Dependent properties
+
+Structural composition is an important use case for non-`Escapable` types. Getting or setting a non-`Escapable` computed property requires lifetime dependence, just like a function result or an 'inout' parameter:
 
 ```swift
 struct Container<Element>: ~Escapable {
   var element: Element {
-    get /* dependsOn(self) */ { ... }
-    /* dependsOn(self: newValue) */ set { ... }
+    @lifetime(copy self)
+    get { ... }
+
+    @lifetime(self: copy newValue)
+    set { ... }
   }
 
-  init(element: Element) /* -> dependsOn(element) Self */ {...}
+  @lifetime(copy element)
+  init(element: Element) { ... }
 }
 ```
 
-### Conditional dependencies
+### Conditional lifetime dependencies
 
-Conditionally nonescapable types can contain nonescapable elements:
+Conditionally non-`Escapable` types can also contain potentially non-`Escapable` elements:
 
 ```swift
-    struct Container<Element>: ~Escapable {
-      var element: /* dependsOn(self) */ Element
+struct Container<Element: ~Escapable>: ~Escapable {
+  var element: Element
 
-      init(element: Element) -> dependsOn(element) Self {...}
+  @lifetime(copy element)
+  init(element: Element) { self.element = element }
 
-      func getElement() -> dependsOn(self) Element { element }
-    }
+  @lifetime(copy self)
+  func getElement() -> Element { element }
+}
 
-    extension Container<E> { // OK: conforms to Escapable.
-      // Escapable context...
-    }
+extension Container: Escapable where Element: Escapable { }
+}
 ```
 
-Here, `Container` becomes nonescapable only when its element type is nonescapable. When `Container` is nonescapable, it inherits the lifetime of its single element value from the initializer and propagates that lifetime to all uses of its `element` property or the `getElement()` function.
+Here, `Container` is non-`Escapable` only when its element type is non-`Escapable`. Whenever `Container` is potentially non-`Escapable`, it inherits the lifetime of the single `element` argument to the initializer and propagates that lifetime to all uses of its `element` property or the `getElement()` function.
 
-In some contexts, however, `Container` and `Element` both conform to `Escapable`. In those contexts, any `dependsOn` in `Container`'s interface is ignored, whether explicitly annotated or implied. So, when `Container`'s element conforms to `Escapable`, the `-> dependsOn(element) Self` annotation in its initializer is ignored, and the `-> dependsOn(self) Element` in `getElement()` is ignored.
+In some contexts, however, the `Element` is known to conform to `Escapable`, which in turn makes `Container<Element>` for that `Element` type `Escapable`. When generic substitution produces an `Escapable` type, any `@lifetime` dependencies applied to that type are ignored.
+
+```
+let s = "strings are immortal"
+var s2: String
+do {
+    let c = Container<String>(element: s)
+    s2 = c.getElement()
+}
+print(s2) // OK, String is Escapable, so it isn't affected by the lifetime dependency
+```
 
 ### Immortal lifetimes
 
-In some cases, a nonescapable value must be constructed without any object that can stand in as the source of a dependence. Consider extending the standard library `Optional` or `Result` types to be conditionally escapable:
+In some cases, a non-`Escapable` value must be constructed without any object that can stand in as the source of a dependence. Consider the standard library `Optional` or `Result` types, which became conditionally `Escapable` in [SE-0465](0465-nonescapable-stdlib-primitives.md):
 
 ```swift
 enum Optional<Wrapped: ~Escapable>: ~Escapable {
@@ -416,11 +431,12 @@ enum Result<Success: ~Escapable, Failure: Error>: ~Escapable {
 extension Result: Escapable where Success: Escapable {}
 ```
 
-When constructing an `Optional<NotEscapable>.none` or `Result<NotEscapable>.failure(error)` case, there's no lifetime to assign to the constructed value in isolation, and it wouldn't necessarily need one for safety purposes, because the given instance of the value doesn't store any state with a lifetime dependency. Instead, the initializer for cases like this can be annotated with `dependsOn(immortal)`:
+When constructing an `Optional<NotEscapable>.none` or `Result<NotEscapable>.failure(error)` case, there's no lifetime to assign to the constructed value in isolation, and it wouldn't necessarily need one for safety purposes, because the given instance of the value doesn't store any state with a lifetime dependency. Instead, the initializer for cases like this can be annotated with `@lifetime(immortal)`:
 
 ```swift
-extension Optional {
-  init(nilLiteral: ()) dependsOn(immortal) {
+extension Optional where Wrapped: ~Escapable {
+  @lifetime(immortal)
+  init(nilLiteral: ()) {
     self = .none
   }
 }
@@ -428,37 +444,40 @@ extension Optional {
 
 The constructed instance is returned to the caller without any lifetime dependence. The caller can pass that instance
 along as an argument to other functions, but those functions cannot escape it. The instance can only be returned further
-up the call stack by chaining multiple `dependsOn(immortal)` functions.
+up the call stack by chaining multiple `@lifetime(immortal)` functions.
 
 #### Depending on immutable global variables
 
-Another place where immortal lifetimes might come up is with dependencies on global variables. When a value has a scoped dependency on a global let constant, that constant lives for the duration of the process and is effectively perpetually borrowed, so one could say that values dependent on such a constant have an effectively infinite lifetime as well. This will allow returning a value that depends on a global by declaring the function's return type with `dependsOn(immortal)`:
+Another place where immortal lifetimes might come up is with dependencies on global variables. When a value has a scoped dependency on a global let constant, that constant lives for the duration of the process and is effectively perpetually borrowed, so one could say that values dependent on such a constant have an effectively infinite lifetime as well. This will allow returning a value that depends on a global by declaring the function's return type with `@lifetime(immortal)`:
 
 ```swift
 let staticBuffer = ...
 
-func getStaticallyAllocated() -> dependsOn(immortal) BufferReference {
+@lifetime(immortal)
+func getStaticallyAllocated() -> BufferReference {
   staticBuffer.bufferReference()
 }
 ```
 
 #### Immortal requirements
 
-`dependsOn(immortal)` requires the programmer to compose the dependent value from something that, in fact, has an immortal lifetime:
+`@lifetime(immortal)` requires the programmer to compose the dependent value from something that, in fact, has an immortal lifetime:
 
 ```swift
-init() dependsOn(immortal) {
+@lifetime(immortal)
+init() {
   self.value = <global constant>
 }
 ```
 
 `<global constant>` must be valid over the entire program.
 
-`dependsOn(immortal)` is not a way to suppress dependence in cases where the source value has unknown
+`@lifetime(immortal)` is not a way to suppress dependence in cases where the source value has unknown
 lifetime. Composing the result from a transient value, such as an UnsafePointer, is incorrect:
 
 ```swift
-init(pointer: UnsafePointer<T>) dependsOn(immortal) {
+@lifetime(immortal)
+init(pointer: UnsafePointer<T>) {
   self.value = pointer // 🛑 Incorrect
 }
 ```
@@ -466,25 +485,28 @@ init(pointer: UnsafePointer<T>) dependsOn(immortal) {
 We could run into the same problem with any transient value, like a file descriptor, or even a class object:
 
 ```swift
-init() dependsOn(immortal) {
+@lifetime(immortal)
+init() {
   self.value = Object() // 🛑 Incorrect
 }
 ```
 
 ### Depending on an escapable `BitwiseCopyable` value
 
-The source of a lifetime depenence may be an escapable `BitwiseCopyable` value. This is useful in the implementation of data types that internally use `UnsafePointer`:
+The source of a lifetime dependence may be an escapable `BitwiseCopyable` value. This is useful in the implementation of data types that internally use `UnsafePointer`:
 
 ```swift
 struct Span<T>: ~Escapable {
   ...
   // The caller must ensure that `unsafeBaseAddress` is valid over all uses of the result.
-  init(unsafeBaseAddress: UnsafePointer<T>, count: Int) dependsOn(unsafeBaseAddress) { ... }
+  @unsafe
+  @lifetime(borrow unsafeBaseAddress)
+  init(unsafeBaseAddress: UnsafePointer<T>, count: Int) { ... }
   ...
 }
 ```
 
-By convention, when the source of a dependence is escapable and `BitwiseCopyable`, it should have an "unsafe" label, such as `unsafeBaseAddress` above. This communicates to anyone who calls the function, that they are reponsibile for ensuring that the value that the result depends on is valid over all uses of the result. The compiler can't guarantee safety because `BitwiseCopyable` types do not have a formal point at which the value is destroyed. Specifically, for `UnsafePointer`, the compiler does not know which object owns the pointed-to storage.
+When the source of a dependence is escapable and `BitwiseCopyable`, then the operation must be marked as `@unsafe` when using strict memory safety as introduced in [SE-0458](0458-strict-memory-safety.md). By convention, the argument label should also include the word `unsafe` in its name, as in `unsafeBaseAddress` above. This communicates to anyone who calls the function that they are reponsible for ensuring that the value that the result depends on is valid over all uses of the result. The compiler can't guarantee safety because `BitwiseCopyable` types do not have a formal point at which the value is destroyed. Specifically, for `UnsafePointer`, the compiler does not know which object owns the pointed-to storage.
 
 ```swift
 var span: Span<T>?
@@ -518,12 +540,6 @@ storage.withUnsafeBufferPointer { buffer in
 
 ### Standard library extensions
 
-#### Conditionally nonescapable types
-
-The following standard library types will become conditionally nonescapable: `Optional`, `ExpressibleByNilLiteral`, and `Result`.
-
-`MemoryLayout` will suppress the escapable constraint on its generic parameter.
-
 #### `unsafeLifetime` helper functions
 
 The following two helper functions will be added for implementing low-level data types:
@@ -532,25 +548,27 @@ The following two helper functions will be added for implementing low-level data
 /// Replace the current lifetime dependency of `dependent` with a new copied lifetime dependency on `source`.
 ///
 /// Precondition: `dependent` has an independent copy of the dependent state captured by `source`.
+@unsafe @lifetime(copy source)
 func unsafeLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
   dependent: consuming T, dependsOn source: borrowing U)
-  -> dependsOn(source) T { ... }
+  -> T { ... }
 
 /// Replace the current lifetime dependency of `dependent` with a new scoped lifetime dependency on `source`.
 ///
 /// Precondition: `dependent` depends on state that remains valid until either:
 /// (a) `source` is either destroyed if it is immutable,
 /// or (b) exclusive to `source` access ends if it is a mutable variable.
+@unsafe @lifetime(borrowing source)
 func unsafeLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
   dependent: consuming T, scoped source: borrowing U)
-  -> dependsOn(scoped source) T {...}
+  -> T {...}
 ```
 
-These are useful for nonescapable data types that are internally represented using escapable types such as `UnsafePointer`. For example, some methods on `Span` will need to derive a new `Span` object that copies the lifetime dependence of `self`:
+These are useful for non-`Escapable` data types that are internally represented using `Escapable` types such as `UnsafePointer`. For example, some methods on `Span` will need to derive a new `Span` object that copies the lifetime dependence of `self`:
 
 ```swift
 extension Span {
-  consuming func dropFirst() -> Span<T> {
+  consuming func dropFirst() -> Span<Element> {
     let local = Span(base: self.base + 1, count: self.count - 1)
     // 'local' can persist after 'self' is destroyed.
     return unsafeLifetime(dependent: local, dependsOn: self)
@@ -558,12 +576,13 @@ extension Span {
 }
 ```
 
-Since `self.base` is an escapable value, it does not propagate the lifetime dependence of its container. Without the call to `unsafeLifetime`, `local` would be limited to the local scope of the value retrieved from `self.base`, and could not be returned from the method. In this example, `unsafeLifetime` communicates that all of the dependent state from `self` has been *copied* into `local`, and, therefore, `local` can persist after `self` is destroyed.
+Since `self.base` is an `Escapable` value, it does not propagate the lifetime dependence of its container. Without the call to `unsafeLifetime`, `local` would be limited to the local scope of the value retrieved from `self.base`, and could not be returned from the method. In this example, `unsafeLifetime` communicates that all of the dependent state from `self` has been *copied* into `local`, and, therefore, `local` can persist after `self` is destroyed.
 
 `unsafeLifetime` can also be used to construct an immortal value where the compiler cannot prove immortality by passing a `Void` value as the source of the dependence:
 
 ```swift
-init() dependsOn(immortal) {
+@lifetime(immortal)
+init() {
   self.value = getGlobalConstant() // OK: unchecked dependence.
   self = unsafeLifetime(dependent: self, dependsOn: ())
 }
@@ -571,11 +590,11 @@ init() dependsOn(immortal) {
 
 ## Detailed design
 
-### Relation to ~Escapable
+### Relation to `Escapable`
 
-The lifetime dependencies described in this document can be applied only to nonescapable return values.
-Further, any return value that is nonescapable must have a lifetime dependency.
-In particular, this implies that the initializer for a nonescapable type must have at least one argument.
+The lifetime dependencies described in this document can be applied only to potentially non-`Escapable` return values.
+Further, any return value that is non-`Escapable` must declare a lifetime dependency.
+In particular, this implies that the initializer for a non-`Escapable` type must have at least one argument or else specify `@lifetime(immortal)`.
 
 ```swift
 struct S: ~Escapable {
@@ -583,12 +602,49 @@ struct S: ~Escapable {
 }
 ```
 
+In generic contexts, `~Escapable` indicates that a type is *not required* to be `Escapable`, but is *not* a strict indication that a type is not `Escapable` at all.
+Generic types can be conditionally `Escapable`, and type parameters to generic functions that are declared `~Escapable` can be given `Escapable` types as arguments.
+This proposal refers to types in these situations as "potentially non-`Escapable`" types.
+Return types that are potentially non-`Escapable` require lifetime dependencies to be specified, but when they are used in contexts where a value becomes `Escapable` due to the type parameters used, then those lifetime dependencies lose their effect, since
+
+```swift
+// `Optional` is `Escapable` only when its `Wrapped` type is `Escapable`, and
+// is not `Escapable` when its `Wrapped` type is not.
+//
+// In a generic function like `optionalize` below, `T?` is potentially
+// non-`Escapable`, so we must declare its lifetime dependency.
+@lifetime(copy value)
+func optionalize<T: ~Escapable>(_ value: T) -> T? {
+    return value
+}
+
+// When used with non-Escapable types, `optionalize`'s dependencies are imposed
+var maybeSpan: Span<Int>? = nil
+do {
+  let a: ContiguousArray<Int> = ...
+  
+  maybeSpan = optionalize(a.span)
+  // maybeSpan is now dependent on borrowing `a`, copying the dependency from
+  // `a.span` through `optionalize`
+}
+print(maybeSpan?[0]) // error, `maybeSpan` used outside of lifetime constraint
+
+// But when used with Escapable types, the dependencies lose their effect
+var maybeString: String? = 0
+do {
+    let s = "strings are eternal"
+    maybeString = optionalize(s)
+}
+print(maybeString) // OK, String? is `Escapable`, no lifetime constraint
+
+```
+
 ### Basic Semantics
 
 A lifetime dependency annotation creates a *lifetime dependency* between a *dependent value* and a *source value*.
 This relationship obeys the following requirements:
 
-* The dependent value must be nonescapable.
+* The dependent value must be potentially non-`Escapable`.
 
 * The dependent value's lifetime must not be longer than that of the source value.
 
@@ -600,126 +656,47 @@ The compiler must issue a diagnostic if any of the above cannot be satisfied.
 
 ### Grammar
 
-This new syntax adds an optional `dependsOn(...)` lifetime modifier just before the return type and parameter types. This modifies *function-result* in the Swift grammar as follows:
+This new syntax adds a `@lifetime` attribute that can be applied to function, initializer, and property accessor declarations:
 
-> *function-signature* → *parameter-clause* **`async`***?* **`throws`***?* *function-result**?* \
-> *function-signature* → *parameter-clause* **`async`***?* **`rethrows`** *function-result**?* \
-> *function-result* → **`->`** *attributes?* *lifetime-modifiers?* *type* \
-> *lifetime-modifiers* → *lifetime-modifier* *lifetime-modifiers?* \
-> *lifetime-modifier* → **`dependsOn`** **`(`** *lifetime-dependent-list* **`)`** \
-> *lifetime-dependence-list* → *lifetime-dependence-source* **`,`** *lifetime-dependent-list*
-> *lifetime-dependence-source* → **`self`** | *local-parameter-name* | **`scoped self`** | **`scoped`** *local-parameter-name* | **`immortal`**
+> *lifetime-attribute* → **`@`** **`lifetime`** **`(`** *lifetime-dependence-list* **`)`**
 >
-> *parameter-type-annotation* → : *attributes?* *lifetime-modifiers?* *parameter-modifier*? *type*
+> *lifetime-dependence-list* → (*lifetime-dependence-target-name* **`:`**)? *lifetime-dependence-source* **`,`** *lifetime-dependent-list* **`,`**?
 >
-
-The new syntax also adds an optional `dependsOn(self:...)` lifetime modifier before function declarations. This extends *declaration-modifier* as follows:
-
+> *lifetime-dependence-source* → **`immortal`** | *dependency-kind* *lifetime-dependence-source-name*
 >
-> *declaration-modifier* → **`dependsOn`** **`(`** **`self`** **`:`** *lifetime-dependent-list* **`)`**
+> *lifetime-dependence-source-name* → **`self`** | *identifier*
 >
+> *lifetime-dependence-target-name* → **`self`** | *identifier*
+>
+> *dependency-kind* → **copy** | **borrow** | **inout**
 
-The *lifetime-dependent* argument to the lifetime modifier is one of the following:
-
-* *local-parameter-name*: the local name of one of the function parameters, or
-* the token **`self`**, or
-* either of the above preceded by the **`scoped`** keyword, or
-* the token **`immortal`**
-
-This modifier creates a lifetime dependency with the return value used as the dependent value.
-The return value must be nonescapable.
+This modifier declares a lifetime dependency for the specified target.
+If no *lifetime-dependence-target-name* is specified, then the target is the declaration's return value.
+Otherwise, the target is the parameter named by the *lifetime-dependence-target-name*.
+The target value must be potentially non-`Escapable`.
+A parameter used as a target must additionally either be an `inout` parameter, or `self` in a `mutating` method.
 
 The source value of the resulting dependency can vary.
-In some cases, the source value will be the named parameter or `self` directly.
-However, if the corresponding named parameter or `self` is nonescapable, then that value will itself have an existing lifetime dependency and thus the new dependency might "copy" the source of that existing dependency.
-
-The following table summarizes the possibilities, which depend on the type and mutation modifier of the argument or `self` and the existence of the `scoped` keyword.
-Here, "scoped" indicates that the dependent gains a direct lifetime dependency on the named parameter or `self` and "copied" indicates that the dependent gains a lifetime dependency on the source of an existing dependency:
-
-| mutation modifier  | argument type | without `scoped` | with `scoped` |
-| ------------------ | ------------- | ---------------- | ------------- |
-| borrowed           | escapable     | scoped           | scoped        |
-| inout or mutating  | escapable     | scoped           | scoped        |
-| consuming          | escapable     | Illegal          | Illegal       |
-| borrowed           | nonescapable  | copied           | scoped        |
-| inout or mutating  | nonescapable  | copied           | scoped        |
-| consuming          | nonescapable  | copied           | Illegal       |
-
-Two observations may help in understanding the table above:
-* An escapable argument cannot have a pre-existing lifetime dependency, so copying is never possible in those cases.
-* A consumed argument cannot be the source of a lifetime dependency that will outlive the function call, so only copying is legal in that case.
-
-**Note**: In practice, the `scoped` modifier keyword is likely to be only rarely used.  The rules above were designed to support the known use cases without requiring such a modifier.
-
-#### Initializers
-
-Since nonescapable values cannot be returned without a lifetime dependency,
-initializers for such types must specify a lifetime dependency on one or more arguments.
-We propose allowing initializers to write out an explicit return clause for this case, which permits the use of the same syntax as functions or methods.
-The return type must be exactly the token `Self` or the token sequence `Self?` in the case of a failable initializer:
-
-```swift
-struct S {
-  init(arg1: Type1) -> dependsOn(arg1) Self
-  init?(arg2: Type2) -> dependsOn(arg2) Self?
-}
-```
-
-> Grammar of an initializer declaration:
->
-> *initializer-declaration* → *initializer-head* *generic-parameter-clause?* *parameter-clause* **`async`***?* **`throws`***?* *initializer-lifetime-modifier?* *generic-where-clause?* *initializer-body* \
-> *initializer-declaration* → *initializer-head* *generic-parameter-clause?* *parameter-clause* **`async`***?* **`rethrows`** *initializer-lifetime-modifier?* *generic-where-clause?* *initializer-body* \
-> *initializer-lifetime-modifier* → `**->**` *lifetime-modifiers* ** **`Self`** \
-> *initializer-lifetime-modifier* → `**->**` *lifetime-modifiers* ** **`Self?`**
-
-The implications of mutation modifiers and argument type on the resulting lifetime dependency exactly follow the rules above for functions and methods.
-
-### Inference Rules
-
-If there is no explicit lifetime dependency on the nonescapable result of a method or function, we will attempt to infer dependencies automatically according these rules in the following order. Subsequent rules are only considered if the prior rules do not generate any inferred dependencies:
-
-1. For methods, functions, and initializers where the return value is nonescapable, we infer a copied lifetime dependency on all parameters of the same nonescapable type. For methods, this rule applies to the implicit `self` parameter like any other parameter: if `self` has the same type as the nonescapable result, then we infer a copied dependency.
-
-2. For methods where the return value is nonescapable, we will infer a dependency against `self`. If `self` is nonescapable, then we infer a copying dependency. If `self` is escapable, and the method is `borrowing` or `mutating`, then we infer a scoped dependency.
-
-3. For functions and initializers that have a nonescapable return value and a single parameter, we infer dependence on that parameter. If the parameter is nonescapable, then we infer a copying dependency; otherwise, we infer a scoped dependency.
-
-For all inference rules, the type of dependence is the same as an explicit `dependsOn(argument)` on the same argument without any `scoped` qualifier based on the argument's type.
-
-**In no other case** will a function, method, or initializer implicitly gain a lifetime dependency.
-If a function, method, or initializer has a nonescapable return value, does not have an explicit lifetime dependency annotation, and does not fall into one of the cases above, then that will be a compile-time error.
-
-Consider an example that matches both rule #1 and #2:
-
-```
-struct NE: ~Escapable { ... }
-struct E {
-  func foo(ne: NE) -> /* dependsOn(ne) */ NE
-}
-```
-
-`foo` will not depend on self because rule #1 takes precedence over rule #2.
-
-In this example, both rule #2 and #3 match but are simply redundant:
-
-```
-struct NE {
-  init(ne: NE) -> /* dependsOn(ne) */ Self
-}
-```
+For a `borrow` or `inout` dependency, the source value will be the named parameter or `self` directly.
+However, if the named parameter or `self` is non-`Escapable`, then that value will itself have an existing lifetime dependency, and a `copy` dependency will copy the source of that existing dependency.
 
 ### Dependency semantics by example
 
-This section illustrates the semantics of lifetime dependence one example at a time for each interesting variation. The following helper functions will be useful: `ContiguousArray.span()` creates a scoped dependence to a nonescapable `Span` result, `copySpan()` creates a copied dependence to a `Span` result, and `parse` uses a `Span`.
+This section illustrates the semantics of lifetime dependence one example at a time for each interesting variation. The following helper functions will be useful: `ContiguousArray.span` creates a non-`Escapable` `Span` result with a scoped dependence to a `ContiguousArray`, `copySpan` creates a new Span with a copied dependence from an existing `Span`, and `parse` uses a `Span`.
 
 ```swift
 extension ContiguousArray {
-  // The returned span depends on the scope of Self.
-  borrowing func span() -> /* dependsOn(scoped self) */ Span<Element> { ... }
+  var span: Span<Element> {
+    @lifetime(borrow self)
+    get {
+      ...
+    }
+  }
 }
 
 // The returned span copies dependencies from 'arg'.
-func copySpan<T>(_ arg: Span<T>) -> /* dependsOn(arg) */ Span<T> { arg }
+@lifetime(copy arg)
+func copySpan<T>(_ arg: Span<T>) -> Span<T> { arg }
 
 func parse(_ span: Span<Int>) { ... }
 ```
@@ -731,24 +708,24 @@ let a: ContiguousArray<Int> = ...
 let span: Span<Int>
 do {
   let a2 = a
-  span = a2.span()
+  span = a2.span
 }
 parse(span) // 🛑 Error: 'span' escapes the scope of 'a2'
 ```
 
-The call to `span()` creates a scoped dependence on `a2`. A scoped dependence is determined by the lifetime of the variable, not the lifetime of the value assigned to that variable. So the lifetime of `span` cannot extend into the larger lifetime of `a`.
+The get of `span` creates a scoped dependence on `a2`. A scoped dependence is determined by the lifetime of the variable, not the lifetime of the value assigned to that variable. So the lifetime of `span` cannot extend into the larger lifetime of `a`.
 
 #### Copied dependence on an immutable variable
 
 Let's contrast scoped dependence shown above with copied dependence on a variable. In this case, the value may outlive the variable it is copied from, as long as it is destroyed before the root of its inherited dependence goes out of scope. A chain of copied dependencies is always rooted in a scoped dependence.
 
-An assignment that copies or moves a nonescapable value from one variable into another **copies** any lifetime dependence from the source value to the destination value. Thus, variable assignment has the same lifetime copy semantics as passing an argument using a `dependsOn()` annotation *without* a `scoped` keyword. So, the statement `let temp = span` has identical semantics to `let temp = copySpan(span)`.
+An assignment that copies or moves a potentially non-`Escapable` value from one variable into another **copies** any lifetime dependence from the source value to the destination value. Thus, assigning `rhs` to a variable has the same lifetime copy semantics as passing an argument using a `@lifetime(copy rhs)` annotation. So, the statement `let temp = span` has identical semantics to `let temp = copySpan(span)`.
 
 ```swift
 let a: ContiguousArray<Int> = arg
 let final: Span<Int>
 do {
-  let span = a.span()
+  let span = a.span
   let temp = span
   final = copySpan(temp)
 }
@@ -764,83 +741,86 @@ First, let's add a mutable method to `Span`:
 
 ```swift
 extension Span {
-  mutating func removePrefix(length: Int) -> /* dependsOn(self) */ Span<T> {
-    let prefix = Span(base: base, count: length)
-    self.base += length
-    self.count -= length
+  @lifetime(copy self)
+  mutating func removePrefix(length: Int) -> Span<T> {
+    let prefix = extracting(0..<length)
+    self = extracting(length..<count)
     return prefix
   }
 }
 ```
 
-A dependence may be copied from a mutable ('inout') variable. In that case, the dependence is inherited from whatever value the mutable variable holds when it is accessed.
+A dependence may be copied from a mutable (`inout`) variable, in this case the .
+When this occurs, the dependence is inherited from whatever value the mutable variable held when the function was invoked.
 
 ```swift
 let a: ContiguousArray<Int> = ...
 var prefix: Span<Int>
 do {
-  var temp = a.span()
-  prefix = temp.droppingPrefix(length: 1) // access 'temp' as 'inout'
+  var temp = a.span
+  prefix = temp.removePrefix(length: 1) // access 'temp' as 'inout'
   // 'prefix' depends on 'a', not 'temp'
 }
 parse(prefix) // ✅ Safe: still within lifetime of 'a'
 ```
 
-#### Scoped dependence on 'inout' access
+#### Scoped dependence on `inout` access
 
 Now, let's return to scoped dependence, this time on a mutable variable. This is where exclusivity guarantees come into play. A scoped depenendence extends an access of the mutable variable across all uses of the dependent value. If the variable mutates again before the last use of the dependent, then it is an exclusivity violation.
 
 ```swift
 let a: ContiguousArray<Int> = ...
 a[i] = ...
-let span = a1.span()
+let span = a1.span
 parse(span) // ✅ Safe: still within 'span's access on 'a'
 a[i] = ...
 parse(span) // 🛑 Error: simultaneous access of 'a'
 ```
 
-Here, `a1.span()` initiates a 'read' access on `a1`. The first call to `parse(span)` safely extends that read access. The read cannot extend to the second call because a mutation of `a1` occurs before it.
+Here, `a1.span` initiates a 'read' access on `a1`. The first call to `parse(span)` safely extends that read access. The read cannot extend to the second call because a mutation of `a1` occurs before it.
 
 #### Dependence reassignment
 
-We've described how a mutable variable can be the source of a lifetime dependence. Now let's look at nonescapable mutable variables. Being nonescapable means they depend on another lifetime. Being mutable means that dependence may change during reassignment. Reassigning a nonescapable 'inout' sets its lifetime dependence from that point on, up to either the end of the variable's lifetime or its next subsequent reassignment.
+We've described how a mutable variable can be the source of a lifetime dependence. Now, let's look at non-`Escapable` mutable variables. Being non-`Escapable` means they depend on another lifetime. Being mutable means that dependence may change during reassignment. Reassigning a non-`Escapable` `inout` sets its lifetime dependence from that point on, up to either the end of the variable's lifetime or its next subsequent reassignment.
 
 ```swift
 func reassign(_ span: inout Span<Int>) {
   let a: ContiguousArray<Int> = ...
-  span = a.span() // 🛑 Error: 'span' escapes the scope of 'a'
+  span = a.span // 🛑 Error: 'span' escapes the scope of 'a'
 }
 ```
 
 #### Reassignment with argument dependence
 
-If a function takes a nonescapable 'inout' argument, it may only reassign that argument if it is marked dependent on another function argument that provies the source of the dependence.
+If a function takes a non-`Escapable` `inout` parameter, it may only reassign that parameter if it is marked dependent on another function parameter that provides the source of the dependence.
 
 ```swift
-func reassignWithArgDependence(_ span: dependsOn(arg) inout ContiguousArray<Int>, _ arg: ContiguousArray<Int>) {
-  span = arg.span() //  ✅ OK: 'span' already depends on 'arg' in the caller's scope.
+@lifetime(span: borrow arg)
+func reassignWithArgDependence(_ span: inout Span<Int>, _ arg: ContiguousArray<Int>) {
+  span = arg.span //  ✅ OK: 'span' already depends on 'arg' in the caller's scope.
 }
 ```
 
 #### Conditional reassignment creates conjoined dependence
 
-'inout' argument dependence behaves like a conditional reassignment. After the call, the variable passed to the 'inout' argument has both its original dependence along with a new dependence on the argument that is the source of the argument dependence.
+`inout` argument dependence behaves like a conditional reassignment. After the call, the variable passed to the `inout` argument has both its original dependence along with a new dependence on the argument that is the source of the argument dependence.
 
 ```swift
 let a1: ContiguousArray<Int> = arg
 do {
   let a2: ContiguousArray<Int> = arg
-  var span = a1.span()
+  var span = a1.span
   testReassignArgDependence(&span, a2) // creates a conjoined dependence
   parse(span) // ✅ OK: within the lifetime of 'a1' & 'a2'
 }
 parse(span) // 🛑 Error: 'span' escapes the scope of 'a2'
 ```
 
-#### Escapable properties in a nonescapable type
+#### `Escapable` properties in a non-`Escapable` type
 
-An escapable type inevitably contains nonescapable properties. In our `Span` example, the `base` pointer and `count`
-length are both escapable. Accessing an escapable property drops the dependence:
+A non-`Escapable` type inevitably contains `Escapable` properties.
+In our `Span` example, the `base` pointer and `count` length are both `Escapable`.
+There is no dependence after accessing an `Escapable` property:
 
 ```swift
   let pointer: UnsafePointer<T>
@@ -851,10 +831,11 @@ length are both escapable. Accessing an escapable property drops the dependence:
   _ = pointer // ✅ OK: pointer has no lifetime dependence
 ```
 
-Internal mutation of a nonescapable type does not create any new dependence and does not require any annotation:
+Internal mutation of `Escapable` properties does not create any new dependence and does not require any annotation:
 
 ```swift
-  mutating /* dependsOn(self: self) */ func skipPrefix(length: Int) {
+
+  mutating func skipPrefix(length: Int) {
     self.base += length  // ✅ OK: assigns `base` to a copy of the temporary value
     self.count -= length // ✅ OK: assigns `count` to a copy of the temporary value
   }
@@ -876,109 +857,24 @@ Removing a lifetime dependency constraint only affects existing source code in t
 
 ## Alternatives considered
 
-### Different Position
-
-We propose above putting the annotation on the return value, which we believe matches the intuition that the method or property is producing this lifetime dependence alongside the returned value.
-It would also be possible to put an annotation on the parameters instead:
-
-```swift
-func f(@resultDependsOn arg1: ContiguousArray<Int>) -> Span<Int>
-```
-
-Depending on the exact language in use, it could also be more natural to put the annotation after the return value.
-However, we worry that this hides this critical information in cases where the return type is longer or more complex.
-
-```swift
-func f(arg1: ContiguousArray<Int>) -> Span<Int> dependsOn(arg1)
-```
-
 ### Different spellings
 
-An earlier version of this proposal advocated using the existing `borrow`/`mutate`/`consume`/`copy` keywords to specify a particular lifetime dependency semantic:
-```swift
-func f(arg1: borrow ContiguousArray<Int>) -> borrow(arg1) Span<Int>
-```
-This was changed after we realized that there was in practice almost always a single viable semantic for any given situation, so the additional refinement seemed unnecessary.
+Previous revisions of this proposal introduced a `dependsOn` modifier that would be placed syntactically closer to the return type or argument declarations subject to a dependency.
+The authors believe that a more integrated syntax like that is the ultimate right choice for this feature, especially as we develop future directions involving types with multiple lifetime dependencies.
+However, as an attribute, `@lifetime` provides room for experimentation without invasive changes to the language grammar, allowing us to incrementally develop and iterate on the underlying model and implementation.
+Therefore, we think this attribute is the best approach for the current experimental status of lifetime dependencies as a feature.
+Whatever model we ultimately stabilize on ought to support a superset of the functionality proposed here, and it should be possible to mechanically migrate code using `@lifetime` to use the final syntax when it is ready.
 
-The currently proposed `dependsOn` spelling was chosen to convey the direction of the dependence, as in:
+### `@lifetime(unchecked)` to disable lifetime dependence checking
 
-    func foo(a: A, b: B) -> dependsOn(a) R
-
-This does, however, introduce a keyword with a compound name. Alternatively, we could use a simpler `lifetime` keyword, which better matches the feature description. The general syntax would then be:
-
-> **lifetime**(*target*: [scoped] *source*)
-
-APIs with ambiguous depenencies would then typically be spelled:
-
-    func foo(a: A, b: B) -> lifetime(a) R
-
-### @lifetime annotation
-
-Instead of committing to a final, lightweight syntax, we can start with a single `@lifetime` annotation. It would take this form:
-
-```
-@lifetime(target1.component: [copy|mutate|borrow] source1.component)
-@lifetime(target2.component: [copy|mutate|borrow] source2.component)
-func foo(...)
-```
-
-`target` can be `self`, any parameter name, or, most commonly an empty string which implies the function result. `source` can be `self` or any parameter name. The most common usage would be:
-
-```
-@lifetime(copy arg)
-func foo(label arg: Arg1) -> R {}
-```
-
-The `.component` qualifier is only relevant once we have component lifetimes. See the "Component lifetime" section below.
-
-An annotation has some advantages over a lighter-weight type modifier sytax:
-
-The `@` sigil is helpful to distinguish lifetime dependence information from regular function syntax.
-
-A position-independent annotation has an advantage that the fully expressive syntax is more self-evident. This makes it easier to educate reviewers about what is possible with the syntax.
-
-The type modifier can occur in any type position within a function signature, in including before the `func` keyword for the 'self' type. This has potential readability problems when it comes to more complicated cases. Nested parentheses (`dependsOn(...)`) that can occur anywhere in the signature are visually confusing.
-
-In the future, the single `@lifetime` annotation could be a useful modifier for other kinds declarations such as types and properties:
-
-```
-// Allow two components to have distinct lifetimes...
-struct Pair<T: ~Escapable> {
-  @lifetime
-  var x: T
-
-  @lifetime
-  var y: T
-}
-
-// Allow two components to have dependent lifetimes...
-struct Node: ~Escapable {
-  @lifetime
-  var parent: Node
-
-  @lifetime(parent)
-  var child: Node
-}
-
-// Declare an abstract lifetime and alias it with another lifetime.
-@lifetime(elements: storage.elements)
-struct Container {
-  var storage: Storage
-}
-```
-
-### `where` clause
-
-Some have advocated for a `where` clause on the function declaration. The function name could stand-in for its result, and directionality could be indicated with a comparison operator:
-
-`func foo(arg: Arg) -> R where lifetime(foo) < lifetime([copy|borrow|mutate] arg)`
-
-### dependsOn(unchecked) to disable lifetime dependence checking
-
-A `dependsOn(unchecked)` annotation could allow programmers to disable lifetime dependence checking for a function result or argument. For example, the programmer may want to compose a nonescapable result from an immortal value that isn't visible to the compiler:
+A `@lifetime(unchecked)` annotation could allow programmers to disable lifetime dependence checking for a function result or argument. For example, the programmer may want to compose a non-`Escapable` result from an immortal value that isn't visible to the compiler:
 
 ```swift
-init() dependsOn(immortal) {
+// Existing global function that is not lifetime-annotated
+func getGlobalConstant() -> SomeType
+
+@lifetime(immortal)
+init() {
   self.value = getGlobalConstant() // 🛑 ERROR: immortal dependence on a temporary value
 }
 ```
@@ -986,332 +882,275 @@ init() dependsOn(immortal) {
 To avoid the error, the programmer could disable dependence checking on the function result altogether:
 
 ```swift
-init() dependsOn(unchecked) {
+@unsafe @lifetime(unchecked)
+init() {
   self.value = getGlobalConstant() // OK: unchecked dependence.
 }
 ```
 
 This poses a few problems:
 
-1. Declaring a result "unchecked" only affects checking within the function body; it doesn't affect checking in clients of the API, so really shouldn't be part of the API. In the example above, `dependsOn(immortal)` has the correct semantics at the API level.
+1. Declaring a result "unchecked" only affects checking within the function body; it doesn't affect checking in clients of the API, so really shouldn't be part of the API. In the example above, `lifetime(immortal)` has the correct semantics at the API level.
 
-2. `dependsOn(unchecked)` is a blunt tool for opting out of safety. Experience shows that such tools are overused as workarounds for compiler errors without fixing the problem. A safety workaround should more precisely identify the source of unsafety.
+2. `lifetime(unchecked)` is a blunt tool for opting out of safety. Experience shows that such tools are overused as workarounds for compiler errors without fixing the problem. A safety workaround should more precisely identify the source of unsafety.
 
-3. The more kewords we add to `dependsOn`, the more chance they will collide with a parameter name.
-
-`unsafeLifetime` is the propsed tool for disabling dependence checks. Passing `Void` as the dependence source is a reasonable way to convert a nonescaping value to an immortal value:
+`unsafeLifetime` is the proposed tool for disabling dependence checks. Passing `Void` as the dependence source is a reasonable way to convert a nonescaping value to an immortal value:
 
 
 ```swift
+@lifetime(immortal)
 init() dependsOn(immortal) {
   self.value = getGlobalConstant() // OK: unchecked dependence.
-  self = unsafeLifetime(dependent: self, dependsOn: ())
+  unsafe self = unsafeLifetime(dependent: self, dependsOn: ())
 }
 ```
 
 ### Parameter index for lifetime dependencies
 
-Internally, the implementation records dependencies based on the parameter index.
+Internally, the implementation records dependencies canonically based on parameter index.
 This could be exposed as an alternate spelling if there were sufficient demand.
 
 ```swift
-func f(arg1: Type1, arg2: Type2, arg3: Type3) -> dependsOn(0) ReturnType
+@lifetime(borrow 0) // same as `@lifetime(borrow arg1)`
+func f(arg1: Type1, arg2: Type2, arg3: Type3) -> ReturnType
 ```
 
 ## Future Directions
 
-### Lifetime Dependencies for Tuples
+### Component lifetimes
 
-It should be possible to return a tuple where one part has a lifetime dependency.
-For example:
-```swift
-func f(a: A, b: B) -> (dependsOn(a) C, B)
-```
-We expect to address this in the near future in a separate proposal.
+One crucial limitation of the lifetime dependency model proposed here is that it models every value as having at most one lifetime dependency, and it applies that one lifetime dependency not only to a non-escapable value but also to any non-escapable values that can be derived from it.
+This fundamental limitation impacts our ability to fully address many of the future directions discussed here.
 
-### Function type syntax
-
-A function that returns a nonescapable type cannot currently be passed as a nonescaping closure because its dependence information would be lost.
-
-```swift
-func f(arg: ArgType) -> dependsOn(arg) NEType
-
-func g1(closure: (ArgType) -> NEType)
-
-{
-  g1(closure: f) // 🛑 ERROR: function type mismatch 
-}
-```
-
-To address this shortcoming, we plan to extend the `dependsOn(...)` modifier for use in function types. Since function
-types have no parameter names, the parameter position will be identified by an integer literal:
-
-```swift
-func g2(closure: (ArgType) -> dependsOn(0) NE)
-
-{
-  g2(closure: f) // ✅ OK
-}
-```
-
-The parameter index syntax is consistent with how dependencies are already represented internally and in mangled names.
-
-We expect most closures that return nonescapable types to be dependent on the closure context rather than a closure
-parameter--this will be the normal case for passing methods as nonescaping closures. A closure context dependence will
-not affect the spelling of the function type.
-
-### Lifetime dependence for closures
-
-In "Function type syntax", we propose that function types can have explicit `dependsOn` modifiers. When a function type
-returns a nonescapable value but has no explicit `dependsOn` modifier, we plan to infer a dependence on the closure
-context:
-
-```swift
-func g1(closure: () -> NEType) // Inferred: NEType depends on 'closure'
-```
-
-For closure declarations, lifetime dependencies can be inferred on the combined list of captures and closure parameters
-following inference rules similar to those for freestanding functions:
-
-1. For closures where the return value is nonescapable, we infer a copied lifetime dependency on all captures and parameters of the same nonescapable type.
-
-2. For closures that have a nonescapable return value and a single captured value or parameter, we infer dependence on that capture or parameter. If the capture or parameter is nonescapable, then we infer a copying dependency; otherwise, we infer a scoped dependency.
-
-A dependence can be inferred on a closure capture as follows:
-
-```swift
-func f(arg: ArgType) -> dependsOn(arg) NEType
-
-func foo(source: ArgType) {
-  g1 { f(arg: source) } // ✅ Inferred: 'closure' result depends on captured 'source'
-}
-```
-
-An explicit dependence on a closure capture can be spelled:
-
-```swift
-func foo(source: ArgType) {
-  g1 { () -> dependsOn(source) NEType in f(arg: source) }
-}
-```
-
-Similarly, a dependence can be inferred on a closure parameter:
-
-```swift
-func g2(closure: (ArgType) -> dependsOn(0) NEType)
-
-{
-  g2 { (source: ArgType) in f(arg: source) } // ✅ Inferred: 'closure' result depends on 'source' parameter
-}
-```
-
-An explicit dependence on a closure parameter can be spelled:
-
-```swift
-{
-  g2 { (source: ArgType) -> dependsOn(source) NEType in f(arg: source) }
-}
-```
-
-### Component lifetime
-
-In the current design, aggregating multiple values merges their scopes.
+In the current design, aggregating multiple values merges their scopes:
 
 ```swift
 struct Container<Element>: ~Escapable {
-  var a: /*dependsOn(self)*/ Element
-  var b: /*dependsOn(self)*/ Element
+  var a: Element
+  var b: Element
 
-  init(a: Element, b: Element) -> dependsOn(a, b) Self {...}
+  @lifetime(a, b)
+  init(a: Element, b: Element) -> Self {...}
 }
 ```
 
-This can have the effect of narrowing the lifetime scope of some components:
+This has the effect of narrowing the lifetime scope of some components:
 
 ```swift
 var a = ...
 {
   let b = ...
   let c = Container<Element>(a: a, b: b)
-  a = c.a // 🛑 Error: `a` outlives `c.a`, which is constrained by the lifetime of `b`
+  a = c.a
 }
+use(a) // 🛑 Error: `a` outlives `c`, which is constrained by the lifetime of both `a` and `b`
 ```
 
-In the future, the lifetimes of multiple values can be represented independently by attaching a `@lifetime` attribute to a stored property and referring to that property's name inside `dependsOn` annotations:
+In the future, we want to be able to represent the dependencies of multiple stored properties independently. This might look something like this:
 
 ```swift
 struct Container<Element>: ~Escapable {
-  @lifetime
-  var a: /*dependsOn(self.a)*/ Element
-  @lifetime
-  var b: /*dependsOn(self.b)*/ Element
+  var a: Element
+  var b: Element
 
-  init(arg1: Element, arg2: Element) -> dependsOn(a: arg1, b: arg2) Self {...}
+  @lifetime(.a: copy arg1, .b: copy arg2)
+  init(arg1: Element, arg2: Element) {
+    ...
+  }
 }
 ```
 
-The nesting level of a component is the inverse of the nesting level of its lifetime. `a` and `b` are nested components of `Container`, but the lifetime of a `Container` instance is nested within both lifetimes of `a` and `b`.
+This would then allow for the parts of `Component` to be extracted preserving their individual lifetimes:
 
-The general form of the `dependsOn` syntax should be thought of as:
-
-> **dependsOn**(*target*.*component*: *source*.*component*)
-
-where the `target` can be inferred from context, but not its component:
-
-Example:
-
+```swift
+var a = ...
+{
+  let b = ...
+  let c = Container<Element>(a: a, b: b)
+  a = c.a
+}
+use(a) // 🛑 OK: `a` copies its lifetime from `c.a`, which in turn copied it from the original `a`
 ```
-  struct S: ~Escapable {
-    @lifetime
-    let a: T
 
-    dependsOn(self.a: arg1) func foo(arg1: dependsOn(a: arg2) S, arg2: T) -> dependsOn(a: arg2) S
+Extraction operations could also declare that they copy the lifetime of one or more components:
+
+```swift
+extension Container {
+  @lifetime(copy self.a)
+  func getA() -> Element {
+    return self.a
   }
+}
+
+var a = ...
+{
+  let b = ...
+  let c = Container<Element>(a: a, b: b)
+  a = c.getA()
+}
+use(a) // 🛑 OK: `getA()` copies its lifetime from `c.a`, which in turn copied it from the original `a`
 ```
+
+The general form of the `@lifetime` syntax in this hypothetical could be thought of as:
+
+> **`@lifetime`** **`(`** (*target*)? (**`.`** *component*)\* **`:`** *source* (**`.`** *component*) **`)`**
 
 ### Abstract lifetime components
 
-Lifetime dependence is not always neatly tied to stored properties. Say that our `Container` now holds multiple elements within its own storage. We can use a top-level `@lifetime` annotation to name an abstract lifetime for all the elements:
+A similar situation comes up when considering collections of non-`Escapable` elements and `Span`.
+Under the current proposal, if `[Contiguous]Array` and `Span` were extended to allow for non-`Escapable` element types, then `Span` would lose the distinction between its own lifetime dependency on the memory of the `Array` and the original dependencies of the elements themselves:
+
+```
+let e1 = NonEscapable(...)
+let e2 = NonEscapable(...)
+
+// a is dependent on e1 and e2
+var e: NonEscapable
+do {
+  let a: ContiguousArray = [e1, e2]
+
+  // span is dependent on borrowing a
+  let span = a.span
+
+  // e copies the dependency from span, borrowing a
+  e = span[randomIndex()]
+}
+
+use(e) // error: e depends on `a` (even though the original e1 and e2 didn't)
+```
+
+Lifetime dependence in this case is not neatly tied to stored properties as in the previous example.
+The interesting lifetimes in the case of a `Span` with non-`Escapable` elements are the lifetime of the memory being referenced, as well as the lifetime constraint on the referenced elements.
+We could declare these as abstract lifetime members of `Span`, and allow those member to be referenced in lifetime dependency declarations:
 
 ```swift
-@lifetime(elements)
-struct Container<Element>: ~Escapable {
-  var storage: UnsafeMutablePointer<Element>
+@lifetimes(element: Element, memory)
+struct Span<Element: ~Escapable>: ~Escapable {
+  // Accessing an element forwards the lifetime(s) of the elements themselves
+  subscript(i: Int) -> Element {
+    @lifetime(copy self.element)
+    borrow { ... }
+  }
+}
 
-  init(element: Element) -> dependsOn(element -> .elements) Self {...}
-
-  subscript(position: Int) -> dependsOn(self.elements) Element
+@lifetimes(element: Element)
+extension ContiguousArray<Element: ~Escapable>: ~Escapable {
+  // Accessing a span over the array forwards the lifetime(s) of its elements,
+  // while its memory is dependent on accessing this array.
+  var span: Span<Element> {
+    @lifetime(.memory: borrow self, .element: copy self.element)
+    get { ... }
+  }
 }
 ```
 
-Note that a subscript setter reverses the dependence: `dependsOn(newValue -> .elements)`.
+### Lifetime Dependencies for Tuples
 
-As before, when `Container` held a single element, it can temporarily take ownership of an element without narrowing its lifetime:
+It should be possible to return a tuple in which one or more parts has a lifetime dependency.
+Tuples would benefit greatly from component lifetimes to be able to express the potentially independent lifetimes of the elements.
+For example:
 
 ```swift
-var c1: Container<Element>
-{
-  let c2 = Container<Element>(element: c1[i])
-  c1[i] = c2[i] // OK: c2[i] can outlive c2
+struct A {}
+struct B: ~Escapable {}
+struct C: ~Escapable {}
+
+@lifetime(.0: borrow a, .1: copy b)
+func f(a: A, b: B) -> (C, B)
+```
+
+### Function type syntax
+
+This proposal introduces `@lifetime` as a declaration attribute, but does not yet allow the attribute on function types.
+Therefore, a function that returns a non-`Escapable` type cannot currently be passed as a closure because its dependence information would be lost.
+
+```swift
+@lifetime(borrow arg)
+func f(arg: ArgType) -> NEType
+
+func g1(closure: (ArgType) -> NEType)
+
+do {
+  g1(closure: f) // 🛑 ERROR: function type mismatch 
 }
 ```
 
-Now let's consider a `View` type, similar to `Span`, that provides access to a borrowed container's elements. The lifetime of the view depends on the container's storage. Therefore, the view depends on a *borrow* of the container. The container's elements, however, no longer depend on the container's storage once they have been copied. This can be expressed by giving the view an abstract lifetime for its elements, separate from the view's own lifetime:
+To address this shortcoming, the `@lifetime(...)` attribute could be extended to function types as well as declarations.
+Since parameter names are not canonical, function types have no canonical parameter names, so the parameter position would need to be canonically identified by an integer literal:
 
 ```swift
-@lifetime(elements)
-struct View<Element>: ~Escapable {
-  var storage: UnsafePointer<Element>
+func g2(closure: @lifetime(borrow 0) (ArgType) -> NEType) { ... }
 
-  init(container: Container)
-    -> dependsOn(container.elements -> .elements) // Copy the lifetime associated with container.elements
-    Self {...}
-
-  subscript(position: Int) -> dependsOn(self.elements) Element
-}
-
-@lifetime(elements)
-struct MutableView<Element>: ~Escapable, ~Copyable {
-  var storage: UnsafeMutablePointer<Element>
-  //...
-}
-
-extension Container {
-  // Require a borrow scope in the caller that borrows the container
-  var view: dependsOn(borrow self) View<Element> { get {...} }
-
-  var mutableView: dependsOn(borrow self) MutableView<Element> { mutating get {...} }
+do {
+  g2(closure: f) // ✅ OK
 }
 ```
 
-Now an element can be copied out of a view `v2` and assigned to another view `v1` whose lifetime exceeds the borrow scope that constrains the lifetime of `v2`.
+Internal argument names could potentially be allowed as type sugar:
 
-```swift
-var c1: Container<Element>
-let v1 = c1.mutableView
-{
-  let v2 = c1.view // borrow scope for `v2`
-  v1[i] = v2[i] // OK: v2[i] can outlive v2
+```
+func g2(closure: @lifetime(borrow arg) (_ arg: ArgType) -> NEType) { ... }
+
+do {
+  // OK, different argument name is not part of the canonical type
+  let f1: @lifetime(borrow a) (_ a: ArgType) -> NEType = f
+  g2(closure: f1)
+
+  // Also OK
+  let f2: @lifetime(borrow 0) (ArgType) -> NEType = f
+  g2(closure: f2)
 }
 ```
 
-To see this more abstractly, rather than directly assigning, `v1[i] = v2[i]`, we can use a generic interface:
+The parameter index syntax is consistent with how dependencies are represented internally and in mangled names.
 
-```swift
-func transfer(from: Element, to: dependsOn(from) inout Element) {
-  to = from
-}
+We expect most closures that return non-`Escapable` types to be dependent on the closure context rather than a closure
+parameter--this will be the normal case for passing methods as nonescaping closures.
+A dependence on context dependence will not affect the spelling of the function type.
 
-var c1: Container<Element>
-let v1 = c1.mutableView
-{
-  let v2 = c1.view // borrow scope for `v2`
-  transfer(from: v2[i], to: &v1[i]) // OK: v2[i] can outlive v2
-}
+### More complex lifetime dependencies for functions
+
+Introducing `@lifetime` annotations onto function types is the bare minimum to allow for the use of nonescapable types in function values; however, there are also far more intricate lifetime relationships that function parameters may want to express among their parameters, returns, and those of the outer function.
+The dependencies of their closure context may be nontrivial as well. 
+For example, it would be natural to model a `TaskGroup` as a non-`Escapable` type, to statically enforce the currently dynamically-enforced variant that the task group not be used outside of a `withTaskGroup` block.
+It would furthermore be natural to treat the argument to `addTask` as a nonescaping closure; however, the scope which the closure cannot escape is not the immediate `addTask` call, but the `withTaskGroup` block as a whole.
+
+In order to express this, function types would likely require a predefined schema of lifetime components in order to express the lifetime constraint of the closure.
+
 ```
+struct TaskGroup: ~Escapable {
+  @lifetime(body.context: self)
+  func addTask(_ body: () -> ())
 
-### Protocol lifetime requirements
-
-Value lifetimes are limited because they provide no way to refer to a lifetime without refering to a concrete type that the lifetime is associated with. To support generic interfaces, protocols need to refer to any lifetime requirements that can appear in interface.
-
-Imagine that we want to access view through a protocol. To support returning elements that outlive the view, we need to require an `elements` lifetime requirement:
-
-```swift
-@lifetime(elements)
-protocol ViewProtocol {
-  subscript(position: Int) -> dependsOn(self.elements) Element
-}
-```
-
-Let's return to View's initializer;
-
-```swift
-@lifetime(elements)
-struct View<Element>: ~Escapable {
-  init(container: borrowing Container) ->
-    // Copy the lifetime assoicate with container.elements
-    dependsOn(container.elements -> .elements)
-    Self {...}
-}
-```
-
-This is not a useful initializer, because `View` should not be specific to a concrete `Container` type. Instead, we want `View` to be generic over any container that provides `elements` that can be copied out of the container's storage:
-
-```swift
-@lifetime(elements)
-protocol ElementStorage: ~Escapable {}
-
-@lifetime(elements)
-struct View<Element>: ~Escapable {
-  init(storage: ElementStorage) ->
-    // Copy the lifetime assoicate with storage.elements
-    dependsOn(storage.elements -> .elements)
-    Self {...}
 }
 ```
 
 ### Structural lifetime dependencies
 
-A scoped dependence normally cannot escape the lexical scope of its source variable. It may, however, be convenient to escape the source of that dependence along with any values that dependent on its lifetime. This could be done by moving the ownership of the source into a structure that preserves any dependence relationships. A function that returns a nonescapable type cannot currently depend on the scope of a consuming parameter. But we could lift that restriction provided that the consumed argument is moved into the return value, and that the return type preserves any dependence on that value:
+A scoped dependence normally cannot escape the lexical scope of its source variable. It may, however, be convenient to escape the source of that dependence along with any values that dependent on its lifetime. This could be done by moving the ownership of the source into a structure that preserves any dependence relationships. A function that returns a non-`Escapable` type cannot currently depend on the scope of a consuming parameter. But we could lift that restriction provided that the consumed argument is moved into the return value, and that the return type preserves any dependence on that value:
 
 ```swift
 struct OwnedSpan<T>: ~Copyable {
   let owner: any ~Copyable
-  let span: dependsOn(scope owner) Span<T>
+  @lifetime(borrow owner)
+  let span: Span<T>
 
-  init(owner: consuming any ~Copyable, span: dependsOn(scope owner) Span<T>) -> dependsOn(scoped owner) Self {
+  @lifetime(span: borrow owner)
+  init(owner: consuming any ~Copyable, span: Span<T>) {
     self.owner = owner
     self.span = span
   }
 }
 
 func arrayToOwnedSpan<T>(a: consuming [T]) -> OwnedSpan<T> {
-  OwnedSpan(owner: a, span: a.span())
+  OwnedSpan(owner: a, span: a.span)
 }
 ```
 
 `arrayToOwnedSpan` creates a span with a scoped dependence on an array, then moves both the array and the span into an `OwnedSpan`, which can be returned from the function. This converts the original lexically scoped dependence into a structural dependence.
 
-## Acknowledgements
+## Acknowledgments
 
 Dima Galimzianov provided several examples for Future Directions.
+
+Thanks to Gabor Horvath, Michael Ilseman, Guillaume Lessard, and Karoy Lorentey for adopting this functionality in C++ interop and new standard library APIs and providing valuable feedback.
