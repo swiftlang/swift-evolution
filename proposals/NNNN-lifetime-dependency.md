@@ -473,7 +473,8 @@ init() {
 `<global constant>` must be valid over the entire program.
 
 `@lifetime(immortal)` is not a way to suppress dependence in cases where the source value has unknown
-lifetime. Composing the result from a transient value, such as an UnsafePointer, is incorrect:
+lifetime.
+Composing the result from a transient value, such as an UnsafePointer, is incorrect:
 
 ```swift
 @lifetime(immortal)
@@ -493,7 +494,8 @@ init() {
 
 ### Depending on an escapable `BitwiseCopyable` value
 
-The source of a lifetime dependence may be an escapable `BitwiseCopyable` value. This is useful in the implementation of data types that internally use `UnsafePointer`:
+The source of a lifetime dependence may be an escapable `BitwiseCopyable` value.
+This is useful in the implementation of data types that internally use `UnsafePointer`:
 
 ```swift
 struct Span<T>: ~Escapable {
@@ -506,7 +508,11 @@ struct Span<T>: ~Escapable {
 }
 ```
 
-When the source of a dependence is escapable and `BitwiseCopyable`, then the operation must be marked as `@unsafe` when using strict memory safety as introduced in [SE-0458](0458-strict-memory-safety.md). By convention, the argument label should also include the word `unsafe` in its name, as in `unsafeBaseAddress` above. This communicates to anyone who calls the function that they are reponsible for ensuring that the value that the result depends on is valid over all uses of the result. The compiler can't guarantee safety because `BitwiseCopyable` types do not have a formal point at which the value is destroyed. Specifically, for `UnsafePointer`, the compiler does not know which object owns the pointed-to storage.
+When the source of a dependence is escapable and `BitwiseCopyable`, then the operation must be marked as `@unsafe` when using strict memory safety as introduced in [SE-0458](0458-strict-memory-safety.md).
+By convention, the argument label should also include the word `unsafe` in its name, as in `unsafeBaseAddress` above.
+This communicates to anyone who calls the function that they are reponsible for ensuring that the value that the result depends on is valid over all uses of the result.
+The compiler can't guarantee safety because `BitwiseCopyable` types do not have a formal point at which the value is destroyed.
+Specifically, for `UnsafePointer`, the compiler does not know which object owns the pointed-to storage.
 
 ```swift
 var span: Span<T>?
@@ -514,7 +520,7 @@ let buffer: UnsafeBufferPointer<T>
 do {
   let storage = Storage(...)
   buffer = storage.buffer
-  span = Span(unsafeBaseAddress: buffer.baseAddress!, count: buffer.count)
+  span = unsafe Span(unsafeBaseAddress: buffer.baseAddress!, count: buffer.count)
   // 🔥 'storage' may be destroyed
 }
 decode(span!) // 👿 Undefined behavior: dangling pointer
@@ -524,6 +530,7 @@ Normally, `UnsafePointer` lifetime guarantees naturally fall out of closure-taki
 
 ```swift
 extension Storage {
+  @unsafe
   public func withUnsafeBufferPointer<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R {
@@ -532,8 +539,8 @@ extension Storage {
 }
 
 let storage = Storage(...)
-storage.withUnsafeBufferPointer { buffer in
-  let span = Span(unsafeBaseAddress: buffer.baseAddress!, count: buffer.count)
+unsafe storage.withUnsafeBufferPointer { buffer in
+  let span = unsafe Span(unsafeBaseAddress: buffer.baseAddress!, count: buffer.count)
   decode(span) // ✅ Safe: 'buffer' is always valid within the closure.
 }
 ```
@@ -571,7 +578,7 @@ extension Span {
   consuming func dropFirst() -> Span<Element> {
     let local = Span(base: self.base + 1, count: self.count - 1)
     // 'local' can persist after 'self' is destroyed.
-    return unsafeLifetime(dependent: local, dependsOn: self)
+    return unsafe unsafeLifetime(dependent: local, dependsOn: self)
   }
 }
 ```
@@ -584,7 +591,7 @@ Since `self.base` is an `Escapable` value, it does not propagate the lifetime de
 @lifetime(immortal)
 init() {
   self.value = getGlobalConstant() // OK: unchecked dependence.
-  self = unsafeLifetime(dependent: self, dependsOn: ())
+  self = unsafe unsafeLifetime(dependent: self, dependsOn: ())
 }
 ```
 
@@ -593,7 +600,7 @@ init() {
 ### Relation to `Escapable`
 
 The lifetime dependencies described in this document can be applied only to potentially non-`Escapable` return values.
-Further, any return value that is non-`Escapable` must declare a lifetime dependency.
+Further, any return value that is potentially non-`Escapable` must declare a lifetime dependency.
 In particular, this implies that the initializer for a non-`Escapable` type must have at least one argument or else specify `@lifetime(immortal)`.
 
 ```swift
@@ -602,10 +609,9 @@ struct S: ~Escapable {
 }
 ```
 
-In generic contexts, `~Escapable` indicates that a type is *not required* to be `Escapable`, but is *not* a strict indication that a type is not `Escapable` at all.
-Generic types can be conditionally `Escapable`, and type parameters to generic functions that are declared `~Escapable` can be given `Escapable` types as arguments.
+In generic contexts, `~Escapable` indicates that a type is *not required* to be `Escapable`, but the type may be conditionally `Escapable` depending on generic substitutions.
 This proposal refers to types in these situations as "potentially non-`Escapable`" types.
-Return types that are potentially non-`Escapable` require lifetime dependencies to be specified, but when they are used in contexts where a value becomes `Escapable` due to the type parameters used, then those lifetime dependencies lose their effect, since
+Declarations with return types that are potentially non-`Escapable` require lifetime dependencies to be specified, but when those declarations are used in contexts where their result becomes `Escapable` due to the type arguments used, then those lifetime dependencies have no effect:
 
 ```swift
 // `Optional` is `Escapable` only when its `Wrapped` type is `Escapable`, and
@@ -618,25 +624,24 @@ func optionalize<T: ~Escapable>(_ value: T) -> T? {
     return value
 }
 
-// When used with non-Escapable types, `optionalize`'s dependencies are imposed
+// When used with non-Escapable types, `optionalize`'s dependencies are imposed.
 var maybeSpan: Span<Int>? = nil
 do {
   let a: ContiguousArray<Int> = ...
   
   maybeSpan = optionalize(a.span)
-  // maybeSpan is now dependent on borrowing `a`, copying the dependency from
-  // `a.span` through `optionalize`
+  // `maybeSpan` is now dependent on borrowing `a`, copying the dependency from
+  // `a.span` through `optionalize`.
 }
 print(maybeSpan?[0]) // error, `maybeSpan` used outside of lifetime constraint
 
-// But when used with Escapable types, the dependencies lose their effect
+// But when used with Escapable types, the dependencies lose their effect.
 var maybeString: String? = 0
 do {
     let s = "strings are eternal"
     maybeString = optionalize(s)
 }
-print(maybeString) // OK, String? is `Escapable`, no lifetime constraint
-
+print(maybeString) // OK, String? is `Escapable`, so has no lifetime constraint.
 ```
 
 ### Basic Semantics
@@ -656,7 +661,7 @@ The compiler must issue a diagnostic if any of the above cannot be satisfied.
 
 ### Grammar
 
-This new syntax adds a `@lifetime` attribute that can be applied to function, initializer, and property accessor declarations:
+This proposal adds a `@lifetime` attribute that can be applied to function, initializer, and property accessor declarations:
 
 > *lifetime-attribute* → **`@`** **`lifetime`** **`(`** *lifetime-dependence-list* **`)`**
 >
@@ -674,7 +679,7 @@ This modifier declares a lifetime dependency for the specified target.
 If no *lifetime-dependence-target-name* is specified, then the target is the declaration's return value.
 Otherwise, the target is the parameter named by the *lifetime-dependence-target-name*.
 The target value must be potentially non-`Escapable`.
-A parameter used as a target must additionally either be an `inout` parameter, or `self` in a `mutating` method.
+Additionally, a parameter used as a target must either be an `inout` parameter or `self` in a `mutating` method.
 
 The source value of the resulting dependency can vary.
 For a `borrow` or `inout` dependency, the source value will be the named parameter or `self` directly.
@@ -750,7 +755,7 @@ extension Span {
 }
 ```
 
-A dependence may be copied from a mutable (`inout`) variable, in this case the .
+A dependence may be copied from a mutable (`inout`) variable.
 When this occurs, the dependence is inherited from whatever value the mutable variable held when the function was invoked.
 
 ```swift
@@ -929,7 +934,7 @@ struct Container<Element>: ~Escapable {
   var a: Element
   var b: Element
 
-  @lifetime(a, b)
+  @lifetime(copy a, copy b)
   init(a: Element, b: Element) -> Self {...}
 }
 ```
