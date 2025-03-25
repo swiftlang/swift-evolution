@@ -19,17 +19,17 @@ Not all clocks have a starting point, however in these cases they do. Generally,
 
 ## Proposed solution
 
-Two new properties will be added, one to `SuspendingClock` and another to `ContinuousClock`. Both of these properties will be the epoch for which all `Instant` types are derived from; practically speaking this is the "zero" point for these clocks.
+Two new properties will be added, one to `SuspendingClock` and another to `ContinuousClock`. Both of these properties will be the epoch for which all `Instant` types are derived from; practically speaking this is the "zero" point for these clocks. Since the values may be relative to the particular system they are being used on (albeit many may implement them literally as zero) they are named in accordance to reflect that they are designed to be representative of the system's sense of an epoch and should not be expected to be serializable across systems.
 
 ## Detailed design
 
 ```swift
 extension ContinousClock {
-    public var epoch: Instant { get }
+    public var systemEpoch: Instant { get }
 }
 
 extension SuspendingClock {
-    public var epoch: Instant { get }
+    public var systemEpoch: Instant { get }
 }
 ```
 
@@ -37,14 +37,14 @@ These can be used to gather information like for example the uptime of a system,
 
 ```swift
 let clock = ContinousClock()
-let uptime = clock.now - clock.epoch
+let uptime = clock.now - clock.systemEpoch
 ```
 
 Or likewise;
 
 ```swift
 let clock = SuspendingClock()
-let activeTime = clock.now - clock.epoch
+let activeTime = clock.now - clock.systemEpoch
 ```
 
 ## ABI compatibility
