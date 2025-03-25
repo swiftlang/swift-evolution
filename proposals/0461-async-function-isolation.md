@@ -781,6 +781,14 @@ Otherwise, the code will risk a data-race, because the task executor preference
 does not apply to actor-isolated methods with custom executors, and the
 nonisolated async method can be passed mutable state from the actor.
 
+### Dynamic actor isolation APIs in async contexts
+
+Because nonisolated async functions may now execute on a specific actor at
+runtime, the APIs in the Concurrency library for enforcing actor isolation
+assertions and preconditions are now useful in these contexts. As such, the
+`noasync` attribute will be removed from `assertIsolated`, `assumeIsolated`,
+and `preconditionIsolated` on `Actor` and `MainActor`.
+
 ### Import-as-async heuristic
 
 Nonisolated functions imported from Objective-C that match the import-as-async
@@ -978,6 +986,7 @@ The proposal was revised with the following changes after the first review:
 * Renamed `@execution(concurrent)` back to `@concurrent`.
 * Removed the unconditional warning about nonisolated async functions that
   don't explicitly specify `@execution(caller)` or `@concurrent`.
+* Removed `noasync` from the `assumeIsolated` API family.
 
 The proposal was revised with the following changes after the pitch discussion:
 
