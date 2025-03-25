@@ -705,6 +705,45 @@ func call(_ closure: () -> NotSendable) -> NotSendable {
 }
 ```
 
+### Region isolation rules
+
+`@execution(caller)` functions have the same region isolation rules as
+synchronous `nonisolated` functions. When calling an `@execution(caller)`
+function, all non-`Sendable` parameter and result values are merged into
+the same region, but they are only merged into the caller's actor region if
+one of those non-`Sendable` values is already in the actor's region.
+
+For example:
+
+```swift
+class NotSendable {}
+
+@execution(caller)
+nonisolated func identity<T>(_ t: T) async -> T {
+  return t
+}
+
+actor MyActor {
+  func isolatedToSelf() async -> sending NotSendable {
+    let ns = NotSendable()
+    return await identity(ns)
+  }
+}
+```
+
+The above code is valid; the implementation of `identity` can't access the
+actor's state unless isolated state is passed in via one of the parameters.
+Note that this code would be invalid if `identity` accepted an isolated
+parameter, because the non-`Sendable` parameters and results would always be
+merged into the actor's region.
+
+This proposal allows you to access `#isolation` in the implementation of an
+`@execution(caller)` function for the purpose of forwarding it along to a
+method that accepts an `isolated (any Actor)?`. This is still safe, because
+there's no way to access the actor's isolated state via the `Actor` protocol,
+and dynamic casting to a concrete actor type will not result in a value that
+the function is known to be isolated to.
+
 ### Executor switching
 
 Async functions switch executors in the implementation when entering the
@@ -987,6 +1026,8 @@ The proposal was revised with the following changes after the first review:
 * Removed the unconditional warning about nonisolated async functions that
   don't explicitly specify `@execution(caller)` or `@concurrent`.
 * Removed `noasync` from the `assumeIsolated` API family.
+* Specified the region isolation rules for `@execution(caller)` functions [as
+  discussed in the first review][region-isolation].
 
 The proposal was revised with the following changes after the pitch discussion:
 
@@ -1005,3 +1046,4 @@ The proposal was revised with the following changes after the pitch discussion:
 [SE-0338]: /proposals/0338-clarify-execution-non-actor-async.md
 [SE-0421]: /proposals/0421-generalize-async-sequence.md
 [adoption-tooling]: https://forums.swift.org/t/pitch-adoption-tooling-for-upcoming-features/77936
+[region-isolation]: https://forums.swift.org/t/se-0461-run-nonisolated-async-functions-on-the-callers-actor-by-default/77987/36
