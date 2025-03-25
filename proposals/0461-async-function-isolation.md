@@ -26,7 +26,7 @@ async function always switches off of an actor to run.
 - [Motivation](#motivation)
 - [Proposed solution](#proposed-solution)
 - [Detailed design](#detailed-design)
-  - [The `@execution` attribute](#the-execution-attribute)
+  - [The `@execution` and `@concurrent` attributes](#the-execution-and-concurrent-attributes)
     - [`@execution(caller)` functions](#executioncaller-functions)
     - [`@execution(concurrent)` functions](#executionconcurrent-functions)
   - [Task isolation inheritance](#task-isolation-inheritance)
@@ -201,7 +201,7 @@ behavior of existing code, so the change is gated behind the
 `AsyncCallerExecution` upcoming feature flag. To help stage in the new
 behavior, a new `@execution` attribute can be used to explicitly specify the
 execution semantics of an async function in any language mode. The
-`@execution(concurrent)` attribute is an explicit spelling for the behavior of
+`@concurrent` attribute is an explicit spelling for the behavior of
 async functions in language modes <= Swift 6, and the `@execution(caller)`
 attribute is an explicit spelling for async functions that run on the caller's
 actor.
@@ -215,7 +215,7 @@ class NotSendable {
   @execution(caller)
   func performAsync() async { ... }
 
-  @execution(concurrent)
+  @concurrent
   func alwaysSwitch() async { ... }
 }
 
@@ -232,34 +232,28 @@ actor MyActor {
 }
 ```
 
-`@execution(concurrent)` is the current default for nonisolated async
+`@concurrent` is the current default for nonisolated async
 functions. `@execution(caller)` will become the default for async functions
 when the `AsyncCallerExecution` upcoming feature is enabled.
 
 ## Detailed design
 
-The sections below will explicitly use `@execution(concurrent)` and
+The sections below will explicitly use `@concurrent` and
 `@execution(caller)` to demonstrate examples that will behave consistently
 independent of upcoming features or language modes. However, note that the
 end state under the `AsyncCallerExecution` upcoming feature will mean that
 `@execution(caller)` is not necessary to explicitly write, and
-`@execution(concurrent)` will likely be used sparingly because it has far
+`@concurrent` will likely be used sparingly because it has far
 stricter data-race safety requirements.
 
-### The `@execution` attribute
+### The `@execution` and `@concurrent` attributes
 
-`@execution` is a declaration and type attribute that specifies the execution
-semantics of an async function. `@execution` must be written with an argument
-of either `caller` or `concurrent`. The details of each argument are specified
-in the following sections.
+`@execution(caller)` and `@concurrent` are both declaration and type attributes
+that specify the execution semantics of an async function. The details of
+each attribute are specified in the following sections.
 
-> _Naming rationale_: The term `concurrent` in `@execution(concurrent)` was
-> chosen because the colloquial phrase "runs concurrently with actors" is a
-> good way to describe the semantics of the function execution. Similarly, the
-> async function can be described as running on the concurrent executor.
-
-Only (implicitly or explicitly) `nonisolated` functions can be marked with the
-`@execution` attribute; it is an error to use the `@execution` attribute with
+Only (implicitly or explicitly) `nonisolated` functions can be marked with
+`@execution(caller)` or `@concurrent`; it is an error to use the these attributes with
 an isolation other than `nonisolated`, including global actors, isolated
 parameters, and `@isolated(any)`:
 
@@ -280,13 +274,15 @@ actor MyActor {
 }
 ```
 
-The `@execution` attribute can be used together with `@Sendable` or `sending`.
+`@execution(caller)` and `@concurrent` can be used together with `@Sendable` or
+`sending`.
 
-The `@execution` attribute is preserved in the type system so that the execution
-semantics can be distinguished for function vales.
+`@execution(caller)` and `@concurrent` are preserved in the type system so that
+the execution semantics can be distinguished for function vales.
 
-The `@execution` attribute cannot be applied to synchronous functions. This is
-an artificial limitation that could later be lifted if use cases arise.
+`@execution(caller)` and `@concurrent` cannot be applied to synchronous
+functions. This is an artificial limitation that could later be lifted if use
+cases arise.
 
 #### `@execution(caller)` functions
 
@@ -349,23 +345,23 @@ In the above code, the calls to `closure` from `callSendableClosure` run on the
 main actor, because `closure` is `@execution(caller)` and `callSendableClosure`
 is main actor isolated.
 
-#### `@execution(concurrent)` functions
+#### `@concurrent` functions
 
 Async functions can be declared to always switch off of an actor to run using
-the `@execution(concurrent)` attribute:
+the `@concurrent` attribute:
 
 ```swift
 struct S: Sendable {
-  @execution(concurrent)
+  @concurrent
   func alwaysSwitch() async { ... }
 }
 ```
 
-The type of an `@execution(concurrent)` function declaration is an
-`@execution(concurrent)` function type. Details on function conversions are
+The type of an `@concurrent` function declaration is an
+`@concurrent` function type. Details on function conversions are
 covered in a [later section](#function-conversions).
 
-When an `@execution(concurrent)` function is called from a context that can
+When an `@concurrent` function is called from a context that can
 run on an actor, including `@execution(caller)` functions or actor-isolated
 functions, sendable checking is performed on the argument and result values.
 Either the argument and result values must have a type that conforms to
@@ -375,7 +371,7 @@ outside of the actor:
 ```swift
 class NotSendable {}
 
-@execution(concurrent)
+@concurrent
 func alwaysSwitch(ns: NotSendable) async { ... }
 
 actor MyActor {
@@ -395,7 +391,7 @@ actor MyActor {
 Unstructured tasks created in nonisolated functions never run on an actor
 unless explicitly specified. This behavior is consistent for all nonisolated
 functions, including synchronous functions, `@execution(caller)` async
-functions, and `@execution(concurrent)` async functions.
+functions, and `@concurrent` async functions.
 
 For example:
 
@@ -483,7 +479,7 @@ struct Program {
 }
 ```
 
-In an `@execution(concurrent)` function, the `#isolation` macro expands to
+In an `@concurrent` function, the `#isolation` macro expands to
 `nil`.
 
 ### Isolation inference for closures
@@ -617,21 +613,21 @@ conversion rules for synchronous `nonisolated` functions and asynchronous
 `@execution(caller) nonisolated` functions are the same; they are both
 represented under the "Nonisolated" category in the table:
 
-| Old isolation            | New isolation              | Crosses Boundary |
-|--------------------------|----------------------------|------------------|
-| Nonisolated              | Actor isolated             | No               |
-| Nonisolated              | `@isolated(any)`           | No               |
-| Nonisolated              | `@execution(concurrent)`   | Yes              |
-| Actor isolated           | Actor isolated             | Yes              |
-| Actor isolated           | `@isolated(any)`           | No               |
-| Actor isolated           | Nonisolated                | Yes              |
-| Actor isolated           | `@execution(concurrent)`   | Yes              |
-| `@isolated(any)`         | Actor isolated             | Yes              |
-| `@isolated(any)`         | Nonisolated                | Yes              |
-| `@isolated(any)`         | `@execution(concurrent)`   | Yes              |
-| `@execution(concurrent)` | Actor isolated             | Yes              |
-| `@execution(concurrent)` | `@isolated(any)`           | No               |
-| `@execution(concurrent)` | Nonisolated                | Yes              |
+| Old isolation        | New isolation          | Crosses Boundary |
+|----------------------|------------------------|------------------|
+| Nonisolated          | Actor isolated         | No               |
+| Nonisolated          | `@isolated(any)`       | No               |
+| Nonisolated          | `@concurrent`          | Yes              |
+| Actor isolated       | Actor isolated         | Yes              |
+| Actor isolated       | `@isolated(any)`       | No               |
+| Actor isolated       | Nonisolated            | Yes              |
+| Actor isolated       | `@concurrent`          | Yes              |
+| `@isolated(any)`     | Actor isolated         | Yes              |
+| `@isolated(any)`     | Nonisolated            | Yes              |
+| `@isolated(any)`     | `@concurrent`          | Yes              |
+| `@concurrent`        | Actor isolated         | Yes              |
+| `@concurrent`        | `@isolated(any)`       | No               |
+| `@concurrent`        | Nonisolated            | Yes              |
 
 #### Non-`@Sendable` function conversions
 
@@ -671,7 +667,7 @@ if the original function must leave the actor in order to be called:
 ```swift
 @execution(caller)
 func convert(
-    fn1: @escaping @execution(concurrent) () async -> Void,
+    fn1: @escaping @concurrent () async -> Void,
 ) async {
     let fn2: @MainActor () async -> Void = fn1 // error
 
@@ -717,7 +713,7 @@ functions do not have the ability to switch executors. If a call to a
 synchronous function crosses an isolation boundary, the call must happen in an
 async context and the executor switch happens at the caller.
 
-`@execution(concurrent)` async functions switch to the generic executor, and
+`@concurrent` async functions switch to the generic executor, and
 all other async functions switch to the isolated actor's executor.
 
 ```swift
@@ -729,7 +725,7 @@ all other async functions switch to the isolated actor's executor.
   // switch to main actor executor
 }
 
-@execution(concurrent) func runOnGenericExecutor() async {
+@concurrent func runOnGenericExecutor() async {
   // switch to generic executor
 
   await Task { @MainActor in
@@ -803,14 +799,14 @@ not change -- it will not be gated behind the upcoming feature.
 
 This proposal changes the semantics of nonisolated async functions when the
 upcoming feature flag is enabled. Without the upcoming feature flag, the default
-for nonisolated async functions is `@execution(concurrent)`. When the upcoming
+for nonisolated async functions is `@concurrent`. When the upcoming
 feature flag is enabled, the default for nonisolated async functions changes to
 `@execution(caller)`. This applies to both function declarations and function
 values that are nonisolated (either implicitly or explicitly).
 
 Changing the default execution semantics of nonisolated async functions has
 minor source compatibility impact if the implementation calls an
-`@execution(concurrent)` function and passes non-Sendable state in the actor's
+`@concurrent` function and passes non-Sendable state in the actor's
 region. In addition to the source compatibility impact, the change can also
 regress performance of existing code if, for example, a specific async function
 relied on running off of the main actor when called from the main actor to
@@ -838,8 +834,8 @@ maintaining compatibility with tools versions back to Swift 5.8 when
 `hasAttribute` was introduced:
 
 ```swift
-#if hasAttribute(execution)
-@execution(concurrent)
+#if hasAttribute(concurrent)
+@concurrent
 #endif
 public func myAsyncAPI() async { ... }
 ```
@@ -863,7 +859,7 @@ public func myAsyncFunc() async {
   // original implementation
 }
 
-@execution(concurrent)
+@concurrent
 @_silgen_name(...) // to preserve the original symbol name
 @usableFromInline
 internal func abi_myAsyncFunc() async {
@@ -880,7 +876,7 @@ can be made inlinable.
 
 `@execution(caller)` functions must accept an implicit actor parameter. This
 means that adding `@execution(caller)` to a function that is actor-isolated, or
-changing a function from `@execution(concurrent)` to `@execution(caller)`, is
+changing a function from `@concurrent` to `@execution(caller)`, is
 not a resilient change.
 
 ## Alternatives considered
@@ -895,7 +891,7 @@ potential compromise is to keep the current isolation inference behavior, and
 offer fix-its to capture the actor if there are any data-race safety errors
 from capturing state in the actor's region.
 
-### Use `nonisolated` instead of a separate `@execution(concurrent)` attribute
+### Use `nonisolated` instead of a separate `@concurrent` attribute
 
 It's tempting to not introduce a new attribute to control where an async
 function executes, and instead control this behavior with an explicit
@@ -906,9 +902,43 @@ reasons:
    `nonisolated` by default, regardless of whether it's applied to synchronous
    or async functions.
 2. This approach cuts off the future direction of allowing
-   `@execution(concurrent)` on synchronous functions.
+   `@concurrent` on synchronous functions.
 
-### Use "isolation" terminology instead of "execution"
+### Alternative syntax choices
+
+This proposal was originally pitched using the `@concurrent` syntax, and many
+reviewers surfaced objects about why `@concurrent` may be misleading, such as:
+
+* `@concurrent` is not the only source of concurrency; concurrency can arise from
+  many other things.
+* The execution of an `@concurrent` function is not concurrent from the local
+  perspective of the current task.
+
+It's true that concurrency can only arise if there are multiple "impetuses"
+(such as tasks or event sources) in the program that are running with different
+isolation. But for the most part, we can assume that there are multiple
+impetuses; and while those impetuses might otherwise share isolation,
+`@concurrent` is the only isolation specification under this proposal that
+guarantees that they do not and therefore forces concurrency. Indeed, we expect
+that programmers will be reaching for `@concurrent` exactly for that reason:
+they want the current function to run concurrently with whatever else might
+happen in the process. So, this proposal uses `@concurrent` because out of the
+other alternatives we explored, it best reflects the programmer's intent for
+using the attribute.
+
+A previous iteration of this proposal used the syntax `@execution(concurrent)`
+instead of `@concurrent`. The review thread explored several variations of
+this syntax, including `@executor(concurrent)` and `@executor(global)`.
+
+However, `@execution` or `@executor` encourages
+thinking about async function semantics in terms of the lower level model of
+executors and threads, and we should be encouraging programmers to think about
+these semantics at the higher abstraction level of actor isolation and tasks.
+Trying to understand the semantics in proposal in terms of executors can also
+be misleading, both because isolation does not always map naively to executor
+requests and because executors are used for other things than isolation.
+For example, an `@executor(global)` function could end up running on some
+executor other than the global executor via task executor preferences.
 
 Another possibility is to use isolation terminology instead of `@execution`
 for the syntax. This direction does not accomplish the goal of having a
@@ -953,6 +983,10 @@ because sendable checking would need to be performed at the point of the
 function reference instead of when the function is called.
 
 ## Revisions
+
+The proposal was revised with the following changes after the first review:
+
+* Renamed `@execution(concurrent)` back to `@concurrent`.
 
 The proposal was revised with the following changes after the pitch discussion:
 
