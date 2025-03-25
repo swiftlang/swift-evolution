@@ -172,6 +172,25 @@ This would be ideal, however also problematic since changing a protocol requirem
 
 In order to make adoption of this new mode less painful and not cause deprecation warnings to libraries which intend to support multiple versions of Swift, the `SerialExcecutor/checkIsolated` protocol requirement remains _not_ deprecated. It may eventually become deprecated in the future, but right now we have no plans of doing so.
 
+### Offer a tri-state return value rather than `Bool`
+
+We briefly considered offering a tri-state `enum DetectedSerialExecutorIsolation` as the return value of `isIsolatingCurrentContext`, however could not find many realistic use-cases for it.
+
+The return type could be defined as:
+
+```swift
+// not great name
+enum DetectedSerialExecutorIsolation {
+  case isolated // returned when isolated by this executor
+  case notIsolated // returned when definitely NOT isolated by this executor
+  case unknown // when the isIsolatingCurrentContext could not determine if the caller is isolated or not
+}
+```
+
+If we used the `.unknown` as default implementation of the new protocol requirement, this would allow for programatic detection if we called the default implementation, or an user provided implementation which could check a proper isolated/not-isolated state of the executing context.
+
+Technically there may exist new implementations which return the `.unknown` however it would have to be treated defensively as `.notIsolated` in any asserting APIs or other use-cases which rely on this check for runtime correctness. We are uncertain if introducing this tri-state is actually helpful in real situations and therefore the proposal currently proposes the use of a plain `Bool` value. 
+
 ## Changelog
 
 - removed the manual need to signal to the runtime that the specific executor supports the new checking mode. It is now detected by the compiler and runtime, checking for the presence of a non-default implementation of the protocol requirement.
