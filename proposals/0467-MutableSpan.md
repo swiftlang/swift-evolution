@@ -172,7 +172,7 @@ We include functions to perform bulk copies of elements into the memory represen
 
 ```swift
 extension MutableSpan where Element: Copyable {
-  /// Updates every element of this span's to the given value.
+  /// Updates every element of this span to the given value.
   mutating func update(
     repeating repeatedValue: Element
   )
@@ -427,7 +427,7 @@ extension MutableRawSpan {
   
   /// Updates the span's bytes with the bytes of the elements from the source
   mutating func update<Element: BitwiseCopyable>(
-    from elements: inout some IteratorProtocol<Element>
+    from source: inout some IteratorProtocol<Element>
   ) -> Int
 
   /// Updates the span's bytes with every byte of the source.
