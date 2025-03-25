@@ -820,25 +820,14 @@ flag, but means something different. Many programmers have internalized the
 SE-0338 semantics, and making this change several years after SE-0338 was
 accepted creates an unfortunate intermediate state where it's difficult to
 understand the semantics of a nonisolated async function without understanding
-the build settings of the module you're writing code in. To mitigate these
-consequences, the compiler will emit warnings in all language modes
-that do not enable this upcoming feature to prompt programmers to explicitly
-specify the execution semantics of a nonisolated async function.
+the build settings of the module you're writing code in.
 
-Without the upcoming feature enabled, the compiler will warn if neither
-attribute is specified on a nonisolated async function. With the
-upcoming feature enabled, the default for a nonisolated async
-function is `@execution(caller)`. Packages that must support older Swift tools
-versions can use `#if hasAttribute(execution)` to silence the warning while
-maintaining compatibility with tools versions back to Swift 5.8 when
-`hasAttribute` was introduced:
-
-```swift
-#if hasAttribute(concurrent)
-@concurrent
-#endif
-public func myAsyncAPI() async { ... }
-```
+To make it easy to discover what kind of async function you're working with,
+SourceKit will surface the implicit `@execution(caller)` or `@concurrent`
+attribute for IDE inspection features like Quick Help in Xcode and Hover in
+VSCode. To ease the transition to the upcoming feature flag, [migration
+tooling][adoption-tooling] will provide fix-its to preserve behavior by
+annotating nonisolated async functions with `@concurrent`.
 
 ## ABI compatibility
 
@@ -987,6 +976,8 @@ function reference instead of when the function is called.
 The proposal was revised with the following changes after the first review:
 
 * Renamed `@execution(concurrent)` back to `@concurrent`.
+* Removed the unconditional warning about nonisolated async functions that
+  don't explicitly specify `@execution(caller)` or `@concurrent`.
 
 The proposal was revised with the following changes after the pitch discussion:
 
@@ -1004,3 +995,4 @@ The proposal was revised with the following changes after the pitch discussion:
 [SE-0297]: /proposals/0297-concurrency-objc.md
 [SE-0338]: /proposals/0338-clarify-execution-non-actor-async.md
 [SE-0421]: /proposals/0421-generalize-async-sequence.md
+[adoption-tooling]: https://forums.swift.org/t/pitch-adoption-tooling-for-upcoming-features/77936
