@@ -3,10 +3,10 @@
 * Proposal: [SE-0459](0459-enumerated-collection.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (January 28 – February 7, 2025)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#78092](https://github.com/swiftlang/swift/pull/78092)
 * Previous Proposal: [SE-0312](0312-indexed-and-enumerated-zip-collections.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-collection-conformance-for-enumeratedsequence/76680)) ([review](https://forums.swift.org/t/se-0459-add-collection-conformances-for-enumerated/77509))
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-collection-conformance-for-enumeratedsequence/76680)) ([review](https://forums.swift.org/t/se-0459-add-collection-conformances-for-enumerated/77509)) ([acceptance](https://forums.swift.org/t/accepted-with-modification-se-0459-add-collection-conformances-for-enumerated/78082))
 
 ## Introduction
 
