@@ -11,7 +11,7 @@
 
 Swift Concurrency's primary means of entering an asynchronous context is creating a Task (structured or unstructured), and from there onwards it is possible to call asynchronous functions, and execution of the current work may _suspend_.
 
-Entering the asynchronous context today incurs the creating and scheduling of a task to be executed at some later point in time. This initial delay may be wasteful for tasks which perform minimal or none (!) work at all.
+Entering the asynchronous context today incurs the creating and scheduling of a task to be executed at some later point in time. This initial delay may be wasteful for tasks which perform minimal or no (!) work at all.
 
 This initial delay may also be problematic for some situations where it is known that we are executing on the "right actor" however are *not* in an asynchronous function and therefore in order to call some different asynchronous function we must create a new task and introduce subtle timing differences as compared to just being able to call the target function–which may be isolated to the same actor we're calling from–immediately.
 
@@ -51,7 +51,7 @@ func synchronousFunction() {
 }
 ```
 
-The above example showcases a typical situation where this new API can be useful. While `assumeIsolated` gives us a specific isolation... it still would not allow us to call arbitrary async functions, as we are still in a synchronous context.
+The above example showcases a typical situation where this new API can be useful. While `assumeIsolated` gives us a specific isolation, it still would not allow us to call arbitrary async functions, as we are still in a synchronous context.
 
 The proposed `Task.startSynchronously` API forms an async context on the calling thread/task/executor, and therefore allows us to call into async code, at the risk of overhanging on the calling executor. So while this should be used sparingly, it allows entering an asynchronous context *synchronously*.
 
@@ -102,18 +102,18 @@ extension Task {
   
     @discardableResult
     public static func startSynchronously(
-        // SE-NNNN's proposed 'name: String? = nil' would be here
+        // SE-0469's proposed 'name: String? = nil' would be here if accepted
         priority: TaskPriority? = nil,
         executorPreference taskExecutor: consuming (any TaskExecutor)? = nil,
-        operation: sending @escaping async throws(Failure) -> Success,
+        operation: sending @escaping async throws(Failure) -> Success
     ) -> Task<Success, Failure>
   
     @discardableResult
     public static func startSynchronouslyDetached(
-        // SE-NNNN's proposed 'name: String? = nil' would be here
+        // SE-0469's proposed 'name: String? = nil' would be here if accepted
         priority: TaskPriority? = nil,
         executorPreference taskExecutor: consuming (any TaskExecutor)? = nil,
-        operation: sending @escaping async throws(Failure) -> Success,
+        operation: sending @escaping async throws(Failure) -> Success
     ) -> Task<Success, Failure>
 }
 ```
@@ -125,41 +125,41 @@ extension (Throwing)TaskGroup {
   
   // Same add semantics as 'addTask'.
   func startTaskSynchronously(
-    // SE-NNNN's proposed 'name: String? = nil' would be here
+    // SE-0469's proposed 'name: String? = nil' would be here
     priority: TaskPriority? = nil,
     executorPreference taskExecutor: (any TaskExecutor)? = nil,
-    operation: sending @escaping @isolated(any) () async throws -> ChildTaskResult
+    operation: sending @escaping () async throws -> ChildTaskResult
   )
   
   // Same add semantics as 'addTaskUnlessCancelled'.
   func startTaskSynchronouslyUnlessCancelled(
-    // SE-NNNN's proposed 'name: String? = nil' would be here
+    // SE-0469's proposed 'name: String? = nil' would be here
     priority: TaskPriority? = nil,
     executorPreference taskExecutor: (any TaskExecutor)? = nil,
-    operation: sending @escaping @isolated(any) () async throws -> ChildTaskResult
+    operation: sending @escaping () async throws -> ChildTaskResult
   )
 }
 
 extension (Throwing)DiscardingTaskGroup {
   // Same add semantics as 'addTask'.
   func startTaskSynchronously(
-    // SE-NNNN's proposed 'name: String? = nil' would be here
+    // SE-0469's proposed 'name: String? = nil' would be here
     priority: TaskPriority? = nil,
     executorPreference taskExecutor: (any TaskExecutor)? = nil,
-    operation: sending @escaping @isolated(any) () async throws -> ChildTaskResult
+    operation: sending @escaping () async throws -> ChildTaskResult
   )
   
   // Same add semantics as 'addTaskUnlessCancelled'.
   func startTaskSynchronouslyUnlessCancelled(
-    // SE-NNNN's proposed 'name: String? = nil' would be here
+    // SE-0469's proposed 'name: String? = nil' would be here
     priority: TaskPriority? = nil,
     executorPreference taskExecutor: (any TaskExecutor)? = nil,
-    operation: sending @escaping @isolated(any) () async throws -> ChildTaskResult
+    operation: sending @escaping () async throws -> ChildTaskResult
   )
 }
 ```
 
-The `startTaskSynchronously` mirrors the functionality of `addTask`, unconditionally adding the task to the group, while the `startTaskSynchronouslyUnlessCancelled` mirrors the `addTaskUnlessCancelled` which only adds the task to the group if the group (or task we're running in, and therefore the group as well) are not cancelled.
+The `startTaskSynchronously` function mirrors the functionality of `addTask`, unconditionally adding the task to the group, while the `startTaskSynchronouslyUnlessCancelled` mirrors the `addTaskUnlessCancelled` which only adds the task to the group if the group (or task we're running in, and therefore the group as well) are not cancelled.
 
 ### Isolation rules
 
@@ -256,7 +256,7 @@ After the suspension point though, there may have been other tasks executed on t
 
 Synchronously started tasks behave exactly the same as their fully asynchronous equivalents. 
 
-In short, cancellation, and priority escalation remains automatic for structured tasks created using TaskGroup APIs, however they do not propagate automatically for unstructured tasks created using the `Task.startSynchronously[Detached](...)` APIs. Task locals and base priority also functions the same way as usual; 
+In short, cancellation, and priority escalation remains automatic for structured tasks created using TaskGroup APIs, however they do not propagate automatically for unstructured tasks created using the `Task.startSynchronously[Detached](...)` APIs. Task locals and base priority also functions the same way as usual.
 
 The only difference in behavior is where these synchronously started tasks _begin_ their execution.
 
