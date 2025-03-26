@@ -218,7 +218,7 @@ let ref2 = ref1.extracting(4 ..< ref1.count) // ref2 also cannot outlive a
 ```
 
 After `ref1.extracting(4 ..< ref1.count)`, the lifetime of `ref2` does not depend on `ref1`.
-The `extracting` method **copies** `ref1`s lifetime depenence onto `ref2`.
+The `extracting` method **copies** `ref1`s lifetime dependence onto `ref2`.
 `ref2` effectively **inherits** the same lifetime dependency on `a` as `ref1`.
 We may also refer to a lifetime dependence that has been copied from another value as an "inherited" dependence.
 Since both `ref1` and `ref2` have borrowing scoped dependencies on `a`, they can be used simultaneously:
@@ -781,7 +781,7 @@ parse(prefix) // ✅ Safe: still within lifetime of 'a'
 
 #### Scoped dependence on `inout` access
 
-Now, let's return to scoped dependence, this time on a mutable variable. This is where exclusivity guarantees come into play. A scoped depenendence extends an access of the mutable variable across all uses of the dependent value. If the variable mutates again before the last use of the dependent, then it is an exclusivity violation.
+Now, let's return to scoped dependence, this time on a mutable variable. This is where exclusivity guarantees come into play. A scoped dependence extends an access of the mutable variable across all uses of the dependent value. If the variable mutates again before the last use of the dependent, then it is an exclusivity violation.
 
 ```swift
 let a: ContiguousArray<Int> = ...
