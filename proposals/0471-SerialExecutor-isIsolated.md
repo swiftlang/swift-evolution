@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status:  **Active Review (March 25...April 8, 2025)
 * Implementation: https://github.com/swiftlang/swift/pull/79788 & https://github.com/swiftlang/swift/pull/79946
-* Pitch: [[Pitch][SerialExecutor] Improved Custom SerialExecutor isolation checking](https://forums.swift.org/t/pitch-serialexecutor-improved-custom-serialexecutor-isolation-checking/78237/)
+* Review: [Pitch](https://forums.swift.org/t/pitch-serialexecutor-improved-custom-serialexecutor-isolation-checking/78237/), [Review](https://forums.swift.org/t/se-0471-improved-custom-serialexecutor-isolation-checking-for-concurrency-runtime/78834)
 
 ## Introduction
 
