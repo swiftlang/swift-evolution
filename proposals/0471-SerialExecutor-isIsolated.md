@@ -1,14 +1,11 @@
 # Improved Custom SerialExecutor isolation checking for Concurrency Runtime 
 
-* Proposal: [SE-NNNN](...)
+* Proposal: [SE-0471](0471-SerialExecutor-isIsolated.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
-* Review Manager: TBD
-* Status:  Implemented
-  * https://github.com/swiftlang/swift/pull/79788
-  * https://github.com/swiftlang/swift/pull/79946
-
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status:  **Active Review (March 25...April 8, 2025)
+* Implementation: https://github.com/swiftlang/swift/pull/79788 & https://github.com/swiftlang/swift/pull/79946
 * Pitch: [[Pitch][SerialExecutor] Improved Custom SerialExecutor isolation checking](https://forums.swift.org/t/pitch-serialexecutor-improved-custom-serialexecutor-isolation-checking/78237/)
-* Review: TODO
 
 ## Introduction
 
@@ -102,7 +99,7 @@ In most cases implementing this new API is preferable to implementing `checkIsol
 
 The newly proposed `isIsolatingCurrentContext()` function participates in the previously established runtime isolation checking flow, and happens _before_ any calls to `checkIsolated()` are attempted. The following diagram explains the order of calls issued by the runtime to dynamically verify an isolation when e.g. `assumeIsolated()` is called:
 
-![diagram illustrating which method is called when](nnnn-is-isolated-flow.png)
+![diagram illustrating which method is called when](0471-is-isolated-flow.png)
 
 
 
