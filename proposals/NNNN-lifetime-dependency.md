@@ -17,7 +17,7 @@ This is deeply related to `~Escapable` types, as introduced in [SE-0446](0446-no
 - Replaced `dependsOn` return type modifier with a declaration-level `@lifetime` attribute.
     Removed dependency inference rules.
 - Integrated links to proposals SE-0446 (`Escapable`), SE-0447 (`Span`), SE-0456 (`Span`-producing properties), and SE-0467 (`MutableSpan`) that have undergone review.
-- Added SE-0458 `@unsafe` annotations to the `_overrideLifetime` standard library functions, and added `@unsafe` as a requirement for APIs using `BitwiseCopyable` lifetime dependencies under strict memory safety.
+- Added SE-0458 `@unsafe` annotations to the `_overrideLifetime` standard library functions, and added `@unsafe` as a requirement for APIs using `Escapable & BitwiseCopyable` lifetime dependencies under strict memory safety.
 
 **Edited** (April 12, 2024): Changed `@dependsOn` to `dependsOn` to match the current implementation.
 
@@ -483,18 +483,9 @@ init(pointer: UnsafePointer<T>) {
 }
 ```
 
-We could run into the same problem with any transient value, like a file descriptor, or even a class object:
+### Depending on an `Escapable & BitwiseCopyable` value
 
-```swift
-@lifetime(immortal)
-init() {
-  self.value = Object() // 🛑 Incorrect
-}
-```
-
-### Depending on an escapable `BitwiseCopyable` value
-
-The source of a lifetime dependence may be an escapable `BitwiseCopyable` value.
+The source of a lifetime dependence may be an `Escapable & BitwiseCopyable` value.
 This is useful in the implementation of data types that internally use `UnsafePointer`:
 
 ```swift
@@ -688,12 +679,14 @@ This proposal adds a `@lifetime` attribute that can be applied to function, init
 This modifier declares a lifetime dependency for the specified target.
 If no *lifetime-dependence-target-name* is specified, then the target is the declaration's return value.
 Otherwise, the target is the parameter named by the *lifetime-dependence-target-name*.
+A parameter is referenced by its "internal" binding name rather than by its label name.
 The target value must be potentially non-`Escapable`.
 Additionally, a parameter used as a target must either be an `inout` parameter or `self` in a `mutating` method.
 
 The source value of the resulting dependency can vary.
 For a `borrow` or `inout` dependency, the source value will be the named parameter or `self` directly.
 However, if the named parameter or `self` is non-`Escapable`, then that value will itself have an existing lifetime dependency, and a `copy` dependency will copy the source of that existing dependency.
+As with the target, a parameter is referenced by its "internal" binding name rather than by its label name.
 
 ### Dependency semantics by example
 
@@ -827,11 +820,13 @@ A scoped dependency `@lifetime(inout x)` indicates that the target's lifetime is
 A copied dependency `@lifetime(copy x)` indicates that the target copies its lifetime constraint from value of `x` when the callee *begins* execution.
 As the target of a dependency, `@lifetime(x: <dependency>)` indicates the lifetime constraint added to the value of `x` after the callee *ends* execution.
 
-By composition, an `inout` parameter could appear as both the source and target of a dependency, though it is not useful:
+By composition, an `inout` parameter could appear as both the source and target of a dependency, though the behavior is not useful in either case:
 
 - `@lifetime(x: inout x)` states that the value of `x` on return from the callee is dependent on exclusive access to the variable `x`.
     This would have the net effect of making the argument to `x` inaccessible for the rest of its lifetime, since it is exclusively accessed by the value inside of itself.
 - `@lifetime(x: copy x)` states that the value of `x` on return from the callee copies its dependency from the value of `x` when the function began execution, in effect stating that the lifetime dependency does not change.
+
+Therefore, we propose to disallow this.
 
 #### Conditional reassignment creates conjoined dependence
 
@@ -1071,7 +1066,7 @@ use(e) // error: e depends on `a` (even though the original e1 and e2 didn't)
 
 Lifetime dependence in this case is not neatly tied to stored properties as in the previous example.
 The interesting lifetimes in the case of a `Span` with non-`Escapable` elements are the lifetime of the memory being referenced, as well as the lifetime constraint on the referenced elements.
-We could declare these as abstract lifetime members of `Span`, and allow those member to be referenced in lifetime dependency declarations:
+We could declare these as abstract lifetime members of `Span`, and allow those members to be referenced in lifetime dependency declarations:
 
 ```swift
 @lifetimes(element: Element, memory)
@@ -1108,6 +1103,13 @@ struct C: ~Escapable {}
 @lifetime(.0: borrow a, .1: copy b)
 func f(a: A, b: B) -> (C, B)
 ```
+
+### First-class nonescaping functions
+
+This proposal does not by itself affect how function types work in Swift,
+whether escapable or not.
+However, nonescaping functions are currently less than first-class, since they can only appear as parameters to other functions, cannot be used as generic type arguments, and their values can only be used in limited circumstances.
+Since the `Escapable` protocol and lifetime dependencies introduce lifetime-constrained values as a general concept in the language, it would make sense to integrate that capability to function types, allowing for nonescaping functions to be modeled as functions whose capture context has one or more lifetime dependencies.
 
 ### Function type syntax
 
