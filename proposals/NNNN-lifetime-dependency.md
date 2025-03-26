@@ -15,9 +15,9 @@ This is deeply related to `~Escapable` types, as introduced in [SE-0446](0446-no
 **Edited** (March 20, 2025):
 
 - Replaced `dependsOn` return type modifier with a declaration-level `@lifetime` attribute.
-Removed dependency inference rules.
+    Removed dependency inference rules.
 - Integrated links to proposals SE-0446 (`Escapable`), SE-0447 (`Span`), SE-0456 (`Span`-producing properties), and SE-0467 (`MutableSpan`) that have undergone review.
-- Added SE-0458 `@unsafe` annotations to the `unsafeLifetime` standard library functions, and added `@unsafe` as a requirement for APIs using `BitwiseCopyable` lifetime dependencies under strict memory safety.
+- Added SE-0458 `@unsafe` annotations to the `_overrideLifetime` standard library functions, and added `@unsafe` as a requirement for APIs using `BitwiseCopyable` lifetime dependencies under strict memory safety.
 
 **Edited** (April 12, 2024): Changed `@dependsOn` to `dependsOn` to match the current implementation.
 
@@ -547,17 +547,17 @@ unsafe storage.withUnsafeBufferPointer { buffer in
 
 ### Standard library extensions
 
-#### `unsafeLifetime` helper functions
+#### `_overrideLifetime` helper functions
 
-The following two helper functions will be added for implementing low-level data types:
+The following helper functions will be added for implementing low-level data types:
 
 ```swift
 /// Replace the current lifetime dependency of `dependent` with a new copied lifetime dependency on `source`.
 ///
 /// Precondition: `dependent` has an independent copy of the dependent state captured by `source`.
 @unsafe @lifetime(copy source)
-func unsafeLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
-  dependent: consuming T, dependsOn source: borrowing U)
+func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
+  dependent: consuming T, copying source: borrowing U)
   -> T { ... }
 
 /// Replace the current lifetime dependency of `dependent` with a new scoped lifetime dependency on `source`.
@@ -565,9 +565,19 @@ func unsafeLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
 /// Precondition: `dependent` depends on state that remains valid until either:
 /// (a) `source` is either destroyed if it is immutable,
 /// or (b) exclusive to `source` access ends if it is a mutable variable.
-@unsafe @lifetime(borrowing source)
-func unsafeLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
-  dependent: consuming T, scoped source: borrowing U)
+@unsafe @lifetime(borrow source)
+func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
+  dependent: consuming T, borrowing source: borrowing U)
+  -> T {...}
+
+/// Replace the current lifetime dependency of `dependent` with a new scoped lifetime dependency on `source`.
+///
+/// Precondition: `dependent` depends on state that remains valid until either:
+/// (a) `source` is either destroyed if it is immutable,
+/// or (b) exclusive to `source` access ends if it is a mutable variable.
+@unsafe @lifetime(inout source)
+func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
+  dependent: consuming T, mutating source: inout U)
   -> T {...}
 ```
 
@@ -578,20 +588,20 @@ extension Span {
   consuming func dropFirst() -> Span<Element> {
     let local = Span(base: self.base + 1, count: self.count - 1)
     // 'local' can persist after 'self' is destroyed.
-    return unsafe unsafeLifetime(dependent: local, dependsOn: self)
+    return unsafe _overrideLifetime(dependent: local, dependsOn: self)
   }
 }
 ```
 
-Since `self.base` is an `Escapable` value, it does not propagate the lifetime dependence of its container. Without the call to `unsafeLifetime`, `local` would be limited to the local scope of the value retrieved from `self.base`, and could not be returned from the method. In this example, `unsafeLifetime` communicates that all of the dependent state from `self` has been *copied* into `local`, and, therefore, `local` can persist after `self` is destroyed.
+Since `self.base` is an `Escapable` value, it does not propagate the lifetime dependence of its container. Without the call to `_overrideLifetime`, `local` would be limited to the local scope of the value retrieved from `self.base`, and could not be returned from the method. In this example, `_overrideLifetime` communicates that all of the dependent state from `self` has been *copied* into `local`, and, therefore, `local` can persist after `self` is destroyed.
 
-`unsafeLifetime` can also be used to construct an immortal value where the compiler cannot prove immortality by passing a `Void` value as the source of the dependence:
+`_overrideLifetime` can also be used to construct an immortal value where the compiler cannot prove immortality by passing a `Void` value as the source of the dependence:
 
 ```swift
 @lifetime(immortal)
 init() {
   self.value = getGlobalConstant() // OK: unchecked dependence.
-  self = unsafe unsafeLifetime(dependent: self, dependsOn: ())
+  self = unsafe _overrideLifetime(dependent: self, dependsOn: ())
 }
 ```
 
@@ -651,11 +661,11 @@ This relationship obeys the following requirements:
 
 * The dependent value must be potentially non-`Escapable`.
 
-* The dependent value's lifetime must not be longer than that of the source value.
+* The dependent value's lifetime must be as long as or shorter than that of the source value.
 
 * The dependent value is treated as an ongoing access to the source value.
-  Following Swift's usual exclusivity rules, the source value may not be mutated during the lifetime of the dependent value;
-  if the access is a mutating access, the source value is further prohibited from being accessed at all during the lifetime of the dependent value.
+    Following Swift's usual exclusivity rules, the source value may not be mutated during the lifetime of the dependent value;
+    if the access is a mutating access, the source value is further prohibited from being accessed at all during the lifetime of the dependent value.
 
 The compiler must issue a diagnostic if any of the above cannot be satisfied.
 
@@ -806,6 +816,23 @@ func reassignWithArgDependence(_ span: inout Span<Int>, _ arg: ContiguousArray<I
 }
 ```
 
+This means that an `inout` parameter of potentially non-`Escapable` type can interact with lifetimes in three ways:
+
+- as the source of a scoped dependency, as in `@lifetime([<target>:] inout x)`
+- as the source of a copied dependency, as in `@lifetime([<target>:] copy x)`
+- as the target of a dependency, as in `@lifetime(x: <dependency>)`
+
+so it is worth restating the behavior here to emphasize the distinctions.
+A scoped dependency `@lifetime(inout x)` indicates that the target's lifetime is constrained by exclusive access to `x`.
+A copied dependency `@lifetime(copy x)` indicates that the target copies its lifetime constraint from value of `x` when the callee *begins* execution.
+As the target of a dependency, `@lifetime(x: <dependency>)` indicates the lifetime constraint added to the value of `x` after the callee *ends* execution.
+
+By composition, an `inout` parameter could appear as both the source and target of a dependency, though it is not useful:
+
+- `@lifetime(x: inout x)` states that the value of `x` on return from the callee is dependent on exclusive access to the variable `x`.
+    This would have the net effect of making the argument to `x` inaccessible for the rest of its lifetime, since it is exclusively accessed by the value inside of itself.
+- `@lifetime(x: copy x)` states that the value of `x` on return from the callee copies its dependency from the value of `x` when the function began execution, in effect stating that the lifetime dependency does not change.
+
 #### Conditional reassignment creates conjoined dependence
 
 `inout` argument dependence behaves like a conditional reassignment. After the call, the variable passed to the `inout` argument has both its original dependence along with a new dependence on the argument that is the source of the argument dependence.
@@ -819,6 +846,24 @@ do {
   parse(span) // ✅ OK: within the lifetime of 'a1' & 'a2'
 }
 parse(span) // 🛑 Error: 'span' escapes the scope of 'a2'
+```
+
+#### Explicit conjoined dependence
+
+A declaration can also express a conjoined dependence explicitly by applying multiple lifetime dependencies to the same target:
+
+```swift
+struct Pair<T: ~Escapable, U: ~Escapable>: ~Escapable {
+    var first: T
+    var second: U
+
+    // A Pair cannot outlive the lifetime of either of its fields.
+    @lifetime(copy first, copy second)
+    init(first: T, second: U) {
+        self.first = first
+        self.second = second
+    }
+}
 ```
 
 #### `Escapable` properties in a non-`Escapable` type
@@ -899,14 +944,14 @@ This poses a few problems:
 
 2. `lifetime(unchecked)` is a blunt tool for opting out of safety. Experience shows that such tools are overused as workarounds for compiler errors without fixing the problem. A safety workaround should more precisely identify the source of unsafety.
 
-`unsafeLifetime` is the proposed tool for disabling dependence checks. Passing `Void` as the dependence source is a reasonable way to convert a nonescaping value to an immortal value:
+`_overrideLifetime` is the proposed tool for disabling dependence checks. Passing `Void` as the dependence source is a reasonable way to convert a nonescaping value to an immortal value:
 
 
 ```swift
 @lifetime(immortal)
 init() dependsOn(immortal) {
   self.value = getGlobalConstant() // OK: unchecked dependence.
-  unsafe self = unsafeLifetime(dependent: self, dependsOn: ())
+  unsafe self = _overrideLifetime(dependent: self, dependsOn: ())
 }
 ```
 
