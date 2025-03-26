@@ -349,7 +349,7 @@ Using a combination of (a) `Task/startSynchronously`, (b) `Actor/assumeIsolated`
 
 ```swift
 func tryRunSynchronouslyOrAsynchronouslyOtherwise<T>(
-  operation: sending @escaping @isolated(any) () async -> Success
+  operation: sending @escaping () async -> Success
 ) -> Task<Success, Failure> {
   guard let actor = operation.isolation else {
     // no specific isolation, just run async
@@ -377,7 +377,7 @@ Or even better we could build the same API with structured concurrency:
 
 ```swift
 func tryRunSynchronouslyOrAsynchronouslyOtherwise<T>(
-  operation: sending @escaping @isolated(any) () async throws -> Success
+  operation: sending @escaping () async throws -> Success
 ) async rethrows -> Success { /* same, but use TaskGroup inside */ }
 ```
 
