@@ -679,14 +679,14 @@ This proposal adds a `@lifetime` attribute that can be applied to function, init
 This modifier declares a lifetime dependency for the specified target.
 If no *lifetime-dependence-target-name* is specified, then the target is the declaration's return value.
 Otherwise, the target is the parameter named by the *lifetime-dependence-target-name*.
-A parameter is referenced by its "internal" binding name rather than by its label name.
+A parameter is referenced by its parameter name (the "internal" name used to refer to the value in the function body) rather than by its argument label.
 The target value must be potentially non-`Escapable`.
 Additionally, a parameter used as a target must either be an `inout` parameter or `self` in a `mutating` method.
 
 The source value of the resulting dependency can vary.
 For a `borrow` or `inout` dependency, the source value will be the named parameter or `self` directly.
 However, if the named parameter or `self` is non-`Escapable`, then that value will itself have an existing lifetime dependency, and a `copy` dependency will copy the source of that existing dependency.
-As with the target, a parameter is referenced by its "internal" binding name rather than by its label name.
+As with the target, a source parameter is referenced by its "internal" parameter name rather than by its argument label.
 
 ### Dependency semantics by example
 
