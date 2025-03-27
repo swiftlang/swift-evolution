@@ -24,7 +24,7 @@ Two new properties will be added, one to `SuspendingClock` and another to `Conti
 ## Detailed design
 
 ```swift
-extension ContinousClock {
+extension ContinuousClock {
     public var systemEpoch: Instant { get }
 }
 
