@@ -44,10 +44,11 @@ async function always switches off of an actor to run.
   - [Changing isolation inference behavior to implicitly capture isolated parameters](#changing-isolation-inference-behavior-to-implicitly-capture-isolated-parameters)
   - [Use `nonisolated` instead of a separate `@concurrent` attribute](#use-nonisolated-instead-of-a-separate-concurrent-attribute)
   - [Alternative syntax choices](#alternative-syntax-choices)
+    - [No explicit spelling for `nonisolated(nonsending)`](#no-explicit-spelling-for-nonisolatednonsending)
     - [Justification for `@concurrent`](#justification-for-concurrent)
     - [`@executor`](#executor)
     - [`@isolated`](#isolated)
-    - [Alternative arugments to `nonisolated`](#alternative-arugments-to-nonisolated)
+    - [`nonisolated` argument spelling](#nonisolated-argument-spelling)
   - [Deprecate `nonisolated`](#deprecate-nonisolated)
   - [Don't introduce a type attribute for `@concurrent`](#dont-introduce-a-type-attribute-for-concurrent)
 - [Revisions](#revisions)
@@ -949,6 +950,39 @@ reasons:
 
 ### Alternative syntax choices
 
+Several different options for the spelling of `nonisolated(nonsending)`
+and `@concurrent` were explored. An earlier iteration of this proposal
+used the same base attribute for both annotations. However, these two
+annotations serve very different purposes. `@concurrent` is the long-term
+right way to move functions and closures off of actors.
+`nonisolated(nonsending)` is necessary for the transition to the new behavior,
+but it's not a syntax that will stick around long term in Swift codebases; the
+ideal end state is that this is expressed via the default behavior for
+(explicitly or implicitly) `nonisolated` async functions.
+
+Note that it is well understood that there is no perfect syntax which will
+explain the semantics without other context such as educational material or
+documentation. This is true for all syntax design decisions.
+
+#### No explicit spelling for `nonisolated(nonsending)`
+
+It's reasonable to question whether `nonisolated(nonsending)` is necessary
+at all given that its only purpose is transitioning to the new behavior
+for async functions. An explicit spelling that has consistent behavior
+independent of upcoming features and language modes is valuable when
+undertaking a transition that changes the meaning of existing code.
+
+An explicit, transitory attribute is valuable because there will be a period of
+time where it is not immediately clear from source what kind of async function
+a programmer is working with. It's necessary to be able to discover that
+information from source, such as by showing an inferred attribute explicitly
+in SourceKit's cursor info request (surfaced by "Quick Help" in Xcode and
+"Hover" in LSP / VSCode). An explicit spelling that has consistent behavior
+independent of language mode is also valuable for code generation tools like
+macros, so that they do not have to consider build settings to determine the
+right code to generate, it's valuable for posting code snippets on the forums
+during the transition period, etc.
+
 #### Justification for `@concurrent`
 
 This proposal was originally pitched using the `@concurrent` syntax, and many
@@ -989,25 +1023,56 @@ executor other than the global executor via task executor preferences.
 
 #### `@isolated`
 
-Another possibility is to use isolation terminology instead of `@execution`
-for the syntax. This direction does not accomplish the goal of having a
-section to have a consistent meaning for `nonisolated` across synchronous and
-async functions. If the attribute were spelled `@isolated(caller)` and
-`@isolated(concurrent)`, presumably that attribute would not work together with
-`nonisolated`; it would instead be an alternative kind of actor isolation.
-`@isolated(concurrent)` also doesn't make much sense because the concurrent
-executor does not provide isolation at all - isolation is only provided by
-actors and tasks.
+An alternative to `nonisolated(nonsending)` is to use the "isolated"
+terminology, such as `@isolated(caller)`. However, this approach has very
+unsatisfying answers for how it interacts with `nonisolated`. There are
+two options:
 
-Having `(nonsending)` argument that is used together with
-`nonisolated` leads to a simpler programming model because after the upcoming
-feature is enabled, programmers will simply write `nonisolated` on an `async`
-function in the same way that `nonisolated` is applied to synchronous
-functions. If we choose a different form of isolation like `@isolated(caller)`,
-programmers have to learn a separate syntax for `async` functions that
-accomplishes the same effect as a `nonisolated` synchronous function.
+1. `@isolated(caller)` must be written together with `nonisolated`, 
 
-#### Alternative arugments to `nonisolated`
+   This approach leads to the verbose and oxymoronic spelling
+   `@isolated(caller) nonisolated`. Though there
+   exists a perfectly reasonable explanation about how `nonisolated` is the
+   static isolation while `@isolated(caller)` is the dynamic isolation, most
+   programmers do not have this deep of an understanding of actor isolation,
+   and they should not have to in order to make basic use of nonisolated async
+   functions.
+2. `@isolated(caller)` implies `nonisolated` and can be written alone as an
+   alternative.
+
+   This direction means that programmers would sometimes write
+   `nonisolated` and sometimes write `@isolated(caller)`, which is not a good
+   end state to be in because programmers have to learn a separate syntax for
+   `async` functions that accomplishes the same effect as a `nonisolated`
+   synchronous function. Or, if we view `@isolated(caller)` as only used for
+   the transition to the new behavior, then the assumption is that some day
+   people will remove `@isolated(caller)` if it is written in source. If
+   `@isolated(caller)` implies `nonisolated`, then the code could change
+   behavior if it's in a context where global or instance actor isolation would
+   otherwise be inferred.
+
+Going in the oppose direction, this proposal could effectively deprecate
+`nonisolated` and allow you to use `@isolated(caller)` everywhere that
+`nonisolated` is currently supported, including synchronous methods, stored
+properties, type declarations, and extensions. This direction was not chosen
+for the following reasons:
+
+1. This would lead to much more code churn than the current proposal. Part of
+   the goal of this proposal is to minimize the change to only what is absolutely
+   necessary to solve the major usability problem with async functions on
+   non-`Sendable` types, because it's painful both to transition code and to
+   re-learn parts of the model that have already been internalized.
+2. `nonisolated` is nicer to write than `@isolated(caller)`
+   or any other alternative attribute + argument syntax.
+
+#### `nonisolated` argument spelling
+
+An argument to `nonisolated` is more compelling than a separate attribute
+to specify that an async function runs on the caller's actor because it
+defines away the problem of whether this annotation implies `nonisolated` when
+written alone.
+
+A few different options for the argument to `nonisolated` were explored.
 
 **`nonisolated(nosend)`**.
 `nonisolated(nosend)` effectively the same as `nonisolated(nonsending)` as
@@ -1025,8 +1090,13 @@ it appears the mean exactly the opposite of what it actually means;
 `nonisolated(caller)` reads "not isolated to the caller".
 
 **`nonisolated(nonconcurrent)`**.
-`nonisolated(nonconcurrent)` is meant to provide an "opposite" spelling
-when compared to `@concurrent`.
+If `@concurrent` is applied to a function, then the function must run
+concurrently with the caller's actor (assuming multiple isolated tasks
+in the program). `nonconcurrent` conveys the inverse; if `nonconcurrent` is
+applied to an async function, then the function must not run concurrently
+with the caller's actor. However, this statement isn't quite true, because the
+implementation of the function can perform work concurrently, though that work
+cannot involve the non-`Sendable` parameter values.
 
 **`nonisolated(static)`**.
 `nonisolated(static)` is meant to convey that a function is only `nonisolated`
@@ -1035,30 +1105,6 @@ However, we have not yet introduced "static" into the language surface to mean
 "at compile time". `static` also has an existing, different meaning;
 `nonisolated static func` would mean something quite different from
 `nonisolated(static) func`, despite having extremely similar spelling.
-
-### Deprecate `nonisolated`
-
-Going in the oppose direction, this proposal could effectively deprecate
-`nonisolated` and allow you to use `@isolated(caller)` everywhere that
-`nonisolated` is currently supported, including synchronous methods, stored
-properties, type declarations, and extensions. This direction was not chosen
-for the following reasons:
-
-1. This would lead to much more code churn than the current proposal. Part of
-   the goal of this proposal is to minimize the change to only what is absolutely
-   necessary to solve the major usability problem with async functions on
-   non-`Sendable` types, because it's painful both to transition code and to
-   re-learn parts of the model that have already been internalized.
-2. `nonisolated` is nicer to write than `@isolated(caller)`
-   or any other alternative attribute + argument syntax.
-
-### Don't introduce a type attribute for `@concurrent`
-
-There are a lot of existing type attributes for concurrency and it's
-unfortunate to introduce another one. However, without `@concurrent` as a type
-attribute, referencing nonisolated async functions unapplied is very restrictive,
-because sendable checking would need to be performed at the point of the
-function reference instead of when the function is called.
 
 ## Revisions
 
