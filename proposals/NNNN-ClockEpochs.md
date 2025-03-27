@@ -36,7 +36,7 @@ extension SuspendingClock {
 These can be used to gather information like for example the uptime of a system, or the active time of a system;
 
 ```swift
-let clock = ContinousClock()
+let clock = ContinuousClock()
 let uptime = clock.now - clock.systemEpoch
 ```
 
