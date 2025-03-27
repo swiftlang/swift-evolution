@@ -1,6 +1,6 @@
 # Clock Epochs
 
-* Proposal: [SE-NNNN](NNNN-ClockEpochs.md)
+* Proposal: [SE-NNNN](NNNN-clock-epochs.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
