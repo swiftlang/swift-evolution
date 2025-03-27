@@ -26,9 +26,8 @@ async function always switches off of an actor to run.
 - [Motivation](#motivation)
 - [Proposed solution](#proposed-solution)
 - [Detailed design](#detailed-design)
-  - [The `@execution` and `@concurrent` attributes](#the-execution-and-concurrent-attributes)
-    - [`@execution(caller)` functions](#executioncaller-functions)
-    - [`@concurrent` functions](#concurrent-functions)
+  - [`nonisolated(nonsending)` functions](#nonisolatednonsending-functions)
+  - [`@concurrent` functions](#concurrent-functions)
   - [Task isolation inheritance](#task-isolation-inheritance)
   - [`#isolation` macro expansion](#isolation-macro-expansion)
   - [Isolation inference for closures](#isolation-inference-for-closures)
@@ -45,8 +44,13 @@ async function always switches off of an actor to run.
   - [Changing isolation inference behavior to implicitly capture isolated parameters](#changing-isolation-inference-behavior-to-implicitly-capture-isolated-parameters)
   - [Use `nonisolated` instead of a separate `@concurrent` attribute](#use-nonisolated-instead-of-a-separate-concurrent-attribute)
   - [Alternative syntax choices](#alternative-syntax-choices)
+    - [No explicit spelling for `nonisolated(nonsending)`](#no-explicit-spelling-for-nonisolatednonsending)
+    - [Justification for `@concurrent`](#justification-for-concurrent)
+    - [`@executor`](#executor)
+    - [`@isolated`](#isolated)
+    - [`nonisolated` argument spelling](#nonisolated-argument-spelling)
   - [Deprecate `nonisolated`](#deprecate-nonisolated)
-  - [Don't introduce a type attribute for `@execution`](#dont-introduce-a-type-attribute-for-execution)
+  - [Don't introduce a type attribute for `@concurrent`](#dont-introduce-a-type-attribute-for-concurrent)
 - [Revisions](#revisions)
 
 ## Motivation
@@ -202,22 +206,35 @@ actor MyActor {
 Changing the default execution semantics of async functions can change the
 behavior of existing code, so the change is gated behind the
 `AsyncCallerExecution` upcoming feature flag. To help stage in the new
-behavior, a new `@execution` attribute can be used to explicitly specify the
-execution semantics of an async function in any language mode. The
-`@concurrent` attribute is an explicit spelling for the behavior of
-async functions in language modes <= Swift 6, and the `@execution(caller)`
-attribute is an explicit spelling for async functions that run on the caller's
-actor.
+behavior, new syntax can be used to explicitly specify the
+execution semantics of an async function in any language mode.
 
-For example:
+A new `nonsending` argument can be written with `nonisolated` to indicate
+that by default, the argument and result values are not sent over an
+isolation boundary when the function is called:
 
 ```swift
 class NotSendable {
-  func performSync() { ... }
-  
-  @execution(caller)
+  nonisolated(nonsending)
   func performAsync() async { ... }
+}
 
+actor MyActor {
+  let x: NotSendable
+
+  func call() async {
+    await x.performAsync() // okay
+  }
+}
+```
+
+The `@concurrent` attribute is an explicit spelling for the behavior of
+async functions in language modes <= Swift 6. `@concurrent` indicates
+that calling the function always switches off of an actor to run, so
+the function will run concurrently with other tasks on the caller's actor:
+
+```swift
+class NotSendable {
   @concurrent
   func alwaysSwitch() async { ... }
 }
@@ -226,77 +243,35 @@ actor MyActor {
   let x: NotSendable
 
   func call() async {
-    x.performSync() // okay
-
-    await x.performAsync() // okay
-
     await x.alwaysSwitch() // error
   }
 }
 ```
 
 `@concurrent` is the current default for nonisolated async
-functions. `@execution(caller)` will become the default for async functions
+functions. `nonisolated(nonsending)` will become the default for async functions
 when the `AsyncCallerExecution` upcoming feature is enabled.
 
 ## Detailed design
 
 The sections below will explicitly use `@concurrent` and
-`@execution(caller)` to demonstrate examples that will behave consistently
+`nonisolated(nonsending)` to demonstrate examples that will behave consistently
 independent of upcoming features or language modes. However, note that the
 end state under the `AsyncCallerExecution` upcoming feature will mean that
-`@execution(caller)` is not necessary to explicitly write, and
+`(nonsending)` is not necessary to explicitly write, and
 `@concurrent` will likely be used sparingly because it has far
 stricter data-race safety requirements.
 
-### The `@execution` and `@concurrent` attributes
+### `nonisolated(nonsending)` functions
 
-`@execution(caller)` and `@concurrent` are both declaration and type attributes
-that specify the execution semantics of an async function. The details of
-each attribute are specified in the following sections.
-
-Only (implicitly or explicitly) `nonisolated` functions can be marked with
-`@execution(caller)` or `@concurrent`; it is an error to use the these attributes with
-an isolation other than `nonisolated`, including global actors, isolated
-parameters, and `@isolated(any)`:
-
-```swift
-actor MyActor {
-  var value = 0
-
-  // error: '@execution(caller)' can only be used with 'nonisolated' methods
-  @execution(caller)
-  func isolatedToSelf() async {
-    value += 1
-  }
-
-  @execution(caller)
-  nonisolated func canRunAnywhere() async {
-    // cannot access 'value' or other actor-isolated state
-  }
-}
-```
-
-`@execution(caller)` and `@concurrent` can be used together with `@Sendable` or
-`sending`.
-
-`@execution(caller)` and `@concurrent` are preserved in the type system so that
-the execution semantics can be distinguished for function vales.
-
-`@execution(caller)` and `@concurrent` cannot be applied to synchronous
-functions. This is an artificial limitation that could later be lifted if use
-cases arise.
-
-#### `@execution(caller)` functions
-
-Async functions annotated with `@execution(caller)` will always run on the
+Async functions annotated with `nonisolated(nonsending)` will always run on the
 caller's actor:
 
 ```swift
 class NotSendable {
   func performSync() { ... }
 
-  @execution(caller)
+  nonisolated(nonsending)
   func performAsync() async { ... }
 }
 
@@ -313,27 +288,29 @@ actor MyActor {
 
 In the above code, the call to `x.performAsync()` continues running on the
 `self` actor instance. The code does not produce a data-race safety error,
-because the `NotSendable` instance `x` does not leave the actor.
+because the `NotSendable` instance `x` does not leave the actor. In other
+words, the arguments are not send across an isolation boundary when calling
+`performAsync` by default.
 
 This behavior is accomplished by implicitly passing an optional actor parameter
 to the async function. The function will run on this actor's executor. See the
 [Executor switching](#executor-switching) section for more details on why the
 actor parameter is necessary.
 
-The type of an `@execution(caller)` function declaration is an
-`@execution(caller)` function type. For example:
+The type of an `nonisolated(nonsending)` function declaration is an
+`nonisolated(nonsending)` function type. For example:
 
 ```swift
 class NotSendable { ... }
 
 @MainActor let global: NotSendable = .init()
 
-@execution(caller)
+nonisolated(nonsending)
 func runOnActor(ns: NotSendable) async {}
 
 @MainActor
 func callSendableClosure() async {
-  // the type of 'closure' is '@Sendable @execution(caller) (NotSendable) -> Void'
+  // the type of 'closure' is '@Sendable nonisolated(nonsending) (NotSendable) -> Void'
   let closure = runOnActor(ns:) 
 
   let ns = NotSendable()
@@ -345,10 +322,10 @@ callSendableClosure()
 ```
 
 In the above code, the calls to `closure` from `callSendableClosure` run on the
-main actor, because `closure` is `@execution(caller)` and `callSendableClosure`
+main actor, because `closure` is `nonisolated(nonsending)` and `callSendableClosure`
 is main actor isolated.
 
-#### `@concurrent` functions
+### `@concurrent` functions
 
 Async functions can be declared to always switch off of an actor to run using
 the `@concurrent` attribute:
@@ -360,12 +337,40 @@ struct S: Sendable {
 }
 ```
 
+Only (implicitly or explicitly) `nonisolated` functions can be marked with
+`@concurrent`; it is an error to use the these attributes with
+an isolation other than `nonisolated`, including global actors, isolated
+parameters, and `@isolated(any)`:
+
+```swift
+actor MyActor {
+  var value = 0
+
+  // error: '@concurrent' can only be used with 'nonisolated' methods
+  @concurrent
+  func isolatedToSelf() async {
+    value += 1
+  }
+
+  @concurrent
+  nonisolated func canRunAnywhere() async {
+    // cannot access 'value' or other actor-isolated state
+  }
+}
+```
+
+`@concurrent` can be used together with `@Sendable` or `sending`.
+
+`@concurrent` cannot be applied to synchronous
+functions. This is an artificial limitation that could later be lifted if use
+cases arise.
+
 The type of an `@concurrent` function declaration is an
 `@concurrent` function type. Details on function conversions are
 covered in a [later section](#function-conversions).
 
 When an `@concurrent` function is called from a context that can
-run on an actor, including `@execution(caller)` functions or actor-isolated
+run on an actor, including `nonisolated(nonsending)` functions or actor-isolated
 functions, sendable checking is performed on the argument and result values.
 Either the argument and result values must have a type that conforms to
 `Sendable`, or the values must be in a disconnected region so they can be sent
@@ -393,7 +398,7 @@ actor MyActor {
 
 Unstructured tasks created in nonisolated functions never run on an actor
 unless explicitly specified. This behavior is consistent for all nonisolated
-functions, including synchronous functions, `@execution(caller)` async
+functions, including synchronous functions, `nonisolated(nonsending)` async
 functions, and `@concurrent` async functions.
 
 For example:
@@ -403,7 +408,7 @@ class NotSendable {
   var value = 0
 }
 
-@execution(caller)
+nonisolated(nonsending)
 func createTask(ns: NotSendable) async {
   Task {
     // This task does not run on the same actor as `createTask`
@@ -444,7 +449,7 @@ struct Program {
 
 This behavior allows async function calls that use `#isolation` as a default
 isolated argument to run on the same actor when called from an
-`@execution(caller)` function. For example, the following code is valid because
+`nonisolated(nonsending)` function. For example, the following code is valid because
 the call to `explicitIsolationInheritance` does not cross an isolation
 boundary:
 
@@ -456,7 +461,7 @@ func explicitIsolationInheritance(
   isolation: isolated (any Actor)? = #isolation
 ) async { ... }
 
-@execution(caller)
+nonisolated(nonsending)
 func printIsolation(ns: NotSendable) async {
   await explicitIsolationInheritance(ns: ns) // okay
 }
@@ -575,29 +580,29 @@ actor MyActor {
 }
 
 func invalidResult(a: MyActor) async -> NotSendable {
-  let grabActorState: @execution(caller) () async -> NotSendable = a.getState // error
+  let grabActorState: nonisolated(nonsending) () async -> NotSendable = a.getState // error
 
   return await grabActorState()
 }
 ```
 
 In the above code, the conversion from the actor-isolated method `getState`
-to a `@execution(caller) nonisolated` function is invalid, because the
+to a `nonisolated(nonsending)` function is invalid, because the
 result type does not conform to `Sendable` and the result value could be
 actor-isolated state. The `nonisolated` function can be called from
 anywhere, which would allow access to actor state from outside the actor.
 
 Not all function conversions cross an isolation boundary, and function
 conversions that don't can safely pass non-`Sendable` arguments and results.
-For example, a `@execution(caller)` function type can always be converted to an
-actor-isolated function type, because the `@execution(caller)` function will
+For example, a `nonisolated(nonsending)` function type can always be converted to an
+actor-isolated function type, because the `nonisolated(nonsending)` function will
 simply run on the actor:
 
 ```swift
 class NotSendable {}
 
-@execution(caller)
-nonisolated func performAsync(_ ns: NotSendable) async { ... }
+nonisolated(nonsending)
+func performAsync(_ ns: NotSendable) async { ... }
 
 @MainActor
 func convert(ns: NotSendable) async {
@@ -613,7 +618,7 @@ which function conversions cross an isolation boundary. Function conversions
 that cross an isolation boundary require `Sendable` argument and result types,
 and the destination function type must be `async`. Note that the function
 conversion rules for synchronous `nonisolated` functions and asynchronous
-`@execution(caller) nonisolated` functions are the same; they are both
+`nonisolated(nonsending)` functions are the same; they are both
 represented under the "Nonisolated" category in the table:
 
 | Old isolation        | New isolation          | Crosses Boundary |
@@ -646,7 +651,7 @@ class NotSendable {
   var value = 0
 }
 
-@execution(caller)
+nonisolated(nonsending)
 func convert(closure: () -> Void) async {
   let ns = NotSendable()
   let disconnectedClosure = {
@@ -668,7 +673,7 @@ Converting a non-`@Sendable` function type to an actor-isolated one is invalid
 if the original function must leave the actor in order to be called:
 
 ```swift
-@execution(caller)
+nonisolated(nonsending)
 func convert(
     fn1: @escaping @concurrent () async -> Void,
 ) async {
@@ -710,8 +715,8 @@ func call(_ closure: () -> NotSendable) -> NotSendable {
 
 ### Region isolation rules
 
-`@execution(caller)` functions have the same region isolation rules as
-synchronous `nonisolated` functions. When calling an `@execution(caller)`
+`nonisolated(nonsending)` functions have the same region isolation rules as
+synchronous `nonisolated` functions. When calling an `nonisolated(nonsending)`
 function, all non-`Sendable` parameter and result values are merged into
 the same region, but they are only merged into the caller's actor region if
 one of those non-`Sendable` values is already in the actor's region.
@@ -721,8 +726,8 @@ For example:
 ```swift
 class NotSendable {}
 
-@execution(caller)
-nonisolated func identity<T>(_ t: T) async -> T {
+nonisolated(nonsending)
+func identity<T>(_ t: T) async -> T {
   return t
 }
 
@@ -741,7 +746,7 @@ parameter, because the non-`Sendable` parameters and results would always be
 merged into the actor's region.
 
 This proposal allows you to access `#isolation` in the implementation of an
-`@execution(caller)` function for the purpose of forwarding it along to a
+`nonisolated(nonsending)` function for the purpose of forwarding it along to a
 method that accepts an `isolated (any Actor)?`. This is still safe, because
 there's no way to access the actor's isolated state via the `Actor` protocol,
 and dynamic casting to a concrete actor type will not result in a value that
@@ -780,7 +785,7 @@ all other async functions switch to the isolated actor's executor.
 }
 ```
 
-`@execution(caller)` functions will switch to the executor of the implicit
+`nonisolated(nonsending)` functions will switch to the executor of the implicit
 actor parameter passed from the caller instead of switching to the generic
 executor:
 
@@ -835,10 +840,10 @@ and `preconditionIsolated` on `Actor` and `MainActor`.
 
 Nonisolated functions imported from Objective-C that match the import-as-async
 heuristic from [SE-0297: Concurrency Interoperability with Objective-C][SE-0297]
-will implicitly be imported as `@execution(caller)`. Objective-C async
+will implicitly be imported as `nonisolated(nonsending)`. Objective-C async
 functions already have bespoke code generation that continues running on
 the caller's actor to match the semantics of the original completion handler
-function, so `@execution(caller)` already better matches the semantics of these
+function, so `nonisolated(nonsending)` already better matches the semantics of these
 imported `async` functions. This change will eliminate many existing data-race
 safety issues that happen when calling an async function on an Objective-C
 class from the main actor. Because the only effect of this change is
@@ -851,7 +856,7 @@ This proposal changes the semantics of nonisolated async functions when the
 upcoming feature flag is enabled. Without the upcoming feature flag, the default
 for nonisolated async functions is `@concurrent`. When the upcoming
 feature flag is enabled, the default for nonisolated async functions changes to
-`@execution(caller)`. This applies to both function declarations and function
+`nonisolated(nonsending)`. This applies to both function declarations and function
 values that are nonisolated (either implicitly or explicitly).
 
 Changing the default execution semantics of nonisolated async functions has
@@ -873,7 +878,7 @@ understand the semantics of a nonisolated async function without understanding
 the build settings of the module you're writing code in.
 
 To make it easy to discover what kind of async function you're working with,
-SourceKit will surface the implicit `@execution(caller)` or `@concurrent`
+SourceKit will surface the implicit `nonisolated(nonsending)` or `@concurrent`
 attribute for IDE inspection features like Quick Help in Xcode and Hover in
 VSCode. To ease the transition to the upcoming feature flag, [migration
 tooling][adoption-tooling] will provide fix-its to preserve behavior by
@@ -913,9 +918,9 @@ can be made inlinable.
 
 ## Implications on adoption
 
-`@execution(caller)` functions must accept an implicit actor parameter. This
-means that adding `@execution(caller)` to a function that is actor-isolated, or
-changing a function from `@concurrent` to `@execution(caller)`, is
+`nonisolated(nonsending)` functions must accept an implicit actor parameter. This
+means that adding `nonisolated(nonsending)` to a function that is actor-isolated, or
+changing a function from `@concurrent` to `nonisolated(nonsending)`, is
 not a resilient change.
 
 ## Alternatives considered
@@ -945,6 +950,41 @@ reasons:
 
 ### Alternative syntax choices
 
+Several different options for the spelling of `nonisolated(nonsending)`
+and `@concurrent` were explored. An earlier iteration of this proposal
+used the same base attribute for both annotations. However, these two
+annotations serve very different purposes. `@concurrent` is the long-term
+right way to move functions and closures off of actors.
+`nonisolated(nonsending)` is necessary for the transition to the new behavior,
+but it's not a syntax that will stick around long term in Swift codebases; the
+ideal end state is that this is expressed via the default behavior for
+(explicitly or implicitly) `nonisolated` async functions.
+
+Note that it is well understood that there is no perfect syntax which will
+explain the semantics without other context such as educational material or
+documentation. This is true for all syntax design decisions.
+
+#### No explicit spelling for `nonisolated(nonsending)`
+
+It's reasonable to question whether `nonisolated(nonsending)` is necessary
+at all given that its only purpose is transitioning to the new behavior
+for async functions. An explicit spelling that has consistent behavior
+independent of upcoming features and language modes is valuable when
+undertaking a transition that changes the meaning of existing code.
+
+An explicit, transitory attribute is valuable because there will be a period of
+time where it is not immediately clear from source what kind of async function
+a programmer is working with. It's necessary to be able to discover that
+information from source, such as by showing an inferred attribute explicitly
+in SourceKit's cursor info request (surfaced by "Quick Help" in Xcode and
+"Hover" in LSP / VSCode). An explicit spelling that has consistent behavior
+independent of language mode is also valuable for code generation tools like
+macros, so that they do not have to consider build settings to determine the
+right code to generate, it's valuable for posting code snippets on the forums
+during the transition period, etc.
+
+#### Justification for `@concurrent`
+
 This proposal was originally pitched using the `@concurrent` syntax, and many
 reviewers surfaced objects about why `@concurrent` may be misleading, such as:
 
@@ -965,6 +1005,8 @@ happen in the process. So, this proposal uses `@concurrent` because out of the
 other alternatives we explored, it best reflects the programmer's intent for
 using the attribute.
 
+#### `@executor`
+
 A previous iteration of this proposal used the syntax `@execution(concurrent)`
 instead of `@concurrent`. The review thread explored several variations of
 this syntax, including `@executor(concurrent)` and `@executor(global)`.
@@ -979,28 +1021,38 @@ requests and because executors are used for other things than isolation.
 For example, an `@executor(global)` function could end up running on some
 executor other than the global executor via task executor preferences.
 
-Another possibility is to use isolation terminology instead of `@execution`
-for the syntax. This direction does not accomplish the goal of having a
-section to have a consistent meaning for `nonisolated` across synchronous and
-async functions. If the attribute were spelled `@isolated(caller)` and
-`@isolated(concurrent)`, presumably that attribute would not work together with
-`nonisolated`; it would instead be an alternative kind of actor isolation.
-`@isolated(concurrent)` also doesn't make much sense because the concurrent
-executor does not provide isolation at all - isolation is only provided by
-actors and tasks.
+#### `@isolated`
 
-Having `@execution(caller)` as an attribute that is used together with
-`nonisolated` leads to a simpler programming model because after the upcoming
-feature is enabled, programmers will simply write `nonisolated` on an `async`
-function in the same way that `nonisolated` is applied to synchronous
-functions. If we choose a different form of isolation like `@isolated(caller)`,
-programmers have to learn a separate syntax for `async` functions that
-accomplishes the same effect as a `nonisolated` synchronous function.
+An alternative to `nonisolated(nonsending)` is to use the "isolated"
+terminology, such as `@isolated(caller)`. However, this approach has very
+unsatisfying answers for how it interacts with `nonisolated`. There are
+two options:
 
-### Deprecate `nonisolated`
+1. `@isolated(caller)` must be written together with `nonisolated`, 
+
+   This approach leads to the verbose and oxymoronic spelling
+   `@isolated(caller) nonisolated`. Though there
+   exists a perfectly reasonable explanation about how `nonisolated` is the
+   static isolation while `@isolated(caller)` is the dynamic isolation, most
+   programmers do not have this deep of an understanding of actor isolation,
+   and they should not have to in order to make basic use of nonisolated async
+   functions.
+2. `@isolated(caller)` implies `nonisolated` and can be written alone as an
+   alternative.
+
+   This direction means that programmers would sometimes write
+   `nonisolated` and sometimes write `@isolated(caller)`, which is not a good
+   end state to be in because programmers have to learn a separate syntax for
+   `async` functions that accomplishes the same effect as a `nonisolated`
+   synchronous function. Or, if we view `@isolated(caller)` as only used for
+   the transition to the new behavior, then the assumption is that some day
+   people will remove `@isolated(caller)` if it is written in source. If
+   `@isolated(caller)` implies `nonisolated`, then the code could change
+   behavior if it's in a context where global or instance actor isolation would
+   otherwise be inferred.
 
 Going in the oppose direction, this proposal could effectively deprecate
-`nonisolated` and allow you to use `@execution(caller)` everywhere that
+`nonisolated` and allow you to use `@isolated(caller)` everywhere that
 `nonisolated` is currently supported, including synchronous methods, stored
 properties, type declarations, and extensions. This direction was not chosen
 for the following reasons:
@@ -1010,26 +1062,60 @@ for the following reasons:
    necessary to solve the major usability problem with async functions on
    non-`Sendable` types, because it's painful both to transition code and to
    re-learn parts of the model that have already been internalized.
-2. `nonisolated` is nicer to write than `@execution(caller)`,
-   `@isolated(caller)`, or any other alternative attribute + argument syntax.
+2. `nonisolated` is nicer to write than `@isolated(caller)`
+   or any other alternative attribute + argument syntax.
 
-### Don't introduce a type attribute for `@execution`
+#### `nonisolated` argument spelling
 
-There are a lot of existing type attributes for concurrency and it's
-unfortunate to introduce another one. However, without `@execution` as a type
-attribute, referencing nonisolated async functions unapplied is very restrictive,
-because sendable checking would need to be performed at the point of the
-function reference instead of when the function is called.
+An argument to `nonisolated` is more compelling than a separate attribute
+to specify that an async function runs on the caller's actor because it
+defines away the problem of whether this annotation implies `nonisolated` when
+written alone.
+
+A few different options for the argument to `nonisolated` were explored.
+
+**`nonisolated(nosend)`**.
+`nonisolated(nosend)` effectively the same as `nonisolated(nonsending)` as
+proposed, but it states that the call itself does not constitute a "send",
+rather than stating that the call is not "sending" its argument and result
+values over an isolation boundary. `nonisolated(nosend)` is shorter, but
+`nonisolated(nonsending)` is more consistent with existing Swift naming
+conventions.
+
+**`nonisolated(caller)`**.
+`nonisolated(caller)` is meant to indicate that the function is statically
+`nonisolated` and dynamically isolated to the caller. However, putting those
+terms together into one `nonisolated(caller)` attribute is misleading, because
+it appears the mean exactly the opposite of what it actually means;
+`nonisolated(caller)` reads "not isolated to the caller".
+
+**`nonisolated(nonconcurrent)`**.
+If `@concurrent` is applied to a function, then the function must run
+concurrently with the caller's actor (assuming multiple isolated tasks
+in the program). `nonconcurrent` conveys the inverse; if `nonconcurrent` is
+applied to an async function, then the function must not run concurrently
+with the caller's actor. However, this statement isn't quite true, because the
+implementation of the function can perform work concurrently, though that work
+cannot involve the non-`Sendable` parameter values.
+
+**`nonisolated(static)`**.
+`nonisolated(static)` is meant to convey that a function is only `nonisolated`
+statically, but it may be dynamically isolated to a specific actor at runtime.
+However, we have not yet introduced "static" into the language surface to mean
+"at compile time". `static` also has an existing, different meaning;
+`nonisolated static func` would mean something quite different from
+`nonisolated(static) func`, despite having extremely similar spelling.
 
 ## Revisions
 
 The proposal was revised with the following changes after the first review:
 
 * Renamed `@execution(concurrent)` back to `@concurrent`.
+* Renamed `@execution(caller)` to `nonisolated(nonsending)`
 * Removed the unconditional warning about nonisolated async functions that
-  don't explicitly specify `@execution(caller)` or `@concurrent`.
+  don't explicitly specify `nonisolated(nonsending)` or `@concurrent`.
 * Removed `noasync` from the `assumeIsolated` API family.
-* Specified the region isolation rules for `@execution(caller)` functions [as
+* Specified the region isolation rules for `nonisolated(nonsending)` functions [as
   discussed in the first review][region-isolation].
 
 The proposal was revised with the following changes after the pitch discussion:
