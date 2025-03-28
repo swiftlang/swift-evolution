@@ -3,7 +3,7 @@
 * Proposal: [SE-0471](0471-SerialExecutor-isIsolated.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status:  **Active Review (March 25...April 8, 2025)
+* Status: **Active Review (March 25...April 8, 2025)**
 * Implementation: https://github.com/swiftlang/swift/pull/79788 & https://github.com/swiftlang/swift/pull/79946
 * Review: [Pitch](https://forums.swift.org/t/pitch-serialexecutor-improved-custom-serialexecutor-isolation-checking/78237/), [Review](https://forums.swift.org/t/se-0471-improved-custom-serialexecutor-isolation-checking-for-concurrency-runtime/78834)
 
