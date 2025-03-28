@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (March 28th...April 9th, 2025)**
 * Implementation: 
-* Review: ([pitch](https://forums.swift.org/t/pitch-suspendingclock-and-continuousclock-epochs/78017))
+* Review: ([pitch](https://forums.swift.org/t/pitch-suspendingclock-and-continuousclock-epochs/78017)) ([review](https://forums.swift.org/t/se-0473-clock-epochs/78923))
 
 ## Introduction
 
