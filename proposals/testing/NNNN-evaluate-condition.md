@@ -4,6 +4,7 @@
 * Authors: [David Catmull](https://github.com/Uncommon)
 * Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
 * Status: **Awaiting review**
+* Bug: [swiftlang/swift-testing#903](https://github.com/swiftlang/swift-testing/issues/903)
 * Implementation: [swiftlang/swift-testing#909](https://github.com/swiftlang/swift-testing/pull/909)
 * Review: ([pitch](https://forums.swift.org/t/pitch-introduce-conditiontrait-evaluate/77242))
 
