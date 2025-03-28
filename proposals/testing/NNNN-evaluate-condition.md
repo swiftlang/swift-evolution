@@ -2,6 +2,7 @@
 
 * Proposal: [SWT-NNNN](NNNN-evaluate-condition.md)
 * Authors: [David Catmull](https://github.com/Uncommon)
+* Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#909](https://github.com/swiftlang/swift-testing/pull/909)
 * Review: ([pitch](https://forums.swift.org/t/pitch-introduce-conditiontrait-evaluate/77242))
