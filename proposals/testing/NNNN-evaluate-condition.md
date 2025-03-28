@@ -37,21 +37,7 @@ extension ConditionTrait {
   ///
   /// The evaluation is performed each time this function is called, and is not
   /// cached.
-  public func evaluate() async throws -> EvaluationResult
-}
-```
-
-`EvaluationResult` is a `typealias` for the tuple already used as the result
-of the callback in `Kind.conditional`:
-
-```swift
-extension ConditionTrait {
-  /// The result of evaluating the condition.
-  ///
-  /// - Parameters:
-  ///   - wasMet: Whether or not the condition was met.
-  ///   - comment: Optionally, a comment describing the result of evaluating the condition.
-  public typealias EvaluationResult = (wasMet: Bool, comment: Comment?)
+  public func evaluate() async throws -> Bool
 }
 ```
 
@@ -75,8 +61,3 @@ This change seems sufficient for third party libraries to make use of
 Exposing `ConditionTrait.Kind` and `.kind` was also considered, but it seemed
 unnecessary to go that far, and it would encourage duplicating the logic that
 already exists in `prepare(for:)`.
-
-In the first draft implementation, the `EvaluationResult` type was an enum that
-only contained the comment in the failure case. It was changed to match the
-existing tuple to allow for potentially including comments for the success case
-without requiring a change to the API.
