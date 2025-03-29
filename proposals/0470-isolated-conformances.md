@@ -443,12 +443,7 @@ The same checking occurs when the type parameter is hidden, for example when dea
 }
 ```
 
-Within the implementation, we ensure that a conformance that could be isolated cannot cross an isolation boundary. This is done by making the a metatype of a generic parameter `T` `Sendable` only when it meets at least one of these two requirements:
-
-* There existing a constraint `T: SendableMetatype`, or
-* There is no constraint `T: P` to a non-marker protocol `P`.
-
-In the first case, the `SendableMetatype` constraint ensures that callers cannot provide isolated conformances to the generic function. In the second case, there are no conformances. Either way, `T.Type` is considered to be `Sendable` when at least one of these conditions holds. When neither holds, as in the following code, the program is ill-formed:
+Within the implementation, we ensure that a conformance that could be isolated cannot cross an isolation boundary. This is done by making the a metatype `T.Type` `Sendable` only when there existing a constraint `T: SendableMetatype`. Therefore, the following program is ill-formed:
 
 ```swift
 protocol Q {
@@ -464,7 +459,7 @@ nonisolated func callQGElsewhere<T: Q>(_: T.Type) {
 
 To correct this function, add a constraint `T: SendableMetatype`, which allows the function to send the metatype (along with its conformances) across isolation domains. As described above, it also prevents the caller from providing an isolated conformance to satisfy the `T: Q` requirement, preventing the data race.
 
-`SendableMetatype` is a new marker protocol that captures the idea that values of the metatype of `T` (i.e., `T.Type`) will cross isolation domains and take conformances with them. It is less restrictive than a `Sendable` requirement, which specifies that *values* of a type can be sent across isolation boundaries. All concrete types (structs, enums, classes, actors) conform to `SendableMetatype` implicitly, so fixing `callQGElsewhere` will not affect any non-generic code:
+`SendableMetatype` is a new marker protocol that captures the idea that values of the metatype of `T` (i.e., `T.Type`) will cross isolation domains and can take conformances with them. It is less restrictive than a `Sendable` requirement, which specifies that *values* of a type can be sent across isolation boundaries. All concrete types (structs, enums, classes, actors) conform to `SendableMetatype` implicitly, so fixing `callQGElsewhere` will not affect any non-generic code:
 
 ```swift
 nonisolated func callQGElsewhere<T: Q & SendableMetatype>(_: T.Type) {
@@ -498,7 +493,7 @@ will continue to work with the stricter model for generic functions in this prop
 
 The proposed change for generic functions does have an impact on source compatibility, where functions like `callQGElsewhere` will be rejected. However, the source break is limited to generic code that:
 
-1. Uses a conformance requirement (`T: P`) of a non-marker protocol `P` in another isolated domain,
+1. Passes the metatype `T.Type` of a generic parameter `T` across isolation boundaries;
 2. Does not have a corresponding constraint `T: Sendable` requirement; and
 3. Is compiled with strict concurrency enabled (either as Swift 6 or with warnings).
 
