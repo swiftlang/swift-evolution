@@ -4,7 +4,7 @@
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: behind experimental feature `ABIAttribute` (refinements in [swiftlang/swift#79466](https://github.com/swiftlang/swift/pull/80383))
+* Implementation: behind experimental feature `ABIAttribute` (refinements in [swiftlang/swift#80383](https://github.com/swiftlang/swift/pull/80383))
 * Review: ([pitch](https://forums.swift.org/t/pitch-controlling-the-abi-of-a-declaration/75123))
 
 ## Introduction
@@ -348,7 +348,7 @@ This argument must *not* include any of the following sub-productions:
 To that end, we amend the following productions in the Swift grammar to make
 code blocks optional:
 
-```text
+```diff
  initializer-declaration → initializer-head generic-parameter-clause?
                            parameter-clause async? throws-clause?
 -                          generic-where-clause? initializer-body
@@ -417,7 +417,7 @@ Roles and counterparts work as follows:
 ### Declaration checking
 
 When you use the `@abi` attribute, Swift validates various aspects of the
-ABI-providing declaration in light of its ABI counterpart. An *aspect* is any
+ABI-providing declaration in light of its API counterpart. An *aspect* is any
 way in which the external appearance of a declaration might vary. Attributes
 and modifiers are aspects, but so are the declaration's name, its result or
 value types, its generic signature (if it has one), its parameter list (if it
@@ -607,7 +607,7 @@ tiny, straightforward expansion of capabilities through a proposal.
 * `@inlinable`, `@inline`, `@backDeployed`, `@usableFromInline`,
   `@_alwaysEmitIntoClient`, `@_transparent`
 * Objective-C opt-in attributes (`@objc`, `@IBAction`, `@IBDesignable`,
-  `@IBInspectable`, @IBOutlet`, `@IBSegueAction`, `@GKInspectable`,
+  `@IBInspectable`, `@IBOutlet`, `@IBSegueAction`, `@GKInspectable`,
   `@NSManaged`, `@nonobjc`)
 * `optional` modifier in `@objc` protocols
 * `@NSCopying`
@@ -754,7 +754,7 @@ tell that the code is safe—it may be useful, either as a workaround or to
 handle extreme edge cases, to be able to turn off `@abi`'s compatibility
 checking:
 
-```
+```swift
 @abi(unchecked, func liveDangerously(_: AnyObject))
 func liveDangerously(_ object: AnyObject?) { ... }
 ```
