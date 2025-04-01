@@ -3,7 +3,7 @@
 * Proposal: [SE-0446](0446-non-escapable.md)
 * Authors: [Andrew Trick](https://github.com/atrick), [Tim Kientzle](https://github.com/tbkka)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Roadmap: [BufferView Language Requirements](https://forums.swift.org/t/roadmap-language-support-for-bufferview)
 * Implementation: **Implemented** in `main` branch
 * Upcoming Feature Flag: `NonescapableTypes`
