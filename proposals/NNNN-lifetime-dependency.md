@@ -548,7 +548,7 @@ The following helper functions will be added for implementing low-level data typ
 /// Precondition: `dependent` has an independent copy of the dependent state captured by `source`.
 @unsafe @lifetime(copy source)
 func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
-  dependent: consuming T, copying source: borrowing U)
+  _ dependent: consuming T, copying source: borrowing U)
   -> T { ... }
 
 /// Replace the current lifetime dependency of `dependent` with a new scoped lifetime dependency on `source`.
@@ -558,7 +558,7 @@ func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
 /// or (b) exclusive to `source` access ends if it is a mutable variable.
 @unsafe @lifetime(borrow source)
 func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
-  dependent: consuming T, borrowing source: borrowing U)
+  _ dependent: consuming T, borrowing source: borrowing U)
   -> T {...}
 
 /// Replace the current lifetime dependency of `dependent` with a new scoped lifetime dependency on `source`.
@@ -568,7 +568,7 @@ func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
 /// or (b) exclusive to `source` access ends if it is a mutable variable.
 @unsafe @lifetime(inout source)
 func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
-  dependent: consuming T, mutating source: inout U)
+  _ dependent: consuming T, mutating source: inout U)
   -> T {...}
 ```
 
@@ -579,7 +579,7 @@ extension Span {
   consuming func dropFirst() -> Span<Element> {
     let local = Span(base: self.base + 1, count: self.count - 1)
     // 'local' can persist after 'self' is destroyed.
-    return unsafe _overrideLifetime(dependent: local, dependsOn: self)
+    return unsafe _overrideLifetime(local, copying: self)
   }
 }
 ```
@@ -592,7 +592,7 @@ Since `self.base` is an `Escapable` value, it does not propagate the lifetime de
 @lifetime(immortal)
 init() {
   self.value = getGlobalConstant() // OK: unchecked dependence.
-  self = unsafe _overrideLifetime(dependent: self, dependsOn: ())
+  self = unsafe _overrideLifetime(self, copying: ())
 }
 ```
 
@@ -946,7 +946,7 @@ This poses a few problems:
 @lifetime(immortal)
 init() dependsOn(immortal) {
   self.value = getGlobalConstant() // OK: unchecked dependence.
-  unsafe self = _overrideLifetime(dependent: self, dependsOn: ())
+  unsafe self = _overrideLifetime(self, copying: ())
 }
 ```
 
