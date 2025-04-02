@@ -232,7 +232,7 @@ terminate the sequence when the object is deinitialized.
 
 There are a number of scenarios of iteration that can occur. These can range from production rate to iteration rate differentials to isolation differentials to concurrent iterations. Enumerating all possible combinations is of course not possible but the following explanations should illustrate some key usages. `Observed` does not make unsafe code somehow safe - the concepts of isolation protection or exclusive access are expected to be brought to the table by the types involved. It does however require the enforcements via Swift Concurrency particularly around the marking of the types and closures being required to be `Sendable`. The following examples will only illustrate well behaved types and avoid fully unsafe behavior that would lead to crashes because the types being used are circumventing that language safety.
 
-The most trivial case is where a single produce and single consumer are active. In this case they both are isolated to the same isolation domain. For ease of reading; this example is limited to the `@MainActor` but could just as accurately be repreasented in some other actor ioslation.
+The most trivial case is where a single produce and single consumer are active. In this case they both are isolated to the same isolation domain. For ease of reading; this example is limited to the `@MainActor` but could just as accurately be represented in some other actor isolation.
 
 ```swift
 @MainActor
@@ -276,7 +276,7 @@ The result of the observation will print the following output.
 4 4
 ```
 
-The values are by the virtue of the suspension at `note #1` are all emitted, the first name and last name are conjoined because they are both mutated before the suspension. The type `Person` does not need t obe `Sendable` because `note #2` is implicitly picking up the `@MainActor` isolation of the enclosing isolation context. That isolation means that the person is always safe to access in that scope.
+The values are by the virtue of the suspension at `note #1` are all emitted, the first name and last name are conjoined because they are both mutated before the suspension. The type `Person` does not need to be `Sendable` because `note #2` is implicitly picking up the `@MainActor` isolation of the enclosing isolation context. That isolation means that the person is always safe to access in that scope.
 
 Next is the case where the mutation of the properties out-paces the iteration. Again the example is isolated to the same domain.
 
@@ -324,7 +324,7 @@ The result of the observation may print the following output, but the primary pr
 
 This case dropped the last value of the iteration because the accumulated differential exceeded the production; however the potentially confusing part here is that the sleep in the iterate competes with the scheduling in the emitter. This becomes clearer of a relationship when the boundaries of isolation are crossed.
 
-Observed can be used across boundaries of concurrency. This is where the iteration is done on a different isolation than the mutations. The types however are accessed always in the isolation that the creation of the Observed closure is executed. This means that if the `Observed` instance is created on the main actor then the subseqent calls to the closure will be done on the main actor.
+Observed can be used across boundaries of concurrency. This is where the iteration is done on a different isolation than the mutations. The types however are accessed always in the isolation that the creation of the Observed closure is executed. This means that if the `Observed` instance is created on the main actor then the subsequent calls to the closure will be done on the main actor.
 
 ```swift
 @globalActor
