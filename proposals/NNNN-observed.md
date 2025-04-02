@@ -228,6 +228,213 @@ This lets the `Observed` async sequence compose a value that represents a
 lifetime bound emission. That the subject is not strongly referenced and can
 terminate the sequence when the object is deinitialized.
 
+## Behavioral Notes
+
+There are a number of scenarios of iteration that can occur. These can range from production rate to iteration rate differentials to isolation differentials to concurrent iterations. Enumerating all possible combinations is of course not possible but the following explanations should illustrate some key usages. `Observed` does not make unsafe code somehow safe - the concepts of isolation protection or exclusive access are expected to be brought to the table by the types involved. It does however require the enforcements via Swift Concurrency particularly around the marking of the types and closures being required to be `Sendable`. The following examples will only illustrate well behaved types and avoid fully unsafe behavior that would lead to crashes because the types being used are circumventing that language safety.
+
+The most trivial case is where a single produce and single consumer are active. In this case they both are isolated to the same isolation domain. For ease of reading; this example is limited to the `@MainActor` but could just as accurately be repreasented in some other actor ioslation.
+
+```swift
+@MainActor
+func iterate(_ names: Observed<String, Never>) async {
+  for await name in names {
+    print(name)
+  }
+}
+
+@MainActor
+func example() async throws {
+  let person = Person(firstName: "", lastName: "")
+
+  // note #2
+  let names = Observed {
+    person.name
+  }
+
+  Task {
+    await iterate(names)
+  }
+  
+  for i in 0..<5 {
+    person.firstName = "\(i)"
+    person.lastName = "\(i)"
+    try await Task.sleep(for: .seconds(0.1)) // note #1
+  }
+}
+
+try await example()
+
+```
+
+The result of the observation will print the following output.
+
+```
+0 0
+1 1
+2 2
+3 3
+4 4
+```
+
+The values are by the virtue of the suspension at `note #1` are all emitted, the first name and last name are conjoined because they are both mutated before the suspension. The type `Person` does not need t obe `Sendable` because `note #2` is implicitly picking up the `@MainActor` isolation of the enclosing isolation context. That isolation means that the person is always safe to access in that scope.
+
+Next is the case where the mutation of the properties out-paces the iteration. Again the example is isolated to the same domain.
+
+```swift
+@MainActor
+func iterate(_ names: Observed<String, Never>) async {
+  for await name in names {
+    print(name)
+    try? await Task.sleep(for: .seconds(0.095))
+  }
+}
+
+@MainActor
+func example() async throws {
+  let person = Person(firstName: "", lastName: "")
+
+  // @MainActor is captured here as the isolation
+  let names = Observed {
+    person.name
+  }
+
+  Task {
+    await iterate(names)
+  }
+  
+  for i in 0..<5 {
+    person.firstName = "\(i)"
+    person.lastName = "\(i)"
+    try await Task.sleep(for: .seconds(0.1))
+  }
+}
+
+try await example()
+
+```
+
+The result of the observation may print the following output, but the primary property is that the values are conjoined to the same consistent view. It is expected that some values may not be represented during the iteration because the transaction has not yet been handled by the iteration. 
+
+```
+0 0
+1 1
+2 2
+3 3
+```
+
+This case dropped the last value of the iteration because the accumulated differential exceeded the production; however the potentially confusing part here is that the sleep in the iterate competes with the scheduling in the emitter. This becomes clearer of a relationship when the boundaries of isolation are crossed.
+
+Observed can be used across boundaries of concurrency. This is where the iteration is done on a different isolation than the mutations. The types however are accessed always in the isolation that the creation of the Observed closure is executed. This means that if the `Observed` instance is created on the main actor then the subseqent calls to the closure will be done on the main actor.
+
+```swift
+@globalActor
+actor ExcplicitlyAnotherActor: GlobalActor {
+  static let shared = ExcplicitlyAnotherActor()
+}
+
+@ExcplicitlyAnotherActor
+func iterate(_ names: Observed<String, Never>) async {
+  for await name in names {
+    print(name)
+  }
+}
+
+@MainActor
+func example() async throws {
+  let person = Person(firstName: "", lastName: "")
+
+  // @MainActor is captured here as the isolation
+  let names = Observed {
+    person.name
+  }
+
+  Task.detached {
+    await iterate(names)
+  }
+  
+  for i in 0..<5 {
+    person.firstName = "\(i)"
+    person.lastName = "\(i)"
+    try await Task.sleep(for: .seconds(0.1))
+  }
+}
+
+```
+
+The values still will be conjoined as expected for their changes, however just like the out-paced case there is a potential in which an alteration may slip between the isolations and only a subsequent value is represented during the iteration. However since is particular example has no lengthy execution (greater than 0.1 seconds) it means that it does not get out paced by production and returns all values.
+
+```
+0 0
+1 1
+2 2
+3 3
+4 4
+```
+
+If the `iterate` function was altered to have a similar `sleep` call that exceeded the production then it would result in similar behavior of the previous producer/consumer rate case.
+
+The next behavioral illustration is the value distribution behaviors; this is where two or more copies of an `Observed` are iterated concurrently.
+
+```swift
+
+@MainActor
+func iterate1(_ names: Observed<String, Never>) async {
+  for await name in names {
+    print("A", name)
+  }
+}
+
+
+@MainActor
+func iterate2(_ names: Observed<String, Never>) async {
+  for await name in names {
+    print("B", name)
+  }
+}
+
+@MainActor
+func example() async throws {
+  let person = Person(firstName: "", lastName: "")
+
+  // @MainActor is captured here as the isolation
+  let names = Observed {
+    person.name
+  }
+
+  Task.detached {
+    await iterate1(names)
+  }
+  
+  Task.detached {
+    await iterate2(names)
+  }
+  
+  for i in 0..<5 {
+    person.firstName = "\(i)"
+    person.lastName = "\(i)"
+    try await Task.sleep(for: .seconds(0.1))
+  }
+}
+
+try await example()
+```
+
+This situation commonly comes up when the asynchronous sequence is stored as a property of a type. By vending these as a shared instance to a singular source of truth it can provide both a consistent view and reduce overhead for design considerations. However when the sequences are then combined with other isolations the previous caveats come in to play.
+
+```
+A 0 0
+B 1 1
+A 1 1
+B 2 2
+A 2 2
+A 3 3
+B 3 3
+A 4 4
+B 4 4
+```
+
+The same rate commentary applies here as before but an additional wrinkle is that the delivery between the A and B sides is non-determinstic (in some cases it can deliver as A then B and other cases B then A).
+
 ## Effect on ABI stability & API resilience
 
 This provides no alteration to existing APIs and is purely additive. However it 
