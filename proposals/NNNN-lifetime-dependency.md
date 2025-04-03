@@ -166,16 +166,16 @@ Let's now consider the `MutableSpan<T>` type from [SE-0467](0467-MutableSpan.md)
 Here's one way such a value might be produced from an owning array:
 
 ```swift
-@lifetime(inout to)
+@lifetime(&to)
 func mutatingSpan<Element>(to: inout ContiguousArray<Element>, count: Int) -> MutatingSpan<Element> {
   ... construct a MutatingSpan ...
 }
 ```
 
 We’ve written this example as a free function rather than as a method to show how this annotation syntax can be used to express constraints that apply to a particular parameter other than `self`.
-The `@lifetime(inout to)` annotation indicates that the returned value depends on the argument named `to`.
+The `@lifetime(&to)` annotation indicates that the returned value depends on the argument named `to`.
 Because `count` is not mentioned in the lifetime dependency, that argument does not participate.
-Instead of `borrow`, this annotation uses the `inout` keyword to indicate that the returned span depends on **mutating** exclusive access to the `to` parameter rather than borrowed access.
+Instead of `borrow`, this annotation uses the `&` sigil to indicate that the returned span depends on **mutating** exclusive access to the `to` parameter rather than borrowed access.
 
 Similar to the previous example:
 
@@ -185,7 +185,7 @@ However, by contrast with the previous `borrow` dependency:
 
 * No other read or write access to the array will be allowed for as long as the returned value exists, since the dependency requires exclusivity.
 
-In both the `inout` and the `borrow` dependency case, the lifetime of the return value is "scoped" to an access into the lifetime of the original value.
+In both the `&` and the `borrow` dependency case, the lifetime of the return value is "scoped" to an access into the lifetime of the original value.
 Because lifetime dependencies can only be attached to non-`Escapable` values, types that contain pointers will generally need to be non-`Escapable` in order to provide safe semantics.
 As a result, **scoped lifetime dependencies** are the only possibility whenever a non-`Escapable` value (such as `Span` or `MutableSpan`) gets its dependency from an `Escapable` value (such as `ContiguousArray` or similar container).
 
@@ -254,7 +254,7 @@ Since there can only be one mutating reference to a mutable value at any time, `
 
 ```
 extension MutableSpan {
-  @lifetime(inout self)
+  @lifetime(&self)
   mutating func extracting(_ range: Range<Int>) -> MutableSpan<Element> {
     ...
   }
@@ -280,13 +280,13 @@ func f(arg: ArgType) -> ResultType
 
 Where
 
-*  *`dependency-kind`* is one of the dependency specifiers **`borrow`**, **`inout`**, or **`copy`**, and
+*  *`dependency-kind`* is one of the dependency specifiers **`borrow`**, **`&`**, or **`copy`**, and
 * `ResultType` must be non-`Escapable`.
 
-If the `ArgType` is `Escapable`, the dependency specifier must be `borrow` or `inout` and return value will have a new scoped dependency on the argument.
+If the `ArgType` is `Escapable`, the dependency specifier must be `borrow` or `&` and return value will have a new scoped dependency on the argument.
 (This is the only possibility, since an `Escapable` value cannot have an existing lifetime dependency, so we cannot copy its lifetime dependency.)
 The specifier must further correspond to the ownership of `arg`: if `arg` has no ownership specified, or is explicitly `borrowing`, then the dependency must be `borrow`.
-On the other hand, if `arg` is `inout`, the dependency must also be `inout`.
+On the other hand, if `arg` is `inout`, the dependency must be `&`.
 (A scoped dependency cannot be formed on a `consuming` parameter.)
 
 A scoped dependency ensures that the argument will not be destroyed while the result is alive.
@@ -297,8 +297,8 @@ Also, access to the argument will be restricted for the lifetime of the result f
 * A `consuming` parameter-convention is illegal, since that ends the lifetime of the argument immediately.
 
 If the `ArgType` is non-`Escapable`, then it can have a pre-existing lifetime dependency.
-In this case, in addition to `borrow` or `inout`, a `copy` dependency-kind is allowed, to indicate that the returned value has the same dependency as the argument.
-`borrow` and `inout` dependency kinds continue to work as for `Escapable` types, and indicate that the returned value has a scoped lifetime dependency based on an access to the argument, making the returned value even further lifetime-constrained than the argument going in.
+In this case, in addition to `borrow` or `&`, a `copy` dependency-kind is allowed, to indicate that the returned value has the same dependency as the argument.
+`borrow` and `&` dependency kinds continue to work as for `Escapable` types, and indicate that the returned value has a scoped lifetime dependency based on an access to the argument, making the returned value even further lifetime-constrained than the argument going in.
 
 **Methods:** Similar rules apply to lifetime dependencies on `self` in methods.
 Given a method of this form:
@@ -309,7 +309,7 @@ Given a method of this form:
 ```
 
 The behavior depends as above on the dependency-kind and whether the defining type is `Escapable`.
-For a method of an `Escapable` type, the dependency-kind must be `borrow self` for a `borrowing` method, or `inout self` for a `mutating` method, and lifetime dependencies are not allowed on `self` in a `consuming` method.
+For a method of an `Escapable` type, the dependency-kind must be `borrow self` for a `borrowing` method, or `&self` for a `mutating` method, and lifetime dependencies are not allowed on `self` in a `consuming` method.
 For a method of a non-`Escapable` type, the dependency-kind may additionally be `copy self`.
 
 **Initializers:** An initializer can also define lifetime dependencies on one or more arguments.
@@ -566,7 +566,7 @@ func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
 /// Precondition: `dependent` depends on state that remains valid until either:
 /// (a) `source` is either destroyed if it is immutable,
 /// or (b) exclusive to `source` access ends if it is a mutable variable.
-@unsafe @lifetime(inout source)
+@unsafe @lifetime(&source)
 func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
   _ dependent: consuming T, mutating source: inout U)
   -> T {...}
@@ -674,7 +674,7 @@ This proposal adds a `@lifetime` attribute that can be applied to function, init
 >
 > *lifetime-dependence-target-name* → **`self`** | *identifier*
 >
-> *dependency-kind* → **copy** | **borrow** | **inout**
+> *dependency-kind* → **copy** | **borrow** | **&**
 
 This modifier declares a lifetime dependency for the specified target.
 If no *lifetime-dependence-target-name* is specified, then the target is the declaration's return value.
@@ -684,7 +684,7 @@ The target value must be potentially non-`Escapable`.
 Additionally, a parameter used as a target must either be an `inout` parameter or `self` in a `mutating` method.
 
 The source value of the resulting dependency can vary.
-For a `borrow` or `inout` dependency, the source value will be the named parameter or `self` directly.
+For a `borrow` or `&` dependency, the source value will be the named parameter or `self` directly.
 However, if the named parameter or `self` is non-`Escapable`, then that value will itself have an existing lifetime dependency, and a `copy` dependency will copy the source of that existing dependency.
 As with the target, a source parameter is referenced by its "internal" parameter name rather than by its argument label.
 
@@ -811,18 +811,18 @@ func reassignWithArgDependence(_ span: inout Span<Int>, _ arg: ContiguousArray<I
 
 This means that an `inout` parameter of potentially non-`Escapable` type can interact with lifetimes in three ways:
 
-- as the source of a scoped dependency, as in `@lifetime([<target>:] inout x)`
+- as the source of a scoped dependency, as in `@lifetime([<target>:] &x)`
 - as the source of a copied dependency, as in `@lifetime([<target>:] copy x)`
 - as the target of a dependency, as in `@lifetime(x: <dependency>)`
 
 so it is worth restating the behavior here to emphasize the distinctions.
-A scoped dependency `@lifetime(inout x)` indicates that the target's lifetime is constrained by exclusive access to `x`.
+A scoped dependency `@lifetime(&x)` indicates that the target's lifetime is constrained by exclusive access to `x`.
 A copied dependency `@lifetime(copy x)` indicates that the target copies its lifetime constraint from value of `x` when the callee *begins* execution.
 As the target of a dependency, `@lifetime(x: <dependency>)` indicates the lifetime constraint added to the value of `x` after the callee *ends* execution.
 
 By composition, an `inout` parameter could appear as both the source and target of a dependency, though the behavior is not useful in either case:
 
-- `@lifetime(x: inout x)` states that the value of `x` on return from the callee is dependent on exclusive access to the variable `x`.
+- `@lifetime(x: &x)` states that the value of `x` on return from the callee is dependent on exclusive access to the variable `x`.
     This would have the net effect of making the argument to `x` inaccessible for the rest of its lifetime, since it is exclusively accessed by the value inside of itself.
 - `@lifetime(x: copy x)` states that the value of `x` on return from the callee copies its dependency from the value of `x` when the function began execution, in effect stating that the lifetime dependency does not change.
 
