@@ -42,7 +42,7 @@ In the last few years, the W3C WebAssembly Working Group considered multiple pro
 [type system](https://github.com/webassembly/interface-types) and
 [module linking](https://github.com/webassembly/module-linking). These were later subsumed into a combined
 [Component Model](https://component-model.bytecodealliance.org) proposal thanks to the ongoing work on
-[WASI Preview 2](https://github.com/WebAssembly/WASI/blob/main/preview2/README.md), which served as playground for
+[WASI Preview 2](https://github.com/WebAssembly/WASI/blob/main/wasip2/README.md), which served as playground for
 the new design.
 
 The Component Model defines these core concepts:
