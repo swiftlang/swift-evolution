@@ -14,7 +14,7 @@ Wasm modules.
 An application compiled to a Wasm module can run on any platform that has a Wasm runtime available. Despite its origins
 in the browser, it is a general-purpose technology that has use cases in client-side and server-side applications and
 services. WebAssembly support in Swift makes the language more appealing in those settings, and also brings it to the
-browser where it previously wasn't available at all. It facilitates a broader adoption of Swift in more environments
+browser where it previously wasn't available at all[^1]. It facilitates a broader adoption of Swift in more environments
 and contexts.
 
 The WebAssembly instruction set has useful properties from a security perspective, as it has no interrupts or
@@ -42,7 +42,7 @@ In the last few years, the W3C WebAssembly Working Group considered multiple pro
 [type system](https://github.com/webassembly/interface-types) and
 [module linking](https://github.com/webassembly/module-linking). These were later subsumed into a combined
 [Component Model](https://component-model.bytecodealliance.org) proposal thanks to the ongoing work on
-[WASI Preview 2](https://github.com/WebAssembly/WASI/blob/main/preview2/README.md), which served as playground for
+[WASI Preview 2](https://github.com/WebAssembly/WASI/blob/main/preview2/README.md), which served as playground for
 the new design.
 
 The Component Model defines these core concepts:
@@ -83,7 +83,7 @@ overhead of new process setup and IPC infrastructure.
 
 ## Goals
 
-As of March 2024 all patches necessary for basic Wasm and WASI Preview 1 support have been merged to the Swift
+As of March 2024 all patches necessary for basic Wasm and WASI Preview 1 support have been merged to the Swift
 toolchain and core libraries. Based on this, we propose a high-level roadmap for WebAssembly support and adoption in the Swift
 ecosystem:
 
@@ -126,13 +126,13 @@ engine is necessary for debugging.
 The current state of debugging tools in the Wasm ecosystem is not as mature as other platforms, but there are two
 main directions:
 
-1. LLDB debugger with Wasm runtime supporting GDB Remote Serial Protocol [1]
-2. Wasm runtime with a built-in debugger [2]
+1. [LLDB debugger with Wasm runtime](https://github.com/llvm/llvm-project/pull/77949) supporting GDB Remote Serial Protocol;
+2. [Wasm runtime with a built-in debugger](https://book.swiftwasm.org/getting-started/debugging.html#enhanced-dwarf-extension-for-swift).
 
 The first approach provides an almost equivalent experience to existing debugging workflows on other platforms. It
 can utilize LLDB's Swift support, remote metadata inspection, and serialized Swift module information. However, since
 Wasm is a Harvard architecture and has no way to allocate executable memory space at runtime, implementing expression
-evaluation with JIT in user space is challenging. In other words, gdb stub in Wasm engines need tricky implementations
+evaluation with JIT in user space is challenging. In other words, GDB stub in Wasm engines need tricky implementations
 or need to extend the GDB Remote Serial Protocol.
 
 The second approach embeds the debugger within the Wasm engine. In scenarios where the Wasm engine is embedded as a
@@ -145,9 +145,6 @@ debuggers in some way.
 
 In summary, debugging in the browser and outside of the browser context are sufficiently different activities to
 require separate implementation approaches.
-
-[1]: https://github.com/llvm/llvm-project/pull/77949
-[2]: https://github.com/ChromeDevTools/devtools-frontend/blob/main/extensions/cxx_debugging
 
 ### Multi-threading and Concurrency
 
@@ -193,6 +190,7 @@ The latter approach cannot fully replace the former, as it is unable to handle d
 runtime, but it is more portable way to distribute programs linked with shared libraries, as it does not require the
 host environment to provide any special capabilities except for Component Model support.
 
-Support for shared libraries in Swift for Wasm is mostly about making sure that Swift programs can be compiled in
+Support for shared libraries in Swift means ensuring that Swift programs can be compiled in
 position-independent code mode and linked with shared libraries by following the corresponding dynamic linking ABI.
 
+[^1]: We aim to address browser-specific use cases in a separate future document.
