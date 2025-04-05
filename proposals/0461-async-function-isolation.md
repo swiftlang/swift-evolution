@@ -8,7 +8,7 @@
 * Implementation: On `main` behind `-enable-experimental-feature NonIsolatedAsyncInheritsIsolationFromContext`
 * Upcoming Feature Flag: `AsyncCallerExecution`
 * Previous Proposal: [SE-0338](0338-clarify-execution-non-actor-async.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-inherit-isolation-by-default-for-async-functions/74862)) ([first review](https://forums.swift.org/t/se-0461-run-nonisolated-async-functions-on-the-callers-actor-by-default/77987)) ([acceptance with focused re-review](https://forums.swift.org/t/accepted-with-modifications-and-focused-re-review-se-0461-run-nonisolated-async-functions-on-the-callers-actor-by-default/78920)) ([second review](https://forums.swift.org/t/focused-re-review-se-0461-run-nonisolated-async-functions-on-the-callers-actor-by-default/78921)) ([second acceptance])(https://forums.swift.org/t/accepted-with-modifications-se-0461-run-nonisolated-async-functions-on-the-caller-s-actor-by-default/79117)
+* Review: ([pitch](https://forums.swift.org/t/pitch-inherit-isolation-by-default-for-async-functions/74862)) ([first review](https://forums.swift.org/t/se-0461-run-nonisolated-async-functions-on-the-callers-actor-by-default/77987)) ([acceptance with focused re-review](https://forums.swift.org/t/accepted-with-modifications-and-focused-re-review-se-0461-run-nonisolated-async-functions-on-the-callers-actor-by-default/78920)) ([second review](https://forums.swift.org/t/focused-re-review-se-0461-run-nonisolated-async-functions-on-the-callers-actor-by-default/78921)) ([second acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0461-run-nonisolated-async-functions-on-the-caller-s-actor-by-default/79117))
 
 ## Introduction
 
