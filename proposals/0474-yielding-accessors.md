@@ -6,7 +6,7 @@
 * Status: **Active Review (Apr 8...22)**
 * Vision: [A Prospective Vision for Accessors in Swift](https://github.com/rjmccall/swift-evolution/blob/accessors-vision/visions/accessors.md)
 * Implementation: Partially available on main behind the frontend flag `-enable-experimental-feature CoroutineAccessors`
-* Review: ([pitch 1](https://forums.swift.org/t/modify-accessors/31872)), ([pitch 2](https://forums.swift.org/t/pitch-modify-and-read-accessors/75627)), ([pitch 3](https://forums.swift.org/t/pitch-3-yielding-coroutine-accessors/77956)), (review)
+* Review: ([pitch 1](https://forums.swift.org/t/modify-accessors/31872)), ([pitch 2](https://forums.swift.org/t/pitch-modify-and-read-accessors/75627)), ([pitch 3](https://forums.swift.org/t/pitch-3-yielding-coroutine-accessors/77956)), ([review](https://forums.swift.org/t/se-0474-yielding-accessors/79170))
 
 ## Introduction
 
