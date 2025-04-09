@@ -179,13 +179,57 @@ execution on the specified isolation. This facilitates subject-like behavior
 such that the values are sent from the isolation for access to the iteration's 
 continuation.
 
+The previous initialization using the closure is a sequence of values of the computed
+properties as a `String`. This has no sense of termination locally within the 
+construction. Making the return value of that closure be a lifted `Optional` suffers 
+the potential conflation of a terminal value and a value that just happens to be nil.
+This means that there is a need for a second construction mechanism that offers a
+way of expressing that the `Observed` sequence iteration will run until finished.
+
+For the example if `Person` then has a new optional field of `homePage` which 
+is an optional URL it then means that the construction can disambiguate
+by returning the iteration as the `next` value or the `finished` value.
+
+```
+@Observable
+final class Person {
+  var firstName: String
+  var lastName: String
+  var homePage: URL?
+
+  var name: String { firstName + " " + lastName } 
+
+  init(firstName: String, lastName: String) { 
+    self.firstName = firstName
+    self.lastName = lastName 
+  }
+}
+
+let hosts = Observed.untilFinished { [weak person] in
+  if let person {
+    .next(person.homePage?.host)
+  } else {
+    .finished
+  }
+}
+```
+
 Putting this together grants a signature as such:
 
 ```swift
 public struct Observed<Element: Sendable, Failure: Error>: AsyncSequence, Sendable {
   public init(
-    @_inheritActorContext _ emit: @escaping @isolated(any) @Sendable () throws(Failure) -> Element?
+    @_inheritActorContext _ emit: @escaping @isolated(any) @Sendable () throws(Failure) -> Element
   )
+
+  public enum Iteration: Sendable {
+    case next(Element)
+    case finished
+  }
+
+  public static func untilFinished(
+    @_inheritActorContext _ emit: @escaping @isolated(any) @Sendable () throws(Failure) -> Iteration
+  ) -> Observed<Element, Failure>
 }
 ```
 
@@ -211,22 +255,6 @@ composition of potentially failable systems. Any thrown error will mean that the
 `Observed` sequence is complete and loops that are currently iterating will 
 terminate with that given failure. Subsequent calls then to `next` on those 
 iterators will return `nil` - indicating that the iteration is complete. 
-Furthermore the `emit` closure also has a nullable result which indicates the 
-sequence is finished without failure.
-
-The nullable result indication can then be easily used with weak references to 
-`@Observable` instances. This likely will be a common pattern of users of the 
-`Observed` async sequence.
-
-```
-let names = Observed { [weak person] in 
-  person?.name
-}
-```
-
-This lets the `Observed` async sequence compose a value that represents a 
-lifetime bound emission. That the subject is not strongly referenced and can
-terminate the sequence when the object is deinitialized.
 
 ## Behavioral Notes
 
@@ -466,6 +494,9 @@ of a consideration than it previously did.
 
 ## Alternatives Considered
 
+Both initialization mechanisms could potentially be collapsed into an optional,
+however that creates potential ambiguity of valid nil elements versus termination.
+
 There have been many iterations of this feature so far but these are some of the 
 highlights of alternative mechanisms that were considered.
 
@@ -491,7 +522,7 @@ comparison to the closure initializer is considerably less easy to compose.
 
 The closure type passed to the initializer does not absolutely require @Sendable in the 
 cases where the initialization occurs in an isolated context, if the initializer had a 
-parameter of an isolation that was non-nullable this could be achived for that restriction
-however up-coming changes to Swift's Concurrency will make this apporach less appealing.
+parameter of an isolation that was non-nullable this could be achieved for that restriction
+however up-coming changes to Swift's Concurrency will make this approach less appealing.
 If this route would be taken it would restrict the potential advanced uses cases where
 the construction would be in an explicitly non-isolated context.
