@@ -3,7 +3,7 @@
 * Proposal: [ST-0009](0009-attachments.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Rachel Brindle](https://github.com/younata)
-* Status: **Accepted**
+* Status: **Accepted with revisions**
 * Bug: [swiftlang/swift-testing#714](https://github.com/swiftlang/swift-testing/issues/714)
 * Implementation: [swiftlang/swift-testing#973](https://github.com/swiftlang/swift-testing/pull/973)
 * Review: ([acceptance](https://forums.swift.org/t/accepted-with-modifications-st-0009-attachments/79193)), ([review](https://forums.swift.org/t/st-0009-attachments/78698)), ([pitch](https://forums.swift.org/t/pitch-attachments/78072))
@@ -259,12 +259,12 @@ that refines `Attachable`:
 /// A type can conform to this protocol if it represents another type that
 /// cannot directly conform to ``Attachable``, such as a non-final class or a
 /// type declared in a third-party module.
-public protocol AttachableWrapper<AttachableValue>: Attachable, ~Copyable {
-  /// The type of the attachable value represented by this type.
-  associatedtype AttachableValue
+public protocol AttachableWrapper<Wrapped>: Attachable, ~Copyable {
+  /// The type of the underlying value represented by this type.
+  associatedtype Wrapped
 
-  /// The attachable value represented by this instance.
-  var attachableValue: AttachableValue { get }
+  /// The underlying value represented by this instance.
+  var wrappedValue: Wrapped { get }
 }
 
 extension Attachment where AttachableValue: AttachableWrapper & ~Copyable {
@@ -278,7 +278,7 @@ extension Attachment where AttachableValue: AttachableWrapper & ~Copyable {
   /// ```swift
   /// let attachableValue = attachment.attachableValue as T
   /// ```
-  public var attachableValue: AttachableValue.AttachableValue { get }
+  public var attachableValue: AttachableValue.Wrapped { get }
 }
 ```
 
