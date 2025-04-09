@@ -3,10 +3,10 @@
 * Proposal: [ST-0009](0009-attachments.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Rachel Brindle](https://github.com/younata)
-* Status: **Active Review (March 21 - April 8, 2025)**
+* Status: **Accepted**
 * Bug: [swiftlang/swift-testing#714](https://github.com/swiftlang/swift-testing/issues/714)
 * Implementation: [swiftlang/swift-testing#973](https://github.com/swiftlang/swift-testing/pull/973)
-* Review: ([review](https://forums.swift.org/t/st-0009-attachments/78698)), ([pitch](https://forums.swift.org/t/pitch-attachments/78072))
+* Review: ([acceptance](https://forums.swift.org/t/accepted-with-modifications-st-0009-attachments/79193)), ([review](https://forums.swift.org/t/st-0009-attachments/78698)), ([pitch](https://forums.swift.org/t/pitch-attachments/78072))
 
 ## Introduction
 
@@ -170,8 +170,8 @@ conform:
 /// A type should conform to this protocol if it can be represented as a
 /// sequence of bytes that would be diagnostically useful if a test fails. If a
 /// type cannot conform directly to this protocol (such as a non-final class or
-/// a type declared in a third-party module), you can create a container type
-/// that conforms to ``AttachableContainer`` to act as a proxy.
+/// a type declared in a third-party module), you can create a wrapper type
+/// that conforms to ``AttachableWrapper`` to act as a proxy.
 public protocol Attachable: ~Copyable {
   /// An estimate of the number of bytes of memory needed to store this value as
   /// an attachment.
@@ -242,12 +242,12 @@ conformances, Foundation must be imported because `JSONEncoder` and
 
 Some types cannot conform directly to `Attachable` because they require
 additional information to encode correctly, or because they are not directly
-`Sendable` or `Copyable`. A second protocol, `AttachableContainer`, is provided
+`Sendable` or `Copyable`. A second protocol, `AttachableWrapper`, is provided
 that refines `Attachable`:
 
 ```swift
 /// A protocol describing a type that can be attached to a test report or
-/// written to disk when a test is run and which contains another value that it
+/// written to disk when a test is run and which wraps another value that it
 /// stands in for.
 ///
 /// To attach an attachable value to a test, pass it to ``Attachment/record(_:named:sourceLocation:)``.
@@ -259,7 +259,7 @@ that refines `Attachable`:
 /// A type can conform to this protocol if it represents another type that
 /// cannot directly conform to ``Attachable``, such as a non-final class or a
 /// type declared in a third-party module.
-public protocol AttachableContainer<AttachableValue>: Attachable, ~Copyable {
+public protocol AttachableWrapper<AttachableValue>: Attachable, ~Copyable {
   /// The type of the attachable value represented by this type.
   associatedtype AttachableValue
 
@@ -267,13 +267,13 @@ public protocol AttachableContainer<AttachableValue>: Attachable, ~Copyable {
   var attachableValue: AttachableValue { get }
 }
 
-extension Attachment where AttachableValue: AttachableContainer & ~Copyable {
+extension Attachment where AttachableValue: AttachableWrapper & ~Copyable {
   /// The value of this attachment.
   ///
-  /// When the attachable value's type conforms to ``AttachableContainer``, the
-  /// value of this property equals the container's underlying attachable value.
+  /// When the attachable value's type conforms to ``AttachableWrapper``, the
+  /// value of this property equals the wrappers's underlying attachable value.
   /// To access the attachable value as an instance of `T` (where `T` conforms
-  /// to ``AttachableContainer``), specify the type explicitly:
+  /// to ``AttachableWrapper``), specify the type explicitly:
   ///
   /// ```swift
   /// let attachableValue = attachment.attachableValue as T
@@ -286,7 +286,7 @@ The cross-import overlay with Foundation also provides the following convenience
 interface for attaching the contents of a file or directory on disk:
 
 ```swift
-extension Attachment where AttachableValue == _AttachableURLContainer {
+extension Attachment where AttachableValue == _AttachableURLWrapper {
   /// Initialize an instance of this type with the contents of the given URL.
   ///
   /// - Parameters:
@@ -307,7 +307,7 @@ extension Attachment where AttachableValue == _AttachableURLContainer {
 }
 ```
 
-`_AttachableURLContainer` is a type that conforms to `AttachableContainer` and
+`_AttachableURLWrapper` is a type that conforms to `AttachableWrapper` and
 encloses the URL and corresponding mapped data. As an implementation detail, it
 is omitted from this proposal for brevity.
 
