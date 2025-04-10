@@ -4,7 +4,7 @@
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted**
-* Implementation: 
+* Implementation: [PR #80409](https://github.com/swiftlang/swift/pull/80409)
 * Review: ([pitch](https://forums.swift.org/t/pitch-suspendingclock-and-continuousclock-epochs/78017)) ([review](https://forums.swift.org/t/se-0473-clock-epochs/78923)) ([acceptance](https://forums.swift.org/t/accepted-se-0473-clock-epochs/79221))
 
 ## Introduction
