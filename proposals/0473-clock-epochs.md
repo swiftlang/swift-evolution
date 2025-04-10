@@ -3,9 +3,9 @@
 * Proposal: [SE-0473](0473-clock-epochs.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (March 28th...April 9th, 2025)**
-* Implementation: 
-* Review: ([pitch](https://forums.swift.org/t/pitch-suspendingclock-and-continuousclock-epochs/78017)) ([review](https://forums.swift.org/t/se-0473-clock-epochs/78923))
+* Status: **Accepted**
+* Implementation: [PR #80409](https://github.com/swiftlang/swift/pull/80409)
+* Review: ([pitch](https://forums.swift.org/t/pitch-suspendingclock-and-continuousclock-epochs/78017)) ([review](https://forums.swift.org/t/se-0473-clock-epochs/78923)) ([acceptance](https://forums.swift.org/t/accepted-se-0473-clock-epochs/79221))
 
 ## Introduction
 
