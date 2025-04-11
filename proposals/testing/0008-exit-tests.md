@@ -274,7 +274,7 @@ extension ExitTest {
   /// - ``failure``
   /// - ``exitCode(_:)``
   /// - ``signal(_:)``
-  public struct Condition: Sendable {
+  public struct Condition: Sendable, CustomStringConvertible {
     /// A condition that matches when a process terminates successfully with exit
     /// code `EXIT_SUCCESS`.
     ///
@@ -351,7 +351,7 @@ by the `StatusAtExit` enumeration:
 #if SWT_NO_PROCESS_SPAWNING
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
-public enum StatusAtExit: Sendable {
+public enum StatusAtExit: Sendable, Equatable, CustomStringConvertible {
   /// The process terminated with the given exit code.
   ///
   /// [...]
