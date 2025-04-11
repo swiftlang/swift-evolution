@@ -6,7 +6,7 @@
 * Status: **Active review (April 11...April 22, 2025)**
 * Bug: [swiftlang/swift-testing#903](https://github.com/swiftlang/swift-testing/issues/903)
 * Implementation: [swiftlang/swift-testing#909](https://github.com/swiftlang/swift-testing/pull/909)
-* Review: ([pitch](https://forums.swift.org/t/pitch-introduce-conditiontrait-evaluate/77242))
+* Review: ([pitch](https://forums.swift.org/t/pitch-introduce-conditiontrait-evaluate/77242)) ([review](https://forums.swift.org/t/st-0010-public-api-to-evaluate-conditiontrait/79232))
 
 ## Introduction
 
