@@ -1,10 +1,11 @@
 # Transactional Observation of Values
 
-* Proposal: [SE-NNNN](NNNN-observed.md)
+* Proposal: [SE-0475](0475-observed.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
-* Review Manager: None
-* Status: Draft
-* Framework: Observation
+* Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
+* Status: **Active Review (Apr 10...24)**
+* Implementation: https://github.com/swiftlang/swift/pull/79817
+* Review: ([pitch](https://forums.swift.org/t/pitch-transactional-observation-of-values/78315))
 
 ## Introduction
 
