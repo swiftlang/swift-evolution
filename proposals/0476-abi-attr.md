@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (April 11 - April 25, 2025)**
 * Implementation: behind experimental feature `ABIAttribute` (refinements in [swiftlang/swift#80383](https://github.com/swiftlang/swift/pull/80383))
-* Review: ([pitch](https://forums.swift.org/t/pitch-controlling-the-abi-of-a-declaration/75123))
+* Review: ([pitch](https://forums.swift.org/t/pitch-controlling-the-abi-of-a-declaration/75123)) ([review](https://forums.swift.org/t/se-0476-controlling-the-abi-of-a-function-initializer-property-or-subscript/79233))
 
 ## Introduction
 
