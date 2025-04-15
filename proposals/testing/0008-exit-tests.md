@@ -6,6 +6,7 @@
 * Status: **Active Review (April 10...April 21, 2025)**
 * Bug: [apple/swift-testing#157](https://github.com/apple/swift-testing/issues/157)
 * Implementation: [apple/swift-testing#324](https://github.com/swiftlang/swift-testing/pull/324)
+* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/fdfc7867df4e35e29b2a24edee34ea4412ec15b0/proposals/testing/0008-exit-tests.md)
 * Review: ([second review](https://forums.swift.org/t/second-review-st-0008-exit-tests/79198)), ([review](https://forums.swift.org/t/st-0008-exit-tests/78692)), ([pitch](https://forums.swift.org/t/pitch-exit-tests/78071))
 
 ## Introduction
@@ -60,7 +61,7 @@ The function from earlier can then be tested using either of the new
 overloads:
 
 ```swift
-await #expect(exitsWith: .failure) {
+await #expect(processExitsWith: .failure) {
   var taco = Taco()
   taco.isDelicious = false
   eat(taco) // should trigger a precondition failure and process termination
@@ -81,7 +82,7 @@ the testing library:
 ///   - expectedExitCondition: The expected exit condition.
 ///   - observedValues: An array of key paths representing results from within
 ///     the exit test that should be observed and returned by this macro. The
-///     ``ExitTest/Result/statusAtExit`` property is always returned.
+///     ``ExitTest/Result/exitStatus`` property is always returned.
 ///   - comment: A comment describing the expectation.
 ///   - sourceLocation: The source location to which recorded expectations and
 ///     issues should be attributed.
@@ -96,7 +97,7 @@ the testing library:
 /// the test passes or fails. For example, to test that calling `fatalError()`
 /// causes a process to terminate:
 ///
-/// await #expect(exitsWith: .failure) {
+/// await #expect(processExitsWith: .failure) {
 ///   fatalError()
 /// }
 ///
@@ -128,7 +129,7 @@ the testing library:
 /// these streams, you can pass its key path in the `observedValues` argument:
 ///
 /// let result = await #expect(
-///   exitsWith: .failure,
+///   processExitsWith: .failure,
 ///   observing: [\.standardOutputContent]
 /// ) {
 ///   print("Goodbye, world!")
@@ -157,7 +158,7 @@ the testing library:
 ///
 /// @Test(arguments: 100 ..< 200)
 /// func sellIceCreamCones(count: Int) async {
-///   await #expect(exitsWith: .failure) {
+///   await #expect(processExitsWith: .failure) {
 ///     precondition(
 ///       count < 10, // ERROR: A C function pointer cannot be formed from a
 ///                   // closure that captures context
@@ -172,7 +173,7 @@ the testing library:
 #endif
 @discardableResult
 @freestanding(expression) public macro expect(
-  exitsWith expectedExitCondition: ExitTest.Condition,
+  processExitsWith expectedExitCondition: ExitTest.Condition,
   observing observedValues: [any PartialKeyPath<ExitTest.Result> & Sendable] = [],
   _ comment: @autoclosure () -> Comment? = nil,
   sourceLocation: SourceLocation = #_sourceLocation,
@@ -188,7 +189,7 @@ the testing library:
 #endif
 @discardableResult
 @freestanding(expression) public macro require(
-  exitsWith expectedExitCondition: ExitTest.Condition,
+  processExitsWith expectedExitCondition: ExitTest.Condition,
   observing observedValues: [any PartialKeyPath<ExitTest.Result> & Sendable] = [],
   _ comment: @autoclosure () -> Comment? = nil,
   sourceLocation: SourceLocation = #_sourceLocation,
@@ -202,7 +203,8 @@ the testing library:
 > support exit tests (generally because it does not support spawning or awaiting
 > child processes), then we define `SWT_NO_EXIT_TESTS` when we build it.
 >
-> `SWT_NO_EXIT_TESTS` is not defined during test target builds.
+> `SWT_NO_EXIT_TESTS` is not defined during test target builds and is presented
+> here for illustrative purposes only.
 
 ### Representing an exit test in Swift
 
@@ -212,9 +214,9 @@ A new type, `ExitTest`, represents an exit test:
 /// A type describing an exit test.
 ///
 /// Instances of this type describe exit tests you create using the
-/// ``expect(exitsWith:observing:_:sourceLocation:performing:)`` or
-/// ``require(exitsWith:observing:_:sourceLocation:performing:)`` macro. You
-/// don't usually need to interact directly with an instance of this type.
+/// ``expect(processExitsWith:observing:_:sourceLocation:performing:)`` or
+/// ``require(processExitsWith:observing:_:sourceLocation:performing:)`` macro.
+/// You don't usually need to interact directly with an instance of this type.
 #if SWT_NO_EXIT_TESTS
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
@@ -260,8 +262,8 @@ extension ExitTest {
   ///
   /// Values of this type are used to describe the conditions under which an
   /// exit test is expected to pass or fail by passing them to
-  /// ``expect(exitsWith:observing:_:sourceLocation:performing:)`` or
-  /// ``require(exitsWith:observing:_:sourceLocation:performing:)``.
+  /// ``expect(processExitsWith:observing:_:sourceLocation:performing:)`` or
+  /// ``require(processExitsWith:observing:_:sourceLocation:performing:)``.
   ///
   /// ## Topics
   ///
@@ -287,7 +289,7 @@ extension ExitTest {
     /// exit code other than `EXIT_SUCCESS` or with any signal.
     public static var failure: Self { get }
 
-    public init(_ statusAtExit: StatusAtExit)
+    public init(_ exitStatus: ExitStatus)
 
     /// Creates a condition that matches when a process terminates with a given
     /// exit code.
@@ -337,7 +339,7 @@ extension ExitTest {
 ### Exit status
 
 The set of possible status codes reported by the child process are represented
-by the `StatusAtExit` enumeration:
+by the `ExitStatus` enumeration:
 
 ```swift
 /// An enumeration describing possible status a process will yield on exit.
@@ -346,12 +348,12 @@ by the `StatusAtExit` enumeration:
 /// ``ExitTest/Condition`` using ``ExitTest/Condition/init(_:)``. That value
 /// can then be used to describe the condition under which an exit test is
 /// expected to pass or fail by passing it to
-/// ``expect(exitsWith:observing:_:sourceLocation:performing:)`` or
-/// ``require(exitsWith:observing:_:sourceLocation:performing:)``.
+/// ``expect(processExitsWith:observing:_:sourceLocation:performing:)`` or
+/// ``require(processExitsWith:observing:_:sourceLocation:performing:)``.
 #if SWT_NO_PROCESS_SPAWNING
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
-public enum StatusAtExit: Sendable, Equatable, CustomStringConvertible {
+public enum ExitStatus: Sendable, Equatable, CustomStringConvertible {
   /// The process terminated with the given exit code.
   ///
   /// [...]
@@ -378,15 +380,15 @@ extension ExitTest {
   /// A type representing the result of an exit test after it has exited and
   /// returned control to the calling test function.
   ///
-  /// Both ``expect(exitsWith:observing:_:sourceLocation:performing:)`` and
-  /// ``require(exitsWith:observing:_:sourceLocation:performing:)`` return
-  /// instances of this type.
+  /// Both ``expect(processExitsWith:observing:_:sourceLocation:performing:)``
+  /// and ``require(processExitsWith:observing:_:sourceLocation:performing:)``
+  /// return instances of this type.
   public struct Result: Sendable {
     /// The status of the process hosting the exit test at the time it exits.
     ///
     /// When the exit test passes, the value of this property is equal to the
     /// exit status reported by the process that hosted the exit test.
-    public var statusAtExit: StatusAtExit { get set }
+    public var exitStatus: ExitStatus { get set }
 
     /// All bytes written to the standard output stream of the exit test before
     /// it exited.
@@ -407,8 +409,8 @@ extension ExitTest {
     ///
     /// To enable gathering output from the standard output stream during an
     /// exit test, pass `\.standardOutputContent` in the `observedValues`
-    /// argument of ``expect(exitsWith:observing:_:sourceLocation:performing:)``
-    /// or ``require(exitsWith:observing:_:sourceLocation:performing:)``.
+    /// argument of ``expect(processExitsWith:observing:_:sourceLocation:performing:)``
+    /// or ``require(processExitsWith:observing:_:sourceLocation:performing:)``.
     ///
     /// If you did not request standard output content when running an exit test,
     /// the value of this property is the empty array.
@@ -429,7 +431,7 @@ These macros can be used within a test function:
 
 ```swift
 @Test func `We only eat delicious tacos`() async {
-  await #expect(exitsWith: .failure) {
+  await #expect(processExitsWith: .failure) {
     var taco = Taco()
     taco.isDelicious = false
     eat(taco)
@@ -444,13 +446,14 @@ exit condition, this is treated as a successful test.
 It is often interesting to examine what is written to the standard output and
 standard error streams by code running in an exit test. Callers can request that
 either or both stream be captured and included in the result of the call to
-`#expect(exitsWith:)` or `#require(exitsWith:)`. Capturing these streams can be
-a memory-intensive operation, so the caller must explicitly opt in:
+`#expect(processExitsWith:)` or `#require(processExitsWith:)`. Capturing these
+streams can be a memory-intensive operation, so the caller must explicitly opt
+in:
 
 ```swift
 @Test func `We only eat delicious tacos`() async throws {
   let result = try await #require(
-    exitsWith: .failure,
+    processExitsWith: .failure,
     observing: [\.standardErrorContent])
   ) { ... }
   let stdout = result.standardOutputContent
@@ -497,12 +500,12 @@ extension ExitTest {
   /// observed and returned to the caller.
   ///
   /// The testing library sets this property to match what was passed by the
-  /// developer to the `#expect(exitsWith:)` or `#require(exitsWith:)` macro.
-  /// If you are implementing an exit test handler, you can check the value of
-  /// this property to determine what information you need to preserve from your
-  /// child process.
+  /// developer to the `#expect(processExitsWith:)` or `#require(processExitsWith:)`
+  /// macro. If you are implementing an exit test handler, you can check the
+  /// value of this property to determine what information you need to preserve
+  /// from your child process.
   ///
-  /// The value of this property always includes ``ExitTest/Result/statusAtExit``
+  /// The value of this property always includes ``ExitTest/Result/exitStatus``
   /// even if the test author does not specify it.
   ///
   /// Within a child process running an exit test, the value of this property is
@@ -512,9 +515,9 @@ extension ExitTest {
   /// Call the exit test in the current process.
   ///
   /// This function invokes the closure originally passed to
-  /// `#expect(exitsWith:)` _in the current process_. That closure is expected
-  /// to terminate the process; if it does not, the testing library will
-  /// terminate the process as if its `main()` function returned naturally.
+  /// `#expect(processExitsWith:)` _in the current process_. That closure is
+  /// expected to terminate the process; if it does not, the testing library
+  /// will terminate the process as if its `main()` function returned naturally.
   public consuming func callAsFunction() async -> Never
 
   /// Find the exit test function at the given source location.
@@ -538,11 +541,11 @@ extension ExitTest {
   ///   the exit test.
   ///
   /// This handler is invoked when an exit test (i.e. a call to either
-  /// ``expect(exitsWith:observing:_:sourceLocation:performing:)`` or
-  /// ``require(exitsWith:observing:_:sourceLocation:performing:)``) is started.
-  /// The handler is responsible for initializing a new child environment
-  /// (typically a child process) and running the exit test identified by
-  /// `sourceLocation` there.
+  /// ``expect(processExitsWith:observing:_:sourceLocation:performing:)`` or
+  /// ``require(processExitsWith:observing:_:sourceLocation:performing:)``) is
+  /// started. The handler is responsible for initializing a new child
+  /// environment (typically a child process) and running the exit test
+  /// identified by `sourceLocation` there.
   ///
   /// In the child environment, you can find the exit test again by calling
   /// ``ExitTest/find(at:)`` and can run it by calling
@@ -587,6 +590,11 @@ Android _does_ have `posix_spawn()` and related API and may be able to use the
 same implementation as Linux. Android support is an ongoing area of research for
 Swift Testing's core team.
 
+> [!NOTE]
+> In the event we can add support for exit tests on a new platform _without_ any
+> changes to the feature's public interface, the Testing Workgroup has agreed
+> that an additional Swift Evolution proposal will not be necessary.
+
 ### Recursive exit tests
 
 The technical constraints preventing recursive exit test invocation can be
@@ -610,9 +618,9 @@ could leverage closures' capture list syntax. Subjectively, capture lists ought
 to be somewhat intuitive for developers in this context:
 
 ```swift
-let (lettuce, cheese, crema) = taco.addToppings()
-await #expect(exitsWith: .failure) { [taco, plant = lettuce, cheese, crema] in
-  try taco.removeToppings(plant, cheese, crema)
+let (lettuce, cheese) = taco.addToppings()
+await #expect(processExitsWith: .failure) { [taco, plant = lettuce, cheese] in
+  try taco.removeToppings(plant, cheese)
 }
 ```
 
@@ -624,7 +632,7 @@ explicit or implicit `main() throws` function: the process terminates abnormally
 and control returns to the test function that is awaiting the exit test:
 
 ```swift
-await #expect(exitsWith: .failure) {
+await #expect(processExitsWith: .failure) {
   throw TacoError.noTacosFound
 }
 ```
@@ -670,6 +678,24 @@ process.arguments = ["build", "--package-path", ...]
 let result = try await #require(process, exitsWith: .success)
 #expect(result.standardOutputContent.contains("Build went well!").utf8)
 ```
+
+### Conformance of ExitStatus to ExpressibleByIntegerLiteral
+
+A contributor on the Swift forums suggested having `ExitStatus` conform to
+[`ExpressibleByIntegerLiteral`](https://developer.apple.com/documentation/swift/expressiblebyintegerliteral)
+and interpreting an integer literal as an exit code, such that a test author
+could write:
+
+```swift
+await #expect(processExitsWith: EX_CANTCREAT) {
+  ...
+}
+```
+
+This would be convenient for test authors who are dealing with a variety of exit
+codes, but is beyond the scope of this proposal. Adding conformance to this
+protocol also requires some care to ensure that signal constants such as
+`SIGABRT` cannot be accidentally interpreted as exit codes.
 
 ## Alternatives considered
 
@@ -729,7 +755,35 @@ let result = try await #require(process, exitsWith: .success)
   sound "right" when the entire expression is read out loud. For example, you
   probably wouldn't say "exits due to success" in English.
 
-- Combining `StatusAtExit` and `ExitTest.Condition` into a single type:
+  A contributor in the Swift forums suggested `#expect(crashes:)`:
+
+  ```swift
+  await #expect(crashes: {
+    ...
+  })
+  ```
+
+  This would preclude the possibility of writing an exit test that is expected
+  to exit successfully—a scenario for which we have real-world use cases. It was
+  also not clear that the word "crash" applied to every failing exit status. For
+  example, a process that exits with the POSIX-defined exit code `EX_TEMPFAIL`
+  likely has not _crashed_; it has just reported that the requested operation
+  has failed.
+
+  This signature would also be subject to label elision when used with trailing
+  closure syntax, resulting in:
+
+  ```swift
+  await #expect {
+    ...
+  }
+  ```
+
+  The lack of any distinguishing label here would unacceptably impact the test's
+  readability as it gives no indication that the code is running out-of-process
+  or is expected to terminate its process.
+
+- Combining `ExitStatus` and `ExitTest.Condition` into a single type:
 
   ```swift
   enum ExitCondition {
@@ -743,35 +797,46 @@ let result = try await #require(process, exitsWith: .success)
   exit conditions complicated and necessitated a `==` operator that did not
   satisfy the requirements of the `Equatable` protocol.
 
-- Naming `StatusAtExit` something else such as:
+- Naming `ExitStatus` something else such as:
 
-  - `ExitStatus`, which could be too easily confusable with exit _codes_ such as
-    `EXIT_SUCCESS`;
+  - `StatusAtExit`, which might avoid some confusion with exit _codes_ but which
+    is not idiomatic Swift;
   - `ProcessStatus`, but we don't say "process" in our API surface elsewhere;
   - `Status`, which is too generic,
   - `ExitReason`, but "status" is a more widely-used term of art for this
     concept; or
-  - `terminationStatus` (which Foundation to represent approximately the same
-    concept), but we don't use "termination" in Swift Testing's API anywhere.
+  - `TerminationStatus` (which Foundation uses to represent approximately the
+    same concept), but we don't use "termination" in Swift Testing's API
+    anywhere.
 
-  I settled on `StatusAtExit` because it was distinct and makes it clear that it
-  represents the status of a process _at exit time_. `ExitStatus` could be
-  interpreted as the status of the exit itself, i.e.:
+  In particular, there was some interest in using "termination" instead of
+  "exit" for consistency with Foundation. Foundation and the upcoming
+  `Subprocess` package use both terms interchangeably, so there is precedent for
+  either. "Exit" is more concise; "terminate" may be read to imply that the
+  process was _forced_ to stop running.
 
-  ```swift
-  enum ExitStatus {
-    case running
-    case suspended
-    case exiting
-    case exited
-  }
-  ```
+- Naming `ExitStatus.exitCode(_:)` just `.code(_:)`. Some contributors on the
+  forums felt that the use of "exit" here was redundant given the proposed
+  `exitsWith:` and `processExitsWith:` labels. However, "code" is potentially
+  ambiguous: does it refer to an exit code, a signal code, the code the test
+  author is writing, etc.?
+  
+  We certainly don't want the exit test interface to be redundant. However,
+  given that:
+  
+  - We _expect_ (no pun intended) most uses of exit tests will check for
+    `.failure` rather than a specific exit code;
+  - "Exit code" is an established term of art; and
+  - `.exitCode(_:)` may appear in other contexts (not just as an argument to
+  `#expect(processExitsWith:)`)
+  
+  We have opted to keep the full case name.
 
 - Using parameter packs to specify observed values and return types:
 
   ```swift
   @freestanding(expression) public macro require<each T>(
-    exitsWith expectedExitCondition: ExitTest.Condition,
+    processExitsWith expectedExitCondition: ExitTest.Condition,
     observing observedValues: (repeat (KeyPath<ExitTest.Result, each T>)) = (),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
@@ -785,17 +850,17 @@ let result = try await #require(process, exitsWith: .success)
 
   ```swift
   let (status, stderr) = try await #expect(
-    exitsWith: .failure,
-    observing: (\.statusAtExit, \.standardErrorContent)
+    processExitsWith: .failure,
+    observing: (\.exitStatus, \.standardErrorContent)
   ) { ... }
   #expect(status == ...)
   #expect(stderr.contains(...))
   ```
 
-  Unfortunately, the `#expect(exitsWith:)` and `#require(exitsWith:)` macros do
-  not have enough information at compile time to correctly infer the types of
-  the key paths passed as `observedValues` above, so we end up with rather
-  obscure errors:
+  Unfortunately, the `#expect(processExitsWith:)` and `#require(processExitsWith:)`
+  macros do not have enough information at compile time to correctly infer the
+  types of the key paths passed as `observedValues` above, so we end up with
+  rather obscure errors:
 
   > 🛑 Cannot convert value of type 'KeyPath<_, _>' to expected argument type
   > 'KeyPath<ExitTest.Result, _>'
@@ -819,6 +884,23 @@ let result = try await #require(process, exitsWith: .success)
 
   Modifying the C or C++ standard library, or modifying the Objective-C runtime,
   would be well beyond the scope of this proposal.
+
+- Skipping test functions containing exit tests on platforms that do not support
+  exit tests.
+
+  This would avoid the need to write `if os(...)`, `@available(...)`, or
+  `if #available(...)` in a cross-platform test function before using exit
+  tests. Swift Testing does not currently support skipping a test that has
+  already started executing, and the implementation of such a feature is beyond
+  the scope of this proposal.
+
+  Even if the library supported this sort of action, it would likely be
+  surprising to test authors that they could write a test that compiles for e.g.
+  iOS but doesn't run and doesn't report any problems.
+
+  Further, in general this is not a pattern that is used in the Swift ecosystem
+  for platform-specific functionality; instead, `#if os(...)` and availability
+  checks are the normal way to mark code as platform-specific.
 
 ## Acknowledgments
 
