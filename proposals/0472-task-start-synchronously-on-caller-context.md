@@ -3,9 +3,9 @@
 * Proposal: [SE-0472](0472-task-start-synchronously-on-caller-context.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Active Review (March 27...April 10, 2025)**
+* Status: **Returned for revision**
 * Implementation: https://github.com/swiftlang/swift/pull/79608
-* Review: ([pitch](https://forums.swift.org/t/pitch-concurrency-starting-tasks-synchronously-from-caller-context/77960/)) ([review](https://forums.swift.org/t/se-0472-starting-tasks-synchronously-from-caller-context/78883))
+* Review: ([pitch](https://forums.swift.org/t/pitch-concurrency-starting-tasks-synchronously-from-caller-context/77960/)) ([review](https://forums.swift.org/t/se-0472-starting-tasks-synchronously-from-caller-context/78883)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0472-starting-tasks-synchronously-from-caller-context/79311))
 
 ## Introduction
 
