@@ -1,9 +1,9 @@
 # Default Value in String Interpolations
 
-* Proposal: [SE-NNNN](NNNN-default-interpolation-values.md)
+* Proposal: [SE-0477](0477-default-interpolation-values.md)
 * Authors: [Nate Cook](https://github.com/natecook1000)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (April 16...29, 2025)**
 * Implementation: [swiftlang/swift#80547](https://github.com/swiftlang/swift/pull/80547)
 * Review: ([pitch](https://forums.swift.org/t/pitch-default-values-for-string-interpolations/69381))
 
