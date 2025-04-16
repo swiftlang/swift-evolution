@@ -5,7 +5,7 @@
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (April 16...29, 2025)**
 * Implementation: [swiftlang/swift#80547](https://github.com/swiftlang/swift/pull/80547)
-* Review: ([pitch](https://forums.swift.org/t/pitch-default-values-for-string-interpolations/69381))
+* Review: ([pitch](https://forums.swift.org/t/pitch-default-values-for-string-interpolations/69381)) ([review](https://forums.swift.org/t/se-0477-default-value-in-string-interpolations/79302))
 
 ## Introduction
 
