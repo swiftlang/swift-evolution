@@ -82,6 +82,16 @@ public var severity: Severity
 public var isFailure: Bool
 ```
 
+Example usage of `severity` and `isFailure:
+```swift
+// ...
+withKnownIssue {
+  // ...
+} matching: { issue in
+    return issue.isFailure || issue.severity > .warning
+}
+```
+
 For more details on `Issue`, refer to the [Issue Documentation](https://developer.apple.com/documentation/testing/issue).
 
 This revision aims to clarify the functionality and usage of the `Severity` enum and `Issue` properties while maintaining consistency with the existing Swift API standards.
