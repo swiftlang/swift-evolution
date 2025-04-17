@@ -1,4 +1,4 @@
-# [DRAFT] Test Issue Warnings
+# Test Issue Severity
 
 * Proposal: [ST-XXXX](XXXX-issue-severity-warning.md)
 * Authors: [Suzy Ratcliff](https://github.com/suzannaratcliff)
@@ -16,8 +16,8 @@ I propose introducing a new API to Swift Testing that allows developers to recor
 Currently, when an issue arises during a test, the only possible outcome is to mark the test as failed. This presents a challenge for users who want a deeper insight into the events occurring within their tests. By introducing a dedicated mechanism to record issues that do not cause test failure, users can more effectively inspect and diagnose problems at runtime and review results afterward. This enhancement provides greater flexibility and clarity in test reporting, ultimately improving the debugging and analysis process.
 
 ## Proposed solution
-We propose introducing a new property on Issues in Swift Testing called `Severity`, that represents if an issue is a warning or an error.
-The default Issue severity will still be error and users can create set the severity when they record an issue.
+We propose introducing a new property on `Issue` in Swift Testing called `Severity`, that represents if an issue is a `warning` or an `error`.
+The default Issue severity will still be `error` and users can set the severity when they record an issue.
 
 Test authors will be able to inspect if the issue is a failing issue and will be able to check the severity.
 
@@ -27,7 +27,7 @@ Test authors will be able to inspect if the issue is a failing issue and will be
 
 We introduce a Severity enum to categorize issues detected during testing. This enum is crucial for distinguishing between different levels of test issues and is defined as follows:
 
-The `Severity` enum is defined as follows:
+The `Severity` enum:
 
 ```swift
   public enum Severity: Sendable {
@@ -54,16 +54,20 @@ Issue.record("My comment", severity: .warning)
 ```
 
 *Issue Type Enhancements*
+
 The Issue type is enhanced with two new properties to better handle and report issues:
 - `severity`: This property allows access to the specific severity level of an issue, enabling more precise handling of test results.
 
 ```swift
+// ...
+
 /// The severity of the issue.
 public var severity: Severity
 
 ```
 - `isFailure`: A boolean property to determine if an issue results in a test failure, thereby helping in result aggregation and reporting.
 ```swift
+// ...
 
   /// Whether or not this issue should cause the test it's associated with to be
   /// considered a failure.
@@ -78,7 +82,7 @@ public var severity: Severity
 public var isFailure: Bool
 ```
 
-For more details, refer to the [Issue Documentation](https://developer.apple.com/documentation/testing/issue).
+For more details on `Issue`, refer to the [Issue Documentation](https://developer.apple.com/documentation/testing/issue).
 
 This revision aims to clarify the functionality and usage of the `Severity` enum and `Issue` properties while maintaining consistency with the existing Swift API standards.
 
