@@ -110,4 +110,4 @@ This revision aims to clarify the functionality and usage of the `Severity` enum
 
 Thanks to Stuart Montgomery for creating and implementing severity in Swift Testing.
 
-Thanks to Brian Croom and Jonathan Grynspan for feedback on warnings along the way.
+Thanks to Joel Middendorf, Dorothy Fu, Brian Croom, and Jonathan Grynspan for feedback on severity along the way.
