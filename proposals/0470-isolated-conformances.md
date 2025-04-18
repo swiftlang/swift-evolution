@@ -3,7 +3,7 @@
 * Proposal: [SE-0470](0470-isolated-conformances.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
 * Implementation: On `main` with the experimental features `IsolatedConformances` and `StrictSendableMetatypes`.
 * Upcoming Feature Flag: `InferIsolatedConformances`
