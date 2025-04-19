@@ -4,6 +4,7 @@
 * Authors: Oguz Yuksel
 * Review Manager: TBD  
 * Status: Draft  
+* Review: ([pitch](https://forums.swift.org/t/pitch-pack-destructuring-pack-splitting/79388))
 
 ## Introduction  
 Swift’s variadic generics story (SE‑0393 “Parameter Packs” and SE‑0408 “Pack Iteration”) unlocks powerful abstractions over arbitrary arities. However, two missing features—recursive decomposition of packs in patterns and split‑expansion of packs at call sites—force library authors into brittle workarounds like fixed‑arity overloads or type erasure. This proposal completes the variadic‑generic toolbox by introducing:
