@@ -7,7 +7,7 @@
 * Review: ([pitch](https://forums.swift.org/t/pitch-pack-destructuring-pack-splitting/79388))
 
 ## Introduction  
-Swift’s variadic generics story (SE‑0393 “Parameter Packs” and SE‑0408 “Pack Iteration”) unlocks powerful abstractions over arbitrary arities. However, two missing features—recursive decomposition of packs in patterns and split‑expansion of packs at call sites—force library authors into brittle workarounds like fixed‑arity overloads or type erasure. This proposal completes the variadic‑generic toolbox by introducing:
+Swift's variadic generics story (SE‑0393 "Parameter Packs" and SE‑0408 "Pack Iteration") unlocks powerful abstractions over arbitrary arities. However, two missing features—recursive decomposition of packs in patterns and split‑expansion of packs at call sites—force library authors into brittle workarounds like fixed‑arity overloads or type erasure. This proposal completes the variadic‑generic toolbox by introducing:
 
 1. **Pack Destructuring in Patterns** – extract `head` and `tail` from a variadic tuple in a `let` or `switch` pattern.  
 2. **Pack Splitting in Calls** – feed a single parameter‐pack expansion into separate head + tail parameters at call sites.
@@ -16,7 +16,7 @@ These additions eliminate boilerplate, remove arbitrary arity limits, and enable
 
 ## Motivation  
 - **No recursive pack decomposition**: We cannot peel off the first element of a parameter pack at compile time.  
-- **Fixed‑arity overloads & limits**: Combine’s `zip` (up to 10 overloads) and SwiftUI’s `TupleView` (10 views max) are symptomatic workarounds.  
+- **Fixed‑arity overloads & limits**: Combine's `zip` (up to 10 overloads) and SwiftUI's `TupleView` (10 views max) are symptomatic workarounds.  
 - **Type erasure** sacrifices compile‑time safety and incurs runtime costs (`[AnyPublisher]`).  
 - **Goal**: Give library authors a first‐class, type‑safe, zero‑overhead mechanism to recurse over arbitrary variadic tuples.
 
@@ -181,4 +181,4 @@ struct Zip<repeat each S>: Publisher {
 2. [SE‑0408: Pack Iteration](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0408-pack-iteration.md) – Enables iteration over packs.  
 
 ## Conclusion  
-By adding pack destructuring in patterns and pack splitting in calls, this proposal fills the last gaps in Swift’s variadic‑generic capabilities. Library authors can now write truly recursive, zero‑overhead abstractions without fixed arity limits or type erasure, while preserving source and ABI compatibility.
+By adding pack destructuring in patterns and pack splitting in calls, this proposal fills the last gaps in Swift's variadic‑generic capabilities. Library authors can now write truly recursive, zero‑overhead abstractions without fixed arity limits or type erasure, while preserving source and ABI compatibility.
