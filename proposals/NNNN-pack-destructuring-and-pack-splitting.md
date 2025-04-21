@@ -156,10 +156,24 @@ struct Zip<repeat each S>: Publisher {
 **Result**: ~250 LOC → ~20 LOC, no fixed arity limit, compile‑time safety preserved.
 
 ## Future Directions  
-- **Multi‑Pack Operations**  
+- **Multi‑Pack Operations (Arbitrary‑arity & label‑free pack parameters)**  
+  Swift's current variadic generics support (SE‑0393) requires each pack-expansion parameter following another variadic parameter to have an external label, to disambiguate argument splitting. A future direction is to relax this requirement and allow multiple label-free packs in the same parameter list, as well as arbitrary numbers of packs, by defining new grammar and matching rules:
+
   ```swift
-  func zip(_ s1: repeat each S1, _ s2: repeat each S2) -> (repeat each (S1, S2))
+  // Hypothetical future: no labels required, N‑pack zip
+  func zip<each S1, each S2>(
+    _ s1: repeat each S1,
+    _ s2: repeat each S2
+  ) -> (repeat each (S1, S2))
   ```
+
+  Usage:
+  ```swift
+  let zipped = zip(1, 2, 3, "a", "b", "c")
+  // ((1, "a"), (2, "b"), (3, "c"))
+  ```
+  This relies on compiler enhancements to infer pack boundaries without explicit labels, enabling truly arbitrary‑arity multi‑pack operations with a single generic definition.
+
 - **Named Pack Elements**  
   ```swift
   let (header: repeat each headers, body: repeat each bodies) = httpResponse
