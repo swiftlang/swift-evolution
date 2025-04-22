@@ -77,7 +77,7 @@ To allow writing `nonisolated` as the underlying type of a typealias, this propo
 public typealias nonisolated = Never
 ```
 
-This typealias serves no purpose beyond specifying default actor isolation.
+This typealias serves no purpose beyond specifying default actor isolation. To specify `nonisolated` using the `DefaultIsolation` typealias, the underlying type must be `nonisolated` exactly; it is invalid to write `private typealias DefaultIsolation = Never`.
 
 ## Source compatibility
 
