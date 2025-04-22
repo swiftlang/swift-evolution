@@ -118,7 +118,8 @@ The most obvious alternative here is the choice of separator. Other options incl
 
 - `[5 * Int]`, using the standard ASCII symbol for multiplication.
 - `[5 ⨉ Int]`, the Unicode n-ary times operator. This looks nice but is impactical as not keyboard-accessible.
-- `[5; Int]` is what Rust uses, but appears to have little association with "times" or "many". Similarly other arbitrary punctuation e.g. `,` or `/` or `#`. 
+- `[5; Int]` is what Rust uses, but appears to have little association with "times" or "many". Similarly other arbitrary punctuation e.g. `,` or `/` or `#`.
+- `[5 of Int]` is more verbose than `x` but could be considered more clear. It has the upside or downside, depending on your preference, of being almost, but not quite, grammatical.
 - `:` is of course ruled out as it is used for dictionary literals.
 
 Note that `*` is an existing operator, and may lead to ambiguity in fuure when expressions can be used to determine the size: `[5 * N * Int]`. `x` is clearer in this case: `[5 * N x Int]`. It also avoids parsing ambiguity, as the grammar does not allow two identifiers in succession. But it would be less clear if `x` also appeared as an identifier: `[5 * x x Int]` (which is not yet permitted but may be in future use cases).
@@ -129,6 +130,7 @@ Another thing to consider is how that separator looks in the fully inferred vers
 [_ x _]
 [_ * _]
 [_; _]
+[_ of _]
 ```
 
 Beyond varying the separator, there may be other dramatically different syntax that moves further from the "like Array sugar, but with a size argument".
