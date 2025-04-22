@@ -114,6 +114,8 @@ For multi-dimensional arrays, `[5 x [5 x Int]]` could be flattened to `[5 x 5 x 
 
 ## Alternatives Considered
 
+### Choice of delimiter
+
 The most obvious alternative here is the choice of separator. Other options include:
 
 - `[5 * Int]`, using the standard ASCII symbol for multiplication.
@@ -124,6 +126,12 @@ The most obvious alternative here is the choice of separator. Other options incl
 
 Note that `*` is an existing operator, and may lead to ambiguity in fuure when expressions can be used to determine the size: `[5 * N * Int]`. `x` is clearer in this case: `[5 * N x Int]`. It also avoids parsing ambiguity, as the grammar does not allow two identifiers in succession. But it would be less clear if `x` also appeared as an identifier: `[5 * x x Int]` (which is not yet permitted but may be in future use cases).
 
+This becomes more important if the future direction of a value equivalent is pursued. `[2 * 2 * 2]` could be interpreted as `[2, 2, 2, 2]`, `[4, 4,]`, or `[8]`.
+
+Since `x` cannot follow another identifier today, `[x x Int]` is unambiguous,[^type] but would clearly be hard to read. This is likely a hypothetical concern rather than a practical one. While `x` is used often in scratch code for a local variable, a more meaningful name is usually preferable, and this would be especially the case if it is found being used for the size of an array literal. In addition, while `i`, `j`, or `n` are often legitimate counters that might be suited to the size of an array, `x` is generally not used for such things.
+
+[^type]: or even `[x x x]`, since `x` can be a type name, albeit one that defies Swift's naming conventions.
+
 Another thing to consider is how that separator looks in the fully inferred version, which tend to start to look a little like ascii diagrams:
 
 ```
@@ -133,8 +141,16 @@ Another thing to consider is how that separator looks in the fully inferred vers
 [_ of _]
 ```
 
-Beyond varying the separator, there may be other dramatically different syntax that moves further from the "like Array sugar, but with a size argument".
+### Order of size and type
 
 The order of size first, then type is determined by the ordering of the unsugared type, and deviating from this for the sugared version is not an option.
 
+### Whitespace around the delimeter
+
 In theory, when using integer literals or `_` the whitespace could be omitted (`[5x_]` is unabiguously `[5 x _]`). However, special casing allowing whitespace omission is not desirable.
+
+### Choice of brackets
+
+`InlineArray` has a lot in common with tuples – especially in sharing "copy on copy" behavior, unlike regular `Array`. So `(5 x Int)` may be an appropriate alternative to the square brackets, echoing this similarity. 
+
+Beyond varying the separator, there may be other dramatically different syntax that moves further from the "like Array sugar, but with a size argument".
