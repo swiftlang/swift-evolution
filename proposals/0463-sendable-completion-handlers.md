@@ -3,9 +3,8 @@
 * Proposal: [SE-0463](0463-sendable-completion-handlers.md)
 * Authors: [Holly Borla](https://github.com/hborla)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
-* Implementation: On `main` behind `-enable-experimental-feature SendableCompletionHandlers`
 * Review: ([pitch](https://forums.swift.org/t/pitch-import-objective-c-completion-handler-parameters-as-sendable/77904)) ([review](https://forums.swift.org/t/se-0463-import-objective-c-completion-handler-parameters-as-sendable/78169)) ([acceptance](https://forums.swift.org/t/accepted-se-0463-import-objective-c-completion-handler-parameters-as-sendable/78489))
 
 ## Introduction
