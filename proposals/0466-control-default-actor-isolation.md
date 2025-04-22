@@ -3,9 +3,8 @@
 * Proposal: [SE-0466](0466-control-default-actor-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
-* Implementation: On `main` behind the `UnspecifiedMeansMainActorIsolated` experimental feature.
 * Review: ([pitch](https://forums.swift.org/t/pitch-control-default-actor-isolation-inference/77482))([review](https://forums.swift.org/t/se-0466-control-default-actor-isolation-inference/78321))([acceptance](https://forums.swift.org/t/accepted-se-0466-control-default-actor-isolation-inference/78926))
 
 ## Introduction
