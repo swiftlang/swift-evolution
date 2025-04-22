@@ -87,7 +87,7 @@ protocol SerialExecutor {
 
 extension SerialExecutor { 
   /// Default implementation for backwards compatibility.
-  func isIsolatingCurrentContext() -> Bool { false }
+  func isIsolatingCurrentContext() -> Bool? { nil }
 }
 ```
 
@@ -100,8 +100,6 @@ In most cases implementing this new API is preferable to implementing `checkIsol
 The newly proposed `isIsolatingCurrentContext()` function participates in the previously established runtime isolation checking flow, and happens _before_ any calls to `checkIsolated()` are attempted. The following diagram explains the order of calls issued by the runtime to dynamically verify an isolation when e.g. `assumeIsolated()` is called:
 
 ![diagram illustrating which method is called when](0471-is-isolated-flow.png)
-
-
 
 There are a lot of conditions here and availability of certain features also impacts this decision flow, so it is best to refer to the diagram for detailed analysis of every situation. However the most typical situation involves executing on a task, which has a potentially different executor than the `expected` one. In such situation the runtime will:
 
@@ -125,15 +123,17 @@ This proposal specifically adds the "if `isIsolatingCurrentContext` is available
 
 If `isIsolatingCurrentContext` is available, effectively it replaces `checkIsolated` because it does offer a sub-par error message experience and is not able to offer a warning if Swift would be asked to check the isolation but not crash upon discovering a violation.
 
-### Detecting the `isIsolatingCurrentContext` checking mode
+### The `isIsolatingCurrentContext` checking mode
 
-The `isIsolatingCurrentContext` method effectively replaces the `checkIsolated` method, because it can answer the same question _if it is implemented_.
+The `isIsolatingCurrentContext` method effectively replaces the `checkIsolated` method, because it can answer the same question if it is implemented.
 
 Some runtimes may not be able to implement a the returning `isIsolatingCurrentContext`, and they are not required to implement the new protocol requirement.
 
-The general guidance about which method to implement is to implement `isIsolatingCurrentContext` whenever possible. This method can be used by the Swift runtime in "warning mode". When running a check in this mode, the `checkIsolated` method cannot and will not be used because it would cause an unexpected crash. A runtime may still want to implement the `checkIsolated` function if it truly is unable to return a true/false response to the isolation question, but can only assert on an illegal state. This function will not be used when the runtime does not expect a potential for a crash.
+The default implementation returns `nil` which is to be interpreted by the runtime as "unknown" or "unable to confirm the isolation", and the runtime may proceeed to call futher isolation checking APIs when this function returned `nil`.
 
-The presence of a non-default implementation of the `isIsolatingCurrentContext` protocol witness is detected by the compiler and the runtime can detect this information in order to determine if the new function should be used for these checks. In other words, if there is an implementation of the requirement available _other than_ the default one provided in the concurrency library, the runtime will attempt to use this method _over_ the `checkIsolated` API. This allows for a smooth migration to the new API, and enables the use of this method in if the runtime would like issue a check that cannot cause a crash.
+The general guidance about which method to implement is to implement `isIsolatingCurrentContext` whenever possible. This method can be used by the Swift runtime in "warning mode". When running a check in this mode, the `checkIsolated` method cannot and will not be used because it would cause an unexpected crash. An executor may still want to implement the `checkIsolated` function if it truly is unable to return a true/false response to the isolation question, but can only assert on an illegal state. The `checkIsolated` function will not be used when the runtime cannot tollerate the potential of crashing while performing an isolation check (e.g. isolated conformance checks, or when issuing warnings).
+
+The runtime will always invoke the `isIsolatingCurrentContext` before making attempts to call `checkIsolated`, and if the prior returns either `true` or `false`, the latter (`checkIsolated`) will not be invoked at all.
 
 ### Compatibility strategy for custom SerialExecutor authors
 
@@ -169,25 +169,7 @@ This would be ideal, however also problematic since changing a protocol requirem
 
 In order to make adoption of this new mode less painful and not cause deprecation warnings to libraries which intend to support multiple versions of Swift, the `SerialExcecutor/checkIsolated` protocol requirement remains _not_ deprecated. It may eventually become deprecated in the future, but right now we have no plans of doing so.
 
-### Offer a tri-state return value rather than `Bool`
-
-We briefly considered offering a tri-state `enum DetectedSerialExecutorIsolation` as the return value of `isIsolatingCurrentContext`, however could not find many realistic use-cases for it.
-
-The return type could be defined as:
-
-```swift
-// not great name
-enum DetectedSerialExecutorIsolation {
-  case isolated // returned when isolated by this executor
-  case notIsolated // returned when definitely NOT isolated by this executor
-  case unknown // when the isIsolatingCurrentContext could not determine if the caller is isolated or not
-}
-```
-
-If we used the `.unknown` as default implementation of the new protocol requirement, this would allow for programatic detection if we called the default implementation, or an user provided implementation which could check a proper isolated/not-isolated state of the executing context.
-
-Technically there may exist new implementations which return the `.unknown` however it would have to be treated defensively as `.notIsolated` in any asserting APIs or other use-cases which rely on this check for runtime correctness. We are uncertain if introducing this tri-state is actually helpful in real situations and therefore the proposal currently proposes the use of a plain `Bool` value. 
-
 ## Changelog
 
+- changed return value of `isIsolatingCurrentContext` from `Bool` to `Bool?`, where the `nil` is to be interpreted as "unknown", and the default implementation of `isIsolatingCurrentContext` now returns `nil`.
 - removed the manual need to signal to the runtime that the specific executor supports the new checking mode. It is now detected by the compiler and runtime, checking for the presence of a non-default implementation of the protocol requirement.
