@@ -88,6 +88,8 @@ This is purely compile-time sugar for the existing type. It is resolved at compi
 
 ## Future Directions
 
+### Repeated value equivalent
+
 Analogous to arrays, there is an equivalent _value_ sugar for literals of a specific size:
 
 ```
@@ -105,6 +107,10 @@ let dynamic: [Int] = [5 x 99]
 ```
 
 This is a much bigger design space, potentially requiring a new expressible-by-literal protocol and a way to map the literal to an initializer. As such, it is left for a future proposal.
+
+### Flattened multi-dimensional arrays
+
+For multi-dimensional arrays, `[5 x [5 x Int]]` could be flattened to `[5 x 5 x Int]` without any additional parsing issues. This could be an alternative considered, but is in future directions as it could also be introduced as sugar for the former case at a later date.
 
 ## Alternatives Considered
 
@@ -126,8 +132,6 @@ Another thing to consider is how that separator looks in the fully inferred vers
 ```
 
 Beyond varying the separator, there may be other dramatically different syntax that moves further from the "like Array sugar, but with a size argument".
-
-For multi-dimensional arrays, `[5 x 5 x Int]` was considered but introduces visual ambiguity without being a radical improvement.
 
 The order of size first, then type is determined by the ordering of the unsugared type, and deviating from this for the sugared version is not an option.
 
