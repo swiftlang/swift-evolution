@@ -8,7 +8,7 @@
 * Implementation: [swiftlang/swift#80572](https://github.com/swiftlang/swift/pull/80572)
 * Experimental Feature Flag: `DefaultIsolationTypealias`
 * Previous Proposal: [SE-0466: Control default actor isolation inference][SE-0466]
-* Review: ([pitch](https://forums.swift.org/t/pitch-a-typealias-for-per-file-default-actor-isolation/79150))
+* Review: ([pitch](https://forums.swift.org/t/pitch-a-typealias-for-per-file-default-actor-isolation/79150))([review](https://forums.swift.org/t/se-0478-default-actor-isolation-typealias/79436))
 
 ## Introduction
 
