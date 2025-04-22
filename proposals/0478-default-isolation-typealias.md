@@ -1,9 +1,9 @@
 # Default actor isolation typealias
 
-* Proposal: [SE-NNNN](NNNN-default-isolation-typealias.md)
+* Proposal: [SE-0478](0478-default-isolation-typealias.md)
 * Authors: [Holly Borla](https://github.com/hborla)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (April 21 ... May 5, 2025)**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Implementation: [swiftlang/swift#80572](https://github.com/swiftlang/swift/pull/80572)
 * Experimental Feature Flag: `DefaultIsolationTypealias`
