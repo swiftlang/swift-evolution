@@ -18,7 +18,7 @@
 
 ## Introduction
 
-Following the introduction of [`Span`][SE-0447] and [`MutableSpan`][SE-0467], this proposal adds a general facility for initialization of exclusively-borrowed memory with the `OutputSpan` and `OutputRawSpan` types.
+Following the introduction of [`Span`][SE-0447] and [`MutableSpan`][SE-0467], this proposal adds a general facility for initialization of exclusively-borrowed memory with the `OutputSpan` and `OutputRawSpan` types. The memory represented by `OutputSpan` consists of a number of initialized elements, followed by uninitialized memory. The operations of `OutputSpan` can change the number of initialized elements in memory, unlike `MutableSpan` which always represents memory that is initialized.
 
 ## Motivation
 
@@ -640,6 +640,14 @@ This proposal is additive and ABI-compatible with existing code.
 
 The additions described in this proposal require a new version of the Swift standard library and runtime.
 
+
+## Alternatives Considered
+
+#### Vending `OutputSpan` as a property
+
+`OutputSpan` changes the number of initialized elements in a container (or collection), and this requires some operation to update the container after the `OutputSpan` is consumed. Let's call that update operation a "cleanup" operation. The cleanup operation needs to be scheduled in some way. We could associate the cleanup with the `deinit` of `OutputSpan`, or the `deinit` of a wrapper of `OutputSpan`. Neither of these seem appealing; the mechanisms would involve an arbitrary closure executed at `deinit` time, or having to write a full wrapper for each type that vends an `OutputSpan`. We could potentially schedule the cleanup operation as part of a coroutine accessor, but these are not productized yet. The pattern established by closure-taking API is well established, and it fits the needs of `OutputSpan` well.
+
+
 ## <a name="directions"></a>Future directions
 
 #### Helpers to initialize memory in an arbitrary order
@@ -648,3 +656,4 @@ Some applications may benefit from the ability to initialize a range of memory i
 
 ## Acknowledgements
 
+Thanks to Karoy Lorentey, Nate Cook and Tony Parker for their feedback.
