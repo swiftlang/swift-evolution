@@ -53,7 +53,7 @@ extension Array {
 }
 ```
 
-We will also extend `String` and `InlineArray` in a similar manner.
+We will also extend `String`, `UnicodeScalarView` and `InlineArray` with similar initializers, and add append-in-place operations where appropriate.
 
 #### `@lifetime` attribute
 
@@ -61,7 +61,7 @@ Some of the API presented here must establish a lifetime relationship between a 
 
 Note: The eventual lifetime annotations proposal may adopt a syntax different than the syntax used here. We expect that the Standard Library will be modified to adopt an updated lifetime dependency syntax as soon as it is finalized.
 
-## Detailed Design
+## <a name="design"></a>Detailed Design
 
 #### OutputSpan
 
@@ -563,17 +563,44 @@ extension Array {
     capacity: Int,
     initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
   ) throws(E)
+  
+  public mutating func append<E: Error>(
+    addingCapacity: Int,
+    initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
+  ) throws(E)
 }
 
 extension String {
   public init<E: Error>(
-    capacity: Int,
+    utf8Capacity: Int,
     initializingUTF8With initializer: (inout OutputSpan<UTF8.CodeUnit>) throws(E) -> Void
   )
 
   public init<E: Error>?(
-    capacity: Int,
+    utf8Capacity: Int,
     initializingValidUTF8With initializer: (inout OutputSpan<UTF8.CodeUnit>) throws(E) -> Void
+  ) throws(E)
+  
+  public mutating func append<E: Error>(
+    addingUTF8Capacity: Int,
+    initializingUTF8With initializer: (inout OUtputSpan<UTF8.CodeUnit>) throws(E) -> Void
+  ) throws(E)
+}
+
+extension UnicodeScalarView {
+  public init<E: Error>(
+    utf8Capacity: Int,
+    initializingUTF8With initializer: (inout OutputSpan<UTF8.CodeUnit>) throws(E) -> Void
+  )
+
+  public init<E: Error>?(
+    utf8Capacity: Int,
+    initializingValidUTF8With initializer: (inout OutputSpan<UTF8.CodeUnit>) throws(E) -> Void
+  ) throws(E)
+  
+  public mutating func append<E: Error>(
+    addingUTF8Capacity: Int,
+    initializingUTF8With initializer: (inout OUtputSpan<UTF8.CodeUnit>) throws(E) -> Void
   ) throws(E)
 }
 
