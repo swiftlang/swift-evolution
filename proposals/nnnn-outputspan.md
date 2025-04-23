@@ -187,9 +187,14 @@ extension OutputSpan {
 }
 ```
 
-A bulk operation to deinitialize all of an `OutputSpan`'s memory is also available:
+Bulk operations to deinitialize some or all of an `OutputSpan`'s memory is also available:
 ```swift
 extension OutputSpan where Element: ~Copyable {
+  /// Remove the last N elements, returning the memory they occupy
+  /// to the uninitialized state.
+  @lifetime(self: copy self)
+  public mutating func removeLast(_ n: Int)
+  
   /// Remove all this span's elements and return its memory to the uninitialized state.
   @lifetime(self: copy self)
   public mutating func removeAll()
