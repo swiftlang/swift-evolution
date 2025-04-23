@@ -2,71 +2,87 @@
 
 * Proposal: [SE-NNNN](NNNN-weak-let.md)
 * Authors: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Awaiting review**
 * Implementation: [swiftlang/swift#80440](https://github.com/swiftlang/swift/pull/80440)
 * Upcoming Feature Flag: `WeakLet`
-* Review: ([discussion](https://forums.swift.org/t/weak-captures-in-sendable-sending-closures/78498))
+* Review: ([discussion](https://forums.swift.org/t/weak-captures-in-sendable-sending-closures/78498)) ([pitch](https://forums.swift.org/t/pitch-weak-let/79271))
+
+[SE-0302]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
 
 ## Introduction
 
-Currently Swift requires weak stored variables to be mutable.
-This restriction is rather artificial, and causes friction with sendability checking.
+Swift provides weak object references using the `weak` modifier on variables and stored properties. Weak references become `nil` when the object is destroyed, causing the value of the variable to seem to change. Swift has therefore always required `weak` references to be declared with the `var` keyword rather than `let`. However, that causes unnecessary friction with [sendability checking][SE-0302]: because weak references must be mutable, classes and closures with such references are unsafe to share between concurrent contexts. This proposal lifts that restriction and allows `weak` to be combined with `let`.
 
 ## Motivation
 
-Currently swift classes with weak stored properties cannot be `Sendable`,
-because weak properties have to be mutable, and mutable properties are 
-not allowed in `Sendable` classes.
-
-Similarly, closures with `weak` captures cannot be `@Sendable`,
-because such captures are implicitly made mutable.
-
-Usually developers are not aware of this implicit mutability and have no intention to modify the captured variable.
-Implicit mutability of weak captures is inconsistent with `unowned` or default captures.
-
-Wrapping weak reference into a single-field struct, allows stored properties and captures to be immutable.
+Currently, Swift classes with weak stored properties cannot be `Sendable`, because weak properties have to be mutable, and mutable properties are not allowed in `Sendable` classes:
 
 ```swift
 final class C: Sendable {}
 
-struct WeakRef {
-    weak var ref: C?
+final class VarUser: Sendable {
+    weak var ref1: C? // error: stored property 'ref1' of 'Sendable'-conforming class 'VarUser' is mutable
 }
+```
 
-final class User: Sendable {
-    weak let ref1: C? // error: 'weak' must be a mutable variable, because it may change at runtime
-    let ref2: WeakRef // ok
-}
+Similarly, closures with explicit `weak` captures cannot be `@Sendable`, because such captures are implicitly *made* mutable, and `@Sendable` closures cannot capture mutable variables. This is surprising to most programmers, because every other kind of explicit capture is immutable. It is extremely rare for Swift code to directly mutate a `weak` capture.
 
+```swift
 func makeClosure() -> @Sendable () -> Void {
     let c = C()
     return { [weak c] in
         c?.foo() // error: reference to captured var 'c' in concurrently-executing code
-        c = nil // nobody does this
+
+        c = nil // allowed, but surprising and very rare
     }
+}
+```
+
+In both cases, allowing the weak reference to be immutable would solve the problem, but this is not currently allowed:
+
+```swift
+final class LetUser: Sendable {
+    weak let ref1: C? // error: 'weak' must be a mutable variable, because it may change at runtime
+}
+```
+
+The restriction that weak references have to be mutable is based on the idea that the reference is mutated when the referenced object is destroyed. Since it's mutated, it must be kept in mutable storage, and hence the storage must be declared with `var`. This way of thinking about weak references is problematic, however; it does not work very well to explain the behavior of weak references that are components of other values, such as `struct`s. For example, a return value is normally an immutable value, but a `struct` return value can contain a weak reference that may become `nil` at any point.
+
+In fact, wrapping weak references in a single-property `struct` is a viable workaround to the `var` restriction in both properties and captures:
+
+```swift
+struct WeakRef {
+    weak var ref: C?
+}
+
+final class WeakStructUser: Sendable {
+    let ref: WeakRef // ok
+}
+
+func makeClosure() -> @Sendable () -> Void {
+    let c = C()
     return { [c = WeakRef(ref: c)] in 
         c.ref?.foo() // ok
     }
 }
 ```
 
-Existence of this workaround shows that ban on `weak let` variables is artificial, and can be lifted.
+The existence of this simple workaround is itself an argument that the prohibition of `weak let` is not enforcing some fundamentally important rule.
 
-Note that resetting weak references on object destruction is different from regular variable modification.
-Resetting on destruction is implemented in a thread-safe manner, and can safely coexist with concurrent reads or writes.
-But regular writing to a variable requires exclusive access to that memory location. 
+It is true that the value of a `weak` variable can be observed to change when the referenced object is destroyed. However, this does not have to be thought of as a mutation of the variable. A different way of thinking about it is that the variable continues to hold the same weak reference to the object, but that the program is simply not allowed to observe the object through that weak reference after the object is destroyed. This better explains the behavior of weak references in `struct`s: it's not that the destruction of the object changes the `struct` value, it's that the weak reference that's part of the `struct` value will now return `nil` if you try to observe it.
+
+Note that all of this relies on the fact that the thread-safety of observing a weak reference is fundamentally different from the thread-safety of assigning `nil` into a `weak var`. Swift's weak references are thread-safe against concurrent destruction: well-ordered reads and writes to a `weak var` or `weak let` will always behave correctly even if the referenced object is concurrently destroyed. But they are not *atomic* in the sense that writing to a `weak var` will behave correctly if another context is concurrently reading or writing to that same `var`. In this sense, a `weak var` is like any other `var`: mutations need to be well-ordered with all other accesses. 
 
 ## Proposed solution
 
-Allow `weak let` declarations for local variables and stored properties.
+`weak` can now be freely combined with `let` in any position that `weak var` would be allowed.
 
-Proposal maintains status quo regarding use of `weak` on function arguments and computed properties:
-* there is no valid syntax to indicate that function argument is a weak reference;
-* `weak` on computed properties is allowed, but has not effect.
+This proposal maintains the status quo regarding `weak` on function arguments and computed properties:
+* There is no valid syntax to indicate that function argument is a weak reference.
+* `weak` on computed properties is allowed, but has no effect.
 
-Weak captures are immutable under this proposal. If mutable capture is desired,
-mutable variable need to be explicit declared and captured.
+An explicit `weak` capture is now immutable under this proposal, like any other explicit capture. If the programmer really needs a mutable capture, they must capture a separate `weak var`:
 
 ```swift
 func makeClosure() -> @Sendable () -> Void {
@@ -76,31 +92,32 @@ func makeClosure() -> @Sendable () -> Void {
         c?.foo()
         c = nil // error: cannot assign to value: 'c' is an immutable capture
     }
+}
 
+func makeNonSendableClosure() -> () -> Void {
+    let c = C()
     weak var explicitlyMutable: C? = c
     // Closure cannot be @Sendable anymore
     return {
         explicitlyMutable?.foo()
-        explicitlyMutable = nil // but assigned is ok
+        explicitlyMutable = nil // ok
     }
 }
 ```
 
 ## Source compatibility
 
-Allowing `weak let` bindings is a source-compatible change
-that makes previously invalid code valid.
+Allowing `weak let` bindings is an additive change that makes previously invalid code valid. It is therefore perfectly source-compatible.
 
-Treating weak captures as immutable is a source-breaking change.
-Any code that attempts to write to the capture will stop compiling.
+Treating weak captures as immutable is a source-breaking change. Any code that attempts to write to the capture will stop compiling.
 The overall amount of such code is expected to be small.
+
+Since the captures of a closure are opaque and cannot be observed outside of the closure, changing the mutability of weak captures has no impact on clients of the closure.
 
 ## ABI compatibility
 
-This is an ABI-compatible change.
+There is no ABI impact of this change.
 
 ## Implications on adoption
 
-This feature can be freely adopted and un-adopted in source
-code with no deployment constraints and without affecting source or ABI
-compatibility.
+This feature can be freely adopted and un-adopted in source code with no deployment constraints and without affecting source or ABI compatibility.
