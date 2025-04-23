@@ -13,6 +13,7 @@
 [SE-0456]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0456-stdlib-span-properties.md
 [SE-0467]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md
 [PR-LifetimeAnnotations]: https://github.com/swiftlang/swift-evolution/pull/2750
+[Forum-LifetimeAnnotations]: https://forums.swift.org/t/78638
 [SE-0453]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0453-vector.md
 
 ## Introduction
@@ -56,9 +57,9 @@ We will also extend `String` and `InlineArray` in a similar manner.
 
 #### `@lifetime` attribute
 
-Some of the API presented here must establish a lifetime relationship between a non-escapable returned value and a callee binding. This relationship will be illustrated using the `@lifetime` attribute pitched in [PR-LifetimeAnnotations]. For the purposes of this proposal, the lifetime attribute ties the lifetime of a function's return value to one of its input parameters.
+Some of the API presented here must establish a lifetime relationship between a non-escapable returned value and a callee binding. This relationship will be illustrated using the `@lifetime` attribute recently [pitched][PR-LifetimeAnnotations] and [formalized][Forum-LifetimeAnnotations]. For the purposes of this proposal, the lifetime attribute ties the lifetime of a function's return value to one of its input parameters.
 
-Note: The `@lifetime` attribute is not final. The eventual lifetime annotations proposal may or may not adopt this syntax. We expect that, as soon as Swift adopts a syntax do describe lifetime dependencies, the Standard Library will be modified to adopt that new syntax.
+Note: The eventual lifetime annotations proposal may adopt a syntax different than the syntax used here. We expect that the Standard Library will be modified to adopt an updated lifetime dependency syntax as soon as it is finalized.
 
 ## Detailed Design
 
@@ -434,7 +435,7 @@ extension OutputRawSpan {
 
 ##### Interoperability with unsafe code
 
-We provide a method to process or populate an `OutputRawSpan` using unsafe operations, which can also be used for out-of-order initialization.
+We provide a method to process or populate an `OutputRawSpan` using unsafe operations, which can also be used for out-of-order initialization.
 
 ```swift
 extension OutputRawSpan {
