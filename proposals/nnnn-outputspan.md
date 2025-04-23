@@ -116,7 +116,7 @@ extension OutputSpan where Element: ~Copyable {
 
 ##### Bulk initialization of an `OutputSpan`'s memory:
 
-We include functions to perform bulk initialization of the memory represented by an `OutputSpan`. Initializing an `OutputSpan` from known-sized sources (such as `Collection` or `Span`) uses every element of the source. It is an error to do so when the available storage of the `OutputSpan` is too little to contain every element from the source. Initializing an `OutputSpan` from `Sequence` or `IteratorProtocol` will copy as many items as possible, either until the input is empty or the `OutputSpan`'s available storage is zero.
+We include functions to perform bulk initialization of the memory represented by an `OutputSpan`. Initializing an `OutputSpan` from a `Sequence` or a fixed-size source must use every element of the source. Initializing an `OutputSpan` from `IteratorProtocol` will copy as many items as possible, either until the input is empty or the `OutputSpan`'s available storage is zero.
 
 ```swift
 extension OutputSpan {
@@ -134,18 +134,24 @@ extension OutputSpan {
   ) -> Bool
 
   /// Initialize this span's suffix with every element of the source.
+  ///
+  /// It is a precondition that the `OutputSpan` can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
     fromContentsOf source: some Sequence<Element>
   )
 
   /// Initialize this span's suffix with every element of the source.
+  ///
+  /// It is a precondition that the `OutputSpan` can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
     fromContentsOf source: Span<Element>
   )
 
   /// Initialize this span's suffix with every element of the source.
+  ///
+  /// It is a precondition that the `OutputSpan` can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
     fromContentsOf source: UnsafeBufferPointer<Element>
@@ -154,12 +160,16 @@ extension OutputSpan {
 
 extension OutputSpan where Element: ~Copyable {
   /// Initialize this span's suffix by moving every element from the source.
+  ///
+  /// It is a precondition that the `OutputSpan` can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func moveAppend(
     fromContentsOf source: inout OutputSpan<Element>
   )
 
   /// Initialize this span's suffix by moving every element from the source.
+  ///
+  /// It is a precondition that the `OutputSpan` can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func moveAppend(
     fromContentsOf source: UnsafeMutableBufferPointer<Element>
@@ -168,6 +178,8 @@ extension OutputSpan where Element: ~Copyable {
 
 extension OutputSpan {
   /// Initialize this span's suffix by moving every element from the source.
+  ///
+  /// It is a precondition that the `OutputSpan` can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func moveAppend(
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<Element>>
