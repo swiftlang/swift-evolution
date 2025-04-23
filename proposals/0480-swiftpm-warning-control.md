@@ -1,11 +1,11 @@
 # Warning Control Settings for SwiftPM
 
-* Proposal: [SE-NNNN](NNNN-swiftpm-warning-control.md)
+* Proposal: [SE-0480](0480-swiftpm-warning-control.md)
 * Authors: [Dmitrii Galimzianov](https://github.com/DmT021)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall), [Franz Busch]([https:](https://github.com/FranzBusch)
+* Status: **Active review (April 23...May 5th, 2025)**
 * Implementation: [swiftlang/swift-package-manager#8315](https://github.com/swiftlang/swift-package-manager/pull/8315)
-* Review: ([Pitch](https://forums.swift.org/t/pitch-warning-control-settings-for-swiftpm/78666))
+* Review: ([pitch](https://forums.swift.org/t/pitch-warning-control-settings-for-swiftpm/78666))
 * Previous Proposal: [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md)
 
 ## Introduction
