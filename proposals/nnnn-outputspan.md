@@ -108,9 +108,11 @@ The converse operation `removeLast()` is also supported, and returns the removed
 ```swift
 extension OutputSpan where Element: ~Copyable {
   /// Remove the last initialized element from this `OutputSpan`.
+  ///
+  /// Returns the last element. The `OutputSpan` must not be empty
   @discardableResult
   @lifetime(self: copy self)
-  public mutating func removeLast() -> Element?
+  public mutating func removeLast() -> Element
 }
 ```
 
@@ -135,7 +137,8 @@ extension OutputSpan {
 
   /// Initialize this span's suffix with every element of the source.
   ///
-  /// It is a precondition that the `OutputSpan` can contain every element of the source.
+  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
+  /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
     fromContentsOf source: some Sequence<Element>
@@ -143,7 +146,8 @@ extension OutputSpan {
 
   /// Initialize this span's suffix with every element of the source.
   ///
-  /// It is a precondition that the `OutputSpan` can contain every element of the source.
+  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
+  /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
     fromContentsOf source: Span<Element>
@@ -151,7 +155,8 @@ extension OutputSpan {
 
   /// Initialize this span's suffix with every element of the source.
   ///
-  /// It is a precondition that the `OutputSpan` can contain every element of the source.
+  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
+  /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
     fromContentsOf source: UnsafeBufferPointer<Element>
@@ -161,7 +166,8 @@ extension OutputSpan {
 extension OutputSpan where Element: ~Copyable {
   /// Initialize this span's suffix by moving every element from the source.
   ///
-  /// It is a precondition that the `OutputSpan` can contain every element of the source.
+  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
+  /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func moveAppend(
     fromContentsOf source: inout OutputSpan<Element>
@@ -169,7 +175,8 @@ extension OutputSpan where Element: ~Copyable {
 
   /// Initialize this span's suffix by moving every element from the source.
   ///
-  /// It is a precondition that the `OutputSpan` can contain every element of the source.
+  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
+  /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func moveAppend(
     fromContentsOf source: UnsafeMutableBufferPointer<Element>
@@ -179,7 +186,8 @@ extension OutputSpan where Element: ~Copyable {
 extension OutputSpan {
   /// Initialize this span's suffix by moving every element from the source.
   ///
-  /// It is a precondition that the `OutputSpan` can contain every element of the source.
+  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
+  /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func moveAppend(
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<Element>>
@@ -192,6 +200,8 @@ Bulk operations to deinitialize some or all of an `OutputSpan`'s memory is also 
 extension OutputSpan where Element: ~Copyable {
   /// Remove the last N elements, returning the memory they occupy
   /// to the uninitialized state.
+  ///
+  /// `n` must not be greater than `count`
   @lifetime(self: copy self)
   public mutating func removeLast(_ n: Int)
   
