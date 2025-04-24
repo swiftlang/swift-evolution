@@ -3,7 +3,7 @@
 * Proposal: [SE-0469](0469-task-names.md)
 * Authors: [Konrad Malawski](https://github.com/ktoso), [Harjas Monga](https://github.com/Harjas12)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Implementation: [swiftlang/swift#79600](https://github.com/swiftlang/swift/pull/79600)
 * Review: ([pitch](https://forums.swift.org/t/pitch-task-naming-api/76115)) ([review](https://forums.swift.org/t/se-0469-task-naming/78509)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0469-task-naming/79438))
 
