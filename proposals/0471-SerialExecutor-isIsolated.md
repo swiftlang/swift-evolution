@@ -135,6 +135,52 @@ The general guidance about which method to implement is to implement `isIsolatin
 
 The runtime will always invoke the `isIsolatingCurrentContext` before making attempts to call `checkIsolated`, and if the prior returns either `true` or `false`, the latter (`checkIsolated`) will not be invoked at all.
 
+### Checking if currently isolated to some `Actor`
+
+We also introduce a way to obtain `SerialExecutor` from an `Actor`, which was previously not possible.
+
+This API needs to be scoped because the lifetime of the serial executor must be tied to the Actor's lifetime:
+
+```swift
+extension Actor { 
+  /// Perform an operation with the actor's ``SerialExecutor``.
+  ///
+  /// This converts the actor's ``Actor/unownedExecutor`` to a ``SerialExecutor`` while
+  /// retaining the actor for the duration of the operation. This is to ensure the lifetime
+  /// of the executor while performing the operation.
+  @_alwaysEmitIntoClient
+  @available(SwiftStdlib 5.1, *)
+  public nonisolated func withSerialExecutor<T>(_ operation: (any SerialExecutor) throws -> T) rethrows -> T
+
+  /// Perform an operation with the actor's ``SerialExecutor``.
+  ///
+  /// This converts the actor's ``Actor/unownedExecutor`` to a ``SerialExecutor`` while
+  /// retaining the actor for the duration of the operation. This is to ensure the lifetime
+  /// of the executor while performing the operation.
+  @_alwaysEmitIntoClient
+  @available(SwiftStdlib 5.1, *)
+  public nonisolated func withSerialExecutor<T>(_ operation: (any SerialExecutor) async throws -> T) async rethrows -> T
+  
+}
+```
+
+This allows developers to write "warn if wrong isolation" code, before moving on to enable preconditions in a future release of a library. This gives library developers, and their adopters, time to adjust their code usage before enabling more strict validation mode in the future, for example like this:
+
+```swift
+func something(operation: @escaping @isolated(any) () -> ()) {
+  operation.isolation.withSerialExecutor { se in 
+    if !se.isIsolatingCurrentContext() { 
+      warn("'something' must be called from the same isolation as the operation closure is isolated to!" + 
+           "This will become a runtime crash in future releases of this library.")
+    }
+  }
+}
+```
+
+
+
+This API will be backdeployed and will be available independently of runtime version of the concurrency runtime.
+
 ### Compatibility strategy for custom SerialExecutor authors
 
 New executor implementations should prioritize implementing `isIsolatingCurrentContext` when available, using an appropriate `#if swift(>=...)` check to ensure compatibility. Otherwise, they should fall back to implementing the crashing version of this API: `checkIsolated()`.
@@ -169,7 +215,12 @@ This would be ideal, however also problematic since changing a protocol requirem
 
 In order to make adoption of this new mode less painful and not cause deprecation warnings to libraries which intend to support multiple versions of Swift, the `SerialExcecutor/checkIsolated` protocol requirement remains _not_ deprecated. It may eventually become deprecated in the future, but right now we have no plans of doing so.
 
+### Model the SerialExecutor lifetime dependency on Actor using `~Escapable`
+
+It is currently not possible to express this lifetime dependency using `~Escapable` types, because combining `any SerialExecutor` which is an `AnyObject` constrained type, cannot be combined with `~Escapable`. Perhaps in a future revision it would be possible to offer a non-escapable serial executor in order to model this using non-escapable types, rather than a `with`-style API.
+
 ## Changelog
 
+- added way to obtain `SerialExecutor` from `Actor` in a safe, scoped, way. This enables using the `isIsolatingCurrentContext()` API when we have an `any Actor`, e.g. from an `@isolated(any)` closure.
 - changed return value of `isIsolatingCurrentContext` from `Bool` to `Bool?`, where the `nil` is to be interpreted as "unknown", and the default implementation of `isIsolatingCurrentContext` now returns `nil`.
 - removed the manual need to signal to the runtime that the specific executor supports the new checking mode. It is now detected by the compiler and runtime, checking for the presence of a non-default implementation of the protocol requirement.
