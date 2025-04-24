@@ -170,3 +170,7 @@ This feature does not affect ABI compatibility.
 ## Implications on adoption
 
 This feature has no implications on adoption.
+
+## Future directions
+
+The effectful value types that are unsupported by this feature will all require new `KeyPath` types and so have been left out of this proposal. Additionally, this lack of support impacts existing key path component kinds and could be addressed in a unified proposal that resolves this gap across all key path component kinds. 
