@@ -142,8 +142,8 @@ struct DynamicKeyPathWrapper<Root> {
 }
 
 let dynamicCalculator = DynamicKeyPathWrapper(root: Calculator())
-let subtract = dynamicCalculator.subtract
-print(subtract(10))
+let power = dynamicCalculator.power
+print(power(10, 2))
 ```
 
 ### Effectful value types
