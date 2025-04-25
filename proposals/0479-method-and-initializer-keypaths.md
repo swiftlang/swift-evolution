@@ -14,7 +14,7 @@ Swift key paths can be written to properties and subscripts. This proposal exten
 
 ## Motivation
 
-Key paths to method members and their advantages have been explored in several discussions on the Swift forum, specifically to [unapplied instance methods](https://forums.swift.org/t/allow-key-paths-to-reference-unapplied-instance-methods/35582) and to [partially and applied methods](https://forums.swift.org/t/pitch-allow-keypaths-to-represent-functions/67630). Extending key paths to include reference to methods and initializers and handling them similarly to properties and subscripts will unify instance and type member access for a more consistent API. Key path methods and initializers will also enjoy all of the benefits offered by existing key path component kinds, e.g. simplify code by abstracting away details of how these properties/subscripts/methods are modified/accessed/invoked, reusability via generic functions that accept key paths to methods as parameters, and supporting dynamic invocation while maintaining type safety.
+Key paths to method members and their advantages have been explored in several discussions on the Swift forum, specifically to [unapplied instance methods](https://forums.swift.org/t/allow-key-paths-to-reference-unapplied-instance-methods/35582) and to [partially and applied methods](https://forums.swift.org/t/pitch-allow-keypaths-to-represent-functions/67630). Extending key paths to include reference to methods and initializers and handling them similarly to properties and subscripts will unify instance and type member access for a more consistent API. While this does not yet encompass all method kinds, particularly those with effectful or non-hashable arguments, it lays the groundwork for more expressive, type-safe APIs. In doing so, it brings many of the benefits of existing key path components to supported methods and initializers, such as abstraction, reusability via generic functions and dynamic invocation with state type safety. 
 
 ## Proposed solution
 
@@ -142,8 +142,8 @@ struct DynamicKeyPathWrapper<Root> {
 }
 
 let dynamicCalculator = DynamicKeyPathWrapper(root: Calculator())
-let subtract = dynamicCalculator.subtract
-print(subtract(10))
+let power = dynamicCalculator.power
+print(power(10, 2))
 ```
 
 ### Effectful value types
@@ -170,3 +170,7 @@ This feature does not affect ABI compatibility.
 ## Implications on adoption
 
 This feature has no implications on adoption.
+
+## Future directions
+
+The effectful value types that are unsupported by this feature will all require new `KeyPath` types and so have been left out of this proposal. Additionally, this lack of support impacts existing key path component kinds and could be addressed in a unified proposal that resolves this gap across all key path component kinds. 
