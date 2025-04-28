@@ -510,7 +510,7 @@ The strict memory safety mode can be enabled with the new compiler flag `-strict
 All of the memory-safety diagnostics produced by the strict memory safety mode will be warnings. These warnings be in the group `StrictMemorySafety` (possibly organized into subgroups) so that one can choose to escalate them to errors or keep them as warnings using the compiler flags introduced in [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md). For example, one can choose to enable the mode and make memory-safety issues errors using:
 
 ```
-swiftc -strict-memory-safety -Werror Unsafe
+swiftc -strict-memory-safety -Werror StrictMemorySafety
 ```
 
 ### SwiftPM integration
