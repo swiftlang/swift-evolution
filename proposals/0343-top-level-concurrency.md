@@ -40,7 +40,7 @@ semantic changes, potentially breaking scripts that already exist.
 
 The solutions will only apply when the top-level code is an asynchronous
 context. As a synchronous context, the behavior of top-level code does not
-change. In order trigger making the top-level context an asynchronous context, I
+change. In order to trigger making the top-level context an asynchronous context, I
 propose using the presence of an `await` in one of the top-level expressions.
 
 An await nested within a function declaration or a closure will not trigger the
