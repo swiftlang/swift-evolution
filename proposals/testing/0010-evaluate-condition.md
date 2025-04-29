@@ -3,10 +3,10 @@
 * Proposal: [ST-0010](0010-evaluate-condition.md)
 * Authors: [David Catmull](https://github.com/Uncommon)
 * Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
-* Status: **Active review (April 11...April 22, 2025)**
+* Status: **Accepted**
 * Bug: [swiftlang/swift-testing#903](https://github.com/swiftlang/swift-testing/issues/903)
 * Implementation: [swiftlang/swift-testing#909](https://github.com/swiftlang/swift-testing/pull/909)
-* Review: ([pitch](https://forums.swift.org/t/pitch-introduce-conditiontrait-evaluate/77242)) ([review](https://forums.swift.org/t/st-0010-public-api-to-evaluate-conditiontrait/79232))
+* Review: ([pitch](https://forums.swift.org/t/pitch-introduce-conditiontrait-evaluate/77242)), ([review](https://forums.swift.org/t/st-0010-public-api-to-evaluate-conditiontrait/79232)), ([acceptance](https://forums.swift.org/t/accepted-st-0010-public-api-to-evaluate-conditiontrait/79577))
 
 ## Introduction
 
