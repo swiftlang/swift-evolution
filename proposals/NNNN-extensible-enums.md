@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Bug: [apple/swift#55110](https://github.com/swiftlang/swift/issues/55110)
-* Implementation: [apple/swift#79580](https://github.com/swiftlang/swift/pull/79580)
+* Implementation: [apple/swift#80503](https://github.com/swiftlang/swift/pull/80503)
 * Upcoming Feature Flag: `ExtensibleEnums`
 * Review: ([pitch](https://forums.swift.org/t/pitch-extensible-enums-for-non-resilient-modules/77649))
 
