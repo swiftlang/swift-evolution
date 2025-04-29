@@ -201,6 +201,55 @@ compiler error.
 The behavior of `swift package diagnose-api-breaking-changes` is also updated
 to understand the new `@extensible` attribute.
 
+### Staging in using `@preEnumExtensibility`
+
+We also propose adding a new `@preEnumExtensibility` attribute that can be used
+to mark enumerations as pre-existing to the `@extensible` attribute. This allows
+developers to mark existing public enumerations as `@preEnumExtensibility` in
+addition to `@extensible`. This is useful for developers that want to stage in
+changing an existing non-extensible enum to be extensible over multiple
+releases. Below is an example of how this can be used:
+
+```swift
+// Package A
+public enum Foo {
+  case foo
+}
+
+// Package B
+switch foo {
+case .foo: break
+}
+
+// Package A wants to make the existing enum extensible
+@preEnumExtensibility @extensible
+public enum Foo {
+  case foo
+}
+
+// Package B now emits a warning downgraded from an error
+switch foo { // warning: Enum might be extended later. Add an @unknown default case.
+case .foo: break
+}
+
+// Later Package A decides to extend the enum and releases a new major version
+@preEnumExtensibility  @extensible
+public enum Foo {
+  case foo
+  case bar
+}
+
+// Package B didn't add the @unknown default case yet. So now we we emit a warning and an error
+switch foo { // error: Unhandled case bar & warning: Enum might be extended later. Add an @unknown default case.
+case .foo: break
+}
+```
+
+While the `@preEnumExtensibility` attribute doesn't solve the need of requiring
+a new major when a new case is added it allows developers to stage in changing
+an existing non-extensible enum to become extensible in a future release by
+surfacing a warning about this upcoming break early.
+
 ## Source compatibility
 
 ### Resilient modules
@@ -254,49 +303,8 @@ enumerations to achieve the same effect.
 
 ## Alternatives considered
 
-### Introduce a `@preEnumExtensibility` annotation
+### Different names for the attribute
 
-We considered introducing an annotation that allows developers to mark
-enumerations as pre-existing to the `@extensible` annotation similar to how
-`@preconcurrency` works. Such an annotation seems to work initially when
-existing public enumerations are marked as `@preEnumExtensibility` instead of
-`@extensible`. It would result in the error about the missing `@unknown default`
-case to be downgraded as a warning. However, such an annotation still doesn't
-allow new cases to be added since there is no safe default at runtime when
-encountering an unknown case. Below is an example how such an annotation would
-work and why it doesn't allow existing public enums to become extensible.
-
-```swift
-// Package A
-public enum Foo {
-  case foo
-}
-
-// Package B
-switch foo {
-case .foo: break
-}
-
-// Package A wants to make the existing enum extensible
-@preEnumExtensibility @extensible
-public enum Foo {
-  case foo
-}
-
-// Package B now emits a warning downgraded from an error
-switch foo { // warning: Enum might be extended later. Add an @unknown default case.
-case .foo: break
-}
-
-// Later Package A decides to extend the enum
-@preEnumExtensibility  @extensible
-public enum Foo {
-  case foo
-  case bar
-}
-
-// Package B didn't add the @unknown default case yet. So now we we emit a warning and an error
-switch foo { // error: Unhandled case bar & warning: Enum might be extended later. Add an @unknown default case.
-case .foo: break
-}
-```
+We considered different names for the attribute such as `@nonFrozen`; however,
+we felt that `@extensible` communicates the idea of an extensible enum more
+clearly.
