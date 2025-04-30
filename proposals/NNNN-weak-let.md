@@ -77,6 +77,7 @@ Note that all of this relies on the fact that the thread-safety of observing a w
 ## Proposed solution
 
 `weak` can now be freely combined with `let` in any position that `weak var` would be allowed.
+Similar to `weak var`, `weak let` declarations also must be of `Optional` type.
 
 This proposal maintains the status quo regarding `weak` on function arguments and computed properties:
 * There is no valid syntax to indicate that function argument is a weak reference.
