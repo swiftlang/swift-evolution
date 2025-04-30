@@ -255,11 +255,15 @@ surfacing a warning about this upcoming break early.
 ### Resilient modules
 
 - Adding or removing the `@extensible` attribute has no-effect since it is the default in this language dialect.
+- Adding the `@preEnumExtensibility` attribute has no-effect since it only downgrades the error to a warning.
+- Removing the `@preEnumExtensibility` attribute is an API breaking since it upgrades the warning to an error again.
 
 ### Non-resilient modules
 
-- Adding the `@extensible` attribute to a public enumeration is an API breaking change.
-- Removing the `@extensible` attribute from a public enumeration is an API stable change.
+- Adding the `@extensible` attribute is an API breaking change.
+- Removing the `@extensible` attribute is an API stable change.
+- Adding the `@preEnumExtensibility` attribute has no-effect since it only downgrades the error to a warning.
+- Removing the `@preEnumExtensibility` attribute is an API breaking since it upgrades the warning to an error again.
 
 ## ABI compatibility
 
