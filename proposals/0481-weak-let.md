@@ -1,4 +1,4 @@
-# Feature name
+# `weak let`
 
 * Proposal: [SE-0481](0481-weak-let.md)
 * Authors: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
