@@ -160,6 +160,63 @@ belong to a diagnostic group named after the feature.
 The names of diagnostic groups can be displayed alongside diagnostic messages
 using `-print-diagnostic-groups` and used to associate messages with features.
 
+### `swift migrate` command
+
+To enable seemless migration experience for Swift packages, I'd like to propose a new Swift Package Manager command - `swift migrate` to complement the Swift compiler-side changes.
+
+The command would accept one or more features that have migration mode enabled and optionally a set of targets to migrate, if no targets are specified the whole package is going to be migrated to use new features.
+
+#### Interface
+
+```
+USAGE: swift migrate [<options>] --to-feature <to-feature> ...
+
+OPTIONS:
+  --targets <targets>     The targets to migrate to specified set of features or a new language mode.
+  --to-feature <to-feature>
+                          The Swift language upcoming/experimental feature to migrate to.
+  -h, --help              Show help information.
+```
+
+#### Use case
+
+```
+swift migrate --targets MyTarget,MyTest --to-feature ExistentialAny
+```
+
+This command would attempt to build `MyTarget` and `MyTest` targets with `ExistentialAny:migrate` feature flag, apply any fix-its associated with
+the feature produced by the compiler, and update the `Package.swift` to
+enable the feature(s) if both of the previous actions are successful:
+
+```
+.target(
+  name: "MyTarget",
+  ...
+  swiftSettings: [
+    // ... existing settings,
+    .enableUpcomingFeature("ExistentialAny")
+  ]
+)
+...
+.testTarget(
+  name: "MyTest",
+  ...
+  swiftSettings: [
+    // ... existing settings,
+    .enableUpcomingFeature("ExistentialAny")
+  ]
+)
+```
+
+In the "whole package" mode, every target is going to be updated to include
+new feature flag(s). This is supported by the same functionality as `swift package add-setting` command.
+
+If it's, for some reason, impossible to add the setting the diagnostic message would suggest what to add and where i.e. `...; please add '.enableUpcomingFeature("ExistentialAny")' to `MyTarget` target manually`.
+
+#### Impact on Interface
+
+This proposal introduces a new command but does that does not interfere with existing commands. It follows the same pattern as `swift build` and `swift test` in a consistent manner.
+
 ## Source compatibility
 
 This proposal does not affect language rules.
@@ -216,12 +273,6 @@ is essential for future tools built around migration mode:
   when offered multiple fix-its.
   Furthermore, tools can take advantage of this information by favoring and
   auto-applying source-compatible fix-its.
-
-### `swift migrate`
-
-The Swift package manager could implement a `migrate` subcommand for interactive
-review and application of migration mode output for a given set of features,
-with a command-line interface similar to `git add --patch`.
 
 ## Alternatives considered
 
