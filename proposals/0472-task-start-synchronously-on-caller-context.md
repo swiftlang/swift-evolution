@@ -315,7 +315,7 @@ The same technique of specifying a required target isolation may be used with th
 
 In [SE-0392: Custom Actor Executors](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md) we introduced the ability to dynamically recover isolation information using the `Actor/assumeIsolated` API. It can be used to dynamically recover the runtime information about whether we are executing on some specific actor.
 
-The `assumeIsolated` shares some ideas with `Task/immediate` however it is distinctly different. For example, while both APIs can effectively be used to "notice we are running on the expected actor, and therefore perform some work on its context". However, `assumeIsolated` does _not_ create a new asynchronous context, while `Task.startSynchronously` does:
+The `assumeIsolated` shares some ideas with `Task/immediate` however it is distinctly different. For example, while both APIs can effectively be used to "notice we are running on the expected actor, and therefore perform some work on its context". However, `assumeIsolated` does _not_ create a new asynchronous context, while `Task.immediate` does:
 
 ```swift
 @MainActor
@@ -342,7 +342,7 @@ We can compose `assumeIsolated` with `Task.immediate` to both assert that the cu
 func alwaysCalledFromMainActor() { // we know this because e.g. documentation, but the API wasn't annotated
   MainActor.assumeIsolated { // @MainActor isolated
     assert(num == 0)
-    Task.startSynchronously { // @MainActor isolated
+    Task.immediate { // @MainActor isolated
       num +=1 // ✅ ok
       assert(num == 1) // since we are guaranteed nothing else executed since the 'num == 0' assertion
                              
@@ -413,7 +413,7 @@ This proposal is purely ABI additive.
 
 An important use case of this API is to support calling into an actor isolated context when in a synchronous function that is dynamically already running on that actor. This situation can occur both with instance actors and global actors, however the most commonly requested situation where this shows up is synchronous handler methods in existing frameworks, and which often may have had assumptions about the main thread, and did not yet annotate their API surface with @MainActor annotations.
 
-It would be possible to create a _dynamically asserting_ version of `Task.startSynchronously`, which does handle the happy path where indeed we "know" where we're going to be called quite well, but gives a *false sense of security* as it may crash at runtime, in the same way the `Actor/preconditionIsolated()` or `Actor/assumeIsolated` APIs do. We believe we should not add more such dynamically crashing APIs, but rather lean into the existing APIs and allow them compose well with any new APIs that should aim to complement them.
+It would be possible to create a _dynamically asserting_ version of `Task.immediate`, which does handle the happy path where indeed we "know" where we're going to be called quite well, but gives a *false sense of security* as it may crash at runtime, in the same way the `Actor/preconditionIsolated()` or `Actor/assumeIsolated` APIs do. We believe we should not add more such dynamically crashing APIs, but rather lean into the existing APIs and allow them compose well with any new APIs that should aim to complement them.
 
 The dynamically asserting version would be something like this:
 
@@ -477,12 +477,12 @@ actor Caplin {
 
 ### Implementation detail: Expressing closure isolation tied to function parameter: `@isolated(to:)`
 
-The currently proposed API is working within the limitations of what is expressible in today's isolation model. It would be beneficial to be able to express the startSynchronously API if we could spell something like "this closure must be isolated to the same actor as the calling function" which would allow for the following code:
+The currently proposed API is working within the limitations of what is expressible in today's isolation model. It would be beneficial to be able to express the immediate API if we could spell something like "this closure must be isolated to the same actor as the calling function" which would allow for the following code:
 
 ```swift
 @MainActor
 func test() { 
-  Task.startSynchronously { /* inferred to be @MainActor */ 
+  Task.immediate { /* inferred to be @MainActor */ 
     num += 1
   }
 }
@@ -493,16 +493,16 @@ func test() {
 The way to spell this in an API could be something like this:
 
 ```swift
-public static func startSynchronously(
+public static func immediate(
   ...
   isolation: isolated (any Actor)? = #isolation,
   operation: @escaping @isolated(to: isolation) sending async throws(Failure) -> Success,
 ) -> Task<Success, Failure>
 ```
 
-The introduction of a hypothetical  `@isolated(to:)` paired with an `isolated` `#isolation` defaulted actor parameter, would allow us to express "the *operation* closure statically inherits the exact same isolation as is passed to the isolation parameter of the startSynchronously method". This naturally expresses the semantics that the startSynchronously is offering, and would allow to _stay_ on that isolation context after resuming from the first suspension inside the operation closure.
+The introduction of a hypothetical  `@isolated(to:)` paired with an `isolated` `#isolation` defaulted actor parameter, would allow us to express "the *operation* closure statically inherits the exact same isolation as is passed to the isolation parameter of the `immediate` method". This naturally expresses the semantics that the `immediate` is offering, and would allow to _stay_ on that isolation context after resuming from the first suspension inside the operation closure.
 
-Implementing this feature is a large task, and while very desirable we are not ready yet to commit to implementing it as part of this proposal. If and when this feature would become available, we would adopt it in the startSynchronously APIs.
+Implementing this feature is a large task, and while very desirable we are not ready yet to commit to implementing it as part of this proposal. If and when this feature would become available, we would adopt it in the `immediate` APIs.
 
 ### Changelog
 
