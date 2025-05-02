@@ -13,7 +13,7 @@ We propose the introduction of type sugar for the `InlineArray` type, providing 
 
 ## Motivation
 
-[SE-0453] introduced a new type, `InlineArray`, which includes a size parameter as part of its type:
+[SE-0453](/proposals/0453-vector.md) introduced a new type, `InlineArray`, which includes a size parameter as part of its type:
 
 ```
 let fiveIntegers: InlineArray<5, Int> = .init(repeating: 99)
