@@ -38,7 +38,7 @@ A new sugared version of the `InlineArray` type is proposed:
 let fiveIntegers: [5 x Int] = .init(repeating: 99)
 ```
 
-The `x` here is the ASCII character, and is chosen to evoke it's common shorthand use to represent "by", as in "4x4" or "2 in x 4 in". 
+The `x` here is the ASCII character, and is chosen to evoke the common shorthand use to represent "by", as in "4x4" or "2 in x 4 in". 
 
 Note that although it is used in the manner of an operator, `x` here serves more like a contextual keyword, similar to if the syntax were `[5 of Int]`.
 
