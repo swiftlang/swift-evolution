@@ -3,7 +3,7 @@
 * Proposal: [ST-0009](0009-attachments.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Rachel Brindle](https://github.com/younata)
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 6.2)**
 * Bug: [swiftlang/swift-testing#714](https://github.com/swiftlang/swift-testing/issues/714)
 * Implementation: [swiftlang/swift-testing#973](https://github.com/swiftlang/swift-testing/pull/973)
 * Review: ([acceptance](https://forums.swift.org/t/accepted-with-modifications-st-0009-attachments/79193)), ([review](https://forums.swift.org/t/st-0009-attachments/78698)), ([pitch](https://forums.swift.org/t/pitch-attachments/78072))
