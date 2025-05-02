@@ -1,9 +1,9 @@
 # Binary Static Library Dependencies
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0467](0467-swiftpm-static-library-binary-target-non-apple-platforms.md)
 * Authors: [Daniel Grumberg](https://github.com/daniel-grumberg), [Max Desiatov](https://github.com/MaxDesiatov), [Franz Busch](https://github.com/FranzBusch)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Kuba Mracek](https://github.com/kubamracek)
+* Status: **Active Review (2 May...15 May, 2005)**
 
 <!--- *During the review process, add the following fields as needed:* --->
 
