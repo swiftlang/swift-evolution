@@ -1,10 +1,11 @@
 # `InlineArray` Literal Syntax
 
-* Proposal: [SE-NNNN](0354-inline-array-sugar.md)
+* Proposal: [SE-0483](0483-inline-array-sugar.md)
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting Review**
-* Upcoming Feature Flag: `InlineArrayTypeSugar`
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (May 2 - May 16, 2025)**
+* Implementation: On `main` under the `InlineArrayTypeSugar` experimental feature flag.
+* Review: ([pitch](https://forums.swift.org/t/pitch-inlinearray-type-sugar/79142))
 
 ## Introduction
 
