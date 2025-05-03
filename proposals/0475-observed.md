@@ -3,7 +3,7 @@
 * Proposal: [SE-0475](0475-observed.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Active Review (April 10...24, 2025)**
+* Status: **Active Review (April 10 ... April 24, 2025)**
 * Implementation: https://github.com/swiftlang/swift/pull/79817
 * Review: ([pitch](https://forums.swift.org/t/pitch-transactional-observation-of-values/78315)) ([review](https://forums.swift.org/t/se-0475-transactional-observation-of-values/79224))
 
