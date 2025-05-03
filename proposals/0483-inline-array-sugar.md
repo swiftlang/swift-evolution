@@ -19,7 +19,7 @@ We propose the introduction of type sugar for the `InlineArray` type, providing 
 let fiveIntegers: InlineArray<5, Int> = .init(repeating: 99)
 ```
 
-Declaring this type is more cumbersome than its equivalent dyanmicaly-sized array, which has sugar for the type syntax:
+Declaring this type is more cumbersome than its equivalent dynamically-sized array, which has sugar for the type syntax:
 
 ```
 let fiveIntegers: [Int] = .init(repeating: 99, count: 5)
@@ -45,7 +45,7 @@ Note that although it is used in the manner of an operator, `x` here serves more
 
 ## Detailed design
 
-The new syntax consists of the value for the integer generic paramter and the type of the element generic paramter, separated by `x`.
+The new syntax consists of the value for the integer generic parameter and the type of the element generic parameter, separated by `x`.
 
 This will be added to the grammar alongside the current type sugar:
 
@@ -124,12 +124,12 @@ For multi-dimensional arrays, `[5 x [5 x Int]]` could be flattened to `[5 x 5 x 
 The most obvious alternative here is the choice of separator. Other options include:
 
 - `[5 * Int]`, using the standard ASCII symbol for multiplication.
-- `[5 ⨉ Int]`, the Unicode n-ary times operator. This looks nice but is impactical as not keyboard-accessible.
+- `[5 ⨉ Int]`, the Unicode n-ary times operator. This looks nice but is impractical as not keyboard-accessible.
 - `[5; Int]` is what Rust uses, but appears to have little association with "times" or "many". Similarly other arbitrary punctuation e.g. `,` or `/` or `#`.
 - `[5 of Int]` is more verbose than `x` but could be considered more clear. It has the upside or downside, depending on your preference, of being almost, but not quite, grammatical.
 - `:` is of course ruled out as it is used for dictionary literals.
 
-Note that `*` is an existing operator, and may lead to ambiguity in fuure when expressions can be used to determine the size: `[5 * N * Int]`. `x` is clearer in this case: `[5 * N x Int]`. It also avoids parsing ambiguity, as the grammar does not allow two identifiers in succession. But it would be less clear if `x` also appeared as an identifier: `[5 * x x Int]` (which is not yet permitted but may be in future use cases).
+Note that `*` is an existing operator, and may lead to ambiguity in future when expressions can be used to determine the size: `[5 * N * Int]`. `x` is clearer in this case: `[5 * N x Int]`. It also avoids parsing ambiguity, as the grammar does not allow two identifiers in succession. But it would be less clear if `x` also appeared as an identifier: `[5 * x x Int]` (which is not yet permitted but may be in future use cases).
 
 This becomes more important if the future direction of a value equivalent is pursued. `[2 * 2 * 2]` could be interpreted as `[2, 2, 2, 2]`, `[4, 4,]`, or `[8]`.
 
@@ -152,7 +152,7 @@ The order of size first, then type is determined by the ordering of the unsugare
 
 ### Whitespace around the delimeter
 
-In theory, when using integer literals or `_` the whitespace could be omitted (`[5x_]` is unabiguously `[5 x _]`). However, special casing allowing whitespace omission is not desirable.
+In theory, when using integer literals or `_` the whitespace could be omitted (`[5x_]` is unambiguously `[5 x _]`). However, special casing allowing whitespace omission is not desirable.
 
 ### Choice of brackets
 
