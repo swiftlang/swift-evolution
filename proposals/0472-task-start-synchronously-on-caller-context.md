@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Returned for revision**
 * Implementation: https://github.com/swiftlang/swift/pull/79608
-* Review: ([pitch](https://forums.swift.org/t/pitch-concurrency-starting-tasks-synchronously-from-caller-context/77960/)) ([review](https://forums.swift.org/t/se-0472-starting-tasks-synchronously-from-caller-context/78883)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0472-starting-tasks-synchronously-from-caller-context/79311))
+* Review: ([pitch](https://forums.swift.org/t/pitch-concurrency-starting-tasks-synchronously-from-caller-context/77960/)) ([first review](https://forums.swift.org/t/se-0472-starting-tasks-synchronously-from-caller-context/78883)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0472-starting-tasks-synchronously-from-caller-context/79311)) ([second review](https://forums.swift.org/t/second-review-se-0472-starting-tasks-synchronously-from-caller-context/79683))
 
 ## Introduction
 
