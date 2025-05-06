@@ -289,7 +289,7 @@ actor MyActor {
 In the above code, the call to `x.performAsync()` continues running on the
 `self` actor instance. The code does not produce a data-race safety error,
 because the `NotSendable` instance `x` does not leave the actor. In other
-words, the arguments are not send across an isolation boundary when calling
+words, the arguments are not sent across an isolation boundary when calling
 `performAsync` by default.
 
 This behavior is accomplished by implicitly passing an optional actor parameter
