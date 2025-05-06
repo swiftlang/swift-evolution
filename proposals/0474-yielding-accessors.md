@@ -559,7 +559,7 @@ Since it would typically be ambiguous whether the `yielding borrow` or `get` sho
 A `yielding` accessor lends the value it yields to its caller.
 The caller only has access to that value until it resumes the coroutine.
 After the coroutine is resumed, it has the opportunity to clean up.
-This enables a `yielding borrow` or `mutate` to do interesting work such as constructing aggregates from its base object's fields:
+This enables a `yielding borrow` or `mutate` to do interesting work, such as constructing a temporary aggregate from its base object's fields:
 
 ```swift
 struct Pair<Left : ~Copyable, Right : ~Copyable> : ~Copyable {
@@ -567,16 +567,16 @@ struct Pair<Left : ~Copyable, Right : ~Copyable> : ~Copyable {
   var right: Right
 
   var reversed: Pair<Right, Left> {
-    yielding borrow {
+    yielding mutate {
       let result = Pair<Right, Left>(left: right, right: left)
-      yield result
+      yield &result
       self = .init(left: result.right, right: result.left)
     }
   }
 }
 ```
 
-That the borrow ends when the coroutine is resumed means that the lifetime of the lent value is strictly shorter than that of the base value.
+That the access ends when the coroutine is resumed means that the lifetime of the lent value is strictly shorter than that of the base value.
 In the example above, the lifetime of `reversed` is shorter than that of the `Pair` it is called on.
 
 As discussed in the [accessors vision](https://github.com/rjmccall/swift-evolution/blob/accessors-vision/visions/accessors.md), when a value is merely being projected from the base object and does not need any cleanup after being accessed, this is undesirably limiting:
