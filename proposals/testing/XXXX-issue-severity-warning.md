@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Pitched**
 * Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285)
 
 ## Introduction
 
