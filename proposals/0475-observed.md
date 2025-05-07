@@ -452,14 +452,15 @@ This situation commonly comes up when the asynchronous sequence is stored as a p
 
 ```
 A 0 0
+B 0 0
 B 1 1
 A 1 1
-B 2 2
 A 2 2
+B 2 2
 A 3 3
 B 3 3
-A 4 4
 B 4 4
+A 4 4
 ```
 
 The same rate commentary applies here as before but an additional wrinkle is that the delivery between the A and B sides is non-determinstic (in some cases it can deliver as A then B and other cases B then A).
