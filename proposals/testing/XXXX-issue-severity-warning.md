@@ -4,8 +4,8 @@
 * Authors: [Suzy Ratcliff](https://github.com/suzannaratcliff)
 * Review Manager: TBD
 * Status: **Pitched**
-* Bug: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
 * Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
+* Review: ([pitch](https://forums.swift.org/...))
 
 ## Introduction
 
@@ -31,7 +31,7 @@ Currently, when an issue arises during a test, the only possible outcome is to m
     - Reason: This makes sense to be a warning and not a failure because if the retry succeeds the test may still verify the code correctly
 
 ## Proposed solution
-We propose introducing a new property on `Issue` in Swift Testing called `Severity`, that represents if an issue is a `warning` or an `error`.
+We propose introducing a new property on `Issue` in Swift Testing called `severity`, that represents if an issue is a `warning` or an `error`.
 The default Issue severity will still be `error` and users can set the severity when they record an issue.
 
 Test authors will be able to inspect if the issue is a failing issue and will be able to check the severity.
@@ -45,8 +45,9 @@ We introduce a Severity enum to categorize issues detected during testing. This 
 The `Severity` enum:
 
 ```swift
-  public enum Severity: Sendable {
-    /// The severity level for an issue which should be noted but is not
+extension Issue {
+  // ...
+  public enum Severity: Codable, Comparable, CustomStringConvertible, Sendable {    /// The severity level for an issue which should be noted but is not
     /// necessarily an error.
     ///
     /// An issue with warning severity does not cause the test it's associated
@@ -59,6 +60,8 @@ The `Severity` enum:
     /// marked as a failure.
     case error
   }
+  // ...
+}
 ```
 
 *Recording Non-Failing Issues*
@@ -120,6 +123,12 @@ This revision aims to clarify the functionality and usage of the `Severity` enum
 - Naming of `isFailure` vs. `isFailing`: We evaluated whether to name the property `isFailing` instead of `isFailure`. The decision to use `isFailure` was made to adhere to naming conventions and ensure clarity and consistency within the API.
 
 - Severity-Only Checking: We deliberated not exposing `isFailure` and relying solely on `severity` checks. However, this was rejected because it would require test authors to overhaul their code should we introduce additional severity levels in the future. By providing `isFailure`, we offer a straightforward way to determine test outcome impact, complementing the severity feature.
+
+## Future directions
+
+- In the future I could see the warnings being able to be promoted to errors in order to run with a more strict testing configuration
+
+- In the future I could see adding other levels of severity such as Info and Debug for users to create issues with other information.
 
 ## Acknowledgments
 
