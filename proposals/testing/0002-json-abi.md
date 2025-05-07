@@ -5,7 +5,7 @@
 * Status: **Implemented (Swift 6.0)**
 * Implementation: [swiftlang/swift-testing#383](https://github.com/swiftlang/swift-testing/pull/383),
   [swiftlang/swift-testing#402](https://github.com/swiftlang/swift-testing/pull/402)
-* Review: ([pitch](https://forums.swift.org/t/pitch-a-stable-json-based-abi-for-tools-integration/72627)), ([acceptance](https://forums.swift.org/t/pitch-a-stable-json-based-abi-for-tools-integration/72627/4))
+* Review: ([pitch](https://forums.swift.org/t/pitch-a-stable-json-based-abi-for-tools-integration/72627)) ([acceptance](https://forums.swift.org/t/pitch-a-stable-json-based-abi-for-tools-integration/72627/4))
 
 > [!NOTE]
 > This proposal was accepted before Swift Testing began using the Swift

@@ -5,9 +5,7 @@
 * Status: **Implemented (Swift 6.0)**
 * Implementation: 
 [swiftlang/swift-testing#534](https://github.com/swiftlang/swift-testing/pull/534)
-* Review: 
-([pitch](https://forums.swift.org/t/pitch-constrain-the-granularity-of-test-time-limit-durations/73146)),
-([acceptance](https://forums.swift.org/t/pitch-constrain-the-granularity-of-test-time-limit-durations/73146/3))
+* Review: ([pitch](https://forums.swift.org/t/pitch-constrain-the-granularity-of-test-time-limit-durations/73146)) ([acceptance](https://forums.swift.org/t/pitch-constrain-the-granularity-of-test-time-limit-durations/73146/3))
 
 > [!NOTE]
 > This proposal was accepted before Swift Testing began using the Swift
