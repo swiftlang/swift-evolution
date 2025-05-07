@@ -15,6 +15,21 @@ I propose introducing a new API to Swift Testing that allows developers to recor
 
 Currently, when an issue arises during a test, the only possible outcome is to mark the test as failed. This presents a challenge for users who want a deeper insight into the events occurring within their tests. By introducing a dedicated mechanism to record issues that do not cause test failure, users can more effectively inspect and diagnose problems at runtime and review results afterward. This enhancement provides greater flexibility and clarity in test reporting, ultimately improving the debugging and analysis process.
 
+### Use Cases
+
+-  Warning about a Percentage Discrepancy in Image Comparison:
+    - Scenario: When comparing two images to assess their similarity, a warning can be triggered if there's a 95% pixel match, while a test failure is set at a 90% similarity threshold.
+    - Reason: In practices like snapshot testing, minor changes (such as a timestamp) might cause a discrepancy. Setting a 90% match as a pass ensures test integrity. However, a warning at 95% alerts testers that, although the images aren't identical, the test has passed, which may warrant further investigation.
+- Warning for Duplicate Argument Inputs in Tests:
+    - Scenario: In a test library, issue a warning if a user inputs the same argument twice, rather than flagging an error.
+    - Reason: Although passing the same argument twice might not be typical, some users may have valid reasons for doing so. Thus, a warning suffices, allowing flexibility without compromising the test's execution.
+- Warning for Recoverable Unexpected Events:
+    - Scenario: During an integration test where data is retrieved from a server, a warning can be issued if the primary server is down, prompting a switch to an alternative server.  Usually mocking is the solution for this but may not test everything needed for an integration test.
+    - Reason: Since server downtime might happen and can be beyond the tester's control, issuing a warning rather than a failure helps in debugging and understanding potential issues without impacting the test's overall success.
+- Warning for a retry during setup for a test:
+    - Scenario: During test setup part of your code may be configured to retry, it would be nice to notify in the results that a retry happened
+    - Reason: This makes sense to be a warning and not a failure because if the retry succeeds the test may still verify the code correctly
+
 ## Proposed solution
 We propose introducing a new property on `Issue` in Swift Testing called `Severity`, that represents if an issue is a `warning` or an `error`.
 The default Issue severity will still be `error` and users can set the severity when they record an issue.
