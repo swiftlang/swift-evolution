@@ -31,7 +31,7 @@ This becomes more pronounced when dealing with multiple dimensions:
 let fiveByFive: InlineArray<5, InlineArray<5, Int>> = .init(repeating: .init(repeating: 99))
 ```
 
-Almost every other language in a similar category to Swift – C, C++, Objective-C, Pascal, Go, Rust, Zig, Java, C# – have a simple syntax for their fixed size array type. The introduction of a fixed-size array type into Swift should also introduce a shorthand syntax, in keeping with Swift's general approach of low-ceremony and concise syntax.
+Almost every other language in a similar category to Swift – C, C++, Objective-C, Pascal, Go, Rust, Zig, Java, C# – have a simple syntax for their fixed-size array type. The introduction of a fixed-size array type into Swift should also introduce a shorthand syntax, in keeping with Swift's general approach of low-ceremony and concise syntax.
 
 ## Proposed solution
 
@@ -113,7 +113,7 @@ Unlike the sugar for the type, this would also have applicability for existing t
 let dynamic: [Int] = [5 x 99]
 ```
 
-This is a much bigger design space, potentially requiring a new expressible-by-literal protocol and a way to map the literal to an initializer. As such, it is left for a future proposal.
+This is a much bigger design space, potentially requiring a new expressible-by-literal protocol and a way to map the literal to an initializer. As such, it is left for a future proposal. However, given the potential benefit of such a value syntax, any choice for the type sugar should consider its future extension to value sugar.
 
 ### Flattened multi-dimensional arrays
 
@@ -127,15 +127,16 @@ The most obvious alternative here is the choice of separator. Other options incl
 
 - `[5 * Int]`, using the standard ASCII symbol for multiplication.
 - `[5 ⨉ Int]`, the Unicode n-ary times operator. This looks nice but is impractical as not keyboard-accessible.
-- `[5; Int]` is what Rust uses, but appears to have little association with "times" or "many". Similarly other arbitrary punctuation e.g. `,` or `/` or `#`.
-- `[5 of Int]` is more verbose than `x` but could be considered more clear. It has the upside or downside, depending on your preference, of being almost, but not quite, grammatical.
+- `[5; Int]` is what Rust uses, but appears to have little association with "times" or "many". Similarly other arbitrary punctuation e.g. `,` or `/`
+- `[5 of Int]` is more verbose than `x` but could be considered more clear. It has the upside or downside, depending on your preference, of being almost, but not quite, grammatical. `[5 by Int]` has less of a grammatical challenge.
+- `#` does have association with counts (as in the size of a set _S_ being _#S_. However, it is a prefix operator, so suggests `[#5 Int]`
 - `:` is of course ruled out as it is used for dictionary literals.
 
 Note that `*` is an existing operator, and may lead to ambiguity in future when expressions can be used to determine the size: `[5 * N * Int]`. `x` is clearer in this case: `[5 * N x Int]`. It also avoids parsing ambiguity, as the grammar does not allow two identifiers in succession. But it would be less clear if `x` also appeared as an identifier: `[5 * x x Int]` (which is not yet permitted but may be in future use cases).
 
 This becomes more important if the future direction of a value equivalent is pursued. `[2 * 2 * 2]` could be interpreted as `[2, 2, 2, 2]`, `[4, 4,]`, or `[8]`.
 
-Since `x` cannot follow another identifier today, `[x x Int]` is unambiguous,[^type] but would clearly be hard to read. This is likely a hypothetical concern rather than a practical one. While `x` is used often in scratch code for a local variable, a more meaningful name is usually preferable, and this would be especially the case if it is found being used for the size of an array literal. In addition, while `i`, `j`, or `n` are often legitimate counters that might be suited to the size of an array, `x` is generally not used for such things.
+Since `x` cannot follow another identifier today, `[x x Int]` is unambiguous,[^type] but would clearly be hard to read. This is likely a hypothetical concern rather than a practical one. While `x` is used often in scratch code for a local variable, a more meaningful name is usually preferable, and this would be especially the case if it is found being used for the size of an array literal. In addition, while `i`, `j`, or `n` are often legitimate counters that might be suited to the size of an array, `x` is generally not used for such things. `x` _is_ common as a value for an x coodinate, such as in graphics code, but it is not at all common to use such a coordinate value as the size (or even repeated value, in a future value equivalent syntax) of an array.
 
 [^type]: or even `[x x x]`, since `x` can be a type name, albeit one that defies Swift's naming conventions.
 
