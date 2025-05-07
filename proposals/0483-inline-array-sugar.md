@@ -31,6 +31,8 @@ This becomes more pronounced when dealing with multiple dimensions:
 let fiveByFive: InlineArray<5, InlineArray<5, Int>> = .init(repeating: .init(repeating: 99))
 ```
 
+Almost every other language in a similar category to Swift – C, C++, Objective-C, Pascal, Go, Rust, Zig, Java, C# – have a simple syntax for their fixed size array type. The introduction of a fixed-size array type into Swift should also introduce a shorthand syntax, in keeping with Swift's general approach of low-ceremony and concise syntax.
+
 ## Proposed solution
 
 A new sugared version of the `InlineArray` type is proposed:
