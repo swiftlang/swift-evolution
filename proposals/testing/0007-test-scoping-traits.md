@@ -4,7 +4,7 @@
 * Authors: [Stuart Montgomery](https://github.com/stmontgomery)
 * Status: **Implemented (Swift 6.1)**
 * Implementation: [swiftlang/swift-testing#733](https://github.com/swiftlang/swift-testing/pull/733), [swiftlang/swift-testing#86](https://github.com/swiftlang/swift-testing/pull/86)
-* Review: ([pitch](https://forums.swift.org/t/pitch-custom-test-execution-traits/75055)), ([review](https://forums.swift.org/t/proposal-test-scoping-traits/76676)), ([acceptance](https://forums.swift.org/t/proposal-test-scoping-traits/76676/3))
+* Review: ([pitch](https://forums.swift.org/t/pitch-custom-test-execution-traits/75055)) ([review](https://forums.swift.org/t/proposal-test-scoping-traits/76676)) ([acceptance](https://forums.swift.org/t/proposal-test-scoping-traits/76676/3))
 
 > [!NOTE]
 > This proposal was accepted before Swift Testing began using the Swift

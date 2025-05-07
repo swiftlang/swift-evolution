@@ -5,9 +5,7 @@
 * Status: **Implemented (Swift 6.0)**
 * Implementation: 
 [swiftlang/swift-testing#535](https://github.com/swiftlang/swift-testing/pull/535)
-* Review: 
-([pitch](https://forums.swift.org/t/pitch-make-serialized-trait-public-api/73147)),
-([acceptance](https://forums.swift.org/t/pitch-make-serialized-trait-public-api/73147/5))
+* Review: ([pitch](https://forums.swift.org/t/pitch-make-serialized-trait-public-api/73147)) ([acceptance](https://forums.swift.org/t/pitch-make-serialized-trait-public-api/73147/5))
 
 > [!NOTE]
 > This proposal was accepted before Swift Testing began using the Swift

@@ -5,7 +5,7 @@
 * Status: **Implemented (Swift 6.1)**
 * Bug: rdar://138235250
 * Implementation: [swiftlang/swift-testing#780](https://github.com/swiftlang/swift-testing/pull/780)
-* Review: ([pitch](https://forums.swift.org/t/pitch-returning-errors-from-expect-throws/75567)), ([acceptance](https://forums.swift.org/t/pitch-returning-errors-from-expect-throws/75567/5))
+* Review: ([pitch](https://forums.swift.org/t/pitch-returning-errors-from-expect-throws/75567)) ([acceptance](https://forums.swift.org/t/pitch-returning-errors-from-expect-throws/75567/5))
 
 > [!NOTE]
 > This proposal was accepted before Swift Testing began using the Swift

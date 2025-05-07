@@ -4,7 +4,7 @@
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Status: **Implemented (Swift 6.0)**
 * Implementation: [swiftlang/swift-testing#401](https://github.com/swiftlang/swift-testing/pull/401)
-* Review: ([pitch](https://forums.swift.org/t/pitch-dedicated-bug-functions-for-urls-and-ids/71842)), ([acceptance](https://forums.swift.org/t/swt-0001-dedicated-bug-functions-for-urls-and-ids/71842/2))
+* Review: ([pitch](https://forums.swift.org/t/pitch-dedicated-bug-functions-for-urls-and-ids/71842)) ([acceptance](https://forums.swift.org/t/swt-0001-dedicated-bug-functions-for-urls-and-ids/71842/2))
 
 > [!NOTE]
 > This proposal was accepted before Swift Testing began using the Swift

@@ -5,8 +5,7 @@
 * Status: **Implemented (Swift 6.1)**
 * Bug: rdar://138499457
 * Implementation: [swiftlang/swift-testing#598](https://github.com/swiftlang/swift-testing/pull/598), [swiftlang/swift-testing#689](https://github.com/swiftlang/swift-testing/pull689)
-* Review: ([pitch](https://forums.swift.org/t/pitch-range-based-confirmations/74589)),
-  ([acceptance](https://forums.swift.org/t/pitch-range-based-confirmations/74589/7))
+* Review: ([pitch](https://forums.swift.org/t/pitch-range-based-confirmations/74589)) ([acceptance](https://forums.swift.org/t/pitch-range-based-confirmations/74589/7))
 
 > [!NOTE]
 > This proposal was accepted before Swift Testing began using the Swift
