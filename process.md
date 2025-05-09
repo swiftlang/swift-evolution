@@ -241,7 +241,7 @@ A given proposal can be in one of several states:
 
 [swift-evolution-repo]: https://github.com/swiftlang/swift-evolution  "Swift evolution repository"
 [swift-evolution-staging]: https://github.com/swiftlang/swift-evolution-staging  "Swift evolution staging repository"
-[proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
+[proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' subcategory of the Swift forums"
 [status-page]: https://www.swift.org/swift-evolution
 [preview-package]: https://github.com/apple/swift-standard-library-preview/
 [language-steering-group]: https://www.swift.org/language-steering-group
@@ -253,10 +253,14 @@ A given proposal can be in one of several states:
 
 ## Review announcement
 
-When a proposal enters review, a new topic will be posted to the ["Proposal Reviews" section of the Swift forums][proposal-reviews]
-using the following template:
+When a proposal enters review, a new topic will be posted to the
+["Proposal Reviews" subcategory of the Swift forums][proposal-reviews] using the
+relevant announcement template below:
 
 ---
+
+<details open>
+<summary>Swift language, compiler, and standard library</summary>
 
 Hello Swift community,
 
@@ -297,4 +301,72 @@ Thank you,
 
 Review Manager
 
----
+</details>
+
+<details>
+<summary>Swift Testing public interfaces and features</summary>
+
+Hello Swift community,
+
+The review of "\<\<PROPOSAL NAME>>" begins now and runs through \<\<REVIEW END DATE>>.
+The proposal is available here:
+
+> https://linkToProposal
+
+Reviews are an important part of the Swift evolution process. All review
+feedback should be either on this forum thread or, if you would like to keep
+your feedback private, directly to the review manager. When emailing the review
+manager directly, please keep the proposal link at the top of the message.
+
+##### Trying it out
+
+To try this feature out, add a dependency to the `main` branch of
+`swift-testing` to your package:
+
+```swift
+dependencies: [
+  ...
+  .package(url: "https://github.com/swiftlang/swift-testing.git", branch: "main"),
+]
+```
+
+Then, add a target dependency to your test target:
+
+```swift
+.testTarget(
+  ...
+  dependencies: [
+    ...
+    .product(name: "Testing", package: "swift-testing"),
+  ]
+```
+
+Finally, import Swift Testing using `@_spi(Experimental) import Testing`.
+
+##### What goes into a review?
+
+The goal of the review process is to improve the proposal under review through
+constructive criticism and, eventually, determine the direction of Swift. When
+writing your review, here are some questions you might want to answer in your
+review:
+
+* What is your evaluation of the proposal?
+* Is the problem being addressed significant enough to warrant a change to Swift
+  Testing?
+* Does this proposal fit well with the feel and direction of Swift Testing?
+* If you have used other languages or libraries with a similar feature, how do
+  you feel that this proposal compares to those?
+* How much effort did you put into your review? A glance, a quick reading, or an
+  in-depth study?
+
+More information about the Swift evolution process is available at
+
+> https://github.com/swiftlang/swift-evolution/blob/main/process.md
+
+Thank you,
+
+-\<\<REVIEW MANAGER NAME>>
+
+Review Manager
+
+</details>
