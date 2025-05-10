@@ -11,7 +11,8 @@ This repository tracks the ongoing evolution of the Swift programming language, 
 
 | Version   | Announced                                                                | Released                                                     |
 | :-------- | :----------------------------------------------------------------------- | :----------------------------------------------------------- |
-| Swift 6.1 | [2024-10-17](https://forums.swift.org/t/swift-6-1-release-process/75442) |
+| Swift 6.2 | [2025-03-08](https://forums.swift.org/t/swift-6-2-release-process/78371) | |
+| Swift 6.1 | [2024-10-17](https://forums.swift.org/t/swift-6-1-release-process/75442) | [2025-03-31](https://www.swift.org/blog/swift-6.1-released/) |
 | Swift 6.0 | [2024-02-22](https://forums.swift.org/t/swift-6-0-release-process/70220) | [2024-09-17](https://www.swift.org/blog/announcing-swift-6/) |
 | Swift 5.10 | [2023-08-23](https://forums.swift.org/t/swift-5-10-release-process/66911) | [2024-03-05](https://www.swift.org/blog/swift-5.10-released/) |
 | Swift 5.9 | [2023-03-06](https://forums.swift.org/t/swift-5-9-release-process/63557) | [2023-09-18](https://www.swift.org/blog/swift-5.9-released/) |
