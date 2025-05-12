@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](NNNN-allow-additional-args-to-dynamicmemberlookup-subscripts.md)
 * Authors: [Itai Ferber](https://github.com/itaiferber)
-* Review Manager: TBD
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: Awaiting review
 * Implementation: [swiftlang/swift#81148](https://github.com/swiftlang/swift/pull/81148)
 * Previous Proposals: [SE-0195](0195-dynamic-member-lookup.md), [SE-0252](0252-keypath-dynamic-member-lookup.md)
