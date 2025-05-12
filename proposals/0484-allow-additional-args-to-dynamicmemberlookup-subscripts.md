@@ -6,7 +6,7 @@
 * Status: **Active review (May 12...25, 2025)**
 * Implementation: [swiftlang/swift#81148](https://github.com/swiftlang/swift/pull/81148)
 * Previous Proposals: [SE-0195](0195-dynamic-member-lookup.md), [SE-0252](0252-keypath-dynamic-member-lookup.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-allow-additional-arguments-to-dynamicmemberlookup-subscripts/79558))
+* Review: ([pitch](https://forums.swift.org/t/pitch-allow-additional-arguments-to-dynamicmemberlookup-subscripts/79558)) ([review](https://forums.swift.org/t/se-0484-allow-additional-arguments-to-dynamicmemberlookup-subscripts/79853))
 
 ## Introduction
 
