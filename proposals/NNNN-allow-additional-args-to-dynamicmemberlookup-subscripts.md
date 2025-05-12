@@ -211,9 +211,9 @@ let _: String = C().member  // (5); no ambiguity
 let _: String? = C().member // (6) preferred over (5); ⚠️ previously (5) ⚠️
 ```
 
-This last case is the only source of behavior change: (6) was previously not considered a valid candidate, but has a return type more specific than (5**, and is now picked at a callsite.
+This last case is the only source of behavior change: (6) was previously not considered a valid candidate, but has a return type more specific than (5), and is now picked at a callsite.
 
-**In practice, it is expected that this situation is exceedingly rare.**
+In practice, it is expected that this situation is exceedingly rare.
 
 ## ABI compatibility
 
@@ -225,45 +225,53 @@ The changes in this proposal require the adoption of a new version of the Swift 
 
 ## Alternatives considered
 
-The main alternative to this proposal is to not implement it. This is possible to work around using explicit methods such as `get()` and `set(_:)`:
+The main alternative to this proposal is to not implement it, as:
+1. It was noted in [the pitch thread](https://forums.swift.org/t/pitch-allow-additional-arguments-to-dynamicmemberlookup-subscripts/79558) that allowing additional arguments to dynamic member lookup widens the gap in capabilities between dynamic members and regular members — dynamic members would be able to
 
-```swift
-@dynamicMemberLookup
-struct Value {
-    struct Property {
-        func get(
-            function: StaticString = #function,
-            file: StaticString = #file,
-            line: UInt = #line
-        ) -> Value {
-            ...
-        }
+   1. Have caller side effects (i.e., have access to `#function`, `#file`, `#line`, etc.),
+   2. Constrain themselves via generics, and
+   3. Apply isolation to themselves via `#isolation`
 
-        func set(
-            _ value: Value,
-            function: StaticString = #function,
-            file: StaticString = #file,
-            line: UInt = #line
-        ) {
-            ...
-        }
-    }
+   where regular members cannot. However, (i) and (iii) are not considered an imbalance in functionality but instead are the raison d'être of this proposal. (ii) is also already possible today as dynamic member subscripts can be constrained via generics (and this is often used with keypath-based lookup).
+2. This is possible to work around using explicit methods such as `get()` and `set(_:)`:
 
-    subscript(dynamicMember member: String) -> Property { ... }
-}
+   ```swift
+   @dynamicMemberLookup
+   struct Value {
+       struct Property {
+           func get(
+               function: StaticString = #function,
+               file: StaticString = #file,
+               line: UInt = #line
+           ) -> Value {
+               ...
+           }
 
-let x: Value = ...
-let _ = x.member.get()  // x.member
-x.member.set(Value(42)) // x.member = Value(42)
-```
+           func set(
+               _ value: Value,
+               function: StaticString = #function,
+               file: StaticString = #file,
+               line: UInt = #line
+           ) {
+               ...
+           }
+       }
 
-However, this feels non-idiomatic, and for long chains of getters and setters, can become cumbersome:
+       subscript(dynamicMember member: String) -> Property { ... }
+   }
 
-```swift
-let x: Value = ...
-let _ = x.member.get().inner.get().nested.get()  // x.member.inner.nested
-x.member.get().inner.get().nested.set(Value(42)) // x.member.inner.nested = Value(42)
-```
+   let x: Value = ...
+   let _ = x.member.get()  // x.member
+   x.member.set(Value(42)) // x.member = Value(42)
+   ```
+
+   However, this feels non-idiomatic, and for long chains of getters and setters, can become cumbersome:
+
+   ```swift
+   let x: Value = ...
+   let _ = x.member.get().inner.get().nested.get()  // x.member.inner.nested
+   x.member.get().inner.get().nested.set(Value(42)) // x.member.inner.nested = Value(42)
+   ```
 
 ### Source compatibility
 
