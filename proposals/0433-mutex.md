@@ -330,7 +330,7 @@ mutex.withLock {
 // borrow access ends
 
 do {
-  // borrow access ends
+  // borrow access begins
   let locked = mutex.lock()
   ...
   
