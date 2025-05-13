@@ -62,7 +62,7 @@ Task {
     await subject.raiseDolphins()
 }
 await #expect(until: .passesOnce) {
-    subject.dolphins.count() == 1
+    await subject.dolphins.count == 1
 }
 ```
 
@@ -212,7 +212,7 @@ These macros can be used with an async test function:
         await subject.raiseDolphins()
     }
     await #expect(until: .passesOnce) {
-        subject.dolphins.count() == 1
+        await subject.dolphins.count == 1
     }
 }
 ```
@@ -266,10 +266,43 @@ it could be configured in some future global configuration tool.
 
 ## Alternatives considered
 
+### Remove `PollingBehavior` in favor of more macros
+
 Instead of creating the `PollingBehavior` type, we could have introduced more
 macros to cover that situation: `#expect(until:)` and `#expect(always:)`.
 However, this would have resulted in confusion for the compiler and test authors
 when trailing closure syntax is used.
+
+### `PollingBehavior.passesOnce` continues to evaluate expression after passing
+
+Under `PollingBehavior.passesOnce`, we thought about requiring the expression
+to continue to pass after it starts passing. The idea is to prevent test
+flakiness caused by an expectation that initially passes, but stops passing as
+a result of (intended) background activity. For example:
+
+```swift
+@Test func `The aquarium's dolphin nursery works`() async {
+    let subject = Aquarium()
+    await subject.raiseDolphins()
+    Task {
+        await subject.raiseDolphins()
+    }
+    await #expect(until: .passesOnce) {
+        await subject.dolphins.count == 1
+    }
+}
+```
+
+This test is flaky, but will pass more often than not. However, it is still
+incorrect. If we were to change `PollingBehavior.passesOnce` to instead check
+that the expression continues to pass after the first time it succeeds until the
+timeout is reached, then this test would correctly be flagged as failing each
+time it's ran.
+
+We chose to address this by using the name `passesOnce` instead of changing the
+behavior. `passesOnce` makes it clear the exact behavior that will happen: the
+expression will be evaluated until the first time it passes, and no more. We
+hope that this will help test authors to better recognize these situations.
 
 ## Acknowledgments
 
