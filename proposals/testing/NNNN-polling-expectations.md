@@ -3,7 +3,7 @@
 * Proposal: [ST-NNNN](NNNN-polling-expectations.md)
 * Authors: [Rachel Brindle](https://github.com/younata)
 * Review Manager: TBD
-* Status: **Awaiting implementation** or **Awaiting review**
+* Status: **Awaiting implementation**
 * Implementation: (Working on it)
 * Review: ([Pitch](https://forums.swift.org/t/pitch-polling-expectations/79866))
 
