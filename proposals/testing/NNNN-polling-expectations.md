@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
 * Implementation: (Working on it)
-* Review: (Working on it)
+* Review: ([Pitch](https://forums.swift.org/t/pitch-polling-expectations/79866))
 
 ## Introduction
 
