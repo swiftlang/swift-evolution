@@ -18,31 +18,31 @@
 
 ## Introduction
 
-Following the introduction of [`Span`][SE-0447] and [`MutableSpan`][SE-0467], this proposal adds a general facility for initialization of exclusively-borrowed memory with the `OutputSpan` and `OutputRawSpan` types. The memory represented by `OutputSpan` consists of a number of initialized elements, followed by uninitialized memory. The operations of `OutputSpan` can change the number of initialized elements in memory, unlike `MutableSpan` which always represents memory that is initialized.
+Following the introduction of [`Span`][SE-0447] and [`MutableSpan`][SE-0467], this proposal adds a general facility for initialization of exclusively-borrowed memory with the `OutputSpan` and `OutputRawSpan` types. The memory represented by `OutputSpan` consists of a number of initialized elements, followed by uninitialized memory. The operations of `OutputSpan` can change the number of initialized elements in memory, unlike `MutableSpan` which always represent initialized memory representing a fixed number of elements.
 
 ## Motivation
 
-Some standard library container types can delegate initialization of some or all of their storage to user code. Up to now, it has only been possible to do so with explicitly unsafe ways, which have also proven error-prone. The standard library provides this unsafe functionality with the closure-taking initializers `Array.init(unsafeUninitializedCapacity:initializingWith:)` and `String.init(unsafeUninitializedCapacity:initializingUTF8With:)`.
+Some standard library container types can delegate initialization of some or all of their storage to user code. Up to now, it has only been possible to do so with explicitly unsafe functions, which have also proven error-prone. The standard library provides this unsafe functionality with the closure-taking initializers `Array.init(unsafeUninitializedCapacity:initializingWith:)` and `String.init(unsafeUninitializedCapacity:initializingUTF8With:)`.
 
 These functions have a few different drawbacks, most prominently their reliance on unsafe types, which makes them unpalatable in security-conscious environments. We continue addressing these issues with `OutputSpan` and `OutputRawSpan`, new non-copyable and non-escapable types that manage initialization of typed and untyped memory.
 
-In addition to the new types, we will propose adding new API for some standard library types to take advantage of `OutputSpan` and `OutputRawSpan`, and improve upon the `Array` and `String` initializers mentioned above.
+In addition to the new types, we propose adding new API for some standard library types to take advantage of `OutputSpan` and `OutputRawSpan`.
 
 ## Proposed solution
 
 #### OutputSpan
 
-`OutputSpan` allows delegating the initialization of a type's memory, by providing access to an exclusively-borrowed view of a range of contiguous memory. `OutputSpan`'s contiguous memory consists of a prefix of initialized memory, followed by a suffix of uninitialized memory. Like `MutableSpan`, `OutputSpan` relies on two guarantees: (a) that it has exclusive access to the range of memory it represents, and (b) that the memory locations it represents will remain valid for the duration of the access. These guarantee data race safety and temporal safety. `OutputSpan` performs bounds-checking on every access to preserve spatial safety.
+`OutputSpan` allows delegating the initialization of a type's memory, by providing access to an exclusively-borrowed view of a range of contiguous memory. `OutputSpan`'s contiguous memory always consists of a prefix of initialized memory, followed by a suffix of uninitialized memory. `OutputSpan`'s operations manage the initialization state in order to preserve that invariant. The common usage pattern we expect to see for `OutputSpan` consists of passing it as an `inout` parameter to a function, allowing the function to produce an output by writing into a previously uninitialized region.
 
-An `OutputSpan` provided by a container represents a mutation of that container, and is therefore an exclusive access.
+Like `MutableSpan`, `OutputSpan` relies on two guarantees: (a) that it has exclusive access to the range of memory it represents, and (b) that the memory locations it represents will remain valid for the duration of the access. These guarantee data race safety and temporal safety. `OutputSpan` performs bounds-checking on every access to preserve spatial safety. `OutputSpan` manages the initialization state of the memory in represents on behalf of the memory's owner.
 
 #### OutputRawSpan
 
-`OutputRawSpan` allows delegating the initialization of heterogeneously-typed memory, such as memory being prepared by an encoder. It makes the same safety guarantees as `OutputSpan`.
+`OutputRawSpan` allows delegating the initialization of heterogeneously-typed memory, such as memory being prepared by an encoder. It makes the same safety guarantees as `OutputSpan`, but manages untyped memory.
 
 #### Extensions to standard library types
 
-The standard library will provide new container initializers that delegate to an `OutputSpan`. Delegated initialization generally requires a container to perform some operations after the initialization has happened. In the case of `Array` this is simply noting the number of initialized elements; in the case of `String` this consists of validating the input. This post-processing implies the need for a scope, and we believe that scope is best represented by a closure. The `Array` initializer will be as follows:
+The standard library will provide new container initializers that delegate to an `OutputSpan`. Delegated initialization generally requires a container to perform some operations after the initialization has happened. In the case of `Array` this is simply noting the number of initialized elements; in the case of `String` this consists of validating the input, then noting metadata about the input. This post-processing implies the need for a scope, and we believe that scope is best represented by a closure. The `Array` initializer will be as follows:
 
 ```swift
 extension Array {
@@ -65,7 +65,7 @@ Note: The eventual lifetime annotations proposal may adopt a syntax different th
 
 #### OutputSpan
 
-`OutputSpan<Element>` is a simple representation of a partially-initialized region of memory. It is non-copyable in order to enforce exclusive access for mutations of its memory, as required by the law of exclusivity:
+`OutputSpan<Element>` is a simple representation of a partially-initialized region of memory. It is non-copyable in order to enforce exclusive access during mutations of its memory, as required by the law of exclusivity:
 
 ````swift
 @frozen
@@ -132,7 +132,7 @@ extension OutputSpan {
   @discardableResult
   @lifetime(self: copy self)
   public mutating func append(
-    from source: inout some IteratorProtocol<Element>
+    contentsOf source: inout some IteratorProtocol<Element>
   ) -> Bool
 
   /// Initialize this span's suffix with every element of the source.
@@ -141,7 +141,7 @@ extension OutputSpan {
   /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
-    fromContentsOf source: some Sequence<Element>
+    contentsOf source: some Sequence<Element>
   )
 
   /// Initialize this span's suffix with every element of the source.
@@ -150,7 +150,7 @@ extension OutputSpan {
   /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
-    fromContentsOf source: Span<Element>
+    copying source: Span<Element>
   )
 
   /// Initialize this span's suffix with every element of the source.
@@ -159,7 +159,7 @@ extension OutputSpan {
   /// can contain every element of the source.
   @lifetime(self: copy self)
   public mutating func append(
-    fromContentsOf source: UnsafeBufferPointer<Element>
+    copying source: UnsafeBufferPointer<Element>
   )
 }
 
@@ -169,8 +169,8 @@ extension OutputSpan where Element: ~Copyable {
   /// It is a precondition that the `OutputSpan`'s uninitialized suffix
   /// can contain every element of the source.
   @lifetime(self: copy self)
-  public mutating func moveAppend(
-    fromContentsOf source: inout OutputSpan<Element>
+  public mutating func append(
+    moving source: inout OutputSpan<Element>
   )
 
   /// Initialize this span's suffix by moving every element from the source.
@@ -178,8 +178,8 @@ extension OutputSpan where Element: ~Copyable {
   /// It is a precondition that the `OutputSpan`'s uninitialized suffix
   /// can contain every element of the source.
   @lifetime(self: copy self)
-  public mutating func moveAppend(
-    fromContentsOf source: UnsafeMutableBufferPointer<Element>
+  public mutating func append(
+    consuming source: UnsafeMutableBufferPointer<Element>
   )
 }
 
@@ -189,13 +189,13 @@ extension OutputSpan {
   /// It is a precondition that the `OutputSpan`'s uninitialized suffix
   /// can contain every element of the source.
   @lifetime(self: copy self)
-  public mutating func moveAppend(
-    fromContentsOf source: Slice<UnsafeMutableBufferPointer<Element>>
+  public mutating func append(
+    consuming source: Slice<UnsafeMutableBufferPointer<Element>>
   )
 }
 ```
 
-Bulk operations to deinitialize some or all of an `OutputSpan`'s memory is also available:
+Bulk operations to deinitialize some or all of an `OutputSpan`'s memory are also available:
 ```swift
 extension OutputSpan where Element: ~Copyable {
   /// Remove the last N elements, returning the memory they occupy
@@ -204,7 +204,7 @@ extension OutputSpan where Element: ~Copyable {
   /// `n` must not be greater than `count`
   @lifetime(self: copy self)
   public mutating func removeLast(_ n: Int)
-  
+
   /// Remove all this span's elements and return its memory to the uninitialized state.
   @lifetime(self: copy self)
   public mutating func removeAll()
@@ -228,7 +228,6 @@ extension OutputSpan where Element: ~Copyable {
   }
 }
 ```
-
 
 
 ##### Interoperability with unsafe code
@@ -267,7 +266,6 @@ extension OutputSpan where Element: ~Copyable {
   ) throws(E) -> R
 }
 ```
-
 
 
 ##### Creating an `OutputSpan` instance:
@@ -321,10 +319,9 @@ extension OutputSpan {
 ```
 
 
-
 ##### Retrieving initialized memory from an `OutputSpan`
 
-Once memory has been initialized using `OutputSpan`, the owner of the memory must consume the `OutputSpan` in order to retake ownership of the initialized memory. The owning type must pass the memory used to initialize the `OutputSpan` to the `finalize(for:)` function. Passing the wrong buffer is a programmer error and the function traps. `finalize()` consumes the `OutputSpan` instance and returns the number of initialized elements.
+Once memory has been initialized using `OutputSpan`, the owner of the memory must consume the `OutputSpan` in order to retake ownership of the initialized memory. The owning type must pass the memory used to initialize the `OutputSpan` to the `finalize(for:)` function. Passing the wrong buffer is a programmer error and the function traps. `finalize(for:)` consumes the `OutputSpan` instance and returns the number of initialized elements. If `finalize(for:)` is not called, the initialized portion of `OutputSpan`'s memory will be deinitialized when the binding goes out of scope.
 
 ```swift
 extension OutputSpan where Element: ~Copyable {
@@ -355,10 +352,9 @@ extension OutputSpan {
 ```
 
 
-
-
 #### `OutputRawSpan`
-`OutputRawSpan` is similar to `OutputSpan<T>`, but represents an untyped partially-initialized region of memory. Its API supports appending the bytes of  instances of `BitwiseCopyable` types, as well as a variety of bulk initialization operations.
+`OutputRawSpan` is similar to `OutputSpan<T>`, but its initialized memory is untyped. Its API supports appending the bytes of  instances of `BitwiseCopyable` types, as well as a variety of bulk initialization operations.
+
 ```swift
 @frozen
 public struct OutputRawSpan: ~Copyable, ~Escapable {
@@ -387,7 +383,6 @@ extension OutputRawSpan {
 ```
 
 
-
 ##### Appending to `OutputRawSpan`
 
 The basic operation is to append the bytes of some value to an `OutputRawSpan`:
@@ -395,7 +390,7 @@ The basic operation is to append the bytes of some value to an `OutputRawSpan`:
 extension OutputRawSpan {
   /// Appends the given value's bytes to this span's initialized bytes
   @lifetime(self: copy self)
-  public mutating func appendBytes<T: BitwiseCopyable>(
+  public mutating func append<T: BitwiseCopyable>(
     of value: T, as type: T.Type
   )
 }
@@ -406,38 +401,40 @@ This is also supported with bulk operations. Initializing an `OutputRawSpan` fro
 extension OutputRawSpan
   /// Initialize this span's suffix to the repetitions of the given value's bytes.
   @lifetime(self: copy self)
-  public mutating func append<T: BitwiseCopyable>(repeating repeatedValue: T, count: Int)
+  public mutating func append<T: BitwiseCopyable>(
+    repeating repeatedValue: T, count: Int, as type: T.Type
+  )
 
   /// Initialize the span's bytes with the bytes of the elements of the source.
   ///
   /// Returns true if the iterator has filled all the free capacity in the span.
   @lifetime(self: copy self)
-  public mutating func append(
-    from source: inout some IteratorProtocol<some BitwiseCopyable>
+  public mutating func append<T: BitwiseCopyable(
+    contentsOf source: inout some IteratorProtocol<T>, as type: T.Type
   ) -> Bool
 
   /// Initialize the span's bytes with every byte of the source.
   @lifetime(self: copy self)
-  public mutating func append(
-    fromContentsOf source: some Sequence<some BitwiseCopyable>
+  public mutating func append<T: BitwiseCopyable(
+    contentsOf source: some Sequence<T>, as type: T.Type
+  )
+
+  /// Initialize the span's bytes with every byte of the source.
+  @lifetime(self: copy self)
+  public mutating func append<T: BitwiseCopyable(
+    contentsOf source: Span<T>, as type: T.Type
   )
 
   /// Initialize the span's bytes with every byte of the source.
   @lifetime(self: copy self)
   public mutating func append(
-    fromContentsOf source: Span<some BitwiseCopyable>
+    contentsOf source: RawSpan
   )
 
   /// Initialize the span's bytes with every byte of the source.
   @lifetime(self: copy self)
   public mutating func append(
-    fromContentsOf source: RawSpan
-  )
-
-  /// Initialize the span's bytes with every byte of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    fromContentsOf source: UnsafeRawBufferPointer
+    contentsOf source: UnsafeRawBufferPointer
   )
 }
 ```
@@ -457,7 +454,6 @@ extension OutputRawSpan {
   }
 }
 ```
-
 
 
 ##### Interoperability with unsafe code
@@ -496,7 +492,6 @@ extension OutputRawSpan {
   ) throws(E) -> R
 }
 ```
-
 
 
 ##### Creating `OutputRawSpan` instances
@@ -579,18 +574,49 @@ extension OutputRawSpan {
 ```
 
 
-
 #### <a name="extensions"></a>Extensions to Standard Library types
 
 The standard library and Foundation will add a few initializers that enable initialization in place, intermediated by an `OutputSpan` instance, passed as a parameter to a closure:
 
 ```swift
 extension Array {
+  /// Creates an array with the specified capacity, then calls the given
+  /// closure with an OutputSpan to initialize the array's contents.
   public init<E: Error>(
     capacity: Int,
     initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
   ) throws(E)
-  
+
+  /// Grows the array to ensure capacity for the specified number of elements,
+  /// then calls the closure with an OutputSpan covering the array's
+  /// uninitialized memory.
+  public mutating func append<E: Error>(
+    addingCapacity: Int,
+    initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
+  ) throws(E)
+}
+
+extension ContiguousArray {
+  /// Creates an array with the specified capacity, then calls the given
+  /// closure with an OutputSpan to initialize the array's contents.
+  public init<E: Error>(
+    capacity: Int,
+    initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
+  ) throws(E)
+
+  /// Grows the array to ensure capacity for the specified number of elements,
+  /// then calls the closure with an OutputSpan covering the array's
+  /// uninitialized memory.
+  public mutating func append<E: Error>(
+    addingCapacity: Int,
+    initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
+  ) throws(E)
+}
+
+extension ArraySlice {
+  /// Grows the array to ensure capacity for the specified number of elements,
+  /// then calls the closure with an OutputSpan covering the array's
+  /// uninitialized memory.
   public mutating func append<E: Error>(
     addingCapacity: Int,
     initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
@@ -598,40 +624,84 @@ extension Array {
 }
 
 extension String {
+  /// Creates a new string with the specified capacity in UTF-8 code units, and
+  /// then calls the given closure with a OutputSpan to initialize the string's contents.
+  /// 
+  /// This initializer replaces ill-formed UTF-8 sequences with the Unicode
+  /// replacement character (`"\u{FFFD}"`). This may require resizing
+  /// the buffer beyond its original capacity.
   public init<E: Error>(
-    utf8Capacity: Int,
-    initializingUTF8With initializer: (inout OutputSpan<UTF8.CodeUnit>) throws(E) -> Void
-  )
-
-  public init<E: Error>?(
-    utf8Capacity: Int,
-    initializingValidUTF8With initializer: (inout OutputSpan<UTF8.CodeUnit>) throws(E) -> Void
+    repairingUTF8WithCapacity capacity: Int,
+    initializingUTF8With initializer: (
+      inout OutputSpan<UTF8.CodeUnit>
+    ) throws(E) -> Void
   ) throws(E)
-  
+
+  /// Creates a new string with the specified capacity in UTF-8 code units, and
+  /// then calls the given closure with a OutputSpan to initialize the string's contents.
+  /// 
+  /// This initializer does not try to repair ill-formed code unit sequences.
+  /// If any are found, the result of the initializer is `nil`.
+  public init<E: Error>?(
+    validatingUTF8WithCapacity capacity: Int,
+    initializingUTF8With initializer: (
+      inout OutputSpan<UTF8.CodeUnit>
+    ) throws(E) -> Void
+  ) throws(E)
+
+  /// Grows the string to ensure capacity for the specified number
+  /// of UTF-8 code units, then calls the closure with an OutputSpan covering the string's
+  /// uninitialized memory.
   public mutating func append<E: Error>(
     addingUTF8Capacity: Int,
-    initializingUTF8With initializer: (inout OUtputSpan<UTF8.CodeUnit>) throws(E) -> Void
+    initializingUTF8With initializer: (
+      inout OutputSpan<UTF8.CodeUnit>
+    ) throws(E) -> Void
   ) throws(E)
 }
 
 extension UnicodeScalarView {
+  /// Creates a new string with the specified capacity in UTF-8 code units, and
+  /// then calls the given closure with a OutputSpan to initialize the string's contents.
+  /// 
+  /// This initializer replaces ill-formed UTF-8 sequences with the Unicode
+  /// replacement character (`"\u{FFFD}"`). This may require resizing
+  /// the buffer beyond its original capacity.
   public init<E: Error>(
-    utf8Capacity: Int,
-    initializingUTF8With initializer: (inout OutputSpan<UTF8.CodeUnit>) throws(E) -> Void
-  )
-
-  public init<E: Error>?(
-    utf8Capacity: Int,
-    initializingValidUTF8With initializer: (inout OutputSpan<UTF8.CodeUnit>) throws(E) -> Void
+    repairingUTF8WithCapacity capacity: Int,
+    initializingUTF8With initializer: (
+      inout OutputSpan<UTF8.CodeUnit>
+    ) throws(E) -> Void
   ) throws(E)
-  
+
+  /// Creates a new string with the specified capacity in UTF-8 code units, and
+  /// then calls the given closure with a OutputSpan to initialize the string's contents.
+  /// 
+  /// This initializer does not try to repair ill-formed code unit sequences.
+  /// If any are found, the result of the initializer is `nil`.
+  public init<E: Error>?(
+    validatingUTF8WithCapacity capacity: Int,
+    initializingUTF8With initializer: (
+      inout OutputSpan<UTF8.CodeUnit>
+    ) throws(E) -> Void
+  ) throws(E)
+
+  /// Grows the string to ensure capacity for the specified number
+  /// of UTF-8 code units, then calls the closure with an OutputSpan covering the string's
+  /// uninitialized memory.
   public mutating func append<E: Error>(
     addingUTF8Capacity: Int,
-    initializingUTF8With initializer: (inout OUtputSpan<UTF8.CodeUnit>) throws(E) -> Void
+    initializingUTF8With initializer: (
+      inout OutputSpan<UTF8.CodeUnit>
+    ) throws(E) -> Void
   ) throws(E)
 }
 
 extension InlineArray {
+  /// Creates an array, then calls the given closure with an OutputSpan
+  /// to initialize the array's elements.
+  ///
+  /// NOTE: This initializer will trap if the closure fails to initialize every element.
   public init<E: Error>(
     initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
   ) throws(E)
@@ -652,8 +722,85 @@ extension Data {
     rawCapacity: Int,
     initializingWith initializer: (inout OutputRawSpan) throws(E) -> Void
   ) throws(E)
+
+  public mutating func append<E: Error>(
+    addingCapacity: Int,
+    initializingWith initializer: (inout OutputSpan<UInt8>) throws(E) -> Void
+  ) throws(E)
+
+  public mutating func append<E: Error>(
+    addingRawCapacity: Int,
+    initializingWith initializer: (inout OutputRawSpan) throws(E) -> Void
+  ) throws(E)
 }
 ```
+
+#### Changes to `MutableSpan` and `MutableRawSpan`
+
+This proposal considers the naming of `OutputSpan`'s bulk-copying methods more carefully than [SE-0467][SE-0467] about `MutableSpan`. Accordingly, we would like to replace the `update()` functions proposed there in accordance with the scheme proposed in this proposal:
+
+```swift
+extension MutableSpan where Element: Copyable {
+  public mutating func update(
+    fromContentsOf source: inout some IteratorProtocol<Element>
+  ) -> Index
+
+  public mutating func update(
+    fromContentsOf source: some Sequence<Element>
+  ) -> Index
+
+  public mutating func update(
+    copying source: borrowing Span<Element>
+  ) -> Index
+
+  public mutating func update(
+    copying source: UnsafeBufferPointer<Element>
+  ) -> Index
+}
+
+extension MutableSpan where Element: ~Copyable {
+  public mutating func update(
+    moving source: inout OutputSpan<Element>
+  ) -> Index
+  
+  public mutating func update(
+    consuming source: UnsafeMutableBufferPointer<Element>
+  ) -> Index
+}
+
+extension MutableSpan {
+  public mutating func append(
+    consuming source: Slice<UnsafeMutableBufferPointer<Element>>
+  )
+}
+```
+
+Similarly, `MutableRawSpan`'s bulk-copying methods would be replaced by 
+
+```swift
+extension MutableRawSpan {
+  public mutating func update<T: BitwiseCopyable>(
+    fromContentsOf source: inout some IteratorProtocol<T>, as type: T.Type
+  ) -> Index
+
+  public mutating func update<T: BitwiseCopyable>(
+    fromContentsOf source: some Sequence<T>, as type: T.Type
+  ) -> Index
+
+  public mutating func update<T: BitwiseCopyable>(
+    fromContentsOf source: borrowing Span<T>, as type: T.Type
+  ) -> Index
+
+  public mutating func update(
+    fromContentsOf source: borrowing RawSpan
+  ) -> Index
+
+  public mutating func append(
+    fromContentsOf source: UnsafeRawBufferPointer
+  ) -> Index
+}
+```
+
 
 ## Source compatibility
 
@@ -672,14 +819,101 @@ The additions described in this proposal require a new version of the Swift stan
 
 #### Vending `OutputSpan` as a property
 
-`OutputSpan` changes the number of initialized elements in a container (or collection), and this requires some operation to update the container after the `OutputSpan` is consumed. Let's call that update operation a "cleanup" operation. The cleanup operation needs to be scheduled in some way. We could associate the cleanup with the `deinit` of `OutputSpan`, or the `deinit` of a wrapper of `OutputSpan`. Neither of these seem appealing; the mechanisms would involve an arbitrary closure executed at `deinit` time, or having to write a full wrapper for each type that vends an `OutputSpan`. We could potentially schedule the cleanup operation as part of a coroutine accessor, but these are not productized yet. The pattern established by closure-taking API is well established, and it fits the needs of `OutputSpan` well.
+`OutputSpan` changes the number of initialized elements in a container (or collection), and this requires some operation to update the container after the `OutputSpan` is consumed. Let's call that update operation a "cleanup" operation. The cleanup operation needs to be scheduled in some way. We could associate the cleanup with the `deinit` of `OutputSpan`, or the `deinit` of a wrapper of `OutputSpan`. Neither of these seem appealing; the mechanisms would involve an arbitrary closure executed at `deinit` time, or having to write a full wrapper for each type that vends an `OutputSpan`. We could potentially schedule the cleanup operation as part of a coroutine accessor, but these are not productized yet. The pattern established by closure-taking API is well established, and that pattern fits the needs of `OutputSpan` well.
 
+#### <a name="contentsOf"></a>Alternative names for `append()` methods
+
+`OutputSpan` lays the groundwork for new, generalized `Container` protocols that will expand upon and succeed the `Collection` hierarchy while allowing non-copyability and non-escapability to be applied to both containers and elements. We hope to find method and property names that will be applicable  types The origin of the `append(contentsOf:)` method we are expanding upon is the `RangeReplaceableCollection` protocol, which always represents copyable and escapable collections and copyable and escapable elements. The definition is as follows: `mutating func append<S: Sequence>(contentsOf newElements: __owned S)`. This support copying elements from the source, while also destroying the source if we happen to own its only copy. This is obviously not sufficient if the elements are non-copyable, or if we only have access to a borrow of the source.
+
+When the elements are non-copyable, we must append elements that are removed from the source. Afterwards, there are two possible dispositions of the source: destruction (`consuming`,) where the source can no longer be used, or mutation (`inout`,) where the source has been emptied but is still usable.
+
+When the elements are copyable, we can simply copy the elements from the source. Afterwards, there are two possible dispositions of the source: releasing a borrowed source, or `consuming`. The latter is approximately the same behaviour as `RangeReplaceableCollection`'s `append()` function shown above.
+
+In a more ideal world, we would like to use the same name for all of these variants:
+```swift
+extension OutputSpan {
+  mutating func append(contentsOf: some Sequence<Element>)
+  mutating func append(contentsOf: borrowing some Container<Element>)
+}
+extension OutputSpan where Element: ~Copyable {
+  mutating func append(contentsOf: consuming some ConsumableContainer<Element>)
+  mutating func append(contentsOf: inout some RangeReplaceableContainer<Element>)
+}
+```
+
+However, this would break down in particular for `UnsafeMutableBufferPointer`, since it would make it impossible to differentiate between just copying the elements out of it, or moving its elements out (and deinitializing its memory). Once the `Container` protocols exist, we can expect that the same issue would exist for any type that conforms to more than one of the protocols involved in the list above. For example if a type conforms to `Container` as well as `Sequence`, then there would be an ambiguity.
+
+We could fix this by extending the syntax of the language. It is already possible to overload two functions where they differ only by whether a parameter is `inout`, for example. This is a future direction.
+
+Instead of the "ideal" solution above, this proposal includes `append()` functions in the following form:
+
+```swift
+extension OutputSpan {
+  mutating func append(contentsOf: some Sequence<Element>)
+  mutating func append(copying: borrowing some Container<Element>)
+}
+extension OutputSpan where Element: ~Copyable {
+  mutating func append(consuming: consuming some ConsumableContainer<Element>)
+  mutating func append(moving: inout some RangeReplaceableContainer<Element>)
+}
+```
+
+The `update()` methods of `MutableSpan` are updated in a similar manner for the same reasons.
 
 ## <a name="directions"></a>Future directions
 
 #### Helpers to initialize memory in an arbitrary order
 
 Some applications may benefit from the ability to initialize a range of memory in a different order than implemented by `OutputSpan`. This may be from back-to-front or even arbitrary order. There are many possible forms such an initialization helper can take, depending on how much memory safety the application is willing to give up in the process of initializing the memory. At the unsafe end, this can be delegating to an `UnsafeMutableBufferPointer` along with a set of requirements; this option is proposed here. At the safe end, this could be delegating to a data structure which keeps track of initialized memory using a bitmap. It is unclear how much need there is for this more heavy-handed approach, so we leave it as a future enhancement if it is deemed useful.
+
+#### Insertions and indexing
+
+A use case similar to appending is insertions. Appending is simply inserting at the end. Inserting at positions other than the end is an important capability. It requires an indexing model, which we do not propose here. We expect to add indexing and insertions soon if `OutputSpan` is accepted. Until then, a workaround is to append, then rotate the elements to the desired position using the `mutableSpan` view. The current proposal does not add a concept of indexing to `OutputSpan`, though that is required in order to support insertions at an arbitrary position. We defer this discussion in order to focus on the basic functionality of the type.
+
+#### Generalized removals
+
+Similarly to generalized insertions (i.e. not from the end,) we can think about removals of one or more elements starting at a given position. This also requires adding indexing. We expect to add generalized removals along with insertions if `OutputSpan` is accepted.
+
+#### Variations on `Array.append(addingCapacity:initializingWith:)`
+
+The function proposed here only exposes uninitialized capacity in the `OutputSpan` parameter to its closure. A different function (perhaps named `edit()`) could also pass the initialized portion of the container, allowing an algorithm to remove _or_ add elements. This could be considered in addition to `append()`.
+
+#### Method to distinguish between ownership modes for function arguments
+
+In the "Alternates Considered" subsection about [naming the `append()` methods](#contentsOf), we suggest a currently unachievable naming scheme:
+```swift
+extension OutputSpan {
+  mutating func append(contentsOf: some Sequence<Element>)
+  mutating func append(contentsOf: borrowing some Container<Element>)
+}
+extension OutputSpan where Element: ~Copyable {
+  mutating func append(contentsOf: consuming some ConsumableContainer<Element>)
+  mutating func append(contentsOf: inout some RangeReplaceableContainer<Element>)
+}
+```
+
+The language partially support disambiguating this naming scheme, in that we can already distinguish functions over the mutability of a single parameter:
+
+```swift
+func foo(_ a: borrowing A) {}
+func foo(_ a: inout A) {}
+
+var a = A()
+foo(a)
+foo(&a)
+```
+
+We could expand upon this ability to disambiguate by using keywords or even new sigils:
+
+```swift
+let buffer: UnsafeMutableBufferPointer<MyType> = ...
+let array = Array(capacity: buffer.count*2) {
+  (o: inout OutputSpan<MyType>) in
+  o.append(contentsOf: borrowing buffer)
+  o.append(contentsOf: consuming buffer)
+}
+```
+
 
 ## Acknowledgements
 
