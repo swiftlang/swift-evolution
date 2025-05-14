@@ -93,7 +93,7 @@ This proposal does not change the adoption implications of adding `@MainActor` t
 
 ## Alternatives considered
 
-Adding a typealias named `nonisolated` to `Never` to the Concurrency library to enable writing it as the underlying type of a typealias is pretty strange; this approach leveraging the fact that `nonisolated` is a contextual keyword, so it's valid to use `nonisolated` as an identifier. This proposal uses a typealias instead of an empty struct or enum type to avoid the complications of having a new type be only available with the Swift 6.2 standard library.
+Adding a typealias named `nonisolated` to `Never` to the Concurrency library to enable writing it as the underlying type of a typealias is pretty strange; this approach leverages the fact that `nonisolated` is a contextual keyword, so it's valid to use `nonisolated` as an identifier. This proposal uses a typealias instead of an empty struct or enum type to avoid the complications of having a new type be only available with the Swift 6.2 standard library.
 
 It's extremely valuable to have a consistent way to spell `nonisolated`. Introducing a type that follows standard naming conventions, such as `Nonisolated`, or using an existing type like `Never` is more consistent with recommended style, but overall complicates the concurrency model because it means you need to spell `nonisolated` differently when specifying it per file versus writing it on a declaration. And because the underlying type of this typealias is used to infer actor isolation, it's not used as a type in the same way that other typealiases are.
 
