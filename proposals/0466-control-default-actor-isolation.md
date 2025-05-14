@@ -13,7 +13,7 @@ This proposal introduces a new compiler setting for inferring `@MainActor` isola
 
 ## Motivation
 
-> Note: This motivation section was adapted from the [prospective vision for approachable data-race safety](https://github.com/hborla/swift-evolution/blob/approachable-concurrency-vision/visions/approachable-concurrency.md#mitigating-false-positive-data-race-safety-errors-in-sequential-code). Please see the vision document for extended motivation.
+> Note: This motivation section was adapted from the [vision for approachable data-race safety](https://github.com/hborla/swift-evolution/blob/approachable-concurrency-vision/visions/approachable-concurrency.md#mitigating-false-positive-data-race-safety-errors-in-sequential-code). Please see the vision document for extended motivation.
 
 A lot of code is effectively “single-threaded”. For example, most executables, such as apps, command-line tools, and scripts, start running on the main actor and stay there unless some part of the code does something concurrent (like creating a `Task`). If there isn’t any use of concurrency, the entire program will run sequentially, and there’s no risk of data races — every concurrency diagnostic is necessarily a false positive! It would be good to be able to take advantage of that in the language, both to avoid annoying programmers with unnecessary diagnostics and to reinforce progressive disclosure. Many people get into Swift by writing these kinds of programs, and if we can avoid needing to teach them about concurrency straight away, we’ll make the language much more approachable.
 
@@ -156,7 +156,7 @@ There are some build settings that are applicable on a per-file basis, including
 
 The `-default-isolation` flag could allow a custom global actor as the argument, and the `SwiftSetting` API could be updated to accept a string that represents a custom global actor in the target.
 
-This proposal only supports `MainActor` because any other global actor does not help with progressive disclosure. It has the opposite effect - it forces asynchrony on any main-actor-isolated caller. However, there's nothing in this proposal prohibits generalizing these settings to supporting arbitrary global actors in the future if a compelling use case arises.
+This proposal only supports `MainActor` because any other global actor does not help with progressive disclosure. It has the opposite effect - it forces asynchrony on any main-actor-isolated caller. However, there's nothing in this proposal that prohibits generalizing these settings to supporting arbitrary global actors in the future if a compelling use case arises.
 
 ### Infer `MainActor` by default as an upcoming feature
 
@@ -168,7 +168,7 @@ See the approachable data-race safety vision document for an [analysis on the ri
 
 ### Don't apply default actor isolation to explicitly `Sendable` types
 
-This proposal includes few excepts where the specified default actor isolation does not apply. An additional case that should be considered is types with a conformance to `Sendable`:
+This proposal includes few exceptions where the specified default actor isolation does not apply. An additional case that should be considered is types with a conformance to `Sendable`:
 
 ```swift
 struct SimpleValue: Sendable {
