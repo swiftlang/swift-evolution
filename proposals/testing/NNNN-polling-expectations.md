@@ -44,7 +44,7 @@ This proposal introduces new overloads of the `#expect()` and `#require()`
 macros that take, as arguments, a closure and a timeout value. When called,
 these macros will continuously evaluate the closure until either the specific
 condition passes, or the timeout has passed. The timeout period will default
-to 1 second.
+to 1 minute.
 
 There are 2 Polling Behaviors that we will add: Passes Once and Passes Always.
 Passes Once will continuously evaluate the expression until the expression
@@ -88,60 +88,34 @@ the testing library:
 /// changes as the result of activity in another task/queue/thread.
 @freestanding(expression) public macro expect(
     until pollingBehavior: PollingBehavior,
-    timeout: Duration = .seconds(1),
+    timeout: Duration = .seconds(60),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
     expression: @Sendable () async throws -> Bool
 ) = #externalMacro(module: "TestingMacros", type: "PollingExpectMacro")
 
-/// Continuously check an expression until it matches the given PollingBehavior
-///
-/// - Parameters:
-///   - until: The desired PollingBehavior to check for.
-///   - timeout: How long to run poll the expression until stopping.
-///   - comment: A comment describing the expectation.
-///   - sourceLocation: The source location to which the recorded expectations
-///     and issues should be attributed.
-///   - expression: The expression to be evaluated.
-///
-/// Use this overload of `#expect()` when you wish to poll whether a value
-/// changes as the result of activity in another task/queue/thread, and you
-/// expect the expression to throw an error as part of succeeding
 @freestanding(expression) public macro expect<E>(
     until pollingBehavior: PollingBehavior,
     throws error: E,
-    timeout: Duration = .seconds(1),
+    timeout: Duration = .seconds(60),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
-    expression: @Sendable () async throws(E) -> Bool
-) -> E = #externalMacro(module: "TestingMacros", type: "PollingExpectMacro")
+    expression: @Sendable () async throws -> Bool
+) = #externalMacro(module: "TestingMacros", type: "PollingExpectMacro")
 where E: Error & Equatable
 
-@freestanding(expression) public macro expect<E>(
+@freestanding(expression) public macro expect(
     until pollingBehavior: PollingBehavior,
-    timeout: Duration = .seconds(1),
+    timeout: Duration = .seconds(60),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
-    performing expression: @Sendable () async throws(E) -> Bool,
-    throws errorMatcher: (E) async throws -> Bool
-) -> E = #externalMacro(module: "TestingMacros", type: "PollingExpectMacro")
-where E: Error
+    performing expression: @Sendable () async throws -> Bool,
+    throws errorMatcher: (any Error) async throws -> Bool
+) -> Error = #externalMacro(module: "TestingMacros", type: "PollingExpectMacro")
 
-/// Continuously check an expression until it matches the given PollingBehavior
-///
-/// - Parameters:
-///   - until: The desired PollingBehavior to check for.
-///   - timeout: How long to run poll the expression until stopping.
-///   - comment: A comment describing the expectation.
-///   - sourceLocation: The source location to which the recorded expectations
-///     and issues should be attributed.
-///   - expression: The expression to be evaluated.
-///
-/// Use this overload of `#require()` when you wish to poll whether a value
-/// changes as the result of activity in another task/queue/thread.
 @freestanding(expression) public macro require(
     until pollingBehavior: PollingBehavior,
-    timeout: Duration = .seconds(1),
+    timeout: Duration = .seconds(60),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
     expression: @Sendable () async throws -> Bool
@@ -149,7 +123,7 @@ where E: Error
 
 @freestanding(expression) public macro require<R>(
     until pollingBehavior: PollingBehavior,
-    timeout: Duration = .seconds(1),
+    timeout: Duration = .seconds(60),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
     expression: @Sendable () async throws -> R?
@@ -159,22 +133,21 @@ where R: Sendable
 @freestanding(expression) public macro require<E>(
     until pollingBehavior: PollingBehavior,
     throws error: E,
-    timeout: Duration = .seconds(1),
+    timeout: Duration = .seconds(60),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
-    expression: @Sendable () async throws(E) -> Bool
+    expression: @Sendable () async throws -> Bool
 ) = #externalMacro(module: "TestingMacros", type: "PollingRequireMacro")
 where E: Error & Equatable
 
-@freestanding(expression) public macro require<E>(
+@freestanding(expression) public macro require(
     until pollingBehavior: PollingBehavior,
-    timeout: Duration = .seconds(1),
+    timeout: Duration = .seconds(60),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
-    expression: @Sendable () async throws(E) -> Bool,
-    throwing errorMatcher: (E) async throws -> Bool,
+    expression: @Sendable () async throws -> Bool,
+    throwing errorMatcher: (any Error) async throws -> Bool,
 ) = #externalMacro(module: "TestingMacros", type: "PollingRequireMacro")
-where E: Error
 ```
 
 ### Polling Behavior
@@ -200,6 +173,11 @@ public enum PollingBehavior {
     case passesAlways
 }
 ```
+
+### Platform Availability
+
+Polling expectations will not be available on platforms that do not support
+Swift Concurrency, nor on platforms that do not support multiple threads.
 
 ### Usage
 
@@ -240,13 +218,13 @@ expectation is considered to have passed if the expression always returns a
 non-nil value. If it passes, the value returned by the last time the
 expression is evaluated will be returned by the expectation.
 
-When no error is expected, then the first time the expression throws any error
-will cause the polling expectation to stop & report the error as a failure.
-
 When an error is expected, then the expression is not considered to pass
 unless it throws an error that equals the expected error or returns true when
 evaluated by the `errorMatcher`. After which the polling continues under the
 specified PollingBehavior.
+
+When no error is expected, then this is treated as if the expression returned
+false. This is specifically to invert the case when an error is expected.
 
 ## Source compatibility
 
@@ -264,7 +242,38 @@ tools may integrate with them.
 The timeout default could be configured as a Suite or Test trait. Additionally,
 it could be configured in some future global configuration tool.
 
+On the topic of monitoring for changes, we could add a tool integrating with the
+Observation module which monitors changes to `@Observable` objects during some
+lifetime.
+
 ## Alternatives considered
+
+### Just use a while loop
+
+Polling could be written as a simple while loop that continuously executes the
+expression until it returns, something like:
+
+```swift
+func poll(timeout: Duration, expression: () -> Bool) -> Bool {
+    let clock: Clock = // ...
+    let endTimestamp = clock.now + timeout
+    while clock.now < endTimestamp {
+        if expression() { return true }
+    }
+    return false
+}
+```
+
+Which works in most naive cases, but is not robust. Notably, This approach does
+not handle the case when the expression never returns, or does not return within
+the timeout period.
+
+### Shorter default timeout
+
+Due to the nature of Swift Concurrency scheduling, using short default
+timeouts will result in high rates of test flakiness. This is why the default
+timeout is 1 minute. We do not recommend that test authors use timeouts any
+shorter than this.
 
 ### Remove `PollingBehavior` in favor of more macros
 
