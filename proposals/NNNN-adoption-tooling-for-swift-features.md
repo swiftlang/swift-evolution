@@ -1,7 +1,7 @@
 # Migration tooling for Swift features
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
+* Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: TBD
@@ -344,6 +344,12 @@ The next candidates in line per discussions are ***adopt***, ***audit***,
   or rules.
   To illustrate, this mode could appropriately suggest switching from `any P`
   to `some P` for `ExistentialAny`.
+  
+### `swift migrate` vs. `swift package migrate`
+
+Rather than have migrate as a subcommand (ie. `swift package migrate`), another option is add another top level command, ie. `swift migrate`.
+
+As the command applies to the current package, we feel a `swift package` sub-command fits better than a new top-level command. This also aligns with the recently added package refactorings (eg. `add-target`).
 
 ## Acknowledgements
 
