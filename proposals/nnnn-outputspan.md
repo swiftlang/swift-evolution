@@ -25,7 +25,7 @@
 
 - [Proposed solution](#proposed-solution)
 
-- [Detailed Design](#detailed-design)
+- [Detailed Design](#design)
 
 - [Source compatibility](#source-compatibility)
 
@@ -141,24 +141,6 @@ extension OutputSpan where Element: ~Copyable {
   @discardableResult
   @lifetime(self: copy self)
   public mutating func removeLast() -> Element
-}
-```
-
-`OutputSpan` provides the ability to access its initialized elements by index:
-```swift
-extension OutputSpan wehre Element: ~Copyable {
-  /// The type that represents an initialized position in an `OutputSpan`.
-  typealias Index = Int
-
-  /// The range of initialized positions for this `OutputSpan`.
-  var indices: Range<Index> { get }
-
-  /// Accesses the element at the specified initialized position.
-  subscript(_ index: Index) -> Element { borrow; mutate }
-      // accessor syntax from accessors roadmap (https://forums.swift.org/t/76707)
-
-  /// Exchange the elements at the two given offsets
-  mutating func swapAt(_ i: Index, _ j: Index)
 }
 ```
 
@@ -286,6 +268,24 @@ extension OutputSpan where Element: ~Copyable {
   public mutating var mutableSpan: MutableSpan<Element> {
     @lifetime(&self) mutating get
   }
+}
+```
+
+`OutputSpan` also provides the ability to access its individual initialized elements by index:
+```swift
+extension OutputSpan wehre Element: ~Copyable {
+  /// The type that represents an initialized position in an `OutputSpan`.
+  typealias Index = Int
+
+  /// The range of initialized positions for this `OutputSpan`.
+  var indices: Range<Index> { get }
+
+  /// Accesses the element at the specified initialized position.
+  subscript(_ index: Index) -> Element { borrow; mutate }
+      // accessor syntax from accessors roadmap (https://forums.swift.org/t/76707)
+
+  /// Exchange the elements at the two given offsets
+  mutating func swapAt(_ i: Index, _ j: Index)
 }
 ```
 
