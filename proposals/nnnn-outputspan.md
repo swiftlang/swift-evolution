@@ -273,7 +273,7 @@ extension OutputSpan where Element: ~Copyable {
 
 `OutputSpan` also provides the ability to access its individual initialized elements by index:
 ```swift
-extension OutputSpan wehre Element: ~Copyable {
+extension OutputSpan where Element: ~Copyable {
   /// The type that represents an initialized position in an `OutputSpan`.
   typealias Index = Int
 
@@ -448,6 +448,10 @@ extension OutputRawSpan {
 The basic operation is to append the bytes of some value to an `OutputRawSpan`. Note that since the fundamental operation is appending bytes, `OutputRawSpan` does not concern itself with memory alignment.
 ```swift
 extension OutputRawSpan {
+  /// Append a single byte to this span
+  @lifetime(self: copy self)
+  public mutating func append(_ value: UInt8)
+
   /// Appends the given value's bytes to this span's initialized bytes
   @lifetime(self: copy self)
   public mutating func append<T: BitwiseCopyable>(
@@ -519,6 +523,29 @@ extension OutputRawSpan {
   public var mutableBytes: MutableRawSpan {
     @lifetime(&self) mutating get
   }
+}
+```
+
+Methods to deinitialize memory from an `OutputRawSpan`:
+
+```swift
+extension OutputRawSpan {
+
+  /// Remove the last byte from this span
+  @lifetime(self: copy self)
+  public mutating func removeLast() -> UInt8 {
+
+  /// Remove the last N elements, returning the memory they occupy
+  /// to the uninitialized state.
+  ///
+  /// `n` must not be greater than `count`
+  @lifetime(self: copy self)
+  public mutating func removeLast(_ n: Int)
+
+  /// Remove all this span's elements and return its memory
+  /// to the uninitialized state.
+  @lifetime(self: copy self)
+  public mutating func removeAll()
 }
 ```
 
@@ -826,10 +853,6 @@ This proposal considers the naming of `OutputSpan`'s bulk-copying methods more c
 ```swift
 extension MutableSpan where Element: Copyable {
   public mutating func update(
-    from source: inout some IteratorProtocol<Element>
-  ) -> Index
-
-  public mutating func update(
     fromContentsOf source: some Sequence<Element>
   ) -> Index
 
@@ -856,6 +879,10 @@ extension MutableSpan {
   public mutating func append(
     consuming source: Slice<UnsafeMutableBufferPointer<Element>>
   )
+
+  public mutating func update(
+    from source: inout some IteratorProtocol<Element>
+  ) -> Index
 }
 ```
 
@@ -863,10 +890,6 @@ Similarly, `MutableRawSpan`'s bulk-copying methods would be replaced by the foll
 
 ```swift
 extension MutableRawSpan {
-  public mutating func update<T: BitwiseCopyable>(
-    from source: inout some IteratorProtocol<T>, as type: T.Type
-  ) -> Index
-
   public mutating func update<T: BitwiseCopyable>(
     fromContentsOf source: some Sequence<T>, as type: T.Type
   ) -> Index
@@ -881,6 +904,10 @@ extension MutableRawSpan {
 
   public mutating func append(
     fromContentsOf source: UnsafeRawBufferPointer
+  ) -> Index
+
+  public mutating func update<T: BitwiseCopyable>(
+    from source: inout some IteratorProtocol<T>, as type: T.Type
   ) -> Index
 }
 ```
@@ -995,8 +1022,8 @@ We could expand upon this ability to disambiguate by using keywords or even new 
 let buffer: UnsafeMutableBufferPointer<MyType> = ...
 let array = Array(capacity: buffer.count*2) {
   (o: inout OutputSpan<MyType>) in
-  o.append(contentsOf: borrowing buffer)
-  o.append(contentsOf: consuming buffer)
+  o.append(contentsOf: borrow buffer)
+  o.append(contentsOf: consume buffer)
 }
 ```
 
