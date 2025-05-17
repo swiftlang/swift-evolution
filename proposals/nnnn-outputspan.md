@@ -934,7 +934,7 @@ The additions described in this proposal require a new version of the Swift stan
 
 #### <a name="contentsOf"></a>Alternative names for `append()` methods
 
-`OutputSpan` lays the groundwork for new, generalized `Container` protocols that will expand upon and succeed the `Collection` hierarchy while allowing non-copyability and non-escapability to be applied to both containers and elements. We hope to find method and property names that will be applicable  types The origin of the `append(contentsOf:)` method we are expanding upon is the `RangeReplaceableCollection` protocol, which always represents copyable and escapable collections and copyable and escapable elements. The definition is as follows: `mutating func append<S: Sequence>(contentsOf newElements: __owned S)`. This support copying elements from the source, while also destroying the source if we happen to own its only copy. This is obviously not sufficient if the elements are non-copyable, or if we only have access to a borrow of the source.
+`OutputSpan` lays the groundwork for new, generalized `Container` protocols that will expand upon and succeed the `Collection` hierarchy while allowing non-copyability and non-escapability to be applied to both containers and elements. We hope to find method and property names that will be generally applicable. The origin of the `append(contentsOf:)` method we are expanding upon is the `RangeReplaceableCollection` protocol, which always represents copyable and escapable collections with copyable and escapable elements. The definition is as follows: `mutating func append<S: Sequence>(contentsOf newElements: __owned S)`. This supports copying elements from the source, while also destroying the source if we happen to hold its only copy. This is obviously not sufficient if the elements are non-copyable, or if we only have access to a borrow of the source.
 
 When the elements are non-copyable, we must append elements that are removed from the source. Afterwards, there are two possible dispositions of the source: destruction (`consuming`,) where the source can no longer be used, or mutation (`inout`,) where the source has been emptied but is still usable.
 
@@ -979,9 +979,9 @@ We note that the four variants of `append()` are required for generalized contai
 
 Some applications may benefit from the ability to initialize a range of memory in a different order than implemented by `OutputSpan`. This may be from back-to-front or even arbitrary order. There are many possible forms such an initialization helper can take, depending on how much memory safety the application is willing to give up in the process of initializing the memory. At the unsafe end, this can be delegating to an `UnsafeMutableBufferPointer` along with a set of requirements; this option is proposed here. At the safe end, this could be delegating to a data structure which keeps track of initialized memory using a bitmap. It is unclear how much need there is for this more heavy-handed approach, so we leave it as a future enhancement if it is deemed useful.
 
-#### Insertions and indexing
+#### Insertions
 
-A use case similar to appending is insertions. Appending is simply inserting at the end. Inserting at positions other than the end is an important capability. It requires an indexing model, which we do not propose here. We expect to add indexing and insertions soon if `OutputSpan` is accepted. Until then, a workaround is to append, then rotate the elements to the desired position using the `mutableSpan` view. The current proposal does not add a concept of indexing to `OutputSpan`, though that is required in order to support insertions at an arbitrary position. We defer this discussion in order to focus on the basic functionality of the type.
+A use case similar to appending is insertions. Appending is simply inserting at the end. Inserting at positions other than the end is an important capability. We expect to add insertions soon if `OutputSpan` is accepted. Until then, a workaround is to append, then rotate the elements to the desired position using the `mutableSpan` view. The current proposal does not add a concept of indexing to `OutputSpan`, though that is required in order to support insertions at an arbitrary position. We defer this discussion in order to focus on the basic functionality of the type.
 
 #### Generalized removals
 
@@ -993,7 +993,7 @@ The function proposed here only exposes uninitialized capacity in the `OutputSpa
 
 #### <a name="contentsOf-syntax"></a>Language syntax to distinguish between ownership modes for function arguments
 
-In the "Alternates Considered" subsection about [naming the `append()` methods](#contentsOf), we suggest a currently unachievable naming scheme:
+In the "Alternatives Considered" subsection about [naming the `append()` methods](#contentsOf), we suggest a currently unachievable naming scheme:
 ```swift
 extension OutputSpan {
   mutating func append(contentsOf: consuming some Sequence<Element>)
