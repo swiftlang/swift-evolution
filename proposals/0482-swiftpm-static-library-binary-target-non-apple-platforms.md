@@ -81,8 +81,8 @@ The additions are:
 * The `staticLibrary` artifact `type` that indicates this binary artifact is not an executable but rather a static library to link against.
 * The `headerPaths` field specifies directory paths relative to the root of the artifact bundle that contain the header interfaces to the static library.
   These are forwarded along to the swift compiler (or the C compiler) using the usual search path arguments.
-  Each of these directories can optionally contain a `module.modulemap` file that will be used for importing the API into Swift code.
-* The optional `moduleMapPath` field specifies a custom module map to use if the header paths do not contain the module definitions or to provide custom overrides.
+* The optional `moduleMapPath` field specifies the path relative to the root of the artifact bundle that contains a custom module map to use if the header paths do not contain the module definitions or to provide custom overrides.
+  This field is required if the library's API is to be imported into Swift code.
 
 As with executable binary artifacts, the `path` field represents the relative path to the binary from the root of the artifact bundle,
 and the `supportedTriples` field provides information about the target triples supported by this variant.
