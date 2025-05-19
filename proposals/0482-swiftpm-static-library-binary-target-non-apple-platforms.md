@@ -61,9 +61,11 @@ The artifact manifest JSON format for a static library is described below:
             "variants": [
                 {
                     "path": "<relative-path-to-library-file>",
-                    "headerPaths": ["<relative-path-to-header-directory-1>, ...],
-                    "moduleMapPath": "<path-to-module-map>",
                     "supportedTriples": ["<triple1>", ... ],
+                    "staticLibraryMetadata": {
+                        "headerPaths": ["<relative-path-to-header-directory-1>, ...],
+                        "moduleMapPath": "<path-to-module-map>"
+                    }
                 },
                 ...
             ]
@@ -71,6 +73,7 @@ The artifact manifest JSON format for a static library is described below:
         ...
     }
 }
+
 ```
 
 The additions are:
@@ -85,18 +88,22 @@ As with executable binary artifacts, the `path` field represents the relative pa
 and the `supportedTriples` field provides information about the target triples supported by this variant.
 
 An example artifact might look like:
+
 ```json
 {
     "schemaVersion": "1.0",
     "artifacts": {
-        "my-artifact": {
+        "example": {
             "type": "staticLibrary",
             "version": "1.0.0",
             "variants": [
                 {
-                    "path": "artifact.a",
-                    "headerPaths": ["include"],
-                    "supportedTriples": ["aarch64-unknown-linux-gnu"]
+                    "path": "libExample.a",
+                    "supportedTriples": ["aarch64-unknown-linux-gnu"],
+                    "staticLibraryMetadata": {
+                          "headerPaths": ["include"],
+                          "moduleMapPath": "include/example.modulemap"
+                    }
                 }
             ]
         }
