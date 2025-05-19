@@ -40,7 +40,7 @@ The artifact manifest would encode the following information for each variant:
 * Enough information to be able to use the library's API in the packages source code, 
   i.e., headers and module maps for libraries exporting a C-based interface.
 
-Additionnaly, we propose the addition of an auditing tool that can validate the library artifact is safe to use across the Linux-based platforms supported by the Swift project.
+Additionally, we propose the addition of an auditing tool that can validate the library artifact is safe to use across the Linux-based platforms supported by the Swift project.
 Such a tool would ensure that people do not accidentally distribute artifacts that require dependencies that are not met on the various deployment platforms.
 However when an artifact isn't widely consumed and all dependent packages are known,
 artifact vendors can provide artifacts with dependencies on other C libraries provided that each client target depends explicitly on all required dependencies of the artifact.
@@ -131,7 +131,7 @@ The tool would then check that the referenced symbols list is a subset of the se
 This would be sufficient to guarantee that all symbols from the static library would be available at runtime for statically linked executables or for ones running on the build host. 
 To ensure maximum runtime compatibility we would also provide a Linux-based Docker image that uses the oldest supported `glibc` for a given Swift version.
 As `glibc` is backwards compatible, a container running the audit on a given static library would ensure that the version of `glibc` on any runtime platform would be compatible with the binary artifact.
-This strategy as been succesfully employed in the Python community with [`manylinux`](https://peps.python.org/pep-0513/).
+This strategy as been successfully employed in the Python community with [`manylinux`](https://peps.python.org/pep-0513/).
 
 ## Security
 
