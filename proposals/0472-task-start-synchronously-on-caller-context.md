@@ -107,7 +107,7 @@ extension Task {
         name: String? = nil, // Introduced by SE-0469
         priority: TaskPriority? = nil,
         executorPreference taskExecutor: consuming (any TaskExecutor)? = nil,
-        @_inheritActorContext(always) operation: sending @escaping async throws(Failure) -> Success
+        @_inheritActorContext(always) operation: sending @escaping () async throws(Failure) -> Success
     ) -> Task<Success, Failure>
   
     @discardableResult
@@ -115,7 +115,7 @@ extension Task {
         name: String? = nil, // Introduced by SE-0469
         priority: TaskPriority? = nil,
         executorPreference taskExecutor: consuming (any TaskExecutor)? = nil,
-        @_inheritActorContext(always) operation: sending @escaping async throws(Failure) -> Success
+        @_inheritActorContext(always) operation: sending @escaping () async throws(Failure) -> Success
     ) -> Task<Success, Failure>
 }
 ```
