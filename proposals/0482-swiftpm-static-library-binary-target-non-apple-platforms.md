@@ -42,6 +42,8 @@ The artifact manifest would encode the following information for each variant:
 
 Additionnaly, we propose the addition of an auditing tool that can validate the library artifact is safe to use across the Linux-based platforms supported by the Swift project.
 Such a tool would ensure that people do not accidentally distribute artifacts that require dependencies that are not met on the various deployment platforms.
+However when an artifact isn't widely consumed and all dependent packages are known,
+artifact vendors can provide artifacts with dependencies on other C libraries provided that each client target depends explicitly on all required dependencies of the artifact.
 
 ## Detailed design
 
