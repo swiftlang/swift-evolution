@@ -1,6 +1,6 @@
 # Migration tooling for Swift features
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-migratable-features.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
@@ -160,16 +160,16 @@ belong to a diagnostic group named after the feature.
 The names of diagnostic groups can be displayed alongside diagnostic messages
 using `-print-diagnostic-groups` and used to associate messages with features.
 
-### `swift migrate` command
+### `swift package migrate` command
 
-To enable seemless migration experience for Swift packages, I'd like to propose a new Swift Package Manager command - `swift migrate` to complement the Swift compiler-side changes.
+To enable seemless migration experience for Swift packages, I'd like to propose a new Swift Package Manager command - `swift package migrate` to complement the Swift compiler-side changes.
 
 The command would accept one or more features that have migration mode enabled and optionally a set of targets to migrate, if no targets are specified the whole package is going to be migrated to use new features.
 
 #### Interface
 
 ```
-USAGE: swift migrate [<options>] --to-feature <to-feature> ...
+USAGE: swift package migrate [<options>] --to-feature <to-feature> ...
 
 OPTIONS:
   --targets <targets>     The targets to migrate to specified set of features or a new language mode.
@@ -181,7 +181,7 @@ OPTIONS:
 #### Use case
 
 ```
-swift migrate --targets MyTarget,MyTest --to-feature ExistentialAny
+swift package migrate --targets MyTarget,MyTest --to-feature ExistentialAny
 ```
 
 This command would attempt to build `MyTarget` and `MyTest` targets with `ExistentialAny:migrate` feature flag, apply any fix-its associated with
@@ -211,7 +211,7 @@ enable the feature(s) if both of the previous actions are successful:
 In the "whole package" mode, every target is going to be updated to include
 new feature flag(s). This is supported by the same functionality as `swift package add-setting` command.
 
-If it's, for some reason, impossible to add the setting the diagnostic message would suggest what to add and where i.e. `...; please add '.enableUpcomingFeature("ExistentialAny")' to `MyTarget` target manually`.
+If it's, for some reason, impossible to add the setting the diagnostic message would suggest what to add and where i.e. `...; please add 'ExistentialAny' feature to `MyTarget` target manually`.
 
 #### Impact on Interface
 
@@ -345,7 +345,7 @@ The next candidates in line per discussions are ***adopt***, ***audit***,
   To illustrate, this mode could appropriately suggest switching from `any P`
   to `some P` for `ExistentialAny`.
   
-### `swift migrate` vs. `swift package migrate`
+### `swift package migrate` vs. `swift migrate`
 
 Rather than have migrate as a subcommand (ie. `swift package migrate`), another option is add another top level command, ie. `swift migrate`.
 
