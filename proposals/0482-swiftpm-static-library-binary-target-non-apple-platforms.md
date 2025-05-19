@@ -10,11 +10,10 @@
 
 ## Introduction
 
-Swift continues to grow as a cross-platform language supporting a wide variety of use cases from [programming embedded device](https://www.swift.org/blog/embedded-swift-examples/) to [server-side development](https://www.swift.org/documentation/server/) across a multitude of [operating systems](https://www.swift.org/documentation/articles/static-linux-getting-started.html). 
+Swift continues to grow as a cross-platform language supporting a wide variety of use cases from [programming embedded device](https://www.swift.org/blog/embedded-swift-examples/) to [server-side development](https://www.swift.org/documentation/server/) across a multitude of [operating systems](https://www.swift.org/documentation/articles/static-linux-getting-started.html).
 However, currently SwiftPM supports linking against binary dependencies on Apple platforms only.
-This proposal aims to make it possible to provide static library dependencies exposing a C interface on non-Apple platforms.
-
-Swift-evolution thread: 
+This proposal aims to make it possible to provide static library dependencies exposing a C interface on non-Apple platforms that depend only the standard C library.
+Unfortunately, this proposal doesn't provide support for distributing Swift libraries built in this way due to the Swift ABI not being stable on all platforms.
 
 ## Motivation
 
