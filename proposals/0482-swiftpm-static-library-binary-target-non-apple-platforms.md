@@ -10,11 +10,10 @@
 
 ## Introduction
 
-Swift continues to grow as a cross-platform language supporting a wide variety of use cases from [programming embedded device](https://www.swift.org/blog/embedded-swift-examples/) to [server-side development](https://www.swift.org/documentation/server/) across a multitude of [operating systems](https://www.swift.org/documentation/articles/static-linux-getting-started.html). 
+Swift continues to grow as a cross-platform language supporting a wide variety of use cases from [programming embedded device](https://www.swift.org/blog/embedded-swift-examples/) to [server-side development](https://www.swift.org/documentation/server/) across a multitude of [operating systems](https://www.swift.org/documentation/articles/static-linux-getting-started.html).
 However, currently SwiftPM supports linking against binary dependencies on Apple platforms only.
-This proposal aims to make it possible to provide static library dependencies exposing a C interface on non-Apple platforms.
-
-Swift-evolution thread: 
+This proposal aims to make it possible to provide static library dependencies exposing a C interface on non-Apple platforms that depend only on the standard C library.
+The scope of this proposal is C libraries only, distributing Swift libraries has additional challenges (see [Future directions](#future-directions).
 
 ## Motivation
 
@@ -41,8 +40,10 @@ The artifact manifest would encode the following information for each variant:
 * Enough information to be able to use the library's API in the packages source code, 
   i.e., headers and module maps for libraries exporting a C-based interface.
 
-Additionnaly, we propose the addition of an auditing tool that can validate the library artifact is safe to use across the Linux-based platforms supported by the Swift project.
+Additionally, we propose the addition of an auditing tool that can validate the library artifact is safe to use across the Linux-based platforms supported by the Swift project.
 Such a tool would ensure that people do not accidentally distribute artifacts that require dependencies that are not met on the various deployment platforms.
+However when an artifact isn't widely consumed and all dependent packages are known,
+artifact vendors can provide artifacts with dependencies on other C libraries provided that each client target depends explicitly on all required dependencies of the artifact.
 
 ## Detailed design
 
@@ -62,9 +63,11 @@ The artifact manifest JSON format for a static library is described below:
             "variants": [
                 {
                     "path": "<relative-path-to-library-file>",
-                    "headerPaths": ["<relative-path-to-header-directory-1>, ...],
-                    "moduleMapPath": "<path-to-module-map>",
                     "supportedTriples": ["<triple1>", ... ],
+                    "staticLibraryMetadata": {
+                        "headerPaths": ["<relative-path-to-header-directory-1>, ...],
+                        "moduleMapPath": "<path-to-module-map>"
+                    }
                 },
                 ...
             ]
@@ -72,6 +75,7 @@ The artifact manifest JSON format for a static library is described below:
         ...
     }
 }
+
 ```
 
 The additions are:
@@ -79,25 +83,29 @@ The additions are:
 * The `staticLibrary` artifact `type` that indicates this binary artifact is not an executable but rather a static library to link against.
 * The `headerPaths` field specifies directory paths relative to the root of the artifact bundle that contain the header interfaces to the static library.
   These are forwarded along to the swift compiler (or the C compiler) using the usual search path arguments.
-  Each of these directories can optionally contain a `module.modulemap` file that will be used for importing the API into Swift code.
-* The optional `moduleMapPath` field specifies a custom module map to use if the header paths do not contain the module definitions or to provide custom overrides.
+* The optional `moduleMapPath` field specifies the path relative to the root of the artifact bundle that contains a custom module map to use if the header paths do not contain the module definitions or to provide custom overrides.
+  This field is required if the library's API is to be imported into Swift code.
 
 As with executable binary artifacts, the `path` field represents the relative path to the binary from the root of the artifact bundle,
 and the `supportedTriples` field provides information about the target triples supported by this variant.
 
 An example artifact might look like:
+
 ```json
 {
     "schemaVersion": "1.0",
     "artifacts": {
-        "my-artifact": {
+        "example": {
             "type": "staticLibrary",
             "version": "1.0.0",
             "variants": [
                 {
-                    "path": "artifact.a",
-                    "headerPaths": ["include"],
-                    "supportedTriples": ["aarch64-unknown-linux-gnu"]
+                    "path": "libExample.a",
+                    "supportedTriples": ["aarch64-unknown-linux-gnu"],
+                    "staticLibraryMetadata": {
+                          "headerPaths": ["include"],
+                          "moduleMapPath": "include/example.modulemap"
+                    }
                 }
             ]
         }
@@ -123,7 +131,7 @@ The tool would then check that the referenced symbols list is a subset of the se
 This would be sufficient to guarantee that all symbols from the static library would be available at runtime for statically linked executables or for ones running on the build host. 
 To ensure maximum runtime compatibility we would also provide a Linux-based Docker image that uses the oldest supported `glibc` for a given Swift version.
 As `glibc` is backwards compatible, a container running the audit on a given static library would ensure that the version of `glibc` on any runtime platform would be compatible with the binary artifact.
-This strategy as been succesfully employed in the Python community with [`manylinux`](https://peps.python.org/pep-0513/).
+This strategy as been successfully employed in the Python community with [`manylinux`](https://peps.python.org/pep-0513/).
 
 ## Security
 
