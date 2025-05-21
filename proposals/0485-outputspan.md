@@ -1,9 +1,9 @@
 # OutputSpan: delegate initialization of contiguous memory
 
-* Proposal: TBD
+* Proposal: [SE-0485](0485-outputspan.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: **Pitch**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active Review (May 20...June 3, 2025)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: "Future" target of [swift-collections](https://github.com/apple/swift-collections/tree/future)
 * Review: [Pitch](https://forums.swift.org/)
@@ -58,7 +58,7 @@ In addition to the new types, we propose adding new API for some standard librar
 
 `OutputSpan` allows delegating the initialization of a type's memory, by providing access to an exclusively-borrowed view of a range of contiguous memory. `OutputSpan`'s contiguous memory always consists of a prefix of initialized memory, followed by a suffix of uninitialized memory. `OutputSpan`'s operations manage the initialization state in order to preserve that invariant. The common usage pattern we expect to see for `OutputSpan` consists of passing it as an `inout` parameter to a function, allowing the function to produce an output by writing into a previously uninitialized region.
 
-Like `MutableSpan`, `OutputSpan` relies on two guarantees: (a) that it has exclusive access to the range of memory it represents, and (b) that the memory locations it represents will remain valid for the duration of the access. These guarantee data race safety and temporal safety. `OutputSpan` performs bounds-checking on every access to preserve spatial safety. `OutputSpan` manages the initialization state of the memory in represents on behalf of the memory's owner.
+Like `MutableSpan`, `OutputSpan` relies on two guarantees: (a) that it has exclusive access to the range of memory it represents, and (b) that the memory locations it represents will remain valid for the duration of the access. These guarantee data race safety and lifetime safety. `OutputSpan` performs bounds-checking on every access to preserve bounds safety. `OutputSpan` manages the initialization state of the memory in represents on behalf of the memory's owner.
 
 #### OutputRawSpan
 
@@ -936,7 +936,7 @@ The additions described in this proposal require a new version of the Swift stan
 
 `OutputSpan` lays the groundwork for new, generalized `Container` protocols that will expand upon and succeed the `Collection` hierarchy while allowing non-copyability and non-escapability to be applied to both containers and elements. We hope to find method and property names that will be generally applicable. The origin of the `append(contentsOf:)` method we are expanding upon is the `RangeReplaceableCollection` protocol, which always represents copyable and escapable collections with copyable and escapable elements. The definition is as follows: `mutating func append<S: Sequence>(contentsOf newElements: __owned S)`. This supports copying elements from the source, while also destroying the source if we happen to hold its only copy. This is obviously not sufficient if the elements are non-copyable, or if we only have access to a borrow of the source.
 
-When the elements are non-copyable, we must append elements that are removed from the source. Afterwards, there are two possible dispositions of the source: destruction (`consuming`,) where the source can no longer be used, or mutation (`inout`,) where the source has been emptied but is still usable.
+When the elements are non-copyable, we must append elements that are removed from the source. Afterwards, there are two possible dispositions of the source: destruction (`consuming`), where the source can no longer be used, or mutation (`inout`), where the source has been emptied but is still usable.
 
 When the elements are copyable, we can simply copy the elements from the source. Afterwards, there are two possible dispositions of the source: releasing a borrowed source, or `consuming`. The latter is approximately the same behaviour as `RangeReplaceableCollection`'s `append()` function shown above.
 
@@ -985,7 +985,7 @@ A use case similar to appending is insertions. Appending is simply inserting at 
 
 #### Generalized removals
 
-Similarly to generalized insertions (i.e. not from the end,) we can think about removals of one or more elements starting at a given position. This also requires adding indexing. We expect to add generalized removals along with insertions if `OutputSpan` is accepted.
+Similarly to generalized insertions (i.e. not from the end), we can think about removals of one or more elements starting at a given position. This also requires adding indexing. We expect to add generalized removals along with insertions if `OutputSpan` is accepted.
 
 #### Variations on `Array.append(addingCapacity:initializingWith:)`
 
