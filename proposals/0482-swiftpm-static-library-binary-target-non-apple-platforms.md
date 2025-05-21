@@ -3,9 +3,9 @@
 * Proposal: [SE-0482](0482-swiftpm-static-library-binary-target-non-apple-platforms.md)
 * Authors: [Daniel Grumberg](https://github.com/daniel-grumberg), [Max Desiatov](https://github.com/MaxDesiatov), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Kuba Mracek](https://github.com/kubamracek)
-* Status: **Active Review (May 2nd...May 15th, 2025)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift-package-manager#6967](https://github.com/swiftlang/swift-package-manager/pull/6967) [swiftlang/swift-package-manager#8605](https://github.com/swiftlang/swift-package-manager/pull/8605)
-* Review: ([discussion](https://forums.swift.org/t/se-0482-binary-static-library-dependencies/79634)) ([pitch](https://forums.swift.org/t/pitch-swiftpm-support-for-binary-static-library-dependencies/78619))
+* Review: ([discussion](https://forums.swift.org/t/se-0482-binary-static-library-dependencies/79634)) ([pitch](https://forums.swift.org/t/pitch-swiftpm-support-for-binary-static-library-dependencies/78619)) ([acceptance](https://forums.swift.org/t/accepted-se-0482-binary-static-library-dependencies/80042))
 * Bugs: [Swift Package Manger Issue](https://github.com/swiftlang/swift-package-manager/issues/7035)
 
 ## Introduction
