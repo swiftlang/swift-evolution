@@ -1,9 +1,9 @@
 # Migration tooling for Swift features
 
-* Proposal: [SE-NNNN](NNNN-migratable-features.md)
+* Proposal: [SE-0486](0486-adoption-tooling-for-swift-features.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Franz Busch](https://github.com/FranzBusch)
+* Status: **Active Review (May 21...June 4, 2025)**
 * Implementation: TBD
 * Review: [pitch](https://forums.swift.org/t/pitch-adoption-tooling-for-upcoming-features/77936)
 
