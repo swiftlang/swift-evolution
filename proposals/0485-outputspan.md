@@ -6,7 +6,7 @@
 * Status: **Active Review (May 20...June 3, 2025)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: "Future" target of [swift-collections](https://github.com/apple/swift-collections/tree/future)
-* Review: [Pitch](https://forums.swift.org/)
+* Review: [Pitch](https://forums.swift.org/), [Review](https://forums.swift.org/t/se-0485-outputspan-delegate-initialization-of-contiguous-memory/80032)
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
