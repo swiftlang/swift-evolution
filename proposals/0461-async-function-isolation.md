@@ -204,7 +204,7 @@ actor MyActor {
 
 Changing the default execution semantics of async functions can change the
 behavior of existing code, so the change is gated behind the
-`AsyncCallerExecution` upcoming feature flag. To help stage in the new
+`NonisolatedNonsendingByDefault` upcoming feature flag. To help stage in the new
 behavior, new syntax can be used to explicitly specify the
 execution semantics of an async function in any language mode.
 
@@ -249,15 +249,15 @@ actor MyActor {
 
 `@concurrent` is the current default for nonisolated async
 functions. `nonisolated(nonsending)` will become the default for async functions
-when the `AsyncCallerExecution` upcoming feature is enabled.
+when the `NonisolatedNonsendingByDefault` upcoming feature is enabled.
 
 ## Detailed design
 
 The sections below will explicitly use `@concurrent` and
 `nonisolated(nonsending)` to demonstrate examples that will behave consistently
 independent of upcoming features or language modes. However, note that the
-end state under the `AsyncCallerExecution` upcoming feature will mean that
-`(nonsending)` is not necessary to explicitly write, and
+end state under the `NonisolatedNonsendingByDefault` upcoming feature will mean
+that `(nonsending)` is not necessary to explicitly write, and
 `@concurrent` will likely be used sparingly because it has far
 stricter data-race safety requirements.
 
@@ -1119,8 +1119,8 @@ The proposal was revised with the following changes after the first review:
 
 The proposal was revised with the following changes after the pitch discussion:
 
-* Gate the behavior change behind an `AsyncCallerExecution` upcoming feature
-  flag.
+* Gate the behavior change behind an `NonisolatedNonsendingByDefault` upcoming
+  feature flag.
 * Change the spelling of `@concurrent` to `@execution(concurrent)`, and add an
   `@execution(caller)` attribute to allow expressing the new behavior this
   proposal introduces when the upcoming feature flag is not enabled.
