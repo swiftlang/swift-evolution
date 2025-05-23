@@ -5,8 +5,8 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (May 20...June 3, 2025)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
-* Implementation: "Future" target of [swift-collections](https://github.com/apple/swift-collections/tree/future)
-* Review: [Pitch](https://forums.swift.org/), [Review](https://forums.swift.org/t/se-0485-outputspan-delegate-initialization-of-contiguous-memory/80032)
+* Implementation: [swiftlang/swift#81637](https://github.com/swiftlang/swift/pull/81637)
+* Review: [Pitch](https://forums.swift.org/t/pitch-outputspan/79473), [Review](https://forums.swift.org/t/se-0485-outputspan-delegate-initialization-of-contiguous-memory/80032)
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
@@ -439,8 +439,8 @@ extension OutputRawSpan {
   /// A Boolean value indicating whither the span is full.
   public var isFull: Bool { get }
 
-  /// The nmuber of uninitialized bytes remaining in this `OutputRawSpan`
-  public var available: Int { get } // capacity - byteCount
+  /// The number of uninitialized bytes remaining in this `OutputRawSpan`
+  public var freeCapacity: Int { get } // capacity - byteCount
 }
 ```
 
