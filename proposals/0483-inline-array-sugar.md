@@ -31,7 +31,7 @@ This becomes more pronounced when dealing with multiple dimensions:
 let fiveByFive: InlineArray<5, InlineArray<5, Int>> = .init(repeating: .init(repeating: 99))
 ```
 
-Almost every other language in a similar category to Swift – C, C++, Objective-C, Pascal, Go, Rust, Zig, Java, C# – has a simple syntax for their fixed-size array type. The introduction of a fixed-size array type into Swift should also introduce a shorthand syntax, in keeping with Swift's general approach of low ceremony and concise syntax. Swift's further deviates from its peer languages by giving its _dynamic_ array type, `Array` (known in many other languages as `vector`) a sugared form. This can lead fo an assumption that `Array` should be used under almost all circumstances, despite it having signficant downsides in many uses.
+Almost every other language in a similar category to Swift – C, C++, Objective-C, Pascal, Go, Rust, Zig, Java, C# – has a simple syntax for their fixed-size array type. The introduction of a fixed-size array type into Swift should also introduce a shorthand syntax, in keeping with Swift's general approach of low ceremony and concise syntax. Swift's further deviates from its peer languages by giving its _dynamic_ array type, `Array` (known in many other languages as `vector`) a sugared form. This can lead fo an assumption that `Array` should be used under almost all circumstances, despite it having signficant downsides in many uses (see further discussion in alternatives considered).
 
 ## Proposed solution
 
