@@ -2,14 +2,15 @@
 
 * Proposal: [SE-NNNN](NNNN-extensible-enums.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Franz Busch](https://github.com/FranzBusch), [Cory Benfield](https://github.com/lukasa)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **In active review (May 25—Jun 5, 2025)**
 * Bug: [apple/swift#55110](https://github.com/swiftlang/swift/issues/55110)
 * Implementation: [apple/swift#80503](https://github.com/swiftlang/swift/pull/80503)
-* Upcoming Feature Flag: `ExtensibleEnums`
+* Upcoming Feature Flag: `ExtensibleAttribute`
 * Review: ([pitch](https://forums.swift.org/t/pitch-extensible-enums-for-non-resilient-modules/77649))
 
 Previously pitched in:
+
 - https://forums.swift.org/t/extensible-enumerations-for-non-resilient-libraries/35900
 - https://forums.swift.org/t/pitch-non-frozen-enumerations/68373
 
@@ -37,22 +38,12 @@ more useful in public API of such libraries.
 
 ## Motivation
 
-When Swift was enhanced to add support for "library evolution" mode (henceforth
-called "resilient" mode), the Swift project had to make a number of changes to
-support a movable scale between "maximally evolvable" and "maximally
-performant". This is because it is necessary for an ABI stable library to be
-able to add new features and API surface without breaking pre-existing compiled
-binaries. While by-and-large this was done without introducing feature
-mismatches between the "resilient" and default "non-resilient" language
-dialects, the `@frozen` attribute when applied to enumerations managed to
-introduce a difference. This difference was introduced late in the process of
-evolving SE-0192, and this proposal would aim to address it.
-
-`@frozen` is a very powerful attribute. It can be applied to both structures and
-enumerations. It has a wide ranging number of effects, including exposing their
-size directly as part of the ABI and providing direct access to stored
-properties. However, on enumerations it happens to also exert effects on the
-behavior of switch statements.
+When Swift was enhanced to add support for ABI-stable libraries that were built with
+"library evolution" enabled ("resilient" libraries as we call them in this proposal),
+the Swift language had to support these libraries vending enums that might have cases
+added to them in a later version. Swift supports exhaustive switching over cases.
+When binaries are compiled against a ABI-stable library they need to be able to handle the
+addition of a new case by that library later on, without needing to be rebuilt.
 
 Consider the following simple library to your favorite pizza place:
 
@@ -62,16 +53,10 @@ public enum PizzaFlavor {
     case pepperoni
     case cheese
 }
-
-public func bakePizza(flavor: PizzaFlavor)
 ```
 
-Depending on whether the library is compiled with library evolution mode
-enabled, what the caller can do with the `PizzaFlavor` enum varies. Specifically,
-the behavior in switch statements changes.
-
-In the _standard_, "non-resilient" mode, users of the library can write
-exhaustive switch statements over the enum `PizzaFlavor`:
+In the standard "non-resilient" mode, users of the library can write exhaustive switch
+statements over the enum `PizzaFlavor`:
 
 ```swift
 switch pizzaFlavor {
@@ -85,27 +70,33 @@ case .cheese:
 }
 ```
 
-This code will happily compile. If the author of the above switch statement was
-missing a case (perhaps they forgot `.hawaiian` is a flavor), the compiler will
-error, and force the user to either add a `default:` clause, or to express a
-behavior for the missing case. The term for this is "exhaustiveness": in the
-default "non-resilient" dialect, the Swift compiler will ensure that all switch
-statements over enumerations cover every case that is present.
+Swift requires switches to be exhaustive i.e. the must handle every possibility.
+If the author of the above switch statement was missing a case (perhaps they forgot
+`.hawaiian` is a flavor), the compiler will error, and force the user to either add a
+`default:` clause, or to add the missing case.
 
-There is a downside to this mode. If the library wants to add a new flavour
-(maybe `.veggieSupreme`), they are in a bind. If any user anywhere has written
-an exhaustive switch over `PizzaFlavor`, adding this flavor will be an API and
-ABI breaking change, as the compiler will error due to the missing case
-statement for the new enum case.
+If later a new case is added to the enum (maybe `.veggieSupreme`), exhaustive switches
+over that enum might no longer be exhaustive. This is often _desirable_ within a single
+codebase (even one split up into multiple modules). A case is added, and the compiler will
+assist in finding all the places where this new case must be handled.
+
+But it presents a problem for authors of both resilient and non-resilient libraries:
+
+- For non-resilient libraries, adding a case is a source-breaking API change: clients
+exhaustively switching over the enum will no longer compile. So can only be done with
+a major semantic version bump.
+- For resilient libraries, even that is not an option. An ABI-stable library cannot allow
+a situation where a binary that has not yet been recompiled can no longer rely on its
+switches over an enum are exhaustive.
 
 Because of the implications on ABI and the requirement to be able to evolve
-libraries with public enumerations in their API, the resilient language dialect
-behaves differently. If the library was compiled with `enable-library-evolution`
-turned on, when a user attempts to exhaustively switch over the `PizzaFlavor`
-enum the compiler will emit a warning, encouraging users to add an `@unknown
-default:` clause. Thus, to avoid the warning the user would be forced to
-consider how new enumeration cases should be treated. They may arrive at
-something like this:
+libraries with public enumerations in their API, the resilient language dialect introduced
+"non-exhaustive enums" in [SE-0192](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0192-non-exhaustive-enums.md).
+
+If the library was compiled with `-enable-library-evolution`, when a user attempts to
+exhaustively switch over the `PizzaFlavor` enum the compiler will emit an error
+(when in Swift 6 language mode, a warning in prior language modes), requiring users
+to add an `@unknown default:` clause:
 
 ```swift
 switch pizzaFlavor {
@@ -122,20 +113,30 @@ case .cheese:
 }
 ```
 
-When a resilient library knows that an enumeration will not be extended, and
-wants to improve the performance of using it, the author can annotate the enum
-with `@frozen`. This annotation has a wide range of effects, but one of its
-effects is to enable callers to perform exhaustive switches over the frozen
-enumeration. Thus, resilient library authors that are interested in the
-exhaustive switching behavior are able to opt-into it.
+The user is forced to specify how cases are handled if they are introduced later. This
+allows ABI-stable libraries to add cases without risking undefined behavior in client
+binaries that haven't yet been recompiled.
 
-However, in Swift today it is not possible for the default, "non-resilient"
-dialect to opt-in to the extensible enumeration behavior. That is, there is no
-way for a Swift package to be able to evolve a public enumeration without
-breaking the API. This is a substantial limitation, and greatly reduces the
-utility of enumerations in non-resilient Swift. Over the past years, many
-packages ran into this limitation when trying to express APIs using enums. As a
-non-exhaustive list of problems this can cause:
+When a resilient library knows that an enumeration will never be extended, the author
+can annotate the enum with `@frozen`, which in the case of enums is a guarantee that no
+further cases can be added. For example, the `Optional` type in the standard library is
+frozen, as no third option beyond `some` and `none` will ever be added. This brings
+performance benefits, and also the convenience of not requiring an `@unknown default` case.
+
+`@frozen` is a powerful attribute that can be applied to both structs and enums. It has a
+wide ranging number of effects, including exposing their size directly as part of the ABI
+and providing direct access to stored properties. However, on enums it happens to
+have source-level effects on the behavior of switch statements by clients of a library.
+This difference was introduced late in the process of reviewing SE-0192.
+
+Extensibility of enums is also desirable for non-resilient libraries. Without it, there is no
+way for a Swift package to be able to evolve a public enumeration without breaking the API.
+However, in Swift today it is not possible for the default, "non-resilient" dialect to opt-in
+to the extensible enumeration behavior. This is a substantial limitation, and greatly reduces
+the utility of enumerations in non-resilient Swift.
+ 
+Over the past years, many packages have run into this limitation when trying to express APIs
+using enums. As a non-exhaustive list of problems this can cause:
 
 - Using enumerations to represent `Error`s is inadvisable, as if new errors need
   to be introduced they cannot be added to existing enumerations. This leads to
@@ -186,9 +187,9 @@ case .cheese:
 ### Exhaustive switching inside same module/package
 
 Code inside the same module or package can be thought of as one co-developed
-unit of code. Switching over an `@extensible` enum inside the same module or
-package will require exhaustive matching to avoid unnecessary `@unknown default`
-cases.
+unit of code. Inside the same module or package, switching exhaustively over an
+`@extensible` enum inside will not require an`@unknown default`, and using
+one will generate a warning.
 
 ### `@extensible` and `@frozen`
 
@@ -282,7 +283,11 @@ Swift package ecosystem. We still believe that a future proposal should try
 aligning the language dialects. This proposal is focused on providing a first
 step to allow extensible enums in non-resilient modules.
 
-### `@unknown case`
+Regardless of whether a future language mode changes the default for non-resilient
+libraries, a way of staging in this change will be required (similar to how the
+`@preconcurency` attribute facilitated incremental adoption of Swift concurrency).
+
+### `@unknown catch`
 
 Enums can be used for errors. Catching and pattern matching enums could add
 support for an `@unknown catch` to make pattern matching of typed throws align
