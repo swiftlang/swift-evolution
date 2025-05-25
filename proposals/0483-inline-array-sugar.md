@@ -50,10 +50,10 @@ The new syntax consists of the value for the integer generic parameter and the t
 This will be added to the grammar alongside the current type sugar:
 
 > **Grammar of a type**
-> *type → sized-array-type*
+> _type → sized-array-type_
 >
 > **Grammar of a sized array type**
-> *sized-array-type → \[ expression `of` type ]*
+> _sized-array-type → [ expression `x` type ]_
 
 Note that while the grammar allows for any expression, this is currently limited to only integer literals, as required by the current implementation of `InlineArray`. If that restriction changes, so would the valuye allowed in the expression in the sugar.
 
