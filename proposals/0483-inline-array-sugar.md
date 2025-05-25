@@ -81,7 +81,7 @@ MemoryLayout<[5 of Int]>.size
 unsafeBitCast((1,2,3), to: [3 of Int].self)
 ```
 
-There must be whitespace on either side of the separator; i.e., you cannot write `[5of Int]`. There are no requirements to balance whitespace; `[5 of Int]` is permitted. A new line can appear after the `of` but not before it, as while this is not ambiguous, this aids with the parser recovery logic, leading to better syntax error diagnostics.
+There must be whitespace on either side of the separator; i.e., you cannot write `[5of Int]`. There are no requirements to balance whitespace; `[5      of Int]` is permitted. A new line can appear after the `of` but not before it, as while this is not ambiguous, this aids with the parser recovery logic, leading to better syntax error diagnostics.
 
 ## Source Compatibility
 
