@@ -3,9 +3,9 @@
 * Proposal: [SE-0486](0486-adoption-tooling-for-swift-features.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Franz Busch](https://github.com/FranzBusch)
-* Status: **Active Review (May 21...June 4, 2025)**
-* Implementation: TBD
-* Review: [pitch](https://forums.swift.org/t/pitch-adoption-tooling-for-upcoming-features/77936)
+* Status: **Active Review (May 26...June 8, 2025)**
+* Implementation: https://github.com/swiftlang/swift-package-manager/pull/8613
+* Review: [Pitch](https://forums.swift.org/t/pitch-adoption-tooling-for-upcoming-features/77936), [Review](https://forums.swift.org/t/se-0486-migration-tooling-for-swift-features/80121)
 
 ## Introduction
 
