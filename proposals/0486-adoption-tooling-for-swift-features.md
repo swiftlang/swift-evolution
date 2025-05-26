@@ -162,7 +162,7 @@ using `-print-diagnostic-groups` and used to associate messages with features.
 
 ### `swift package migrate` command
 
-To enable seemless migration experience for Swift packages, I'd like to propose a new Swift Package Manager command - `swift package migrate` to complement the Swift compiler-side changes.
+To enable seamless migration experience for Swift packages, I'd like to propose a new Swift Package Manager command - `swift package migrate` to complement the Swift compiler-side changes.
 
 The command would accept one or more features that have migration mode enabled and optionally a set of targets to migrate, if no targets are specified the whole package is going to be migrated to use new features.
 
@@ -211,11 +211,11 @@ enable the feature(s) if both of the previous actions are successful:
 In the "whole package" mode, every target is going to be updated to include
 new feature flag(s). This is supported by the same functionality as `swift package add-setting` command.
 
-If it's, for some reason, impossible to add the setting the diagnostic message would suggest what to add and where i.e. `...; please add 'ExistentialAny' feature to `MyTarget` target manually`.
+If it's, for some reason, impossible to add the setting the diagnostic message would suggest what to add and where i.e. `...; please add 'ExistentialAny' feature to 'MyTarget' target manually`.
 
 #### Impact on Interface
 
-This proposal introduces a new command but does that does not interfere with existing commands. It follows the same pattern as `swift build` and `swift test` in a consistent manner.
+This proposal introduces a new command but does not interfere with existing commands. It follows the same pattern as `swift build` and `swift test` in a consistent manner.
 
 ## Source compatibility
 
@@ -278,20 +278,20 @@ is essential for future tools built around migration mode:
 
 ### A distinct `-migrate` option
 
-This direction has a questionably balanced set of advantanges and downsides.
+This direction has a questionably balanced set of advantages and downsides.
 On one hand, it would provide an adequate foundation for invoking migration
 for a language mode in addition to individual features.
 On the other hand, an independent option is less discoverable, has a steeper
 learning curve, and makes the necessary relationships between it and the
 existing `-enable-*-feature` options harder to infer.
 Perhaps more notably, a bespoke option by itself would not scale to any future
-modes, setting what might be an unfortunate example for further decentralizion
+modes, setting what might be an unfortunate example for further decentralization
 of language feature control.
 
 ### API for package manifests
 
 The decision around surfacing migration mode in the `PackageDescription`
-library depends on whether there is a concensus on the value of enabling it as
+library depends on whether there is a consensus on the value of enabling it as
 a persistent setting as opposed to an automated procedure in the long run.
 
 Here is how an API change could look like for the proposed solution:
@@ -347,7 +347,7 @@ The next candidates in line per discussions are ***adopt***, ***audit***,
   
 ### `swift package migrate` vs. `swift migrate`
 
-Rather than have migrate as a subcommand (ie. `swift package migrate`), another option is add another top level command, ie. `swift migrate`.
+Rather than have migrate as a subcommand (ie. `swift package migrate`), another option is to add another top level command, ie. `swift migrate`.
 
 As the command applies to the current package, we feel a `swift package` sub-command fits better than a new top-level command. This also aligns with the recently added package refactorings (eg. `add-target`).
 
