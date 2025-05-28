@@ -7,7 +7,6 @@
 * Implementation: [swiftlang/swift-package-manager#8315](https://github.com/swiftlang/swift-package-manager/pull/8315)
 * Review: ([pitch](https://forums.swift.org/t/pitch-warning-control-settings-for-swiftpm/78666)) ([review](https://forums.swift.org/t/se-0480-warning-control-settings-for-swiftpm/79475)) ([returned for revision](https://forums.swift.org/t/se-0480-warning-control-settings-for-swiftpm/79475/8))
 * Previous Proposal: [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md)
-* Previous revisions: [1](https://github.com/swiftlang/swift-evolution/blob/eed1fed8339f3919cf5c0f36b804431022d44720/proposals/0480-swiftpm-warning-control.md)
 
 ## Introduction
 
@@ -324,13 +323,6 @@ This approach, combined with the existing behavior where remote (dependency) pac
 The warning control settings introduced by this proposal only apply when a package is built directly and are suppressed when the package is consumed as a remote dependency.
 
 During the review of this proposal, it was suggested that this "development-only" characteristic could be made more explicit, perhaps by introducing a distinct category of settings (e.g., `devSwiftSettings`). This is an interesting avenue for future exploration. SwiftPM already has a few other settings that exhibit similar behavior. A dedicated future proposal for "development-only" settings could address all such use cases holistically, providing a clearer and more general mechanism for package authors to distinguish between "dev-only" settings and those that propagate to consumers.
-
-## Revision History
-
-Revisions based on review feedback:
-
-- Added a future direction discussing potential support for C/C++ compilers beyond Clang.
-- Added a future direction to explore formalizing "dev-only" build settings.
 
 ## Acknowledgments
 
