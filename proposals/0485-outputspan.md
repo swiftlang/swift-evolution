@@ -126,7 +126,9 @@ extension OutputSpan where Element: ~Copyable {
   /// Append a single element to this `OutputSpan`.
   @lifetime(self: copy self)
   public mutating func append(_ value: consuming Element)
+}
 
+extension OutputSpan {
   /// Repeatedly append an element to this `OutputSpan`.
   @lifetime(self: copy self)
   public mutating func append(repeating repeatedValue: Element, count: Int)
