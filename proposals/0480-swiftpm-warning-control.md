@@ -38,16 +38,18 @@ public enum WarningLevel: String {
     case error
 }
 
-public static func treatAllWarnings(
-    as level: WarningLevel,
-    _ condition: BuildSettingCondition? = nil
-) -> SwiftSetting // or CSetting or CXXSetting
+extension SwiftSetting { // Same for CSetting and CXXSetting
+    public static func treatAllWarnings(
+        as level: WarningLevel,
+        _ condition: BuildSettingCondition? = nil
+    ) -> SwiftSetting // or CSetting or CXXSetting
 
-public static func treatWarning(
-    _ name: String,
-    as level: WarningLevel,
-    _ condition: BuildSettingCondition? = nil
-) -> SwiftSetting // or CSetting or CXXSetting
+    public static func treatWarning(
+        _ name: String,
+        as level: WarningLevel,
+        _ condition: BuildSettingCondition? = nil
+    ) -> SwiftSetting // or CSetting or CXXSetting
+}
 ```
 
 #### C/C++-specific API
@@ -55,15 +57,17 @@ public static func treatWarning(
 In C/C++ targets, we can also enable or disable specific warning groups, in addition to controlling their severity.
 
 ```swift
-public static func enableWarning(
-    _ name: String,
-    _ condition: BuildSettingCondition? = nil
-) -> CSetting // or CXXSetting
+extension CSetting { // Same for CXXSetting
+    public static func enableWarning(
+        _ name: String,
+        _ condition: BuildSettingCondition? = nil
+    ) -> CSetting // or CXXSetting
 
-public static func disableWarning(
-    _ name: String,
-    _ condition: BuildSettingCondition? = nil
-) -> CSetting // or CXXSetting
+    public static func disableWarning(
+        _ name: String,
+        _ condition: BuildSettingCondition? = nil
+    ) -> CSetting // or CXXSetting
+}
 ```
 _The necessity of these functions is also explained below in the Alternatives considered section._
 
@@ -279,6 +283,46 @@ This necessitates separate functions to enable and disable warnings. Therefore, 
 ### Package-level settings
 
 It has been noted that warning control settings are often similar across all targets. It makes sense to declare them at the package level while allowing target-level customizations. However, many other settings would also likely benefit from such inheritance, and SwiftPM doesn't currently provide such an option. Therefore, it was decided to factor this improvement out and look at all the settings holistically in the future.
+
+### Support for other C/C++ Compilers
+
+The C/C++ warning control settings introduced in this proposal are initially implemented with Clang's warning flag syntax as the primary target. However, the API itself is largely compiler-agnostic, and there's potential to extend support to other C/C++ compilers in the future.
+
+For instance, many of the proposed functions could be mapped to flags for other compilers like MSVC:
+
+| SwiftPM Setting                   | Clang             | MSVC (Potential Mapping) |
+| :-------------------------------- | :---------------- | :----------------------- |
+| `.treatAllWarnings(as: .error)`   | `-Werror`         | `/WX`                    |
+| `.treatAllWarnings(as: .warning)` | `-Wno-error`      | `/WX-`                   |
+| `.treatWarning("name", as: .error)`| `-Werror=name`    | `/we####` (where `####` is MSVC warning code) |
+| `.treatWarning("name", as: .warning)`| `-Wno-error=name` | No direct equivalent     |
+| `.enableWarning("name")`          | `-Wname`          | `/wL####` (e.g., `/w4####` to enable at level 4) |
+| `.disableWarning("name")`         | `-Wno-name`       | `/wd####`                |
+
+Where direct mappings are incomplete (like `.treatWarning(as: .warning)` for MSVC, which doesn't have a per-warning equivalent to Clang's `-Wno-error=XXXX`), SwiftPM could emit diagnostics indicating the setting is not fully supported by the current compiler. If more fine-grained control is needed for a specific compiler (e.g., MSVC's warning levels `0-4` for `enableWarning`), future enhancements could introduce compiler-specific settings or extend the existing API.
+
+A key consideration is the handling of warning names or codes (the `"name"` parameter in the API). SwiftPM does not maintain a comprehensive list of all possible warning identifiers and their mapping across different compilers. Instead, package authors would be responsible for providing the correct warning name or code for the intended compiler.
+
+To facilitate this, if support for other C/C++ compilers is added, the existing `BuildSettingCondition` API could be extended to allow settings to be applied conditionally based on the active C/C++ compiler. For example:
+
+```swift
+cxxSettings: [
+    // Clang-specific warning
+    .enableWarning("unused-variable", .when(cxxCompiler: .clang)),
+    // MSVC-specific warning (using its numeric code)
+    .enableWarning("4101", .when(cxxCompiler: .msvc)),
+    // Common setting that maps well
+    .treatAllWarnings(as: .error)
+]
+```
+
+This approach, combined with the existing behavior where remote (dependency) packages have their warning control flags stripped and replaced with suppression flags, would allow projects to adopt new compilers. Even if a dependency uses Clang-specific warning flags, it would not cause build failures when the main project is built with a different compiler like MSVC, as those flags would be ignored.
+
+### Formalizing "Development-Only" Build Settings
+
+The warning control settings introduced by this proposal only apply when a package is built directly and are suppressed when the package is consumed as a remote dependency.
+
+During the review of this proposal, it was suggested that this "development-only" characteristic could be made more explicit, perhaps by introducing a distinct category of settings (e.g., `devSwiftSettings`). This is an interesting avenue for future exploration. SwiftPM already has a few other settings that exhibit similar behavior. A dedicated future proposal for "development-only" settings could address all such use cases holistically, providing a clearer and more general mechanism for package authors to distinguish between "dev-only" settings and those that propagate to consumers.
 
 ## Acknowledgments
 
