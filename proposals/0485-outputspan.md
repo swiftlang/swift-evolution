@@ -473,24 +473,36 @@ Initializing an `OutputRawSpan` from a `Sequence` or other container type must u
 ```swift
 extension OutputRawSpan {
   /// Initialize the span's bytes with every byte of the source.
+  ///
+  /// It is a precondition that the `OutputRawSpan`'s uninitialized suffix
+  /// can contain every byte of the source.
   @lifetime(self: copy self)
   public mutating func append<T: BitwiseCopyable(
     contentsOf source: consuming some Sequence<T>, as type: T.Type
   )
 
   /// Initialize the span's bytes with every byte of the source.
+  ///
+  /// It is a precondition that the `OutputRawSpan`'s uninitialized suffix
+  /// can contain every byte of the source.
   @lifetime(self: copy self)
   public mutating func append<T: BitwiseCopyable(
     contentsOf source: Span<T>, as type: T.Type
   )
 
   /// Initialize the span's bytes with every byte of the source.
+  ///
+  /// It is a precondition that the `OutputRawSpan`'s uninitialized suffix
+  /// can contain every byte of the source.
   @lifetime(self: copy self)
   public mutating func append(
     contentsOf source: RawSpan
   )
 
   /// Initialize the span's bytes with every byte of the source.
+  ///
+  /// It is a precondition that the `OutputRawSpan`'s uninitialized suffix
+  /// can contain every byte of the source.
   @lifetime(self: copy self)
   public mutating func append(
     contentsOf source: UnsafeRawBufferPointer
