@@ -457,7 +457,7 @@ extension OutputRawSpan {
   /// Appends the given value's bytes to this span's initialized bytes
   @lifetime(self: copy self)
   public mutating func append<T: BitwiseCopyable>(
-    of value: T, as type: T.Type
+    _ value: T, as type: T.Type
   )
 
   /// Appends the given value's bytes repeatedly to this span's initialized bytes
