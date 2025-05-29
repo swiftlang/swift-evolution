@@ -3,9 +3,9 @@
 * Proposal: [SE-0460](0460-specialized.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (January 29 ... February 11, 2025)**
+* Status: **Accepted**
 * Implementation: Available in nightly toolchains using the underscored `@_specialize`
-* Discussion: ([pitch](https://forums.swift.org/t/pitch-explicit-specialization/76967))([review](https://forums.swift.org/t/se-0460-explicit-specialization/77541))
+* Review: ([pitch](https://forums.swift.org/t/pitch-explicit-specialization/76967)) ([review](https://forums.swift.org/t/se-0460-explicit-specialization/77541)) ([acceptance](https://forums.swift.org/t/accepted-se-0460-explicit-specialization/78583))
 
 ## Introduction
 

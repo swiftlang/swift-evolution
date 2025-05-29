@@ -3,7 +3,7 @@
 * Proposal: [SE-0441](0441-formalize-language-mode-terminology.md)
 * Author: [James Dempsey](https://github.com/dempseyatgithub)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted** 
+* Status: **Implemented (Swift 6.1)**
 * Implementation: [swiftlang/swift-package-manager#7620](https://github.com/swiftlang/swift-package-manager/pull/7620), [swiftlang/swift#75564](https://github.com/swiftlang/swift/pull/75564)
 * Review: ([first pitch](https://forums.swift.org/t/pitch-formalize-swift-language-mode-naming-in-tools-and-api/71733)) ([second pitch](https://forums.swift.org/t/pitch-2-formalize-language-mode-naming-in-tools-and-api/72136)) ([review](https://forums.swift.org/t/se-0441-formalize-language-mode-terminology/73182)) ([acceptance](https://forums.swift.org/t/accepted-se-0441-formalize-language-mode-terminology/73716))
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0371](0371-isolated-synchronous-deinit.md)
 * Author: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
 * Review Manager: [Frederick Kellison-Linn](https://github.com/jumhyn)
-* Status: **Implemented (Swift 6.1)**
+* Status: **Implemented (Swift 6.2)**
 * Implementation: [apple/swift#60057](https://github.com/apple/swift/pull/60057)
 * Review: ([first pitch](https://forums.swift.org/t/isolated-synchronous-deinit/58177)) ([first review](https://forums.swift.org/t/se-0371-isolated-synchronous-deinit/59754)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0371-isolated-synchronous-deinit/60060)) ([discussion](https://forums.swift.org/t/isolated-synchronous-deinit-2/62565)) ([second pitch](https://forums.swift.org/t/pitch-2-se-0371-isolated-async-deinit/64836)) ([sub-pitch](https://forums.swift.org/t/sub-pitch-task-local-values-in-isolated-synchronous-deinit-and-async-deinit/70060)) ([second review](https://forums.swift.org/t/second-review-se-0371-isolated-synchronous-deinit/73406)) ([accepted with modifications](https://forums.swift.org/t/accepted-with-modifications-se-0371-isolated-synchronous-deinit/74042))
 

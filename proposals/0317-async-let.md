@@ -148,7 +148,7 @@ func asynchronous() async {
 and inside asynchronous closures:
 
 ```swift
-func callMe(_ maybe: () async -> String) async -> String 
+func callMe(_ maybe: () async -> String) async -> String {
   return await maybe()
 }
 

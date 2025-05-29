@@ -3,7 +3,7 @@
 * Proposal: [SE-0452](0452-integer-generic-parameters.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Implementation: [swiftlang/swift#75518](https://github.com/swiftlang/swift/pull/75518), [swiftlang/swift#78248](https://github.com/swiftlang/swift/pull/78248)
 * Review: ([pitch](https://forums.swift.org/t/integer-generic-parameters/74181)) ([first review](https://forums.swift.org/t/se-0452-integer-generic-parameters/75844)) ([second review](https://forums.swift.org/t/second-review-se-0452-integer-generic-parameters/77043)) ([acceptance](https://forums.swift.org/t/accepted-se-0452-integer-generic-parameters/77507))
 
