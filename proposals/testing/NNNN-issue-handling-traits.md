@@ -4,7 +4,9 @@
 * Authors: [Stuart Montgomery](https://github.com/stmontgomery)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [swiftlang/swift-testing#1080](https://github.com/swiftlang/swift-testing/pull/1080), [swiftlang/swift-testing#1121](https://github.com/swiftlang/swift-testing/pull/1121)
+* Implementation: [swiftlang/swift-testing#1080](https://github.com/swiftlang/swift-testing/pull/1080),
+  [swiftlang/swift-testing#1121](https://github.com/swiftlang/swift-testing/pull/1121),
+  [swiftlang/swift-testing#1136](https://github.com/swiftlang/swift-testing/pull/1136)
 * Review: ([pitch](https://forums.swift.org/t/pitch-issue-handling-traits/80019))
 
 ## Introduction
